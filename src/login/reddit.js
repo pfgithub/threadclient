@@ -27,3 +27,5 @@ fetch("https://www.reddit.com/api/v1/access_token", {
     localStorage.setItem("reddit-secret", JSON.stringify(res_data));
     uhtml.render(document.body, uhtml.html`<div class="note">Success! You may now close this page</div>`);
 }).catch(e => console.log(e));
+// if this request fails, it could be
+// : firefox tracker prevention for some reason disallows this

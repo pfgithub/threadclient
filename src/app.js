@@ -27,25 +27,68 @@ const query = items => {
 function reddit() {
     const is_logged_in = localStorage.getItem("authorized_code");
 
-    const pathURL = (path) => "https://www.reddit.com/"+path.path;
+    const pathURL = (path) => "https://oauth.reddit.com/"+path.path+".json";
+
+    const threadFrom = (path) => ({path, options: {}});
 
     const listingToThread = (listing) => {
+        console.log(listing);
+        if(Array.isArray(listing)) return listingToThread(listing[1]);
         const {data} = listing;
         const res = {};
         if(res.kind === "Listing") {
             res.title = "Listing";
         }else{
             res.title = data.title;
+            res.body = data.body;
             res.actions = [{name: "Reply"}];
             res.stats = [{name: "Votes", count: data.score}];
         }
         res.children = [];
+        // ok this isn't structured well atm
+        // this needs a redo
+        // children is []Node. replies is Node.
         if(data.children) for(const child of data.children) {
             res.children.push(listingToThread(child));
         }
-        res.children.push({"load_more": "TODO"});
+        res.children.push({"load_more": threadFrom(data.permalink || "TODO")});
         return res;
     };
+
+    const getAccessToken = async () => {
+        const data = localStorage.getItem("reddit-secret");
+        if(!data) return null;
+        const json = JSON.parse(data);
+        console.log(json.expires, Date.now());
+        if(json.expires < Date.now()) {
+            // refresh token
+            console.log("Token expired, refreshing…");
+            const v = await (await fetch("https://www.reddit.com/api/v1/access_token", {
+                method: "POST", mode: "cors", credentials: "omit",
+                headers: {
+                    'Authorization': "Basic "+btoa(client_id+":"),
+                    'Content-Type': "application/x-www-form-urlencoded",
+                },
+                body: url`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
+            })).json();
+            const res_data = {
+                access_token: v.access_token,
+                refresh_token: v.refresh_token,
+                expires: Date.now() + (v.expires_in * 1000),
+                scope: v.scope,
+            };
+            localStorage.setItem("reddit-secret", JSON.stringify(res_data));
+            console.log("Refreshed √");
+            return res_data.access_token;
+        }
+        return json.access_token;
+    }
+
+    const getAuthorization = async () => {
+        const access_token = await getAccessToken();
+        if(!access_token) return '';
+        return 'Bearer '+access_token;
+    }
 
     const res = {
         login_url: "",
@@ -66,24 +109,34 @@ function reddit() {
             return url;
         },
         homeThread() {
-            return {path: ".json", options: {}};
+            return threadFrom("");
         },
         async getThread(path) {
             try {
-                const listing = await (await fetch(pathURL(path))).json();
+                const listing = await (await fetch(pathURL(path), {
+                    mode: "cors", credentials: "omit",
+                    headers: {
+                        'Authorization': await getAuthorization(),
+                        // nooo f
+                        // access-control-allow-headers	X-Signature,X-Signature-v2,Content-Type,Origin,Accept,X-origination-host,X-origination-path
+                        // none of those are authorization
+                        // oops proxy time
+                    }
+                })).json();
+                console.log(listing);
                 return listingToThread(listing);
             }catch(e) {
                 return {
                     title: "Error!",
                     error: true,
-                    comments: [
+                    children: [
                         {"load_more": path}
                     ],
                 };
             }
         },
         getThreadViewerLink(path) {
-            return "/reddit/"+path.path;
+            return "?service=reddit&path="+encodeURIComponent(path.path);
         }
     };
     return res;
@@ -150,6 +203,7 @@ function clientListing(client, listing) { return {insertBefore(parent, before_on
     const children_node = {current: null};
     uhtml.render(frame, html`
         <div class="post-title">${listing.title}</div>
+        <div class="post-body">${listing.body}</div>
         <ul ref=${children_node}></ul>
     `);
     const addChildren = (children, li_before_once) => {
@@ -162,7 +216,7 @@ function clientListing(client, listing) { return {insertBefore(parent, before_on
                     uhtml.render(v, html`Loading…`);
                     const comments = await client.getThread(thread_link);
                     v.remove();
-                    if(comments.comments) addChildren(comments.comments, after_node);
+                    if(comments.children) addChildren(comments.children, after_node);
                 }, html`Load more…`));
 
                 const after_node = document.createComment("");
