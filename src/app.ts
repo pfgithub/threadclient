@@ -184,7 +184,7 @@ function reddit() {
     };
     const threadFromListing = (listing_raw: RedditPost): GenericThread => {
         const listing = listing_raw.data;
-        console.log("Post: ",listing);
+        // console.log("Post: ",listing);
         const result: GenericThread = {
             title: listing.title ?? "",
             body: {kind: "text", content: listing.body_html ?? ""},
@@ -236,7 +236,7 @@ function reddit() {
                         'Authorization': await getAuthorization(),
                     } : {},
                 }).then(v => v.json());
-                console.log(listing);
+                // console.log(listing);
 
                 return pageFromListing(listing);
             }catch(e) {
@@ -349,7 +349,7 @@ function linkButton(href: string, onclick: () => void, children: any) {
 
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
-    console.log(listing);
+    // console.log(listing);
 
     const frame = document.createElement("div");
     defer(() => frame.remove());
@@ -464,7 +464,13 @@ function clientLoginPage(client: ThreadClient, query: URLSearchParams) { return 
 
 window.onpopstate = (ev: PopStateEvent) => {
     // onNavigate(ev?.state.index ?? 0);
-    onNavigate(ev.state ? ev.state.index : 0, location);
+    console.log("onpopstate. ev:",ev.state);
+    if(ev.state?.session_name !== session_name) {
+        console.log("Going to history item from different session");
+        onNavigate(0, location);
+        return;
+    }
+    onNavigate(ev.state?.index ?? 0, location);
 };
 
 const client_cache: {[key: string]: ThreadClient} = {};
@@ -482,14 +488,18 @@ type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () =
 type NavigationEntry = {url: string, node: NavigationEntryNode};
 const nav_history: NavigationEntry[] = [];
 
+let session_name = "" + Math.random();
+
 function navigate({path, replace}: {path: string, replace?: boolean}) {
     if(!replace) replace = false;
     if(replace) {
+        console.log("Replacing history item", current_history_index, path);
         nav_history[current_history_index] = {url: "::redirecting::", node: {removeSelf: () => {}, hide: () => {}, show: () => {}}};
-        history.replaceState({index: current_history_index}, "ThreadReader", path);
+        history.replaceState({index: current_history_index, session_name}, "ThreadReader", path);
         onNavigate(current_history_index, location);
     }else{
-        history.pushState({index: current_history_index + 1}, "ThreadReader", path);
+        console.log("Appending history state index", current_history_index + 1, path);
+        history.pushState({index: current_history_index + 1, session_name}, "ThreadReader", path);
         onNavigate(current_history_index + 1, location);
     }
 }
@@ -500,7 +510,7 @@ let navigate_event_handlers: ((url: URLLike) => void)[] = [];
 
 let current_history_index = 0;
 function onNavigate(to_index: number, url: URLLike) {
-    console.log("Navigating", to_index, url);
+    console.log("Navigating", to_index, url, nav_history);
     navigate_event_handlers.forEach(evh => evh(url));
 
     const thisurl = url.pathname + url.search;
@@ -576,4 +586,5 @@ function onNavigate(to_index: number, url: URLLike) {
     navigate_event_handlers.push(url => spa_navigator_input.value = url.pathname + url.search);
 }
 
+history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);
 onNavigate(0, location);
