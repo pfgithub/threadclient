@@ -25,9 +25,14 @@ const query = items => {
 };
 
 function reddit() {
-    const is_logged_in = localStorage.getItem("authorized_code");
+    const isLoggedIn = () => {
+        return !!localStorage.getItem("reddit-secret");
+    };
 
-    const pathURL = (path) => "https://oauth.reddit.com/"+path.path+".json";
+    const pathURL = (path) => {;
+        if(!isLoggedIn()) return "https://reddit.com/"+path+".json";
+        return "https://oauth.reddit.com/"+path+".json";
+    };
 
     const threadFrom = (path) => ({path, options: {}});
 
@@ -91,10 +96,13 @@ function reddit() {
     }
 
     const res = {
-        login_url: "",
-        isLoggedIn() {
-            return !!localStorage.getItem("reddit-secret");
-        },
+        id: "reddit",
+        links: () => [
+            ["Home", () => "/"],
+            ["r/test", () => "/r/test"]
+            ["Notifications", () => "/message/inbox"]
+        ],
+        isLoggedIn,
         getLoginURL() {
             const state = "thread.pfg.pw";
             const scope =
@@ -108,20 +116,13 @@ function reddit() {
             ;
             return url;
         },
-        homeThread() {
-            return threadFrom("");
-        },
         async getThread(path) {
             try {
                 const listing = await (await fetch(pathURL(path), {
                     mode: "cors", credentials: "omit",
-                    headers: {
+                    headers: isLoggedIn() ? {
                         'Authorization': await getAuthorization(),
-                        // nooo f
-                        // access-control-allow-headers	X-Signature,X-Signature-v2,Content-Type,Origin,Accept,X-origination-host,X-origination-path
-                        // none of those are authorization
-                        // oops proxy time
-                    }
+                    } : {},
                 })).json();
                 console.log(listing);
                 return listingToThread(listing);
@@ -135,9 +136,6 @@ function reddit() {
                 };
             }
         },
-        getThreadViewerLink(path) {
-            return "?service=reddit&path="+encodeURIComponent(path.path);
-        }
     };
     return res;
 }
@@ -212,7 +210,7 @@ function clientListing(client, listing) { return {insertBefore(parent, before_on
             if('load_more' in child_listing) {
                 const thread_link = child_listing.load_more;
 
-                uhtml.render(v, linkButton(client.getThreadViewerLink(thread_link), async () => {
+                uhtml.render(v, linkButton(client.id + "/" + thread_link, async () => {
                     uhtml.render(v, html`Loading…`);
                     const comments = await client.getThread(thread_link);
                     v.remove();
@@ -233,7 +231,7 @@ function clientListing(client, listing) { return {insertBefore(parent, before_on
     return {removeSelf: () => defer.cleanup()};
 } } }
 
-function clientMain(client) { return {insertBefore(parent, before_once) {
+function clientMain(client, current_path) { return {insertBefore(parent, before_once) {
     const defer = makeDefer();
 
     const frame = document.createElement("div");
@@ -248,7 +246,7 @@ function clientMain(client) { return {insertBefore(parent, before_once) {
     uhtml.render(frame, html`Loading…`);
 
     (async () => {
-        const home_thread = await client.getThread(client.homeThread());
+        const home_thread = await client.getThread(current_path);
         
         uhtml.render(frame, html``);
         const home_node = clientListing(client, home_thread).insertBefore(frame, null);
@@ -256,7 +254,84 @@ function clientMain(client) { return {insertBefore(parent, before_once) {
         
     })().catch(e => console.log(e));
 
-    return {removeSelf: () => defer.cleanup()};
+    return {removeSelf: () => defer.cleanup(), hide: () => {
+        if(frame.style.display !== "none") frame.style.display = none;
+    }, show: () => {
+        if(frame.style.display !== "") frame.style.display = "";
+    }};
 } } }
 
-clientMain(reddit()).insertBefore(document.body, null);
+function fullscreenError(message) { return {insertBefore(parent, before_once) {
+    const defer = makeDefer();
+
+    const frame = document.createElement("div");
+    defer(() => frame.remove());
+    parent.insertBefore(frame, before_once);
+
+    frame.appendChild(document.createTextNode(message));
+
+    return {removeSelf: () => defer.cleanup(), hide: () => {
+        if(frame.style.display !== "none") frame.style.display = none;
+    }, show: () => {
+        if(frame.style.display !== "") frame.style.display = "";
+    }};
+} } }
+
+
+window.onpopstate = ev => {
+    // onNavigate(ev?.state.index ?? 0);
+    onNavigate(ev ? ev.state.index : 0, location);
+};
+
+const client_cache = {};
+
+const nav_history = [];
+
+let current_history_index = 0;
+function onNavigate(to_index, url) {
+    console.log("Navigating", to_index, url);
+    const thisurl = url.pathname + url.search;
+    current_history_index = to_index;
+    if(nav_history[to_index]) {
+        // hide all history
+        nav_history.forEach(item => item.node.hide());
+        if(nav_history[to_index].url !== thisurl) {
+            
+            // a b c d to_index [… remove these]
+            for(let i = nav_history.length - 1; i >= to_index; i--) {
+                nav_history.pop().node.removeSelf();
+            }
+            const addedit = {url: thisurl};
+            nav_history.push(addedit);
+            if(nav_history[to_index] !== addedit) throw new Error("assert failed");
+        }else{
+            // show the current history
+            nav_history[to_index].node.show();
+            return; // done
+        }
+    }else{
+        nav_history[to_index] = {url: thisurl};
+    }
+
+    const path = url.pathname.split("/").filter(w => w);
+
+    const path0 = path.shift();
+
+    if(!path0) {
+        nav_history[to_index] = {url: "::redirecting::", node: {removeSelf: () => {}, hide: () => {}, show: () => {}}};
+        history.replaceState({index: current_history_index}, "ThreadReader", "/reddit");
+        onNavigate(current_history_index, location);
+    }else{
+        let client;
+        if(path0 === "reddit") {
+            if(!client_cache.reddit) client_cache.reddit = reddit(); // client_cache.reddit ??= reddit();
+            client = client_cache.reddit;
+        }else{
+            nav_history[to_index].node = fullscreenError("404 unknown client "+path[0]).insertBefore(document.body, null);
+            return;
+        }
+        nav_history[to_index].node = clientMain(client, "/"+path.join("/")+(url.query || "")).insertBefore(document.body, null);
+    }
+}
+
+onNavigate(0, location);
