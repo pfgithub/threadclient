@@ -130,12 +130,12 @@ function reddit() {
         },
         async getThread(path) {
             try {
-                const listing = await (await fetch(pathURL(path), {
+                const listing = await fetch(pathURL(path), {
                     mode: "cors", credentials: "omit",
                     headers: isLoggedIn() ? {
                         'Authorization': await getAuthorization(),
                     } : {},
-                })).json();
+                }).then(v => v.json());
                 console.log(listing);
                 return listingToThread(listing);
             }catch(e) {
@@ -147,6 +147,42 @@ function reddit() {
                     ],
                 };
             }
+        },
+        async login(query) {
+            const code = query.get("code");
+            const state = query.get("state");
+
+            if(!code || !state) {
+                throw new Error("No login requested");
+            }
+            if(state !== "thread.pfg.pw") {
+                throw new Error("Login was wrong link'd");
+            }
+
+            const v = await fetch("https://www.reddit.com/api/v1/access_token", {
+                method: "POST", mode: "cors", credentials: "omit",
+                headers: {
+                    'Authorization': "Basic "+btoa(client_id+":"),
+                    'Content-Type': "application/x-www-form-urlencoded",
+                },
+                body: `grant_type=authorization_code&code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(redirect_uri)}`,
+            }).then(v => v.json())
+        
+            if(v.error) {
+                console.log(v.error);
+                throw new Error("error "+v.error);
+            }
+
+            const res_data = {
+                access_token: v.access_token,
+                refresh_token: v.refresh_token,
+                expires: Date.now() + (v.expires_in * 1000),
+                scope: v.scope,
+            };
+
+            console.log(v, res_data);
+
+            localStorage.setItem("reddit-secret", JSON.stringify(res_data));
         },
     };
     return res;
@@ -289,6 +325,36 @@ function fullscreenError(message) { return {insertBefore(parent, before_once) {
     }};
 } } }
 
+function clientLoginPage(client, query) { return {insertBefore(parent, before_once) {
+    const defer = makeDefer();
+
+    const frame = document.createElement("div");
+    defer(() => frame.remove());
+    parent.insertBefore(frame, before_once);
+
+    uhtml.render(frame, uhtml.html`<div>…</div>`);
+    (async () => {
+        uhtml.render(frame, uhtml.html`<div>Logging In…</div>`);
+        try {
+            await client.login(query);
+        }catch(e) {
+            console.log(e);
+            // TODO if this is the only open history item, don't target _blank
+            const login_url = client.getLoginURL();
+            uhtml.render(frame, uhtml.html`<div class="error">Login error! ${e.toString()}. <a href="${login_url}" rel="noreferrer noopener" target="_blank">Retry</a></div>`);
+            return;
+        }
+        // if this page is still active, navigate({path: "/login/success", replace: true}); to get rid of the token in the url
+        uhtml.render(frame, uhtml.html`<div>Logged In! You may now close this page.</div>`);
+    })();
+
+    return {removeSelf: () => defer.cleanup(), hide: () => {
+        if(frame.style.display !== "none") frame.style.display = "none";
+    }, show: () => {
+        if(frame.style.display !== "") frame.style.display = "";
+    }};
+} } }
+
 
 window.onpopstate = ev => {
     // onNavigate(ev?.state.index ?? 0);
@@ -296,6 +362,15 @@ window.onpopstate = ev => {
 };
 
 const client_cache = {};
+const client_initializers = {
+    reddit: () => reddit(),
+};
+const getClient = (name) => {
+    if(!client_initializers[name]) return undefined;
+    if(!client_cache[name]) client_cache[name] = client_initializers[name]();
+    if(client_cache[name].id !== name) throw new Error("client has incorrect id");
+    return client_cache[name];
+}
 
 const nav_history = [];
 
@@ -347,19 +422,30 @@ function onNavigate(to_index, url) {
 
     const path0 = path.shift();
 
+    console.log(path);
+
     if(!path0) {
         navigate({path: "/reddit", replace: true});
-    }else{
-        let client;
-        if(path0 === "reddit") {
-            if(!client_cache.reddit) client_cache.reddit = reddit(); // client_cache.reddit ??= reddit();
-            client = client_cache.reddit;
-        }else{
-            nav_history[to_index].node = fullscreenError("404 unknown client "+path0).insertBefore(document.body, null);
+        return;
+    }
+    if(path0 === "login"){
+        const client = getClient(path[0]);
+        if(!client) {
+            nav_history[to_index].node = fullscreenError("404 unknown client "+path[0]).insertBefore(document.body, null);
             return;
         }
-        nav_history[to_index].node = clientMain(client, "/"+path.join("/")+url.search).insertBefore(document.body, null);
+        nav_history[to_index].node = clientLoginPage(client, new URLSearchParams(location.search)).insertBefore(document.body, null);
+        return;
     }
+
+    const client = getClient(path0);
+
+    if(!client){
+        nav_history[to_index].node = fullscreenError("404 unknown client "+path0).insertBefore(document.body, null);
+        return;
+    }
+    nav_history[to_index].node = clientMain(client, "/"+path.join("/")+url.search).insertBefore(document.body, null);
+    return;
 }
 
 {
