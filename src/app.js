@@ -30,12 +30,24 @@ function reddit() {
     };
 
     const pathURL = (path) => {;
-        if(!isLoggedIn()) return "https://reddit.com/"+path+".json";
-        return "https://oauth.reddit.com/"+path+".json";
+        if(!isLoggedIn()) return "https://reddit.com"+path+".json";
+        return "https://oauth.reddit.com"+path+".json";
     };
 
     const threadFrom = (path) => ({path, options: {}});
 
+    // ok so the idea::
+    // reddit listings are [pageinfo], [comments]
+    // so::
+    // if this is the outermost listing, the pageinfo is needed to display info about the current page
+    // so like
+    // when we return a result from getThread it can be like this
+    // {
+    //     parent: Post
+    //     children: Post[]
+    // }
+    // and then also the client viewer thing can update the parent post if eg you load the comments
+    // ok part 2:: there are different types of posts
     const listingToThread = (listing) => {
         console.log(listing);
         if(Array.isArray(listing)) return listingToThread(listing[1]);
@@ -221,7 +233,7 @@ function clientListing(client, listing) { return {insertBefore(parent, before_on
                 children_node.current.insertBefore(after_node, li_before_once);
             }else{
                 const child_node = clientListing(client, child_listing).insertBefore(v, null);
-                defer(() => child_node.remove());
+                defer(() => child_node.removeSelf());
             }
             children_node.current.insertBefore(v, li_before_once);
         }
@@ -250,12 +262,12 @@ function clientMain(client, current_path) { return {insertBefore(parent, before_
         
         uhtml.render(frame, html``);
         const home_node = clientListing(client, home_thread).insertBefore(frame, null);
-        defer(() => home_node.remove());
+        defer(() => home_node.removeSelf());
         
     })().catch(e => console.log(e));
 
     return {removeSelf: () => defer.cleanup(), hide: () => {
-        if(frame.style.display !== "none") frame.style.display = none;
+        if(frame.style.display !== "none") frame.style.display = "none";
     }, show: () => {
         if(frame.style.display !== "") frame.style.display = "";
     }};
@@ -271,7 +283,7 @@ function fullscreenError(message) { return {insertBefore(parent, before_once) {
     frame.appendChild(document.createTextNode(message));
 
     return {removeSelf: () => defer.cleanup(), hide: () => {
-        if(frame.style.display !== "none") frame.style.display = none;
+        if(frame.style.display !== "none") frame.style.display = "none";
     }, show: () => {
         if(frame.style.display !== "") frame.style.display = "";
     }};
@@ -280,22 +292,39 @@ function fullscreenError(message) { return {insertBefore(parent, before_once) {
 
 window.onpopstate = ev => {
     // onNavigate(ev?.state.index ?? 0);
-    onNavigate(ev ? ev.state.index : 0, location);
+    onNavigate(ev.state ? ev.state.index : 0, location);
 };
 
 const client_cache = {};
 
 const nav_history = [];
 
+function navigate({path, replace}) {
+    if(!replace) replace = false;
+    if(replace) {
+        nav_history[current_history_index] = {url: "::redirecting::", node: {removeSelf: () => {}, hide: () => {}, show: () => {}}};
+        history.replaceState({index: current_history_index}, "ThreadReader", path);
+        onNavigate(current_history_index, location);
+    }else{
+        history.pushState({index: current_history_index + 1}, "ThreadReader", path);
+        onNavigate(current_history_index + 1, location);
+    }
+}
+
+let navigate_event_handlers = [];
+
 let current_history_index = 0;
 function onNavigate(to_index, url) {
     console.log("Navigating", to_index, url);
+    navigate_event_handlers.forEach(evh => evh(url));
+
     const thisurl = url.pathname + url.search;
     current_history_index = to_index;
     if(nav_history[to_index]) {
         // hide all history
         nav_history.forEach(item => item.node.hide());
         if(nav_history[to_index].url !== thisurl) {
+            console.log("URLS differ. «", nav_history[to_index].url, "» «", thisurl, "»");
             
             // a b c d to_index [… remove these]
             for(let i = nav_history.length - 1; i >= to_index; i--) {
@@ -310,6 +339,7 @@ function onNavigate(to_index, url) {
             return; // done
         }
     }else{
+        nav_history.forEach(item => item.node.hide());
         nav_history[to_index] = {url: thisurl};
     }
 
@@ -318,20 +348,33 @@ function onNavigate(to_index, url) {
     const path0 = path.shift();
 
     if(!path0) {
-        nav_history[to_index] = {url: "::redirecting::", node: {removeSelf: () => {}, hide: () => {}, show: () => {}}};
-        history.replaceState({index: current_history_index}, "ThreadReader", "/reddit");
-        onNavigate(current_history_index, location);
+        navigate({path: "/reddit", replace: true});
     }else{
         let client;
         if(path0 === "reddit") {
             if(!client_cache.reddit) client_cache.reddit = reddit(); // client_cache.reddit ??= reddit();
             client = client_cache.reddit;
         }else{
-            nav_history[to_index].node = fullscreenError("404 unknown client "+path[0]).insertBefore(document.body, null);
+            nav_history[to_index].node = fullscreenError("404 unknown client "+path0).insertBefore(document.body, null);
             return;
         }
-        nav_history[to_index].node = clientMain(client, "/"+path.join("/")+(url.query || "")).insertBefore(document.body, null);
+        nav_history[to_index].node = clientMain(client, "/"+path.join("/")+url.search).insertBefore(document.body, null);
     }
+}
+
+{
+    let spa_navigator_frame = document.createElement("div");
+    document.body.appendChild(spa_navigator_frame);
+    let spa_navigator_input = document.createElement("input");
+    spa_navigator_frame.appendChild(spa_navigator_input);
+    let spa_navigator_button = document.createElement("button");
+    spa_navigator_button.appendChild(document.createTextNode("Go!"));
+    spa_navigator_frame.appendChild(spa_navigator_button);
+    spa_navigator_button.onclick = () => {
+        navigate({path: spa_navigator_input.value});
+    }
+
+    navigate_event_handlers.push(url => spa_navigator_input.value = url.pathname + url.search);
 }
 
 onNavigate(0, location);
