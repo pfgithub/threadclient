@@ -1,20 +1,25 @@
-const raw = (string) => ({__raw: "" + string, toString: () => string});
-const templateGenerator = (helper) => {
-    return (strings, ...values) => {
-        if(!strings.raw && !Array.isArray(strings)) {
-            return helper(strings);
+declare const uhtml: any;
+declare const client_id: string;
+declare const redirect_uri: string;
+
+const raw = (string: string) => ({__raw: "" + string, toString: () => string});
+const templateGenerator = <InType>(helper: (str: InType) => string) => {
+    type ValueArrayType = (InType | string | {__raw: string})[];
+    return (strings: TemplateStringsArray | InType, ...values: ValueArrayType) => {
+        if(!(strings as TemplateStringsArray).raw && !Array.isArray(strings)) {
+            return helper(strings as any);
         }
-        const result = [];
-        strings.forEach((string, i) => {
+        const result: ValueArrayType = [];
+        (strings as TemplateStringsArray).forEach((string, i) => {
             result.push(raw(string), values[i] || "");
         });
-        return result.map(el => typeof el.__raw === "string" ? el.__raw : helper(el)).join("");
+        return result.map((el: any) => typeof el.__raw === "string" ? el.__raw : helper(el)).join("");
     };
 };
-const url = templateGenerator(str => encodeURIComponent(str));
+const url = templateGenerator<string>(str => encodeURIComponent(str));
 const html = uhtml.html;
 
-const query = items => {
+const query = (items: {[key: string]: string}) => {
     let res = "";
     for(const [key, value] of Object.entries(items)) {
         if(!res) res += "?";
@@ -24,17 +29,27 @@ const query = items => {
     return res;
 };
 
+type RedditListing = {};
+
+type GenericThread = any;
+type ThreadClient = {
+    id: string,
+    links: () => [string, () => string][]
+    isLoggedIn: () => boolean,
+    getLoginURL: () => string,
+    getThread: (path: string) => Promise<GenericThread>,
+    login: (query: URLSearchParams) => Promise<void>,
+};
+
 function reddit() {
     const isLoggedIn = () => {
         return !!localStorage.getItem("reddit-secret");
     };
 
-    const pathURL = (path) => {;
+    const pathURL = (path: string) => {;
         if(!isLoggedIn()) return "https://reddit.com"+path+".json";
         return "https://oauth.reddit.com"+path+".json";
     };
-
-    const threadFrom = (path) => ({path, options: {}});
 
     // ok so the idea::
     // reddit listings are [pageinfo], [comments]
@@ -48,29 +63,6 @@ function reddit() {
     // }
     // and then also the client viewer thing can update the parent post if eg you load the comments
     // ok part 2:: there are different types of posts
-    const listingToThread = (listing) => {
-        console.log(listing);
-        if(Array.isArray(listing)) return listingToThread(listing[1]);
-        const {data} = listing;
-        const res = {};
-        if(res.kind === "Listing") {
-            res.title = "Listing";
-        }else{
-            res.title = data.title;
-            res.body = data.body;
-            res.actions = [{name: "Reply"}];
-            res.stats = [{name: "Votes", count: data.score}];
-        }
-        res.children = [];
-        // ok this isn't structured well atm
-        // this needs a redo
-        // children is []Node. replies is Node.
-        if(data.children) for(const child of data.children) {
-            res.children.push(listingToThread(child));
-        }
-        res.children.push({"load_more": threadFrom(data.permalink || "TODO")});
-        return res;
-    };
 
     const getAccessToken = async () => {
         const data = localStorage.getItem("reddit-secret");
@@ -107,12 +99,12 @@ function reddit() {
         return 'Bearer '+access_token;
     }
 
-    const res = {
+    const res: ThreadClient = {
         id: "reddit",
         links: () => [
             ["Home", () => "/"],
-            ["r/test", () => "/r/test"]
-            ["Notifications", () => "/message/inbox"]
+            ["r/test", () => "/r/test"],
+            ["Notifications", () => "/message/inbox"],
         ],
         isLoggedIn,
         getLoginURL() {
@@ -137,7 +129,14 @@ function reddit() {
                     } : {},
                 }).then(v => v.json());
                 console.log(listing);
-                return listingToThread(listing);
+                return {
+                    title: "Success!",
+                    error: true,
+                    children: [
+                        {"load_more": path}
+                    ],
+                };
+                // return listingToThread(listing);
             }catch(e) {
                 return {
                     title: "Error!",
@@ -188,7 +187,7 @@ function reddit() {
     return res;
 }
 
-function clientLogin(client, on_complete) { return {insertBefore(parent, before_once) {
+function clientLogin(client: ThreadClient, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
     const frame = document.createElement("div");
     parent.insertBefore(frame, before_once);
 
@@ -211,20 +210,21 @@ function clientLogin(client, on_complete) { return {insertBefore(parent, before_
     } };
 } } }
 
+type MakeDeferReturn = ((handler: () => void) => void) & {cleanup: () => void};
 const makeDefer = () => {
-	let list = [];
-	let res = cb => {list.unshift(cb)};
+	let list: (() => void)[] = [];
+	let res = (cb => {list.unshift(cb)}) as MakeDeferReturn;
 	res.cleanup = () => {list.forEach(cb => cb())};
 	return res;
 };
 
-function isModifiedEvent(event) {
+function isModifiedEvent(event: MouseEvent) {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
 
-function linkButton(href, onclick, children) {
+function linkButton(href: string, onclick: () => void, children: any) {
     const a_ref = {current: null};
-    const click = (event) => {
+    const click = (event: MouseEvent) => {
         if (
             !event.defaultPrevented && // onClick prevented default
             event.button === 0 && // ignore everything but left clicks
@@ -238,7 +238,7 @@ function linkButton(href, onclick, children) {
     return html`<a ref=${a_ref} href=${href} onclick=${click} target="_blank" rel="noreferrer noopener">${children}</a>`;
 }
 
-function clientListing(client, listing) { return {insertBefore(parent, before_once) {
+function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     console.log(listing);
 
@@ -246,13 +246,13 @@ function clientListing(client, listing) { return {insertBefore(parent, before_on
     defer(() => frame.remove());
     parent.insertBefore(frame, before_once);
 
-    const children_node = {current: null};
+    const children_node = {current: null as any as Node};
     uhtml.render(frame, html`
         <div class="post-title">${listing.title}</div>
         <div class="post-body">${listing.body}</div>
         <ul ref=${children_node}></ul>
     `);
-    const addChildren = (children, li_before_once) => {
+    const addChildren = (children: any, li_before_once: Node | null) => {
         for(const child_listing of children) {
             const v = document.createElement("li");
             if('load_more' in child_listing) {
@@ -279,7 +279,7 @@ function clientListing(client, listing) { return {insertBefore(parent, before_on
     return {removeSelf: () => defer.cleanup()};
 } } }
 
-function clientMain(client, current_path) { return {insertBefore(parent, before_once) {
+function clientMain(client: ThreadClient, current_path: string) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
 
     const frame = document.createElement("div");
@@ -287,8 +287,8 @@ function clientMain(client, current_path) { return {insertBefore(parent, before_
     parent.insertBefore(frame, before_once);
 
     if(!client.isLoggedIn()) {
-        const login_prompt = clientLogin(client, () => login_prompt.removeSelf()).insertBefore(frame, null);
-        return {removeSelf: () => defer.cleanup()};
+        const login_prompt: {removeSelf: () => void} = clientLogin(client, () => login_prompt.removeSelf()).insertBefore(frame, null);
+        return {removeSelf: () => defer.cleanup(), hide: () => {}, show: () => {}};
     }
 
     uhtml.render(frame, html`Loading…`);
@@ -309,7 +309,7 @@ function clientMain(client, current_path) { return {insertBefore(parent, before_
     }};
 } } }
 
-function fullscreenError(message) { return {insertBefore(parent, before_once) {
+function fullscreenError(message: string) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
 
     const frame = document.createElement("div");
@@ -325,7 +325,7 @@ function fullscreenError(message) { return {insertBefore(parent, before_once) {
     }};
 } } }
 
-function clientLoginPage(client, query) { return {insertBefore(parent, before_once) {
+function clientLoginPage(client: ThreadClient, query: URLSearchParams) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
 
     const frame = document.createElement("div");
@@ -356,25 +356,27 @@ function clientLoginPage(client, query) { return {insertBefore(parent, before_on
 } } }
 
 
-window.onpopstate = ev => {
+window.onpopstate = (ev: PopStateEvent) => {
     // onNavigate(ev?.state.index ?? 0);
     onNavigate(ev.state ? ev.state.index : 0, location);
 };
 
-const client_cache = {};
-const client_initializers = {
+const client_cache: {[key: string]: ThreadClient} = {};
+const client_initializers: {[key: string]: () => ThreadClient} = {
     reddit: () => reddit(),
 };
-const getClient = (name) => {
+const getClient = (name: string) => {
     if(!client_initializers[name]) return undefined;
     if(!client_cache[name]) client_cache[name] = client_initializers[name]();
     if(client_cache[name].id !== name) throw new Error("client has incorrect id");
     return client_cache[name];
 }
 
-const nav_history = [];
+type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () => void};
+type NavigationEntry = {url: string, node: NavigationEntryNode};
+const nav_history: NavigationEntry[] = [];
 
-function navigate({path, replace}) {
+function navigate({path, replace}: {path: string, replace?: boolean}) {
     if(!replace) replace = false;
     if(replace) {
         nav_history[current_history_index] = {url: "::redirecting::", node: {removeSelf: () => {}, hide: () => {}, show: () => {}}};
@@ -386,10 +388,12 @@ function navigate({path, replace}) {
     }
 }
 
-let navigate_event_handlers = [];
+type URLLike = {search: string, pathname: string};
+
+let navigate_event_handlers: ((url: URLLike) => void)[] = [];
 
 let current_history_index = 0;
-function onNavigate(to_index, url) {
+function onNavigate(to_index: number, url: URLLike) {
     console.log("Navigating", to_index, url);
     navigate_event_handlers.forEach(evh => evh(url));
 
@@ -403,11 +407,8 @@ function onNavigate(to_index, url) {
             
             // a b c d to_index [… remove these]
             for(let i = nav_history.length - 1; i >= to_index; i--) {
-                nav_history.pop().node.removeSelf();
+                nav_history.pop()!.node.removeSelf();
             }
-            const addedit = {url: thisurl};
-            nav_history.push(addedit);
-            if(nav_history[to_index] !== addedit) throw new Error("assert failed");
         }else{
             // show the current history
             nav_history[to_index].node.show();
@@ -415,7 +416,6 @@ function onNavigate(to_index, url) {
         }
     }else{
         nav_history.forEach(item => item.node.hide());
-        nav_history[to_index] = {url: thisurl};
     }
 
     const path = url.pathname.split("/").filter(w => w);
@@ -428,24 +428,25 @@ function onNavigate(to_index, url) {
         navigate({path: "/reddit", replace: true});
         return;
     }
-    if(path0 === "login"){
-        const client = getClient(path[0]);
-        if(!client) {
-            nav_history[to_index].node = fullscreenError("404 unknown client "+path[0]).insertBefore(document.body, null);
-            return;
+
+    const node: NavigationEntryNode = (() => {
+        if(path0 === "login"){
+            const client = getClient(path[0]);
+            if(!client) {
+                return fullscreenError("404 unknown client "+path[0]).insertBefore(document.body, null);
+            }
+            return clientLoginPage(client, new URLSearchParams(location.search)).insertBefore(document.body, null);
         }
-        nav_history[to_index].node = clientLoginPage(client, new URLSearchParams(location.search)).insertBefore(document.body, null);
-        return;
-    }
 
-    const client = getClient(path0);
+        const client = getClient(path0);
 
-    if(!client){
-        nav_history[to_index].node = fullscreenError("404 unknown client "+path0).insertBefore(document.body, null);
-        return;
-    }
-    nav_history[to_index].node = clientMain(client, "/"+path.join("/")+url.search).insertBefore(document.body, null);
-    return;
+        if(!client){
+            return fullscreenError("404 unknown client "+path0).insertBefore(document.body, null);
+        }
+        return clientMain(client, "/"+path.join("/")+url.search).insertBefore(document.body, null);
+    })();
+
+    nav_history[to_index] = {node, url: thisurl}
 }
 
 {

@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "outDir": "./dist",
+        "target": "es2017",
+        "module": "esnext",
+        "noImplicitAny": true,
+        "lib": [
+            "es2019",
+            "dom",
+            "esnext"
+        ],
+        "strict": true,
+        "sourceMap": true,
+        "types": []
+    },
+    "include": [
+        "src/**/*",
+        "bin/**/*",
+        "test/**/*",
+        "index.ts"
+    ],
+}
