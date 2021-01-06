@@ -448,28 +448,6 @@ function onNavigate(to_index, url) {
     return;
 }
 
-/*
-const Navigator = widget() {
-    state current_url = "";
-
-    const handler = once fn(url) current_url = url.pathname + url.search;
-    once navigate_event_handlers.push(handler);
-    defer navigate_event_handlers = navigate_event_handlers.filter() |v| v != handler;
-
-    memo go = fn() void: navigate(.path = spa_navigator_input.value);
-
-    return .div(
-        std.input(.value=&current_url, .onkeydown = fn(k) if(k.key == "Enter") go() else {}),
-        .button("⏎", .onclick = fn() go()),
-        .button("🗘", .onclick = fn() alert("TODO refresh")),
-    );
-}
-
-pub const main = fn() {
-    @mount(Navigator(), @js().document.body);
-}
-*/
-
 {
     let spa_navigator_frame = document.createElement("div");
     document.body.appendChild(spa_navigator_frame);
