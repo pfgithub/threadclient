@@ -29,15 +29,73 @@ const query = (items: {[key: string]: string}) => {
     return res;
 };
 
-type RedditListing = {};
+type RedditPage = [RedditListing, RedditListing];
+type RedditListing = {
+    kind: "Listing",
+    data: {
+        before: string | null,
+        children: RedditPost[],
+        after: string | null,
+    },
+};
+type RedditPost = {
+    // link post
+    kind: "t3",
 
-type GenericThread = any;
+    data: {
+        name: string, // post id
+        subreddit_name_prefixed: string, // post subreddit (u/ or r/)
+        thumbnail?: string,
+        post_hint: string,
+        
+        title?: string,
+        body_html?: string,
+
+        // content warnings
+        spoiler: boolean,
+        over_18: boolean,
+
+        // use to fetch replies I guess
+        permalink?: string,
+
+        replies?: RedditListing,
+    },
+};
+
+type GenericPage = {
+    header: GenericThread,
+    replies?: {load_prev?: string, loaded: GenericThread[], load_next?: string},
+};
+type GenericThread = {
+    title?: string,
+    body: {
+        kind: "text",
+        content: string,
+    } | {
+        kind: "url",
+        url: string,
+    },
+    display_mode: {
+        body: "visible" | "collapsed",
+        comments: "visible" | "collapsed",
+    },
+    replies?: {
+        load_prev?: string,
+        loaded: GenericThread[],
+        load_next?: string,
+    },
+    raw_value?: any,
+    
+    content_warnings?: GenericContentWarning[],
+};
+type GenericContentWarning = {name: string};
+
 type ThreadClient = {
     id: string,
     links: () => [string, () => string][]
     isLoggedIn: () => boolean,
     getLoginURL: () => string,
-    getThread: (path: string) => Promise<GenericThread>,
+    getThread: (path: string) => Promise<GenericPage>,
     login: (query: URLSearchParams) => Promise<void>,
 };
 
@@ -47,8 +105,8 @@ function reddit() {
     };
 
     const pathURL = (path: string) => {;
-        if(!isLoggedIn()) return "https://reddit.com"+path+".json";
-        return "https://oauth.reddit.com"+path+".json";
+        if(!isLoggedIn()) return "https://reddit.com"+path+".json?raw_json=1";
+        return "https://oauth.reddit.com"+path+".json?raw_json=1";
     };
 
     // ok so the idea::
@@ -72,14 +130,15 @@ function reddit() {
         if(json.expires < Date.now()) {
             // refresh token
             console.log("Token expired, refreshing…");
-            const v = await (await fetch("https://www.reddit.com/api/v1/access_token", {
+            const v = await fetch("https://www.reddit.com/api/v1/access_token", {
                 method: "POST", mode: "cors", credentials: "omit",
                 headers: {
                     'Authorization': "Basic "+btoa(client_id+":"),
                     'Content-Type': "application/x-www-form-urlencoded",
                 },
                 body: url`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
-            })).json();
+            }).then(v => v.json());
+            console.log("Refresh info:", v);
             const res_data = {
                 access_token: v.access_token,
                 refresh_token: v.refresh_token,
@@ -97,6 +156,55 @@ function reddit() {
         const access_token = await getAccessToken();
         if(!access_token) return '';
         return 'Bearer '+access_token;
+    }
+
+    const pageFromListing = (listing: RedditPage | RedditListing): GenericPage => {
+        if(Array.isArray(listing)) {
+            return {
+                header: threadFromListing(listing[0].data.children[0]),
+                replies: {
+                    load_prev: "TODO listing[1].data.before",
+                    loaded: listing[1].data.children.map(child => threadFromListing(child)),
+                    load_next: "TODO listing[1].data.after",
+                },
+            };
+        }
+        return {
+            header: {
+                title: "Listing",
+                body: {kind: "text", content: "Listing"},
+                display_mode: {body: "collapsed", comments: "collapsed"},
+            },
+            replies: {
+                load_prev: "TODO listing.data.before",
+                loaded: listing.data.children.map(child => threadFromListing(child)),
+                load_next: "TODO listing.data.after",
+            },
+        };
+    };
+    const threadFromListing = (listing_raw: RedditPost): GenericThread => {
+        const listing = listing_raw.data;
+        console.log("Post: ",listing);
+        const result: GenericThread = {
+            title: listing.title ?? "",
+            body: {kind: "text", content: listing.body_html ?? ""},
+            display_mode: {body: "collapsed", comments: "collapsed"},
+            raw_value: listing_raw,
+        };
+        {
+            const content_warnings: GenericContentWarning[] = [];
+            if(listing.spoiler) content_warnings.push({name: "Spoiler"});
+            if(listing.over_18) content_warnings.push({name: "Over 18"});
+            result.content_warnings = content_warnings;
+        }
+        if(listing.replies) {
+            result.replies = {
+                load_prev: "TODO listing.replies.data.before",
+                loaded: listing.replies.data.children.map(v => threadFromListing(v)),
+                load_next: "TODO listing.replies.data.after",
+            };
+        }
+        return result;
     }
 
     const res: ThreadClient = {
@@ -120,30 +228,28 @@ function reddit() {
             ;
             return url;
         },
-        async getThread(path) {
+        async getThread(path): Promise<GenericPage> {
             try {
-                const listing = await fetch(pathURL(path), {
+                const listing: RedditPage | RedditListing = await fetch(pathURL(path), {
                     mode: "cors", credentials: "omit",
                     headers: isLoggedIn() ? {
                         'Authorization': await getAuthorization(),
                     } : {},
                 }).then(v => v.json());
                 console.log(listing);
-                return {
-                    title: "Success!",
-                    error: true,
-                    children: [
-                        {"load_more": path}
-                    ],
-                };
-                // return listingToThread(listing);
+
+                return pageFromListing(listing);
             }catch(e) {
+                console.log(e);
                 return {
-                    title: "Error!",
-                    error: true,
-                    children: [
-                        {"load_more": path}
-                    ],
+                    header: {
+                        title: "Error",
+                        body: {kind: "text", content: "Error "+e.toString()},
+                        display_mode: {
+                            body: "visible",
+                            comments: "collapsed",
+                        },
+                    },
                 };
             }
         },
@@ -248,33 +354,19 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     const children_node = {current: null as any as Node};
     uhtml.render(frame, html`
-        <div class="post-title">${listing.title}</div>
-        <div class="post-body">${listing.body}</div>
+        <div class="post-title">${listing.title || "*no title*"}</div>
+        <div class="post-body">${listing.body.kind === "text" ? listing.body.content : listing.body.url}</div>
         <ul ref=${children_node}></ul>
     `);
-    const addChildren = (children: any, li_before_once: Node | null) => {
+    const addChildren = (children: GenericThread[], li_before_once: Node | null) => {
         for(const child_listing of children) {
             const v = document.createElement("li");
-            if('load_more' in child_listing) {
-                const thread_link = child_listing.load_more;
-
-                uhtml.render(v, linkButton(client.id + "/" + thread_link, async () => {
-                    uhtml.render(v, html`Loading…`);
-                    const comments = await client.getThread(thread_link);
-                    v.remove();
-                    if(comments.children) addChildren(comments.children, after_node);
-                }, html`Load more…`));
-
-                const after_node = document.createComment("");
-                children_node.current.insertBefore(after_node, li_before_once);
-            }else{
-                const child_node = clientListing(client, child_listing).insertBefore(v, null);
-                defer(() => child_node.removeSelf());
-            }
+            const child_node = clientListing(client, child_listing).insertBefore(v, null);
+            defer(() => child_node.removeSelf());
             children_node.current.insertBefore(v, li_before_once);
         }
     }
-    if(listing.children) addChildren(listing.children, null);
+    if(listing.replies) addChildren(listing.replies.loaded, null);
 
     return {removeSelf: () => defer.cleanup()};
 } } }
@@ -297,8 +389,16 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         const home_thread = await client.getThread(current_path);
         
         uhtml.render(frame, html``);
-        const home_node = clientListing(client, home_thread).insertBefore(frame, null);
+        const home_node = clientListing(client, home_thread.header).insertBefore(frame, null);
         defer(() => home_node.removeSelf());
+
+        const addChildren = (children: GenericThread[]) => {
+            for(const child_listing of children) {
+                const replies_node = clientListing(client, child_listing).insertBefore(frame, null);
+                defer(() => replies_node.removeSelf());
+            }
+        };
+        if(home_thread.replies) addChildren(home_thread.replies.loaded);
         
     })().catch(e => console.log(e));
 
