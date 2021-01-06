@@ -105,7 +105,7 @@ function reddit() {
     };
 
     const pathURL = (path: string) => {;
-        if(!isLoggedIn()) return "https://reddit.com"+path+".json?raw_json=1";
+        if(!isLoggedIn()) return "https://www.reddit.com"+path+".json?raw_json=1";
         return "https://oauth.reddit.com"+path+".json?raw_json=1";
     };
 
@@ -244,7 +244,10 @@ function reddit() {
                 return {
                     header: {
                         title: "Error",
-                        body: {kind: "text", content: "Error "+e.toString()},
+                        body: {kind: "text", content: "Error "+e.toString()+
+                            (e.toString().includes("NetworkError when attempting") ? " If using Firefox, "
+                                +"try disabling 'Enhanced Tracker Protection.' Otherwise, check the browser console." : "")
+                        },
                         display_mode: {
                             body: "visible",
                             comments: "collapsed",
@@ -380,15 +383,18 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
 
     if(!client.isLoggedIn()) {
         const login_prompt: {removeSelf: () => void} = clientLogin(client, () => login_prompt.removeSelf()).insertBefore(frame, null);
-        return {removeSelf: () => defer.cleanup(), hide: () => {}, show: () => {}};
+        defer(() => login_prompt.removeSelf());
+        // return {removeSelf: () => defer.cleanup(), hide: () => {}, show: () => {}};
     }
+    const frame_uhtml_area = document.createElement("div");
+    frame.appendChild(frame_uhtml_area);
 
-    uhtml.render(frame, html`Loading…`);
+    uhtml.render(frame_uhtml_area, html`Loading…`);
 
     (async () => {
         const home_thread = await client.getThread(current_path);
         
-        uhtml.render(frame, html``);
+        uhtml.render(frame_uhtml_area, html``);
         const home_node = clientListing(client, home_thread.header).insertBefore(frame, null);
         defer(() => home_node.removeSelf());
 
