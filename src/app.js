@@ -448,17 +448,45 @@ function onNavigate(to_index, url) {
     return;
 }
 
+/*
+const Navigator = widget() {
+    state current_url = "";
+
+    const handler = once fn(url) current_url = url.pathname + url.search;
+    once navigate_event_handlers.push(handler);
+    defer navigate_event_handlers = navigate_event_handlers.filter() |v| v != handler;
+
+    memo go = fn() void: navigate(.path = spa_navigator_input.value);
+
+    return .div(
+        std.input(.value=&current_url, .onkeydown = fn(k) if(k.key == "Enter") go() else {}),
+        .button("⏎", .onclick = fn() go()),
+        .button("🗘", .onclick = fn() alert("TODO refresh")),
+    );
+}
+
+pub const main = fn() {
+    @mount(Navigator(), @js().document.body);
+}
+*/
+
 {
     let spa_navigator_frame = document.createElement("div");
     document.body.appendChild(spa_navigator_frame);
     let spa_navigator_input = document.createElement("input");
     spa_navigator_frame.appendChild(spa_navigator_input);
     let spa_navigator_button = document.createElement("button");
-    spa_navigator_button.appendChild(document.createTextNode("Go!"));
+    spa_navigator_button.appendChild(document.createTextNode("⏎"));
     spa_navigator_frame.appendChild(spa_navigator_button);
-    spa_navigator_button.onclick = () => {
-        navigate({path: spa_navigator_input.value});
-    }
+    let spa_navigator_refresh = document.createElement("button");
+    spa_navigator_refresh.appendChild(document.createTextNode("🗘"));
+    spa_navigator_frame.appendChild(spa_navigator_refresh);
+
+    const go = () => navigate({path: spa_navigator_input.value});
+    spa_navigator_button.onclick = () => go();
+    spa_navigator_input.onkeydown = k => k.key === "Enter" ? go() : 0;
+
+    spa_navigator_refresh.onclick = () => alert("TODO refresh");
 
     navigate_event_handlers.push(url => spa_navigator_input.value = url.pathname + url.search);
 }
