@@ -111,9 +111,11 @@ type GenericThread = {
     } | {
         kind: "link",
         url: string,
-        thumbnail?: string,
     } | {
         kind: "none",
+    },
+    thumbnail?: {
+        url: string,
     },
     display_mode: {
         body: "visible" | "collapsed",
@@ -127,6 +129,8 @@ type GenericThread = {
     raw_value?: any,
 
     link: string,
+
+    layout: "reddit-post" | "reddit-comment" | "error",
     
     content_warnings?: GenericContentWarning[],
 };
@@ -240,6 +244,7 @@ function reddit() {
                 body: {kind: "text", content_html: safehtml`Listing`},
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 link: "TODO no link",
+                layout: "error",
             },
             replies: {
                 load_prev: "TODO listing.data.before",
@@ -257,6 +262,7 @@ function reddit() {
                 display_mode: {body: "visible", comments: "visible"},
                 raw_value: listing_raw,
                 link: listing.permalink,
+                layout: "reddit-comment",
             };
             if(listing.replies) {
                 result.replies = {
@@ -274,10 +280,13 @@ function reddit() {
                     ? listing.selftext_html
                         ? {kind: "text", content_html: listing.selftext_html}
                         : {kind: "none"}
-                    : {kind: "link", url: listing.url, thumbnail: listing.thumbnail},
+                    : {kind: "link", url: listing.url}
+                ,
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
                 link: listing.permalink,
+                thumbnail: {url: listing.thumbnail ?? "none"},
+                layout: "reddit-post",
             };
             {
                 const content_warnings: GenericContentWarning[] = [];
@@ -293,6 +302,7 @@ function reddit() {
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
                 link: "TODO no link",
+                layout: "error",
             };
         }
         // console.log("Post: ",listing);
@@ -357,6 +367,7 @@ function reddit() {
                             comments: "collapsed",
                         },
                         link: "TODO no link",
+                        layout: "error",
                     },
                 };
             }
@@ -378,7 +389,7 @@ function reddit() {
                     'Authorization': "Basic "+btoa(client_id+":"),
                     'Content-Type': "application/x-www-form-urlencoded",
                 },
-                body: `grant_type=authorization_code&code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(redirect_uri)}`,
+                body: url`grant_type=authorization_code&code=${code}&redirect_uri=${redirect_uri}`,
             }).then(v => v.json());
         
             if(v.error) {
@@ -453,6 +464,19 @@ function linkButton(href: string) {
     return res;
 }
 
+function renderLinkPreview(link: string): Node {
+    if(link.startsWith("https://i.redd.it")
+        || link.endsWith(".png") || link.endsWith(".jpg")
+        || link.endsWith(".jpeg")|| link.endsWith(".gif")
+    ) {
+        let img = el("img").clss("preview-image").attr({src: link});
+        // a resizable image can be made like this
+        // .resizable { display: inline-block; resize: both; overflow: hidden; line-height: 0; }
+        return el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"});
+    }
+    return document.createComment("…");
+}
+
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
@@ -461,38 +485,78 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     defer(() => frame.remove());
     parent.insertBefore(frame, before_once);
 
-    linkButton("/"+client.id+listing.link).atxt("[View]").adto(frame);
+    const thumbnail_loc = el("div").adto(frame).clss("post-thumbnail");
+    const content_area = el("div").adto(frame).clss("post-titles");
+    const preview_area = el("div").adto(frame).clss("post-preview");
+    const replies_area = el("div").adto(frame).clss("post-replies");
+
+    frame.clss("layout-"+listing.layout);
+
+    linkButton("/"+client.id+listing.link).atxt("[View]").adto(content_area);
     el("button").onev("click", e => {
         console.log(listing);
-    }).atxt("[Code]").adto(frame);
+    }).atxt("[Code]").adto(content_area);
 
     if(listing.title) {
-        el("div").adto(frame).atxt(listing.title);
+        el("div").adto(content_area).atxt(listing.title);
     }
     if(listing.body) {
-        let details: ChildNode;
-        if(listing.display_mode.body === "collapsed") {
-            details = el("details").adto(frame);
-            el("summary").adto(details).atxt("Post");
-        }else{
-            details = el("div").adto(frame);
-        }
-        details.clss("post-body");
+        const content = el("div");
 
-        if(listing.body.kind === "text") {
-            const elv = el("div").adto(details);
-            elv.innerHTML = listing.body.content_html;
-        }else if(listing.body.kind === "link") {
-            el("div").adto(details).adch(linkButton(listing.body.url).atxt(listing.body.url));
-            if(listing.body.thumbnail) {
-                el("img").attr({src: listing.body.thumbnail}).adto(frame);
+        if(listing.thumbnail) {
+            if(listing.thumbnail.url === "none") {
+                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-none"));
+            }else if(listing.thumbnail.url === "self") {
+                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-self"));
+            }else if(listing.thumbnail.url === "default") {
+                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-default"));
+            }else if(listing.thumbnail.url === "image") {
+                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-image"));
+            }else {
+                thumbnail_loc.adch(el("img").attr({src: listing.thumbnail.url}));
             }
-        }else if(listing.body.kind === "none") {
-            details.remove();
-        }else assertNever(listing.body);
+        }
+
+        let showContent = () => {
+            if(listing.body.kind === "text") {
+                const elv = el("div").adto(content);
+                elv.innerHTML = listing.body.content_html;
+            }else if(listing.body.kind === "link") {
+                // TODO fix this link button thing
+                el("div").adto(content).adch(linkButton(listing.body.url).atxt(listing.body.url));
+                renderLinkPreview(listing.body.url).adto(content);
+            }else if(listing.body.kind === "none") {
+                content.remove();
+            }else assertNever(listing.body);
+        };
+
+        if(listing.display_mode.body === "collapsed") {
+            const open_preview_button = el("button").adto(content_area);
+            const open_preview_text = txt("Show").adto(open_preview_button);
+
+            let initialized = false;
+            let state = false;
+            const update = () => {
+                if(state && !initialized) {
+                    initialized = true;
+                    showContent();
+                }
+                open_preview_text.nodeValue = state ? "Hide" : "Show";
+                content.style.display = state ? "" : "none";
+            };
+            update();
+            open_preview_button.onev("click", () => {
+                state =! state;
+                update();
+            });
+        }else{
+            showContent();
+        }
+        content.clss("post-body");
+        content.adto(preview_area);
     }
 
-    const children_node = el("ul").clss("replies").adto(frame);
+    const children_node = el("ul").clss("replies").adto(replies_area);
 
     const addChildren = (children: GenericThread[], li_before_once: Node | null) => {
         for(const child_listing of children) {

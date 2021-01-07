@@ -15,3 +15,59 @@ li.comment {
     list-style: none;
     margin: 0;
 }
+
+.preview-image {
+    max-width: 95vw;
+    max-height: 95vh;
+}
+
+.post.layout-reddit-post {
+    display: grid;
+    grid-template-columns: [thumb] max-content [body] 1fr [end];
+    grid-template-rows: [content] max-content [preview] max-content [replies] max-content [end];
+}
+.post.layout-reddit-post > .post-titles {
+    grid-column: body;
+    grid-row: content;
+}
+.post.layout-reddit-post > .post-thumbnail {
+    grid-column: thumb;
+    grid-row: content;
+}
+.post.layout-reddit-post > .post-preview {
+    grid-column: thumb / end;
+    grid-row: preview;
+}
+.post.layout-reddit-post > .post-replies {
+    grid-column: thumb / end;
+    grid-row: replies;
+}
+
+.post.layout-reddit-post > .post-thumbnail {
+    width: 70px;
+    height: 70px;
+    margin-right: 20px;
+}
+.post.layout-reddit-post > .post-thumbnail > img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.thumbnail-builtin {
+    width: 70px;
+    height: 50px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    background-image: url("https://www.redditstatic.com/sprite-reddit.e1D0120k5y4.png");
+    background-repeat: no-repeat;
+}
+.thumbnail-builtin.thumbnail-self {
+    background-position: 0px -1267px;
+}
+.thumbnail-builtin.thumbnail-image {
+    background-position: 0px -1043px;
+}
+.thumbnail-builtin.thumbnail-default {
+    background-position: 0px -1099px;
+}
