@@ -130,14 +130,20 @@ function reddit() {
         if(json.expires < Date.now()) {
             // refresh token
             console.log("Token expired, refreshing…");
-            const v = await fetch("https://www.reddit.com/api/v1/access_token", {
+            const [status, v] = await fetch("https://www.reddit.com/api/v1/access_token", {
                 method: "POST", mode: "cors", credentials: "omit",
                 headers: {
                     'Authorization': "Basic "+btoa(client_id+":"),
                     'Content-Type': "application/x-www-form-urlencoded",
                 },
                 body: url`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
-            }).then(v => v.json());
+            }).then(async (v) => {
+                return [v.status, await v.json()];
+            });
+            if(status !== 200) {
+                console.log("Error! got", v, "with status code", status);
+                throw new Error("Status code "+status);
+            }
             console.log("Refresh info:", v);
             const res_data = {
                 access_token: v.access_token,
@@ -216,7 +222,7 @@ function reddit() {
         ],
         isLoggedIn,
         getLoginURL() {
-            const state = "thread.pfg.pw";
+            const state = location.host;
             const scope =
                 "identity edit flair history modconfig modflair modlog" + " " +
                 "modposts modwiki mysubreddits privatemessages read report save" + " " +
@@ -230,13 +236,18 @@ function reddit() {
         },
         async getThread(path): Promise<GenericPage> {
             try {
-                const listing: RedditPage | RedditListing = await fetch(pathURL(path), {
+                const [status, listing] = await fetch(pathURL(path), {
                     mode: "cors", credentials: "omit",
                     headers: isLoggedIn() ? {
                         'Authorization': await getAuthorization(),
                     } : {},
-                }).then(v => v.json());
-                // console.log(listing);
+                }).then(async (v) => {
+                    return [v.status, await v.json() as RedditPage | RedditListing];
+                });
+                if(status !== 200) {
+                    console.log(status, listing);
+                    throw new Error("Got status "+status);
+                }
 
                 return pageFromListing(listing);
             }catch(e) {
@@ -263,8 +274,8 @@ function reddit() {
             if(!code || !state) {
                 throw new Error("No login requested");
             }
-            if(state !== "thread.pfg.pw") {
-                throw new Error("Login was wrong link'd");
+            if(state !== location.host) {
+                throw new Error("Login was for "+state);
             }
 
             const v = await fetch("https://www.reddit.com/api/v1/access_token", {
@@ -274,7 +285,7 @@ function reddit() {
                     'Content-Type': "application/x-www-form-urlencoded",
                 },
                 body: `grant_type=authorization_code&code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(redirect_uri)}`,
-            }).then(v => v.json())
+            }).then(v => v.json());
         
             if(v.error) {
                 console.log(v.error);
