@@ -1,0 +1,17 @@
+.post {
+    margin: 10px;
+    padding: 10px;
+    padding-left: 30px;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+ul.replies {
+    margin: 0;
+    padding: 0;
+}
+
+li.comment {
+    list-style: none;
+    margin: 0;
+}

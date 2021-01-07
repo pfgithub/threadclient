@@ -15,7 +15,11 @@ const typescript = function() {
                     "targets": {"browsers": ">10%"},
                 }],
             ],
-            "plugins": [],
+            "plugins": [
+                ["@babel/plugin-proposal-pipeline-operator", {
+                    "proposal": "smart",
+                }],
+            ],
         }))
         .pipe(sourcemaps.write("."))
         .pipe(gulp.dest("dist"));

@@ -38,7 +38,44 @@ type RedditListing = {
         after: string | null,
     },
 };
+
+type RedditPostBase = {
+    name: string, // post id
+    subreddit_name_prefixed: string, // post subreddit (u/ or r/)
+    stickied: boolean,
+
+    // use to fetch replies I guess
+    permalink: string,
+};
+
+type RedditPostSubmission = RedditPostBase & {
+    title: string,
+
+    // content warnings
+    spoiler: boolean,
+    over_18: boolean,
+
+    // content
+    url: string,
+    selftext?: string, // markdown selftext
+    selftext_html?: string, // sanitize this and set innerhtml. spooky.
+    thumbnail?: string,
+};
+
+type RedditPostComment = RedditPostBase & {
+    body_html: string,
+    replies?: RedditListing,
+};
+
 type RedditPost = {
+    kind: "t3",
+    data: RedditPostSubmission,
+} | {
+    kind: "t1",
+    data: RedditPostComment,
+};
+
+type RedditPostOld = {
     // link post
     kind: "t3",
 
@@ -70,10 +107,12 @@ type GenericThread = {
     title?: string,
     body: {
         kind: "text",
-        content: string,
+        content_html: string,
     } | {
-        kind: "url",
+        kind: "link",
         url: string,
+    } | {
+        kind: "none",
     },
     display_mode: {
         body: "visible" | "collapsed",
@@ -85,6 +124,8 @@ type GenericThread = {
         load_next?: string,
     },
     raw_value?: any,
+
+    link: string,
     
     content_warnings?: GenericContentWarning[],
 };
@@ -98,6 +139,23 @@ type ThreadClient = {
     getThread: (path: string) => Promise<GenericPage>,
     login: (query: URLSearchParams) => Promise<void>,
 };
+
+function assertNever(content: never) {
+    console.log("not never:", content);
+    throw new Error("is not never");
+}
+
+function escapeHTML(html: string) {
+	return html
+		.split("&").join("&amp;")
+		.split('"').join("&quot;")
+		.split("<").join("&lt;")
+        .split(">").join("&gt;")
+    ;
+}
+
+const safehtml = templateGenerator((v: string) => escapeHTML(v));
+
 
 function reddit() {
     const isLoggedIn = () => {
@@ -138,7 +196,7 @@ function reddit() {
                 },
                 body: url`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
             }).then(async (v) => {
-                return [v.status, await v.json()];
+                return [v.status, await v.json()] as const;
             });
             if(status !== 200) {
                 console.log("Error! got", v, "with status code", status);
@@ -178,8 +236,9 @@ function reddit() {
         return {
             header: {
                 title: "Listing",
-                body: {kind: "text", content: "Listing"},
+                body: {kind: "text", content_html: safehtml`Listing`},
                 display_mode: {body: "collapsed", comments: "collapsed"},
+                link: "TODO no link",
             },
             replies: {
                 load_prev: "TODO listing.data.before",
@@ -189,28 +248,54 @@ function reddit() {
         };
     };
     const threadFromListing = (listing_raw: RedditPost): GenericThread => {
-        const listing = listing_raw.data;
-        // console.log("Post: ",listing);
-        const result: GenericThread = {
-            title: listing.title ?? "",
-            body: {kind: "text", content: listing.body_html ?? ""},
-            display_mode: {body: "collapsed", comments: "collapsed"},
-            raw_value: listing_raw,
-        };
-        {
-            const content_warnings: GenericContentWarning[] = [];
-            if(listing.spoiler) content_warnings.push({name: "Spoiler"});
-            if(listing.over_18) content_warnings.push({name: "Over 18"});
-            result.content_warnings = content_warnings;
-        }
-        if(listing.replies) {
-            result.replies = {
-                load_prev: "TODO listing.replies.data.before",
-                loaded: listing.replies.data.children.map(v => threadFromListing(v)),
-                load_next: "TODO listing.replies.data.after",
+        if(listing_raw.kind === "t1") {
+            // Comment
+            const listing = listing_raw.data;
+            const result: GenericThread = {
+                body: {kind: "text", content_html: listing.body_html},
+                display_mode: {body: "visible", comments: "visible"},
+                raw_value: listing_raw,
+                link: listing.permalink,
+            };
+            if(listing.replies) {
+                result.replies = {
+                    load_prev: "TODO listing.replies.data.before",
+                    loaded: listing.replies.data.children.map(v => threadFromListing(v)),
+                    load_next: "TODO listing.replies.data.after",
+                };
+            }
+            return result;
+        }else if(listing_raw.kind === "t3") {
+            const listing = listing_raw.data;
+            const result: GenericThread = {
+                title: listing.title ?? "",
+                body: listing.selftext_html
+                    ? {kind: "text", content_html: listing.selftext_html}
+                    : listing.selftext != undefined
+                    ? {kind: "none"}
+                    : {kind: "link", url: listing.url},
+                display_mode: {body: "collapsed", comments: "collapsed"},
+                raw_value: listing_raw,
+                link: listing.permalink,
+            };
+            {
+                const content_warnings: GenericContentWarning[] = [];
+                if(listing.spoiler) content_warnings.push({name: "Spoiler"});
+                if(listing.over_18) content_warnings.push({name: "Over 18"});
+                result.content_warnings = content_warnings;
+            }
+            return result;
+        }else{
+            return {
+                title: "unsupported listing kind "+(listing_raw as any).data.kind,
+                body: {kind: "text", content_html: safehtml`unsupported`},
+                display_mode: {body: "collapsed", comments: "collapsed"},
+                raw_value: listing_raw,
+                link: "TODO no link",
             };
         }
-        return result;
+        // console.log("Post: ",listing);
+        
     }
 
     const res: ThreadClient = {
@@ -242,7 +327,7 @@ function reddit() {
                         'Authorization': await getAuthorization(),
                     } : {},
                 }).then(async (v) => {
-                    return [v.status, await v.json() as RedditPage | RedditListing];
+                    return [v.status, await v.json() as RedditPage | RedditListing] as const;
                 });
                 if(status !== 200) {
                     console.log(status, listing);
@@ -252,17 +337,25 @@ function reddit() {
                 return pageFromListing(listing);
             }catch(e) {
                 console.log(e);
+                const is_networkerror = e.toString().includes("NetworkError");
+                
                 return {
                     header: {
                         title: "Error",
-                        body: {kind: "text", content: "Error "+e.toString()+
-                            (e.toString().includes("NetworkError when attempting") ? " If using Firefox, "
-                                +"try disabling 'Enhanced Tracker Protection.' Otherwise, check the browser console." : "")
+                        body: {
+                            kind: "text",
+                            content_html: safehtml`Error ${e.toString()}`+ (is_networkerror
+                                ? safehtml`. If using Firefox, try disabling 'Enhanced Tracker Protection' ${""
+                                    } for this site. Enhanced tracker protection indiscriminately blocks all ${""
+                                    } requests to social media sites, including Reddit.`
+                                : safehtml`.`
+                            ),
                         },
                         display_mode: {
                             body: "visible",
                             comments: "collapsed",
                         },
+                        link: "TODO no link",
                     },
                 };
             }
@@ -342,9 +435,9 @@ function isModifiedEvent(event: MouseEvent) {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
 
-function linkButton(href: string, onclick: () => void, children: any) {
-    const a_ref = {current: null};
-    const click = (event: MouseEvent) => {
+function linkButton(href: string) {
+    const res = el("a").attr({href, target: "_blank", rel: "noreferrer noopener"});
+    if(href.startsWith("/")) res.onclick = event => {
         if (
             !event.defaultPrevented && // onClick prevented default
             event.button === 0 && // ignore everything but left clicks
@@ -352,32 +445,56 @@ function linkButton(href: string, onclick: () => void, children: any) {
         ) {
             event.preventDefault();
             event.stopPropagation();
-            onclick();
+            navigate({path: href});
         }
     };
-    return html`<a ref=${a_ref} href=${href} onclick=${click} target="_blank" rel="noreferrer noopener">${children}</a>`;
+    return res;
 }
 
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
 
-    const frame = document.createElement("div");
+    const frame = el("div").clss("post");
     defer(() => frame.remove());
     parent.insertBefore(frame, before_once);
 
-    const children_node = {current: null as any as Node};
-    uhtml.render(frame, html`
-        <div class="post-title">${listing.title || "*no title*"}</div>
-        <div class="post-body">${listing.body.kind === "text" ? listing.body.content : listing.body.url}</div>
-        <ul ref=${children_node}></ul>
-    `);
+    linkButton("/"+client.id+listing.link).atxt("[View]").adto(frame);
+    el("button").onev("click", e => {
+        console.log(listing);
+    }).atxt("[Code]").adto(frame);
+
+    if(listing.title) {
+        el("div").adto(frame).atxt(listing.title);
+    }
+    if(listing.body) {
+        let details: ChildNode;
+        if(listing.display_mode.body === "collapsed") {
+            details = el("details").adto(frame);
+            el("summary").adto(details).atxt("Post");
+        }else{
+            details = el("div").adto(frame);
+        }
+        details.clss("post-body");
+
+        if(listing.body.kind === "text") {
+            const elv = el("div").adto(details);
+            elv.innerHTML = listing.body.content_html;
+        }else if(listing.body.kind === "link") {
+            el("div").adto(details).atxt(listing.body.url);
+        }else if(listing.body.kind === "none") {
+            details.remove();
+        }else assertNever(listing.body);
+    }
+
+    const children_node = el("ul").clss("replies").adto(frame);
+
     const addChildren = (children: GenericThread[], li_before_once: Node | null) => {
         for(const child_listing of children) {
-            const v = document.createElement("li");
-            const child_node = clientListing(client, child_listing).insertBefore(v, null);
+            const reply_node = el("li").clss("comment");
+            const child_node = clientListing(client, child_listing).insertBefore(reply_node, null);
             defer(() => child_node.removeSelf());
-            children_node.current.insertBefore(v, li_before_once);
+            children_node.insertBefore(reply_node, li_before_once);
         }
     }
     if(listing.replies) addChildren(listing.replies.loaded, null);
