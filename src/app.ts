@@ -57,7 +57,7 @@ type RedditPostSubmission = RedditPostBase & {
 
     // content
     url: string,
-    selftext?: string, // markdown selftext
+    is_self: boolean,
     selftext_html?: string, // sanitize this and set innerhtml. spooky.
     thumbnail?: string,
 };
@@ -111,6 +111,7 @@ type GenericThread = {
     } | {
         kind: "link",
         url: string,
+        thumbnail?: string,
     } | {
         kind: "none",
     },
@@ -269,11 +270,11 @@ function reddit() {
             const listing = listing_raw.data;
             const result: GenericThread = {
                 title: listing.title ?? "",
-                body: listing.selftext_html
-                    ? {kind: "text", content_html: listing.selftext_html}
-                    : listing.selftext != undefined
-                    ? {kind: "none"}
-                    : {kind: "link", url: listing.url},
+                body: listing.is_self
+                    ? listing.selftext_html
+                        ? {kind: "text", content_html: listing.selftext_html}
+                        : {kind: "none"}
+                    : {kind: "link", url: listing.url, thumbnail: listing.thumbnail},
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
                 link: listing.permalink,
@@ -436,6 +437,7 @@ function isModifiedEvent(event: MouseEvent) {
 }
 
 function linkButton(href: string) {
+    // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
     const res = el("a").attr({href, target: "_blank", rel: "noreferrer noopener"});
     if(href.startsWith("/")) res.onclick = event => {
         if (
@@ -481,7 +483,10 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             const elv = el("div").adto(details);
             elv.innerHTML = listing.body.content_html;
         }else if(listing.body.kind === "link") {
-            el("div").adto(details).atxt(listing.body.url);
+            el("div").adto(details).adch(linkButton(listing.body.url).atxt(listing.body.url));
+            if(listing.body.thumbnail) {
+                el("img").attr({src: listing.body.thumbnail}).adto(frame);
+            }
         }else if(listing.body.kind === "none") {
             details.remove();
         }else assertNever(listing.body);
