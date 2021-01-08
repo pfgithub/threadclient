@@ -901,6 +901,12 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         if(listing.title.flair) content_title_line.adch(renderFlair(listing.title.flair));
     }
 
+    if(listing.content_warnings && listing.content_warnings.length) {
+        for(const cw of listing.content_warnings) {
+            content_title_line.adch(renderFlair([{elems: [{type: "text", text: cw.name}]}]));
+        }
+    }
+
     if(listing.layout === "reddit-post") {
         const submission_time = el("span").atxt(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
@@ -933,6 +939,18 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         let onhide = () => {};
         let onshow = () => {};
         let initContent = (body: GenericBody, opts: {autoplay: boolean}) => {
+            if(listing.content_warnings) {
+                const cws = listing.content_warnings;
+                listing.content_warnings = undefined;
+                const cwbox = el("div").adto(content);
+                cwbox.atxt("Content Warning: "+cws.map(cw => cw.name).join(", "));
+                el("button").adto(cwbox).atxt("Show Content").onev("click", e => {
+                    cwbox.remove();
+                    initContent(body, opts);
+                });
+                return;
+            }
+
             if(body.kind === "text") {
                 const elv = el("div").adto(content);
                 if(body.markdown_format === "reddit") {
