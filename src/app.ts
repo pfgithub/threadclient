@@ -58,6 +58,7 @@ type RedditPostSubmission = RedditPostBase & {
     // content
     url: string,
     is_self: boolean,
+    selftext: string,
     selftext_html?: string, // sanitize this and set innerhtml. spooky.
     thumbnail?: string,
 
@@ -92,6 +93,7 @@ type RedditPostSubmission = RedditPostBase & {
 };
 
 type RedditPostComment = RedditPostBase & {
+    body: string,
     body_html: string,
     replies?: RedditListing,
 
@@ -126,19 +128,24 @@ type GenericPage = {
     header: GenericThread,
     replies?: {load_prev?: string, loaded: GenericThread[], load_next?: string},
 };
+type GenericBody = {
+    kind: "text",
+    content_html: string,
+} | {
+    kind: "link",
+    url: string,
+} | {
+    kind: "image_gallery",
+    images: GenericGalleryImages,
+} | {
+    kind: "none",
+} | {
+    kind: "removed",
+    by: "author" | "moderator",
+    fetch_path: string,
+};
 type GenericThread = {
-    body: {
-        kind: "text",
-        content_html: string,
-    } | {
-        kind: "link",
-        url: string,
-    } | {
-        kind: "image_gallery",
-        images: GenericGalleryImages,
-    } | {
-        kind: "none",
-    },
+    body: GenericBody,
     thumbnail?: {
         url: string,
     },
@@ -206,6 +213,7 @@ type ThreadClient = {
     getLoginURL: () => string,
     getThread: (path: string) => Promise<GenericPage>,
     login: (query: URLSearchParams) => Promise<void>,
+    fetchRemoved?: (fetch_removed_path: string) => Promise<GenericBody>,
 };
 
 function assertNever(content: never): never {
@@ -340,8 +348,16 @@ function reddit() {
         if(listing_raw.kind === "t1") {
             // Comment
             const listing = listing_raw.data;
+
+            const is_deleted = listing.author === "[deleted]";
+            const post_id_no_pfx = listing.name.substring(3);
+
             const result: GenericThread = {
-                body: {kind: "text", content_html: listing.body_html},
+                body: is_deleted
+                    ? {kind: "removed", by: listing.body === "[removed]" ? "moderator" : "author",
+                        fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
+                    }
+                    : {kind: "text", content_html: listing.body_html},
                 display_mode: {body: "visible", comments: "visible"},
                 raw_value: listing_raw,
                 link: listing.permalink,
@@ -374,12 +390,20 @@ function reddit() {
         }else if(listing_raw.kind === "t3") {
             const listing = listing_raw.data;
             // if((listing as any).preview) console.log((listing as any).preview);
+
+            const is_deleted = listing.author === "[deleted]";
+            const post_id_no_pfx = listing.name.substring(3);
+
             const result: GenericThread = {
                 title: {
                     text: listing.title,
                     flair: flairToGenericFlair(listing.link_flair_richtext),
                 },
-                body: listing.is_self
+                body: is_deleted
+                    ? {kind: "removed", by: listing.selftext === "[removed]" ? "moderator" : "author",
+                        fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
+                    }
+                    : listing.is_self
                     ? listing.selftext_html
                         ? {kind: "text", content_html: listing.selftext_html}
                         : {kind: "none"}
@@ -548,6 +572,33 @@ function reddit() {
 
             localStorage.setItem("reddit-secret", JSON.stringify(res_data));
         },
+        async fetchRemoved(frmlink: string): Promise<GenericBody> {
+            type PushshiftResult = {data: {selftext?: string, body?: string}[]};
+            const [status, res] = await fetch(frmlink).then(async (v) => {
+                return [v.status, await v.json() as PushshiftResult] as const;
+            });
+            if(status !== 200) {
+                console.log(status, res);
+                throw new Error("Got status "+status);
+            }
+            if(res.data.length === 0) {
+                console.log(status, res);
+                throw new Error("Did not find post "+status);
+            }
+            if(res.data[0].selftext) {
+                return {
+                    kind: "text",
+                    content_html: safehtml`${res.data[0].selftext}`,
+                };
+            }
+            if(res.data[0].body) {
+                return {
+                    kind: "text",
+                    content_html: safehtml`${res.data[0].body}`,
+                };
+            }
+            throw new Error("no selftext or body");
+        }
     };
     return res;
 }
@@ -851,22 +902,48 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
         let onhide = () => {};
         let onshow = () => {};
-        let initContent = () => {
-            if(listing.body.kind === "text") {
+        let initContent = (body: GenericBody) => {
+            if(body.kind === "text") {
                 const elv = el("div").adto(content);
-                elv.innerHTML = listing.body.content_html;
-            }else if(listing.body.kind === "link") {
+                elv.innerHTML = body.content_html;
+            }else if(body.kind === "link") {
                 // TODO fix this link button thing
-                el("div").adto(content).adch(linkButton(listing.body.url).atxt(listing.body.url));
-                const preview = renderLinkPreview(listing.body.url);
+                el("div").adto(content).adch(linkButton(body.url).atxt(body.url));
+                const preview = renderLinkPreview(body.url);
                 preview.node.adto(content);
                 if(preview.onhide) onhide = preview.onhide;
                 if(preview.onshow) onshow = preview.onshow;
-            }else if(listing.body.kind === "none") {
+            }else if(body.kind === "none") {
                 content.remove();
-            }else if(listing.body.kind === "image_gallery") {
-                renderImageGallery(listing.body.images).adto(content);
-            }else assertNever(listing.body);
+            }else if(body.kind === "image_gallery") {
+                renderImageGallery(body.images).adto(content);
+            }else if(body.kind === "removed") {
+                const removed_v = el("div").adto(content).atxt("Removed by "+body.by+".");
+                if(body.fetch_path && client.fetchRemoved) {
+                    const fetch_btn = el("button").adto(removed_v).atxt("View");
+                    // so this is a place where it would be helpful to update the entire listing
+                    // unfortunately, this is not react or uil and that can't be done easily
+                    // given how stateful listings are
+                    // for now, just update the body.
+                    fetch_btn.onev("click", async () => {
+                        let new_body: GenericBody;
+                        let errored = false;
+                        fetch_btn.textContent = "…";
+                        fetch_btn.disabled = true;
+                        try {
+                            new_body = await client.fetchRemoved!(body.fetch_path);
+                        }catch(e) {
+                            errored = true;
+                            console.log(e);
+                            new_body = {kind: "text", content_html: safehtml`Error! ${e.toString()}`};
+                        }
+                        fetch_btn.textContent = errored ? "Retry" : "Loaded";
+                        fetch_btn.disabled = false;
+                        if(!errored) removed_v.remove();
+                        initContent(new_body);
+                    });
+                }
+            }else assertNever(body);
         };
 
         if(listing.display_mode.body === "collapsed") {
@@ -879,7 +956,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             const update = () => {
                 if(state && !initialized) {
                     initialized = true;
-                    initContent();
+                    initContent(listing.body);
                 }
                 open_preview_text.nodeValue = state ? "Hide" : "Show";
                 content.style.display = state ? "" : "none";
@@ -899,7 +976,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 update();
             });
         }else{
-            initContent();
+            initContent(listing.body);
         }
         content.clss("post-body");
         content.adto(preview_area);
