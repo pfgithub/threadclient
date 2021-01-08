@@ -60,6 +60,16 @@ type RedditPostSubmission = RedditPostBase & {
     is_self: boolean,
     selftext_html?: string, // sanitize this and set innerhtml. spooky.
     thumbnail?: string,
+
+    preview?: {
+        images: {
+            id: string,
+            source: {url: string, width: number, height: number},
+            resolutions: {url: string, width: number, height: number}[],
+            // variants: {?}
+        }[],
+        enabled: boolean,
+    },
 };
 
 type RedditPostComment = RedditPostBase & {
@@ -73,30 +83,6 @@ type RedditPost = {
 } | {
     kind: "t1",
     data: RedditPostComment,
-};
-
-type RedditPostOld = {
-    // link post
-    kind: "t3",
-
-    data: {
-        name: string, // post id
-        subreddit_name_prefixed: string, // post subreddit (u/ or r/)
-        thumbnail?: string,
-        post_hint: string,
-        
-        title?: string,
-        body_html?: string,
-
-        // content warnings
-        spoiler: boolean,
-        over_18: boolean,
-
-        // use to fetch replies I guess
-        permalink?: string,
-
-        replies?: RedditListing,
-    },
 };
 
 type GenericPage = {
@@ -207,13 +193,14 @@ function reddit() {
                 console.log("Error! got", v, "with status code", status);
                 throw new Error("Status code "+status);
             }
-            console.log("Refresh info:", v);
             const res_data = {
                 access_token: v.access_token,
-                refresh_token: v.refresh_token,
+                refresh_token: v.refresh_token || json.refresh_token,
                 expires: Date.now() + (v.expires_in * 1000),
                 scope: v.scope,
             };
+            console.log("Refresh info:", v, res_data);
+            alert("REFRESHED TOKEN, CHECK CONSOLE!");
             localStorage.setItem("reddit-secret", JSON.stringify(res_data));
             console.log("Refreshed √");
             return res_data.access_token;
@@ -274,6 +261,7 @@ function reddit() {
             return result;
         }else if(listing_raw.kind === "t3") {
             const listing = listing_raw.data;
+            // if((listing as any).preview) console.log((listing as any).preview);
             const result: GenericThread = {
                 title: listing.title ?? "",
                 body: listing.is_self
@@ -285,7 +273,10 @@ function reddit() {
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
                 link: listing.permalink,
-                thumbnail: {url: listing.thumbnail ?? "none"},
+                thumbnail: listing.preview
+                    ? {url: listing.preview.images[0].resolutions[0].url}
+                    : {url: listing.thumbnail ?? "none"}
+                ,
                 layout: "reddit-post",
             };
             {
@@ -464,17 +455,76 @@ function linkButton(href: string) {
     return res;
 }
 
-function renderLinkPreview(link: string): Node {
-    if(link.startsWith("https://i.redd.it")
+function renderLinkPreview(link: string): {node: Node, onhide?: () => void, onshow?: () => void} {
+    if(link.startsWith("https://i.redd.it/")
         || link.endsWith(".png") || link.endsWith(".jpg")
         || link.endsWith(".jpeg")|| link.endsWith(".gif")
     ) {
         let img = el("img").clss("preview-image").attr({src: link});
         // a resizable image can be made like this
         // .resizable { display: inline-block; resize: both; overflow: hidden; line-height: 0; }
-        return el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"});
+        return {node: el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"})};
     }
-    return document.createComment("…");
+    if(link.startsWith("https://v.redd.it/")) {
+        let container = el("div");
+
+        let video = el("video").attr({controls: ""}).clss("preview-image").adto(container);
+        el("source").attr({src: link+"/DASH_720.mp4", type: "video/mp4"}).adto(video);
+        el("source").attr({src: link+"/DASH_480.mp4", type: "video/mp4"}).adto(video);
+        el("source").attr({src: link+"/DASH_360.mp4", type: "video/mp4"}).adto(video);
+        el("source").attr({src: link+"/DASH_240.mp4", type: "video/mp4"}).adto(video);
+        
+        let audio = el("audio").adto(container);
+        el("source").attr({src: link+"/DASH_audio.mp4", type: "video/mp4"}).adto(audio);
+
+        // TODO:
+        // - proper sync accounting for audio buffering
+        // - custom player:
+        //   - audio volume controls
+        //   - /DASH_96.mp4 preview when hovering the scrubber bar
+
+        const sync = () => {
+            audio.currentTime = video.currentTime;
+            audio.playbackRate = video.playbackRate;
+        };
+        video.onplay = () => {
+            sync();
+            audio.play();
+        };
+        video.onplaying = () => {
+            sync();
+            audio.play();
+        };
+        video.onseeking = () => sync();
+        video.ontimeupdate = () => {
+            if(!video.paused) return;
+            sync();
+        };
+        video.onpause = () => {
+            audio.pause();
+            sync();
+        };
+
+        let playing_before_hide = false;
+
+        return {node: container, onhide: () => {
+            playing_before_hide = !video.paused;
+            video.pause();
+        }, onshow: () => {
+            if(playing_before_hide) video.play();
+        }};
+    }
+    if(link.startsWith("https://youtu.be/")) {
+        const youtube_video_id = link.split("/")[3] ?? "no_id";
+        const yt_player = el("iframe").attr({
+            width: "640", height: "360", allow: "fullscreen",
+            src: "https://www.youtube.com/embed/"+youtube_video_id+"?autoplay=1&version=3&enablejsapi=1&playerapiid=ytplayer"
+        });
+        return {node: yt_player, onhide: () => {
+            yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
+        }};
+    }
+    return {node: document.createComment("Preview not supported yet")};
 }
 
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
@@ -517,14 +567,19 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             }
         }
 
-        let showContent = () => {
+        let onhide = () => {};
+        let onshow = () => {};
+        let initContent = () => {
             if(listing.body.kind === "text") {
                 const elv = el("div").adto(content);
                 elv.innerHTML = listing.body.content_html;
             }else if(listing.body.kind === "link") {
                 // TODO fix this link button thing
                 el("div").adto(content).adch(linkButton(listing.body.url).atxt(listing.body.url));
-                renderLinkPreview(listing.body.url).adto(content);
+                const preview = renderLinkPreview(listing.body.url);
+                preview.node.adto(content);
+                if(preview.onhide) onhide = preview.onhide;
+                if(preview.onshow) onshow = preview.onshow;
             }else if(listing.body.kind === "none") {
                 content.remove();
             }else assertNever(listing.body);
@@ -536,13 +591,19 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
             let initialized = false;
             let state = false;
+            let prev_state = true;
             const update = () => {
                 if(state && !initialized) {
                     initialized = true;
-                    showContent();
+                    initContent();
                 }
                 open_preview_text.nodeValue = state ? "Hide" : "Show";
                 content.style.display = state ? "" : "none";
+                if(state !== prev_state) {
+                    prev_state = state;
+                    if(state) onshow();
+                    else onhide();
+                }
             };
             update();
             open_preview_button.onev("click", () => {
@@ -550,7 +611,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 update();
             });
         }else{
-            showContent();
+            initContent();
         }
         content.clss("post-body");
         content.adto(preview_area);
