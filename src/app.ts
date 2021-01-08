@@ -605,9 +605,14 @@ function linkButton(href: string) {
 }
 
 function renderLinkPreview(link: string): {node: Node, onhide?: () => void, onshow?: () => void} {
+    let url: URL | undefined;
+    try { 
+        url = new URL(link);
+    }catch(e) {console.log("could not parse preview url:", link, e);}
+    const path = url?.pathname ?? link;
     if(link.startsWith("https://i.redd.it/")
-        || link.endsWith(".png") || link.endsWith(".jpg")
-        || link.endsWith(".jpeg")|| link.endsWith(".gif")
+        || path.endsWith(".png") || path.endsWith(".jpg")
+        || path.endsWith(".jpeg")|| path.endsWith(".gif")
     ) {
         let img = el("img").clss("preview-image").attr({src: link});
         // a resizable image can be made like this
