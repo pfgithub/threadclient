@@ -92,6 +92,8 @@ type RedditPostSubmission = RedditPostBase & {
     num_comments: number,
 
     crosspost_parent_list?: RedditPostSubmission[],
+
+    media_embed?: {content: string},
 };
 
 type RedditPostComment = RedditPostBase & {
@@ -137,6 +139,7 @@ type GenericBody = {
 } | {
     kind: "link",
     url: string,
+    embed_html?: string,
 } | {
     kind: "image_gallery",
     images: GenericGalleryImages,
@@ -435,7 +438,7 @@ function reddit() {
                             caption: gd.caption,
                         };
                     })}
-                    : {kind: "link", url: listing.url}
+                    : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
                 ,
                 display_mode: {body: options.force_expand ? "visible" : "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
@@ -679,7 +682,7 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}):
     }};
 }
 
-function renderLinkPreview(link: string, opts: {autoplay: boolean}): {node: Node, onhide?: () => void, onshow?: () => void} {
+function renderLinkPreview(link: string, opts: {autoplay: boolean, suggested_embed?: string}): {node: Node, onhide?: () => void, onshow?: () => void} {
     let url: URL | undefined;
     try { 
         url = new URL(link);
@@ -760,6 +763,23 @@ function renderLinkPreview(link: string, opts: {autoplay: boolean}): {node: Node
     if(link.startsWith("https://imgur.com/")) {
         const iframe = el("iframe").attr({src: link + "/embed"});
         return {node: el("div").clss("resizable-iframe").styl({width: "500px", height: "500px"}).adch(iframe)};
+    }
+    if(opts.suggested_embed) {
+        try {
+            // const parser = new DOMParser();
+            // const doc = parser.parseFromString(opts.suggested_embed, "text/html");
+            // const iframe = doc.childNodes[0].childNodes[1].childNodes[0];
+            const template_el = el("template");
+            template_el.innerHTML = opts.suggested_embed;
+            const iframe_unsafe = template_el.content.childNodes[0] as HTMLIFrameElement;
+
+            console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
+
+            const iframe = el("iframe").attr({src: iframe_unsafe.src, allow: iframe_unsafe.allow, allowfullsreen: ""});
+            return {node: el("div").clss("resizable-iframe").styl({width: iframe_unsafe.width+"px", height: iframe_unsafe.height+"px"}).adch(iframe)};
+        }catch(e) {
+            console.log(e);
+        }
     }
     return {node: document.createComment("Preview not supported yet")};
 }
@@ -867,7 +887,8 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     let content_buttons_line: HTMLDivElement;
 
     if(listing.layout === "reddit-post") {
-        thumbnail_loc = listing.thumbnail ? el("button").adto(frame).clss("post-thumbnail") : undefined as any;
+        thumbnail_loc = el("button").adto(frame).clss("post-thumbnail");
+        if(!listing.thumbnail) thumbnail_loc.clss("no-thumbnail");
         const content_area = el("div").adto(frame).clss("post-titles");
         preview_area = el("div").adto(frame).clss("post-preview");
         replies_area = el("div").adto(frame).clss("post-replies");
@@ -965,7 +986,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             }else if(body.kind === "link") {
                 // TODO fix this link button thing
                 el("div").adto(content).adch(linkButton(body.url).atxt(body.url));
-                const preview = renderLinkPreview(body.url, {autoplay: opts.autoplay});
+                const preview = renderLinkPreview(body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
                 preview.node.adto(content);
                 if(preview.onhide) onhide = preview.onhide;
                 if(preview.onshow) onshow = preview.onshow;
