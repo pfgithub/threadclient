@@ -61,6 +61,17 @@ type RedditPostSubmission = RedditPostBase & {
     selftext_html?: string, // sanitize this and set innerhtml. spooky.
     thumbnail?: string,
 
+    gallery_data?: {items: {
+        caption?: string,
+        media_id: string, // →media_metadata
+    }[]},
+
+    media_metadata?: {[key: string]: {
+        // e: "Image",
+        p: {y: number, x: number, u: string}[], // preview
+        s: {y: number, x: number, u: string}, // source
+    }},
+
     preview?: {
         images: {
             id: string,
@@ -98,6 +109,9 @@ type GenericThread = {
         kind: "link",
         url: string,
     } | {
+        kind: "image_gallery",
+        images: GenericGalleryImages,
+    } | {
         kind: "none",
     },
     thumbnail?: {
@@ -120,6 +134,15 @@ type GenericThread = {
     
     content_warnings?: GenericContentWarning[],
 };
+type GenericGalleryImages = {
+    thumb: string,
+    thumb_w: number,
+    thumb_h: number,
+    url: string,
+    w: number,
+    h: number,
+    caption?: string,
+}[];
 type GenericContentWarning = {name: string};
 
 type ThreadClient = {
@@ -268,6 +291,19 @@ function reddit() {
                     ? listing.selftext_html
                         ? {kind: "text", content_html: listing.selftext_html}
                         : {kind: "none"}
+                    : listing.gallery_data
+                    ? {kind: "image_gallery", images: listing.gallery_data.items.map(gd => {
+                        const moreinfo = listing.media_metadata![gd.media_id];
+                        return {
+                            thumb: moreinfo.p[0].u,
+                            thumb_w: moreinfo.p[0].x,
+                            thumb_h: moreinfo.p[0].y,
+                            url: moreinfo.s.u,
+                            w: moreinfo.s.x,
+                            h: moreinfo.s.y,
+                            caption: gd.caption,
+                        };
+                    })}
                     : {kind: "link", url: listing.url}
                 ,
                 display_mode: {body: "collapsed", comments: "collapsed"},
@@ -524,7 +560,49 @@ function renderLinkPreview(link: string): {node: Node, onhide?: () => void, onsh
             yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
         }};
     }
+    if(link.startsWith("https://www.reddit.com/gallery/")) {
+        // information about galleries is distributed with posts
+        // do nothing I guess
+    }
     return {node: document.createComment("Preview not supported yet")};
+}
+
+function renderImageGallery(images: GenericGalleryImages): Node {
+    let container = el("div");
+    type State = "overview" | {
+        index: number
+    };
+    let state: State = "overview";
+    let setState = (newState: State) => {
+        state = newState;
+        uhtml.render(container, update());
+    }
+
+    let update = () => {
+        if(state === "overview") {
+            return html`${images.map((image, i) => html`
+                <img src=${image.thumb} width=${image.thumb_w} height=${image.thumb_h}
+                    class="preview-image gallery-overview-image" onclick=${() => {setState({index: i});}}
+                />
+            `)}`;
+        }
+        let index = state.index;
+        const selimg = images[index];
+        return html`
+            <button onclick=${() => setState({index: index - 1})} disabled=${index <= 0 ? "" : undefined}>Prev</button>
+            ${index + 1}/${images.length}
+            <button onclick=${() => setState({index: index + 1})} disabled=${index >= images.length - 1 ? "" : undefined}>Next</button>
+            <button onclick=${() => setState("overview")}>Gallery</button>
+            ${selimg.caption ? html`<div>${selimg.caption}</div>` : ""}
+            <div><a href=${selimg.url} rel="noreferrer noopener" target="_blank">
+                <img src=${selimg.url} width=${selimg.w} height=${selimg.h} class="preview-image" />
+            </a></div>
+        `;
+        // TODO display a loading indicator while the image loads
+    };
+
+    setState(state);
+    return container;
 }
 
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
@@ -582,6 +660,8 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 if(preview.onshow) onshow = preview.onshow;
             }else if(listing.body.kind === "none") {
                 content.remove();
+            }else if(listing.body.kind === "image_gallery") {
+                renderImageGallery(listing.body.images).adto(content);
             }else assertNever(listing.body);
         };
 
