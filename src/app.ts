@@ -742,6 +742,35 @@ function renderFlair(flairs: GenericFlair[]) {
     return resl;
 }
 
+function s(number: number, text: string) {
+    if(!text.endsWith("s")) throw new Error("!s");
+    if(number == 1) return number + text.substring(0, text.length - 1);
+    return number + text;
+}
+
+// TODO replace this with a proper thing that can calculate actual "months ago" values
+function timeAgo(start_ms: number) {
+    const ms = Date.now() - start_ms;
+    if(ms < 60 * 1000) return "just now";
+    if(ms < 60 * 60 * 1000) {
+        const minutes = ms / (60 * 1000) |0;
+        return s(minutes, " minutes")+" ago";
+    }
+    if(ms < 24 * 60 * 60 * 1000) {
+        const hours = ms / (60 * 60 * 1000) |0;
+        return s(hours, " hours")+" ago";
+    }
+    if(ms < 7 * 24 * 60 * 60 * 1000) {
+        const days = ms / (24 * 60 * 60 * 1000) |0;
+        return s(days, " days")+" ago";
+    }
+    if(ms < 3 * 7 * 24 * 60 * 60 * 1000) {
+        const weeks = ms / (7 * 24 * 60 * 60 * 1000) |0;
+        return s(weeks, " weeks")+" ago";
+    }
+    return new Date(start_ms).toISOString();
+}
+
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
@@ -791,10 +820,17 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         if(listing.title.flair) content_title_line.adch(renderFlair(listing.title.flair));
     }
 
-    const submission_time = el("span").atxt((Date.now() - listing.info.time) + "ms ago").attr({title: "" + new Date(listing.info.time)});
-    content_subminfo_line.adch(submission_time).atxt(" by ");
-    content_subminfo_line.adch(linkButton("/"+client.id+listing.info.author.link).atxt(listing.info.author.name));
-    if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
+    if(listing.layout === "reddit-post") {
+        const submission_time = el("span").atxt(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
+        content_subminfo_line.adch(submission_time).atxt(" by ");
+        content_subminfo_line.adch(linkButton("/"+client.id+listing.info.author.link).atxt(listing.info.author.name));
+        if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
+    }else if(listing.layout === "reddit-comment") {
+        content_subminfo_line.adch(linkButton("/"+client.id+listing.info.author.link).atxt(listing.info.author.name));
+        if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
+        const submission_time = el("span").atxt(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
+        content_subminfo_line.atxt(", ").adch(submission_time);
+    }
 
     if(listing.body) {
         const content = el("div");
