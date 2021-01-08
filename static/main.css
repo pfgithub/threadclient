@@ -20,12 +20,18 @@ li.comment {
     cursor: pointer;
 }
 
+.post-thumbnail {
+    all: unset;
+    cursor: pointer;
+}
+
 .preview-image {
     max-width: 95vw;
     max-height: 95vh;
     width: auto;
 }
-.gallery-overview-image {
+.gallery-overview-item {
+    all: unset;
     cursor: pointer;
     margin: 5px;
 }

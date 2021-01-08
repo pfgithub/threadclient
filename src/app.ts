@@ -581,9 +581,11 @@ function renderImageGallery(images: GenericGalleryImages): Node {
     let update = () => {
         if(state === "overview") {
             return html`${images.map((image, i) => html`
-                <img src=${image.thumb} width=${image.thumb_w} height=${image.thumb_h}
-                    class="preview-image gallery-overview-image" onclick=${() => {setState({index: i});}}
-                />
+                <button class="gallery-overview-item" onclick=${() => {setState({index: i});}}>
+                    <img src=${image.thumb} width=${image.thumb_w} height=${image.thumb_h}
+                        class="preview-image gallery-overview-image"
+                    />
+                </button>
             `)}`;
         }
         let index = state.index;
@@ -613,7 +615,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     defer(() => frame.remove());
     parent.insertBefore(frame, before_once);
 
-    const thumbnail_loc = el("div").adto(frame).clss("post-thumbnail");
+    const thumbnail_loc = el("button").adto(frame).clss("post-thumbnail");
     const content_area = el("div").adto(frame).clss("post-titles");
     const preview_area = el("div").adto(frame).clss("post-preview");
     const replies_area = el("div").adto(frame).clss("post-replies");
@@ -694,8 +696,6 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 state =! state;
                 update();
             });
-            thumbnail_loc.clss("clickable");
-            thumbnail_loc.attr({"role": "button", "tabindex": "0"});
         }else{
             initContent();
         }
