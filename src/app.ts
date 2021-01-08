@@ -671,6 +671,16 @@ function linkButton(href: string) {
     return res;
 }
 
+function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}): {node: Node, onhide?: () => void, onshow?: () => void} {
+    const yt_player = el("iframe").attr({
+        allow: "fullscreen",
+        src: "https://www.youtube.com/embed/"+youtube_video_id+"?version=3&enablejsapi=1&playerapiid=ytplayer"+(opts.autoplay ? "&autoplay=1" : ""),
+    });
+    return {node: el("div").clss("resizable-iframe").styl({width: "640px", height: "360px"}).adch(yt_player), onhide: () => {
+        yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
+    }};
+}
+
 function renderLinkPreview(link: string, opts: {autoplay: boolean}): {node: Node, onhide?: () => void, onshow?: () => void} {
     let url: URL | undefined;
     try { 
@@ -735,22 +745,23 @@ function renderLinkPreview(link: string, opts: {autoplay: boolean}): {node: Node
             if(playing_before_hide) video.play();
         }};
     }
-    if(link.startsWith("https://youtu.be/")) {
-        const youtube_video_id = link.split("/")[3] ?? "no_id";
-        const yt_player = el("iframe").attr({
-            width: "640", height: "360", allow: "fullscreen",
-            src: "https://www.youtube.com/embed/"+youtube_video_id+"?version=3&enablejsapi=1&playerapiid=ytplayer"+(opts.autoplay ? "&autoplay=1" : ""),
-        });
-        return {node: yt_player, onhide: () => {
-            yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
-        }};
+    if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
+        const link = url.searchParams.get("v");
+        if(link) {
+            return embedYoutubeVideo(link, opts);
+        }
+    }
+    if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
+        const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
+        return embedYoutubeVideo(youtube_video_id, opts);
     }
     if(link.startsWith("https://www.reddit.com/gallery/")) {
         // information about galleries is distributed with posts
         // do nothing I guess
     }
     if(link.startsWith("https://imgur.com/")) {
-        return {node: el("div").clss("resizable-iframe").adch(el("iframe").attr({src: link + "/embed"}))};
+        const iframe = el("iframe").attr({src: link + "/embed"});
+        return {node: el("div").clss("resizable-iframe").styl({width: "500px", height: "500px"}).adch(iframe)};
     }
     return {node: document.createComment("Preview not supported yet")};
 }
