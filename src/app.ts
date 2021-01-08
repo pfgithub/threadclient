@@ -690,6 +690,12 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 state =! state;
                 update();
             });
+            thumbnail_loc.onev("click", () => {
+                state =! state;
+                update();
+            });
+            thumbnail_loc.clss("clickable");
+            thumbnail_loc.attr({"role": "button", "tabindex": "0"});
         }else{
             initContent();
         }

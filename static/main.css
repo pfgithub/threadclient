@@ -16,6 +16,10 @@ li.comment {
     margin: 0;
 }
 
+.clickable {
+    cursor: pointer;
+}
+
 .preview-image {
     max-width: 95vw;
     max-height: 95vh;
