@@ -90,6 +90,8 @@ type RedditPostSubmission = RedditPostBase & {
     author_flair_richtext: RedditRichtextFlair,
 
     num_comments: number,
+
+    crosspost_parent_list?: RedditPostSubmission[],
 };
 
 type RedditPostComment = RedditPostBase & {
@@ -144,6 +146,9 @@ type GenericBody = {
     kind: "removed",
     by: "author" | "moderator",
     fetch_path: string,
+} | {
+    kind: "crosspost",
+    source: GenericThread,
 };
 type GenericThread = {
     body: GenericBody,
@@ -401,9 +406,13 @@ function reddit() {
                     text: listing.title,
                     flair: flairToGenericFlair(listing.link_flair_richtext),
                 },
-                body: is_deleted
+                body: is_deleted && listing.is_self
                     ? {kind: "removed", by: listing.selftext === "[removed]" ? "moderator" : "author",
                         fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
+                    }
+                    : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
+                    ? {kind: "crosspost", source:
+                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: true})
                     }
                     : listing.is_self
                     ? listing.selftext_html
@@ -954,6 +963,10 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                         initContent(new_body, {autoplay: true});
                     });
                 }
+            }else if(body.kind === "crosspost") {
+                const child = clientListing(client, body.source).insertBefore(content, null);
+                // TODO child.onShow, child.onHide
+                defer(() => child.removeSelf());
             }else assertNever(body);
         };
 
