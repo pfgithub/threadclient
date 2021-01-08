@@ -749,6 +749,9 @@ function renderLinkPreview(link: string, opts: {autoplay: boolean}): {node: Node
         // information about galleries is distributed with posts
         // do nothing I guess
     }
+    if(link.startsWith("https://imgur.com/")) {
+        return {node: el("div").clss("resizable-iframe").adch(el("iframe").attr({src: link + "/embed"}))};
+    }
     return {node: document.createComment("Preview not supported yet")};
 }
 
