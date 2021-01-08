@@ -94,6 +94,8 @@ type RedditPostSubmission = RedditPostBase & {
     crosspost_parent_list?: RedditPostSubmission[],
 
     media_embed?: {content: string},
+
+    domain: string,
 };
 
 type RedditPostComment = RedditPostBase & {
@@ -462,6 +464,14 @@ function reddit() {
                     kind: "link",
                     url: listing.permalink,
                     text: listing.num_comments + " comment"+(listing.num_comments === 1 ? "" : "s"),
+                }, {
+                    kind: "link",
+                    url: "/domain/"+listing.domain,
+                    text: listing.domain,
+                }, {
+                    kind: "link",
+                    url: listing.subreddit_name_prefixed,
+                    text: listing.subreddit_name_prefixed,
                 }],
             };
             return result;
