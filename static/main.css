@@ -24,6 +24,9 @@ li.comment {
     all: unset;
     cursor: pointer;
 }
+.post-thumbnail:focus {
+    outline: 1px dotted #212121;
+}
 
 .preview-image {
     max-width: 95vw;
@@ -34,6 +37,9 @@ li.comment {
     all: unset;
     cursor: pointer;
     margin: 5px;
+}
+.gallery-overview-item:focus {
+    outline: 1px dotted #212121;
 }
 
 .flair {
@@ -136,5 +142,87 @@ iframe {
     filter: blur(25px);
 }
 .no-thumbnail {
+    display: none;
+}
+
+html {
+    font-family: verdana, arial, helvetica, sans-serif;
+}
+.post-content-subminfo,
+.post-content-buttons {
+    font-size: x-small;
+}
+
+.post-content-buttons > button {
+    all: unset;
+    font-size: x-small;
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+}
+
+.post-content-buttons > button:focus {
+    outline: 1px dotted #212121;
+}
+
+.post.layout-reddit-comment {
+    position: relative;
+    padding-left: 20px;
+}
+.post.layout-reddit-comment > .collapse-btn {
+    all: unset;
+    position: absolute;
+    left: 3px;
+    top: 10px;
+    bottom: 10px;
+    background: linear-gradient(
+        to right,
+        transparent 40%,
+        #eee 40%,
+        #eee 60%,
+        transparent 60%
+    );
+    width: 15px;
+    cursor: pointer;
+}
+.post.layout-reddit-comment.comment-collapsed > .collapse-btn:focus {
+    outline: 1px dotted #212121; /*TODO: only enable this on tab key*/
+}
+.post.layout-reddit-comment > .collapse-btn:focus {
+    background: linear-gradient(
+        to right,
+        transparent 40%,
+        #ddd 40%,
+        #ddd 60%,
+        transparent 60%
+    );
+}
+.post.layout-reddit-comment > .collapse-btn:hover {
+    background: linear-gradient(
+        to right,
+        transparent 40%,
+        #aaa 40%,
+        #aaa 60%,
+        transparent 60%
+    );
+}
+.post.layout-reddit-comment.comment-collapsed > .collapse-btn {
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAANBAMAAACAxflPAAAAJFBMVEUaGhtPvP8hMz5AkcI+i7srUGcfLDRJrOk0aosvW3coSFwxY4GN0McTAAAARUlEQVQI12NgYFANYgCBZEFBMyDFVigoKJ7AwMAsKOEoaMDAoCgo6SgoxMAQKOLV4igKpKUnrWwUhYnD1MH0wc2BmIsAAGr+CwVdeNphAAAAAElFTkSuQmCC");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.post.layout-reddit-comment.comment-collapsed > .post-content-subminfo {
+    font-style: italic;
+    color: #666;
+}
+.post.layout-reddit-comment.comment-collapsed > .post-content-subminfo > a {
+    color: #444;
+}
+
+.post.layout-reddit-comment.comment-collapsed > .post-preview,
+.post.layout-reddit-comment.comment-collapsed > .post-content-buttons,
+.post.layout-reddit-comment.comment-collapsed > .post-replies {
     display: none;
 }

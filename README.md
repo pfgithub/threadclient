@@ -25,3 +25,20 @@ build (once): `yarn gulp all`
 in a seperate terminal: `serve -n src -s` (requires `npm i -g serve` / `yarn global add serve`)
 
 to log in on a local build, after giving threadreader access to reddit, edit the url from `https://thread.pfg.pw/…` to `http://localhost:…/…`.
+
+## hot reload css
+
+```js
+Array.from(document.querySelectorAll("link")).forEach((l) => {
+    const url = new URL(l.href);
+    url.search = "?reload=" + Date.now();
+    const newlink = el("link").attr({ href: url.href, rel: "stylesheet" });
+    l.parentNode.insertBefore(newlink, l);
+    newlink.onload = () => {
+        l.remove();
+        console.log("loaded");
+    };
+});
+```
+
+TODO: a websocket or something to get the client to autoreload css on save. also race protection.

@@ -107,6 +107,8 @@ type RedditPostComment = RedditPostBase & {
     created_utc: number,
 
     author_flair_richtext: RedditRichtextFlair,
+
+    collapsed: boolean,
 };
 
 type RedditPost = {
@@ -185,6 +187,8 @@ type GenericThread = {
     },
     actions: GenericAction[],
     
+    default_collapsed: boolean,
+
     flair?: GenericFlair[],
 };
 type GenericFlair = {
@@ -346,6 +350,7 @@ function reddit() {
                     author: {name: "no one", link: "TODO no link"},
                 },
                 actions: [],
+                default_collapsed: false,
             },
             replies: {
                 load_prev: "TODO listing.data.before",
@@ -390,6 +395,7 @@ function reddit() {
                     text: "Permalink",
                     url: listing.permalink,
                 }],
+                default_collapsed: listing.collapsed,
             };
             if(listing.replies) {
                 result.replies = {
@@ -473,6 +479,7 @@ function reddit() {
                     url: listing.subreddit_name_prefixed,
                     text: listing.subreddit_name_prefixed,
                 }],
+                default_collapsed: false,
             };
             return result;
         }else{
@@ -487,6 +494,7 @@ function reddit() {
                     author: {name: "no one", link: "TODO no link"},
                 },
                 actions: [],
+                default_collapsed: false,
             };
         }
         // console.log("Post: ",listing);
@@ -557,6 +565,7 @@ function reddit() {
                             author: {name: "no one", link: "TODO no link"},
                         },
                         actions: [],
+                        default_collapsed: false,
                     },
                 };
             }
@@ -905,7 +914,6 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     if(listing.layout === "reddit-post") {
         thumbnail_loc = el("button").adto(frame).clss("post-thumbnail");
-        if(!listing.thumbnail) thumbnail_loc.clss("no-thumbnail");
         const content_area = el("div").adto(frame).clss("post-titles");
         preview_area = el("div").adto(frame).clss("post-preview");
         replies_area = el("div").adto(frame).clss("post-replies");
@@ -928,6 +936,30 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         content_buttons_line = el("div").adto(frame).clss("post-content-buttons");
         replies_area = el("div").adto(frame).clss("post-replies");
     }else assertNever(listing.layout);
+
+    if(!listing.thumbnail) thumbnail_loc.clss("no-thumbnail");
+
+    if(listing.layout === "reddit-comment") {
+        let prev_collapsed = false;
+        let collapsed = listing.default_collapsed;
+        const update = () => {
+            if(collapsed !== prev_collapsed) {
+                prev_collapsed = collapsed;
+                if(collapsed) {
+                    frame.classList.add("comment-collapsed");
+                }else{
+                    frame.classList.remove("comment-collapsed");
+                }
+            }
+            // collapsed_button // some aria thing idk
+        };
+        const collapsed_button = el("button").clss("collapse-btn").onev("click", () => {
+            collapsed =! collapsed;
+            update();
+        });
+        frame.insertBefore(collapsed_button, frame.childNodes[0] ?? null);
+        update();
+    }
 
     frame.clss("layout-"+listing.layout);
 
@@ -985,7 +1017,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 cwbox.atxt("Content Warning"+(cws.length === 1 ? "" : "s")+": ");
                 cwbox.adch(renderFlair(cws));
                 cwbox.atxt(" ");
-                el("button").adto(cwbox).atxt("Show Content").onev("click", e => {
+                el("button").attr({draggable: "true"}).adto(cwbox).atxt("Show Content").onev("click", e => {
                     cwbox.remove();
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
                     initContent(body, opts);
@@ -1082,15 +1114,15 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     for(const action of listing.actions) {
         content_buttons_line.atxt(" ");
-        if(action.kind === "link") linkButton("/"+client.id+action.url).atxt(action.text).adto(content_buttons_line);
-        else if(action.kind === "reply") el("span").atxt("[reply]").adto(content_buttons_line);
+        if(action.kind === "link") linkButton("/"+client.id+action.url).atxt("["+action.text+"]").adto(content_buttons_line);
+        else if(action.kind === "reply") el("span").atxt("[Reply]").adto(content_buttons_line);
         else assertNever(action);
     }
 
     content_buttons_line.atxt(" ");
     linkButton("/"+client.id+listing.link).atxt("[View]").adto(content_buttons_line);
     content_buttons_line.atxt(" ");
-    el("button").onev("click", e => {
+    el("button").attr({draggable: "true"}).onev("click", e => {
         console.log(listing);
     }).atxt("[Code]").adto(content_buttons_line);
 
