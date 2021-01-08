@@ -128,3 +128,13 @@ pre {
 iframe {
     border: none;
 }
+
+.thumbnail-content-warning {
+    overflow: hidden;
+}
+.thumbnail-content-warning > * {
+    filter: blur(25px);
+}
+.no-thumbnail {
+    display: none;
+}

@@ -172,7 +172,6 @@ type GenericThread = {
 
     title?: {
         text: string,
-        flair?: GenericFlair[],
     },
 
     info: {
@@ -181,7 +180,7 @@ type GenericThread = {
     },
     actions: GenericAction[],
     
-    content_warnings?: GenericContentWarning[],
+    flair?: GenericFlair[],
 };
 type GenericFlair = {
     elems: ({
@@ -192,6 +191,7 @@ type GenericFlair = {
         url: string,
         name: string,
     })[],
+    content_warning: boolean,
 };
 type GenericAction = {
     kind: "link",
@@ -210,7 +210,6 @@ type GenericGalleryImages = {
     h: number,
     caption?: string,
 }[];
-type GenericContentWarning = {name: string};
 
 type ThreadClient = {
     id: string,
@@ -241,6 +240,7 @@ const safehtml = templateGenerator((v: string) => escapeHTML(v));
 function flairToGenericFlair(flair: RedditRichtextFlair): GenericFlair[] {
     if(!flair) return [];
     if(flair.length === 0) return [];
+    let flair_text = flair.map(v => v.e === "text" ? v.t : "").join("");
     return [{elems: flair.map(v => {
         if(v.e === "text") {
             return {type: "text", text: v.t};
@@ -251,7 +251,7 @@ function flairToGenericFlair(flair: RedditRichtextFlair): GenericFlair[] {
         // a switch can check that all cases are handled even if
         // not all cases are known.
         return {type: "text", text: "#TODO("+v.e+")"};
-    })}];
+    }), content_warning: flair_text.toLowerCase().startsWith("cw:")}];
 }
 
 function reddit() {
@@ -401,11 +401,15 @@ function reddit() {
             const is_deleted = listing.author === "[deleted]";
             const post_id_no_pfx = listing.name.substring(3);
 
+            const content_warnings: GenericFlair[] = [];
+            if(listing.spoiler) content_warnings.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
+            if(listing.over_18) content_warnings.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
+
             const result: GenericThread = {
                 title: {
                     text: listing.title,
-                    flair: flairToGenericFlair(listing.link_flair_richtext),
                 },
+                flair: [...flairToGenericFlair(listing.link_flair_richtext), ...content_warnings],
                 body: is_deleted && listing.is_self
                     ? {kind: "removed", by: listing.selftext === "[removed]" ? "moderator" : "author",
                         fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
@@ -457,12 +461,6 @@ function reddit() {
                     text: listing.num_comments + " comment"+(listing.num_comments === 1 ? "" : "s"),
                 }],
             };
-            {
-                const content_warnings: GenericContentWarning[] = [];
-                if(listing.spoiler) content_warnings.push({name: "Spoiler"});
-                if(listing.over_18) content_warnings.push({name: "Over 18"});
-                result.content_warnings = content_warnings;
-            }
             return result;
         }else{
             return {
@@ -895,17 +893,19 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     frame.clss("layout-"+listing.layout);
 
+    if(listing.flair) {
+        content_title_line.adch(renderFlair(listing.flair.filter(v => v.content_warning)));
+        content_title_line.atxt(" ");
+    }
     if(listing.title) {
         content_title_line.atxt(listing.title.text);
         // for(listing.title.flair) |flair| // uuh
-        if(listing.title.flair) content_title_line.adch(renderFlair(listing.title.flair));
     }
-
-    if(listing.content_warnings && listing.content_warnings.length) {
-        for(const cw of listing.content_warnings) {
-            content_title_line.adch(renderFlair([{elems: [{type: "text", text: cw.name}]}]));
-        }
+    if(listing.flair) {
+        content_title_line.atxt(" ");
+        content_title_line.adch(renderFlair(listing.flair.filter(v => !v.content_warning)));
     }
+    let content_warnings = (listing.flair ?? []).filter(v => v.content_warning);
 
     if(listing.layout === "reddit-post") {
         const submission_time = el("span").atxt(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
@@ -923,8 +923,8 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         const content = el("div");
 
         if(listing.thumbnail) {
-            if(listing.thumbnail.url === "none") {
-                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-none"));
+            if(listing.thumbnail.url === "none" || listing.thumbnail.url === "") {
+                thumbnail_loc.classList.add("no-thumbnail");
             }else if(listing.thumbnail.url === "self") {
                 thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-self"));
             }else if(listing.thumbnail.url === "default") {
@@ -933,19 +933,23 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-image"));
             }else {
                 thumbnail_loc.adch(el("img").attr({src: listing.thumbnail.url}));
+                if(content_warnings.length) thumbnail_loc.clss("thumbnail-content-warning");
             }
         }
 
         let onhide = () => {};
         let onshow = () => {};
         let initContent = (body: GenericBody, opts: {autoplay: boolean}) => {
-            if(listing.content_warnings?.length) {
-                const cws = listing.content_warnings;
-                listing.content_warnings = undefined;
+            if(content_warnings.length) {
+                const cws = content_warnings;
+                content_warnings = [];
                 const cwbox = el("div").adto(content);
-                cwbox.atxt("Content Warning: "+cws.map(cw => cw.name).join(", "));
+                cwbox.atxt("Content Warning"+(cws.length === 1 ? "" : "s")+": ");
+                cwbox.adch(renderFlair(cws));
+                cwbox.atxt(" ");
                 el("button").adto(cwbox).atxt("Show Content").onev("click", e => {
                     cwbox.remove();
+                    thumbnail_loc.classList.remove("thumbnail-content-warning");
                     initContent(body, opts);
                 });
                 return;
