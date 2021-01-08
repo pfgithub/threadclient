@@ -801,8 +801,17 @@ function renderLinkPreview(link: string, opts: {autoplay: boolean, suggested_emb
 
             console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
 
-            const iframe = el("iframe").attr({src: iframe_unsafe.src, allow: iframe_unsafe.allow, allowfullsreen: ""});
-            return {node: el("div").clss("resizable-iframe").styl({width: iframe_unsafe.width+"px", height: iframe_unsafe.height+"px"}).adch(iframe)};
+            const parent_node = el("div").clss("resizable-iframe").styl({width: iframe_unsafe.width+"px", height: iframe_unsafe.height+"px"});
+            let iframe: HTMLIFrameElement | undefined;
+            const initFrame = () => {
+                if(!iframe) iframe = el("iframe").attr({src: iframe_unsafe.src, allow: iframe_unsafe.allow, allowfullsreen: ""}).adto(parent_node);
+            };
+            initFrame();
+            return {
+                node: parent_node,
+                onhide: () => {if(iframe) {iframe.remove(); iframe = undefined;}},
+                onshow: () => {initFrame();},
+            };
         }catch(e) {
             console.log(e);
         }
