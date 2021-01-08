@@ -702,7 +702,7 @@ function renderLinkPreview(link: string, opts: {autoplay: boolean, suggested_emb
         el("source").attr({src: link.replace(".gifv", ".webm"), type: "video/webm"}).adto(video);
         el("source").attr({src: link.replace(".gifv", ".mp4"), type: "video/mp4"}).adto(video);
         video.loop = true;
-        return {node: video, onhide: () => VideoPlaybackQuality.pause()};
+        return {node: video, onhide: () => video.pause()};
     }
     if(link.startsWith("https://v.redd.it/")) {
         let container = el("div");
