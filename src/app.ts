@@ -81,11 +81,24 @@ type RedditPostSubmission = RedditPostBase & {
         }[],
         enabled: boolean,
     },
+
+    author: string,
+    created_utc: number,
+    
+    link_flair_richtext: RedditRichtextFlair,
+    author_flair_richtext: RedditRichtextFlair,
+
+    num_comments: number,
 };
 
 type RedditPostComment = RedditPostBase & {
     body_html: string,
     replies?: RedditListing,
+
+    author: string,
+    created_utc: number,
+
+    author_flair_richtext: RedditRichtextFlair,
 };
 
 type RedditPost = {
@@ -94,14 +107,26 @@ type RedditPost = {
 } | {
     kind: "t1",
     data: RedditPostComment,
+} | {
+    kind: "more",
 };
+
+type RedditRichtextFlair = ({
+    e: "emoji",
+    u: string, // url
+    a: string, // :emojiname:
+} | {
+    e: "text",
+    t: string, // text
+} | {
+    e: "unsupported"
+})[];
 
 type GenericPage = {
     header: GenericThread,
     replies?: {load_prev?: string, loaded: GenericThread[], load_next?: string},
 };
 type GenericThread = {
-    title?: string,
     body: {
         kind: "text",
         content_html: string,
@@ -131,8 +156,37 @@ type GenericThread = {
     link: string,
 
     layout: "reddit-post" | "reddit-comment" | "error",
+
+    title?: {
+        text: string,
+        flair?: GenericFlair[],
+    },
+
+    info: {
+        time: number,
+        author: {name: string, link: string, flair?: GenericFlair[]},
+    },
+    actions: GenericAction[],
     
     content_warnings?: GenericContentWarning[],
+};
+type GenericFlair = {
+    elems: ({
+        type: "text",
+        text: string,
+    } | {
+        type: "emoji",
+        url: string,
+        name: string,
+    })[],
+};
+type GenericAction = {
+    kind: "link",
+    url: string,
+    text: string,
+} | {
+    kind: "reply",
+    text: string,
 };
 type GenericGalleryImages = {
     thumb: string,
@@ -154,7 +208,7 @@ type ThreadClient = {
     login: (query: URLSearchParams) => Promise<void>,
 };
 
-function assertNever(content: never) {
+function assertNever(content: never): never {
     console.log("not never:", content);
     throw new Error("is not never");
 }
@@ -170,6 +224,21 @@ function escapeHTML(html: string) {
 
 const safehtml = templateGenerator((v: string) => escapeHTML(v));
 
+function flairToGenericFlair(flair: RedditRichtextFlair): GenericFlair[] {
+    if(!flair) return [];
+    if(flair.length === 0) return [];
+    return [{elems: flair.map(v => {
+        if(v.e === "text") {
+            return {type: "text", text: v.t};
+        }else if(v.e === "emoji") {
+            return {type: "emoji", url: v.u, name: v.a};
+        }
+        // this is where zig-style enums with a `_` option are nice
+        // a switch can check that all cases are handled even if
+        // not all cases are known.
+        return {type: "text", text: "#TODO("+v.e+")"};
+    })}];
+}
 
 function reddit() {
     const isLoggedIn = () => {
@@ -223,7 +292,6 @@ function reddit() {
                 scope: v.scope,
             };
             console.log("Refresh info:", v, res_data);
-            alert("REFRESHED TOKEN, CHECK CONSOLE!");
             localStorage.setItem("reddit-secret", JSON.stringify(res_data));
             console.log("Refreshed √");
             return res_data.access_token;
@@ -250,11 +318,15 @@ function reddit() {
         }
         return {
             header: {
-                title: "Listing",
+                title: {text: "Listing"},
                 body: {kind: "text", content_html: safehtml`Listing`},
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 link: "TODO no link",
                 layout: "error",
+                info: {time: 0,
+                    author: {name: "no one", link: "TODO no link"},
+                },
+                actions: [],
             },
             replies: {
                 load_prev: "TODO listing.data.before",
@@ -264,6 +336,7 @@ function reddit() {
         };
     };
     const threadFromListing = (listing_raw: RedditPost): GenericThread => {
+        // TODO filter out 'more' listings and make them into load_next items on the replies item
         if(listing_raw.kind === "t1") {
             // Comment
             const listing = listing_raw.data;
@@ -273,6 +346,22 @@ function reddit() {
                 raw_value: listing_raw,
                 link: listing.permalink,
                 layout: "reddit-comment",
+                info: {
+                    time: listing.created_utc * 1000,
+                    author: {
+                        name: "u/"+listing.author,
+                        link: "/u/"+listing.author,
+                        flair: flairToGenericFlair(listing.author_flair_richtext),
+                    },
+                },
+                actions: [{
+                    kind: "reply",
+                    text: "Reply",
+                }, {
+                    kind: "link",
+                    text: "Permalink",
+                    url: listing.permalink,
+                }],
             };
             if(listing.replies) {
                 result.replies = {
@@ -286,7 +375,10 @@ function reddit() {
             const listing = listing_raw.data;
             // if((listing as any).preview) console.log((listing as any).preview);
             const result: GenericThread = {
-                title: listing.title ?? "",
+                title: {
+                    text: listing.title,
+                    flair: flairToGenericFlair(listing.link_flair_richtext),
+                },
                 body: listing.is_self
                     ? listing.selftext_html
                         ? {kind: "text", content_html: listing.selftext_html}
@@ -314,6 +406,19 @@ function reddit() {
                     : {url: listing.thumbnail ?? "none"}
                 ,
                 layout: "reddit-post",
+                info: {
+                    time: listing.created_utc * 1000,
+                    author: {
+                        name: "u/"+listing.author,
+                        link: "/u/"+listing.author,
+                        flair: flairToGenericFlair(listing.author_flair_richtext),
+                    },
+                },
+                actions: [{
+                    kind: "link",
+                    url: listing.permalink,
+                    text: listing.num_comments + " comment"+(listing.num_comments === 1 ? "" : "s"),
+                }],
             };
             {
                 const content_warnings: GenericContentWarning[] = [];
@@ -324,12 +429,16 @@ function reddit() {
             return result;
         }else{
             return {
-                title: "unsupported listing kind "+(listing_raw as any).data.kind,
+                title: {text: "unsupported listing kind "+(listing_raw as any).data.kind},
                 body: {kind: "text", content_html: safehtml`unsupported`},
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
                 link: "TODO no link",
                 layout: "error",
+                info: {time: 0,
+                    author: {name: "no one", link: "TODO no link"},
+                },
+                actions: [],
             };
         }
         // console.log("Post: ",listing);
@@ -379,7 +488,7 @@ function reddit() {
                 
                 return {
                     header: {
-                        title: "Error",
+                        title: {text: "Error"},
                         body: {
                             kind: "text",
                             content_html: safehtml`Error ${e.toString()}`+ (is_networkerror
@@ -395,6 +504,10 @@ function reddit() {
                         },
                         link: "TODO no link",
                         layout: "error",
+                        info: {time: 0,
+                            author: {name: "no one", link: "TODO no link"},
+                        },
+                        actions: [],
                     },
                 };
             }
@@ -607,6 +720,23 @@ function renderImageGallery(images: GenericGalleryImages): Node {
     return container;
 }
 
+function renderFlair(flairs: GenericFlair[]) {
+    let resl = document.createDocumentFragment();
+    for(const flair of flairs) {
+        let flairv = el("span").clss("flair");
+        resl.atxt(" ");
+        for(const flairelem of flair.elems) {
+            if(flairelem.type === "text") {
+                flairv.atxt(flairelem.text);
+            }else if(flairelem.type === "emoji") {
+                el("img").attr({title: flairelem.name, src: flairelem.url}).clss("flair-emoji").adto(flairv);
+            }else assertNever(flairelem);
+        }
+        resl.adch(flairv);
+    }
+    return resl;
+}
+
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
@@ -615,21 +745,52 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     defer(() => frame.remove());
     parent.insertBefore(frame, before_once);
 
-    const thumbnail_loc = el("button").adto(frame).clss("post-thumbnail");
-    const content_area = el("div").adto(frame).clss("post-titles");
-    const preview_area = el("div").adto(frame).clss("post-preview");
-    const replies_area = el("div").adto(frame).clss("post-replies");
+    let thumbnail_loc: HTMLButtonElement;
+    let preview_area: HTMLDivElement;
+    let replies_area: HTMLDivElement;
+
+    let content_title_line: HTMLDivElement;
+    let content_subminfo_line: HTMLDivElement;
+    let content_buttons_line: HTMLDivElement;
+
+    if(listing.layout === "reddit-post") {
+        thumbnail_loc = el("button").adto(frame).clss("post-thumbnail");
+        const content_area = el("div").adto(frame).clss("post-titles");
+        preview_area = el("div").adto(frame).clss("post-preview");
+        replies_area = el("div").adto(frame).clss("post-replies");
+
+        content_title_line = el("div").adto(content_area).clss("post-content-title");
+        content_subminfo_line = el("div").adto(content_area).clss("post-content-subminfo");
+        content_buttons_line = el("div").adto(content_area).clss("post-content-buttons");
+    }else if(listing.layout === "reddit-comment") {
+        content_title_line = el("div").adto(frame).clss("post-content-title"); // unused
+        thumbnail_loc = el("button").adto(frame).clss("post-thumbnail"); // unused
+        content_subminfo_line = el("div").adto(frame).clss("post-content-subminfo");
+        preview_area = el("div").adto(frame).clss("post-preview"); // unused
+        content_buttons_line = el("div").adto(frame).clss("post-content-buttons");
+        replies_area = el("div").adto(frame).clss("post-replies");
+    }else if(listing.layout === "error") {
+        content_title_line = el("div").adto(frame).clss("post-content-title"); // unused
+        thumbnail_loc = el("button").adto(frame).clss("post-thumbnail"); // unused
+        content_subminfo_line = el("div").adto(frame).clss("post-content-subminfo");
+        preview_area = el("div").adto(frame).clss("post-preview"); // unused
+        content_buttons_line = el("div").adto(frame).clss("post-content-buttons");
+        replies_area = el("div").adto(frame).clss("post-replies");
+    }else assertNever(listing.layout);
 
     frame.clss("layout-"+listing.layout);
 
-    linkButton("/"+client.id+listing.link).atxt("[View]").adto(content_area);
-    el("button").onev("click", e => {
-        console.log(listing);
-    }).atxt("[Code]").adto(content_area);
-
     if(listing.title) {
-        el("div").adto(content_area).atxt(listing.title);
+        content_title_line.atxt(listing.title.text);
+        // for(listing.title.flair) |flair| // uuh
+        if(listing.title.flair) content_title_line.adch(renderFlair(listing.title.flair));
     }
+
+    const submission_time = el("span").atxt((Date.now() - listing.info.time) + "ms ago").attr({title: "" + new Date(listing.info.time)});
+    content_subminfo_line.adch(submission_time).atxt(" by ");
+    content_subminfo_line.adch(linkButton("/"+client.id+listing.info.author.link).atxt(listing.info.author.name));
+    if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
+
     if(listing.body) {
         const content = el("div");
 
@@ -668,7 +829,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         };
 
         if(listing.display_mode.body === "collapsed") {
-            const open_preview_button = el("button").adto(content_area);
+            const open_preview_button = el("button").adto(content_buttons_line);
             const open_preview_text = txt("Show").adto(open_preview_button);
 
             let initialized = false;
@@ -702,6 +863,20 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         content.clss("post-body");
         content.adto(preview_area);
     }
+
+    for(const action of listing.actions) {
+        content_buttons_line.atxt(" ");
+        if(action.kind === "link") linkButton("/"+client.id+action.url).atxt(action.text).adto(content_buttons_line);
+        else if(action.kind === "reply") el("span").atxt("[reply]").adto(content_buttons_line);
+        else assertNever(action);
+    }
+
+    content_buttons_line.atxt(" ");
+    linkButton("/"+client.id+listing.link).atxt("[View]").adto(content_buttons_line);
+    content_buttons_line.atxt(" ");
+    el("button").onev("click", e => {
+        console.log(listing);
+    }).atxt("[Code]").adto(content_buttons_line);
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 

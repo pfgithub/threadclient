@@ -36,6 +36,21 @@ li.comment {
     margin: 5px;
 }
 
+.flair {
+    /*TODO dark theme #222*/
+    background-color: #ddd;
+    /* background-color: var(--flair-color); */
+    border-radius: 3px;
+    padding-left: 3px;
+    padding-right: 3px;
+}
+.flair-emoji {
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
 button:disabled {
     opacity: 0.5;
 }
@@ -90,3 +105,20 @@ button:disabled {
 .thumbnail-builtin.thumbnail-default {
     background-position: 0px -1099px;
 }
+
+.post.layout-reddit-comment {
+    display: grid;
+    grid-template-rows: [title] max-content [content] max-content [links] max-content [replies] max-content;
+}
+/* .post.layout-reddit-comment > .post-titles {
+    grid-row: title;
+}
+.post.layout-reddit-comment > .post-thumbnail {
+    grid-row: content;
+}
+.post.layout-reddit-comment > .post-preview {
+    grid-row: preview;
+}
+.post.layout-reddit-comment > .post-replies {
+    grid-row: replies;
+} */
