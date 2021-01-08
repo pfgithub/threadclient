@@ -42,3 +42,19 @@ Array.from(document.querySelectorAll("link")).forEach((l) => {
 ```
 
 TODO: a websocket or something to get the client to autoreload css on save. also race protection.
+
+## todo
+
+-   upvotes and vote percentages
+-   post duplicates
+-   polls probably I guess
+-   multiple accounts
+-   mastodon to make sure the architecture actually works for multiple platforms
+-   improve how links work when returned from a client
+-   more pages eg wiki pages
+-   the refresh button
+-   more navigation buttons
+-   sidebars and stuff (that contain information about the subreddit, not the post)
+-   markdown parser (+ button to switch to markdown source view)
+-   link previews within post bodies and comments
+-   infinite things there are infinite things to do
