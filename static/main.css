@@ -110,15 +110,7 @@ button:disabled {
     display: grid;
     grid-template-rows: [title] max-content [content] max-content [links] max-content [replies] max-content;
 }
-/* .post.layout-reddit-comment > .post-titles {
-    grid-row: title;
+
+pre {
+    white-space: "pre-wrap";
 }
-.post.layout-reddit-comment > .post-thumbnail {
-    grid-row: content;
-}
-.post.layout-reddit-comment > .post-preview {
-    grid-row: preview;
-}
-.post.layout-reddit-comment > .post-replies {
-    grid-row: replies;
-} */

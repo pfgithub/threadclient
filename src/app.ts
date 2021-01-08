@@ -130,7 +130,8 @@ type GenericPage = {
 };
 type GenericBody = {
     kind: "text",
-    content_html: string,
+    content: string,
+    markdown_format: "reddit" | "none",
 } | {
     kind: "link",
     url: string,
@@ -327,7 +328,7 @@ function reddit() {
         return {
             header: {
                 title: {text: "Listing"},
-                body: {kind: "text", content_html: safehtml`Listing`},
+                body: {kind: "text", content: "Listing", markdown_format: "none"},
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 link: "TODO no link",
                 layout: "error",
@@ -358,7 +359,7 @@ function reddit() {
                     ? {kind: "removed", by: listing.body === "[removed]" ? "moderator" : "author",
                         fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
                     }
-                    : {kind: "text", content_html: listing.body_html},
+                    : {kind: "text", content: listing.body, markdown_format: "reddit"},
                 display_mode: {body: "visible", comments: "visible"},
                 raw_value: listing_raw,
                 link: listing.permalink,
@@ -406,7 +407,7 @@ function reddit() {
                     }
                     : listing.is_self
                     ? listing.selftext_html
-                        ? {kind: "text", content_html: listing.selftext_html}
+                        ? {kind: "text", content: listing.selftext, markdown_format: "reddit"}
                         : {kind: "none"}
                     : listing.gallery_data
                     ? {kind: "image_gallery", images: listing.gallery_data.items.map(gd => {
@@ -457,7 +458,7 @@ function reddit() {
         }else{
             return {
                 title: {text: "unsupported listing kind "+(listing_raw as any).data.kind},
-                body: {kind: "text", content_html: safehtml`unsupported`},
+                body: {kind: "text", content: "unsupported", markdown_format: "none"},
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
                 link: "TODO no link",
@@ -518,12 +519,13 @@ function reddit() {
                         title: {text: "Error"},
                         body: {
                             kind: "text",
-                            content_html: safehtml`Error ${e.toString()}`+ (is_networkerror
-                                ? safehtml`. If using Firefox, try disabling 'Enhanced Tracker Protection' ${""
+                            content: `Error ${e.toString()}`+ (is_networkerror
+                                ? `. If using Firefox, try disabling 'Enhanced Tracker Protection' ${""
                                     } for this site. Enhanced tracker protection indiscriminately blocks all ${""
                                     } requests to social media sites, including Reddit.`
-                                : safehtml`.`
+                                : `.`
                             ),
+                            markdown_format: "none",
                         },
                         display_mode: {
                             body: "visible",
@@ -591,13 +593,15 @@ function reddit() {
             if(res.data[0].selftext) {
                 return {
                     kind: "text",
-                    content_html: safehtml`<pre><code>${res.data[0].selftext}</code></pre>`,
+                    content: res.data[0].selftext,
+                    markdown_format: "reddit",
                 };
             }
             if(res.data[0].body) {
                 return {
                     kind: "text",
-                    content_html: safehtml`<pre><code>${res.data[0].body}</code></pre>`,
+                    content: res.data[0].body,
+                    markdown_format: "reddit",
                 };
             }
             throw new Error("no selftext or body");
@@ -658,7 +662,7 @@ function linkButton(href: string) {
     return res;
 }
 
-function renderLinkPreview(link: string): {node: Node, onhide?: () => void, onshow?: () => void} {
+function renderLinkPreview(link: string, opts: {autoplay: boolean}): {node: Node, onhide?: () => void, onshow?: () => void} {
     let url: URL | undefined;
     try { 
         url = new URL(link);
@@ -726,7 +730,7 @@ function renderLinkPreview(link: string): {node: Node, onhide?: () => void, onsh
         const youtube_video_id = link.split("/")[3] ?? "no_id";
         const yt_player = el("iframe").attr({
             width: "640", height: "360", allow: "fullscreen",
-            src: "https://www.youtube.com/embed/"+youtube_video_id+"?autoplay=1&version=3&enablejsapi=1&playerapiid=ytplayer"
+            src: "https://www.youtube.com/embed/"+youtube_video_id+"?version=3&enablejsapi=1&playerapiid=ytplayer"+(opts.autoplay ? "&autoplay=1" : ""),
         });
         return {node: yt_player, onhide: () => {
             yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
@@ -905,14 +909,18 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
         let onhide = () => {};
         let onshow = () => {};
-        let initContent = (body: GenericBody) => {
+        let initContent = (body: GenericBody, opts: {autoplay: boolean}) => {
             if(body.kind === "text") {
                 const elv = el("div").adto(content);
-                elv.innerHTML = body.content_html;
+                if(body.markdown_format === "reddit") {
+                    el("code").atxt(body.content).adto(el("pre").adto(elv));
+                }else if(body.markdown_format === "none") {
+                    elv.atxt(body.content);
+                }else assertNever(body.markdown_format);
             }else if(body.kind === "link") {
                 // TODO fix this link button thing
                 el("div").adto(content).adch(linkButton(body.url).atxt(body.url));
-                const preview = renderLinkPreview(body.url);
+                const preview = renderLinkPreview(body.url, {autoplay: opts.autoplay});
                 preview.node.adto(content);
                 if(preview.onhide) onhide = preview.onhide;
                 if(preview.onshow) onshow = preview.onshow;
@@ -938,12 +946,12 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                         }catch(e) {
                             errored = true;
                             console.log(e);
-                            new_body = {kind: "text", content_html: safehtml`Error! ${e.toString()}`};
+                            new_body = {kind: "text", content: "Error! "+e.toString(), markdown_format: "none"};
                         }
                         fetch_btn.textContent = errored ? "Retry" : "Loaded";
                         fetch_btn.disabled = false;
                         if(!errored) removed_v.remove();
-                        initContent(new_body);
+                        initContent(new_body, {autoplay: true});
                     });
                 }
             }else assertNever(body);
@@ -959,7 +967,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             const update = () => {
                 if(state && !initialized) {
                     initialized = true;
-                    initContent(listing.body);
+                    initContent(listing.body, {autoplay: true});
                 }
                 open_preview_text.nodeValue = state ? "Hide" : "Show";
                 content.style.display = state ? "" : "none";
@@ -979,7 +987,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 update();
             });
         }else{
-            initContent(listing.body);
+            initContent(listing.body, {autoplay: false});
         }
         content.clss("post-body");
         content.adto(preview_area);
