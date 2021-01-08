@@ -697,6 +697,13 @@ function renderLinkPreview(link: string, opts: {autoplay: boolean, suggested_emb
         // .resizable { display: inline-block; resize: both; overflow: hidden; line-height: 0; }
         return {node: el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"})};
     }
+    if(path.endsWith(".gifv")) {
+        let video = el("video").attr({controls: ""}).clss("preview-image");
+        el("source").attr({src: link.replace(".gifv", ".webm"), type: "video/webm"}).adto(video);
+        el("source").attr({src: link.replace(".gifv", ".mp4"), type: "video/mp4"}).adto(video);
+        video.loop = true;
+        return {node: video, onhide: () => VideoPlaybackQuality.pause()};
+    }
     if(link.startsWith("https://v.redd.it/")) {
         let container = el("div");
 
