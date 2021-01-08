@@ -588,13 +588,13 @@ function reddit() {
             if(res.data[0].selftext) {
                 return {
                     kind: "text",
-                    content_html: safehtml`${res.data[0].selftext}`,
+                    content_html: safehtml`<pre><code>${res.data[0].selftext}</code></pre>`,
                 };
             }
             if(res.data[0].body) {
                 return {
                     kind: "text",
-                    content_html: safehtml`${res.data[0].body}`,
+                    content_html: safehtml`<pre><code>${res.data[0].body}</code></pre>`,
                 };
             }
             throw new Error("no selftext or body");
