@@ -939,7 +939,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         let onhide = () => {};
         let onshow = () => {};
         let initContent = (body: GenericBody, opts: {autoplay: boolean}) => {
-            if(listing.content_warnings) {
+            if(listing.content_warnings?.length) {
                 const cws = listing.content_warnings;
                 listing.content_warnings = undefined;
                 const cwbox = el("div").adto(content);
