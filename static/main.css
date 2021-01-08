@@ -153,12 +153,16 @@ html {
     font-size: x-small;
 }
 
-.post-content-buttons > button {
+.post-content-buttons > button:not(.not-this-button) {
     all: unset;
     font-size: x-small;
     cursor: pointer;
     color: blue;
     text-decoration: underline;
+}
+.post-content-buttons > * {
+    margin-left: 2px;
+    margin-right: 2px;
 }
 
 .post-content-buttons > button:focus {

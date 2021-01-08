@@ -1077,8 +1077,8 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         };
 
         if(listing.display_mode.body === "collapsed") {
-            const open_preview_button = el("button").adto(content_buttons_line);
-            const open_preview_text = txt("Show").adto(open_preview_button);
+            const open_preview_button = el("button").clss("not-this-button").adto(content_buttons_line);
+            const open_preview_text = txt("…").adto(open_preview_button);
 
             let initialized = false;
             let state = false;
@@ -1114,17 +1114,17 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     for(const action of listing.actions) {
         content_buttons_line.atxt(" ");
-        if(action.kind === "link") linkButton("/"+client.id+action.url).atxt("["+action.text+"]").adto(content_buttons_line);
-        else if(action.kind === "reply") el("span").atxt("[Reply]").adto(content_buttons_line);
+        if(action.kind === "link") linkButton("/"+client.id+action.url).atxt(action.text).adto(content_buttons_line);
+        else if(action.kind === "reply") el("span").atxt("Reply").adto(content_buttons_line);
         else assertNever(action);
     }
 
     content_buttons_line.atxt(" ");
-    linkButton("/"+client.id+listing.link).atxt("[View]").adto(content_buttons_line);
+    linkButton("/"+client.id+listing.link).atxt("View").adto(content_buttons_line);
     content_buttons_line.atxt(" ");
     el("button").attr({draggable: "true"}).onev("click", e => {
         console.log(listing);
-    }).atxt("[Code]").adto(content_buttons_line);
+    }).atxt("Code").adto(content_buttons_line);
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
