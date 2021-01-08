@@ -316,7 +316,7 @@ function reddit() {
     const pageFromListing = (listing: RedditPage | RedditListing): GenericPage => {
         if(Array.isArray(listing)) {
             return {
-                header: threadFromListing(listing[0].data.children[0]),
+                header: threadFromListing(listing[0].data.children[0], {force_expand: true}),
                 replies: {
                     load_prev: "TODO listing[1].data.before",
                     loaded: listing[1].data.children.map(child => threadFromListing(child)),
@@ -343,7 +343,8 @@ function reddit() {
             },
         };
     };
-    const threadFromListing = (listing_raw: RedditPost): GenericThread => {
+    const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: boolean} = {}): GenericThread => {
+        options.force_expand ??= false;
         // TODO filter out 'more' listings and make them into load_next items on the replies item
         if(listing_raw.kind === "t1") {
             // Comment
@@ -422,10 +423,12 @@ function reddit() {
                     })}
                     : {kind: "link", url: listing.url}
                 ,
-                display_mode: {body: "collapsed", comments: "collapsed"},
+                display_mode: {body: options.force_expand ? "visible" : "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
                 link: listing.permalink,
-                thumbnail: listing.preview
+                thumbnail: options.force_expand
+                    ? undefined
+                    : listing.preview
                     ? {url: listing.preview.images[0].resolutions[0].url}
                     : {url: listing.thumbnail ?? "none"}
                 ,
@@ -839,7 +842,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     let content_buttons_line: HTMLDivElement;
 
     if(listing.layout === "reddit-post") {
-        thumbnail_loc = el("button").adto(frame).clss("post-thumbnail");
+        thumbnail_loc = listing.thumbnail ? el("button").adto(frame).clss("post-thumbnail") : undefined as any;
         const content_area = el("div").adto(frame).clss("post-titles");
         preview_area = el("div").adto(frame).clss("post-preview");
         replies_area = el("div").adto(frame).clss("post-replies");
