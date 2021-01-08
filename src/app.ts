@@ -954,6 +954,9 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             // collapsed_button // some aria thing idk
         };
         const collapsed_button = el("button").clss("collapse-btn").onev("click", () => {
+            const topv = collapsed_button.getBoundingClientRect().top;
+            const heightv = 20; // header_element.clientHeight + 20
+            if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv;}
             collapsed =! collapsed;
             update();
         });
