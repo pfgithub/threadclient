@@ -476,7 +476,7 @@ function reddit() {
                     text: listing.domain,
                 }, {
                     kind: "link",
-                    url: listing.subreddit_name_prefixed,
+                    url: "/"+listing.subreddit_name_prefixed,
                     text: listing.subreddit_name_prefixed,
                 }],
                 default_collapsed: false,
