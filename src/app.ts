@@ -217,6 +217,8 @@ type GenericLoadMore = {
     kind: "load_more",
     load_more: string,
     count?: number,
+
+    raw_value: any,
 };
 type GenericNode = GenericThread | GenericLoadMore;
 type GenericFlair = {
@@ -409,6 +411,8 @@ function reddit() {
                     reparenting.push(item);
                 }
             }
+            const [pathname, query] = splitURL(path);
+
             return {
                 header: {
                     kind: "thread",
@@ -423,7 +427,7 @@ function reddit() {
                     actions: [],
                     default_collapsed: false,
                 },
-                replies: reparenting.map(child => threadFromListing(child)),
+                replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined})),
             };
         }
 
@@ -433,7 +437,7 @@ function reddit() {
         }
         if(listing.data.after) {
             const next_path = updateQuery(path, {before: undefined, after: listing.data.after});
-            replies.push({kind: "load_more", load_more: next_path, count: undefined});
+            replies.push({kind: "load_more", load_more: next_path, count: undefined, raw_value: listing});
         }
 
         return {
@@ -585,6 +589,7 @@ function reddit() {
                     : "Error: No link fullname provided."
                 ,
                 count: listing.count,
+                raw_value: listing_raw,
             };
         }else{
             return {
@@ -723,7 +728,14 @@ function reddit() {
             }
             if(res.data.length === 0) {
                 console.log(status, res);
-                throw new Error("Did not find post "+status);
+                throw new Error("Post was deleted before it could be saved:.");
+            }
+            if(res.data[0].selftext === "[deleted]"
+                || res.data[0].selftext === "[removed]"
+                || res.data[0].body === "[deleted]"
+                || res.data[0].body === "[removed]"
+            ) {
+                throw new Error("Post was deleted before it could be saved.");
             }
             if(res.data[0].selftext) {
                 return {
