@@ -392,7 +392,7 @@ function reddit() {
                 link_fullname = listing[0].data.children[0].data.name;
             }
             return {
-                header: threadFromListing(listing[0].data.children[0], {force_expand: true}) as GenericThread,
+                header: threadFromListing(listing[0].data.children[0], {force_expand: "open"}) as GenericThread,
                 replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname})),
             };
         }
@@ -554,7 +554,7 @@ function reddit() {
                 ,
                 display_mode: options.force_expand === 'crosspost'
                     ? {body: "visible", comments: "collapsed"}
-                    : {body: "collapsed", body_default: options.force_expand === "open" ? "open" : "closed", comments: "collapsed"}
+                    : {body: "collapsed", body_default: options.force_expand, comments: "collapsed"}
                 ,
                 raw_value: listing_raw,
                 link: listing.permalink,
