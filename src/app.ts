@@ -190,6 +190,7 @@ type GenericThread = {
     },
     display_mode: {
         body: "visible" | "collapsed",
+        body_default?: "open" | "closed",
         comments: "visible" | "collapsed",
     },
     replies?: GenericNode[],
@@ -206,6 +207,13 @@ type GenericThread = {
     info: {
         time: number,
         author: {name: string, link: string, flair?: GenericFlair[]},
+        in?: {name: string, link: string},
+        reddit_points?: {
+            count?: number,
+            percent?: number,
+            vote_up: {url: string} | {error: string},
+            vote_down: {url: string} | {error: string},
+        },
     },
     actions: GenericAction[],
     
@@ -457,8 +465,8 @@ function reddit() {
             replies,
         };
     };
-    const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: boolean, link_fullname?: string} = {}): GenericNode => {
-        options.force_expand ??= false;
+    const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: 'open' | 'crosspost' | 'closed', link_fullname?: string} = {}): GenericNode => {
+        options.force_expand ??= 'closed';
         // TODO filter out 'more' listings and make them into load_next items on the replies item
         if(listing_raw.kind === "t1") {
             // Comment
@@ -523,7 +531,7 @@ function reddit() {
                     }
                     : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
                     ? {kind: "crosspost", source:
-                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: true}) as GenericThread
+                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: 'crosspost'}) as GenericThread
                     }
                     : listing.is_self
                     ? listing.selftext_html
@@ -544,12 +552,13 @@ function reddit() {
                     })}
                     : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
                 ,
-                display_mode: {body: options.force_expand ? "visible" : "collapsed", comments: "collapsed"},
+                display_mode: options.force_expand === 'crosspost'
+                    ? {body: "visible", comments: "collapsed"}
+                    : {body: "collapsed", body_default: options.force_expand === "open" ? "open" : "closed", comments: "collapsed"}
+                ,
                 raw_value: listing_raw,
                 link: listing.permalink,
-                thumbnail: options.force_expand
-                    ? undefined
-                    : listing.preview
+                thumbnail: listing.preview
                     ? {url: listing.preview.images[0].resolutions[0].url}
                     : {url: listing.thumbnail ?? "none"}
                 ,
@@ -561,6 +570,10 @@ function reddit() {
                         link: "/u/"+listing.author,
                         flair: flairToGenericFlair(listing.author_flair_richtext),
                     },
+                    in: {
+                        link: "/"+listing.subreddit_name_prefixed,
+                        name: listing.subreddit_name_prefixed,
+                    },
                 },
                 actions: [{
                     kind: "link",
@@ -570,10 +583,6 @@ function reddit() {
                     kind: "link",
                     url: "/domain/"+listing.domain,
                     text: listing.domain,
-                }, {
-                    kind: "link",
-                    url: "/"+listing.subreddit_name_prefixed,
-                    text: listing.subreddit_name_prefixed,
                 }],
                 default_collapsed: false,
             };
@@ -1038,6 +1047,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     defer(() => frame.remove());
     parent.insertBefore(frame, before_once);
 
+    let content_voting_area: HTMLDivElement;
     let thumbnail_loc: HTMLButtonElement;
     let preview_area: HTMLDivElement;
     let replies_area: HTMLDivElement;
@@ -1046,7 +1056,9 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     let content_subminfo_line: HTMLDivElement;
     let content_buttons_line: HTMLDivElement;
 
+
     if(listing.layout === "reddit-post") {
+        content_voting_area = el("div").adto(frame).clss("post-voting");
         thumbnail_loc = el("button").adto(frame).clss("post-thumbnail");
         const content_area = el("div").adto(frame).clss("post-titles");
         preview_area = el("div").adto(frame).clss("post-preview");
@@ -1056,6 +1068,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         content_subminfo_line = el("div").adto(content_area).clss("post-content-subminfo");
         content_buttons_line = el("div").adto(content_area).clss("post-content-buttons");
     }else if(listing.layout === "reddit-comment") {
+        content_voting_area = el("div").adto(frame).clss("post-voting");
         content_title_line = el("div").adto(frame).clss("post-content-title"); // unused
         thumbnail_loc = el("button").adto(frame).clss("post-thumbnail"); // unused
         content_subminfo_line = el("div").adto(frame).clss("post-content-subminfo");
@@ -1063,6 +1076,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         content_buttons_line = el("div").adto(frame).clss("post-content-buttons");
         replies_area = el("div").adto(frame).clss("post-replies");
     }else if(listing.layout === "error") {
+        content_voting_area = el("div").adto(frame).clss("post-voting");
         content_title_line = el("div").adto(frame).clss("post-content-title"); // unused
         thumbnail_loc = el("button").adto(frame).clss("post-thumbnail"); // unused
         content_subminfo_line = el("div").adto(frame).clss("post-content-subminfo");
@@ -1070,6 +1084,9 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         content_buttons_line = el("div").adto(frame).clss("post-content-buttons");
         replies_area = el("div").adto(frame).clss("post-replies");
     }else assertNever(listing.layout);
+
+    const vote_up_btn = el("button").adto(content_voting_area).clss("vote-up");
+    const vote_down_btn = el("button").adto(content_voting_area).clss("vote-down");
 
     if(!listing.thumbnail) thumbnail_loc.clss("no-thumbnail");
 
@@ -1119,6 +1136,9 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         content_subminfo_line.adch(submission_time).atxt(" by ");
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
+        if(listing.info.in) {
+            content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
+        }
     }else if(listing.layout === "reddit-comment") {
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
@@ -1218,8 +1238,8 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             const open_preview_text = txt("…").adto(open_preview_button);
 
             let initialized = false;
-            let state = false;
-            let prev_state = true;
+            let state = listing.display_mode.body_default === "open";
+            let prev_state: boolean | undefined = undefined;
             const update = () => {
                 if(state && !initialized) {
                     initialized = true;
