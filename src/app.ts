@@ -38,11 +38,17 @@ type RedditListing = {
         after: string | null,
     },
 };
+type RedditMoreChildren = {
+    json: {
+        errors: string[],
+        data: {
+            things: RedditPostCommentLike[],
+        },
+    },
+};
 
 type RedditPostBase = {
     name: string, // post id
-    subreddit_name_prefixed: string, // post subreddit (u/ or r/)
-    stickied: boolean,
 
     // use to fetch replies I guess
     permalink: string,
@@ -50,6 +56,9 @@ type RedditPostBase = {
 
 type RedditPostSubmission = RedditPostBase & {
     title: string,
+    
+    stickied: boolean,
+    subreddit_name_prefixed: string, // post subreddit (u/ or r/)
 
     // content warnings
     spoiler: boolean,
@@ -102,6 +111,7 @@ type RedditPostComment = RedditPostBase & {
     body: string,
     body_html: string,
     replies?: RedditListing,
+    parent_id: string,
 
     author: string,
     created_utc: number,
@@ -111,14 +121,28 @@ type RedditPostComment = RedditPostBase & {
     collapsed: boolean,
 };
 
-type RedditPost = {
-    kind: "t3",
-    data: RedditPostSubmission,
-} | {
+type RedditPostMore = RedditPostBase & {
+    count: number,
+    depth: number,
+    id: string,
+    name: string,
+    parent_id: string,
+    children: string[],
+};
+
+type RedditPostCommentLike = {
     kind: "t1",
     data: RedditPostComment,
 } | {
     kind: "more",
+    data: RedditPostMore,
+};
+
+type RedditPost = {
+    kind: "t3",
+    data: RedditPostSubmission,
+} | RedditPostCommentLike | {
+    kind: "unknown",
 };
 
 type RedditRichtextFlair = ({
@@ -189,11 +213,12 @@ type GenericThread = {
 
     flair?: GenericFlair[],
 };
-type GenericNode = GenericThread | {
+type GenericLoadMore = {
     kind: "load_more",
     load_more: string,
     count?: number,
 };
+type GenericNode = GenericThread | GenericLoadMore;
 type GenericFlair = {
     elems: ({
         type: "text",
@@ -349,14 +374,58 @@ function reddit() {
         return pathname + "?" + query.toString();
     };
 
-    const pageFromListing = (path: string, listing: RedditPage | RedditListing): GenericPage => {
+    const pageFromListing = (path: string, listing: RedditPage | RedditListing | RedditMoreChildren): GenericPage => {
+
         if(Array.isArray(listing)) {
+            let link_fullname: string | undefined;
+            if(listing[0].data.children[0].kind === "t3") {
+                link_fullname = listing[0].data.children[0].data.name;
+            }
             return {
                 header: threadFromListing(listing[0].data.children[0], {force_expand: true}) as GenericThread,
-                replies: listing[1].data.children.map(child => threadFromListing(child)),
+                replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname})),
             };
         }
-        console.log(listing.data.before, listing.data.after);
+        if('json' in listing) {
+            if(listing.json.errors.length) {
+                console.log(listing.json.errors);
+                alert("errors, check console");
+            }
+
+            // reparent comments because morechildren returns a flat array of comments rather than a tree
+            const reparenting: RedditPostCommentLike[] = [];
+            const id_map = new Map<string, RedditPostCommentLike>();
+            for(const item of listing.json.data.things) {
+                id_map.set(item.data.name, item);
+                const parent_comment = id_map.get(item.data.parent_id);
+                if(parent_comment) {
+                    if(parent_comment.kind !== "t1") {
+                        throw new Error("expected t1 here");
+                    }
+                    // ||= because replies might be "" if it's empty
+                    parent_comment.data.replies ||= {kind: "Listing", data: {before: null, children: [], after: null}};
+                    parent_comment.data.replies.data.children.push(item);
+                }else{
+                    reparenting.push(item);
+                }
+            }
+            return {
+                header: {
+                    kind: "thread",
+                    title: {text: "MoreChildren"},
+                    body: {kind: "text", content: "MoreChildren", markdown_format: "none"},
+                    display_mode: {body: "collapsed", comments: "collapsed"},
+                    link: "TODO no link",
+                    layout: "error",
+                    info: {time: 0,
+                        author: {name: "no one", link: "TODO no link"},
+                    },
+                    actions: [],
+                    default_collapsed: false,
+                },
+                replies: reparenting.map(child => threadFromListing(child)),
+            };
+        }
 
         const replies = listing.data.children.map(child => threadFromListing(child));
         if(listing.data.before) {
@@ -384,7 +453,7 @@ function reddit() {
             replies,
         };
     };
-    const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: boolean} = {}): GenericNode => {
+    const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: boolean, link_fullname?: string} = {}): GenericNode => {
         options.force_expand ??= false;
         // TODO filter out 'more' listings and make them into load_next items on the replies item
         if(listing_raw.kind === "t1") {
@@ -424,7 +493,7 @@ function reddit() {
                 default_collapsed: listing.collapsed,
             };
             if(listing.replies) {
-                result.replies = listing.replies.data.children.map(v => threadFromListing(v));
+                result.replies = listing.replies.data.children.map(v => threadFromListing(v, options));
             }
             return result;
         }else if(listing_raw.kind === "t3") {
@@ -505,6 +574,18 @@ function reddit() {
                 default_collapsed: false,
             };
             return result;
+        }else if(listing_raw.kind === "more") {
+            const listing = listing_raw.data;
+            
+            // https://www.reddit.com/api/morechildren.json?api_type=json&children= children.join(",") &link_id=t3_kv1s4a
+            return {
+                kind: "load_more",
+                load_more: options.link_fullname
+                    ? "/api/morechildren?api_type=json&limit_children=false&children="+listing.children.join(",")+"&link_id="+options.link_fullname
+                    : "Error: No link fullname provided."
+                ,
+                count: listing.count,
+            };
         }else{
             return {
                 kind: "thread",
@@ -554,7 +635,7 @@ function reddit() {
                         'Authorization': await getAuthorization(),
                     } : {},
                 }).then(async (v) => {
-                    return [v.status, await v.json() as RedditPage | RedditListing] as const;
+                    return [v.status, await v.json() as RedditPage | RedditListing | RedditMoreChildren] as const;
                 });
                 if(status !== 200) {
                     console.log(status, listing);
@@ -1172,22 +1253,46 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
-    const addChildren = (children: GenericNode[], li_before_once: Node | null) => {
+    const addChildren = (children: GenericNode[]) => {
         for(const child_listing of children) {
             if(child_listing.kind === "load_more") {
-                linkButton(client.id, child_listing.load_more).atxt("Load More…").adto(el("li").adto(children_node));
+                loadMoreButton(client, child_listing, addChildren).adto(el("li").adto(children_node));
                 continue;
             }
             const reply_node = el("li").clss("comment");
             const child_node = clientListing(client, child_listing).insertBefore(reply_node, null);
             defer(() => child_node.removeSelf());
-            children_node.insertBefore(reply_node, li_before_once);
+            children_node.insertBefore(reply_node, null);
         }
     }
-    if(listing.replies) addChildren(listing.replies, null);
+    if(listing.replies) addChildren(listing.replies);
 
     return {removeSelf: () => defer.cleanup()};
 } } }
+
+// TODO I guess support loading more in places other than the end of the list
+// that means :: addChildren needs to have a second before_once argument and this needs to have a before_once
+// doesn't matter atm but later.
+function loadMoreButton(client: ThreadClient, load_more_node: GenericLoadMore, addChildren: (children: GenericNode[]) => void) {
+    const container = el("div");
+    const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: e => {
+        const loading_txt = el("span").atxt("Loading…").adto(container);
+        current_node.remove();
+        current_node = loading_txt;
+
+        client.getThread(load_more_node.load_more).then(res => {
+            current_node.remove();
+            if(res.replies) addChildren(res.replies);
+        }).catch(e => {
+            console.log("error loading more:", e);
+            try{current_node.remove();}catch(e){console.log(e);}
+            current_node = el("span").atxt("Error. ").adch(makeButton().atxt("🗘 Retry")).adto(container);
+        });
+    }});
+
+    let current_node: ChildNode = makeButton().atxt(load_more_node.count ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container);
+    return container;
+}
 
 function clientMain(client: ThreadClient, current_path: string) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
@@ -1216,29 +1321,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         const addChildren = (children: GenericNode[]) => {
             for(const child_listing of children) {
                 if(child_listing.kind === "load_more") {
-                    let state: 'start' | 'load' | {error: string} = 'start';
-
-                    let before_comment = document.createComment("--").adto(frame);
-
-                    const makeButton = () => linkButton(client.id, child_listing.load_more, {onclick: e => {
-                        const loading_txt = el("span").atxt("Loading…");
-                        current_node.remove();
-                        frame.insertBefore(loading_txt, before_comment);
-                        current_node = loading_txt;
-
-                        client.getThread(current_path).then(res => {
-                            current_node.remove();
-                            if(res.replies) addChildren(res.replies);
-                        }).catch(e => {
-                            console.log("error loading more:", e);
-                            current_node = el("span").atxt("Error. ").adch(makeButton().atxt("🗘 Retry"));
-                            frame.insertBefore(current_node, before_comment);
-                        });
-                    }});
-
-                    let current_node: ChildNode = makeButton().atxt("Load More…");
-                    frame.insertBefore(current_node, before_comment);
-
+                    loadMoreButton(client, child_listing, addChildren).adto(frame);
                     continue;
                 }
                 const replies_node = clientListing(client, child_listing).insertBefore(frame, null);
