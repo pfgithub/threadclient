@@ -1283,6 +1283,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: GenericLoadMore, a
         client.getThread(load_more_node.load_more).then(res => {
             current_node.remove();
             if(res.replies) addChildren(res.replies);
+            container.remove();
         }).catch(e => {
             console.log("error loading more:", e);
             try{current_node.remove();}catch(e){console.log(e);}
@@ -1291,6 +1292,10 @@ function loadMoreButton(client: ThreadClient, load_more_node: GenericLoadMore, a
     }});
 
     let current_node: ChildNode = makeButton().atxt(load_more_node.count ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container);
+
+    el("button").attr({draggable: "true"}).onev("click", e => {
+        console.log(load_more_node);
+    }).atxt("Code").adto(container);
     return container;
 }
 
