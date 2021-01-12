@@ -15,8 +15,14 @@ ul.replies {
     padding: 0;
 }
 
-li.comment {
+ul.replies > li {
     list-style: none;
+}
+ul.replies > li:not(.comment) {
+    padding-left: 15px;
+}
+
+li.comment {
     margin: 0;
 }
 
@@ -233,4 +239,8 @@ html {
 .post.layout-reddit-comment.comment-collapsed > .post-content-buttons,
 .post.layout-reddit-comment.comment-collapsed > .post-replies {
     display: none;
+}
+
+.error {
+    color: red;
 }

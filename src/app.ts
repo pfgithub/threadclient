@@ -134,7 +134,7 @@ type RedditRichtextFlair = ({
 
 type GenericPage = {
     header: GenericThread,
-    replies?: {load_prev?: string, loaded: GenericThread[], load_next?: string},
+    replies?: GenericNode[],
 };
 type GenericBody = {
     kind: "text",
@@ -158,6 +158,8 @@ type GenericBody = {
     source: GenericThread,
 };
 type GenericThread = {
+    kind: "thread",
+
     body: GenericBody,
     thumbnail?: {
         url: string,
@@ -166,11 +168,7 @@ type GenericThread = {
         body: "visible" | "collapsed",
         comments: "visible" | "collapsed",
     },
-    replies?: {
-        load_prev?: string,
-        loaded: GenericThread[],
-        load_next?: string,
-    },
+    replies?: GenericNode[],
     raw_value?: any,
 
     link: string,
@@ -190,6 +188,11 @@ type GenericThread = {
     default_collapsed: boolean,
 
     flair?: GenericFlair[],
+};
+type GenericNode = GenericThread | {
+    kind: "load_more",
+    load_more: string,
+    count?: number,
 };
 type GenericFlair = {
     elems: ({
@@ -268,9 +271,14 @@ function reddit() {
         return !!localStorage.getItem("reddit-secret");
     };
 
-    const pathURL = (path: string) => {;
-        if(!isLoggedIn()) return "https://www.reddit.com"+path+".json?raw_json=1";
-        return "https://oauth.reddit.com"+path+".json?raw_json=1";
+    const pathURL = (path: string) => {
+        const [pathname, query] = splitURL(path);
+        if(!pathname.startsWith("/")) {
+            throw new Error("path didn't start with `/` : `"+path+"`");
+        }
+        query.set("raw_json", "1");
+        const base = isLoggedIn() ? "oauth.reddit.com" : "www.reddit.com";
+        return "https://"+base+pathname+".json?"+query.toString();
     };
 
     // ok so the idea::
@@ -328,19 +336,40 @@ function reddit() {
         return 'Bearer '+access_token;
     }
 
-    const pageFromListing = (listing: RedditPage | RedditListing): GenericPage => {
+    const splitURL = (path: string): [string, URLSearchParams] => {
+        const [pathname, ...query] = path.split("?");
+        return [pathname, new URLSearchParams(query.join("?"))];
+    }
+    const updateQuery = (path: string, update: {[key: string]: string | undefined}) => {
+        const [pathname, query] = splitURL(path);
+        for(const [k, v] of Object.entries(update)) {
+            if(v) query.set(k, v);
+            else query.delete(k);
+        }
+        return pathname + "?" + query.toString();
+    };
+
+    const pageFromListing = (path: string, listing: RedditPage | RedditListing): GenericPage => {
         if(Array.isArray(listing)) {
             return {
-                header: threadFromListing(listing[0].data.children[0], {force_expand: true}),
-                replies: {
-                    load_prev: "TODO listing[1].data.before",
-                    loaded: listing[1].data.children.map(child => threadFromListing(child)),
-                    load_next: "TODO listing[1].data.after",
-                },
+                header: threadFromListing(listing[0].data.children[0], {force_expand: true}) as GenericThread,
+                replies: listing[1].data.children.map(child => threadFromListing(child)),
             };
         }
+        console.log(listing.data.before, listing.data.after);
+
+        const replies = listing.data.children.map(child => threadFromListing(child));
+        if(listing.data.before) {
+            // TODO?
+        }
+        if(listing.data.after) {
+            const next_path = updateQuery(path, {before: undefined, after: listing.data.after});
+            replies.push({kind: "load_more", load_more: next_path, count: undefined});
+        }
+
         return {
             header: {
+                kind: "thread",
                 title: {text: "Listing"},
                 body: {kind: "text", content: "Listing", markdown_format: "none"},
                 display_mode: {body: "collapsed", comments: "collapsed"},
@@ -352,14 +381,10 @@ function reddit() {
                 actions: [],
                 default_collapsed: false,
             },
-            replies: {
-                load_prev: "TODO listing.data.before",
-                loaded: listing.data.children.map(child => threadFromListing(child)),
-                load_next: "TODO listing.data.after",
-            },
+            replies,
         };
     };
-    const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: boolean} = {}): GenericThread => {
+    const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: boolean} = {}): GenericNode => {
         options.force_expand ??= false;
         // TODO filter out 'more' listings and make them into load_next items on the replies item
         if(listing_raw.kind === "t1") {
@@ -369,7 +394,8 @@ function reddit() {
             const is_deleted = listing.author === "[deleted]";
             const post_id_no_pfx = listing.name.substring(3);
 
-            const result: GenericThread = {
+            const result: GenericNode = {
+                kind: "thread",
                 body: is_deleted
                     ? {kind: "removed", by: listing.body === "[removed]" ? "moderator" : "author",
                         fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
@@ -398,11 +424,7 @@ function reddit() {
                 default_collapsed: listing.collapsed,
             };
             if(listing.replies) {
-                result.replies = {
-                    load_prev: "TODO listing.replies.data.before",
-                    loaded: listing.replies.data.children.map(v => threadFromListing(v)),
-                    load_next: "TODO listing.replies.data.after",
-                };
+                result.replies = listing.replies.data.children.map(v => threadFromListing(v));
             }
             return result;
         }else if(listing_raw.kind === "t3") {
@@ -416,7 +438,8 @@ function reddit() {
             if(listing.spoiler) content_warnings.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
             if(listing.over_18) content_warnings.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
 
-            const result: GenericThread = {
+            const result: GenericNode = {
+                kind: "thread",
                 title: {
                     text: listing.title,
                 },
@@ -427,7 +450,7 @@ function reddit() {
                     }
                     : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
                     ? {kind: "crosspost", source:
-                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: true})
+                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: true}) as GenericThread
                     }
                     : listing.is_self
                     ? listing.selftext_html
@@ -484,7 +507,8 @@ function reddit() {
             return result;
         }else{
             return {
-                title: {text: "unsupported listing kind "+(listing_raw as any).data.kind},
+                kind: "thread",
+                title: {text: "unsupported listing kind "+listing_raw.kind},
                 body: {kind: "text", content: "unsupported", markdown_format: "none"},
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 raw_value: listing_raw,
@@ -537,13 +561,14 @@ function reddit() {
                     throw new Error("Got status "+status);
                 }
 
-                return pageFromListing(listing);
+                return pageFromListing(path, listing);
             }catch(e) {
                 console.log(e);
                 const is_networkerror = e.toString().includes("NetworkError");
                 
                 return {
                     header: {
+                        kind: "thread",
                         title: {text: "Error"},
                         body: {
                             kind: "text",
@@ -674,8 +699,14 @@ function isModifiedEvent(event: MouseEvent) {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
 
-function linkButton(href: string) {
+function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseEvent) => void} = {}) {
     // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
+    if(href.startsWith("/")) {
+        href = "/"+client_id+href;
+    }
+    if(!href.startsWith("http") && !href.startsWith("/")) {
+        return el("a").clss("error").attr({title: href}).clss("error").onev("click", () => alert(href));
+    }
     const res = el("a").attr({href, target: "_blank", rel: "noreferrer noopener"});
     if(href.startsWith("/")) res.onclick = event => {
         if (
@@ -685,6 +716,7 @@ function linkButton(href: string) {
         ) {
             event.preventDefault();
             event.stopPropagation();
+            if(opts.onclick) return opts.onclick(event);
             navigate({path: href});
         }
     };
@@ -992,10 +1024,10 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     if(listing.layout === "reddit-post") {
         const submission_time = el("span").atxt(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
-        content_subminfo_line.adch(linkButton("/"+client.id+listing.info.author.link).atxt(listing.info.author.name));
+        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
     }else if(listing.layout === "reddit-comment") {
-        content_subminfo_line.adch(linkButton("/"+client.id+listing.info.author.link).atxt(listing.info.author.name));
+        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         const submission_time = el("span").atxt(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(", ").adch(submission_time);
@@ -1046,7 +1078,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                 }else assertNever(body.markdown_format);
             }else if(body.kind === "link") {
                 // TODO fix this link button thing
-                el("div").adto(content).adch(linkButton(body.url).atxt(body.url));
+                el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
                 const preview = renderLinkPreview(body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
                 preview.node.adto(content);
                 if(preview.onhide) onhide = preview.onhide;
@@ -1126,13 +1158,13 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     for(const action of listing.actions) {
         content_buttons_line.atxt(" ");
-        if(action.kind === "link") linkButton("/"+client.id+action.url).atxt(action.text).adto(content_buttons_line);
+        if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
         else if(action.kind === "reply") el("span").atxt("Reply").adto(content_buttons_line);
         else assertNever(action);
     }
 
     content_buttons_line.atxt(" ");
-    linkButton("/"+client.id+listing.link).atxt("View").adto(content_buttons_line);
+    linkButton(client.id, listing.link).atxt("View").adto(content_buttons_line);
     content_buttons_line.atxt(" ");
     el("button").attr({draggable: "true"}).onev("click", e => {
         console.log(listing);
@@ -1140,15 +1172,19 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
-    const addChildren = (children: GenericThread[], li_before_once: Node | null) => {
+    const addChildren = (children: GenericNode[], li_before_once: Node | null) => {
         for(const child_listing of children) {
+            if(child_listing.kind === "load_more") {
+                linkButton(client.id, child_listing.load_more).atxt("Load More…").adto(el("li").adto(children_node));
+                continue;
+            }
             const reply_node = el("li").clss("comment");
             const child_node = clientListing(client, child_listing).insertBefore(reply_node, null);
             defer(() => child_node.removeSelf());
             children_node.insertBefore(reply_node, li_before_once);
         }
     }
-    if(listing.replies) addChildren(listing.replies.loaded, null);
+    if(listing.replies) addChildren(listing.replies, null);
 
     return {removeSelf: () => defer.cleanup()};
 } } }
@@ -1171,20 +1207,45 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
     uhtml.render(frame_uhtml_area, html`Loading…`);
 
     (async () => {
-        const home_thread = await client.getThread(current_path);
+        const listing = await client.getThread(current_path);
         
         uhtml.render(frame_uhtml_area, html``);
-        const home_node = clientListing(client, home_thread.header).insertBefore(frame, null);
+        const home_node = clientListing(client, listing.header).insertBefore(frame, null);
         defer(() => home_node.removeSelf());
 
-        const addChildren = (children: GenericThread[]) => {
+        const addChildren = (children: GenericNode[]) => {
             for(const child_listing of children) {
+                if(child_listing.kind === "load_more") {
+                    let state: 'start' | 'load' | {error: string} = 'start';
+
+                    let before_comment = document.createComment("--").adto(frame);
+
+                    const makeButton = () => linkButton(client.id, child_listing.load_more, {onclick: e => {
+                        const loading_txt = el("span").atxt("Loading…");
+                        current_node.remove();
+                        frame.insertBefore(loading_txt, before_comment);
+                        current_node = loading_txt;
+
+                        client.getThread(current_path).then(res => {
+                            current_node.remove();
+                            if(res.replies) addChildren(res.replies);
+                        }).catch(e => {
+                            console.log("error loading more:", e);
+                            current_node = el("span").atxt("Error. ").adch(makeButton().atxt("🗘 Retry"));
+                            frame.insertBefore(current_node, before_comment);
+                        });
+                    }});
+
+                    let current_node: ChildNode = makeButton().atxt("Load More…");
+                    frame.insertBefore(current_node, before_comment);
+
+                    continue;
+                }
                 const replies_node = clientListing(client, child_listing).insertBefore(frame, null);
                 defer(() => replies_node.removeSelf());
             }
         };
-        if(home_thread.replies) addChildren(home_thread.replies.loaded);
-        
+        if(listing.replies) addChildren(listing.replies);
     })().catch(e => console.log(e));
 
     return {removeSelf: () => defer.cleanup(), hide: () => {
