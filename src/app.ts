@@ -558,7 +558,9 @@ function reddit() {
                 ,
                 raw_value: listing_raw,
                 link: listing.permalink,
-                thumbnail: listing.preview
+                thumbnail: options.force_expand === "crosspost"
+                    ? undefined
+                    : listing.preview
                     ? {url: listing.preview.images[0].resolutions[0].url}
                     : {url: listing.thumbnail ?? "none"}
                 ,
