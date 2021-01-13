@@ -22,8 +22,7 @@ const html = uhtml.html;
 const query = (items: {[key: string]: string}) => {
     let res = "";
     for(const [key, value] of Object.entries(items)) {
-        if(!res) res += "?";
-        else res += "&";
+        if(res) res += "&";
         res += url`${key}=${value}`;
     }
     return res;
@@ -54,7 +53,19 @@ type RedditPostBase = {
     permalink: string,
 };
 
-type RedditPostSubmission = RedditPostBase & {
+type RedditPostWithPoints = {
+    likes?: true | false,
+
+    score_hidden: boolean,
+    score: number,
+
+    upvote_ratio?: number, // on posts
+    controversiality?: 0 | 1, // on comments
+
+    archived?: boolean,
+};
+
+type RedditPostSubmission = RedditPostBase & RedditPostWithPoints & {
     title: string,
     
     stickied: boolean,
@@ -107,7 +118,7 @@ type RedditPostSubmission = RedditPostBase & {
     domain: string,
 };
 
-type RedditPostComment = RedditPostBase & {
+type RedditPostComment = RedditPostBase & RedditPostWithPoints & {
     body: string,
     body_html: string,
     replies?: RedditListing,
@@ -208,12 +219,7 @@ type GenericThread = {
         time: number,
         author: {name: string, link: string, flair?: GenericFlair[]},
         in?: {name: string, link: string},
-        reddit_points?: {
-            count?: number,
-            percent?: number,
-            vote_up: {url: string} | {error: string},
-            vote_down: {url: string} | {error: string},
-        },
+        reddit_points?: GenericRedditPoints,
     },
     actions: GenericAction[],
     
@@ -229,6 +235,17 @@ type GenericLoadMore = {
     raw_value: any,
 };
 type GenericNode = GenericThread | GenericLoadMore;
+type GenericRedditPoints = {
+    your_vote?: 'up' | 'down',
+    count?: number,
+    percent?: number,
+    vote: {error: string} | {
+        error: undefined,
+        up: string,
+        down: string,
+        reset: string,
+    }
+};
 type GenericFlair = {
     elems: ({
         type: "text",
@@ -266,6 +283,7 @@ type ThreadClient = {
     getThread: (path: string) => Promise<GenericPage>,
     login: (query: URLSearchParams) => Promise<void>,
     fetchRemoved?: (fetch_removed_path: string) => Promise<GenericBody>,
+    reddit_vote?: (data: string) => Promise<void>,
 };
 
 function assertNever(content: never): never {
@@ -306,14 +324,17 @@ function reddit() {
         return !!localStorage.getItem("reddit-secret");
     };
 
+    const baseURL = () => {
+        const base = isLoggedIn() ? "oauth.reddit.com" : "www.reddit.com";
+        return "https://"+base;
+    }
     const pathURL = (path: string) => {
         const [pathname, query] = splitURL(path);
         if(!pathname.startsWith("/")) {
             throw new Error("path didn't start with `/` : `"+path+"`");
         }
         query.set("raw_json", "1");
-        const base = isLoggedIn() ? "oauth.reddit.com" : "www.reddit.com";
-        return "https://"+base+pathname+".json?"+query.toString();
+        return baseURL()+pathname+".json?"+query.toString();
     };
 
     // ok so the idea::
@@ -465,6 +486,21 @@ function reddit() {
             replies,
         };
     };
+    const getPointsOn = (listing: RedditPostComment | RedditPostSubmission): GenericRedditPoints => {
+        // not sure what rank is for
+        const vote_data = {id: listing.name, rank: "2"};
+        return {
+            your_vote: listing.likes === true ? "up" : listing.likes === false ? "down" : undefined,
+            count: listing.score_hidden ? undefined : listing.score,
+            percent: listing.upvote_ratio,
+            vote: listing.archived ? {error: "archived <6mo"} : isLoggedIn() ? {
+                error: undefined,
+                up: query({...vote_data, dir: "1"}),
+                down: query({...vote_data, dir: "-1"}),
+                reset: query({...vote_data, dir: "0"}),
+            } : {error: "not logged in"},
+        };
+    };
     const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: 'open' | 'crosspost' | 'closed', link_fullname?: string} = {}): GenericNode => {
         options.force_expand ??= 'closed';
         // TODO filter out 'more' listings and make them into load_next items on the replies item
@@ -493,6 +529,7 @@ function reddit() {
                         link: "/u/"+listing.author,
                         flair: flairToGenericFlair(listing.author_flair_richtext),
                     },
+                    reddit_points: getPointsOn(listing),
                 },
                 actions: [{
                     kind: "reply",
@@ -576,6 +613,7 @@ function reddit() {
                         link: "/"+listing.subreddit_name_prefixed,
                         name: listing.subreddit_name_prefixed,
                     },
+                    reddit_points: getPointsOn(listing),
                 },
                 actions: [{
                     kind: "link",
@@ -638,7 +676,7 @@ function reddit() {
                 "submit subscribe vote wikiedit wikiread"
             ;
 
-            const url = `https://www.reddit.com/api/v1/authorize` +
+            const url = `https://www.reddit.com/api/v1/authorize?` +
                 query({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
             ;
             return url;
@@ -692,9 +730,9 @@ function reddit() {
                 };
             }
         },
-        async login(query) {
-            const code = query.get("code");
-            const state = query.get("state");
+        async login(query_param) {
+            const code = query_param.get("code");
+            const state = query_param.get("state");
 
             if(!code || !state) {
                 throw new Error("No login requested");
@@ -709,7 +747,7 @@ function reddit() {
                     'Authorization': "Basic "+btoa(client_id+":"),
                     'Content-Type': "application/x-www-form-urlencoded",
                 },
-                body: url`grant_type=authorization_code&code=${code}&redirect_uri=${redirect_uri}`,
+                body: query({grant_type: "authorization", code, redirect_uri}),
             }).then(v => v.json());
         
             if(v.error) {
@@ -763,7 +801,24 @@ function reddit() {
                 };
             }
             throw new Error("no selftext or body");
-        }
+        },
+        async reddit_vote(data: string): Promise<void> {
+            type VoteResult = {};
+            const [status, res] = await fetch(baseURL() + "/api/vote", {
+                method: "post", mode: "cors", credentials: "omit",
+                headers: isLoggedIn() ? {
+                    'Authorization': await getAuthorization(),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                } : {},
+                body: data,
+            }).then(async (v) => {
+                return [v.status, await v.json() as VoteResult] as const;
+            });
+            if(status !== 200) {
+                console.log(status, res);
+                throw new Error("got status "+status);
+            }
+        },
     };
     return res;
 }
@@ -1019,26 +1074,52 @@ function s(number: number, text: string) {
 }
 
 // TODO replace this with a proper thing that can calculate actual "months ago" values
-function timeAgo(start_ms: number) {
+// returns [time_string, time_until_update]
+function timeAgoText(start_ms: number): [string, number] {
     const ms = Date.now() - start_ms;
-    if(ms < 60 * 1000) return "just now";
-    if(ms < 60 * 60 * 1000) {
-        const minutes = ms / (60 * 1000) |0;
-        return s(minutes, " minutes")+" ago";
+    if(ms < 0) return ["in the future", -ms];
+    if(ms < 60 * 1000) return ["just now", 60 * 1000 - ms];
+
+    let step = 60 * 1000;
+    let next_step = 60;
+    if(ms < next_step * step) {
+        const minutes = ms / step |0;
+        return [s(minutes, " minutes")+" ago", step - (ms - minutes * step)];
     }
-    if(ms < 24 * 60 * 60 * 1000) {
-        const hours = ms / (60 * 60 * 1000) |0;
-        return s(hours, " hours")+" ago";
+    step *= next_step;
+    next_step = 24;
+    if(ms < next_step * step) {
+        const hours = ms / step |0;
+        return [s(hours, " hours")+" ago", step - (ms - hours * step)];
     }
-    if(ms < 7 * 24 * 60 * 60 * 1000) {
-        const days = ms / (24 * 60 * 60 * 1000) |0;
-        return s(days, " days")+" ago";
+    step *= next_step;
+    next_step = 7;
+    if(ms < next_step * step) {
+        const days = ms / step |0;
+        return [s(days, " days")+" ago", step - (ms - days * step)];
     }
-    if(ms < 3 * 7 * 24 * 60 * 60 * 1000) {
-        const weeks = ms / (7 * 24 * 60 * 60 * 1000) |0;
-        return s(weeks, " weeks")+" ago";
+    step *= next_step;
+    next_step = 3;
+    if(ms < next_step * step) {
+        const weeks = ms / step |0;
+        return [s(weeks, " weeks")+" ago", step - (ms - weeks * step)];
     }
-    return new Date(start_ms).toISOString();
+    return [new Date(start_ms).toISOString(), -1];
+}
+
+// NOTE that this leaks memory as it holds onto nodes forever and updates them even
+// when they are not being displayed. This can be fixed by uil in the future.
+let leak_count = 0;
+function timeAgo(start_ms: number): Node {
+    leak_count += 1;
+    const tanode = txt("…");
+    const update = () => {
+        const [newtext, wait_time] = timeAgoText(start_ms);
+        tanode.nodeValue = newtext;
+        if(wait_time >= 0) setTimeout(() => update(), wait_time + 100);
+    };
+    update();
+    return tanode;
 }
 
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
@@ -1087,9 +1168,6 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         replies_area = el("div").adto(frame).clss("post-replies");
     }else assertNever(listing.layout);
 
-    const vote_up_btn = el("button").adto(content_voting_area).clss("vote-up");
-    const vote_down_btn = el("button").adto(content_voting_area).clss("vote-down");
-
     if(!listing.thumbnail) thumbnail_loc.clss("no-thumbnail");
 
     if(listing.layout === "reddit-comment") {
@@ -1133,19 +1211,122 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     }
     let content_warnings = (listing.flair ?? []).filter(v => v.content_warning);
 
+    const getScoreMut = (pt_count: number, your_vote: 'up' | 'down' | undefined, initial_vote: 'up' | 'down' | undefined) => {
+        let score_mut = pt_count;
+        if(your_vote !== initial_vote) {
+            if(initial_vote === "up") {
+                score_mut -= 1;
+                if(your_vote === "down") score_mut -= 1;
+            }else if(initial_vote === "down") {
+                score_mut += 1;
+                if(your_vote === "up") score_mut += 1;
+            }else{
+                if(your_vote === "up") score_mut += 1;
+                else if(your_vote === "down") score_mut -= 1;
+            }
+        }
+        return score_mut;
+    }
+    type VoteState = {pt_count: number | undefined, your_vote: 'up' | 'down' | undefined, vote_loading: boolean};
+
+    const dovote = (direction: "up" | "down" | "reset", state: VoteState, update: () => void, rpts: GenericRedditPoints) => {
+        if(rpts.vote.error != undefined) return alert(rpts.vote.error);
+        state.vote_loading = true;
+        state.your_vote = direction === "reset" ? undefined : direction;
+        update();
+        console.log("Voting on",rpts.vote[direction], direction);
+        client.reddit_vote!(rpts.vote[direction]).then(res => {
+            state.vote_loading = false;
+            state.your_vote = direction === "reset" ? undefined : direction;
+            update();
+        }).catch(e => {
+            console.log("Error!", e);
+            alert("Error voting");
+        });
+    };
+
+    const updateVotingClass = (state: VoteState) => {
+        content_voting_area.classList.remove("unvoted", "voted-up", "voted-down", "voted-loading");
+        if(state.your_vote === "up") content_voting_area.clss("voted-up");
+        if(state.your_vote === "down") content_voting_area.clss("voted-down");
+        if(!state.your_vote) content_voting_area.clss("unvoted");
+        if(state.vote_loading) content_voting_area.clss("voted-loading");
+    };
+
     if(listing.layout === "reddit-post") {
-        const submission_time = el("span").atxt(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
+        const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
             content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
         }
+        if(listing.info.reddit_points) {
+            const rpts = listing.info.reddit_points;
+            const state: VoteState = {pt_count: rpts.count, your_vote: rpts.your_vote, vote_loading: false};
+            const getPointsText = () => {
+                if(state.pt_count == null) return "—";
+                const score_mut = getScoreMut(state.pt_count, state.your_vote, rpts.your_vote);
+                return "" + score_mut;
+            };
+            const vote_up_btn = el("button").adto(content_voting_area).clss("vote-up");
+            const points_text = txt("…").adto(el("span").adto(content_voting_area).clss("vote-score"));
+            const vote_down_btn = el("button").adto(content_voting_area).clss("vote-down");
+
+            if(listing.info.reddit_points.percent != null) {
+                content_subminfo_line.atxt(", "+ listing.info.reddit_points.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted");
+            }
+
+            const update = () => {
+                points_text.nodeValue = getPointsText();
+                updateVotingClass(state);
+            }
+            update();
+
+            vote_up_btn.onclick = () => {
+                if(state.your_vote === "up") dovote("reset", state, update, rpts);
+                else dovote("up", state, update, rpts);
+            };
+            vote_down_btn.onclick = () => {
+                if(state.your_vote === "down") dovote("reset", state, update, rpts);
+                else dovote("down", state, update, rpts);
+            };
+        }
     }else if(listing.layout === "reddit-comment") {
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
-        const submission_time = el("span").atxt(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
-        content_subminfo_line.atxt(", ").adch(submission_time);
+        if(listing.info.reddit_points) {
+            const rpts = listing.info.reddit_points
+            const state: VoteState = {pt_count: rpts.count, your_vote: rpts.your_vote, vote_loading: false};
+
+            const getPointsText = () => {
+                if(state.pt_count == null) return "[score hidden]";
+                const score_mut = getScoreMut(state.pt_count, state.your_vote, rpts.your_vote);
+                return "" + score_mut + " point"+(score_mut === 1 ? "" : "s");
+            };
+            const points_text = txt("…");
+            content_subminfo_line.atxt(" ").adch(points_text);
+
+            const vote_up_btn = el("button").adto(content_voting_area).clss("vote-up");
+            const vote_down_btn = el("button").adto(content_voting_area).clss("vote-down");
+
+            const update = () => {
+                points_text.nodeValue = getPointsText();
+                updateVotingClass(state);
+            };
+            update();
+
+            vote_up_btn.onclick = () => {
+                if(state.your_vote === "up") dovote("reset", state, update, rpts);
+                else dovote("up", state, update, rpts);
+            };
+            vote_down_btn.onclick = () => {
+                if(state.your_vote === "down") dovote("reset", state, update, rpts);
+                else dovote("down", state, update, rpts);
+            };
+        }
+        const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
+        content_subminfo_line.atxt(" ").adch(submission_time);
     }
 
     if(listing.body) {

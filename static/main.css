@@ -195,6 +195,7 @@ html {
     flex-direction: column;
     gap: 2px;
     margin-right: 5px;
+    align-items: center;
 }
 .post.layout-reddit-comment > .post-voting {
     position: absolute;
@@ -215,8 +216,27 @@ html {
 .post-voting > .vote-up {
     background-position: -106px -1654px;
 }
+.post-voting.voted-up > .vote-up {
+    background-position: 0px -1676px;
+}
+.post-voting > .vote-score {
+    font-size: small;
+}
+.post-voting.voted-up > .vote-score {
+    color: #ff8b60;
+}
+.post-voting.voted-down > .vote-score {
+    color: #9494ff;
+}
+.post-voting.voted-loading > .vote-up,
+.post-voting.voted-loading > .vote-down {
+    opacity: 0.5;
+}
 .post-voting > .vote-down {
     background-position: -64px -1654px;
+}
+.post-voting.voted-down > .vote-down {
+    background-position: -85px -1654px;
 }
 .post.layout-reddit-comment > .collapse-btn {
     all: unset;
@@ -269,6 +289,11 @@ html {
 }
 .post.layout-reddit-comment.comment-collapsed > .post-content-subminfo > a {
     color: #444;
+}
+
+.post.layout-reddit-comment > .post-content-subminfo,
+.post.layout-reddit-comment > .post-preview {
+    margin-left: 3px;
 }
 
 .post.layout-reddit-comment.comment-collapsed > .post-voting,
