@@ -53,7 +53,7 @@ type RedditPostBase = {
     permalink: string,
 };
 
-type RedditPostWithPoints = {
+type RedditPostOrComment = {
     likes?: true | false,
 
     score_hidden: boolean,
@@ -63,9 +63,11 @@ type RedditPostWithPoints = {
     controversiality?: 0 | 1, // on comments
 
     archived?: boolean,
+
+    distinguished?: "admin",
 };
 
-type RedditPostSubmission = RedditPostBase & RedditPostWithPoints & {
+type RedditPostSubmission = RedditPostBase & RedditPostOrComment & {
     title: string,
     
     stickied: boolean,
@@ -118,7 +120,7 @@ type RedditPostSubmission = RedditPostBase & RedditPostWithPoints & {
     domain: string,
 };
 
-type RedditPostComment = RedditPostBase & RedditPostWithPoints & {
+type RedditPostComment = RedditPostBase & RedditPostOrComment & {
     body: string,
     body_html: string,
     replies?: RedditListing,
@@ -823,6 +825,48 @@ function reddit() {
     return res;
 }
 
+function xmur3(str: string) {
+    for (var i = 0, h = 1779033703 ^ str.length; i < str.length; i++)
+        (h = Math.imul(h ^ str.charCodeAt(i), 3432918353)),
+            (h = (h << 13) | (h >>> 19));
+    return function () {
+        h = Math.imul(h ^ (h >>> 16), 2246822507);
+        h = Math.imul(h ^ (h >>> 13), 3266489909);
+        return (h ^= h >>> 16) >>> 0;
+    };
+}
+
+function sfc32(a: number, b: number, c: number, d: number) {
+    return function () {
+        a >>>= 0;
+        b >>>= 0;
+        c >>>= 0;
+        d >>>= 0;
+        var t = (a + b) | 0;
+        a = b ^ (b >>> 9);
+        b = (c + (c << 3)) | 0;
+        c = (c << 21) | (c >>> 11);
+        d = (d + 1) | 0;
+        t = (t + d) | 0;
+        c = (c + t) | 0;
+        return (t >>> 0) / 4294967296;
+    };
+}
+
+function seededRandom(string: string) {
+    const seed = xmur3(string);
+    return sfc32(seed(), seed(), seed(), seed());
+}
+
+function getRandomColor(rand: () => number) {
+    var letters = "0123456789ABCDEF";
+    var color = "";
+    for (var i = 0; i < 6; i++) {
+        color += letters[Math.floor(rand() * 16)];
+    }
+    return color;
+}
+
 function clientLogin(client: ThreadClient, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
     const frame = document.createElement("div");
     parent.insertBefore(frame, before_once);
@@ -1264,10 +1308,12 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         if(state.vote_loading) content_voting_area.clss("voted-loading");
     };
 
+    const author_color = "#"+getRandomColor(seededRandom(listing.info.author.name));
+
     if(listing.layout === "reddit-post") {
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
-        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).atxt(listing.info.author.name));
+        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).styl({"color": author_color}).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
             content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
@@ -1304,7 +1350,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             };
         }
     }else if(listing.layout === "reddit-comment") {
-        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).atxt(listing.info.author.name));
+        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).styl({"color": author_color}).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.reddit_points) {
             const rpts = listing.info.reddit_points
