@@ -306,3 +306,21 @@ html {
 .error {
     color: red;
 }
+
+.post-body {
+    font-size: small;
+}
+.post-body > .slightlybigger {
+    font-size: 1.0769230769230769em; /* ??? */
+}
+
+.md-spoiler-text {
+    background-color: #ccc;
+}
+.md-spoiler-text:hover {
+    background-color: #bbb;
+}
+.md-spoiler-content {
+    background-color: #eee;
+    transition: 0.2s opacity;
+}

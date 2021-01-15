@@ -18,7 +18,7 @@ declare global {
 	interface Node {
 		attr: <T extends HTMLElement>(this: T, attrs: {[key: string]: string}) => T;
 		adto: <T extends Node>(this: T, prnt: Node) => T;
-		adch: <T extends Node>(this: T, chld: Node) => T;
+		adch: <T extends Node>(this: T, ...chldrn: Node[]) => T;
 		atxt: <T extends Node>(this: T, txta: string) => T;
 		onev<K extends keyof DocumentEventMap, T extends Node>(this: T, type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): T;
 		onev<T extends Node>(this: T, type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): T;
@@ -37,7 +37,7 @@ window.anychange = (itms, cb) => {itms.forEach(itm => itm.oninput = () => cb());
 window.body = document.getElementById("maincontent") || document.body;
 Node.prototype.attr = function(atrs) {Object.entries(atrs).forEach(([k, v]) => this.setAttribute(k, v)); return this;};
 Node.prototype.adto = function(prnt) {prnt.appendChild(this); return this;};
-Node.prototype.adch = function(chld) {this.appendChild(chld); return this;};
+Node.prototype.adch = function(...chlds) {chlds.forEach(chld => this.appendChild(chld)); return this;};
 Node.prototype.atxt = function(txta) {this.appendChild(txt(txta)); return this;};
 //@ts-ignore
 Node.prototype.onev = function(...a) {this.addEventListener(...a); return this;};

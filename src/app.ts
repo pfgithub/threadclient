@@ -177,11 +177,12 @@ type GenericPage = {
     header: GenericThread,
     replies?: GenericNode[],
 };
-type GenericBody = {
+type GenericBodyText = {
     kind: "text",
     content: string,
     markdown_format: "reddit" | "none",
-} | {
+};
+type GenericBody = GenericBodyText | {
     kind: "link",
     url: string,
     embed_html?: string,
@@ -914,7 +915,13 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     if(!href.startsWith("http") && !href.startsWith("/")) {
         return el("a").clss("error").attr({title: href}).clss("error").onev("click", () => alert(href));
     }
-    const replacers = {"https://www.reddit.com": "/reddit", "https://old.reddit.com": "/reddit"};
+    const replacers = {
+        "https://www.reddit.com": "/reddit",
+        "https://old.reddit.com": "/reddit",
+        "http://reddit.com": "/reddit",
+        "http://www.reddit.com":
+        "/reddit"
+    };
     for(const [replacer, value] of Object.entries(replacers)) {
         if(href === replacer) {
             href = value;
@@ -1181,6 +1188,157 @@ function timeAgo(start_ms: number): Node {
     return tanode;
 }
 
+type RedditMarkdownRenderer = {
+    renderMd(text: string): string,
+};
+let _reddit_markdown_renderer: (() => void)[] | RedditMarkdownRenderer | undefined;
+async function getRedditMarkdownRenderer(): Promise<RedditMarkdownRenderer> {
+    if(!_reddit_markdown_renderer) {
+        _reddit_markdown_renderer = [];
+        const enc = new TextEncoder();
+        const dec = new TextDecoder();
+        const getMem = () => obj.instance.exports.memory as WebAssembly.Memory;
+        const obj = await WebAssembly.instantiateStreaming(fetch("/snudown.wasm"), {
+            env: {
+                __assert_fail: (assertion: number, file: number, line: number, fn: number) => {
+                    console.log(assertion, file, line, fn);
+                    throw new Error("assert failed");
+                },
+                __stack_chk_fail: () => {
+                    throw new Error("stack overflow");
+                },
+                debugprints: (text: number, len: number) => {
+                    console.log("print text:",dec.decode(new Uint8Array(getMem().buffer, text, len)));
+                },
+                debugprinti: (intv: number) => {
+                    console.log("print int:", intv);
+                },
+                debugprintc: (intv: number) => {
+                    console.log("print char:", String.fromCodePoint(intv));
+                },
+                debugpanic: (text: number, len: number) => {
+                    throw new Error("Panic: "+ dec.decode(new Uint8Array(getMem().buffer, text, len)));
+                }
+            },
+        });
+        const arrayv = _reddit_markdown_renderer;
+        _reddit_markdown_renderer = {renderMd(md: string) {
+            const exports = obj.instance.exports as {
+                memory: WebAssembly.Memory,
+
+                // (len: usize) => [*]u8
+                //   creates a u8 array of specified length
+                allocString: (len: number) => number,
+
+                // (ptr: [*]u8, len: usize)
+                //   frees a u8 array of specified length
+                freeText: (ptr: number, len: number) => void,
+
+                // (strptr: [*]u8, len: usize) => [*:0]u8 (caller must free!)
+                //   converts markdown to html. panics on oom. returns
+                //   a null-terminated utf-8 string the caller must free.
+                markdownToHTML: (strptr: number, len: number) => number,
+
+                // (strptr: [*:0]u8) => usize
+                //   gets the byte length of a null-terminated string.
+                strlen: (strptr: number) => number,
+            };
+            try{
+                const utf8 = enc.encode(md);
+                const strptr = exports.allocString(utf8.byteLength);
+                const inmem = new Uint8Array(getMem().buffer, strptr, utf8.byteLength);
+                inmem.set(utf8);
+                const res = exports.markdownToHTML(strptr, utf8.byteLength);
+                const outlen = exports.strlen(res);
+                const outarr = new Uint8Array(getMem().buffer, res, outlen);
+                const decoded = dec.decode(outarr);
+                exports.freeText(strptr, utf8.byteLength);
+                exports.freeText(res, outlen);
+                return decoded;
+            }catch(e){
+                // note that chrome sometimes crashes on wasm errors and this
+                // handler might not run.
+                console.log(e.toString() + "\n" + e.stack);
+                return escapeHTML("Error "+e.toString()+"\n"+e.stack);
+            }
+        }};
+        arrayv.forEach(q => q());
+        return _reddit_markdown_renderer;
+    }
+    if(Array.isArray(_reddit_markdown_renderer)) {
+        const rmdarr = _reddit_markdown_renderer;
+        await new Promise<void>(r => rmdarr.push(r));
+        return _reddit_markdown_renderer as any as RedditMarkdownRenderer;
+    }
+    return _reddit_markdown_renderer;
+}
+
+function renderText(client: ThreadClient, body: GenericBodyText) {return {insertBefore(parent: Node, before_once: Node | null) {
+    const defer = makeDefer();
+
+    const container = el("div");
+    defer(() => container.remove());
+    parent.insertBefore(container, before_once);
+    
+    if(body.markdown_format === "reddit") {
+        const preel = el("pre").adto(container);
+        el("code").atxt(body.content).adto(preel);
+        getRedditMarkdownRenderer().then(mdr => {
+            preel.remove();
+            const raw_html = mdr.renderMd(body.content);
+            const divel = el("div").adto(container).clss("slightlybigger");
+            divel.innerHTML = raw_html;
+            for(let alink of Array.from(divel.querySelectorAll("a"))) {
+                const after_node = document.createComment("after");
+                alink.parentNode!.replaceChild(after_node, alink);
+                const href = alink.href;
+                const content = Array.from(alink.childNodes);
+                const newbtn = linkButton(client.id, href);
+                content.forEach(el => newbtn.appendChild(el));
+                after_node.parentNode!.insertBefore(newbtn, after_node);
+                let showpreviewbtn = el("button").atxt("…");
+
+                let preview_div: undefined | HTMLDivElement;
+
+                showpreviewbtn.onev("click", () => {
+                    if(preview_div) hidepreview();
+                    else showpreview();
+                })
+                const showpreview = () => {
+                    showpreviewbtn.textContent = "⏷";
+                    preview_div = el("div");
+                    after_node.parentNode!.insertBefore(preview_div, after_node);
+                    const lnkprvw = renderLinkPreview(alink.href, {autoplay: true});
+                    preview_div.adch(lnkprvw.node);
+
+                    // not bothering with show/hide atm because that requires passing show/hide from client
+                    //listing into more places
+                }
+                const hidepreview = () => {
+                    showpreviewbtn.textContent = "⏵";
+                    if(preview_div) {preview_div.remove(); preview_div = undefined;}
+                };
+                hidepreview();
+                after_node.parentNode!.insertBefore(showpreviewbtn, after_node);
+            }
+            for(let spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
+                let children = Array.from(spoilerspan.childNodes);
+                let subspan = el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
+                spoilerspan.attr({title: "Click to reveal spoiler"});
+                subspan.style.opacity = "0";
+                spoilerspan.onev("click", () => {
+                    subspan.style.opacity = "1";
+                    spoilerspan.attr({title: ""});
+                });
+            }
+        });
+    }else if(body.markdown_format === "none") {
+        container.atxt(body.content);
+    }else assertNever(body.markdown_format);
+
+    return {removeSelf(){defer.cleanup();}};
+}}}
+
 function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
@@ -1427,12 +1585,8 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             }
 
             if(body.kind === "text") {
-                const elv = el("div").adto(content);
-                if(body.markdown_format === "reddit") {
-                    el("code").atxt(body.content).adto(el("pre").adto(elv));
-                }else if(body.markdown_format === "none") {
-                    elv.atxt(body.content);
-                }else assertNever(body.markdown_format);
+                const txt = renderText(client, body).insertBefore(content, null);
+                defer(() => txt.removeSelf());
             }else if(body.kind === "link") {
                 // TODO fix this link button thing
                 el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
