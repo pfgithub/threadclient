@@ -963,29 +963,30 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}):
     }};
 }
 
-function renderLinkPreview(link: string, opts: {autoplay: boolean, suggested_embed?: string}): {node: Node, onhide?: () => void, onshow?: () => void} {
-    let url: URL | undefined;
+function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => {node: Node, onhide?: () => void, onshow?: () => void}) {
+    let url_mut: URL | undefined;
     try { 
-        url = new URL(link);
+        url_mut = new URL(link);
     }catch(e) {console.log("could not parse preview url:", link, e);}
+    const url = url_mut;
     const path = url?.pathname ?? link;
     if(link.startsWith("https://i.redd.it/")
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
-    ) {
+    ) return () => {
         let img = el("img").clss("preview-image").attr({src: link});
         // a resizable image can be made like this
         // .resizable { display: inline-block; resize: both; overflow: hidden; line-height: 0; }
         return {node: el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"})};
-    }
-    if(path.endsWith(".gifv")) {
+    };
+    if(path.endsWith(".gifv")) return () => {
         let video = el("video").attr({controls: ""}).clss("preview-image");
         el("source").attr({src: link.replace(".gifv", ".webm"), type: "video/webm"}).adto(video);
         el("source").attr({src: link.replace(".gifv", ".mp4"), type: "video/mp4"}).adto(video);
         video.loop = true;
         return {node: video, onhide: () => video.pause()};
-    }
-    if(link.startsWith("https://v.redd.it/")) {
+    };
+    if(link.startsWith("https://v.redd.it/")) return () => {
         let container = el("div");
 
         let video = el("video").attr({controls: ""}).clss("preview-image").adto(container);
@@ -1033,32 +1034,32 @@ function renderLinkPreview(link: string, opts: {autoplay: boolean, suggested_emb
         }, onshow: () => {
             if(playing_before_hide) video.play();
         }};
-    }
+    };
     if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
         const link = url.searchParams.get("v");
-        if(link) {
+        if(link) return () => {
             return embedYoutubeVideo(link, opts);
-        }
+        };
     }
-    if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
+    if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) return () => {
         const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
         return embedYoutubeVideo(youtube_video_id, opts);
-    }
+    };
     if(link.startsWith("https://www.reddit.com/gallery/")) {
         // information about galleries is distributed with posts
         // do nothing I guess
     }
-    if(link.startsWith("https://imgur.com/")) {
+    if(link.startsWith("https://imgur.com/")) return () => {
         const iframe = el("iframe").attr({src: link + "/embed"});
         return {node: el("div").clss("resizable-iframe").styl({width: "500px", height: "500px"}).adch(iframe)};
-    }
-    if(opts.suggested_embed) {
+    };
+    if(opts.suggested_embed) return () => {
         try {
             // const parser = new DOMParser();
             // const doc = parser.parseFromString(opts.suggested_embed, "text/html");
             // const iframe = doc.childNodes[0].childNodes[1].childNodes[0];
             const template_el = el("template");
-            template_el.innerHTML = opts.suggested_embed;
+            template_el.innerHTML = opts.suggested_embed!;
             const iframe_unsafe = template_el.content.childNodes[0] as HTMLIFrameElement;
 
             console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
@@ -1076,9 +1077,12 @@ function renderLinkPreview(link: string, opts: {autoplay: boolean, suggested_emb
             };
         }catch(e) {
             console.log(e);
+            return {
+                node: txt("Error! "+e.toString()),
+            };
         }
     }
-    return {node: document.createComment("Preview not supported yet")};
+    return undefined;
 }
 
 function renderImageGallery(images: GenericGalleryImages): Node {
@@ -1302,6 +1306,10 @@ function renderText(client: ThreadClient, body: GenericBodyText) {return {insert
                 const newbtn = linkButton(client.id, href);
                 content.forEach(el => newbtn.appendChild(el));
                 after_node.parentNode!.insertBefore(newbtn, after_node);
+
+                const renderLinkPreview = canPreview(alink.href, {autoplay: true});
+                if(!renderLinkPreview) continue;
+
                 let showpreviewbtn = el("button").atxt("…");
 
                 let preview_div: undefined | HTMLDivElement;
@@ -1314,7 +1322,7 @@ function renderText(client: ThreadClient, body: GenericBodyText) {return {insert
                     showpreviewbtn.textContent = "⏷";
                     preview_div = el("div");
                     after_node.parentNode!.insertBefore(preview_div, after_node);
-                    const lnkprvw = renderLinkPreview(alink.href, {autoplay: true});
+                    const lnkprvw = renderLinkPreview();
                     preview_div.adch(lnkprvw.node);
 
                     // not bothering with show/hide atm because that requires passing show/hide from client
@@ -1596,10 +1604,13 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
             }else if(body.kind === "link") {
                 // TODO fix this link button thing
                 el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
-                const preview = renderLinkPreview(body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
-                preview.node.adto(content);
-                if(preview.onhide) onhide = preview.onhide;
-                if(preview.onshow) onshow = preview.onshow;
+                const renderLinkPreview = canPreview(body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
+                if(renderLinkPreview) {
+                    const preview = renderLinkPreview();
+                    preview.node.adto(content);
+                    if(preview.onhide) onhide = preview.onhide;
+                    if(preview.onshow) onshow = preview.onshow;
+                }
             }else if(body.kind === "none") {
                 content.remove();
             }else if(body.kind === "image_gallery") {
