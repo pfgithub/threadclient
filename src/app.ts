@@ -1198,7 +1198,7 @@ async function getRedditMarkdownRenderer(): Promise<RedditMarkdownRenderer> {
         const enc = new TextEncoder();
         const dec = new TextDecoder();
         const getMem = () => obj.instance.exports.memory as WebAssembly.Memory;
-        const obj = await WebAssembly.instantiateStreaming(fetch("/snudown.wasm"), {
+        const obj = await WebAssembly.instantiate(await fetch("/snudown.wasm").then(v => v.arrayBuffer()), {
             env: {
                 __assert_fail: (assertion: number, file: number, line: number, fn: number) => {
                     console.log(assertion, file, line, fn);
