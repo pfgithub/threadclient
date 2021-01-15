@@ -1,3 +1,6 @@
+import * as Reddit from "types/api/reddit";
+import * as Generic from "types/generic";
+
 declare const uhtml: any;
 declare const client_id: string;
 declare const redirect_uri: string;
@@ -28,270 +31,15 @@ const query = (items: {[key: string]: string}) => {
     return res;
 };
 
-type RedditPage = [RedditListing, RedditListing];
-type RedditListing = {
-    kind: "Listing",
-    data: {
-        before: string | null,
-        children: RedditPost[],
-        after: string | null,
-    },
-};
-type RedditMoreChildren = {
-    json: {
-        errors: string[],
-        data: {
-            things: RedditPostCommentLike[],
-        },
-    },
-};
-
-type RedditPostBase = {
-    name: string, // post id
-
-    // use to fetch replies I guess
-    permalink: string,
-};
-
-type RedditPostOrComment = {
-    likes?: true | false,
-
-    score_hidden: boolean,
-    score: number,
-
-    upvote_ratio?: number, // on posts
-    controversiality?: 0 | 1, // on comments
-
-    archived?: boolean,
-
-    distinguished?: "admin",
-};
-
-type RedditPostSubmission = RedditPostBase & RedditPostOrComment & {
-    title: string,
-    
-    stickied: boolean,
-    subreddit_name_prefixed: string, // post subreddit (u/ or r/)
-
-    // content warnings
-    spoiler: boolean,
-    over_18: boolean,
-
-    // content
-    url: string,
-    is_self: boolean,
-    selftext: string,
-    selftext_html?: string, // sanitize this and set innerhtml. spooky.
-    thumbnail?: string,
-
-    gallery_data?: {items: {
-        caption?: string,
-        media_id: string, // →media_metadata
-    }[]},
-
-    media_metadata?: {[key: string]: {
-        // e: "Image",
-        p: {y: number, x: number, u: string}[], // preview
-        s: {y: number, x: number, u: string}, // source
-    }},
-
-    preview?: {
-        images: {
-            id: string,
-            source: {url: string, width: number, height: number},
-            resolutions: {url: string, width: number, height: number}[],
-            // variants: {?}
-        }[],
-        enabled: boolean,
-    },
-
-    author: string,
-    created_utc: number,
-    
-    link_flair_richtext: RedditRichtextFlair,
-    author_flair_richtext: RedditRichtextFlair,
-
-    num_comments: number,
-
-    crosspost_parent_list?: RedditPostSubmission[],
-
-    media_embed?: {content: string},
-
-    domain: string,
-};
-
-type RedditPostComment = RedditPostBase & RedditPostOrComment & {
-    body: string,
-    body_html: string,
-    replies?: RedditListing,
-    parent_id: string,
-
-    author: string,
-    created_utc: number,
-
-    author_flair_richtext: RedditRichtextFlair,
-
-    is_submitter: boolean,
-
-    collapsed: boolean,
-    // collapsed_reason: ?,
-    // collapsed_because_crowd_control: ?,
-};
-
-type RedditPostMore = RedditPostBase & {
-    count: number,
-    depth: number,
-    id: string,
-    name: string,
-    parent_id: string,
-    children: string[],
-};
-
-type RedditPostCommentLike = {
-    kind: "t1",
-    data: RedditPostComment,
-} | {
-    kind: "more",
-    data: RedditPostMore,
-};
-
-type RedditPost = {
-    kind: "t3",
-    data: RedditPostSubmission,
-} | RedditPostCommentLike | {
-    kind: "unknown",
-};
-
-type RedditRichtextFlair = ({
-    e: "emoji",
-    u: string, // url
-    a: string, // :emojiname:
-} | {
-    e: "text",
-    t: string, // text
-} | {
-    e: "unsupported"
-})[];
-
-type GenericPage = {
-    header: GenericThread,
-    replies?: GenericNode[],
-    display_style: string,
-};
-type GenericBodyText = {
-    kind: "text",
-    content: string,
-    markdown_format: "reddit" | "none",
-};
-type GenericBody = GenericBodyText | {
-    kind: "link",
-    url: string,
-    embed_html?: string,
-} | {
-    kind: "image_gallery",
-    images: GenericGalleryImages,
-} | {
-    kind: "none",
-} | {
-    kind: "removed",
-    by: "author" | "moderator",
-    fetch_path: string,
-} | {
-    kind: "crosspost",
-    source: GenericThread,
-};
-type GenericThread = {
-    kind: "thread",
-
-    body: GenericBody,
-    thumbnail?: {
-        url: string,
-    },
-    display_mode: {
-        body: "visible" | "collapsed",
-        body_default?: "open" | "closed",
-        comments: "visible" | "collapsed",
-    },
-    replies?: GenericNode[],
-    raw_value?: any,
-
-    link: string,
-
-    layout: "reddit-post" | "reddit-comment" | "error",
-
-    title?: {
-        text: string,
-    },
-
-    info: {
-        time: number,
-        author: {name: string, link: string, flair?: GenericFlair[]},
-        in?: {name: string, link: string},
-        reddit_points?: GenericRedditPoints,
-    },
-    actions: GenericAction[],
-    
-    default_collapsed: boolean,
-
-    flair?: GenericFlair[],
-};
-type GenericLoadMore = {
-    kind: "load_more",
-    load_more: string,
-    count?: number,
-
-    raw_value: any,
-};
-type GenericNode = GenericThread | GenericLoadMore;
-type GenericRedditPoints = {
-    your_vote?: 'up' | 'down',
-    count?: number,
-    percent?: number,
-    vote: {error: string} | {
-        error: undefined,
-        up: string,
-        down: string,
-        reset: string,
-    }
-};
-type GenericFlair = {
-    elems: ({
-        type: "text",
-        text: string,
-    } | {
-        type: "emoji",
-        url: string,
-        name: string,
-    })[],
-    content_warning: boolean,
-};
-type GenericAction = {
-    kind: "link",
-    url: string,
-    text: string,
-} | {
-    kind: "reply",
-    text: string,
-};
-type GenericGalleryImages = {
-    thumb: string,
-    thumb_w: number,
-    thumb_h: number,
-    url: string,
-    w: number,
-    h: number,
-    caption?: string,
-}[];
-
 type ThreadClient = {
     id: string,
     links: () => [string, () => string][]
     isLoggedIn: () => boolean,
     getLoginURL: () => string,
-    getThread: (path: string) => Promise<GenericPage>,
+    getThread: (path: string) => Promise<Generic.Page>,
     login: (query: URLSearchParams) => Promise<void>,
-    fetchRemoved?: (fetch_removed_path: string) => Promise<GenericBody>,
-    reddit_vote?: (data: string) => Promise<void>,
+    fetchRemoved?: (fetch_removed_path: string) => Promise<Generic.Body>,
+    redditVote?: (data: string) => Promise<void>,
 };
 
 function assertNever(content: never): never {
@@ -310,7 +58,7 @@ function escapeHTML(html: string) {
 
 const safehtml = templateGenerator((v: string) => escapeHTML(v));
 
-function flairToGenericFlair(flair: RedditRichtextFlair): GenericFlair[] {
+function flairToGenericFlair(flair: Reddit.RichtextFlair): Generic.Flair[] {
     if(!flair) return [];
     if(flair.length === 0) return [];
     let flair_text = flair.map(v => v.e === "text" ? v.t : "").join("");
@@ -413,7 +161,7 @@ function reddit() {
         return pathname + "?" + query.toString();
     };
 
-    const pageFromListing = (path: string, listing: RedditPage | RedditListing | RedditMoreChildren): GenericPage => {
+    const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | Reddit.MoreChildren): Generic.Page => {
 
         if(Array.isArray(listing)) {
             let link_fullname: string | undefined;
@@ -421,7 +169,7 @@ function reddit() {
                 link_fullname = listing[0].data.children[0].data.name;
             }
             return {
-                header: threadFromListing(listing[0].data.children[0], {force_expand: "open"}) as GenericThread,
+                header: threadFromListing(listing[0].data.children[0], {force_expand: "open"}) as Generic.Thread,
                 replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname})),
                 display_style: "comments-view",
             };
@@ -433,8 +181,8 @@ function reddit() {
             }
 
             // reparent comments because morechildren returns a flat array of comments rather than a tree
-            const reparenting: RedditPostCommentLike[] = [];
-            const id_map = new Map<string, RedditPostCommentLike>();
+            const reparenting: Reddit.PostCommentLike[] = [];
+            const id_map = new Map<string, Reddit.PostCommentLike>();
             for(const item of listing.json.data.things) {
                 id_map.set(item.data.name, item);
                 const parent_comment = id_map.get(item.data.parent_id);
@@ -497,7 +245,7 @@ function reddit() {
             display_style: "fullscreen-view",
         };
     };
-    const getPointsOn = (listing: RedditPostComment | RedditPostSubmission): GenericRedditPoints => {
+    const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Generic.RedditPoints => {
         // not sure what rank is for
         const vote_data = {id: listing.name, rank: "2"};
         return {
@@ -512,7 +260,7 @@ function reddit() {
             } : {error: "not logged in"},
         };
     };
-    const threadFromListing = (listing_raw: RedditPost, options: {force_expand?: 'open' | 'crosspost' | 'closed', link_fullname?: string} = {}): GenericNode => {
+    const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'open' | 'crosspost' | 'closed', link_fullname?: string} = {}): Generic.Node => {
         options.force_expand ??= 'closed';
         // TODO filter out 'more' listings and make them into load_next items on the replies item
         if(listing_raw.kind === "t1") {
@@ -522,7 +270,7 @@ function reddit() {
             const is_deleted = listing.author === "[deleted]";
             const post_id_no_pfx = listing.name.substring(3);
 
-            const result: GenericNode = {
+            const result: Generic.Node = {
                 kind: "thread",
                 body: is_deleted
                     ? {kind: "removed", by: listing.body === "[removed]" ? "moderator" : "author",
@@ -563,11 +311,11 @@ function reddit() {
             const is_deleted = listing.author === "[deleted]";
             const post_id_no_pfx = listing.name.substring(3);
 
-            const content_warnings: GenericFlair[] = [];
+            const content_warnings: Generic.Flair[] = [];
             if(listing.spoiler) content_warnings.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
             if(listing.over_18) content_warnings.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
 
-            const result: GenericNode = {
+            const result: Generic.Node = {
                 kind: "thread",
                 title: {
                     text: listing.title,
@@ -579,7 +327,7 @@ function reddit() {
                     }
                     : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
                     ? {kind: "crosspost", source:
-                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: 'crosspost'}) as GenericThread
+                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: 'crosspost'}) as Generic.Thread
                     }
                     : listing.is_self
                     ? listing.selftext_html
@@ -692,7 +440,7 @@ function reddit() {
             ;
             return url;
         },
-        async getThread(path): Promise<GenericPage> {
+        async getThread(path): Promise<Generic.Page> {
             try {
                 const [status, listing] = await fetch(pathURL(path), {
                     mode: "cors", credentials: "omit",
@@ -700,7 +448,7 @@ function reddit() {
                         'Authorization': await getAuthorization(),
                     } : {},
                 }).then(async (v) => {
-                    return [v.status, await v.json() as RedditPage | RedditListing | RedditMoreChildren] as const;
+                    return [v.status, await v.json() as Reddit.Page | Reddit.Listing | Reddit.MoreChildren] as const;
                 });
                 if(status !== 200) {
                     console.log(status, listing);
@@ -778,7 +526,7 @@ function reddit() {
 
             localStorage.setItem("reddit-secret", JSON.stringify(res_data));
         },
-        async fetchRemoved(frmlink: string): Promise<GenericBody> {
+        async fetchRemoved(frmlink: string): Promise<Generic.Body> {
             type PushshiftResult = {data: {selftext?: string, body?: string}[]};
             const [status, res] = await fetch(frmlink).then(async (v) => {
                 return [v.status, await v.json() as PushshiftResult] as const;
@@ -814,7 +562,7 @@ function reddit() {
             }
             throw new Error("no selftext or body");
         },
-        async reddit_vote(data: string): Promise<void> {
+        async redditVote(data: string): Promise<void> {
             type VoteResult = {};
             const [status, res] = await fetch(baseURL() + "/api/vote", {
                 method: "post", mode: "cors", credentials: "omit",
@@ -1085,7 +833,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     return undefined;
 }
 
-function renderImageGallery(images: GenericGalleryImages): Node {
+function renderImageGallery(images: Generic.GalleryImages): Node {
     let container = el("div");
     type State = "overview" | {
         index: number
@@ -1125,7 +873,7 @@ function renderImageGallery(images: GenericGalleryImages): Node {
     return container;
 }
 
-function renderFlair(flairs: GenericFlair[]) {
+function renderFlair(flairs: Generic.Flair[]) {
     let resl = document.createDocumentFragment();
     for(const flair of flairs) {
         let flairv = el("span").clss("flair");
@@ -1282,7 +1030,7 @@ async function getRedditMarkdownRenderer(): Promise<RedditMarkdownRenderer> {
     return _reddit_markdown_renderer;
 }
 
-function renderText(client: ThreadClient, body: GenericBodyText) {return {insertBefore(parent: Node, before_once: Node | null) {
+function renderText(client: ThreadClient, body: Generic.BodyText) {return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
 
     const container = el("div");
@@ -1353,7 +1101,7 @@ function renderText(client: ThreadClient, body: GenericBodyText) {return {insert
     return {removeSelf(){defer.cleanup();}};
 }}}
 
-function clientListing(client: ThreadClient, listing: GenericThread) { return {insertBefore(parent: Node, before_once: Node | null) {
+function clientListing(client: ThreadClient, listing: Generic.Thread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
 
@@ -1460,13 +1208,13 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
     }
     type VoteState = {pt_count: number | undefined, your_vote: 'up' | 'down' | undefined, vote_loading: boolean};
 
-    const dovote = (direction: "up" | "down" | "reset", state: VoteState, update: () => void, rpts: GenericRedditPoints) => {
+    const dovote = (direction: "up" | "down" | "reset", state: VoteState, update: () => void, rpts: Generic.RedditPoints) => {
         if(rpts.vote.error != undefined) return alert(rpts.vote.error);
         state.vote_loading = true;
         state.your_vote = direction === "reset" ? undefined : direction;
         update();
         console.log("Voting on",rpts.vote[direction], direction);
-        client.reddit_vote!(rpts.vote[direction]).then(res => {
+        client.redditVote!(rpts.vote[direction]).then(res => {
             state.vote_loading = false;
             state.your_vote = direction === "reset" ? undefined : direction;
             update();
@@ -1582,7 +1330,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
         let onhide = () => {};
         let onshow = () => {};
-        let initContent = (body: GenericBody, opts: {autoplay: boolean}) => {
+        let initContent = (body: Generic.Body, opts: {autoplay: boolean}) => {
             if(content_warnings.length) {
                 const cws = content_warnings;
                 content_warnings = [];
@@ -1624,7 +1372,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
                     // given how stateful listings are
                     // for now, just update the body.
                     fetch_btn.onev("click", async () => {
-                        let new_body: GenericBody;
+                        let new_body: Generic.Body;
                         let errored = false;
                         fetch_btn.textContent = "…";
                         fetch_btn.disabled = true;
@@ -1698,7 +1446,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
-    const addChildren = (children: GenericNode[]) => {
+    const addChildren = (children: Generic.Node[]) => {
         for(const child_listing of children) {
             if(child_listing.kind === "load_more") {
                 loadMoreButton(client, child_listing, addChildren).adto(el("li").adto(children_node));
@@ -1718,7 +1466,7 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
 // TODO I guess support loading more in places other than the end of the list
 // that means :: addChildren needs to have a second before_once argument and this needs to have a before_once
 // doesn't matter atm but later.
-function loadMoreButton(client: ThreadClient, load_more_node: GenericLoadMore, addChildren: (children: GenericNode[]) => void) {
+function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChildren: (children: Generic.Node[]) => void) {
     const container = el("div");
     const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: e => {
         const loading_txt = el("span").atxt("Loading…").adto(container);
@@ -1773,7 +1521,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         const home_node = clientListing(client, listing.header).insertBefore(frame, null);
         defer(() => home_node.removeSelf());
 
-        const addChildren = (children: GenericNode[]) => {
+        const addChildren = (children: Generic.Node[]) => {
             for(const child_listing of children) {
                 if(child_listing.kind === "load_more") {
                     loadMoreButton(client, child_listing, addChildren).adto(frame);
