@@ -176,6 +176,7 @@ type RedditRichtextFlair = ({
 type GenericPage = {
     header: GenericThread,
     replies?: GenericNode[],
+    display_style: string,
 };
 type GenericBodyText = {
     kind: "text",
@@ -422,6 +423,7 @@ function reddit() {
             return {
                 header: threadFromListing(listing[0].data.children[0], {force_expand: "open"}) as GenericThread,
                 replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname})),
+                display_style: "comments-view",
             };
         }
         if('json' in listing) {
@@ -464,6 +466,7 @@ function reddit() {
                     default_collapsed: false,
                 },
                 replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined})),
+                display_style: "comments-view",
             };
         }
 
@@ -491,6 +494,7 @@ function reddit() {
                 default_collapsed: false,
             },
             replies,
+            display_style: "fullscreen-view",
         };
     };
     const getPointsOn = (listing: RedditPostComment | RedditPostSubmission): GenericRedditPoints => {
@@ -734,6 +738,7 @@ function reddit() {
                         actions: [],
                         default_collapsed: false,
                     },
+                    display_style: "comments-view",
                 };
             }
         },
@@ -1731,9 +1736,11 @@ function loadMoreButton(client: ThreadClient, load_more_node: GenericLoadMore, a
 function clientMain(client: ThreadClient, current_path: string) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
 
-    const frame = document.createElement("div");
-    defer(() => frame.remove());
-    parent.insertBefore(frame, before_once);
+    const outer = el("div").clss("client-wrapper");
+    parent.insertBefore(outer, before_once);
+    defer(() => outer.remove());
+    const frame = el("div").adto(outer);
+    frame.classList.add("display-loading");
 
     if(!client.isLoggedIn()) {
         const login_prompt: {removeSelf: () => void} = clientLogin(client, () => login_prompt.removeSelf()).insertBefore(frame, null);
@@ -1747,6 +1754,9 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
 
     (async () => {
         const listing = await client.getThread(current_path);
+
+        frame.classList.remove("display-loading");
+        frame.classList.add("display-"+listing.display_style);
         
         uhtml.render(frame_uhtml_area, html``);
         const home_node = clientListing(client, listing.header).insertBefore(frame, null);

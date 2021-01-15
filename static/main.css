@@ -53,8 +53,8 @@ li.comment {
 }
 
 .preview-image {
-    max-width: 95vw;
-    max-height: 95vh;
+    max-width: 100%;
+    max-height: var(--max-height);
     width: auto;
 }
 .gallery-overview-item {
@@ -341,4 +341,13 @@ html {
 .md-spoiler-content {
     background-color: #eee;
     transition: 0.2s opacity;
+}
+
+:root {
+    --max-height: 95vh;
+}
+.display-comments-view {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
 }
