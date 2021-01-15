@@ -131,7 +131,11 @@ type RedditPostComment = RedditPostBase & RedditPostOrComment & {
 
     author_flair_richtext: RedditRichtextFlair,
 
+    is_submitter: boolean,
+
     collapsed: boolean,
+    // collapsed_reason: ?,
+    // collapsed_because_crowd_control: ?,
 };
 
 type RedditPostMore = RedditPostBase & {
