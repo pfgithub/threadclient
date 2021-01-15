@@ -1291,7 +1291,8 @@ function renderText(client: ThreadClient, body: GenericBodyText) {return {insert
             for(let alink of Array.from(divel.querySelectorAll("a"))) {
                 const after_node = document.createComment("after");
                 alink.parentNode!.replaceChild(after_node, alink);
-                const href = alink.href;
+                console.log("alink href is::"+alink.getAttribute("href"));
+                const href = alink.getAttribute("href")!;
                 const content = Array.from(alink.childNodes);
                 const newbtn = linkButton(client.id, href);
                 content.forEach(el => newbtn.appendChild(el));
@@ -1674,8 +1675,6 @@ function clientListing(client: ThreadClient, listing: GenericThread) { return {i
         else assertNever(action);
     }
 
-    content_buttons_line.atxt(" ");
-    linkButton(client.id, listing.link).atxt("View").adto(content_buttons_line);
     content_buttons_line.atxt(" ");
     el("button").attr({draggable: "true"}).onev("click", e => {
         console.log(listing);
