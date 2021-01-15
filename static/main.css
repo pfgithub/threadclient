@@ -11,6 +11,19 @@ html {
     border-radius: 10px;
 }
 
+.replies > .comment:nth-child(1) {
+    margin-top: 5px;
+}
+
+.replies > .comment > .post {
+    box-shadow: none;
+    padding-right: 0;
+    padding-top: 10px;
+    padding-bottom: 0;
+    margin: 0;
+    border-radius: 0;
+}
+
 ul.replies {
     margin: 0;
     padding: 0;
@@ -254,6 +267,10 @@ html {
     );
     width: 15px;
     cursor: pointer;
+    min-height: 13px;
+}
+.replies > .comment > .post.layout-reddit-comment > .collapse-btn {
+    bottom: 0;
 }
 .post.layout-reddit-comment.comment-collapsed > .collapse-btn:focus {
     outline: 1px dotted #212121; /*TODO: only enable this on tab key*/
