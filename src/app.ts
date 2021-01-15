@@ -604,7 +604,7 @@ function reddit() {
                 link: listing.permalink,
                 thumbnail: options.force_expand === "crosspost"
                     ? undefined
-                    : listing.preview
+                    : listing.preview?.images?.[0]?.resolutions?.[0]?.url
                     ? {url: listing.preview.images[0].resolutions[0].url}
                     : {url: listing.thumbnail ?? "none"}
                 ,

@@ -1,5 +1,6 @@
 html {
     background-color: white;
+    -webkit-text-size-adjust: none;
 }
 
 .post {
