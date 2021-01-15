@@ -58,3 +58,15 @@ TODO: a websocket or something to get the client to autoreload css on save. also
 -   markdown parser (+ button to switch to markdown source view)
 -   link previews within post bodies and comments
 -   infinite things there are infinite things to do
+
+## other
+
+new.reddit has a secret api
+
+https://gateway.reddit.com/desktopapi/v1/postcomments/t3_80hlz6?rtj=only&emotes_as_images=true&profile_img=true&allow_over18=1&include=identity&subredditName=redesign&hasSortParam=false&include_categories=true&onOtherDiscussions=false
+
+it returns a much better structured response with less redundant information and it doesn't require any markdown parser to display posts and it supports inline images and videos in text posts and stuff
+
+unfortunately, this is locked down using cors headers, so threadreader cannot use it without a proxy.
+
+it is likely that it will also be impossible to post richtext posts either without a proxy
