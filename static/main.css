@@ -351,3 +351,10 @@ html {
     margin-left: auto;
     margin-right: auto;
 }
+
+blockquote {
+    margin-left: 0;
+    padding-left: 10px;
+    border-left: 2px solid #aaa;
+    color: #4f4f4f;
+}
