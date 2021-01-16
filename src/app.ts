@@ -1456,8 +1456,10 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, opts: {all
     const children_node = el("ul").clss("replies").adto(replies_area);
 
     const addChild = (child_listing: Generic.Node, options: {threaded?: boolean} = {}) => {
+        const reply_node = el("li").adto(children_node);
+        if(opts.allow_threading) reply_node.clss("threaded");
         if(child_listing.kind === "load_more") {
-            loadMoreButton(client, child_listing, addChild).adto(el("li").adto(children_node));
+            loadMoreButton(client, child_listing, addChild, () => reply_node.remove()).adto(reply_node);
             return;
         }
         let futureadd: undefined | Generic.Node;
@@ -1465,11 +1467,9 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, opts: {all
             futureadd = child_listing.replies[0];
             child_listing.replies = [];
         }
-        const reply_node = el("li").clss("comment");
-        if(opts.allow_threading) reply_node.clss("threaded");
+        reply_node.clss("comment");
         const child_node = clientListing(client, child_listing, {allow_threading: child_listing.replies?.length == 1}).insertBefore(reply_node, null);
         defer(() => child_node.removeSelf());
-        children_node.insertBefore(reply_node, null);
 
         if(futureadd) addChild(futureadd, {threaded: true});
     }
@@ -1481,7 +1481,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, opts: {all
 // TODO I guess support loading more in places other than the end of the list
 // that means :: addChildren needs to have a second before_once argument and this needs to have a before_once
 // doesn't matter atm but later.
-function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChild: (children: Generic.Node) => void) {
+function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChild: (children: Generic.Node) => void, removeSelf: () => void) {
     const container = el("div");
     const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: e => {
         const loading_txt = el("span").atxt("Loading…").adto(container);
@@ -1491,7 +1491,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
         client.getThread(load_more_node.load_more).then(res => {
             current_node.remove();
             if(res.replies) res.replies.forEach(rply => addChild(rply));
-            container.remove();
+            removeSelf();
         }).catch(e => {
             console.log("error loading more:", e);
             try{current_node.remove();}catch(e){console.log(e);}
@@ -1538,7 +1538,8 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
 
         const addChild = (child_listing: Generic.Node) => {
             if(child_listing.kind === "load_more") {
-                loadMoreButton(client, child_listing, addChild).adto(frame);
+                const lmbtn = loadMoreButton(client, child_listing, addChild, () => lmbtn.remove());
+                lmbtn.adto(frame);
                 return;
             }
             const replies_node = clientListing(client, child_listing).insertBefore(frame, null);
