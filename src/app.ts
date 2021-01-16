@@ -1455,7 +1455,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
-    const allow_threading = listing.replies?.length === 1;
+    const allow_threading = listing.replies?.length === 1 && (listing.replies[0] as Generic.Thread).replies?.length === 1;
 
     const addChild = (child_listing: Generic.Node) => {
         const reply_node = el("li").adto(children_node);
