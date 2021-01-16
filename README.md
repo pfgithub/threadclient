@@ -45,18 +45,25 @@ TODO: a websocket or something to get the client to autoreload css on save. also
 
 ## todo
 
--   upvotes and vote percentages
--   post duplicates
--   polls probably I guess
+-   done ~~upvotes and vote percentages~~
+-   post duplicates ("discussions in x other subs")
+-   replies + reply preview
+-   posts + post preview
+-   user profile pages, defaulting to the overview tab
+-   impossible ~~polls probably I guess~~ (requires gql.reddit which has to be proxied and needs a session)
 -   multiple accounts
 -   mastodon to make sure the architecture actually works for multiple platforms
--   improve how links work when returned from a client
--   more pages eg wiki pages
+-   done ~~improve how links work when returned from a client~~
+-   wiki pages
 -   the refresh button
--   more navigation buttons
+-   more navigation buttons eg homepage link
 -   sidebars and stuff (that contain information about the subreddit, not the post)
--   markdown parser (+ button to switch to markdown source view)
--   link previews within post bodies and comments
+-   done ~~markdown parser~~
+-   a button to switch to markdown source view
+-   use onhide in more places, eg when collapsing a comment or navigating away
+-   done ~~link previews within post bodies and comments~~
+-   mod tools and stuff
+-   notifications
 -   infinite things there are infinite things to do
 
 ## other
