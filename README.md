@@ -50,7 +50,7 @@ TODO: a websocket or something to get the client to autoreload css on save. also
 -   replies + reply preview
 -   posts + post preview
 -   done ~~dark mode for people without darkreader~~
--   threading (the reason I made this in the first place)
+-   wipish ~~threading~~ (the reason I made this in the first place)
 -   full mobile support maybe, might not be worth it
 -   user profile pages, defaulting to the overview tab
 -   impossible ~~polls probably I guess~~ (requires gql.reddit which has to be proxied and needs a session)

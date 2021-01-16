@@ -147,8 +147,8 @@ ul.replies {
             &:before {
                 content: "⤷";
                 position: absolute;
-                left: 6px;
-                top: 10px;
+                left: 8px;
+                top: 4px;
             }
         }
         &.comment {
@@ -471,6 +471,10 @@ html {
 
 .post-body {
     font-size: small;
+    margin-top: 10px;
+    .layout-reddit-comment > .post-preview > & {
+        margin-bottom: 10px;
+    }
     & > .slightlybigger {
         font-size: 1.0769230769230769em; // ???
     }

@@ -1461,7 +1461,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
             return;
         }
         let futureadd: undefined | Generic.Node;
-        if(child_listing.replies?.length == 1 && (child_listing.replies[0] as Generic.Thread).replies?.length == 1) {
+        if(child_listing.replies?.length == 1) {
             futureadd = child_listing.replies[0];
             child_listing.replies = [];
         }
