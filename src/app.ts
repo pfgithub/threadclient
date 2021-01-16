@@ -619,7 +619,7 @@ function seededRandom(string: string) {
 }
 
 function getRandomColor(rand: () => number): RGBA {
-    return {r: rand() * 256 |0, g: rand() * 256 |0, b: rand() * 256 |0, a: rand()};
+    return {r: rand() * 128 |0, g: rand() * 128 |0, b: rand() * 128 |0, a: 1};
 }
 
 function clientLogin(client: ThreadClient, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
