@@ -1,5 +1,6 @@
-import * as Reddit from "types/api/reddit";
-import * as Generic from "types/generic";
+import * as Reddit from "types/api/reddit.js";
+import * as Generic from "types/generic.js";
+import { darkenColor, RGBA, rgbToString } from "./darken_color.js";
 
 declare const uhtml: any;
 declare const client_id: string;
@@ -617,13 +618,8 @@ function seededRandom(string: string) {
     return sfc32(seed(), seed(), seed(), seed());
 }
 
-function getRandomColor(rand: () => number) {
-    var letters = "0123456789ABCDEF";
-    var color = "";
-    for (var i = 0; i < 6; i++) {
-        color += letters[Math.floor(rand() * 16)];
-    }
-    return color;
+function getRandomColor(rand: () => number): RGBA {
+    return {r: rand() * 256 |0, g: rand() * 256 |0, b: rand() * 256 |0, a: rand()};
 }
 
 function clientLogin(client: ThreadClient, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
@@ -1233,12 +1229,16 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
         if(state.vote_loading) content_voting_area.clss("voted-loading");
     };
 
-    const author_color = "#"+getRandomColor(seededRandom(listing.info.author.name));
+    const author_color = getRandomColor(seededRandom(listing.info.author.name));
+    const author_color_dark = darkenColor("foreground", author_color);
 
     if(listing.layout === "reddit-post") {
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
-        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).styl({"color": author_color}).atxt(listing.info.author.name));
+        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
+            .styl({"color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
+            .atxt(listing.info.author.name)
+        );
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
             content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
@@ -1275,7 +1275,11 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
             };
         }
     }else if(listing.layout === "reddit-comment") {
-        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link).styl({"color": author_color}).atxt(listing.info.author.name));
+        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
+            .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
+            .clss("user-link")
+            .atxt(listing.info.author.name)
+        );
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.reddit_points) {
             const rpts = listing.info.reddit_points

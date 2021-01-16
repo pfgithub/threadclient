@@ -49,7 +49,7 @@ TODO: a websocket or something to get the client to autoreload css on save. also
 -   post duplicates ("discussions in x other subs")
 -   replies + reply preview
 -   posts + post preview
--   dark mode for people without darkreader
+-   done ~~dark mode for people without darkreader~~
 -   threading (the reason I made this in the first place)
 -   full mobile support maybe, might not be worth it
 -   user profile pages, defaulting to the overview tab

@@ -13,6 +13,7 @@ const typescript = function() {
                 "@babel/preset-typescript",
                 ["@babel/preset-env", {
                     "targets": {"browsers": ">10%"},
+                    "modules": false,
                 }],
             ],
             "plugins": [

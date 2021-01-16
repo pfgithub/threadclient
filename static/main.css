@@ -33,7 +33,8 @@ ul.replies > li {
     list-style: none;
 }
 ul.replies > li:not(.comment) {
-    padding-left: 15px;
+    padding-left: 0;
+    margin-top: 10px;
 }
 
 li.comment {
@@ -357,4 +358,172 @@ blockquote {
     padding-left: 10px;
     border-left: 2px solid #aaa;
     color: #4f4f4f;
+}
+
+.user-link {
+    color: var(--light-color);
+}
+
+@media (prefers-color-scheme: dark) {
+    html {
+        background-color: #181a1b !important;
+    }
+    html,
+    body,
+    input,
+    textarea,
+    select,
+    button {
+        background-color: #181a1b;
+    }
+    html,
+    body,
+    input,
+    textarea,
+    select,
+    button {
+        border-color: #736b5e;
+        color: #e8e6e3;
+    }
+    a {
+        color: #3391ff;
+    }
+    table {
+        border-color: #545b5e;
+    }
+    ::placeholder {
+        color: #b2aba1;
+    }
+    input:-webkit-autofill,
+    textarea:-webkit-autofill,
+    select:-webkit-autofill {
+        background-color: #555b00 !important;
+        color: #e8e6e3 !important;
+    }
+    ::-webkit-scrollbar {
+        background-color: #202324;
+        color: #aba499;
+    }
+    ::-webkit-scrollbar-thumb {
+        background-color: #454a4d;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: #575e62;
+    }
+    ::-webkit-scrollbar-thumb:active {
+        background-color: #484e51;
+    }
+    ::-webkit-scrollbar-corner {
+        background-color: #181a1b;
+    }
+    * {
+        scrollbar-color: #202324 #454a4d;
+    }
+    ::selection {
+        background-color: #004daa !important;
+        color: #e8e6e3 !important;
+    }
+    ::-moz-selection {
+        background-color: #004daa !important;
+        color: #e8e6e3 !important;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    html {
+        background-color: rgb(24, 26, 27);
+    }
+    .post {
+        box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 25px;
+    }
+    .post-thumbnail:focus {
+        outline-color: rgb(129, 120, 106);
+    }
+    .gallery-overview-item:focus {
+        outline-color: rgb(129, 120, 106);
+    }
+    .flair {
+        background-color: rgb(43, 47, 49);
+    }
+    .resizable-iframe {
+        border-color: rgb(53, 57, 59);
+    }
+    iframe {
+        border-color: currentcolor;
+    }
+    .post-content-buttons > button:not(.not-this-button) {
+        color: rgb(51, 125, 255);
+        text-decoration-color: currentcolor;
+    }
+    .post-content-buttons > button:focus {
+        outline-color: rgb(129, 120, 106);
+    }
+    .post-voting > button:focus {
+        outline-color: rgb(129, 120, 106);
+    }
+    .post-voting.voted-up > .vote-score {
+        color: rgb(255, 137, 93);
+    }
+    .post-voting.voted-down > .vote-score {
+        color: rgb(129, 175, 255);
+    }
+    .post.layout-reddit-comment > .collapse-btn {
+        background-color: rgba(0, 0, 0, 0);
+        background-image: linear-gradient(
+            to right,
+            rgba(0, 0, 0, 0) 40%,
+            rgb(34, 36, 38) 40%,
+            rgb(34, 36, 38) 60%,
+            rgba(0, 0, 0, 0) 60%
+        );
+    }
+    .post.layout-reddit-comment.comment-collapsed > .collapse-btn:focus {
+        outline-color: rgb(129, 120, 106);
+    }
+    .post.layout-reddit-comment > .collapse-btn:focus {
+        background-color: rgba(0, 0, 0, 0);
+        background-image: linear-gradient(
+            to right,
+            rgba(0, 0, 0, 0) 40%,
+            rgb(43, 47, 49) 40%,
+            rgb(43, 47, 49) 60%,
+            rgba(0, 0, 0, 0) 60%
+        );
+    }
+    .post.layout-reddit-comment > .collapse-btn:hover {
+        background-color: rgba(0, 0, 0, 0);
+        background-image: linear-gradient(
+            to right,
+            rgba(0, 0, 0, 0) 40%,
+            rgb(72, 78, 81) 40%,
+            rgb(72, 78, 81) 60%,
+            rgba(0, 0, 0, 0) 60%
+        );
+    }
+    .post.layout-reddit-comment.comment-collapsed > .post-content-subminfo {
+        color: rgb(168, 160, 149);
+    }
+    .post.layout-reddit-comment.comment-collapsed > .post-content-subminfo > a {
+        color: rgb(189, 183, 175);
+    }
+    .error {
+        color: rgb(255, 26, 26);
+    }
+    .md-spoiler-text {
+        background-color: rgb(53, 57, 59);
+    }
+    .md-spoiler-text:hover {
+        background-color: rgb(62, 68, 70);
+    }
+    .md-spoiler-content {
+        background-color: rgb(34, 36, 38);
+    }
+    blockquote {
+        border-left-color: rgb(72, 78, 81);
+        color: rgb(182, 176, 166);
+    }
+
+    .user-link {
+        color: var(--dark-color);
+    }
 }
