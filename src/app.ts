@@ -528,9 +528,10 @@ function reddit() {
         },
         async fetchRemoved(frmlink: string): Promise<Generic.Body> {
             type PushshiftResult = {data: {selftext?: string, body?: string}[]};
-            const [status, res] = await fetch(frmlink).then(async (v) => {
-                return [v.status, await v.json() as PushshiftResult] as const;
+            const [status, restext] = await fetch(frmlink).then(async (v) => {
+                return [v.status, await v.text()] as const;
             });
+            const res = JSON.parse(restext.split("&lt;").join("<").split("&gt;").join(">").split("&amp;").join("&")) as PushshiftResult
             if(status !== 200) {
                 console.log(status, res);
                 throw new Error("Got status "+status);
@@ -1383,6 +1384,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
                             console.log(e);
                             new_body = {kind: "text", content: "Error! "+e.toString(), markdown_format: "none"};
                         }
+                        console.log("Got new body:", new_body);
                         fetch_btn.textContent = errored ? "Retry" : "Loaded";
                         fetch_btn.disabled = false;
                         if(!errored) removed_v.remove();
