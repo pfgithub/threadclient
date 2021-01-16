@@ -1548,6 +1548,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
             defer(() => replies_node.removeSelf());
         };
         if(listing.replies) listing.replies.forEach(rply => addChild(rply));
+        if(listing.replies?.length === 0) txt("There is nothing here").adto(frame);
     })().catch(e => console.log(e));
 
     return {removeSelf: () => defer.cleanup(), hide: () => {
