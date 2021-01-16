@@ -1099,7 +1099,7 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
     return {removeSelf(){defer.cleanup();}};
 }}}
 
-function clientListing(client: ThreadClient, listing: Generic.Thread, opts: {allow_threading?: boolean} = {}) { return {insertBefore(parent: Node, before_once: Node | null) {
+function clientListing(client: ThreadClient, listing: Generic.Thread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
 
@@ -1455,23 +1455,25 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, opts: {all
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
-    const addChild = (child_listing: Generic.Node, options: {threaded?: boolean} = {}) => {
+    const allow_threading = listing.replies?.length === 1;
+
+    const addChild = (child_listing: Generic.Node) => {
         const reply_node = el("li").adto(children_node);
-        if(opts.allow_threading) reply_node.clss("threaded");
+        if(allow_threading) reply_node.clss("threaded");
         if(child_listing.kind === "load_more") {
             loadMoreButton(client, child_listing, addChild, () => reply_node.remove()).adto(reply_node);
             return;
         }
         let futureadd: undefined | Generic.Node;
-        if(child_listing.replies?.length == 1 && opts.allow_threading) {
+        if(allow_threading && child_listing.replies?.length == 1) {
             futureadd = child_listing.replies[0];
             child_listing.replies = [];
         }
         reply_node.clss("comment");
-        const child_node = clientListing(client, child_listing, {allow_threading: child_listing.replies?.length == 1}).insertBefore(reply_node, null);
+        const child_node = clientListing(client, child_listing).insertBefore(reply_node, null);
         defer(() => child_node.removeSelf());
 
-        if(futureadd) addChild(futureadd, {threaded: true});
+        if(futureadd) addChild(futureadd);
     }
     if(listing.replies) listing.replies.forEach(rply => addChild(rply));
 
