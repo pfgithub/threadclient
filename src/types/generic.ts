@@ -10,7 +10,21 @@ export type BodyText = {
     content: string,
     markdown_format: "reddit" | "none",
 };
-export type Body = BodyText | {
+export type RichTextSpan = {
+    kind: "text",
+    text: string,
+};
+export type RichTextParagraph = {
+    kind: "paragraph",
+    nodes: RichTextSpan[],
+} | {
+    kind: "image", url: string, caption?: string
+};
+export type RichText = {
+    kind: "richtext",
+    content: RichTextParagraph[],
+};
+export type Body = BodyText | RichText | {
     kind: "link",
     url: string,
     embed_html?: string,

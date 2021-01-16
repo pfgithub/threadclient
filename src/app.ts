@@ -1393,6 +1393,8 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
                 const child = clientListing(client, body.source).insertBefore(content, null);
                 // TODO child.onShow, child.onHide
                 defer(() => child.removeSelf());
+            }else if(body.kind === "richtext") {
+                content.atxt("TODO richtext");
             }else assertNever(body);
         };
 
