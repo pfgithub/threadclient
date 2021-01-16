@@ -1722,3 +1722,5 @@ function onNavigate(to_index: number, url: URLLike) {
 
 history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);
 onNavigate(0, location);
+
+setInterval(() => document.querySelector('.darkreader')?.remove(), 1000)
