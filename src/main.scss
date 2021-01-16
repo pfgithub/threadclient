@@ -153,6 +153,7 @@ ul.replies {
                 left: -15px;
                 top: 4px;
                 background-color: var(--body-color);
+                pointer-events: none;
             }
         }
         &.comment {
