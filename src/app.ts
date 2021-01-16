@@ -1099,7 +1099,7 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
     return {removeSelf(){defer.cleanup();}};
 }}}
 
-function clientListing(client: ThreadClient, listing: Generic.Thread) { return {insertBefore(parent: Node, before_once: Node | null) {
+function clientListing(client: ThreadClient, listing: Generic.Thread, opts: {allow_threading?: boolean} = {}) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
 
@@ -1461,13 +1461,13 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
             return;
         }
         let futureadd: undefined | Generic.Node;
-        if(child_listing.replies?.length == 1) {
+        if(child_listing.replies?.length == 1 && opts.allow_threading) {
             futureadd = child_listing.replies[0];
             child_listing.replies = [];
         }
         const reply_node = el("li").clss("comment");
-        if(options.threaded) reply_node.clss("threaded");
-        const child_node = clientListing(client, child_listing).insertBefore(reply_node, null);
+        if(opts.allow_threading) reply_node.clss("threaded");
+        const child_node = clientListing(client, child_listing, {allow_threading: child_listing.replies?.length == 1}).insertBefore(reply_node, null);
         defer(() => child_node.removeSelf());
         children_node.insertBefore(reply_node, null);
 

@@ -8,11 +8,11 @@ input,
 textarea,
 select,
 button {
-    background-color: white;
+    background-color: var(--body-color);
     border-color: black;
     color: black;
     @media (prefers-color-scheme: dark) {
-        background-color: #181a1b;
+        background-color: var(--body-color);
         border-color: #736b5e;
         color: #e8e6e3;
     }
@@ -66,6 +66,8 @@ button {
 :root {
     --max-height: 95vh;
 
+    --body-color: white;
+
     --link-color: blue;
     --outline-color: #212121;
     --upvote-color: #ff8b60;
@@ -89,6 +91,8 @@ button {
     --blockquote-text-color: #4f4f4f;
 
     @media (prefers-color-scheme: dark) {
+        --body-color: #181a1b;
+
         --link-color: rgb(51, 125, 255);
         --outline-color: rgb(129, 120, 106);
         --upvote-color: rgb(255, 137, 93);
@@ -143,12 +147,12 @@ ul.replies {
         margin-top: 10px;
         &.threaded {
             position: relative;
-            padding-left: 25px;
             &:before {
                 content: "⤷";
                 position: absolute;
-                left: 8px;
+                left: -15px;
                 top: 4px;
+                background-color: var(--body-color);
             }
         }
         &.comment {
