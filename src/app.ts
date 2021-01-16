@@ -1455,19 +1455,25 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
-    const addChildren = (children: Generic.Node[]) => {
-        for(const child_listing of children) {
-            if(child_listing.kind === "load_more") {
-                loadMoreButton(client, child_listing, addChildren).adto(el("li").adto(children_node));
-                continue;
-            }
-            const reply_node = el("li").clss("comment");
-            const child_node = clientListing(client, child_listing).insertBefore(reply_node, null);
-            defer(() => child_node.removeSelf());
-            children_node.insertBefore(reply_node, null);
+    const addChild = (child_listing: Generic.Node, options: {threaded?: boolean} = {}) => {
+        if(child_listing.kind === "load_more") {
+            loadMoreButton(client, child_listing, addChild).adto(el("li").adto(children_node));
+            return;
         }
+        let futureadd: undefined | Generic.Node;
+        if(child_listing.replies?.length == 1 && child_listing.replies[0].replies?.length == 1) {
+            futureadd = child_listing.replies[0];
+            child_listing.replies = [];
+        }
+        const reply_node = el("li").clss("comment");
+        if(options.threaded) reply_node.clss("threaded");
+        const child_node = clientListing(client, child_listing).insertBefore(reply_node, null);
+        defer(() => child_node.removeSelf());
+        children_node.insertBefore(reply_node, null);
+
+        if(futureadd) addChild(futureadd, {threaded: true});
     }
-    if(listing.replies) addChildren(listing.replies);
+    if(listing.replies) listing.replies.forEach(rply => addChild(rply));
 
     return {removeSelf: () => defer.cleanup()};
 } } }
@@ -1475,7 +1481,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
 // TODO I guess support loading more in places other than the end of the list
 // that means :: addChildren needs to have a second before_once argument and this needs to have a before_once
 // doesn't matter atm but later.
-function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChildren: (children: Generic.Node[]) => void) {
+function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChild: (children: Generic.Node) => void) {
     const container = el("div");
     const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: e => {
         const loading_txt = el("span").atxt("Loading…").adto(container);
@@ -1484,7 +1490,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
 
         client.getThread(load_more_node.load_more).then(res => {
             current_node.remove();
-            if(res.replies) addChildren(res.replies);
+            if(res.replies) res.replies.forEach(rply => addChild(rply));
             container.remove();
         }).catch(e => {
             console.log("error loading more:", e);
@@ -1530,17 +1536,15 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         const home_node = clientListing(client, listing.header).insertBefore(frame, null);
         defer(() => home_node.removeSelf());
 
-        const addChildren = (children: Generic.Node[]) => {
-            for(const child_listing of children) {
-                if(child_listing.kind === "load_more") {
-                    loadMoreButton(client, child_listing, addChildren).adto(frame);
-                    continue;
-                }
-                const replies_node = clientListing(client, child_listing).insertBefore(frame, null);
-                defer(() => replies_node.removeSelf());
+        const addChild = (child_listing: Generic.Node) => {
+            if(child_listing.kind === "load_more") {
+                loadMoreButton(client, child_listing, addChild).adto(frame);
+                return;
             }
+            const replies_node = clientListing(client, child_listing).insertBefore(frame, null);
+            defer(() => replies_node.removeSelf());
         };
-        if(listing.replies) addChildren(listing.replies);
+        if(listing.replies) listing.replies.forEach(rply => addChild(rply));
     })().catch(e => console.log(e));
 
     return {removeSelf: () => defer.cleanup(), hide: () => {

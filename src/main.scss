@@ -141,12 +141,21 @@ ul.replies {
         list-style: none;
         padding-left: 0;
         margin-top: 10px;
+        &.threaded {
+            position: relative;
+            padding-left: 25px;
+            &:before {
+                content: "⤷";
+                position: absolute;
+                left: 6px;
+                top: 10px;
+            }
+        }
         &.comment {
             margin: 0;
         }
     }
 }
-
 .clickable {
     cursor: pointer;
 }
@@ -318,6 +327,7 @@ html {
         --left-v: 3px;
     }
 }
+
 .post-voting {
     display: flex;
     flex-direction: column;
