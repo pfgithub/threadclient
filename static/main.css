@@ -327,6 +327,11 @@ html {
 .post.layout-reddit-comment {
     position: relative;
     padding-left: 20px;
+    --left-v: 3px;
+}
+.display-comments-view > .post.layout-reddit-comment {
+    padding-left: 25px;
+    --left-v: 8px;
 }
 .post-voting {
     display: flex;
@@ -337,7 +342,7 @@ html {
 }
 .post.layout-reddit-comment > .post-voting {
     position: absolute;
-    left: 3px;
+    left: var(--left-v);
     top: 10px;
 }
 .post-voting > button {
@@ -379,7 +384,7 @@ html {
 .post.layout-reddit-comment > .collapse-btn {
     all: unset;
     position: absolute;
-    left: 3px;
+    left: var(--left-v);
     top: 48px;
     bottom: 10px;
     background: linear-gradient(
