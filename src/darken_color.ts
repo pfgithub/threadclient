@@ -26,7 +26,7 @@ function multiplyMatrices(m1: number[][], m2: number[][]) {
     }
     return result;
 }
-function rgbToHSL({r: r255, g: g255, b: b255, a = 1}: RGBA): HSLA {
+export function rgbToHSL({r: r255, g: g255, b: b255, a = 1}: RGBA): HSLA {
     const r = r255 / 255;
     const g = g255 / 255;
     const b = b255 / 255;
@@ -54,7 +54,7 @@ function rgbToHSL({r: r255, g: g255, b: b255, a = 1}: RGBA): HSLA {
 
     return {h, s, l, a};
 }
-function hslToRGB({h, s, l, a = 1}: HSLA): RGBA {
+export function hslToRGB({h, s, l, a = 1}: HSLA): RGBA {
     if (s === 0) {
         const [r, b, g] = [l, l, l].map((x) => Math.round(x * 255));
         return {r, g, b, a};

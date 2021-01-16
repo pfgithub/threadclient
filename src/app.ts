@@ -1,6 +1,6 @@
 import * as Reddit from "types/api/reddit.js";
 import * as Generic from "types/generic.js";
-import { darkenColor, RGBA, rgbToString } from "./darken_color.js";
+import { darkenColor, hslToRGB, RGBA, rgbToHSL, rgbToString } from "./darken_color.js";
 
 declare const uhtml: any;
 declare const client_id: string;
@@ -619,7 +619,8 @@ function seededRandom(string: string) {
 }
 
 function getRandomColor(rand: () => number): RGBA {
-    return {r: rand() * 128 |0, g: rand() * 128 |0, b: rand() * 128 |0, a: 1};
+    return hslToRGB({h: rand() * 360, s: rand() * 0.5 + 0.5, l: rand() * 0.5 + 0.5, a: 1 });
+    // return {r: rand() * 128 |0, g: rand() * 128 |0, b: rand() * 128 |0, a: 1};
 }
 
 function clientLogin(client: ThreadClient, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
