@@ -6,21 +6,26 @@ import { query, url } from "../app.js";
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
 
-function flairToGenericFlair(flair: Reddit.RichtextFlair): Generic.Flair[] {
+function flairToGenericFlair(text_color: "light" | "dark", background_color: string, flair: Reddit.RichtextFlair): Generic.Flair[] {
     if(!flair) return [];
     if(flair.length === 0) return [];
     let flair_text = flair.map(v => v.e === "text" ? v.t : "").join("");
-    return [{elems: flair.map(v => {
-        if(v.e === "text") {
-            return {type: "text", text: v.t};
-        }else if(v.e === "emoji") {
-            return {type: "emoji", url: v.u, name: v.a};
-        }
-        // this is where zig-style enums with a `_` option are nice
-        // a switch can check that all cases are handled even if
-        // not all cases are known.
-        return {type: "text", text: "#TODO("+v.e+")"};
-    }), content_warning: flair_text.toLowerCase().startsWith("cw:")}];
+    return [{
+        color: background_color,
+        fg_color: text_color === "light" ? "light" : "dark",
+        elems: flair.map(v => {
+            if(v.e === "text") {
+                return {type: "text", text: v.t};
+            }else if(v.e === "emoji") {
+                return {type: "emoji", url: v.u, name: v.a};
+            }
+            // this is where zig-style enums with a `_` option are nice
+            // a switch can check that all cases are handled even if
+            // not all cases are known.
+            return {type: "text", text: "#TODO("+v.e+")"};
+        }),
+        content_warning: flair_text.toLowerCase().startsWith("cw:")
+}];
 }
 
 export function reddit() {
@@ -234,7 +239,7 @@ export function reddit() {
                     author: {
                         name: "u/"+listing.author,
                         link: "/u/"+listing.author,
-                        flair: flairToGenericFlair(listing.author_flair_richtext),
+                        flair: flairToGenericFlair(listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                     },
                     reddit_points: getPointsOn(listing),
                 },
@@ -268,7 +273,7 @@ export function reddit() {
                 title: {
                     text: listing.title,
                 },
-                flair: [...flairToGenericFlair(listing.link_flair_richtext), ...content_warnings],
+                flair: [...flairToGenericFlair("light", "", listing.link_flair_richtext), ...content_warnings],
                 body: is_deleted && listing.is_self
                     ? {kind: "removed", by: listing.selftext === "[removed]" ? "moderator" : "author",
                         fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
@@ -317,7 +322,7 @@ export function reddit() {
                     author: {
                         name: "u/"+listing.author,
                         link: "/u/"+listing.author,
-                        flair: flairToGenericFlair(listing.author_flair_richtext),
+                        flair: flairToGenericFlair(listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                     },
                     in: {
                         link: "/"+listing.subreddit_name_prefixed,

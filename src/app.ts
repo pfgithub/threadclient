@@ -327,6 +327,8 @@ function renderFlair(flairs: Generic.Flair[]) {
     for(const flair of flairs) {
         let flairv = el("span").clss("flair");
         resl.atxt(" ");
+        if(flair.color) flairv.styl({"--flair-color": flair.color, "--flair-color-dark": flair.color});
+        if(flair.fg_color) flairv.clss("flair-text-"+flair.fg_color);
         for(const flairelem of flair.elems) {
             if(flairelem.type === "text") {
                 flairv.atxt(flairelem.text);

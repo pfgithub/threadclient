@@ -37,6 +37,10 @@ export type PostOrComment = {
     archived?: boolean,
 
     distinguished?: "admin",
+
+    author_flair_richtext: RichtextFlair,
+    author_flair_background_color: string,
+    author_flair_text_color: "light" | "dark",
 };
 
 export type PostSubmission = PostBase & PostOrComment & {
@@ -81,7 +85,6 @@ export type PostSubmission = PostBase & PostOrComment & {
     created_utc: number,
     
     link_flair_richtext: RichtextFlair,
-    author_flair_richtext: RichtextFlair,
 
     num_comments: number,
 

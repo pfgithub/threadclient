@@ -195,6 +195,12 @@ ul.replies {
     @media (prefers-color-scheme: dark) {
         background-color: var(--flair-color-dark);
     }
+    &.flair-text-light {
+        color: white;
+    }
+    &.flair-text-dark {
+        color: black;
+    }
 }
 
 .flair-emoji {

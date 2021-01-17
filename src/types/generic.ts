@@ -124,6 +124,8 @@ export type RichTextItem = {
     name: string,
 };
 export type Flair = {
+    color?: string,
+    fg_color?: "light" | "dark",
     elems: RichTextItem[],
     content_warning: boolean,
 };
