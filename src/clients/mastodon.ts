@@ -164,6 +164,18 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
     };
     return res;
 }
+const splitURL = (path: string): [string, URLSearchParams] => {
+    const [pathname, ...query] = path.split("?");
+    return [pathname, new URLSearchParams(query.join("?"))];
+}
+const updateQuery = (path: string, update: {[key: string]: string | undefined}) => {
+    const [pathname, query] = splitURL(path);
+    for(const [k, v] of Object.entries(update)) {
+        if(v) query.set(k, v);
+        else query.delete(k);
+    }
+    return pathname + "?" + query.toString();
+};
 type ApplicationResult = {
     client_id: string,
     client_secret: string,
@@ -349,13 +361,21 @@ export function mastodon() {
             const auth = await getAuth(host);
 
             if(path[0] === "timelines") {
-                const posts = await getResult<Mastodon.Post[]>(auth, mkurl(host, "api/v1", ...path));
+                const urlbits = path.join("/");
+                const thisurl = mkurl(host, "api/v1", urlbits);
+                const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
 
                 if('error' in posts) return error404("Error! "+posts.error);
 
+                const last_post = posts[posts.length - 1];
+
                 const res: Generic.Page = {
                     header: genericHeader(),
-                    replies: posts.map(post => postToThread(host, post)),
+                    replies: [...posts.map(post => postToThread(host, post)), ...last_post ? [{
+                        kind: "load_more",
+                        load_more: updateQuery("/"+host+"/"+urlbits, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
+                        raw_value: "",
+                    } as Generic.LoadMore] : []],
                     display_style: "comments-view",
                 };
                 return res;
