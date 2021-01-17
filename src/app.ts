@@ -72,7 +72,7 @@ function clientLogin(client: ThreadClient, path: string, on_complete: () => void
 
     let done = false;
     const event_listener = () => {
-        if(!done && client.isLoggedIn()) {
+        if(!done && client.isLoggedIn(path)) {
             done = true;
             uhtml.render(frame, html`Logged In!`);
             on_complete();
@@ -1025,7 +1025,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
     const frame = el("div").adto(outer);
     frame.classList.add("display-loading");
 
-    if(!client.isLoggedIn()) {
+    if(!client.isLoggedIn(current_path)) {
         const login_prompt: {removeSelf: () => void} = clientLogin(client, current_path, () => login_prompt.removeSelf()).insertBefore(frame, null);
         defer(() => login_prompt.removeSelf());
         // return {removeSelf: () => defer.cleanup(), hide: () => {}, show: () => {}};

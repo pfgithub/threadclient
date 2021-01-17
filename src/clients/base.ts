@@ -4,7 +4,7 @@ import * as Generic from "../types/generic.js";
 export type ThreadClient = {
     id: string,
     links: () => [string, () => string][]
-    isLoggedIn: () => boolean,
+    isLoggedIn: (path: string) => boolean,
     loginURL: string | ((path: string) => Promise<string>),
     getThread: (path: string) => Promise<Generic.Page>,
     login: (path: string[], query: URLSearchParams) => Promise<void>,

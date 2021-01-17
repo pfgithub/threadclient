@@ -98,13 +98,16 @@ const genericHeader = (): Generic.Thread => ({
     default_collapsed: false,
 });
 const mkurl = (host: string, ...bits: string[]): string => {
-    return "https://"+host+"/api/"+bits.join("/");
+    return "https://"+host+"/"+bits.join("/");
 }
-const getResult = async<T>(url: string): Promise<T | {error: string}> => {
+const getResult = async<T>(auth: TokenResult | undefined, url: string): Promise<T | {error: string}> => {
     try {
         const [status, posts] = await fetch(url, {
             headers: {
                 "Accept": "application/json",
+                ...auth ? {
+                    'Authorization': auth.token_type + " " + auth.access_token
+                } : {},
             },
         }).then(async (v) => {
             return [v.status, await v.json() as T | {error: string}] as const;
@@ -160,6 +163,12 @@ type ApplicationResult = {
     vapid_key: string,
     website: string,
 };
+type TokenResult = {
+    access_token: string,
+    created_at: number, // seconds
+    scope: string,
+    token_type: "Bearer",
+};
 const getLoginURL = (host: string, appres: ApplicationResult) => {
     return "https://"+host+"/oauth/authorize?"+query({
         client_id: appres.client_id,
@@ -168,32 +177,73 @@ const getLoginURL = (host: string, appres: ApplicationResult) => {
         response_type: "code"
     });
 };
+const lsnames = {
+    app: (host: string) => "mastodon-application-"+host,
+    token: (host: string) => "mastodon-secret-"+host,
+    client_credentials: (host: string) => "mastodon-client-secret-"+host,
+};
 export function mastodon() {
-    const isLoggedIn = () => {
-        return !!localStorage.getItem("mastodon-secret");
+    const isLoggedIn = (host: string) => {
+        return !!localStorage.getItem(lsnames.token(host));
     };
-    const hasLoginURL = () => {
-        return !!localStorage.getItem("mastodon-application");
+    const getAuth = async (host: string): Promise<undefined | TokenResult> => {
+        if(!host) return undefined;
+        const txtitm = localStorage.getItem(lsnames.token(host)) || localStorage.getItem(lsnames.client_credentials(host));
+        if(!txtitm) {
+            const txtapp = localStorage.getItem(lsnames.app(host));
+            if(!txtapp || localStorage.getItem(lsnames.client_credentials(host)) === "") return undefined;
+            const {data: app} = JSON.parse(txtapp) as {data: ApplicationResult};
+
+            const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
+                method: "post", mode: "cors", credentials: "omit",
+                headers: {
+                    'Content-Type': "application/json",
+                    'Accept': "application/json",
+                },
+                body: JSON.stringify({
+                    client_id: app.client_id,
+                    client_secret: app.client_secret,
+                    redirect_uri: redirectURI(host),
+                    grant_type: "client_credentials",
+                }),
+            }).then(v => v.json());
+
+            if('error' in resv) {
+                localStorage.setItem(lsnames.client_credentials(host), "");
+                console.log(resv);
+                alert("failed to get application token. will not try again. :: "+resv.error);
+                return undefined;
+            }
+
+            localStorage.setItem(lsnames.client_credentials(host), JSON.stringify(resv));
+
+            return resv;
+        };
+        return JSON.parse(txtitm);
     };
 
     const res: ThreadClient = {
         id: "mastodon",
         links: () => [],
-        isLoggedIn: () => false,
+        isLoggedIn: (pathraw: string) => {
+            const [_, host] = pathraw.split("/");
+            if(!host) return false;
+            return isLoggedIn(host);
+        },
         loginURL: async (pathraw: string): Promise<string> => {
 
             const pathsplit = pathraw.split("/");
             const [_, host] = pathsplit;
             if(!host) throw new Error("can't login without selecting host first");
 
-            const preapp = localStorage.getItem("mastodon-application");
+            const preapp = localStorage.getItem(lsnames.app(host));
             if(preapp) {
                 const parsed = JSON.parse(preapp) as {host: string, data: ApplicationResult};
                 if(parsed.host !== host) throw new Error("TODO support multiple accounts");
                 return getLoginURL(host, parsed.data);
             }
 
-            const resv: {error: string} | ApplicationResult = await fetch(mkurl(host, "v1", "apps"), {
+            const resv: {error: string} | ApplicationResult = await fetch(mkurl(host, "api/v1", "apps"), {
                 method: "post", mode: "cors", credentials: "omit",
                 headers: {
                     'Content-Type': "application/json",
@@ -211,28 +261,46 @@ export function mastodon() {
                 console.log(resv);
                 throw new Error("Got error:"+resv.error);
             }
-            localStorage.setItem("mastodon-application", JSON.stringify({host, data: resv}));
+            localStorage.setItem(lsnames.app(host), JSON.stringify({host, data: resv}));
 
             return getLoginURL(host, resv);
-
-            
         },
-        login: (path, query) => {
+        login: async (path, query) => {
             if(path.length !== 2) throw new Error("bad login");
             const [_, host] = path;
             const code = query.get("code");
             if(!code) throw new Error("missing code");
-            // curl -X POST \
-            // -F 'client_id=your_client_id_here' \
-            // -F 'client_secret=your_client_secret_here' \
-            // -F 'redirect_uri=urn:ietf:wg:oauth:2.0:oob' \
-            // -F 'grant_type=authorization_code' \
-            // -F 'code=user_authzcode_here' \
-            // -F 'scope=read write follow push' \
-            // https://:host/oauth/token
 
-            // then use this in future
-            throw new Error("TODO login");
+            const app_txt = localStorage.getItem(lsnames.app(host));
+            if(!app_txt) {
+                throw new Error("An app was not registered - how did you even get here?");
+            }
+            const {data: app} = JSON.parse(app_txt) as {host: string, data: ApplicationResult};
+
+            const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
+                method: "post", mode: "cors", credentials: "omit",
+                headers: {
+                    'Content-Type': "application/json",
+                    'Accept': "application/json",
+                },
+                body: JSON.stringify({
+                    client_id: app.client_id,
+                    client_secret: app.client_secret,
+                    redirect_uri: redirectURI(host),
+                    grant_type: "authorization_code",
+                    code,
+                    scope: "read write follow push",
+                }),
+            }).then(v => v.json());
+
+            if('error' in resv) {
+                console.log(resv);
+                throw new Error("Got error (check console): "+resv.error);
+            }
+
+            localStorage.setItem(lsnames.token(host), JSON.stringify(resv));
+
+            console.log(resv);
         },
 
         getThread: async (pathraw) => {
@@ -240,8 +308,10 @@ export function mastodon() {
             if(pathsplit.length < 2) return error404();
             const [_, host, ...path] = pathsplit;
 
+            const auth = await getAuth(host);
+
             if(path[0] === "timelines") {
-                const posts = await getResult<Mastodon.Post[]>(mkurl(host, "v1", ...path));
+                const posts = await getResult<Mastodon.Post[]>(auth, mkurl(host, "api/v1", ...path));
 
                 if('error' in posts) return error404("Error! "+posts.error);
 
@@ -254,8 +324,8 @@ export function mastodon() {
             }else if(path[0] === "statuses") {
                 if(!path[1]) return error404();
                 const postid = path[1];
-                const postinfo = await getResult<Mastodon.Post>(mkurl(host, "v1", "statuses", postid));
-                const context = await getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(mkurl(host, "v1", "statuses", postid, "context"));
+                const postinfo = await getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", postid));
+                const context = await getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", postid, "context"));
 
                 if('error' in postinfo) return error404("Error! "+postinfo.error);
                 if('error' in context) return error404("Error! "+context.error);
