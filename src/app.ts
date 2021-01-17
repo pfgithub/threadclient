@@ -957,7 +957,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
                 el("button").attr({draggable: "true"}).adto(cwbox).atxt("Show Content").onev("click", e => {
                     cwbox.remove();
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
-                    const rbres = renderBody(client, body, {...opts, on}, cwbox); defer(() => rbres.cleanup());
+                    const rbres = renderBody(client, body, {...opts, on}, content); defer(() => rbres.cleanup());
                 });
                 return;
             }
