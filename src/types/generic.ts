@@ -36,6 +36,12 @@ export type Body = BodyText | RichText | {
     w: number,
     h: number,
 } | {
+    kind: "video",
+    url: string,
+    w: number,
+    h: number,
+    gifv: boolean,
+} | {
     kind: "gallery",
     images: GalleryItem[],
 } | {

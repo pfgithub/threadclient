@@ -221,6 +221,11 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
             if(playing_before_hide) video.play();
         }};
     };
+    if(path.endsWith(".mp4") || path.endsWith(".webm")) return () => {
+        let src = el("source").attr({src: link});
+        let video = el("video").attr({controls: ""}).clss("preview-image").adch(src);
+        return {node: video, onhide: () => video.pause()};
+    }
     if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
         const link = url.searchParams.get("v");
         if(link) return () => {
@@ -603,8 +608,15 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
     const defer = makeDefer();
 
     if(body.kind === "text") {
-        const txt = renderText(client, body).insertBefore(content, null);
+        const txta = el("div").adto(content);
+        const txt = renderText(client, body).insertBefore(txta, null);
         defer(() => txt.removeSelf());
+
+        if(body.attached_media) {
+            const atma = el("div").adto(content);
+            const rbres = renderBody(client, body.attached_media, {autoplay: false, on: opts.on}, atma);
+            defer(() => rbres.cleanup());
+        }
     }else if(body.kind === "link") {
         // TODO fix this link button thing
         el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
@@ -657,6 +669,13 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
     }else if(body.kind === "captioned_image") {
         el("div").adto(content).atxt(body.caption ?? "");
         el("img").adto(el("div").adto(content)).clss("preview-image").attr({src: body.url, width: "" + body.w, height: "" + body.h});
+    }else if(body.kind === "video") {
+        const vid = el("video").adch(el("source").attr({src: body.url})).attr({width: "" + body.w, height: "" + body.h, controls: ""}).clss("preview-image").adto(content);
+        if(body.gifv) {
+            vid.loop = true;
+            if(opts.autoplay) vid.controls = false;
+        }
+        if(opts.autoplay) {vid.play();}
     }else assertNever(body);
 
     return {cleanup: () => defer.cleanup()};

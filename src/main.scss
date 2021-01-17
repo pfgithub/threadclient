@@ -560,3 +560,10 @@ body {
         background-image: var(--url-hover);
     }
 }
+
+.gallery-overview-image {
+    max-width: 108px;
+    max-height: 108px;
+    width: auto;
+    height: auto;
+}

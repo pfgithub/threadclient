@@ -4,29 +4,31 @@ import {ThreadClient} from "./base.js";
 
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
+type ImageMeta = {
+    width: number,
+    height: number,
+};
+type VideoMeta = { // video | gifv
+    width: number,
+    height: number,
+    frame_rate: string,// #/# eg 20/1
+    duration: string, // # secs
+    bitrate: string, //
+};
+
 declare namespace Mastodon {
     type Media = {
         id: string,
-        type: "video" | "todo",
+        type: "video" | "image" | "gifv" | "todo",
+
         url: string,
         preview_url: string,
-        remote_url: string,
+
         preview_remote_url: string | null,
         text_url: string | null,
         meta: {
-            original: {
-                width: number,
-                height: number,
-                frame_rate: string,// probably only on video
-                duration: string, //  probably only on video
-                bitrate: string, //   probably only on video. todo.
-            },
-            small: {
-                width: number,
-                height: number,
-                // size: string, // width + "x" + height
-                // aspect: number, // width / height
-            },
+            original: ImageMeta | VideoMeta,
+            small: ImageMeta,
         },
         mentions: never[],
         tags: never[],
@@ -60,7 +62,7 @@ declare namespace Mastodon {
             avatar: string,
             avatar_static: string,
         },
-        media_attachments: Media,
+        media_attachments: Media[],
     };
 }
 
@@ -139,10 +141,32 @@ const postArrayToReparentedThread = (host: string, root: Mastodon.Post, posts: M
     }
     return root_thread;
 };
+const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.GalleryItem => {
+    
+    let resbody: Generic.Body;
+    if(media.type === "image") {
+        resbody = {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height};
+    } else if(media.type === "video" || media.type === "gifv") {
+        resbody = {kind: "video", url: media.url, w: media.meta.original.width, h: media.meta.original.height, gifv: media.type === "gifv"};
+    } else {
+        resbody = {kind: "link", url: media.url};
+    }
+
+    return {thumb: media.preview_url, w: media.meta.small.width, h: media.meta.small.height, body: resbody};
+}
+const as = <T>(v: T): T => v;
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[]} = {}): Generic.Thread => {
     const res: Generic.Thread = {
         kind: "thread",
-        body: {kind: "text", content: post.content, markdown_format: "unsafe-html"},
+        body: {
+            kind: "text",
+            content: post.content,
+            markdown_format: "unsafe-html",
+
+            attached_media: post.media_attachments.length === 0 ? undefined :
+                {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))}
+            ,
+        },
         display_mode: {body: "visible", comments: "collapsed"},
         link: "/"+host+"/statuses/"+post.id,
         layout: "mastodon-post",
