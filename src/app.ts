@@ -3,6 +3,7 @@ import * as Generic from "./types/generic.js";
 import {ThreadClient} from "./clients/base.js";
 import { darkenColor, getRandomColor, hslToRGB, RGBA, rgbToHSL, rgbToString, seededRandom } from "./darken_color.js";
 import { reddit } from "./clients/reddit.js";
+import { mastodon } from "./clients/mastodon.js";
 
 declare const uhtml: any;
 
@@ -1058,6 +1059,7 @@ window.onpopstate = (ev: PopStateEvent) => {
 const client_cache: {[key: string]: ThreadClient} = {};
 const client_initializers: {[key: string]: () => ThreadClient} = {
     reddit: () => reddit(),
+    mastodon: () => mastodon(),
 };
 const getClient = (name: string) => {
     if(!client_initializers[name]) return undefined;
