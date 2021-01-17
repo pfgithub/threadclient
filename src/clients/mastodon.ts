@@ -177,22 +177,51 @@ const getLoginURL = (host: string, appres: ApplicationResult) => {
         response_type: "code"
     });
 };
-const lsnames = {
+const lsnameonly = {
     app: (host: string) => "mastodon-application-"+host,
     token: (host: string) => "mastodon-secret-"+host,
     client_credentials: (host: string) => "mastodon-client-secret-"+host,
 };
+const lsgetter = <T>(namegtr: (host: string) => string): {
+    get: (host: string) => T | undefined,
+    set: (host: string, newval: T | undefined) => void,
+} => {
+    return {
+        get(host): undefined | T {
+            if(!host) return undefined;
+            const rtxt = localStorage.getItem(namegtr(host));
+            if(!rtxt) return undefined;
+            return JSON.parse(rtxt) as T;
+
+        },
+        set(host, newval) {
+            if(!host) {
+                console.log(host, newval);
+                alert("bad set. check console.");
+                throw new Error("set performed with no host");
+            }
+            localStorage.setItem(namegtr(host), JSON.stringify(newval));
+        }
+    };
+}
+const lsitems = {
+    app: lsgetter<{host: string, data: ApplicationResult}>((host: string) => "mastodon-application-"+host),
+    token: lsgetter<TokenResult>((host: string) => "mastodon-secret-"+host),
+    client_creds: lsgetter<TokenResult>((host: string) => "mastodon-client-secret-"+host),
+    client_did_error: lsgetter<boolean>((host: string) => "mastodon-client-did-error-"+host),
+};
 export function mastodon() {
     const isLoggedIn = (host: string) => {
-        return !!localStorage.getItem(lsnames.token(host));
+        return !!lsitems.token.get(host);
     };
     const getAuth = async (host: string): Promise<undefined | TokenResult> => {
         if(!host) return undefined;
-        const txtitm = localStorage.getItem(lsnames.token(host)) || localStorage.getItem(lsnames.client_credentials(host));
-        if(!txtitm) {
-            const txtapp = localStorage.getItem(lsnames.app(host));
-            if(!txtapp || localStorage.getItem(lsnames.client_credentials(host)) === "") return undefined;
-            const {data: app} = JSON.parse(txtapp) as {data: ApplicationResult};
+        const authv = lsitems.token.get(host) ?? lsitems.client_creds.get(host);
+        if(!authv) {
+            const appraw = lsitems.app.get(host);
+            if(!appraw || lsitems.client_did_error.get(host)) return undefined;
+
+            const {data: app} = appraw;
 
             const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
                 method: "post", mode: "cors", credentials: "omit",
@@ -209,17 +238,17 @@ export function mastodon() {
             }).then(v => v.json());
 
             if('error' in resv) {
-                localStorage.setItem(lsnames.client_credentials(host), "");
+                lsitems.client_did_error.set(host, true);
                 console.log(resv);
                 alert("failed to get application token. will not try again. :: "+resv.error);
                 return undefined;
             }
 
-            localStorage.setItem(lsnames.client_credentials(host), JSON.stringify(resv));
+            lsitems.client_creds.set(host, resv);
 
             return resv;
         };
-        return JSON.parse(txtitm);
+        return authv;
     };
 
     const res: ThreadClient = {
@@ -236,11 +265,10 @@ export function mastodon() {
             const [_, host] = pathsplit;
             if(!host) throw new Error("can't login without selecting host first");
 
-            const preapp = localStorage.getItem(lsnames.app(host));
+            const preapp = lsitems.app.get(host);
             if(preapp) {
-                const parsed = JSON.parse(preapp) as {host: string, data: ApplicationResult};
-                if(parsed.host !== host) throw new Error("TODO support multiple accounts");
-                return getLoginURL(host, parsed.data);
+                if(preapp.host !== host) throw new Error("This should never happen.");
+                return getLoginURL(host, preapp.data);
             }
 
             const resv: {error: string} | ApplicationResult = await fetch(mkurl(host, "api/v1", "apps"), {
@@ -261,7 +289,7 @@ export function mastodon() {
                 console.log(resv);
                 throw new Error("Got error:"+resv.error);
             }
-            localStorage.setItem(lsnames.app(host), JSON.stringify({host, data: resv}));
+            lsitems.app.set(host, {host, data: resv});
 
             return getLoginURL(host, resv);
         },
@@ -271,11 +299,11 @@ export function mastodon() {
             const code = query.get("code");
             if(!code) throw new Error("missing code");
 
-            const app_txt = localStorage.getItem(lsnames.app(host));
-            if(!app_txt) {
+            const appv = lsitems.app.get(host);
+            if(!appv) {
                 throw new Error("An app was not registered - how did you even get here?");
             }
-            const {data: app} = JSON.parse(app_txt) as {host: string, data: ApplicationResult};
+            const {data: app} = appv;
 
             const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
                 method: "post", mode: "cors", credentials: "omit",
@@ -298,7 +326,7 @@ export function mastodon() {
                 throw new Error("Got error (check console): "+resv.error);
             }
 
-            localStorage.setItem(lsnames.token(host), JSON.stringify(resv));
+            lsitems.token.set(host, resv);
 
             console.log(resv);
         },
