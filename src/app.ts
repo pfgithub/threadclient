@@ -501,7 +501,6 @@ function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: No
         const renderLinkPreview = canPreview(href, {autoplay: true});
 
         const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
-        console.log("alink is: ",alink,"class is", alink.getAttribute("class"));
         newbtn.attr({"class": alink.getAttribute("class")});
         content.forEach(el => newbtn.appendChild(el));
         after_node.parentNode!.insertBefore(newbtn, after_node);

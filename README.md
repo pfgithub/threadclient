@@ -1,18 +1,7 @@
-currently very wip
+Demo:
 
-a thing for reading things on thread based websites like
-
--   reddit (wip)
--   twitter (might be impossible)
--   mastodon (planned, who knows)
-
-demo: https://thread.pfg.pw/reddit
-
-note that "Enhanced Tracking Prevention" in firefox must be disabled for the demo to
-work. Firefox tracking prevention indiscriminately bans all requests to social media
-sites.
-
-this could be fixed in the future with a proxy site
+-   Reddit: https://thread.pfg.pw/reddit
+-   Mastodon (wip) `https://thread.pfg.pw/mastodon/:your_instance/timelines/public`
 
 ## building
 
@@ -55,7 +44,7 @@ TODO: a websocket or something to get the client to autoreload css on save. also
 -   user profile pages, defaulting to the overview tab
 -   impossible ~~polls probably I guess~~ (requires gql.reddit which has to be proxied and needs a session)
 -   multiple accounts
--   mastodon to make sure the architecture actually works for multiple platforms
+-   wip ~~mastodon to make sure the architecture actually works for multiple platforms~~
 -   done ~~improve how links work when returned from a client~~
 -   wiki pages
 -   the refresh button

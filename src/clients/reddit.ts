@@ -392,9 +392,11 @@ export function reddit() {
             try {
                 const [status, listing] = await fetch(pathURL(path), {
                     mode: "cors", credentials: "omit",
-                    headers: isLoggedIn() ? {
+                    headers: {...isLoggedIn() ? {
                         'Authorization': await getAuthorization(),
                     } : {},
+                        'Accept': 'application/json',
+                    },
                 }).then(async (v) => {
                     return [v.status, await v.json() as Reddit.Page | Reddit.Listing | Reddit.MoreChildren] as const;
                 });

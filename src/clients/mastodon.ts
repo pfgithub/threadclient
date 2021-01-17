@@ -58,13 +58,13 @@ declare namespace Mastodon {
     };
 }
 
-const error404 = (): Generic.Page => ({
+const error404 = (msg: string = "404 not found"): Generic.Page => ({
     header: {
         kind: "thread",
         title: {text: "Error"},
         body: {
             kind: "text",
-            content: `404 not found`,
+            content: msg,
             markdown_format: "none",
         },
         display_mode: {
@@ -97,15 +97,19 @@ const genericHeader = (): Generic.Thread => ({
 const mkurl = (host: string, ...bits: string[]): string => {
     return "https://"+host+"/api/"+bits.join("/");
 }
-const getResult = async<T>(url: string): Promise<T> => {
-    const [status, posts] = await fetch(url).then(async (v) => {
-        return [v.status, await v.json() as T] as const;
-    });
-    if(status !== 200) {
-        console.log("Error! got", posts, "with status code", status);
-        throw new Error("Status code "+status);
+const getResult = async<T>(url: string): Promise<T | {error: string}> => {
+    try {
+        const [status, posts] = await fetch(url, {
+            headers: {
+                "Accept": "application/json",
+            },
+        }).then(async (v) => {
+            return [v.status, await v.json() as T | {error: string}] as const;
+        });
+        return posts;
+    }catch(e) {
+        return {error: "Failed to load! "+e.toString()};
     }
-    return posts;
 }
 const postArrayToReparentedThread = (host: string, root: Mastodon.Post, posts: Mastodon.Post[]): Generic.Thread => {
     const root_thread = postToThread(host, root);
@@ -137,7 +141,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             author: {name: post.account.display_name + " (@"+post.account.acct+")", link: post.account.url},
         },
         flair: post.sensitive ? [{content_warning: true, elems: [{type: "text", text: post.spoiler_text ?? "*no label*"}]}] : undefined,
-        actions: [],
+        actions: [{kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")}],
         default_collapsed: false,
         raw_value: post,
         replies: opts.replies,
@@ -160,6 +164,8 @@ export function mastodon() {
             if(path[0] === "timelines") {
                 const posts = await getResult<Mastodon.Post[]>(mkurl(host, "v1", ...path));
 
+                if('error' in posts) return error404("Error! "+posts.error);
+
                 const res: Generic.Page = {
                     header: genericHeader(),
                     replies: posts.map(post => postToThread(host, post)),
@@ -171,6 +177,9 @@ export function mastodon() {
                 const postid = path[1];
                 const postinfo = await getResult<Mastodon.Post>(mkurl(host, "v1", "statuses", postid));
                 const context = await getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(mkurl(host, "v1", "statuses", postid, "context"));
+
+                if('error' in postinfo) return error404("Error! "+postinfo.error);
+                if('error' in context) return error404("Error! "+context.error);
                 
                 const res: Generic.Page = {
                     header: genericHeader(),
