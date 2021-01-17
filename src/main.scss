@@ -547,7 +547,7 @@ body {
 .pfp {
     width: 50px;
     height: 50px;
-    border-radius: 10000px;
+    border-radius: 25px;
 
     background-image: var(--url);
     background-size: contain;
@@ -556,8 +556,11 @@ body {
     // box-sizing: border-box;
     // border: 2px solid #000;
 
+    transition: 0.2s border-radius;
+
     &:hover {
         background-image: var(--url-hover);
+        border-radius: 0;
     }
 }
 

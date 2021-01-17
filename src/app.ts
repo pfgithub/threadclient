@@ -591,7 +591,7 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
         });
     }else if(body.markdown_format === "none") {
         container.atxt(body.content);
-    }else if(body.markdown_format === "unsafe-html") {
+    }else if(body.markdown_format === "mastodon") {
         const preel = el("pre").adto(container);
         el("code").atxt(body.content).adto(preel);
         getHtmlSaftifier().then(hsr => {

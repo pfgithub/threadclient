@@ -24,6 +24,8 @@ declare namespace Mastodon {
         url: string,
         preview_url: string,
 
+        description?: string,
+
         preview_remote_url: string | null,
         text_url: string | null,
         meta: {
@@ -145,7 +147,7 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
     
     let resbody: Generic.Body;
     if(media.type === "image") {
-        resbody = {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height};
+        resbody = {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height, caption: media.description};
     } else if(media.type === "video" || media.type === "gifv") {
         resbody = {kind: "video", url: media.url, w: media.meta.original.width, h: media.meta.original.height, gifv: media.type === "gifv"};
     } else {
@@ -161,7 +163,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         body: {
             kind: "text",
             content: post.content,
-            markdown_format: "unsafe-html",
+            markdown_format: "mastodon",
 
             attached_media: post.media_attachments.length === 0 ? undefined :
                 {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))}

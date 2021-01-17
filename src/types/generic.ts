@@ -8,7 +8,7 @@ export type Page = {
 export type BodyText = {
     kind: "text",
     content: string,
-    markdown_format: "reddit" | "none" | "unsafe-html",
+    markdown_format: "reddit" | "none" | "mastodon",
     attached_media?: Body,
 };
 export type RichTextSpan = {
