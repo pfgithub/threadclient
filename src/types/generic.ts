@@ -58,7 +58,7 @@ export type Thread = {
 
     link: string,
 
-    layout: "reddit-post" | "reddit-comment" | "error",
+    layout: "reddit-post" | "reddit-comment" | "mastodon-post" | "error",
 
     title?: {
         text: string,
@@ -66,7 +66,13 @@ export type Thread = {
 
     info: {
         time: number,
-        author: {name: string, link: string, flair?: Flair[]},
+        author: {
+            name: string, link: string, flair?: Flair[],
+            pfp?: {
+                url: string,
+                hover: string,
+            },
+        },
         in?: {name: string, link: string},
         reddit_points?: RedditPoints,
     },
@@ -95,15 +101,16 @@ export type RedditPoints = {
         reset: string,
     }
 };
+export type RichTextItem = {
+    type: "text",
+    text: string,
+} | {
+    type: "emoji",
+    url: string,
+    name: string,
+};
 export type Flair = {
-    elems: ({
-        type: "text",
-        text: string,
-    } | {
-        type: "emoji",
-        url: string,
-        name: string,
-    })[],
+    elems: RichTextItem[],
     content_warning: boolean,
 };
 export type Action = {

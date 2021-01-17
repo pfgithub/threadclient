@@ -56,6 +56,9 @@ declare namespace Mastodon {
             acct: string,
             display_name: string,
             url: string,
+
+            avatar: string,
+            avatar_static: string,
         },
         media_attachments: Media,
     };
@@ -142,9 +145,16 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         body: {kind: "text", content: post.content, markdown_format: "unsafe-html"},
         display_mode: {body: "visible", comments: "collapsed"},
         link: "/"+host+"/statuses/"+post.id,
-        layout: "reddit-comment",
+        layout: "mastodon-post",
         info: {time: new Date(post.created_at).getTime(),
-            author: {name: post.account.display_name + " (@"+post.account.acct+")", link: post.account.url},
+            author: {
+                name: post.account.display_name + " (@"+post.account.acct+")",
+                link: post.account.url,
+                pfp: {
+                    url: post.account.avatar_static,
+                    hover: post.account.avatar,
+                },
+            },
         },
         flair: post.sensitive ? [{content_warning: true, elems: [{type: "text", text: post.spoiler_text ?? "*no label*"}]}] : undefined,
         actions: [{kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")}],

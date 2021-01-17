@@ -266,7 +266,7 @@ button:disabled {
     }
 }
 
-.post.layout-reddit-comment {
+.post.layout-commentlike {
     display: grid;
     grid-template-rows: [title] max-content [content] max-content [links] max-content [replies] max-content;
 }
@@ -323,7 +323,7 @@ html {
     outline: 1px dotted var(--outline-color);
 }
 
-.post.layout-reddit-comment {
+.post.layout-commentlike {
     position: relative;
     padding-left: 25px;
     --left-v: 8px;
@@ -339,7 +339,7 @@ html {
     gap: 2px;
     margin-right: 5px;
     align-items: center;
-    .post.layout-reddit-comment > & {
+    .post.layout-commentlike > & {
         position: absolute;
         left: var(--left-v);
         top: 10px;
@@ -382,11 +382,17 @@ html {
     }
 }
 
-.post.layout-reddit-comment > .collapse-btn {
+.post.layout-commentlike.spacefiller-redditpoints > .collapse-btn {
+    top: 48px;
+}
+.post.layout-commentlike.spacefiller-pfp > .collapse-btn {
+    top: 60px;
+}
+.post.layout-commentlike > .collapse-btn {
     all: unset;
     position: absolute;
     left: var(--left-v);
-    top: 48px;
+    top: 10px;
     bottom: 10px;
     background: linear-gradient(
         to right,
@@ -417,10 +423,10 @@ html {
         );
     }
 }
-.replies > .comment > .post.layout-reddit-comment > .collapse-btn {
+.replies > .comment > .post.layout-commentlike > .collapse-btn {
     bottom: 0;
 }
-.post.layout-reddit-comment.comment-collapsed > .collapse-btn {
+.post.layout-commentlike.comment-collapsed > .collapse-btn {
     background-color: rgba(0, 0, 0, 0);
     // prettier-ignore
     background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAA"
@@ -447,7 +453,7 @@ html {
     }
 }
 
-.post.layout-reddit-comment.comment-collapsed > .post-content-subminfo {
+.post.layout-commentlike.comment-collapsed > .post-content-subminfo {
     font-style: italic;
     color: var(--collapsed-header-color);
     & > a {
@@ -455,7 +461,16 @@ html {
     }
 }
 
-.post.layout-reddit-comment {
+.post.layout-commentlike.layout-mastodon-post {
+    & > .post-content-title,
+    & > .post-content-subminfo,
+    & > .post-preview,
+    & > .post-content-buttons {
+        margin-left: 42px;
+    }
+}
+
+.post.layout-commentlike {
     & > .post-content-subminfo,
     & > .post-preview {
         margin-left: 3px;
@@ -477,7 +492,7 @@ html {
 .post-body {
     font-size: small;
     margin-top: 10px;
-    .layout-reddit-comment > .post-preview > & {
+    .layout-commentlike > .post-preview > & {
         margin-bottom: 10px;
     }
     & > .slightlybigger {
@@ -526,5 +541,22 @@ body {
     cursor: pointer;
     &:focus {
         outline: 1px dotted var(--outline-color);
+    }
+}
+
+.pfp {
+    width: 50px;
+    height: 50px;
+    border-radius: 10000px;
+
+    background-image: var(--url);
+    background-size: contain;
+    background-repeat: no-repeat;
+
+    // box-sizing: border-box;
+    // border: 2px solid #000;
+
+    &:hover {
+        background-image: var(--url-hover);
     }
 }

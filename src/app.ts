@@ -621,7 +621,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
         content_title_line = el("div").adto(content_area).clss("post-content-title");
         content_subminfo_line = el("div").adto(content_area).clss("post-content-subminfo");
         content_buttons_line = el("div").adto(content_area).clss("post-content-buttons");
-    }else if(listing.layout === "reddit-comment") {
+    }else if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
         content_voting_area = el("div").adto(frame).clss("post-voting");
         content_title_line = el("div").adto(frame).clss("post-content-title"); // unused
         thumbnail_loc = el("button").adto(frame).clss("post-thumbnail"); // unused
@@ -641,7 +641,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
 
     if(!listing.thumbnail) thumbnail_loc.clss("no-thumbnail");
 
-    if(listing.layout === "reddit-comment") {
+    if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
         let prev_collapsed = false;
         let collapsed = listing.default_collapsed;
         const update = () => {
@@ -667,6 +667,9 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
     }
 
     frame.clss("layout-"+listing.layout);
+    if(listing.layout === "mastodon-post") {
+        frame.clss("layout-commentlike");
+    }
 
     if(listing.flair) {
         content_title_line.adch(renderFlair(listing.flair.filter(v => v.content_warning)));
@@ -777,14 +780,16 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
                 else dovote("down", state, update, rpts);
             };
         }
-    }else if(listing.layout === "reddit-comment") {
+    }else if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
             .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
             .clss("user-link")
             .atxt(listing.info.author.name)
         );
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
-        if(listing.info.reddit_points) {
+        if(listing.layout === "reddit-comment" && listing.info.reddit_points) {
+            frame.clss("spacefiller-redditpoints");
+
             const rpts = listing.info.reddit_points
             const state: VoteState = {pt_count: rpts.count, your_vote: rpts.your_vote, vote_loading: false};
 
@@ -816,6 +821,15 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
                 if(state.your_vote === "down") dovote("reset", state, update, rpts);
                 else dovote("down", state, update, rpts);
             };
+        }
+        if(listing.layout === "mastodon-post" && listing.info.author.pfp) {
+            frame.clss("spacefiller-pfp");
+
+            const pfpimg = el("div").clss("pfp").styl({
+                "--url": "url("+JSON.stringify(listing.info.author.pfp.url)+")",
+                "--url-hover": "url("+JSON.stringify(listing.info.author.pfp.hover)+")"
+            });
+            pfpimg.adto(content_voting_area);
         }
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(" ").adch(submission_time);
