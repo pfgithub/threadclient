@@ -520,3 +520,11 @@ blockquote {
 body {
     margin-bottom: 50vh;
 }
+
+.showpreviewbtn {
+    all: unset;
+    cursor: pointer;
+    &:focus {
+        outline: 1px dotted var(--outline-color);
+    }
+}

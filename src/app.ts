@@ -684,7 +684,7 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
         }
     }
     const res = el("a").attr({href, target: "_blank", rel: "noreferrer noopener"});
-    if(href.startsWith("/")) res.onclick = event => {
+    if(href.startsWith("/") || opts.onclick) res.onclick = event => {
         if (
             !event.defaultPrevented && // onClick prevented default
             event.button === 0 && // ignore everything but left clicks
@@ -1046,24 +1046,27 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
             for(let alink of Array.from(divel.querySelectorAll("a"))) {
                 const after_node = document.createComment("after");
                 alink.parentNode!.replaceChild(after_node, alink);
-                console.log("alink href is::"+alink.getAttribute("href"));
+
                 const href = alink.getAttribute("href")!;
                 const content = Array.from(alink.childNodes);
-                const newbtn = linkButton(client.id, href);
+
+                const renderLinkPreview = canPreview(href, {autoplay: true});
+
+                const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
                 content.forEach(el => newbtn.appendChild(el));
                 after_node.parentNode!.insertBefore(newbtn, after_node);
 
-                const renderLinkPreview = canPreview(alink.href, {autoplay: true});
                 if(!renderLinkPreview) continue;
 
-                let showpreviewbtn = el("button").atxt("…");
+                let showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
 
                 let preview_div: undefined | HTMLDivElement;
 
-                showpreviewbtn.onev("click", () => {
+                const togglepreview = () => {
                     if(preview_div) hidepreview();
                     else showpreview();
-                })
+                };
+                showpreviewbtn.onev("click", () => togglepreview());
                 const showpreview = () => {
                     showpreviewbtn.textContent = "⏷";
                     preview_div = el("div");
