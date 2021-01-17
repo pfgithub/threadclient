@@ -1233,6 +1233,11 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
     const author_color = getRandomColor(seededRandom(listing.info.author.name));
     const author_color_dark = darkenColor("foreground", author_color);
 
+    const scoreToString = (score: number) => {
+        if(score < 10_000) return "" + score;
+        if(score < 100_000) return (score / 1000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
+        return (score / 1000 |0) + "k";
+    };
     if(listing.layout === "reddit-post") {
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
@@ -1248,12 +1253,13 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
             const rpts = listing.info.reddit_points;
             const state: VoteState = {pt_count: rpts.count, your_vote: rpts.your_vote, vote_loading: false};
             const getPointsText = () => {
-                if(state.pt_count == null) return "—";
+                if(state.pt_count == null) return ["—", "[score hidden]"];
                 const score_mut = getScoreMut(state.pt_count, state.your_vote, rpts.your_vote);
-                return "" + score_mut;
+                return [scoreToString(score_mut), score_mut.toLocaleString()];
             };
             const vote_up_btn = el("button").adto(content_voting_area).clss("vote-up");
-            const points_text = txt("…").adto(el("span").adto(content_voting_area).clss("vote-score"));
+            const points_span = el("span").adto(content_voting_area).clss("vote-score");
+            const points_text = txt("…").adto(points_span);
             const vote_down_btn = el("button").adto(content_voting_area).clss("vote-down");
 
             if(listing.info.reddit_points.percent != null) {
@@ -1261,7 +1267,9 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
             }
 
             const update = () => {
-                points_text.nodeValue = getPointsText();
+                const [text, num] = getPointsText();
+                points_text.nodeValue = text;
+                points_span.title = num;
                 updateVotingClass(state);
             }
             update();
@@ -1287,18 +1295,21 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
             const state: VoteState = {pt_count: rpts.count, your_vote: rpts.your_vote, vote_loading: false};
 
             const getPointsText = () => {
-                if(state.pt_count == null) return "[score hidden]";
+                if(state.pt_count == null) return ["[score hidden]", "[score hidden]"];
                 const score_mut = getScoreMut(state.pt_count, state.your_vote, rpts.your_vote);
-                return "" + score_mut + " point"+(score_mut === 1 ? "" : "s");
+                return [scoreToString(score_mut) + " point"+(score_mut === 1 ? "" : "s"), score_mut.toLocaleString()] as const;
             };
-            const points_text = txt("…");
-            content_subminfo_line.atxt(" ").adch(points_text);
+            const points_span = el("span");
+            const points_text = txt("…").adto(points_span);
+            content_subminfo_line.atxt(" ").adch(points_span);
 
             const vote_up_btn = el("button").adto(content_voting_area).clss("vote-up");
             const vote_down_btn = el("button").adto(content_voting_area).clss("vote-down");
 
             const update = () => {
-                points_text.nodeValue = getPointsText();
+                const [ptxt, pnum] = getPointsText();
+                points_text.nodeValue = ptxt;
+                points_span.title = pnum;
                 updateVotingClass(state);
             };
             update();
