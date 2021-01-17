@@ -182,7 +182,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                 },
             },
         },
-        flair: post.sensitive ? [{content_warning: true, elems: [{type: "text", text: post.spoiler_text ?? "*no label*"}]}] : undefined,
+        flair: post.sensitive ? [{content_warning: true, elems: [{type: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
         actions: [{kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")}],
         default_collapsed: false,
         raw_value: post,
