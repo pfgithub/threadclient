@@ -366,6 +366,20 @@ export function reddit() {
         // console.log("Post: ",listing);
         
     }
+    
+    const getLoginURL = () => {
+        const state = location.host;
+        const scope =
+            "identity edit flair history modconfig modflair modlog" + " " +
+            "modposts modwiki mysubreddits privatemessages read report save" + " " +
+            "submit subscribe vote wikiedit wikiread"
+        ;
+
+        const url = `https://www.reddit.com/api/v1/authorize?` +
+            query({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
+        ;
+        return url;
+    }
 
     const res: ThreadClient = {
         id: "reddit",
@@ -375,19 +389,7 @@ export function reddit() {
             ["Notifications", () => "/message/inbox"],
         ],
         isLoggedIn,
-        getLoginURL() {
-            const state = location.host;
-            const scope =
-                "identity edit flair history modconfig modflair modlog" + " " +
-                "modposts modwiki mysubreddits privatemessages read report save" + " " +
-                "submit subscribe vote wikiedit wikiread"
-            ;
-
-            const url = `https://www.reddit.com/api/v1/authorize?` +
-                query({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
-            ;
-            return url;
-        },
+        loginURL: getLoginURL(),
         async getThread(path): Promise<Generic.Page> {
             try {
                 const [status, listing] = await fetch(pathURL(path), {
@@ -440,7 +442,7 @@ export function reddit() {
                 };
             }
         },
-        async login(query_param) {
+        async login(path, query_param) {
             const code = query_param.get("code");
             const state = query_param.get("state");
 

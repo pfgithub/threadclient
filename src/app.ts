@@ -45,12 +45,30 @@ function escapeHTML(html: string) {
 
 const safehtml = templateGenerator((v: string) => escapeHTML(v));
 
-function clientLogin(client: ThreadClient, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
+function clientLogin(client: ThreadClient, path: string, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
     const frame = document.createElement("div");
     parent.insertBefore(frame, before_once);
 
-    const login_url = client.getLoginURL();
-    uhtml.render(frame, html`<a href="${login_url}" rel="noreferrer noopener" target="_blank">Log In</a>`);
+    const renderLink = (href: string) => {
+        uhtml.render(frame, html`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
+    }
+    const clurl = client.loginURL;
+    if(typeof clurl === "string") {
+        renderLink(clurl);
+    }else{
+        const btn = el("button").atxt("Log In").adto(frame).onev("click", () => {
+            btn.textContent = "…";
+            btn.disabled = true;
+            clurl(path).then(res => {
+                renderLink(res);
+            }).catch(e => {
+                btn.textContent = "Retry";
+                frame.atxt("Error:"+e);
+                console.log(e);
+                btn.disabled = false;
+            });
+        });
+    }
 
     let done = false;
     const event_listener = () => {
@@ -568,7 +586,6 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
         getHtmlSaftifier().then(hsr => {
             preel.remove();
             const safe_html = hsr.saftify(body.content, "mastodon-");
-            console.log("saftified", safe_html);
             renderSafeHTML(client, safe_html, container, "");
         });
     }else assertNever(body.markdown_format);
@@ -1009,7 +1026,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
     frame.classList.add("display-loading");
 
     if(!client.isLoggedIn()) {
-        const login_prompt: {removeSelf: () => void} = clientLogin(client, () => login_prompt.removeSelf()).insertBefore(frame, null);
+        const login_prompt: {removeSelf: () => void} = clientLogin(client, current_path, () => login_prompt.removeSelf()).insertBefore(frame, null);
         defer(() => login_prompt.removeSelf());
         // return {removeSelf: () => defer.cleanup(), hide: () => {}, show: () => {}};
     }
@@ -1064,7 +1081,7 @@ function fullscreenError(message: string) { return {insertBefore(parent: Node, b
     }};
 } } }
 
-function clientLoginPage(client: ThreadClient, query: URLSearchParams) { return {insertBefore(parent: Node, before_once: Node | null) {
+function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchParams) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
 
     const frame = document.createElement("div");
@@ -1075,12 +1092,12 @@ function clientLoginPage(client: ThreadClient, query: URLSearchParams) { return 
     (async () => {
         uhtml.render(frame, uhtml.html`<div>Logging In…</div>`);
         try {
-            await client.login(query);
+            await client.login(path, query);
         }catch(e) {
             console.log(e);
             // TODO if this is the only open history item, don't target _blank
-            const login_url = client.getLoginURL();
-            uhtml.render(frame, uhtml.html`<div class="error">Login error! ${e.toString()}. <a href="${login_url}" rel="noreferrer noopener" target="_blank">Retry</a></div>`);
+            uhtml.render(frame, uhtml.html`<div class="error">Login error! ${e.toString()}.</div>`);
+            // const v: {removeSelf: () => void} = clientLogin(client, () => v.removeSelf()).insertBefore(frame, null);
             return;
         }
         // if this page is still active, navigate({path: "/login/success", replace: true}); to get rid of the token in the url
@@ -1185,7 +1202,7 @@ function onNavigate(to_index: number, url: URLLike) {
             if(!client) {
                 return fullscreenError("404 unknown client "+path[0]).insertBefore(document.body, null);
             }
-            return clientLoginPage(client, new URLSearchParams(location.search)).insertBefore(document.body, null);
+            return clientLoginPage(client, path, new URLSearchParams(location.search)).insertBefore(document.body, null);
         }
 
         const client = getClient(path0);

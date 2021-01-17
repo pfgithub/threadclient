@@ -1,5 +1,8 @@
+import { query } from "../app.js";
 import * as Generic from "../types/generic.js";
 import {ThreadClient} from "./base.js";
+
+const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
 declare namespace Mastodon {
     type Media = {
@@ -148,13 +151,89 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
     };
     return res;
 }
+type ApplicationResult = {
+    client_id: string,
+    client_secret: string,
+    id: string,
+    name: string,
+    redirect_uri: string,
+    vapid_key: string,
+    website: string,
+};
+const getLoginURL = (host: string, appres: ApplicationResult) => {
+    return "https://"+host+"/oauth/authorize?"+query({
+        client_id: appres.client_id,
+        scope: "read write follow push",
+        redirect_uri: redirectURI(host),
+        response_type: "code"
+    });
+};
 export function mastodon() {
+    const isLoggedIn = () => {
+        return !!localStorage.getItem("mastodon-secret");
+    };
+    const hasLoginURL = () => {
+        return !!localStorage.getItem("mastodon-application");
+    };
+
     const res: ThreadClient = {
         id: "mastodon",
         links: () => [],
         isLoggedIn: () => false,
-        getLoginURL: () => "/404",
-        login: () => {throw new Error("nah");},
+        loginURL: async (pathraw: string): Promise<string> => {
+
+            const pathsplit = pathraw.split("/");
+            const [_, host] = pathsplit;
+            if(!host) throw new Error("can't login without selecting host first");
+
+            const preapp = localStorage.getItem("mastodon-application");
+            if(preapp) {
+                const parsed = JSON.parse(preapp) as {host: string, data: ApplicationResult};
+                if(parsed.host !== host) throw new Error("TODO support multiple accounts");
+                return getLoginURL(host, parsed.data);
+            }
+
+            const resv: {error: string} | ApplicationResult = await fetch(mkurl(host, "v1", "apps"), {
+                method: "post", mode: "cors", credentials: "omit",
+                headers: {
+                    'Content-Type': "application/json",
+                    'Accept': "application/json",
+                },
+                body: JSON.stringify({
+                    client_name: "ThreadReader",
+                    redirect_uris: redirectURI(host),
+                    scopes: "read write follow push",
+                    website: "https://thread.pfg.pw",
+                }),
+            }).then(v => v.json());
+
+            if('error' in resv) {
+                console.log(resv);
+                throw new Error("Got error:"+resv.error);
+            }
+            localStorage.setItem("mastodon-application", JSON.stringify({host, data: resv}));
+
+            return getLoginURL(host, resv);
+
+            
+        },
+        login: (path, query) => {
+            if(path.length !== 2) throw new Error("bad login");
+            const [_, host] = path;
+            const code = query.get("code");
+            if(!code) throw new Error("missing code");
+            // curl -X POST \
+            // -F 'client_id=your_client_id_here' \
+            // -F 'client_secret=your_client_secret_here' \
+            // -F 'redirect_uri=urn:ietf:wg:oauth:2.0:oob' \
+            // -F 'grant_type=authorization_code' \
+            // -F 'code=user_authzcode_here' \
+            // -F 'scope=read write follow push' \
+            // https://:host/oauth/token
+
+            // then use this in future
+            throw new Error("TODO login");
+        },
 
         getThread: async (pathraw) => {
             const pathsplit = pathraw.split("/");

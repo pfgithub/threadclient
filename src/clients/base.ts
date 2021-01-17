@@ -5,9 +5,9 @@ export type ThreadClient = {
     id: string,
     links: () => [string, () => string][]
     isLoggedIn: () => boolean,
-    getLoginURL: () => string,
+    loginURL: string | ((path: string) => Promise<string>),
     getThread: (path: string) => Promise<Generic.Page>,
-    login: (query: URLSearchParams) => Promise<void>,
+    login: (path: string[], query: URLSearchParams) => Promise<void>,
     fetchRemoved?: (fetch_removed_path: string) => Promise<Generic.Body>,
     redditVote?: (data: string) => Promise<void>,
 };
