@@ -889,6 +889,8 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
     }
 
     content_buttons_line.atxt(" ");
+    listing.actions.length === 0 && linkButton(client.id, listing.link).atxt("View").adto(content_buttons_line);
+    content_buttons_line.atxt(" ");
     el("button").attr({draggable: "true"}).onev("click", e => {
         console.log(listing);
     }).atxt("Code").adto(content_buttons_line);
