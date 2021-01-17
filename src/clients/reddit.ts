@@ -282,16 +282,19 @@ export function reddit() {
                         ? {kind: "text", content: listing.selftext, markdown_format: "reddit"}
                         : {kind: "none"}
                     : listing.gallery_data
-                    ? {kind: "image_gallery", images: listing.gallery_data.items.map(gd => {
+                    ? {kind: "gallery", images: listing.gallery_data.items.map(gd => {
                         const moreinfo = listing.media_metadata![gd.media_id];
                         return {
                             thumb: moreinfo.p[0].u,
-                            thumb_w: moreinfo.p[0].x,
-                            thumb_h: moreinfo.p[0].y,
-                            url: moreinfo.s.u,
-                            w: moreinfo.s.x,
-                            h: moreinfo.s.y,
-                            caption: gd.caption,
+                            w: moreinfo.p[0].x,
+                            h: moreinfo.p[0].y,
+                            body: {
+                                kind: "captioned_image",
+                                url: moreinfo.s.u,
+                                w: moreinfo.s.x,
+                                h: moreinfo.s.y,
+                                caption: gd.caption,
+                            }
                         };
                     })}
                     : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}

@@ -271,7 +271,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     return undefined;
 }
 
-function renderImageGallery(images: Generic.GalleryImages): Node {
+function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): {node: Node, cleanup: () => void} {
     let container = el("div");
     type State = "overview" | {
         index: number
@@ -279,36 +279,42 @@ function renderImageGallery(images: Generic.GalleryImages): Node {
     let state: State = "overview";
     let setState = (newState: State) => {
         state = newState;
-        uhtml.render(container, update());
+        update();
     }
 
+    let prevbody: {cleanup: () => void} | undefined;
+    let prevnode: HTMLDivElement | undefined;
+
     let update = () => {
+        if(prevbody) {prevbody.cleanup(); prevbody = undefined;}
+        if(prevnode) prevnode.innerHTML = "";
         if(state === "overview") {
-            return html`${images.map((image, i) => html`
+            uhtml.render(container, html`${images.map((image, i) => html`
                 <button class="gallery-overview-item" onclick=${() => {setState({index: i});}}>
-                    <img src=${image.thumb} width=${image.thumb_w} height=${image.thumb_h}
+                    <img src=${image.thumb} width=${image.w} height=${image.h}
                         class="preview-image gallery-overview-image"
                     />
                 </button>
-            `)}`;
+            `)}`);
+            return;
         }
         let index = state.index;
         const selimg = images[index];
-        return html`
+        const ref: {current?: HTMLDivElement} = {};
+        uhtml.render(container, html`
             <button onclick=${() => setState({index: index - 1})} disabled=${index <= 0 ? "" : undefined}>Prev</button>
             ${index + 1}/${images.length}
             <button onclick=${() => setState({index: index + 1})} disabled=${index >= images.length - 1 ? "" : undefined}>Next</button>
             <button onclick=${() => setState("overview")}>Gallery</button>
-            ${selimg.caption ? html`<div>${selimg.caption}</div>` : ""}
-            <div><a href=${selimg.url} rel="noreferrer noopener" target="_blank">
-                <img src=${selimg.url} width=${selimg.w} height=${selimg.h} class="preview-image" />
-            </a></div>
-        `;
+            <div ref=${ref}></div>
+        `);
+        prevbody = renderBody(client, selimg.body, {autoplay: true, on: {show: () => {}, hide: () => {}}}, ref.current!);
+        prevnode = ref.current;
         // TODO display a loading indicator while the image loads
     };
 
     setState(state);
-    return container;
+    return {node: container, cleanup: () => {if(prevbody) prevbody.cleanup(); if(prevnode) prevnode.remove()}};
 }
 
 function renderFlair(flairs: Generic.Flair[]) {
@@ -593,6 +599,69 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
     return {removeSelf(){defer.cleanup();}};
 }}}
 
+let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean, on: {hide: () => void, show: () => void}}, content: ChildNode): {cleanup: () => void} => {
+    const defer = makeDefer();
+
+    if(body.kind === "text") {
+        const txt = renderText(client, body).insertBefore(content, null);
+        defer(() => txt.removeSelf());
+    }else if(body.kind === "link") {
+        // TODO fix this link button thing
+        el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
+        const renderLinkPreview = canPreview(body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
+        if(renderLinkPreview) {
+            const preview = renderLinkPreview();
+            preview.node.adto(content);
+            if(preview.onhide) opts.on.hide = preview.onhide;
+            if(preview.onshow) opts.on.show = preview.onshow;
+        }
+    }else if(body.kind === "none") {
+        content.remove();
+    }else if(body.kind === "gallery") {
+        const rvres = renderImageGallery(client, body.images)
+        rvres.node.adto(content);
+        defer(() => rvres.cleanup());
+    }else if(body.kind === "removed") {
+        const removed_v = el("div").adto(content).atxt("Removed by "+body.by+".");
+        if(body.fetch_path && client.fetchRemoved) {
+            const fetch_btn = el("button").adto(removed_v).atxt("View");
+            // so this is a place where it would be helpful to update the entire listing
+            // unfortunately, this is not react or uil and that can't be done easily
+            // given how stateful listings are
+            // for now, just update the body.
+            fetch_btn.onev("click", async () => {
+                let new_body: Generic.Body;
+                let errored = false;
+                fetch_btn.textContent = "…";
+                fetch_btn.disabled = true;
+                try {
+                    new_body = await client.fetchRemoved!(body.fetch_path);
+                }catch(e) {
+                    errored = true;
+                    console.log(e);
+                    new_body = {kind: "text", content: "Error! "+e.toString(), markdown_format: "none"};
+                }
+                console.log("Got new body:", new_body);
+                fetch_btn.textContent = errored ? "Retry" : "Loaded";
+                fetch_btn.disabled = false;
+                if(!errored) removed_v.remove();
+                const rbres = renderBody(client, new_body, {autoplay: true, on: opts.on}, content); defer(() => rbres.cleanup());
+            });
+        }
+    }else if(body.kind === "crosspost") {
+        const child = clientListing(client, body.source).insertBefore(content, null);
+        // TODO child.onShow, child.onHide
+        defer(() => child.removeSelf());
+    }else if(body.kind === "richtext") {
+        content.atxt("TODO richtext");
+    }else if(body.kind === "captioned_image") {
+        el("div").adto(content).atxt(body.caption ?? "");
+        el("img").adto(el("div").adto(content)).clss("preview-image").attr({src: body.url, width: "" + body.w, height: "" + body.h});
+    }else assertNever(body);
+
+    return {cleanup: () => defer.cleanup()};
+};
+
 function clientListing(client: ThreadClient, listing: Generic.Thread) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
@@ -667,7 +736,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
     }
 
     frame.clss("layout-"+listing.layout);
-    if(listing.layout === "mastodon-post") {
+    if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
         frame.clss("layout-commentlike");
     }
 
@@ -853,8 +922,11 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
             }
         }
 
-        let onhide = () => {};
-        let onshow = () => {};
+        const on = {
+            hide: () => {},
+            show: () => {},
+        }
+
         let initContent = (body: Generic.Body, opts: {autoplay: boolean}) => {
             if(content_warnings.length) {
                 const cws = content_warnings;
@@ -866,64 +938,13 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
                 el("button").attr({draggable: "true"}).adto(cwbox).atxt("Show Content").onev("click", e => {
                     cwbox.remove();
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
-                    initContent(body, opts);
+                    const rbres = renderBody(client, body, {...opts, on}, cwbox); defer(() => rbres.cleanup());
                 });
                 return;
             }
-
-            if(body.kind === "text") {
-                const txt = renderText(client, body).insertBefore(content, null);
-                defer(() => txt.removeSelf());
-            }else if(body.kind === "link") {
-                // TODO fix this link button thing
-                el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
-                const renderLinkPreview = canPreview(body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
-                if(renderLinkPreview) {
-                    const preview = renderLinkPreview();
-                    preview.node.adto(content);
-                    if(preview.onhide) onhide = preview.onhide;
-                    if(preview.onshow) onshow = preview.onshow;
-                }
-            }else if(body.kind === "none") {
-                content.remove();
-            }else if(body.kind === "image_gallery") {
-                renderImageGallery(body.images).adto(content);
-            }else if(body.kind === "removed") {
-                const removed_v = el("div").adto(content).atxt("Removed by "+body.by+".");
-                if(body.fetch_path && client.fetchRemoved) {
-                    const fetch_btn = el("button").adto(removed_v).atxt("View");
-                    // so this is a place where it would be helpful to update the entire listing
-                    // unfortunately, this is not react or uil and that can't be done easily
-                    // given how stateful listings are
-                    // for now, just update the body.
-                    fetch_btn.onev("click", async () => {
-                        let new_body: Generic.Body;
-                        let errored = false;
-                        fetch_btn.textContent = "…";
-                        fetch_btn.disabled = true;
-                        try {
-                            new_body = await client.fetchRemoved!(body.fetch_path);
-                        }catch(e) {
-                            errored = true;
-                            console.log(e);
-                            new_body = {kind: "text", content: "Error! "+e.toString(), markdown_format: "none"};
-                        }
-                        console.log("Got new body:", new_body);
-                        fetch_btn.textContent = errored ? "Retry" : "Loaded";
-                        fetch_btn.disabled = false;
-                        if(!errored) removed_v.remove();
-                        initContent(new_body, {autoplay: true});
-                    });
-                }
-            }else if(body.kind === "crosspost") {
-                const child = clientListing(client, body.source).insertBefore(content, null);
-                // TODO child.onShow, child.onHide
-                defer(() => child.removeSelf());
-            }else if(body.kind === "richtext") {
-                content.atxt("TODO richtext");
-            }else assertNever(body);
-        };
-
+            const rbres = renderBody(client, body, {...opts, on}, content); return defer(() => rbres.cleanup());
+        }
+        
         if(listing.display_mode.body === "collapsed") {
             const open_preview_button = el("button").clss("not-this-button").adto(content_buttons_line);
             const open_preview_text = txt("…").adto(open_preview_button);
@@ -940,8 +961,8 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
                 content.style.display = state ? "" : "none";
                 if(state !== prev_state) {
                     prev_state = state;
-                    if(state) onshow();
-                    else onhide();
+                    if(state) on.show();
+                    else on.hide();
                 }
             };
             update();

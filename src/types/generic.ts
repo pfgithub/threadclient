@@ -9,6 +9,7 @@ export type BodyText = {
     kind: "text",
     content: string,
     markdown_format: "reddit" | "none" | "unsafe-html",
+    attached_media?: Body,
 };
 export type RichTextSpan = {
     kind: "text",
@@ -29,8 +30,14 @@ export type Body = BodyText | RichText | {
     url: string,
     embed_html?: string,
 } | {
-    kind: "image_gallery",
-    images: GalleryImages,
+    kind: "captioned_image",
+    url: string,
+    caption?: string,
+    w: number,
+    h: number,
+} | {
+    kind: "gallery",
+    images: GalleryItem[],
 } | {
     kind: "none",
 } | {
@@ -41,6 +48,7 @@ export type Body = BodyText | RichText | {
     kind: "crosspost",
     source: Thread,
 };
+export type GalleryItem = {body: Body, thumb: string, w: number, h: number};
 export type Thread = {
     kind: "thread",
 
@@ -121,12 +129,3 @@ export type Action = {
     kind: "reply",
     text: string,
 };
-export type GalleryImages = {
-    thumb: string,
-    thumb_w: number,
-    thumb_h: number,
-    url: string,
-    w: number,
-    h: number,
-    caption?: string,
-}[];
