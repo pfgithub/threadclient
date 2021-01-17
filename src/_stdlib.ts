@@ -16,7 +16,7 @@ declare global {
 	let anychange: Window["anychange"];
 	let body: Window["body"];
 	interface Node {
-		attr: <T extends HTMLElement>(this: T, attrs: {[key: string]: string}) => T;
+		attr: <T extends HTMLElement>(this: T, attrs: {[key: string]: string | null | undefined}) => T;
 		adto: <T extends Node>(this: T, prnt: Node) => T;
 		adch: <T extends Node>(this: T, ...chldrn: Node[]) => T;
 		atxt: <T extends Node>(this: T, txta: string) => T;
@@ -35,7 +35,7 @@ window.el = (...a) => document.createElement(...a);
 window.txt = (txt: string) => document.createTextNode(txt);
 window.anychange = (itms, cb) => {itms.forEach(itm => itm.oninput = () => cb()); cb(); return cb;};
 window.body = document.getElementById("maincontent") || document.body;
-Node.prototype.attr = function(atrs) {Object.entries(atrs).forEach(([k, v]) => this.setAttribute(k, v)); return this;};
+Node.prototype.attr = function(atrs) {Object.entries(atrs).forEach(([k, v]) => v == null ? this.removeAttribute(k) : this.setAttribute(k, v)); return this;};
 Node.prototype.adto = function(prnt) {prnt.appendChild(this); return this;};
 Node.prototype.adch = function(...chlds) {chlds.forEach(chld => this.appendChild(chld)); return this;};
 Node.prototype.atxt = function(txta) {this.appendChild(txt(txta)); return this;};

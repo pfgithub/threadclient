@@ -129,7 +129,7 @@ const postArrayToReparentedThread = (host: string, root: Mastodon.Post, posts: M
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[]} = {}): Generic.Thread => {
     const res: Generic.Thread = {
         kind: "thread",
-        body: {kind: "text", content: post.content, markdown_format: "none"},
+        body: {kind: "text", content: post.content, markdown_format: "unsafe-html"},
         display_mode: {body: "visible", comments: "collapsed"},
         link: "/"+host+"/statuses/"+post.id,
         layout: "reddit-comment",

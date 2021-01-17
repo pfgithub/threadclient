@@ -39,12 +39,8 @@ function assertNever(content: never): never {
 }
 
 function escapeHTML(html: string) {
-	return html
-		.split("&").join("&amp;")
-		.split('"').join("&quot;")
-		.split("<").join("&lt;")
-        .split(">").join("&gt;")
-    ;
+    return html.replace(/[^a-zA-Z0-9. ]/giu, c => "&#"+c.codePointAt(0)+";");
+    // might be a bit &#…; heavy for other languages
 }
 
 const safehtml = templateGenerator((v: string) => escapeHTML(v));
@@ -372,86 +368,182 @@ function timeAgo(start_ms: number): Node {
 type RedditMarkdownRenderer = {
     renderMd(text: string): string,
 };
-let _reddit_markdown_renderer: (() => void)[] | RedditMarkdownRenderer | undefined;
-async function getRedditMarkdownRenderer(): Promise<RedditMarkdownRenderer> {
-    if(!_reddit_markdown_renderer) {
-        _reddit_markdown_renderer = [];
-        const enc = new TextEncoder();
-        const dec = new TextDecoder();
-        const getMem = () => obj.instance.exports.memory as WebAssembly.Memory;
-        const obj = await WebAssembly.instantiate(await fetch("/snudown.wasm").then(v => v.arrayBuffer()), {
-            env: {
-                __assert_fail: (assertion: number, file: number, line: number, fn: number) => {
-                    console.log(assertion, file, line, fn);
-                    throw new Error("assert failed");
-                },
-                __stack_chk_fail: () => {
-                    throw new Error("stack overflow");
-                },
-                debugprints: (text: number, len: number) => {
-                    console.log("print text:",dec.decode(new Uint8Array(getMem().buffer, text, len)));
-                },
-                debugprinti: (intv: number) => {
-                    console.log("print int:", intv);
-                },
-                debugprintc: (intv: number) => {
-                    console.log("print char:", String.fromCodePoint(intv));
-                },
-                debugpanic: (text: number, len: number) => {
-                    throw new Error("Panic: "+ dec.decode(new Uint8Array(getMem().buffer, text, len)));
-                }
-            },
-        });
-        const arrayv = _reddit_markdown_renderer;
-        _reddit_markdown_renderer = {renderMd(md: string) {
-            const exports = obj.instance.exports as {
-                memory: WebAssembly.Memory,
 
-                // (len: usize) => [*]u8
-                //   creates a u8 array of specified length
-                allocString: (len: number) => number,
-
-                // (ptr: [*]u8, len: usize)
-                //   frees a u8 array of specified length
-                freeText: (ptr: number, len: number) => void,
-
-                // (strptr: [*]u8, len: usize) => [*:0]u8 (caller must free!)
-                //   converts markdown to html. panics on oom. returns
-                //   a null-terminated utf-8 string the caller must free.
-                markdownToHTML: (strptr: number, len: number) => number,
-
-                // (strptr: [*:0]u8) => usize
-                //   gets the byte length of a null-terminated string.
-                strlen: (strptr: number) => number,
-            };
+function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
+    let load_state: undefined | (() => void)[] | {loaded: T};
+    return async (): Promise<T> => {       
+        if(!load_state) {
+            load_state = [];
+            let loadedv: T;
             try{
-                const utf8 = enc.encode(md);
-                const strptr = exports.allocString(utf8.byteLength);
-                const inmem = new Uint8Array(getMem().buffer, strptr, utf8.byteLength);
-                inmem.set(utf8);
-                const res = exports.markdownToHTML(strptr, utf8.byteLength);
-                const outlen = exports.strlen(res);
-                const outarr = new Uint8Array(getMem().buffer, res, outlen);
-                const decoded = dec.decode(outarr);
-                exports.freeText(strptr, utf8.byteLength);
-                exports.freeText(res, outlen);
-                return decoded;
-            }catch(e){
-                // note that chrome sometimes crashes on wasm errors and this
-                // handler might not run.
-                console.log(e.toString() + "\n" + e.stack);
-                return escapeHTML("Error "+e.toString()+"\n"+e.stack);
+                loadedv = await loader();
+            }catch(e) {
+                console.log("failed to load", e);
+                alert("failed to load dynamic load object. check console.");
+                throw e;
             }
-        }};
-        arrayv.forEach(q => q());
-        return _reddit_markdown_renderer;
+            const loadedarr = load_state;
+            load_state = {loaded: loadedv};
+            loadedarr.forEach(q => q());
+        }
+        if('loaded' in load_state) {
+            return load_state.loaded;
+        }
+        const lsv = load_state;
+        await new Promise<void>(r => lsv.push(r));
+        return (load_state as any as {loaded: T}).loaded;
     }
-    if(Array.isArray(_reddit_markdown_renderer)) {
-        const rmdarr = _reddit_markdown_renderer;
-        await new Promise<void>(r => rmdarr.push(r));
-        return _reddit_markdown_renderer as any as RedditMarkdownRenderer;
+}
+
+const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdownRenderer> => {
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+    const getMem = () => obj.instance.exports.memory as WebAssembly.Memory;
+    const obj = await WebAssembly.instantiate(await fetch("/snudown.wasm").then(v => v.arrayBuffer()), {
+        env: {
+            __assert_fail: (assertion: number, file: number, line: number, fn: number) => {
+                console.log(assertion, file, line, fn);
+                throw new Error("assert failed");
+            },
+            __stack_chk_fail: () => {
+                throw new Error("stack overflow");
+            },
+            debugprints: (text: number, len: number) => {
+                console.log("print text:",dec.decode(new Uint8Array(getMem().buffer, text, len)));
+            },
+            debugprinti: (intv: number) => {
+                console.log("print int:", intv);
+            },
+            debugprintc: (intv: number) => {
+                console.log("print char:", String.fromCodePoint(intv));
+            },
+            debugpanic: (text: number, len: number) => {
+                throw new Error("Panic: "+ dec.decode(new Uint8Array(getMem().buffer, text, len)));
+            }
+        },
+    });
+    return {renderMd(md: string) {
+        const exports = obj.instance.exports as {
+            memory: WebAssembly.Memory,
+
+            // (len: usize) => [*]u8
+            //   creates a u8 array of specified length
+            allocString: (len: number) => number,
+
+            // (ptr: [*]u8, len: usize)
+            //   frees a u8 array of specified length
+            freeText: (ptr: number, len: number) => void,
+
+            // (strptr: [*]u8, len: usize) => [*:0]u8 (caller must free!)
+            //   converts markdown to html. panics on oom. returns
+            //   a null-terminated utf-8 string the caller must free.
+            markdownToHTML: (strptr: number, len: number) => number,
+
+            // (strptr: [*:0]u8) => usize
+            //   gets the byte length of a null-terminated string.
+            strlen: (strptr: number) => number,
+        };
+        try{
+            const utf8 = enc.encode(md);
+            const strptr = exports.allocString(utf8.byteLength);
+            const inmem = new Uint8Array(getMem().buffer, strptr, utf8.byteLength);
+            inmem.set(utf8);
+            const res = exports.markdownToHTML(strptr, utf8.byteLength);
+            const outlen = exports.strlen(res);
+            const outarr = new Uint8Array(getMem().buffer, res, outlen);
+            const decoded = dec.decode(outarr);
+            exports.freeText(strptr, utf8.byteLength);
+            exports.freeText(res, outlen);
+            return decoded;
+        }catch(e){
+            // note that chrome sometimes crashes on wasm errors and this
+            // handler might not run.
+            console.log(e.toString() + "\n" + e.stack);
+            return escapeHTML("Error "+e.toString()+"\n"+e.stack);
+        }
+    }};
+});
+
+type HtmlSaftifier = {saftify: (html: string, class_prefix: string) => string};
+const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
+    await new Promise((r, re) => {
+        const script_el = el("script");
+        script_el.src = "/deps/xss.min.js";
+        script_el.onload = r;
+        script_el.onerror = re;
+        document.head.appendChild(script_el);
+    });
+    const xss = (window as any).filterXSS;
+    return {
+        saftify: (html, class_prefix: string) => xss(html, {
+            onTagAttr: (tag: string, name: string, value: string, isWhiteAttr: string) => {
+                if(name === "class") return name+"=\""+xss.escapeAttrValue(value.split(" ").map(v => class_prefix + v).join(" "))+"\"";
+            },
+        }),
+    };
+});
+
+function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: Node, class_prefix: string) {
+    const divel = el("div").adto(parent_node).clss("slightlybigger");
+    divel.innerHTML = safe_html;
+    if(class_prefix) for(let node of Array.from(divel.querySelectorAll("*"))) {
+        Array.from(node.classList).forEach(classname => {
+            node.classList.replace(classname, class_prefix + classname);
+        });
     }
-    return _reddit_markdown_renderer;
+    for(let alink of Array.from(divel.querySelectorAll("a"))) {
+        const after_node = document.createComment("after");
+        alink.parentNode!.replaceChild(after_node, alink);
+
+        const href = alink.getAttribute("href")!;
+        const content = Array.from(alink.childNodes);
+
+        const renderLinkPreview = canPreview(href, {autoplay: true});
+
+        const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
+        console.log("alink is: ",alink,"class is", alink.getAttribute("class"));
+        newbtn.attr({"class": alink.getAttribute("class")});
+        content.forEach(el => newbtn.appendChild(el));
+        after_node.parentNode!.insertBefore(newbtn, after_node);
+
+        if(!renderLinkPreview) continue;
+
+        let showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
+
+        let preview_div: undefined | HTMLDivElement;
+
+        const togglepreview = () => {
+            if(preview_div) hidepreview();
+            else showpreview();
+        };
+        showpreviewbtn.onev("click", () => togglepreview());
+        const showpreview = () => {
+            showpreviewbtn.textContent = "⏷";
+            preview_div = el("div");
+            after_node.parentNode!.insertBefore(preview_div, after_node);
+            const lnkprvw = renderLinkPreview();
+            preview_div.adch(lnkprvw.node);
+
+            // not bothering with show/hide atm because that requires passing show/hide from client
+            //listing into more places
+        }
+        const hidepreview = () => {
+            showpreviewbtn.textContent = "⏵";
+            if(preview_div) {preview_div.remove(); preview_div = undefined;}
+        };
+        hidepreview();
+        after_node.parentNode!.insertBefore(showpreviewbtn, after_node);
+    }
+    for(let spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
+        let children = Array.from(spoilerspan.childNodes);
+        let subspan = el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
+        spoilerspan.attr({title: "Click to reveal spoiler"});
+        subspan.style.opacity = "0";
+        spoilerspan.onev("click", () => {
+            subspan.style.opacity = "1";
+            spoilerspan.attr({title: ""});
+        });
+    }
 }
 
 function renderText(client: ThreadClient, body: Generic.BodyText) {return {insertBefore(parent: Node, before_once: Node | null) {
@@ -466,63 +558,20 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
         el("code").atxt(body.content).adto(preel);
         getRedditMarkdownRenderer().then(mdr => {
             preel.remove();
-            const raw_html = mdr.renderMd(body.content);
-            const divel = el("div").adto(container).clss("slightlybigger");
-            divel.innerHTML = raw_html;
-            for(let alink of Array.from(divel.querySelectorAll("a"))) {
-                const after_node = document.createComment("after");
-                alink.parentNode!.replaceChild(after_node, alink);
-
-                const href = alink.getAttribute("href")!;
-                const content = Array.from(alink.childNodes);
-
-                const renderLinkPreview = canPreview(href, {autoplay: true});
-
-                const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
-                content.forEach(el => newbtn.appendChild(el));
-                after_node.parentNode!.insertBefore(newbtn, after_node);
-
-                if(!renderLinkPreview) continue;
-
-                let showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
-
-                let preview_div: undefined | HTMLDivElement;
-
-                const togglepreview = () => {
-                    if(preview_div) hidepreview();
-                    else showpreview();
-                };
-                showpreviewbtn.onev("click", () => togglepreview());
-                const showpreview = () => {
-                    showpreviewbtn.textContent = "⏷";
-                    preview_div = el("div");
-                    after_node.parentNode!.insertBefore(preview_div, after_node);
-                    const lnkprvw = renderLinkPreview();
-                    preview_div.adch(lnkprvw.node);
-
-                    // not bothering with show/hide atm because that requires passing show/hide from client
-                    //listing into more places
-                }
-                const hidepreview = () => {
-                    showpreviewbtn.textContent = "⏵";
-                    if(preview_div) {preview_div.remove(); preview_div = undefined;}
-                };
-                hidepreview();
-                after_node.parentNode!.insertBefore(showpreviewbtn, after_node);
-            }
-            for(let spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
-                let children = Array.from(spoilerspan.childNodes);
-                let subspan = el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
-                spoilerspan.attr({title: "Click to reveal spoiler"});
-                subspan.style.opacity = "0";
-                spoilerspan.onev("click", () => {
-                    subspan.style.opacity = "1";
-                    spoilerspan.attr({title: ""});
-                });
-            }
+            const safe_html = mdr.renderMd(body.content);
+            renderSafeHTML(client, safe_html, container, "");
         });
     }else if(body.markdown_format === "none") {
         container.atxt(body.content);
+    }else if(body.markdown_format === "unsafe-html") {
+        const preel = el("pre").adto(container);
+        el("code").atxt(body.content).adto(preel);
+        getHtmlSaftifier().then(hsr => {
+            preel.remove();
+            const safe_html = hsr.saftify(body.content, "mastodon-");
+            console.log("saftified", safe_html);
+            renderSafeHTML(client, safe_html, container, "");
+        });
     }else assertNever(body.markdown_format);
 
     return {removeSelf(){defer.cleanup();}};
