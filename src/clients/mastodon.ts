@@ -166,7 +166,7 @@ const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Ge
                 },
                 display_mode: {body: "visible", comments: "collapsed"},
                 link: parentlink,
-                layout: "mastodon-post",
+                layout: "reddit-post",
                 default_collapsed: false,
                 actions: [],
                 raw_value: parentlink,
