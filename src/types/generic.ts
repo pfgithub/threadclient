@@ -62,7 +62,7 @@ export type Body = BodyText | RichText | {
     kind: "crosspost",
     source: Thread,
 };
-export type GalleryItem = {body: Body, thumb: string, w: number, h: number};
+export type GalleryItem = {body: Body, thumb: string, w: number | null | undefined, h: number | null | undefined};
 export type Thread = {
     kind: "thread",
 

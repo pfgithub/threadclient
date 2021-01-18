@@ -29,7 +29,7 @@ declare namespace Mastodon {
 
         preview_remote_url: string | null,
         text_url: string | null,
-        meta: {
+        meta?: {
             original: ImageMeta | VideoMeta,
             small: ImageMeta,
         },
@@ -182,15 +182,15 @@ const postArrayToReparentedThread = (host: string, root: Mastodon.Post, posts: M
 const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.GalleryItem => {
     
     let resbody: Generic.Body;
-    if(media.type === "image") {
-        resbody = {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height, caption: media.description};
-    } else if(media.type === "video" || media.type === "gifv") {
+    if(media.type === "image" && media.meta) {
+        resbody = {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height};
+    } else if((media.type === "video" || media.type === "gifv") && media.meta) {
         resbody = {kind: "video", url: media.url, w: media.meta.original.width, h: media.meta.original.height, gifv: media.type === "gifv"};
     } else {
         resbody = {kind: "link", url: media.url};
     }
 
-    return {thumb: media.preview_url, w: media.meta.small.width, h: media.meta.small.height, body: resbody};
+    return {thumb: media.preview_url, w: media.meta?.small.width, h: media.meta?.small.height, body: resbody};
 }
 const as = <T>(v: T): T => v;
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[]} = {}): Generic.Thread => {
@@ -219,7 +219,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         info: {time: new Date(post.created_at).getTime(),
             author: {
                 name: post.account.display_name + " (@"+post.account.acct+")",
-                link: post.account.url,
+                link: "/"+host+"/accounts/"+post.account.id+"/@"+post.account.acct,
                 pfp: {
                     url: post.account.avatar_static,
                     hover: post.account.avatar,
@@ -424,36 +424,25 @@ export function mastodon() {
         },
 
         getThread: async (pathraw) => {
-            const pathsplit = pathraw.split("/");
+            let [beforequery, afterquery] = pathraw.split("?");
+            if(!afterquery) afterquery = "";
+            const pathsplit = beforequery.split("/");
             if(pathsplit.length < 2) return error404();
             const [_, host, ...path] = pathsplit;
-
+            
             const auth = await getAuth(host);
-
-            if(path[0] === "timelines") {
-                const urlbits = path.join("/");
-                const thisurl = mkurl(host, "api/v1", urlbits);
-                const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
-
-                if('error' in posts) return error404("Error! "+posts.error);
-
-                const last_post = posts[posts.length - 1];
-
-                const res: Generic.Page = {
-                    header: genericHeader(),
-                    replies: [...postArrayToReparentedTimeline(host, posts), ...last_post ? [{
-                        kind: "load_more",
-                        load_more: updateQuery("/"+host+"/"+urlbits, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
-                        raw_value: "",
-                    } as Generic.LoadMore] : []],
-                    display_style: "comments-view",
-                };
-                return res;
-            }else if(path[0] === "statuses") {
-                if(!path[1]) return error404();
-                const postid = path[1];
-                const postinfo = await getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", postid));
-                const context = await getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", postid, "context"));
+            
+            const path0 = path.shift();
+            if(!path0) return error404();
+            if(path0 === "timelines") {
+                return await timelineView(host, auth, "/api/v1/"+["timelines", ...path].join("/"), afterquery, "/"+["timelines", ...path].join("/"));
+            }else if(path0 === "statuses") {
+                const postid = path.shift();
+                if(!postid) return error404();
+                const [postinfo, context] = await Promise.all([
+                    getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", postid)),
+                    getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", postid, "context")),
+                ]);
 
                 if('error' in postinfo) return error404("Error! "+postinfo.error);
                 if('error' in context) return error404("Error! "+context.error);
@@ -467,9 +456,33 @@ export function mastodon() {
                     display_style: "comments-view",
                 };
                 return res;
+            }else if(path0 === "accounts") {
+                const acc_id = path.shift();
+                if(!acc_id) return error404();
+                return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses", afterquery, "/accounts/"+acc_id);
             }
             return error404();
         },
     };
     return res;
+}
+
+async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, afterquery: string, web_path: string): Promise<Generic.Page> {
+        const thisurl = mkurl(host, api_path +"?"+ afterquery);
+        const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
+
+        if('error' in posts) return error404("Error! "+posts.error);
+
+        const last_post = posts[posts.length - 1];
+
+        const res: Generic.Page = {
+            header: genericHeader(),
+            replies: [...postArrayToReparentedTimeline(host, posts), ...last_post ? [{
+                kind: "load_more",
+                load_more: updateQuery("/"+host+web_path+"?"+afterquery, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
+                raw_value: "",
+            } as Generic.LoadMore] : []],
+            display_style: "comments-view",
+        };
+        return res;
 }
