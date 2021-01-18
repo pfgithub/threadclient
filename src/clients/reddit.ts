@@ -467,7 +467,7 @@ export function reddit() {
                     'Authorization': "Basic "+btoa(client_id+":"),
                     'Content-Type': "application/x-www-form-urlencoded",
                 },
-                body: query({grant_type: "authorization", code, redirect_uri}),
+                body: query({grant_type: "authorization_code", code, redirect_uri}),
             }).then(v => v.json());
         
             if(v.error) {
