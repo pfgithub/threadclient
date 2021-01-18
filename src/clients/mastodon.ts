@@ -17,6 +17,7 @@ type VideoMeta = { // video | gifv
 };
 
 declare namespace Mastodon {
+    type Emoji = never;
     type Media = {
         id: string,
         type: "video" | "image" | "gifv" | "todo",
@@ -32,11 +33,17 @@ declare namespace Mastodon {
             original: ImageMeta | VideoMeta,
             small: ImageMeta,
         },
-        mentions: never[],
-        tags: never[],
-        emojis: never[],
-        card: null,
-        poll: null,
+    };
+    type Poll = {
+        id: string,
+        expires_at: string,
+        expired: boolean,
+        multiple: boolean,
+        votes_count: number,
+        voters_count: null,
+        voted: boolean,
+        own_votes: number[] | null,
+        options: {title: string, votes_count: number}[],
     };
     type Post = {
         id: string,
@@ -46,7 +53,7 @@ declare namespace Mastodon {
         sensitive: boolean,
         spoiler_text: string,
         visibility: "public",
-        language: string,
+        language: string, // iso language code
         uri: string,
         url: string,
         replies_count: number,
@@ -65,6 +72,11 @@ declare namespace Mastodon {
             avatar_static: string,
         },
         media_attachments: Media[],
+        mentions: never[],
+        tags: never[],
+        emojis: Emoji[],
+        card: null,
+        poll: null | Poll,
     };
 }
 
@@ -189,9 +201,17 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             content: post.content,
             markdown_format: "mastodon",
 
-            attached_media: post.media_attachments.length === 0 ? undefined :
-                {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))}
-            ,
+            attached_media: [post.media_attachments.length === 0 ? undefined :
+                {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))},
+                post.poll ? {kind: "poll",
+                    choices: post.poll.options.map((opt, i) => ({name: opt.title, votes: opt.votes_count, id: "" + i})),
+                    total_votes: post.poll.votes_count,
+                    votable: post.poll.expired ? "Expired" : true,
+                    vote_data: post.poll.id,
+                    select_many: post.poll.multiple,
+                    your_votes: (post.poll.own_votes ?? []).map(ov => ({id: "" + ov})),
+                } : undefined,
+            ],
         },
         display_mode: {body: "visible", comments: "collapsed"},
         link: "/"+host+"/statuses/"+post.id,
@@ -206,7 +226,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                 },
             },
         },
-        flair: post.sensitive ? [{content_warning: true, elems: [{type: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
+        flair: post.sensitive || post.spoiler_text ? [{content_warning: post.sensitive, elems: [{type: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
         actions: [{kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")}],
         default_collapsed: false,
         raw_value: post,

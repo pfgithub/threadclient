@@ -9,7 +9,7 @@ export type BodyText = {
     kind: "text",
     content: string,
     markdown_format: "reddit" | "none" | "mastodon",
-    attached_media?: Body,
+    attached_media?: (Body | undefined)[],
 };
 export type RichTextSpan = {
     kind: "text",
@@ -44,6 +44,14 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "gallery",
     images: GalleryItem[],
+} | {
+    kind: "poll",
+    votable: true | string,
+    total_votes: number,
+    choices: {name: string, votes: number, id: string}[],
+    vote_data: string,
+    select_many: boolean,
+    your_votes: {id: string}[],
 } | {
     kind: "none",
 } | {

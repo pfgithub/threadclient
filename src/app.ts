@@ -614,9 +614,10 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
         const txt = renderText(client, body).insertBefore(txta, null);
         defer(() => txt.removeSelf());
 
-        if(body.attached_media) {
+        if(body.attached_media) for(let amitm of body.attached_media) {
+            if(!amitm) continue;
             const atma = el("div").adto(content);
-            const rbres = renderBody(client, body.attached_media, {autoplay: false, on: opts.on}, atma);
+            const rbres = renderBody(client, amitm, {autoplay: false, on: opts.on}, atma);
             defer(() => rbres.cleanup());
         }
     }else if(body.kind === "link") {
@@ -668,6 +669,16 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
         defer(() => child.removeSelf());
     }else if(body.kind === "richtext") {
         content.atxt("TODO richtext");
+    }else if(body.kind === "poll") {
+        const pollcontainer = el("ul").adto(content).clss("poll-container");
+        for(const choice of body.choices) {
+            const choicebtn = el("button").adto(el("li").adto(pollcontainer).clss("poll-choice-li")).clss("poll-choice");
+            choicebtn.atxt(choice.name + " ("+s(choice.votes, " Votes")+")");
+            choicebtn.onev("click", () => alert("TODO voting on polls"));
+        }
+        if(body.select_many) {
+            const submitbtn = el("button").adto(content);
+        }
     }else if(body.kind === "captioned_image") {
         el("div").adto(content).atxt(body.caption ?? "");
         el("img").adto(el("div").adto(content)).clss("preview-image").attr({src: body.url, width: "" + body.w, height: "" + body.h});
