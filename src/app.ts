@@ -694,13 +694,35 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
     return {cleanup: () => defer.cleanup()};
 };
 
-function clientListing(client: ThreadClient, listing: Generic.Thread) { return {insertBefore(parent: Node, before_once: Node | null) {
+function userProfileListing(client: ThreadClient, profile: Generic.Profile, frame: HTMLDivElement) {
+    const defer = makeDefer();
+
+    {
+        const bodyel = el("div").adto(frame);
+        renderBody(client, profile.bio, {autoplay: false, on: {hide: () => {}, show: () => {}}}, bodyel);
+    }
+
+    // TODO add all the buttons
+    // specifically ::
+    //   Follow, Mute, Block, Block Domain
+    // so I can use "Block Domain" on "botsin.space"
+
+    return {cleanup: () => defer.cleanup()};
+}
+
+function clientListing(client: ThreadClient, listing: Generic.ContentNode) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
 
     const frame = el("div").clss("post");
     defer(() => frame.remove());
     parent.insertBefore(frame, before_once);
+
+    if(listing.kind === "user-profile") {
+        const res = userProfileListing(client, listing, frame);
+        defer(() => res.cleanup());
+        return {removeSelf: () => defer.cleanup()};
+    }
 
     let content_voting_area: HTMLDivElement;
     let thumbnail_loc: HTMLButtonElement;

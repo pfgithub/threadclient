@@ -165,6 +165,7 @@ export function reddit() {
                     },
                     actions: [],
                     default_collapsed: false,
+                    raw_value: {},
                 },
                 replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined})),
                 display_style: "comments-view",
@@ -193,6 +194,7 @@ export function reddit() {
                 },
                 actions: [],
                 default_collapsed: false,
+                raw_value: {},
             },
             replies,
             display_style: "fullscreen-view",
@@ -445,6 +447,7 @@ export function reddit() {
                         },
                         actions: [],
                         default_collapsed: false,
+                        raw_value: {},
                     },
                     display_style: "comments-view",
                 };

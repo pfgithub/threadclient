@@ -1,7 +1,7 @@
 // types that clients return
 
 export type Page = {
-    header: Thread,
+    header: ContentNode,
     replies?: Node[],
     display_style: string,
 };
@@ -76,7 +76,7 @@ export type Thread = {
         comments: "visible" | "collapsed",
     },
     replies?: Node[],
-    raw_value?: any,
+    raw_value: any,
 
     link: string,
 
@@ -111,6 +111,14 @@ export type LoadMore = {
 
     raw_value: any,
 };
+export type Profile = {
+    kind: "user-profile",
+    username: string,
+    link: string,
+    bio: Body,
+    raw_value: any,
+};
+export type ContentNode = Thread | Profile;
 export type Node = Thread | LoadMore;
 export type RedditPoints = {
     your_vote?: 'up' | 'down',

@@ -45,6 +45,29 @@ declare namespace Mastodon {
         own_votes: number[] | null,
         options: {title: string, votes_count: number}[],
     };
+    type Account = {
+        id: string,
+        username: string,
+        acct: string,
+        display_name: string,
+        url: string,
+        bot: boolean,
+
+        followers_count: number,
+        following_count: number,
+
+        header: string,
+        header_static: string,
+
+        note: string,
+
+        last_status_at: string,
+        
+        fields: {name: string, value: string, verified_at: null}[],
+
+        avatar: string,
+        avatar_static: string,
+    };
     type Post = {
         id: string,
         created_at: string,
@@ -61,16 +84,7 @@ declare namespace Mastodon {
         favourites_count: number,
         content: string, // unsafe html
         // reblog: ?
-        account: {
-            id: string,
-            username: string,
-            acct: string,
-            display_name: string,
-            url: string,
-
-            avatar: string,
-            avatar_static: string,
-        },
+        account: Account,
         media_attachments: Media[],
         mentions: never[],
         tags: never[],
@@ -100,6 +114,7 @@ const error404 = (msg: string = "404 not found"): Generic.Page => ({
         },
         actions: [],
         default_collapsed: false,
+        raw_value: {},
     },
     display_style: "comments-view",
 });
@@ -115,6 +130,7 @@ const genericHeader = (): Generic.Thread => ({
     },
     actions: [],
     default_collapsed: false,
+    raw_value: {},
 });
 const mkurl = (host: string, ...bits: string[]): string => {
     return "https://"+host+"/"+bits.join("/");
@@ -220,6 +236,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             author: {
                 name: post.account.display_name + " (@"+post.account.acct+")",
                 link: "/"+host+"/accounts/"+post.account.id+"/@"+post.account.acct,
+                flair: post.account.bot ? [{elems: [{type: "text", text: "bot"}], content_warning: false}] : [],
                 pfp: {
                     url: post.account.avatar_static,
                     hover: post.account.avatar,
@@ -435,7 +452,7 @@ export function mastodon() {
             const path0 = path.shift();
             if(!path0) return error404();
             if(path0 === "timelines") {
-                return await timelineView(host, auth, "/api/v1/"+["timelines", ...path].join("/"), afterquery, "/"+["timelines", ...path].join("/"));
+                return await timelineView(host, auth, "/api/v1/"+["timelines", ...path].join("/")+"?"+afterquery, "/"+["timelines", ...path].join("/")+"?"+afterquery, genericHeader());
             }else if(path0 === "statuses") {
                 const postid = path.shift();
                 if(!postid) return error404();
@@ -459,7 +476,20 @@ export function mastodon() {
             }else if(path0 === "accounts") {
                 const acc_id = path.shift();
                 if(!acc_id) return error404();
-                return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses", afterquery, "/accounts/"+acc_id);
+                const account_info = await getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id));
+                if('error' in account_info) return error404("Error! "+account_info.error);
+                console.log(account_info);
+                return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
+                    kind: "user-profile",
+                    username: account_info.display_name,
+                    bio: {
+                        kind: "text",
+                        content: account_info.note,
+                        markdown_format: "mastodon",
+                    },
+                    link: "/"+host+"/accounts/"+acc_id,
+                    raw_value: account_info,
+                });
             }
             return error404();
         },
@@ -467,8 +497,8 @@ export function mastodon() {
     return res;
 }
 
-async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, afterquery: string, web_path: string): Promise<Generic.Page> {
-        const thisurl = mkurl(host, api_path +"?"+ afterquery);
+async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode): Promise<Generic.Page> {
+        const thisurl = mkurl(host, api_path);
         const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
 
         if('error' in posts) return error404("Error! "+posts.error);
@@ -476,10 +506,10 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
         const last_post = posts[posts.length - 1];
 
         const res: Generic.Page = {
-            header: genericHeader(),
+            header: header,
             replies: [...postArrayToReparentedTimeline(host, posts), ...last_post ? [{
                 kind: "load_more",
-                load_more: updateQuery("/"+host+web_path+"?"+afterquery, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
+                load_more: updateQuery("/"+host+web_path, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
                 raw_value: "",
             } as Generic.LoadMore] : []],
             display_style: "comments-view",
