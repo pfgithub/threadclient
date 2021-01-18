@@ -1,4 +1,4 @@
-import { query } from "../app.js";
+import { escapeHTML, query } from "../app.js";
 import * as Generic from "../types/generic.js";
 import {ThreadClient} from "./base.js";
 
@@ -123,6 +123,30 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string): Promise<
     }catch(e) {
         return {error: "Failed to load! "+e.toString()};
     }
+}
+const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Generic.Thread[] => {
+    return posts.map(post => {
+        let thread = postToThread(host, post);
+        if(post.in_reply_to_id) {
+            const parentlink = "/"+host+"/statuses/"+post.in_reply_to_id;
+            thread = {
+                kind: "thread",
+                body: {
+                    kind: "text",
+                    content: "<a href=\""+escapeHTML(parentlink)+"\">View Parent</a>",
+                    markdown_format: "mastodon",
+                },
+                display_mode: {body: "visible", comments: "collapsed"},
+                link: parentlink,
+                layout: "mastodon-post",
+                default_collapsed: false,
+                actions: [],
+                raw_value: parentlink,
+                replies: [thread],
+            };
+        }
+        return thread;
+    });
 }
 const postArrayToReparentedThread = (host: string, root: Mastodon.Post, posts: Mastodon.Post[]): Generic.Thread => {
     const root_thread = postToThread(host, root);
@@ -397,7 +421,7 @@ export function mastodon() {
 
                 const res: Generic.Page = {
                     header: genericHeader(),
-                    replies: [...posts.map(post => postToThread(host, post)), ...last_post ? [{
+                    replies: [...postArrayToReparentedTimeline(host, posts), ...last_post ? [{
                         kind: "load_more",
                         load_more: updateQuery("/"+host+"/"+urlbits, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
                         raw_value: "",

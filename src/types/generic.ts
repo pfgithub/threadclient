@@ -78,7 +78,7 @@ export type Thread = {
         text: string,
     },
 
-    info: {
+    info?: {
         time: number,
         author: {
             name: string, link: string, flair?: Flair[],

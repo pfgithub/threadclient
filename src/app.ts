@@ -38,7 +38,7 @@ function assertNever(content: never): never {
     throw new Error("is not never");
 }
 
-function escapeHTML(html: string) {
+export function escapeHTML(html: string) {
     return html.replace(/[^a-zA-Z0-9. ]/giu, c => "&#"+c.codePointAt(0)+";");
     // might be a bit &#…; heavy for other languages
 }
@@ -817,7 +817,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
         if(state.vote_loading) content_voting_area.clss("voted-loading");
     };
 
-    const author_color = getRandomColor(seededRandom(listing.info.author.name));
+    const author_color = getRandomColor(seededRandom(listing.info?.author.name ?? "no"));
     const author_color_dark = darkenColor("foreground", author_color);
 
     const scoreToString = (score: number) => {
@@ -825,7 +825,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
         if(score < 100_000) return (score / 1000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
         return (score / 1000 |0) + "k";
     };
-    if(listing.layout === "reddit-post") {
+    if(listing.layout === "reddit-post" && listing.info) {
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
@@ -870,7 +870,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread) { return {
                 else dovote("down", state, update, rpts);
             };
         }
-    }else if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
+    }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
             .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
             .clss("user-link")
