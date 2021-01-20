@@ -82,6 +82,7 @@ declare namespace Mastodon {
         replies_count: number,
         reblogs_count: number,
         favourites_count: number,
+        favourited: boolean,
         content: string, // unsafe html
         // reblog: ?
         account: Account,
@@ -135,9 +136,10 @@ const genericHeader = (): Generic.Thread => ({
 const mkurl = (host: string, ...bits: string[]): string => {
     return "https://"+host+"/"+bits.join("/");
 }
-const getResult = async<T>(auth: TokenResult | undefined, url: string): Promise<T | {error: string}> => {
+const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "GET" | "POST" = "GET"): Promise<T | {error: string}> => {
     try {
         const [status, posts] = await fetch(url, {
+            method,
             headers: {
                 "Accept": "application/json",
                 ...auth ? {
@@ -244,7 +246,19 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             },
         },
         flair: post.sensitive || post.spoiler_text ? [{content_warning: post.sensitive, elems: [{type: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
-        actions: [{kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")}],
+        actions: [
+            {kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")},
+            {kind: "counter",
+                label: "Favourite",
+                incremented_label: "Favourited",
+
+                count_excl_you: post.favourites_count + (post.favourited ? -1 : 0),
+                you: post.favourited ? "increment" : undefined,
+
+                increment: encodeAction({kind: "favourite", direction: "", status: post.id, host}),
+                reset: encodeAction({kind: "favourite", direction: "un", status: post.id, host}),
+            },
+        ],
         default_collapsed: false,
         raw_value: post,
         replies: opts.replies,
@@ -319,6 +333,13 @@ const lsitems = {
     client_creds: lsgetter<TokenResult>((host: string) => "mastodon-client-secret-"+host),
     client_did_error: lsgetter<boolean>((host: string) => "mastodon-client-did-error-"+host),
 };
+type Action = {kind: "favourite", direction: "" | "un", status: string, host: string};
+function encodeAction(action: Action): string {
+    return JSON.stringify(action);
+}
+function decodeAction(action: string): Action {
+    return JSON.parse(action);
+}
 export function mastodon() {
     const isLoggedIn = (host: string) => {
         return !!lsitems.token.get(host);
@@ -493,8 +514,25 @@ export function mastodon() {
             }
             return error404();
         },
+        async act(action_raw: string): Promise<void> {
+            const action = decodeAction(action_raw);
+            if(action.kind === "favourite") {
+                const auth = await getAuth(action.host);
+                const resp = await getResult<Mastodon.Post>(auth, mkurl(action.host, "api/v1/statuses/"+action.status+"/"+action.direction+"favourite"), "POST");
+                if('error' in resp) {
+                    console.log(resp);
+                    throw new Error("Got error: "+resp.error);
+                }
+                return;
+            }else assertUnreachable(action.kind);
+        },
     };
     return res;
+}
+
+function assertUnreachable(value: never): never {
+    console.log(value);
+    throw new Error("Expected unreachable: "+value);
 }
 
 async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode): Promise<Generic.Page> {

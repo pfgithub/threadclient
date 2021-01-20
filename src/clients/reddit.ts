@@ -543,6 +543,9 @@ export function reddit() {
                 throw new Error("got status "+status);
             }
         },
+        async act(action: string): Promise<void> {
+            throw new Error("TODO act");
+        },
     };
     return res;
 }

@@ -145,11 +145,30 @@ export type Flair = {
     elems: RichTextItem[],
     content_warning: boolean,
 };
+export type ActionLabel = string;
 export type Action = {
     kind: "link",
     url: string,
-    text: string,
+    text: ActionLabel,
 } | {
     kind: "reply",
-    text: string,
+    text: ActionLabel,
+    // there will be a function to generate post previews given markdown you typed
+    // so this doesn't need to know the markdown format (maybe it should know it
+    // though for syntax highlighting or editor features or whatever)
+} | {
+    kind: "counter",
+
+    label: ActionLabel,
+    incremented_label: ActionLabel,
+    decremented_label?: ActionLabel,
+
+    count_excl_you: number | "hidden",
+    you: "increment" | "decrement" | undefined,
+
+    increment: string,
+    reset: string,
+    decrement?: string,
+
+    percent?: number,
 };

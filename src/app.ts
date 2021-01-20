@@ -1039,7 +1039,60 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
         content_buttons_line.atxt(" ");
         if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
         else if(action.kind === "reply") el("span").atxt("Reply").adto(content_buttons_line);
-        else assertNever(action);
+        else if(action.kind === "counter") {
+            const button = linkLikeButton().adto(content_buttons_line);
+            const btxt = txt("…").adto(button);
+
+            const state = {loading: false, pt_count: action.count_excl_you === "hidden" ? null : action.count_excl_you, your_vote: action.you};
+
+            if(action.decrement) {
+                content_buttons_line.atxt(" ");
+                linkLikeButton().atxt("⯆").adto(content_buttons_line).onev("click", () => alert("TODO down"));
+            }
+
+            const getPointsText = () => {
+                if(state.pt_count == null) return ["—", "[score hidden]"];
+                const score_mut = state.pt_count + (state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0);
+                return [scoreToString(score_mut), score_mut.toLocaleString()] as const;
+            };
+
+            const update = () => {
+                const [pt_text, pt_raw] = getPointsText();
+                btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label, "": action.label}[state.your_vote ?? ""] + " ("+pt_text+")"
+                button.title = pt_raw;
+                button.classList.remove("counted-increment", "counted-decrement", "counted-reset");
+                button.classList.add("counted-"+(state.your_vote ?? "reset"));
+                button.classList.toggle("counted-loading", state.loading);
+                button.disabled = state.loading;
+            };
+            update();
+
+            const doAct = (vote: undefined | "increment" | "decrement") => {
+                const prev_vote = state.your_vote;
+                state.your_vote = vote;
+                state.loading = true;
+                update();
+                client.act(action[vote ?? "reset"] ?? "error").then(() => {
+                    state.your_vote = vote;
+                    state.loading = false;
+                    update();
+                }).catch(e => {
+                    state.your_vote = prev_vote;
+                    state.loading = false;
+                    update();
+                    console.log(e);
+                    alert("Got error: "+e)
+                });
+            }
+
+            button.onev("click", e => {
+                if(state.your_vote == "increment") {
+                    doAct(undefined);
+                }else{
+                    doAct("increment");
+                }
+            });
+        }else assertNever(action);
     }
 
     content_buttons_line.atxt(" ");
@@ -1075,6 +1128,14 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
 
     return {removeSelf: () => defer.cleanup()};
 } } }
+
+function swtch<T, U>(value: T, ...cases: [T, () => U][]): U {
+    return cases.find(cas => cas[0] === value)![1]();
+}
+
+function linkLikeButton() {
+    return el("button").attr({draggable: "true"});
+}
 
 // TODO I guess support loading more in places other than the end of the list
 // that means :: addChildren needs to have a second before_once argument and this needs to have a before_once

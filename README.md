@@ -34,29 +34,48 @@ TODO: a websocket or something to get the client to autoreload css on save. also
 
 ## todo
 
--   done ~~upvotes and vote percentages~~
--   post duplicates ("discussions in x other subs")
--   replies + reply preview
--   posts + post preview
--   done ~~dark mode for people without darkreader~~
--   wipish ~~threading~~ (the reason I made this in the first place)
--   full mobile support maybe, might not be worth it
--   user profile pages, defaulting to the overview tab
--   impossible ~~polls probably I guess~~ (requires gql.reddit which has to be proxied and needs a session)
--   multiple accounts
--   wip ~~mastodon to make sure the architecture actually works for multiple platforms~~
--   done ~~improve how links work when returned from a client~~
--   wiki pages
--   the refresh button
--   more navigation buttons eg homepage link
--   sidebars and stuff (that contain information about the subreddit, not the post)
--   done ~~markdown parser~~
--   a button to switch to markdown source view
--   use onhide in more places, eg when collapsing a comment or navigating away
--   done ~~link previews within post bodies and comments~~
--   mod tools and stuff
--   notifications
--   infinite things there are infinite things to do
+all todo:
+
+-   [x] dark mode for people without darkreader
+-   [ ] the refresh button
+-   [ ] use onhide in more places, eg when collapsing a comment or navigating away
+-   [ ] proper, non-hacky way to auto disable darkreader extension
+-   [ ] full mobile support maybe, might not be worth it
+-   [ ] a button to switch to markdown source view
+-   [ ] live threads eg : reddit live threads and : mastodon timeline websockets
+-   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
+
+reddit todo:
+
+-   [x] upvotes and vote percentages
+-   [x] threading
+-   [x] markdown parser
+-   [x] link previews within post bodies and comments
+-   [ ] post duplicates ("discussions in x other subs")
+-   [ ] replies + reply preview
+-   [ ] posts + post preview
+-   [ ] user profile pages, defaulting to the overview tab
+-   [ ] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
+-   [ ] wiki pages + wiki markdown parser (easy to add)
+-   [ ] more navigation buttons eg homepage link
+-   [ ] sidebars and stuff (that contain information about the subreddit, not the post)
+-   [ ] mod tools and stuff + mod messages also + post removal tools that have options to use the subreddit things like comment distinguished stickied
+-   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
+-   [ ] infinite things there are infinite things to do
+
+mastodon todo:
+
+-   [ ] language support
+-   [ ] image alt text (+ hover text) rather than visible caption
+-   [ ] user profiles including follow and block buttons and stuff
+-   [ ] post action buttons like favourite and stuff
+-   [ ] navigating to specific users by `@`
+-   [ ] sites that don't have public access to `/api/v1/accounts` but do have public access to `/@user` accept:json
+-   [ ] posting I guess
+-   [ ] voting in polls (+ poll ui improvements)
+-   [ ] fix that "view parent" thing that looks bad
+-   [ ] improved url paths
+-   [ ] emojis. why did they make emojis some weird text replacement thing instead of … including them in the html that already has to be decoded, or for usernames eg rich text like reddit flairs
 
 ## other
 
