@@ -117,6 +117,7 @@ export type Profile = {
     link: string,
     bio: Body,
     raw_value: any,
+    actions: Action[],
 };
 export type ContentNode = Thread | Profile;
 export type Node = Thread | LoadMore;

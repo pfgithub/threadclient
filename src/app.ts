@@ -702,12 +702,87 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
         renderBody(client, profile.bio, {autoplay: false, on: {hide: () => {}, show: () => {}}}, bodyel);
     }
 
+    const action_container = el("div").adto(frame);
+    for(const action of profile.actions) {
+        action_container.atxt(" ");
+        renderAction(client, action, action_container);
+    }
+    action_container.atxt(" ");
+    linkLikeButton().adto(action_container).atxt("View").onev("click", () => {
+        console.log(profile);
+    })
+
     // TODO add all the buttons
     // specifically ::
     //   Follow, Mute, Block, Block Domain
     // so I can use "Block Domain" on "botsin.space"
 
     return {cleanup: () => defer.cleanup()};
+}
+
+const scoreToString = (score: number) => {
+    if(score < 10_000) return "" + score;
+    if(score < 100_000) return (score / 1000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
+    return (score / 1000 |0) + "k";
+};
+
+function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node) {
+    if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
+    else if(action.kind === "reply") el("span").atxt("Reply").adto(content_buttons_line);
+    else if(action.kind === "counter") {
+        const button = linkLikeButton().adto(content_buttons_line);
+        const btxt = txt("…").adto(button);
+
+        const state = {loading: false, pt_count: action.count_excl_you === "hidden" ? null : action.count_excl_you, your_vote: action.you};
+
+        if(action.decrement) {
+            content_buttons_line.atxt(" ");
+            linkLikeButton().atxt("⯆").adto(content_buttons_line).onev("click", () => alert("TODO down"));
+        }
+
+        const getPointsText = () => {
+            if(state.pt_count == null) return ["—", "[score hidden]"];
+            const score_mut = state.pt_count + (state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0);
+            return [scoreToString(score_mut), score_mut.toLocaleString()] as const;
+        };
+
+        const update = () => {
+            const [pt_text, pt_raw] = getPointsText();
+            btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label, "": action.label}[state.your_vote ?? ""] + " ("+pt_text+")"
+            button.title = pt_raw;
+            button.classList.remove("counted-increment", "counted-decrement", "counted-reset");
+            button.classList.add("counted-"+(state.your_vote ?? "reset"));
+            button.classList.toggle("counted-loading", state.loading);
+            button.disabled = state.loading;
+        };
+        update();
+
+        const doAct = (vote: undefined | "increment" | "decrement") => {
+            const prev_vote = state.your_vote;
+            state.your_vote = vote;
+            state.loading = true;
+            update();
+            client.act(action[vote ?? "reset"] ?? "error").then(() => {
+                state.your_vote = vote;
+                state.loading = false;
+                update();
+            }).catch(e => {
+                state.your_vote = prev_vote;
+                state.loading = false;
+                update();
+                console.log(e);
+                alert("Got error: "+e)
+            });
+        }
+
+        button.onev("click", e => {
+            if(state.your_vote == "increment") {
+                doAct(undefined);
+            }else{
+                doAct("increment");
+            }
+        });
+    }else assertNever(action);
 }
 
 function clientListing(client: ThreadClient, listing: Generic.ContentNode) { return {insertBefore(parent: Node, before_once: Node | null) {
@@ -853,11 +928,6 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
     const author_color = getRandomColor(seededRandom(listing.info?.author.name ?? "no"));
     const author_color_dark = darkenColor("foreground", author_color);
 
-    const scoreToString = (score: number) => {
-        if(score < 10_000) return "" + score;
-        if(score < 100_000) return (score / 1000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
-        return (score / 1000 |0) + "k";
-    };
     if(listing.layout === "reddit-post" && listing.info) {
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
@@ -1037,62 +1107,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
 
     for(const action of listing.actions) {
         content_buttons_line.atxt(" ");
-        if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
-        else if(action.kind === "reply") el("span").atxt("Reply").adto(content_buttons_line);
-        else if(action.kind === "counter") {
-            const button = linkLikeButton().adto(content_buttons_line);
-            const btxt = txt("…").adto(button);
-
-            const state = {loading: false, pt_count: action.count_excl_you === "hidden" ? null : action.count_excl_you, your_vote: action.you};
-
-            if(action.decrement) {
-                content_buttons_line.atxt(" ");
-                linkLikeButton().atxt("⯆").adto(content_buttons_line).onev("click", () => alert("TODO down"));
-            }
-
-            const getPointsText = () => {
-                if(state.pt_count == null) return ["—", "[score hidden]"];
-                const score_mut = state.pt_count + (state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0);
-                return [scoreToString(score_mut), score_mut.toLocaleString()] as const;
-            };
-
-            const update = () => {
-                const [pt_text, pt_raw] = getPointsText();
-                btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label, "": action.label}[state.your_vote ?? ""] + " ("+pt_text+")"
-                button.title = pt_raw;
-                button.classList.remove("counted-increment", "counted-decrement", "counted-reset");
-                button.classList.add("counted-"+(state.your_vote ?? "reset"));
-                button.classList.toggle("counted-loading", state.loading);
-                button.disabled = state.loading;
-            };
-            update();
-
-            const doAct = (vote: undefined | "increment" | "decrement") => {
-                const prev_vote = state.your_vote;
-                state.your_vote = vote;
-                state.loading = true;
-                update();
-                client.act(action[vote ?? "reset"] ?? "error").then(() => {
-                    state.your_vote = vote;
-                    state.loading = false;
-                    update();
-                }).catch(e => {
-                    state.your_vote = prev_vote;
-                    state.loading = false;
-                    update();
-                    console.log(e);
-                    alert("Got error: "+e)
-                });
-            }
-
-            button.onev("click", e => {
-                if(state.your_vote == "increment") {
-                    doAct(undefined);
-                }else{
-                    doAct("increment");
-                }
-            });
-        }else assertNever(action);
+        renderAction(client, action, content_buttons_line);
     }
 
     content_buttons_line.atxt(" ");

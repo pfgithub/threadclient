@@ -42,7 +42,7 @@ all todo:
 -   [ ] proper, non-hacky way to auto disable darkreader extension
 -   [ ] full mobile support maybe, might not be worth it
 -   [ ] a button to switch to markdown source view
--   [ ] live threads eg : reddit live threads and : mastodon timeline websockets
+-   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 
 reddit todo:

@@ -333,54 +333,56 @@ const lsitems = {
     client_creds: lsgetter<TokenResult>((host: string) => "mastodon-client-secret-"+host),
     client_did_error: lsgetter<boolean>((host: string) => "mastodon-client-did-error-"+host),
 };
-type Action = {kind: "favourite", direction: "" | "un", status: string, host: string};
+type Action =
+    | {kind: "favourite", direction: "" | "un", status: string, host: string}
+    | {kind: "follow", direction: "" | "un", account_id: string, host: string}
+;
 function encodeAction(action: Action): string {
     return JSON.stringify(action);
 }
 function decodeAction(action: string): Action {
     return JSON.parse(action);
 }
+const isLoggedIn = (host: string) => {
+    return !!lsitems.token.get(host);
+};
+const getAuth = async (host: string): Promise<undefined | TokenResult> => {
+    if(!host) return undefined;
+    const authv = lsitems.token.get(host) ?? lsitems.client_creds.get(host);
+    if(!authv) {
+        const appraw = lsitems.app.get(host);
+        if(!appraw || lsitems.client_did_error.get(host)) return undefined;
+
+        const {data: app} = appraw;
+
+        const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
+            method: "post", mode: "cors", credentials: "omit",
+            headers: {
+                'Content-Type': "application/json",
+                'Accept': "application/json",
+            },
+            body: JSON.stringify({
+                client_id: app.client_id,
+                client_secret: app.client_secret,
+                redirect_uri: redirectURI(host),
+                grant_type: "client_credentials",
+            }),
+        }).then(v => v.json());
+
+        if('error' in resv) {
+            lsitems.client_did_error.set(host, true);
+            console.log(resv);
+            alert("failed to get application token. will not try again. :: "+resv.error);
+            return undefined;
+        }
+
+        lsitems.client_creds.set(host, resv);
+
+        return resv;
+    };
+    return authv;
+};
 export function mastodon() {
-    const isLoggedIn = (host: string) => {
-        return !!lsitems.token.get(host);
-    };
-    const getAuth = async (host: string): Promise<undefined | TokenResult> => {
-        if(!host) return undefined;
-        const authv = lsitems.token.get(host) ?? lsitems.client_creds.get(host);
-        if(!authv) {
-            const appraw = lsitems.app.get(host);
-            if(!appraw || lsitems.client_did_error.get(host)) return undefined;
-
-            const {data: app} = appraw;
-
-            const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
-                method: "post", mode: "cors", credentials: "omit",
-                headers: {
-                    'Content-Type': "application/json",
-                    'Accept': "application/json",
-                },
-                body: JSON.stringify({
-                    client_id: app.client_id,
-                    client_secret: app.client_secret,
-                    redirect_uri: redirectURI(host),
-                    grant_type: "client_credentials",
-                }),
-            }).then(v => v.json());
-
-            if('error' in resv) {
-                lsitems.client_did_error.set(host, true);
-                console.log(resv);
-                alert("failed to get application token. will not try again. :: "+resv.error);
-                return undefined;
-            }
-
-            lsitems.client_creds.set(host, resv);
-
-            return resv;
-        };
-        return authv;
-    };
-
     const res: ThreadClient = {
         id: "mastodon",
         links: () => [],
@@ -499,7 +501,6 @@ export function mastodon() {
                 if(!acc_id) return error404();
                 const account_info = await getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id));
                 if('error' in account_info) return error404("Error! "+account_info.error);
-                console.log(account_info);
                 return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
                     kind: "user-profile",
                     username: account_info.display_name,
@@ -508,6 +509,16 @@ export function mastodon() {
                         content: account_info.note,
                         markdown_format: "mastodon",
                     },
+                    actions: [{
+                        kind: "counter",
+                        label: "Follow",
+                        incremented_label: "Following",
+                        count_excl_you: account_info.followers_count,
+                        you: undefined, // uuh how do I not know if I'm following or not…?
+
+                        increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),
+                        reset: encodeAction({kind: "follow", account_id: account_info.id, host, direction: "un"}),
+                    }],
                     link: "/"+host+"/accounts/"+acc_id,
                     raw_value: account_info,
                 });
@@ -517,17 +528,23 @@ export function mastodon() {
         async act(action_raw: string): Promise<void> {
             const action = decodeAction(action_raw);
             if(action.kind === "favourite") {
-                const auth = await getAuth(action.host);
-                const resp = await getResult<Mastodon.Post>(auth, mkurl(action.host, "api/v1/statuses/"+action.status+"/"+action.direction+"favourite"), "POST");
-                if('error' in resp) {
-                    console.log(resp);
-                    throw new Error("Got error: "+resp.error);
-                }
-                return;
-            }else assertUnreachable(action.kind);
+                await performBasicPostAction(action.host, "api/v1/statuses/"+action.status+"/"+action.direction+"favourite");
+            }else if(action.kind === "follow") {
+                await performBasicPostAction(action.host, "api/v1/accounts/"+action.account_id+"/"+action.direction+"follow");
+            }else assertUnreachable(action);
         },
     };
     return res;
+}
+
+async function performBasicPostAction(host: string, url: string): Promise<void> {
+    const auth = await getAuth(host);
+    const resp = await getResult<Mastodon.Post>(auth, mkurl(host, url), "POST");
+    if('error' in resp) {
+        console.log(resp);
+        throw new Error("Got error: "+resp.error);
+    }
+    return;
 }
 
 function assertUnreachable(value: never): never {
