@@ -534,7 +534,10 @@ export function mastodon() {
                         kind: "counter",
                         label: "Follow",
                         incremented_label: "Following",
-                        count_excl_you: account_info.followers_count + (relation?.following ? -1 : 0),
+                        count_excl_you: account_info.followers_count === -1
+                            ? "hidden"
+                            : account_info.followers_count + (relation?.following ? -1 : 0)
+                        ,
                         you: relation?.following ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
 
                         increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),
