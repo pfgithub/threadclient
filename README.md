@@ -65,10 +65,13 @@ reddit todo:
 
 mastodon todo:
 
+-   [x] post action buttons like favourite and stuff
+-   [ ] option to mute user, block user, or block domain on user profiles
+-   [ ] see if is reblog/boost
+-   [ ] user profile fields
 -   [ ] language support
 -   [ ] image alt text (+ hover text) rather than visible caption
 -   [ ] user profiles including follow and block buttons and stuff
--   [ ] post action buttons like favourite and stuff
 -   [ ] navigating to specific users by `@`
 -   [ ] sites that don't have public access to `/api/v1/accounts` but do have public access to `/@user` accept:json
 -   [ ] posting I guess

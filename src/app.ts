@@ -708,7 +708,7 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
         renderAction(client, action, action_container);
     }
     action_container.atxt(" ");
-    linkLikeButton().adto(action_container).atxt("View").onev("click", () => {
+    linkLikeButton().adto(action_container).atxt("Code").onev("click", () => {
         console.log(profile);
     })
 
