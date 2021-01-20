@@ -159,6 +159,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     if(link.startsWith("https://i.redd.it/")
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
+        || path.endsWith(".webp")
     ) return () => {
         let img = el("img").clss("preview-image").attr({src: link});
         // a resizable image can be made like this
