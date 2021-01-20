@@ -68,6 +68,19 @@ declare namespace Mastodon {
         avatar: string,
         avatar_static: string,
     };
+    type AccountRelation = {
+        id: string,
+        following: boolean,
+        showing_reblogs: boolean,
+        notifying: boolean,
+        followed_by: boolean,
+        blocking: boolean,
+        muting: boolean,
+        muting_notifications: boolean,
+        requested: boolean,
+        endorsed: boolean,
+        note: string,
+    };
     type Post = {
         id: string,
         created_at: string,
@@ -499,8 +512,16 @@ export function mastodon() {
             }else if(path0 === "accounts") {
                 const acc_id = path.shift();
                 if(!acc_id) return error404();
-                const account_info = await getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id));
+                const [account_info, account_relations] = await Promise.all([
+                    getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id)),
+                    getResult<Mastodon.AccountRelation[]>(auth, mkurl(host, "api/v1/accounts/relationships/?id[]="+acc_id)),
+                ]);
+                
                 if('error' in account_info) return error404("Error! "+account_info.error);
+                if('error' in account_relations) console.log(account_relations);
+                
+                const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
+
                 return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
                     kind: "user-profile",
                     username: account_info.display_name,
@@ -513,8 +534,8 @@ export function mastodon() {
                         kind: "counter",
                         label: "Follow",
                         incremented_label: "Following",
-                        count_excl_you: account_info.followers_count,
-                        you: undefined, // uuh how do I not know if I'm following or not…?
+                        count_excl_you: account_info.followers_count + (relation?.following ? -1 : 0),
+                        you: relation?.following ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
 
                         increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),
                         reset: encodeAction({kind: "follow", account_id: account_info.id, host, direction: "un"}),
