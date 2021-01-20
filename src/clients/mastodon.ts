@@ -168,27 +168,38 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
     }
 }
 const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Generic.Thread[] => {
-    return posts.map(post => {
+    let nextv: Generic.Thread | undefined;
+    return posts.flatMap((post, i) => {
         let thread = postToThread(host, post);
-        if(post.in_reply_to_id) {
-            const parentlink = "/"+host+"/statuses/"+post.in_reply_to_id;
-            thread = {
-                kind: "thread",
-                body: {
-                    kind: "text",
-                    content: "<a href=\""+escapeHTML(parentlink)+"\">View Parent</a>",
-                    markdown_format: "mastodon",
-                },
-                display_mode: {body: "visible", comments: "collapsed"},
-                link: parentlink,
-                layout: "reddit-post",
-                default_collapsed: false,
-                actions: [],
-                raw_value: parentlink,
-                replies: [thread],
-            };
+        if(nextv) {
+            if(!thread.replies) thread.replies = [];
+            thread.replies.push(nextv);
+            nextv = undefined;
         }
-        return thread;
+        if(post.in_reply_to_id) {
+            if(posts[i + 1]?.id == post.in_reply_to_id) {
+                nextv = thread;
+                return [];
+            }else{
+                const parentlink = "/"+host+"/statuses/"+post.in_reply_to_id;
+                thread = {
+                    kind: "thread",
+                    body: {
+                        kind: "text",
+                        content: "<a href=\""+escapeHTML(parentlink)+"\">View Parent</a>",
+                        markdown_format: "mastodon",
+                    },
+                    display_mode: {body: "visible", comments: "collapsed"},
+                    link: parentlink,
+                    layout: "reddit-post",
+                    default_collapsed: false,
+                    actions: [],
+                    raw_value: parentlink,
+                    replies: [thread],
+                };
+            }
+        }
+        return [thread];
     });
 }
 const postArrayToReparentedThread = (host: string, root: Mastodon.Post, posts: Mastodon.Post[]): Generic.Thread => {
