@@ -100,7 +100,7 @@ function isModifiedEvent(event: MouseEvent) {
 
 function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseEvent) => void} = {}) {
     // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
-    if(href.startsWith("/")) {
+    if(href.startsWith("/") && client_id) {
         href = "/"+client_id+href;
     }
     if(!href.startsWith("http") && !href.startsWith("/")) {
@@ -1321,6 +1321,17 @@ function navigate({path, replace}: {path: string, replace?: boolean}) {
     }
 }
 
+function homePage(res: HTMLDivElement): NavigationEntryNode {
+    linkButton("", "/reddit").atxt("Reddit").adto(res);
+    res.atxt(" · ");
+    linkButton("", "/mastodon").atxt("Mastodon").adto(res);
+    return {removeSelf: () => res.remove(), hide: () => {
+        if(res.style.display !== "none") res.style.display = "none";
+    }, show: () => {
+        if(res.style.display !== "") res.style.display = "";
+    }};
+}
+
 type URLLike = {search: string, pathname: string};
 
 let navigate_event_handlers: ((url: URLLike) => void)[] = [];
@@ -1357,12 +1368,12 @@ function onNavigate(to_index: number, url: URLLike) {
 
     console.log(path);
 
-    if(!path0) {
-        navigate({path: "/reddit", replace: true});
-        return;
-    }
-
     const node: NavigationEntryNode = (() => {
+        if(!path0) {
+            const res = el("div").adto(document.body);
+            return homePage(res);
+        }
+
         if(path0 === "login"){
             const client = getClient(path[0]);
             if(!client) {
