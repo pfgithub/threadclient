@@ -106,7 +106,6 @@ export type Info = {
         },
     },
     in?: {name: string, link: string},
-    reddit_points?: RedditPoints,
     reblogged_by?: RebloggedBy,
 };
 export type RebloggedBy = Info;
@@ -127,17 +126,6 @@ export type Profile = {
 };
 export type ContentNode = Thread | Profile;
 export type Node = Thread | LoadMore;
-export type RedditPoints = {
-    your_vote?: 'up' | 'down',
-    count?: number,
-    percent?: number,
-    vote: {error: string} | {
-        error: undefined,
-        up: string,
-        down: string,
-        reset: string,
-    }
-};
 export type RichTextItem = {
     type: "text",
     text: string,
@@ -163,8 +151,11 @@ export type Action = {
     // there will be a function to generate post previews given markdown you typed
     // so this doesn't need to know the markdown format (maybe it should know it
     // though for syntax highlighting or editor features or whatever)
-} | {
+} | CounterAction;
+export type CounterAction = {
     kind: "counter",
+
+    special?: "reddit-points",
 
     label: ActionLabel,
     incremented_label: ActionLabel,
@@ -173,9 +164,11 @@ export type Action = {
     count_excl_you: number | "hidden",
     you: "increment" | "decrement" | undefined,
 
-    increment: string,
-    reset: string,
-    decrement?: string,
+    actions: {
+        increment: string,
+        reset: string,
+        decrement?: string,
+    } | {error: string},
 
     percent?: number,
 };

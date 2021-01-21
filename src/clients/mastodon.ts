@@ -290,8 +290,11 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                 count_excl_you: post.favourites_count + (post.favourited ? -1 : 0),
                 you: post.favourited ? "increment" : undefined,
 
-                increment: encodeAction({kind: "favourite", direction: "", status: post.id, host}),
-                reset: encodeAction({kind: "favourite", direction: "un", status: post.id, host}),
+                actions: {
+                    error: undefined,
+                    increment: encodeAction({kind: "favourite", direction: "", status: post.id, host}),
+                    reset: encodeAction({kind: "favourite", direction: "un", status: post.id, host}),
+                },
             },
         ],
         default_collapsed: false,
@@ -565,8 +568,10 @@ export function mastodon() {
                         ,
                         you: relation?.following ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
 
-                        increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),
-                        reset: encodeAction({kind: "follow", account_id: account_info.id, host, direction: "un"}),
+                        actions: {
+                            increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),
+                            reset: encodeAction({kind: "follow", account_id: account_info.id, host, direction: "un"}),
+                        },
                     }],
                     link: "/"+host+"/accounts/"+acc_id,
                     raw_value: account_info,

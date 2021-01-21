@@ -28,6 +28,13 @@ function flairToGenericFlair(text_color: "light" | "dark", background_color: str
 }];
 }
 
+function encodeAction(act: "vote", query: string): string {
+    return JSON.stringify({kind: act, query});
+}
+function decodeAction(act: string): {kind: "vote", query: string} | {kind: "-"} {
+    return JSON.parse(act);
+}
+
 export function reddit() {
     const isLoggedIn = () => {
         return !!localStorage.getItem("reddit-secret");
@@ -200,18 +207,25 @@ export function reddit() {
             display_style: "fullscreen-view",
         };
     };
-    const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Generic.RedditPoints => {
+    const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Generic.Action => {
         // not sure what rank is for
         const vote_data = {id: listing.name, rank: "2"};
         return {
-            your_vote: listing.likes === true ? "up" : listing.likes === false ? "down" : undefined,
-            count: listing.score_hidden ? undefined : listing.score,
+            kind: "counter",
+            special: "reddit-points",
+
+            label: "Vote",
+            incremented_label: "Voted",
+            decremented_label: "Voted",
+
+            count_excl_you: listing.score_hidden ? "hidden" : listing.score + (listing.likes === true ? -1 : listing.likes === false ? 1 : 0),
+            you: listing.likes === true ? "increment" : listing.likes === false ? "decrement" : undefined,
+
             percent: listing.upvote_ratio,
-            vote: listing.archived ? {error: "archived <6mo"} : isLoggedIn() ? {
-                error: undefined,
-                up: query({...vote_data, dir: "1"}),
-                down: query({...vote_data, dir: "-1"}),
-                reset: query({...vote_data, dir: "0"}),
+            actions: listing.archived ? {error: "archived <6mo"} : isLoggedIn() ? {
+                increment: encodeAction("vote", query({...vote_data, dir: "1"})),
+                decrement: encodeAction("vote", query({...vote_data, dir: "-1"})),
+                reset: encodeAction("vote", query({...vote_data, dir: "0"})),
             } : {error: "not logged in"},
         };
     };
@@ -243,7 +257,6 @@ export function reddit() {
                         link: "/u/"+listing.author,
                         flair: flairToGenericFlair(listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                     },
-                    reddit_points: getPointsOn(listing),
                 },
                 actions: [{
                     kind: "reply",
@@ -252,7 +265,7 @@ export function reddit() {
                     kind: "link",
                     text: "Permalink",
                     url: listing.permalink,
-                }],
+                }, getPointsOn(listing)],
                 default_collapsed: listing.collapsed,
             };
             if(listing.replies) {
@@ -330,7 +343,6 @@ export function reddit() {
                         link: "/"+listing.subreddit_name_prefixed,
                         name: listing.subreddit_name_prefixed,
                     },
-                    reddit_points: getPointsOn(listing),
                 },
                 actions: [{
                     kind: "link",
@@ -340,7 +352,7 @@ export function reddit() {
                     kind: "link",
                     url: "/domain/"+listing.domain,
                     text: listing.domain,
-                }],
+                }, getPointsOn(listing)],
                 default_collapsed: false,
             };
             return result;
@@ -526,26 +538,32 @@ export function reddit() {
             }
             throw new Error("no selftext or body");
         },
-        async redditVote(data: string): Promise<void> {
-            type VoteResult = {};
-            const [status, res] = await fetch(baseURL() + "/api/vote", {
-                method: "post", mode: "cors", credentials: "omit",
-                headers: isLoggedIn() ? {
-                    'Authorization': await getAuthorization(),
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                } : {},
-                body: data,
-            }).then(async (v) => {
-                return [v.status, await v.json() as VoteResult] as const;
-            });
-            if(status !== 200) {
-                console.log(status, res);
-                throw new Error("got status "+status);
-            }
-        },
         async act(action: string): Promise<void> {
-            throw new Error("TODO act");
+            const act = decodeAction(action);
+            if(act.kind === "vote") {
+                type VoteResult = {};
+                const [status, res] = await fetch(baseURL() + "/api/vote", {
+                    method: "post", mode: "cors", credentials: "omit",
+                    headers: isLoggedIn() ? {
+                        'Authorization': await getAuthorization(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    } : {},
+                    body: act.query,
+                }).then(async (v) => {
+                    return [v.status, await v.json() as VoteResult] as const;
+                });
+                if(status !== 200) {
+                    console.log(status, res);
+                    throw new Error("got status "+status);
+                }
+            }else if(act.kind === "-") {
+            }else assertUnreachable(act);
         },
     };
     return res;
+}
+
+function assertUnreachable(v: never): never {
+    console.log(v);
+    throw new Error("not unreachable");
 }

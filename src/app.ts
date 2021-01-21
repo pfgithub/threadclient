@@ -731,59 +731,82 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
     if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
     else if(action.kind === "reply") el("span").atxt("Reply").adto(content_buttons_line);
     else if(action.kind === "counter") {
-        const button = linkLikeButton().adto(content_buttons_line);
-        const btxt = txt("…").adto(button);
+        renderCounterAction(client, action, content_buttons_line, {parens: true});
+    }else assertNever(action);
+}
+function renderCounterAction(client: ThreadClient, action: Generic.CounterAction, content_buttons_line: Node, opts: {parens: boolean}) {
+    const wrapper = el("span").clss("counter").adto(content_buttons_line);
+    const button = linkLikeButton().adto(wrapper).clss("counter-increment-btn");
+    const btn_span = el("span").adto(button);
+    const pretxt = txt("").adto(btn_span);
+    const btxt = txt("…").adto(btn_span);
+    const votecount = el("span").adto(wrapper.atxt(" ")).clss("counter-count");
+    const votecount_txt = txt("…").adto(votecount);
+    const percent_voted_txt = action.percent == null ? txt("—% upvoted") : txt(action.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted")
+    let decr_button: HTMLButtonElement | undefined;
 
-        const state = {loading: false, pt_count: action.count_excl_you === "hidden" ? null : action.count_excl_you, your_vote: action.you};
+    const state = {loading: false, pt_count: action.count_excl_you === "hidden" ? null : action.count_excl_you, your_vote: action.you};
 
-        if(action.decrement) {
-            content_buttons_line.atxt(" ");
-            linkLikeButton().atxt("⯆").adto(content_buttons_line).onev("click", () => alert("TODO down"));
+    const getPointsText = () => {
+        if(state.pt_count == null) return ["—", "[score hidden]"];
+        const score_mut = state.pt_count + (state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0);
+        return [scoreToString(score_mut), score_mut.toLocaleString()] as const;
+    };
+
+    const update = () => {
+        const [pt_text, pt_raw] = getPointsText();
+        btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label ?? "ERR", "": action.label}[state.your_vote ?? ""];
+        votecount_txt.nodeValue = opts.parens ? "(" + pt_text + ")" : pt_text;
+        votecount.title = pt_raw;
+        wrapper.classList.remove("counted-increment", "counted-decrement", "counted-reset");
+        wrapper.classList.add("counted-"+(state.your_vote ?? "reset"));
+        wrapper.classList.toggle("counted-loading", state.loading);
+        button.disabled = state.loading;
+        if(decr_button) decr_button.disabled = state.loading;
+    };
+    update();
+
+    const doAct = (vote: undefined | "increment" | "decrement") => {
+        if('error' in action.actions) {
+            return alert("Error: "+action.actions.error);
         }
-
-        const getPointsText = () => {
-            if(state.pt_count == null) return ["—", "[score hidden]"];
-            const score_mut = state.pt_count + (state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0);
-            return [scoreToString(score_mut), score_mut.toLocaleString()] as const;
-        };
-
-        const update = () => {
-            const [pt_text, pt_raw] = getPointsText();
-            btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label, "": action.label}[state.your_vote ?? ""] + " ("+pt_text+")"
-            button.title = pt_raw;
-            button.classList.remove("counted-increment", "counted-decrement", "counted-reset");
-            button.classList.add("counted-"+(state.your_vote ?? "reset"));
-            button.classList.toggle("counted-loading", state.loading);
-            button.disabled = state.loading;
-        };
+        const prev_vote = state.your_vote;
+        state.your_vote = vote;
+        state.loading = true;
         update();
-
-        const doAct = (vote: undefined | "increment" | "decrement") => {
-            const prev_vote = state.your_vote;
+        client.act(action.actions[vote ?? "reset"] ?? "error").then(() => {
             state.your_vote = vote;
-            state.loading = true;
+            state.loading = false;
             update();
-            client.act(action[vote ?? "reset"] ?? "error").then(() => {
-                state.your_vote = vote;
-                state.loading = false;
-                update();
-            }).catch(e => {
-                state.your_vote = prev_vote;
-                state.loading = false;
-                update();
-                console.log(e);
-                alert("Got error: "+e)
-            });
-        }
+        }).catch(e => {
+            state.your_vote = prev_vote;
+            state.loading = false;
+            update();
+            console.log(e);
+            alert("Got error: "+e)
+        });
+    }
 
-        button.onev("click", e => {
-            if(state.your_vote == "increment") {
+    if(action.decremented_label) {
+        pretxt.nodeValue = "⯅ ";
+        wrapper.atxt(" ");
+        decr_button = linkLikeButton().adch(el("span").atxt("⯆")).adto(wrapper).onev("click", () => {
+            if(state.your_vote == "decrement") {
                 doAct(undefined);
             }else{
-                doAct("increment");
+                doAct("decrement");
             }
-        });
-    }else assertNever(action);
+        }).clss("counter-decrement-btn");
+    }
+    button.onev("click", e => {
+        if(state.your_vote == "increment") {
+            doAct(undefined);
+        }else{
+            doAct("increment");
+        }
+    });
+
+    return {percent_voted_txt, votecount};
 }
 
 function clientListing(client: ThreadClient, listing: Generic.ContentNode) { return {insertBefore(parent: Node, before_once: Node | null) {
@@ -902,32 +925,10 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
     }
     type VoteState = {pt_count: number | undefined, your_vote: 'up' | 'down' | undefined, vote_loading: boolean};
 
-    const dovote = (direction: "up" | "down" | "reset", state: VoteState, update: () => void, rpts: Generic.RedditPoints) => {
-        if(rpts.vote.error != undefined) return alert(rpts.vote.error);
-        state.vote_loading = true;
-        state.your_vote = direction === "reset" ? undefined : direction;
-        update();
-        console.log("Voting on",rpts.vote[direction], direction);
-        client.redditVote!(rpts.vote[direction]).then(res => {
-            state.vote_loading = false;
-            state.your_vote = direction === "reset" ? undefined : direction;
-            update();
-        }).catch(e => {
-            console.log("Error!", e);
-            alert("Error voting");
-        });
-    };
-
-    const updateVotingClass = (state: VoteState) => {
-        content_voting_area.classList.remove("unvoted", "voted-up", "voted-down", "voted-loading");
-        if(state.your_vote === "up") content_voting_area.clss("voted-up");
-        if(state.your_vote === "down") content_voting_area.clss("voted-down");
-        if(!state.your_vote) content_voting_area.clss("unvoted");
-        if(state.vote_loading) content_voting_area.clss("voted-loading");
-    };
-
     const author_color = getRandomColor(seededRandom(listing.info?.author.name ?? "no"));
     const author_color_dark = darkenColor("foreground", author_color);
+
+    let reserved_points_area: null | Node = null;
 
     if(listing.layout === "reddit-post" && listing.info) {
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
@@ -940,40 +941,6 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
         if(listing.info.in) {
             content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
         }
-        if(listing.info.reddit_points) {
-            const rpts = listing.info.reddit_points;
-            const state: VoteState = {pt_count: rpts.count, your_vote: rpts.your_vote, vote_loading: false};
-            const getPointsText = () => {
-                if(state.pt_count == null) return ["—", "[score hidden]"];
-                const score_mut = getScoreMut(state.pt_count, state.your_vote, rpts.your_vote);
-                return [scoreToString(score_mut), score_mut.toLocaleString()];
-            };
-            const vote_up_btn = el("button").adto(content_voting_area).clss("vote-up");
-            const points_span = el("span").adto(content_voting_area).clss("vote-score");
-            const points_text = txt("…").adto(points_span);
-            const vote_down_btn = el("button").adto(content_voting_area).clss("vote-down");
-
-            if(listing.info.reddit_points.percent != null) {
-                content_subminfo_line.atxt(", "+ listing.info.reddit_points.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted");
-            }
-
-            const update = () => {
-                const [text, num] = getPointsText();
-                points_text.nodeValue = text;
-                points_span.title = num;
-                updateVotingClass(state);
-            }
-            update();
-
-            vote_up_btn.onclick = () => {
-                if(state.your_vote === "up") dovote("reset", state, update, rpts);
-                else dovote("up", state, update, rpts);
-            };
-            vote_down_btn.onclick = () => {
-                if(state.your_vote === "down") dovote("reset", state, update, rpts);
-                else dovote("down", state, update, rpts);
-            };
-        }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
             .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
@@ -981,41 +948,6 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
             .atxt(listing.info.author.name)
         );
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
-        if(listing.layout === "reddit-comment" && listing.info.reddit_points) {
-            frame.clss("spacefiller-redditpoints");
-
-            const rpts = listing.info.reddit_points
-            const state: VoteState = {pt_count: rpts.count, your_vote: rpts.your_vote, vote_loading: false};
-
-            const getPointsText = () => {
-                if(state.pt_count == null) return ["[score hidden]", "[score hidden]"];
-                const score_mut = getScoreMut(state.pt_count, state.your_vote, rpts.your_vote);
-                return [scoreToString(score_mut) + " point"+(score_mut === 1 ? "" : "s"), score_mut.toLocaleString()] as const;
-            };
-            const points_span = el("span");
-            const points_text = txt("…").adto(points_span);
-            content_subminfo_line.atxt(" ").adch(points_span);
-
-            const vote_up_btn = el("button").adto(content_voting_area).clss("vote-up");
-            const vote_down_btn = el("button").adto(content_voting_area).clss("vote-down");
-
-            const update = () => {
-                const [ptxt, pnum] = getPointsText();
-                points_text.nodeValue = ptxt;
-                points_span.title = pnum;
-                updateVotingClass(state);
-            };
-            update();
-
-            vote_up_btn.onclick = () => {
-                if(state.your_vote === "up") dovote("reset", state, update, rpts);
-                else dovote("up", state, update, rpts);
-            };
-            vote_down_btn.onclick = () => {
-                if(state.your_vote === "down") dovote("reset", state, update, rpts);
-                else dovote("down", state, update, rpts);
-            };
-        }
         if(listing.layout === "mastodon-post" && listing.info.author.pfp) {
             frame.clss("spacefiller-pfp");
 
@@ -1025,6 +957,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
             });
             pfpimg.adto(content_voting_area);
         }
+        reserved_points_area = document.createComment("").adto(content_subminfo_line);
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(" ").adch(submission_time);
         if(listing.info.reblogged_by) {
@@ -1124,14 +1057,27 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
     }
 
     for(const action of listing.actions) {
-        content_buttons_line.atxt(" ");
-        renderAction(client, action, content_buttons_line);
+        if(action.kind === "counter" && action.special === "reddit-points") {
+            frame.clss("spacefiller-redditpoints");
+            const ctr = renderCounterAction(client, action, content_voting_area, {parens: false});
+            if(listing.layout === "reddit-comment") {
+                content_subminfo_line.insertBefore(txt(" "), reserved_points_area)
+                content_subminfo_line.insertBefore(ctr.votecount, reserved_points_area);
+                content_subminfo_line.insertBefore(txt(" points"), reserved_points_area)
+            }else if(listing.layout === "reddit-post") {
+                content_subminfo_line.atxt(", ");
+                ctr.percent_voted_txt.adto(content_subminfo_line);
+            }
+        }else {
+            content_buttons_line.atxt(" ");
+            renderAction(client, action, content_buttons_line);
+        }
     }
 
     content_buttons_line.atxt(" ");
     listing.actions.length === 0 && linkButton(client.id, listing.link).atxt("View").adto(content_buttons_line);
     content_buttons_line.atxt(" ");
-    el("button").attr({draggable: "true"}).onev("click", e => {
+    linkLikeButton().onev("click", e => {
         console.log(listing);
     }).atxt("Code").adto(content_buttons_line);
 
@@ -1167,7 +1113,7 @@ function swtch<T, U>(value: T, ...cases: [T, () => U][]): U {
 }
 
 function linkLikeButton() {
-    return el("button").attr({draggable: "true"});
+    return el("button").clss("link-like-button").attr({draggable: "true"});
 }
 
 // TODO I guess support loading more in places other than the end of the list
@@ -1193,7 +1139,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
 
     let current_node: ChildNode = makeButton().atxt(load_more_node.count ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container);
 
-    el("button").attr({draggable: "true"}).onev("click", e => {
+    linkLikeButton().onev("click", e => {
         console.log(load_more_node);
     }).atxt("Code").adto(container);
     return container;

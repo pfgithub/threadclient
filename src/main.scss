@@ -224,8 +224,11 @@ button:disabled {
     & > .post-voting {
         grid-column: voting;
         grid-row: content;
-        margin-right: 20px;
-        justify-content: center;
+        & > .counter {
+            margin-right: 20px;
+            justify-content: center;
+            height: 100%;
+        }
     }
     & > .post-thumbnail {
         grid-column: thumb;
@@ -315,7 +318,7 @@ html {
     font-size: x-small;
 }
 
-.post-content-buttons > button:not(.not-this-button) {
+.link-like-button {
     all: unset;
     font-size: x-small;
     cursor: pointer;
@@ -339,9 +342,12 @@ html {
         padding-left: 20px;
         --left-v: 3px;
     }
+    & > .post-voting > .counter > .counter-count {
+        display: none;
+    }
 }
 
-.post-voting {
+.post-voting > .counter {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -359,33 +365,36 @@ html {
         width: 15px;
         height: 14px;
         cursor: pointer;
+        & > span {
+            display: none;
+        }
     }
     & > button:focus {
         outline: 1px dotted var(--outline-color);
     }
-    & > .vote-up {
+    & > .counter-increment-btn {
         background-position: -106px -1654px;
     }
-    &.voted-up > .vote-up {
+    &.counted-increment > .counter-increment-btn {
         background-position: 0px -1676px;
     }
-    & > .vote-score {
+    & > .counter-count {
         font-size: small;
     }
-    &.voted-up > .vote-score {
+    &.counted-increment > .counter-count {
         color: var(--upvote-color);
     }
-    &.voted-down > .vote-score {
+    &.counted-decrement > .counter-count {
         color: var(--downvote-color);
     }
-    &.voted-loading > .vote-up,
-    &.voted-loading > .vote-down {
+    &.counted-loading > .counter-increment-btn,
+    &.counted-loading > .counter-decrement-btn {
         opacity: 0.5;
     }
-    & > .vote-down {
+    & > .counter-decrement-btn {
         background-position: -64px -1654px;
     }
-    &.voted-down > .vote-down {
+    &.counted-decrement > .counter-decrement-btn {
         background-position: -85px -1654px;
     }
 }
@@ -582,4 +591,10 @@ body {
     max-height: 108px;
     width: auto;
     height: auto;
+}
+
+.counter {
+    &.counted-loading {
+        opacity: 0.5;
+    }
 }
