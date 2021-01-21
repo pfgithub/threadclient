@@ -1,5 +1,7 @@
+//@ts-ignore
 import {secret_consumer_key, public_consumer_key} from "./secret.ts";
 import {b64_hmac_sha1} from "./hmac_sha1.js";
+//@ts-ignore
 import {percentEncode} from "./percent_encode.ts";
 
 function generateSignature(parameters: {[key: string]: string}, http_method: string, url: string, secret_consumer_key: string, token: string | undefined) {
@@ -27,6 +29,7 @@ const query = (items: {[key: string]: string}) => {
 };
 function decodeParams(params: string): {[key: string]: string} {
     const items: [string, string][] = params.split("&").map(v => v.split("=").map(q => decodeURIComponent(q)) as [string, string]);
+    //@ts-ignore
     return Object.fromEntries(items);
 }
 async function getAuthenticationURL() {
