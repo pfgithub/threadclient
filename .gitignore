@@ -2,3 +2,6 @@
 dist/
 zig-cache/
 node_modules/
+
+server/deno
+server/secret.ts

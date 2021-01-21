@@ -2,7 +2,7 @@
     "compilerOptions": {
         "baseUrl": ".",
         "outDir": "./dist",
-        "target": "es2017",
+        "target": "es2019",
         "module": "esnext",
         "noImplicitAny": true,
         "lib": [
