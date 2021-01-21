@@ -53,6 +53,9 @@ reddit todo:
 -   [x] markdown parser
 -   [x] link previews within post bodies and comments
 -   [ ] post duplicates ("discussions in x other subs")
+-   [ ] subscribe to subreddits (put it in an info thing at the top of a subreddit listing and then todo show a sidebar on posts)
+-   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
+-   do not pass through cors, so ban messages cannot be shown.
 -   [ ] replies + reply preview
 -   [ ] posts + post preview
 -   [ ] user profile pages, defaulting to the overview tab
