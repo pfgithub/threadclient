@@ -65,6 +65,7 @@ reddit todo:
 -   [ ] sidebars and stuff (that contain information about the subreddit, not the post)
 -   [ ] mod tools and stuff + mod messages also + post removal tools that have options to use the subreddit things like comment distinguished stickied
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
+-   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
@@ -95,3 +96,5 @@ it returns a much better structured response with less redundant information and
 unfortunately, this is locked down using cors headers, so threadreader cannot use it without a proxy.
 
 it is likely that it will also be impossible to post richtext posts either without a proxy
+
+for some reason, the normal APIs offer methods to post richtext posts and comments, but not read posts and comments as richtext
