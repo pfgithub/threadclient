@@ -39,6 +39,7 @@ all todo:
 -   [x] dark mode for people without darkreader
 -   [ ] the refresh button
 -   [ ] use onhide in more places, eg when collapsing a comment or navigating away
+-   [ ] give up on onhide just delete the elements to not waste ram storing youtube iframes
 -   [ ] proper, non-hacky way to auto disable darkreader extension
 -   [ ] full mobile support maybe, might not be worth it
 -   [ ] a button to switch to markdown source view
