@@ -33,6 +33,7 @@ export type Body = BodyText | RichText | {
     kind: "captioned_image",
     url: string,
     caption?: string,
+    alt?: string,
     w: number,
     h: number,
 } | {

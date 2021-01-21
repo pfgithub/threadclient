@@ -225,7 +225,7 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
     
     let resbody: Generic.Body;
     if(media.type === "image" && media.meta) {
-        resbody = {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height};
+        resbody = {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height, alt: media.description};
     } else if((media.type === "video" || media.type === "gifv") && media.meta) {
         resbody = {kind: "video", url: media.url, w: media.meta.original.width, h: media.meta.original.height, gifv: media.type === "gifv"};
     } else {

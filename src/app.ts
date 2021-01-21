@@ -297,7 +297,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         if(state === "overview") {
             uhtml.render(container, html`${images.map((image, i) => html`
                 <button class="gallery-overview-item" onclick=${() => {setState({index: i});}}>
-                    <img src=${image.thumb} width=${image.w} height=${image.h}
+                    <img src=${image.thumb} width=${image.w+"px"} height=${image.h+"px"}
                         class="preview-image gallery-overview-image"
                     />
                 </button>
@@ -682,9 +682,9 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
         }
     }else if(body.kind === "captioned_image") {
         el("div").adto(content).atxt(body.caption ?? "");
-        el("img").adto(el("div").adto(content)).clss("preview-image").attr({src: body.url, width: "" + body.w, height: "" + body.h});
+        el("img").adto(el("div").adto(content)).clss("preview-image").attr({src: body.url, width: body.w + "px", height: body.h + "px", alt: body.alt, title: body.alt});
     }else if(body.kind === "video") {
-        const vid = el("video").adch(el("source").attr({src: body.url})).attr({width: "" + body.w, height: "" + body.h, controls: ""}).clss("preview-image").adto(content);
+        const vid = el("video").adch(el("source").attr({src: body.url})).attr({width: body.w + "px", height: body.h + "px", controls: ""}).clss("preview-image").adto(content);
         if(body.gifv) {
             vid.loop = true;
             if(opts.autoplay) vid.controls = false;
