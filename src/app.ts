@@ -384,9 +384,9 @@ function timeAgoText(start_ms: number): [string, number] {
 
 // NOTE that this leaks memory as it holds onto nodes forever and updates them even
 // when they are not being displayed. This can be fixed by uil in the future.
-let leak_count = 0;
+(window as any).leak_count = 0;
 function timeAgo(start_ms: number): Node {
-    leak_count += 1;
+    (window as any).leak_count += 1;
     const tanode = txt("…");
     const update = () => {
         const [newtext, wait_time] = timeAgoText(start_ms);
@@ -706,7 +706,8 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
     const action_container = el("div").adto(frame);
     for(const action of profile.actions) {
         action_container.atxt(" ");
-        renderAction(client, action, action_container);
+        const actv = renderAction(client, action, action_container);
+        defer(() => actv.cleanup());
     }
     action_container.atxt(" ");
     linkLikeButton().adto(action_container).atxt("Code").onev("click", () => {
@@ -727,12 +728,85 @@ const scoreToString = (score: number) => {
     return (score / 1000 |0) + "k";
 };
 
-function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node) {
+function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node): {cleanup: () => void} {
+    const defer = makeDefer();
     if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
-    else if(action.kind === "reply") el("span").atxt("Reply").adto(content_buttons_line);
-    else if(action.kind === "counter") {
+    else if(action.kind === "reply") {
+        let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
+        let reply_state: "none" | {preview?: Generic.Thread} = "none"
+        const reply_btn = linkLikeButton().atxt("Reply").adto(content_buttons_line);
+
+        let reply_container: HTMLDivElement | undefined;
+
+        defer(() => {
+            if(prev_preview) {prev_preview.remove(); prev_preview = undefined;}
+        });
+        
+        const update = () => {
+            if(reply_state === "none") {
+                if(reply_container) {reply_container.remove(); reply_container = undefined;}
+                if(prev_preview) {prev_preview.remove(); prev_preview = undefined;}
+                reply_btn.disabled = false;
+            }else{
+                if(!reply_container) {
+                    reply_container = el("div").adto(content_buttons_line);
+                    const textarea = el("textarea").adto(el("div").adto(reply_container));
+                    const submit = el("button").adto(reply_container).atxt("Reply");
+                    const preview = el("button").adto(reply_container).atxt("Preview");
+                    const cancel = el("button").adto(reply_container).atxt("Cancel");
+                    preview.onev("click", () => {
+                        reply_state = {preview: client.previewReply(textarea.value, action.reply_info)}
+                        update();
+                    });
+                    // this might lag too much idk
+                    // also it spams the window.leak_count wows
+                    textarea.onev("input", () => {
+                        reply_state = {preview: client.previewReply(textarea.value, action.reply_info)}
+                        update();
+                    });
+                    cancel.onev("click", () => {
+                        const deleteres = textarea.value ? confirm("delete?") : true;
+                        if(deleteres) {
+                            reply_state = "none";
+                            update();
+                        }
+                    });
+                }
+                reply_btn.disabled = true;
+                label: {
+                    if(reply_state.preview) {
+                        if(prev_preview) {
+                            if(prev_preview.preview === reply_state.preview) {
+                                break label;
+                            }
+                            prev_preview.remove();
+                            prev_preview = undefined;
+                        }
+                        // hacky for now. reply buttons should need a special override
+                        // rather than being bundled with the rest of stuff in renderAction
+                        const containerel = el("div").adto(content_buttons_line);
+                        const listing_el = clientListing(client, reply_state.preview).insertBefore(containerel, null);
+                        prev_preview = {
+                            preview: reply_state.preview,
+                            remove: () => {
+                                listing_el.removeSelf();
+                                containerel.remove();
+                            },
+                        };
+                    }
+                }
+            }
+        };
+
+        reply_btn.onev("click", () => {
+            if(reply_state === "none") reply_state = {};
+            update();
+        });
+        update();
+    }else if(action.kind === "counter") {
         renderCounterAction(client, action, content_buttons_line, {parens: true});
     }else assertNever(action);
+    return {cleanup: () => defer.cleanup()};
 }
 function renderCounterAction(client: ThreadClient, action: Generic.CounterAction, content_buttons_line: Node, opts: {parens: boolean}) {
     const wrapper = el("span").clss("counter").adto(content_buttons_line);
@@ -1070,7 +1144,8 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
             }
         }else {
             content_buttons_line.atxt(" ");
-            renderAction(client, action, content_buttons_line);
+            const actv = renderAction(client, action, content_buttons_line);
+            defer(() => actv.cleanup());
         }
     }
 

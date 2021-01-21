@@ -231,7 +231,6 @@ export function reddit() {
     };
     const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'open' | 'crosspost' | 'closed', link_fullname?: string} = {}): Generic.Node => {
         options.force_expand ??= 'closed';
-        // TODO filter out 'more' listings and make them into load_next items on the replies item
         if(listing_raw.kind === "t1") {
             // Comment
             const listing = listing_raw.data;
@@ -261,6 +260,9 @@ export function reddit() {
                 actions: [{
                     kind: "reply",
                     text: "Reply",
+                    // POST /api/comment {api_type: json, return_rtjson: true, richtext_json: JSON, text: string, thing_id: parent_thing_id}
+                    // wait I can use the api to post richtext comments but I can't use the api to get richtext comments what?
+                    reply_info: encodeReplyInfo({parent_id: listing.name}),
                 }, {
                     kind: "link",
                     text: "Permalink",
@@ -559,8 +561,50 @@ export function reddit() {
             }else if(act.kind === "-") {
             }else assertUnreachable(act);
         },
+        previewReply(md: string, data: string): Generic.Thread {
+            const reply_info = decodeReplyInfo(data);
+            return {
+                kind: "thread",
+                body: {kind: "text", content: md, markdown_format: "reddit"},
+                display_mode: {body: "visible", comments: "visible"},
+                raw_value: [md, data],
+                link: "no link",
+                layout: "reddit-comment",
+                info: {
+                    time: Date.now(),
+                    author: {
+                        name: "u/TODO You",
+                        link: "/u/TODO You",
+                        // flair: …
+                    },
+                },
+                actions: [{
+                    kind: "counter",
+                    special: "reddit-points",
+
+                    label: "Vote",
+                    incremented_label: "Voted",
+                    decremented_label: "Voted",
+
+                    count_excl_you: 0,
+                    you: "increment",
+
+                    percent: 1,
+                    actions: {error: "reply not posted"},
+                }],
+                default_collapsed: false,
+            };
+        },
     };
     return res;
+}
+
+type ReplyInfo = {parent_id: string};
+function encodeReplyInfo(rply_info: ReplyInfo): string {
+    return JSON.stringify(rply_info);
+}
+function decodeReplyInfo(rply_info: string): ReplyInfo {
+    return JSON.parse(rply_info);
 }
 
 function assertUnreachable(v: never): never {

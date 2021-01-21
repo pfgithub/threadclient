@@ -148,6 +148,7 @@ export type Action = {
 } | {
     kind: "reply",
     text: ActionLabel,
+    reply_info: string,
     // there will be a function to generate post previews given markdown you typed
     // so this doesn't need to know the markdown format (maybe it should know it
     // though for syntax highlighting or editor features or whatever)

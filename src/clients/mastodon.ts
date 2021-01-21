@@ -587,6 +587,9 @@ export function mastodon() {
                 await performBasicPostAction(action.host, "api/v1/accounts/"+action.account_id+"/"+action.direction+"follow");
             }else assertUnreachable(action);
         },
+        previewReply(reply_text: string, reply_info: string): Generic.Thread {
+            return genericHeader();
+        },
     };
     return res;
 }
