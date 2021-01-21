@@ -384,17 +384,20 @@ function timeAgoText(start_ms: number): [string, number] {
 
 // NOTE that this leaks memory as it holds onto nodes forever and updates them even
 // when they are not being displayed. This can be fixed by uil in the future.
-(window as any).leak_count = 0;
-function timeAgo(start_ms: number): Node {
-    (window as any).leak_count += 1;
+function timeAgo(start_ms: number): {node: Node, cleanup: () => void, defer: (defobj: MakeDeferReturn) => Node} {
     const tanode = txt("…");
+    let timeout: number | undefined;
     const update = () => {
+        timeout = undefined;
         const [newtext, wait_time] = timeAgoText(start_ms);
         tanode.nodeValue = newtext;
-        if(wait_time >= 0) setTimeout(() => update(), wait_time + 100);
+        if(wait_time >= 0) timeout = setTimeout(() => update(), wait_time + 100);
     };
     update();
-    return tanode;
+    const cleanup = () => {
+        if(timeout !== undefined) clearTimeout(timeout);
+    };
+    return {node: tanode, cleanup, defer: (dobj) => (dobj(() => cleanup()), tanode)};
 }
 
 type RedditMarkdownRenderer = {
@@ -759,7 +762,6 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                         update();
                     });
                     // this might lag too much idk
-                    // also it spams the window.leak_count wows
                     textarea.onev("input", () => {
                         reply_state = {preview: client.previewReply(textarea.value, action.reply_info)}
                         update();
@@ -1005,7 +1007,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
     let reserved_points_area: null | Node = null;
 
     if(listing.layout === "reddit-post" && listing.info) {
-        const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
+        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(defer)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
         content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
             .styl({"color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
@@ -1032,7 +1034,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
             pfpimg.adto(content_voting_area);
         }
         reserved_points_area = document.createComment("").adto(content_subminfo_line);
-        const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
+        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(defer)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(" ").adch(submission_time);
         if(listing.info.reblogged_by) {
             const author_color = getRandomColor(seededRandom(listing.info.reblogged_by.author.name));
@@ -1041,7 +1043,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
                 .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
                 .clss("user-link")
                 .atxt(listing.info.reblogged_by.author.name)
-            ).atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time));
+            ).atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(defer));
             if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author.pfp) {
                 frame.clss("spacefiller-pfp");
                 const pfpimg = el("div").clss("pfp", "pfp-reblog").styl({
