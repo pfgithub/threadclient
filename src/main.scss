@@ -571,6 +571,11 @@ body {
         border-radius: 0;
     }
 }
+.pfp-reblog {
+    width: 30px;
+    height: 30px;
+    transform: translate(15px, -15px);
+}
 
 .gallery-overview-image {
     max-width: 108px;

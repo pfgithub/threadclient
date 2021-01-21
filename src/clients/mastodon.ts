@@ -97,7 +97,7 @@ declare namespace Mastodon {
         favourites_count: number,
         favourited: boolean,
         content: string, // unsafe html
-        // reblog: ?
+        reblog?: Post,
         account: Account,
         media_attachments: Media[],
         mentions: never[],
@@ -167,6 +167,24 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
         return {error: "Failed to load! "+e.toString()};
     }
 }
+const wrapWithParentLink = (thread: Generic.Thread, host: string, parent_id: string): Generic.Thread => {
+    const parentlink = "/"+host+"/statuses/"+parent_id;
+    return {
+        kind: "thread",
+        body: {
+            kind: "text",
+            content: "<a href=\""+escapeHTML(parentlink)+"\">View Parent</a>",
+            markdown_format: "mastodon",
+        },
+        display_mode: {body: "visible", comments: "collapsed"},
+        link: parentlink,
+        layout: "reddit-post",
+        default_collapsed: false,
+        actions: [],
+        raw_value: parentlink,
+        replies: [thread],
+    };
+}
 const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Generic.Thread[] => {
     let nextv: Generic.Thread | undefined;
     return posts.flatMap((post, i) => {
@@ -181,22 +199,7 @@ const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Ge
                 nextv = thread;
                 return [];
             }else{
-                const parentlink = "/"+host+"/statuses/"+post.in_reply_to_id;
-                thread = {
-                    kind: "thread",
-                    body: {
-                        kind: "text",
-                        content: "<a href=\""+escapeHTML(parentlink)+"\">View Parent</a>",
-                        markdown_format: "mastodon",
-                    },
-                    display_mode: {body: "visible", comments: "collapsed"},
-                    link: parentlink,
-                    layout: "reddit-post",
-                    default_collapsed: false,
-                    actions: [],
-                    raw_value: parentlink,
-                    replies: [thread],
-                };
+                thread = wrapWithParentLink(thread, host, post.in_reply_to_id);
             }
         }
         return [thread];
@@ -235,16 +238,34 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
     return {thumb: media.preview_url, w: media.meta?.small.width, h: media.meta?.small.height, body: resbody};
 }
 const as = <T>(v: T): T => v;
-const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[]} = {}): Generic.Thread => {
-    const res: Generic.Thread = {
+const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], include_parentlink?: boolean, reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
+    const info: Generic.Info = {time: new Date(post.created_at).getTime(),
+        author: {
+            name: post.account.display_name + " (@"+post.account.acct+")",
+            link: "/"+host+"/accounts/"+post.account.id+"/@"+post.account.acct,
+            flair: post.account.bot ? [{elems: [{type: "text", text: "bot"}], content_warning: false}] : [],
+            pfp: {
+                url: post.account.avatar_static,
+                hover: post.account.avatar,
+            },
+        },
+        reblogged_by: opts.reblogged_by,
+    };
+    if(post.reblog) {
+        return postToThread(host, post.reblog, {...opts, reblogged_by: info});
+    }
+    let res: Generic.Thread = {
         kind: "thread",
         body: {
-            kind: "text",
-            content: post.content,
-            markdown_format: "mastodon",
-
-            attached_media: [post.media_attachments.length === 0 ? undefined :
-                {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))},
+            kind: "array",
+            body: [
+                {
+                    kind: "text",
+                    content: post.content,
+                    markdown_format: "mastodon",
+                },
+                post.media_attachments.length === 0 ? undefined
+                : {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))},
                 post.poll ? {kind: "poll",
                     choices: post.poll.options.map((opt, i) => ({name: opt.title, votes: opt.votes_count, id: "" + i})),
                     total_votes: post.poll.votes_count,
@@ -252,23 +273,13 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                     vote_data: post.poll.id,
                     select_many: post.poll.multiple,
                     your_votes: (post.poll.own_votes ?? []).map(ov => ({id: "" + ov})),
-                } : undefined,
+                } : undefined
             ],
         },
         display_mode: {body: "visible", comments: "collapsed"},
         link: "/"+host+"/statuses/"+post.id,
         layout: "mastodon-post",
-        info: {time: new Date(post.created_at).getTime(),
-            author: {
-                name: post.account.display_name + " (@"+post.account.acct+")",
-                link: "/"+host+"/accounts/"+post.account.id+"/@"+post.account.acct,
-                flair: post.account.bot ? [{elems: [{type: "text", text: "bot"}], content_warning: false}] : [],
-                pfp: {
-                    url: post.account.avatar_static,
-                    hover: post.account.avatar,
-                },
-            },
-        },
+        info,
         flair: post.sensitive || post.spoiler_text ? [{content_warning: post.sensitive, elems: [{type: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
         actions: [
             {kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")},
@@ -287,6 +298,9 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         raw_value: post,
         replies: opts.replies,
     };
+    if((opts.include_parentlink ?? false) && post.in_reply_to_id) {
+        res = wrapWithParentLink(res, host, post.in_reply_to_id);
+    }
     return res;
 }
 const splitURL = (path: string): [string, URLSearchParams] => {

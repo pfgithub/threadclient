@@ -9,7 +9,6 @@ export type BodyText = {
     kind: "text",
     content: string,
     markdown_format: "reddit" | "none" | "mastodon",
-    attached_media?: (Body | undefined)[],
 };
 export type RichTextSpan = {
     kind: "text",
@@ -62,6 +61,9 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "crosspost",
     source: Thread,
+} | {
+    kind: "array",
+    body: (Body | undefined)[],
 };
 export type GalleryItem = {body: Body, thumb: string, w: number | null | undefined, h: number | null | undefined};
 export type Thread = {
@@ -87,24 +89,27 @@ export type Thread = {
         text: string,
     },
 
-    info?: {
-        time: number,
-        author: {
-            name: string, link: string, flair?: Flair[],
-            pfp?: {
-                url: string,
-                hover: string,
-            },
-        },
-        in?: {name: string, link: string},
-        reddit_points?: RedditPoints,
-    },
+    info?: Info,
     actions: Action[],
     
     default_collapsed: boolean,
 
     flair?: Flair[],
 };
+export type Info = {
+    time: number,
+    author: {
+        name: string, link: string, flair?: Flair[],
+        pfp?: {
+            url: string,
+            hover: string,
+        },
+    },
+    in?: {name: string, link: string},
+    reddit_points?: RedditPoints,
+    reblogged_by?: RebloggedBy,
+};
+export type RebloggedBy = Info;
 export type LoadMore = {
     kind: "load_more",
     load_more: string,

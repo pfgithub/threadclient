@@ -614,13 +614,6 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
         const txta = el("div").adto(content);
         const txt = renderText(client, body).insertBefore(txta, null);
         defer(() => txt.removeSelf());
-
-        if(body.attached_media) for(let amitm of body.attached_media) {
-            if(!amitm) continue;
-            const atma = el("div").adto(content);
-            const rbres = renderBody(client, amitm, {autoplay: false, on: opts.on}, atma);
-            defer(() => rbres.cleanup());
-        }
     }else if(body.kind === "link") {
         // TODO fix this link button thing
         el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
@@ -690,6 +683,13 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
             if(opts.autoplay) vid.controls = false;
         }
         if(opts.autoplay) {vid.play();}
+    }else if(body.kind === "array") {
+        for(const v of body.body) {
+            if(!v) continue;
+            const atma = el("div").adto(content);
+            const child = renderBody(client, v, {autoplay: false, on: opts.on}, atma);
+            defer(() => child.cleanup());
+        }
     }else assertNever(body);
 
     return {cleanup: () => defer.cleanup()};
@@ -1027,6 +1027,23 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
         }
         const submission_time = el("span").adch(timeAgo(listing.info.time)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(" ").adch(submission_time);
+        if(listing.info.reblogged_by) {
+            const author_color = getRandomColor(seededRandom(listing.info.reblogged_by.author.name));
+            const author_color_dark = darkenColor("foreground", author_color);
+            content_subminfo_line.atxt(" ← Boosted by ").adch(linkButton(client.id, listing.info.reblogged_by.author.link)
+                .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
+                .clss("user-link")
+                .atxt(listing.info.reblogged_by.author.name)
+            ).atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time));
+            if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author.pfp) {
+                frame.clss("spacefiller-pfp");
+                const pfpimg = el("div").clss("pfp", "pfp-reblog").styl({
+                    "--url": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.url)+")",
+                    "--url-hover": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.hover)+")"
+                });
+                pfpimg.adto(content_voting_area);
+            }
+        }
     }
 
     if(listing.body) {
@@ -1222,7 +1239,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         };
         if(listing.replies) listing.replies.forEach(rply => addChild(rply));
         if(listing.replies?.length === 0) txt("There is nothing here").adto(frame);
-    })().catch(e => console.log(e));
+    })().catch(e => console.log(e, e.stack));
 
     return {removeSelf: () => defer.cleanup(), hide: () => {
         if(frame.style.display !== "none") frame.style.display = "none";
