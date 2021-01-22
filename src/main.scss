@@ -20,9 +20,6 @@ button {
 }
 
 @media (prefers-color-scheme: dark) {
-    a {
-        color: #3391ff;
-    }
     table {
         border-color: #545b5e;
     }
@@ -69,7 +66,7 @@ button {
 
     --body-color: white;
 
-    --link-color: blue;
+    --link-color: rgb(51, 125, 255);
     --outline-color: #212121;
     --upvote-color: #ff8b60;
     --downvote-color: #9494ff;
@@ -94,7 +91,7 @@ button {
     @media (prefers-color-scheme: dark) {
         --body-color: #181a1b;
 
-        --link-color: rgb(51, 125, 255);
+        --link-color: #3391ff;
         --outline-color: rgb(129, 120, 106);
         --upvote-color: rgb(255, 137, 93);
         --downvote-color: rgb(129, 175, 255);
@@ -116,6 +113,10 @@ button {
 
         --blockquote-text-color: rgb(182, 176, 166);
     }
+}
+
+a {
+    color: var(--link-color);
 }
 
 .post {
