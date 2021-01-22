@@ -316,6 +316,22 @@ export function reddit() {
             };
         }
 
+        if(!('data' in listing) || listing.kind !== "Listing") {
+            return {
+                header: {
+                    kind: "thread",
+                    raw_value: listing,
+                    body: {kind: "richtext", content: [{kind: "code_block", text: JSON.stringify(listing, null, "\t")}]},
+                    display_mode: {body: "visible", comments: "visible"},
+                    link: path,
+                    layout: "error",
+                    actions: [],
+                    default_collapsed: false,
+                },
+                display_style: "comments-view",
+            };
+        }
+
         const replies = listing.data.children.map(child => threadFromListing(child, undefined, path));
         if(listing.data.before) {
             // TODO?
@@ -338,7 +354,7 @@ export function reddit() {
                 },
                 actions: [],
                 default_collapsed: false,
-                raw_value: {},
+                raw_value: listing,
             },
             replies,
             display_style: "fullscreen-view",
@@ -604,7 +620,11 @@ export function reddit() {
         ],
         isLoggedIn,
         loginURL: getLoginURL(),
-        async getThread(path): Promise<Generic.Page> {
+        async getThread(pathraw): Promise<Generic.Page> {
+            const pathsplit = pathraw.split("/");
+            if(pathsplit[1] === "u") pathsplit[1] = "user";
+            const path = pathsplit.join("/");
+
             try {
                 const [status, listing] = await fetch(pathURL(path), {
                     mode: "cors", credentials: "omit",
@@ -644,11 +664,8 @@ export function reddit() {
                             body: "visible",
                             comments: "collapsed",
                         },
-                        link: "TODO no link",
+                        link: path,
                         layout: "error",
-                        info: {time: 0,
-                            author: {name: "no one", link: "TODO no link"},
-                        },
                         actions: [],
                         default_collapsed: false,
                         raw_value: {},
