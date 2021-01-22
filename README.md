@@ -52,6 +52,7 @@ reddit todo:
 -   [x] threading
 -   [x] markdown parser
 -   [x] link previews within post bodies and comments
+-   [ ] fix "load more" buttons with empty children arrays but 10 depth or something
 -   [ ] post duplicates ("discussions in x other subs")
 -   [ ] subscribe to subreddits (put it in an info thing at the top of a subreddit listing and then todo show a sidebar on posts)
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
