@@ -685,7 +685,7 @@ export function reddit() {
                 throw new Error("Login was for "+state);
             }
 
-            const v = await fetch("https://www.reddit.com/api/v1/access_token", {
+            const v: Reddit.AccessToken = await fetch("https://www.reddit.com/api/v1/access_token", {
                 method: "POST", mode: "cors", credentials: "omit",
                 headers: {
                     'Authorization': "Basic "+btoa(client_id+":"),

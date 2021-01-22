@@ -1,5 +1,10 @@
 // types for the public reddit api
 
+export type AccessToken =
+    | {error: true}
+    | {error: false, access_token: string, refresh_token: string, expires_in: number, scope: string}
+;
+
 export type Page = [Listing, Listing];
 export type Listing = {
     kind: "Listing",

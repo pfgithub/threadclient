@@ -2,7 +2,9 @@
 
 export type Page = {
     header: ContentNode,
+    reply_button?: Action,
     replies?: Node[],
+    sidebar?: ContentNode,
     display_style: string,
 };
 export type BodyText = {
