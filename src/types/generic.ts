@@ -116,6 +116,7 @@ export type LoadMore = {
     includes_parent?: boolean,
 
     raw_value: any,
+    next?: LoadMore,
 };
 export type Profile = {
     kind: "user-profile",

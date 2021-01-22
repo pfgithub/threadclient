@@ -1209,6 +1209,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
                 res.replies = (res.replies[0] as Generic.Thread).replies ?? [];
             }
             if(res.replies) res.replies.forEach(rply => addChild(rply));
+            if(load_more_node.next) addChild(load_more_node.next);
             removeSelf();
         }).catch(e => {
             console.log("error loading more:", e);

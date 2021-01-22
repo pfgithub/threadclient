@@ -370,17 +370,39 @@ export function reddit() {
                     includes_parent: true,
                 };
             }
-            
-            // https://www.reddit.com/api/morechildren.json?api_type=json&children= children.join(",") &link_id=t3_kv1s4a
-            return {
-                kind: "load_more",
-                load_more: options.link_fullname
-                    ? "/api/morechildren?api_type=json&limit_children=false&children="+listing.children.join(",")+"&link_id="+options.link_fullname
-                    : "Error: No link fullname provided."
-                ,
-                count: listing.count,
-                raw_value: listing_raw,
-            };
+
+            const batches: string[][] = [];
+            let current_batch: string[] = [];
+            for(const itm of listing.children) {
+                current_batch.push(itm);
+                if(current_batch.length === 100) {
+                    batches.push(current_batch);
+                    current_batch = [];
+                }
+            }
+            batches.push(current_batch);
+            let root: Generic.LoadMore | undefined;
+            let current = root;
+            for(const batch of batches) {
+                const envy: Generic.LoadMore = {
+                    kind: "load_more",
+                    load_more: options.link_fullname
+                        ? "/api/morechildren?api_type=json&limit_children=false&children="+batch.join(",")+"&link_id="+options.link_fullname
+                        : "Error: No link fullname provided."
+                    ,
+                    count: listing.count,
+                    raw_value: listing_raw,
+                };
+                if(!current) {
+                    root = envy;
+                    current = root;
+                }else{
+                    current.next = envy;
+                    current = envy;
+                }
+            }
+            if(!root) throw new Error("this should never happen");
+            return root;
         }else{
             return {
                 kind: "thread",
