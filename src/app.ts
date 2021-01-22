@@ -1205,6 +1205,9 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
 
         client.getThread(load_more_node.load_more).then(res => {
             current_node.remove();
+            if(load_more_node.includes_parent && res.replies && res.replies.length === 1) {
+                res.replies = (res.replies[0] as Generic.Thread).replies ?? [];
+            }
             if(res.replies) res.replies.forEach(rply => addChild(rply));
             removeSelf();
         }).catch(e => {

@@ -113,6 +113,7 @@ export type LoadMore = {
     kind: "load_more",
     load_more: string,
     count?: number,
+    includes_parent?: boolean,
 
     raw_value: any,
 };

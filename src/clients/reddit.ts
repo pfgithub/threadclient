@@ -129,8 +129,8 @@ export function reddit() {
                 link_fullname = listing[0].data.children[0].data.name;
             }
             return {
-                header: threadFromListing(listing[0].data.children[0], {force_expand: "open"}) as Generic.Thread,
-                replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname})),
+                header: threadFromListing(listing[0].data.children[0], {force_expand: "open"}, path) as Generic.Thread,
+                replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, path)),
                 display_style: "comments-view",
             };
         }
@@ -174,12 +174,12 @@ export function reddit() {
                     default_collapsed: false,
                     raw_value: {},
                 },
-                replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined})),
+                replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined}, path)),
                 display_style: "comments-view",
             };
         }
 
-        const replies = listing.data.children.map(child => threadFromListing(child));
+        const replies = listing.data.children.map(child => threadFromListing(child, undefined, path));
         if(listing.data.before) {
             // TODO?
         }
@@ -229,7 +229,7 @@ export function reddit() {
             } : {error: "not logged in"},
         };
     };
-    const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'open' | 'crosspost' | 'closed', link_fullname?: string} = {}): Generic.Node => {
+    const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'open' | 'crosspost' | 'closed', link_fullname?: string} = {}, parent_permalink: string): Generic.Node => {
         options.force_expand ??= 'closed';
         if(listing_raw.kind === "t1") {
             // Comment
@@ -271,7 +271,7 @@ export function reddit() {
                 default_collapsed: listing.collapsed,
             };
             if(listing.replies) {
-                result.replies = listing.replies.data.children.map(v => threadFromListing(v, options));
+                result.replies = listing.replies.data.children.map(v => threadFromListing(v, options, listing.permalink));
             }
             return result;
         }else if(listing_raw.kind === "t3") {
@@ -297,7 +297,7 @@ export function reddit() {
                     }
                     : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
                     ? {kind: "crosspost", source:
-                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: 'crosspost'}) as Generic.Thread
+                        threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: 'crosspost'}, listing.permalink) as Generic.Thread
                     }
                     : listing.is_self
                     ? listing.selftext_html
@@ -360,6 +360,16 @@ export function reddit() {
             return result;
         }else if(listing_raw.kind === "more") {
             const listing = listing_raw.data;
+
+            if(listing.children.length === 0) {
+                return {
+                    kind: "load_more",
+                    load_more: parent_permalink,
+                    count: undefined,
+                    raw_value: listing_raw,
+                    includes_parent: true,
+                };
+            }
             
             // https://www.reddit.com/api/morechildren.json?api_type=json&children= children.join(",") &link_id=t3_kv1s4a
             return {
