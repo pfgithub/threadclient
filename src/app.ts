@@ -1217,8 +1217,9 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
         });
     }});
 
-    let current_node: ChildNode = makeButton().atxt(load_more_node.count ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container);
+    let current_node: ChildNode = makeButton().atxt(load_more_node.count ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container).clss("load-more");
 
+    container.atxt(" ");
     linkLikeButton().onev("click", e => {
         console.log(load_more_node);
     }).atxt("Code").adto(container);
