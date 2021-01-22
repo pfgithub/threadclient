@@ -7,24 +7,23 @@ const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
 
 function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: string,
-    text_color: "light" | "dark", background_color: string, flair: Reddit.RichtextFlair,
+    text_color: "light" | "dark", background_color: string, flair: Reddit.RichtextFlair | undefined,
 ): Generic.Flair[] {
     if(type === "text" && !text) return [];
-    let flair_text = flair.map(v => v.e === "text" ? v.t : "").join("");
+    let elems: Generic.RichTextItem[] = type === "richtext" ? (flair ?? []).map(v => {
+        if(v.e === "text") {
+            return {type: "text", text: v.t};
+        }else if(v.e === "emoji") {
+            return {type: "emoji", url: v.u, name: v.a};
+        }
+        expectUnsupported(v.e);
+        return {type: "text", text: "#TODO("+v.e+")"};
+    }) : type === "text" ? [{type: "text", text}] : [{type: "text", text: "TODO: "+type}];
+    let flair_text = elems.map(v => v.type === "text" ? v.text : "").join("");
     return [{
         color: background_color,
         fg_color: text_color === "light" ? "light" : "dark",
-        elems: type === "richtext" ? flair.map(v => {
-            if(v.e === "text") {
-                return {type: "text", text: v.t};
-            }else if(v.e === "emoji") {
-                return {type: "emoji", url: v.u, name: v.a};
-            }
-            // this is where zig-style enums with a `_` option are nice
-            // a switch can check that all cases are handled even if
-            // not all cases are known.
-            return {type: "text", text: "#TODO("+v.e+")"};
-        }) : type === "text" ? [{type: "text", text}] : [{type: "text", text: "TODO: "+type}],
+        elems,
         content_warning: flair_text.toLowerCase().startsWith("cw:")
 }];
 }

@@ -40,7 +40,7 @@ export type PostOrComment = {
 
     author_flair_type: "text" | "richtext" | "unsupported",
     author_flair_text: string,
-    author_flair_richtext: RichtextFlair,
+    author_flair_richtext?: RichtextFlair,
     author_flair_background_color: string,
     author_flair_text_color: "light" | "dark",
 };
