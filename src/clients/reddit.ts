@@ -138,6 +138,11 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
                 [{kind: "text", text: (rtd.l ? "/" : "") + "r/"+rtd.t, styles: {}}],
             }]
         ;
+        case "u/": // not sure what rtd.l is for
+            return [{kind: "link", url: "/u/"+rtd.t, children:
+                [{kind: "text", text: (rtd.l ? "/" : "") + "u/"+rtd.t, styles: {}}],
+            }]
+        ;
         case "link": return [{
             kind: "link",
             url: rtd.u,
@@ -391,7 +396,7 @@ export function reddit() {
                 info: {
                     time: listing.created_utc * 1000,
                     author: {
-                        name: "u/"+listing.author,
+                        name: listing.author,
                         link: "/u/"+listing.author,
                         flair: flairToGenericFlair(listing.author_flair_type, listing.author_flair_text, listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                     },
@@ -490,7 +495,7 @@ export function reddit() {
                 info: {
                     time: listing.created_utc * 1000,
                     author: {
-                        name: "u/"+listing.author,
+                        name: listing.author,
                         link: "/u/"+listing.author,
                         flair: flairToGenericFlair(listing.author_flair_type, listing.author_flair_text, listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                     },

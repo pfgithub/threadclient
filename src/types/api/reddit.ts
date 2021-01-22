@@ -204,6 +204,10 @@ export declare namespace Richtext {
         t: string, // subreddit name unprefixed
         l: boolean, // leading slash
     } | {
+        e: "u/",
+        t: string, // user name unprefixed
+        l: boolean, // leading slash
+    } | {
         e: "link",
         u: string, // url
         t: string, // link text
