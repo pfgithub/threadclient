@@ -38,6 +38,8 @@ export type PostOrComment = {
 
     distinguished?: "admin",
 
+    author_flair_type: "text" | "richtext" | "unsupported",
+    author_flair_text: string,
     author_flair_richtext: RichtextFlair,
     author_flair_background_color: string,
     author_flair_text_color: "light" | "dark",
@@ -84,7 +86,11 @@ export type PostSubmission = PostBase & PostOrComment & {
     author: string,
     created_utc: number,
     
+    link_flair_type: "text" | "richtext" | "unsupported",
+    link_flair_text: string,
     link_flair_richtext: RichtextFlair,
+    link_flair_background_color: string,
+    link_flair_text_color: "light" | "dark",
 
     num_comments: number,
 

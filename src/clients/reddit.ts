@@ -6,14 +6,15 @@ import { query, url } from "../app.js";
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
 
-function flairToGenericFlair(text_color: "light" | "dark", background_color: string, flair: Reddit.RichtextFlair): Generic.Flair[] {
-    if(!flair) return [];
-    if(flair.length === 0) return [];
+function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: string,
+    text_color: "light" | "dark", background_color: string, flair: Reddit.RichtextFlair,
+): Generic.Flair[] {
+    if(type === "text" && !text) return [];
     let flair_text = flair.map(v => v.e === "text" ? v.t : "").join("");
     return [{
         color: background_color,
         fg_color: text_color === "light" ? "light" : "dark",
-        elems: flair.map(v => {
+        elems: type === "richtext" ? flair.map(v => {
             if(v.e === "text") {
                 return {type: "text", text: v.t};
             }else if(v.e === "emoji") {
@@ -23,7 +24,7 @@ function flairToGenericFlair(text_color: "light" | "dark", background_color: str
             // a switch can check that all cases are handled even if
             // not all cases are known.
             return {type: "text", text: "#TODO("+v.e+")"};
-        }),
+        }) : type === "text" ? [{type: "text", text}] : [{type: "text", text: "TODO: "+type}],
         content_warning: flair_text.toLowerCase().startsWith("cw:")
 }];
 }
@@ -57,7 +58,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
             kind: "paragraph",
             children: [{kind: "text", text: "TODO video", styles: {error: "todo video"}}],
         };
-        case "h": console.log(rtd); return {
+        case "h": return {
             kind: "heading",
             level: rtd.l,
             children: richtextSpanArray(rtd.c, opt),
@@ -393,7 +394,7 @@ export function reddit() {
                     author: {
                         name: "u/"+listing.author,
                         link: "/u/"+listing.author,
-                        flair: flairToGenericFlair(listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
+                        flair: flairToGenericFlair(listing.author_flair_type, listing.author_flair_text, listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                     },
                 },
                 actions: [{
@@ -438,7 +439,12 @@ export function reddit() {
                 title: {
                     text: listing.title,
                 },
-                flair: [...flairToGenericFlair("light", "", listing.link_flair_richtext), ...content_warnings],
+                flair: [
+                    ...flairToGenericFlair(listing.link_flair_type, listing.link_flair_text, listing.link_flair_text_color,
+                        listing.link_flair_background_color, listing.link_flair_richtext
+                    ),
+                    ...content_warnings
+                ],
                 body: is_deleted
                     ? {kind: "removed", by: is_deleted,
                         fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
@@ -487,7 +493,7 @@ export function reddit() {
                     author: {
                         name: "u/"+listing.author,
                         link: "/u/"+listing.author,
-                        flair: flairToGenericFlair(listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
+                        flair: flairToGenericFlair(listing.author_flair_type, listing.author_flair_text, listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                     },
                     in: {
                         link: "/"+listing.subreddit_name_prefixed,

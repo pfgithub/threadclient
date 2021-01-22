@@ -194,9 +194,10 @@ ul.replies {
 
 .flair {
     background-color: var(--flair-color);
-    border-radius: 3px;
-    padding-left: 3px;
-    padding-right: 3px;
+    border-radius: 50px;
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: 12px;
     @media (prefers-color-scheme: dark) {
         background-color: var(--flair-color-dark);
     }
