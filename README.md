@@ -86,16 +86,17 @@ mastodon todo:
 -   [ ] improved url paths
 -   [ ] emojis. why did they make emojis some weird text replacement thing instead of … including them in the html that already has to be decoded, or for usernames eg rich text like reddit flairs
 
-## other
+## reddit richtext posts
 
-new.reddit has a secret api
+-   reddit has a new api that is not available through cors (sample: https://gateway.reddit.com/desktopapi/v1/postcomments/t3_80hlz6?rtj=only&emotes_as_images=true&profile_img=true&allow_over18=1&include=identity&subredditName=redesign&hasSortParam=false&include_categories=true&onOtherDiscussions=false )
+-   this api gives posts and comments in easy-to-parse richtext json instead of markdown
+-   some things can be represented in richtext that can not be represented in markdown, including: images embedded in posts and gifs embedded in comments
+-   it is possible to post richtext posts and comments through the old api, but it is not possible to get richtext post data through the old api
+-   threadreader may be able to support posting text posts with images with captions, however that will require a custom editor which is a bit of a mess in html
 
-https://gateway.reddit.com/desktopapi/v1/postcomments/t3_80hlz6?rtj=only&emotes_as_images=true&profile_img=true&allow_over18=1&include=identity&subredditName=redesign&hasSortParam=false&include_categories=true&onOtherDiscussions=false
+gifs in comments
 
-it returns a much better structured response with less redundant information and it doesn't require any markdown parser to display posts and it supports inline images and videos in text posts and stuff
-
-unfortunately, this is locked down using cors headers, so threadreader cannot use it without a proxy.
-
-it is likely that it will also be impossible to post richtext posts either without a proxy
-
-for some reason, the normal APIs offer methods to post richtext posts and comments, but not read posts and comments as richtext
+-   threadreader can switch to using reddit body_html instead of body and sanitize it using the same sanitizer used for mastodon posts.
+-   this will add support for embedded emojis and gifs in comments
+-   then, markdown parsing will only be used for pushshift and replies
+-   a custom reply editor could be made to post richtext replies rather than markdown replies, meaning the markdown parser would only be used for pushshift
