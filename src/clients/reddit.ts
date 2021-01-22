@@ -181,6 +181,7 @@ export function reddit() {
         }
         query.set("raw_json", "1");
         query.set("rtj", "only");
+        query.set("emotes_as_images", "true");
         return baseURL()+pathname+".json?"+query.toString();
     };
 
