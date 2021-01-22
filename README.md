@@ -42,7 +42,7 @@ all todo:
 -   [ ] give up on onhide just delete the elements to not waste ram storing youtube iframes
 -   [ ] proper, non-hacky way to auto disable darkreader extension
 -   [ ] full mobile support maybe, might not be worth it
--   [ ] a button to switch to markdown source view
+-   [ ] a button to switch to markdown source view (uh oh what if the comment doesn't have any markdown source…)
 -   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 
@@ -67,6 +67,7 @@ reddit todo:
 -   [ ] mod tools and stuff + mod messages also + post removal tools that have options to use the subreddit things like comment distinguished stickied
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
+-   [ ] code block automatic syntax highlighting (using hljs automatic or something)
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
@@ -85,18 +86,3 @@ mastodon todo:
 -   [ ] fix that "view parent" thing that looks bad
 -   [ ] improved url paths
 -   [ ] emojis. why did they make emojis some weird text replacement thing instead of … including them in the html that already has to be decoded, or for usernames eg rich text like reddit flairs
-
-## reddit richtext posts
-
--   reddit has a new api that is not available through cors (sample: https://gateway.reddit.com/desktopapi/v1/postcomments/t3_80hlz6?rtj=only&emotes_as_images=true&profile_img=true&allow_over18=1&include=identity&subredditName=redesign&hasSortParam=false&include_categories=true&onOtherDiscussions=false )
--   this api gives posts and comments in easy-to-parse richtext json instead of markdown
--   some things can be represented in richtext that can not be represented in markdown, including: images embedded in posts and gifs embedded in comments
--   it is possible to post richtext posts and comments through the old api, but it is not possible to get richtext post data through the old api
--   threadreader may be able to support posting text posts with images with captions, however that will require a custom editor which is a bit of a mess in html
-
-gifs in comments
-
--   threadreader can switch to using reddit body_html instead of body and sanitize it using the same sanitizer used for mastodon posts.
--   this will add support for embedded emojis and gifs in comments
--   then, markdown parsing will only be used for pushshift and replies
--   a custom reply editor could be made to post richtext replies rather than markdown replies, meaning the markdown parser would only be used for pushshift

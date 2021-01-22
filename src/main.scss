@@ -621,3 +621,13 @@ body {
     margin-left: 8px;
     font-size: small;
 }
+
+th,
+td {
+    border: 1px solid var(--collapse-line-color-hover);
+    padding: 4px 9px;
+    margin: 0;
+}
+table {
+    border-collapse: collapse;
+}

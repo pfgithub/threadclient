@@ -35,6 +35,136 @@ function decodeAction(act: string): {kind: "vote", query: string} | {kind: "-"} 
     return JSON.parse(act);
 }
 
+type RichtextFormattingOptions = {};
+function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
+    return richtextParagraphArray(rtd.document, opt);
+}
+function richtextParagraphArray(rtd: Reddit.Richtext.Paragraph[], opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
+    return rtd.map(v => richtextParagraph(v, opt));
+}
+function expectUnsupported(text: "unsupported"): void {}
+function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph {
+    switch(rtd.e) {
+        case "par": return {
+            kind: "paragraph",
+            children: richtextSpanArray(rtd.c, opt),
+        };
+        case "img": return {
+            kind: "paragraph",
+            children: [{kind: "text", text: "TODO image", styles: {error: "todo image"}}],
+        };
+        case "video": return {
+            kind: "paragraph",
+            children: [{kind: "text", text: "TODO video", styles: {error: "todo video"}}],
+        };
+        case "h": console.log(rtd); return {
+            kind: "heading",
+            level: rtd.l,
+            children: richtextSpanArray(rtd.c, opt),
+        };
+        case "hr": return {
+            kind: "horizontal_line"
+        };
+        case "blockquote": return {
+            kind: "blockquote",
+            children: richtextParagraphArray(rtd.c, opt),
+        };
+        case "list": return {
+            kind: "list",
+            ordered: rtd.o,
+            children: richtextParagraphArray(rtd.c, opt),
+        };
+        case "li": return {
+            kind: "list_item",
+            children: richtextParagraphArray(rtd.c, opt),
+        };
+        case "code": return {
+            kind: "code_block",
+            text: rtd.c.map(v => {
+                switch(v.e) {
+                    case "raw": return v.t;
+                    case "unsupported": return "Err «"+JSON.stringify(v)+"»";
+                }
+            }).join("\n"),
+        };
+        case "table": return {
+            kind: "table",
+            headings: rtd.h.map(h => richtextTableHeading(h, opt)),
+            children: rtd.c.map(c => c.map(q => richtextTableItem(q, opt))),
+        };
+    }
+    expectUnsupported(rtd.e);
+    return {
+        kind: "paragraph",
+        children: [{kind: "text", text: "TODO "+rtd.e, styles: {error: "TODO «"+JSON.stringify(rtd)+"»"}}],
+    };
+}
+function richtextTableHeading(tbh: Reddit.Richtext.TableHeading, opt: RichtextFormattingOptions): Generic.Richtext.TableHeading {
+    return {
+        align: tbh.a ? ({L: "left", C: "center", R: "right"} as const)[tbh.a] : undefined,
+        children: richtextSpanArray(tbh.c, opt),
+    };
+}
+function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormattingOptions): Generic.Richtext.TableItem {
+    console.log(tbh);
+    return {
+        children: richtextSpanArray(tbh.c, opt),
+    };
+}
+function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
+    if(format.length === 0) return [{kind: "text", text: text, styles: {}}];
+    let resitems: Generic.Richtext.Span[] = [];
+    let previdx = 0;
+    const commit = (endv: number) => {
+        const nofmt = text.substring(previdx, endv);
+        if(nofmt.length > 0) resitems.push({kind: "text", text: nofmt, styles: {}});
+    };
+    format.forEach(([fmtid, start, length]) => {
+        commit(start);
+        previdx = start + length;
+        const fmt = text.substr(start, length);
+        resitems.push({kind: "text", text: fmt, styles: richtextStyle(fmtid)});
+    });
+    commit(text.length);
+    return resitems;
+}
+function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
+    switch(rtd.e) {
+        case "text":
+            return richtextFormattedText(rtd.t, rtd.f ?? [], opt)
+        ;
+        case "r/": // not sure what rtd.l is for
+            return [{kind: "link", url: "/r/"+rtd.t, children:
+                [{kind: "text", text: (rtd.l ? "/" : "") + "r/"+rtd.t, styles: {}}],
+            }]
+        ;
+        case "link": return [{
+            kind: "link",
+            url: rtd.u,
+            title: rtd.a,
+            children: richtextFormattedText(rtd.t, rtd.f ?? [], opt),
+        }];
+        case "br": return [{kind: "br"}];
+        case "spoilertext": return [{kind: "spoiler", children: richtextSpanArray(rtd.c, opt)}];
+        case "raw": return [{kind: "text", text: rtd.t, styles: {}}];
+    }
+    expectUnsupported(rtd.e);
+    return [{kind: "text", text: "TODO "+rtd.e, styles: {error: "TODO «"+JSON.stringify(rtd)+"»"}}];
+}
+function richtextSpanArray(rtsa: Reddit.Richtext.Span[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
+    return rtsa.flatMap(v => richtextSpan(v, opt));
+}
+function richtextStyle(style: number): Generic.Richtext.Style {
+    return {
+        strong: !!(style & 1),
+        emphasis: !!(style & 2),
+        strikethrough: !!(style & 8),
+        superscript: !!(style & 32),
+        code: !!(style & 64),
+        error: style & ~0b1101011 ? "unsupported style "+style.toString(2) : undefined,
+    };
+}
+
 export function reddit() {
     const isLoggedIn = () => {
         return !!localStorage.getItem("reddit-secret");
@@ -50,6 +180,7 @@ export function reddit() {
             throw new Error("path didn't start with `/` : `"+path+"`");
         }
         query.set("raw_json", "1");
+        query.set("rtj", "only");
         return baseURL()+pathname+".json?"+query.toString();
     };
 
@@ -235,16 +366,23 @@ export function reddit() {
             // Comment
             const listing = listing_raw.data;
 
-            const is_deleted = listing.author === "[deleted]";
+            let is_deleted: undefined | "author" | "moderator";
+            if(listing.author === "[deleted]") {
+                if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
+                    is_deleted = "author";
+                }else if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[removed]"}], e: "par"}]})) {
+                    is_deleted = "moderator";
+                }
+            }
             const post_id_no_pfx = listing.name.substring(3);
 
             const result: Generic.Node = {
                 kind: "thread",
                 body: is_deleted
-                    ? {kind: "removed", by: listing.body === "[removed]" ? "moderator" : "author",
+                    ? {kind: "removed", by: is_deleted,
                         fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
                     }
-                    : {kind: "text", content: listing.body, markdown_format: "reddit"},
+                    : {kind: "richtext", content: richtextDocument(listing.rtjson, {})},
                 display_mode: {body: "visible", comments: "visible"},
                 raw_value: listing_raw,
                 link: listing.permalink,
@@ -278,7 +416,16 @@ export function reddit() {
             const listing = listing_raw.data;
             // if((listing as any).preview) console.log((listing as any).preview);
 
-            const is_deleted = listing.author === "[deleted]";
+            let is_deleted: undefined | "author" | "moderator";
+            if(listing.author === "[deleted]") {
+                if(listing.is_self) {
+                    if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
+                        is_deleted = "author";
+                    }else if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[removed]"}], e: "par"}]})) {
+                        is_deleted = "moderator";
+                    }
+                }
+            }
             const post_id_no_pfx = listing.name.substring(3);
 
             const content_warnings: Generic.Flair[] = [];
@@ -291,8 +438,8 @@ export function reddit() {
                     text: listing.title,
                 },
                 flair: [...flairToGenericFlair("light", "", listing.link_flair_richtext), ...content_warnings],
-                body: is_deleted && listing.is_self
-                    ? {kind: "removed", by: listing.selftext === "[removed]" ? "moderator" : "author",
+                body: is_deleted
+                    ? {kind: "removed", by: is_deleted,
                         fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
                     }
                     : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
@@ -300,8 +447,8 @@ export function reddit() {
                         threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: 'crosspost'}, listing.permalink) as Generic.Thread
                     }
                     : listing.is_self
-                    ? listing.selftext_html
-                        ? {kind: "text", content: listing.selftext, markdown_format: "reddit"}
+                    ? listing.rtjson.document.length
+                        ? {kind: "richtext", content: richtextDocument(listing.rtjson, {})}
                         : {kind: "none"}
                     : listing.gallery_data
                     ? {kind: "gallery", images: listing.gallery_data.items.map(gd => {

@@ -518,6 +518,46 @@ const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
     };
 });
 
+function renderPreviewableLink(client: ThreadClient, href: string, __after_once: Node | null, parent_node: Node): {newbtn: HTMLAnchorElement} {
+    const after_node = document.createComment("");
+    parent_node.insertBefore(after_node, __after_once);
+
+    const renderLinkPreview = canPreview(href, {autoplay: true});
+
+    const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
+    parent_node.insertBefore(newbtn, after_node);
+
+    if(!renderLinkPreview) return {newbtn};
+
+    let showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
+
+    let preview_div: undefined | HTMLDivElement;
+
+    const togglepreview = () => {
+        if(preview_div) hidepreview();
+        else showpreview();
+    };
+    showpreviewbtn.onev("click", () => togglepreview());
+    const showpreview = () => {
+        showpreviewbtn.textContent = "⏷";
+        preview_div = el("div");
+        parent_node.insertBefore(preview_div, after_node);
+        const lnkprvw = renderLinkPreview();
+        preview_div.adch(lnkprvw.node);
+
+        // not bothering with show/hide atm because that requires passing show/hide from client
+        //listing into more places
+    }
+    const hidepreview = () => {
+        showpreviewbtn.textContent = "⏵";
+        if(preview_div) {preview_div.remove(); preview_div = undefined;}
+    };
+    hidepreview();
+    parent_node.insertBefore(showpreviewbtn, after_node);
+
+    return {newbtn};
+}
+
 function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: Node, class_prefix: string) {
     const divel = el("div").adto(parent_node).clss("slightlybigger");
     divel.innerHTML = safe_html;
@@ -533,40 +573,10 @@ function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: No
         const href = alink.getAttribute("href")!;
         const content = Array.from(alink.childNodes);
 
-        const renderLinkPreview = canPreview(href, {autoplay: true});
+        const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode!);
 
-        const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
         newbtn.attr({"class": alink.getAttribute("class")});
         content.forEach(el => newbtn.appendChild(el));
-        after_node.parentNode!.insertBefore(newbtn, after_node);
-
-        if(!renderLinkPreview) continue;
-
-        let showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
-
-        let preview_div: undefined | HTMLDivElement;
-
-        const togglepreview = () => {
-            if(preview_div) hidepreview();
-            else showpreview();
-        };
-        showpreviewbtn.onev("click", () => togglepreview());
-        const showpreview = () => {
-            showpreviewbtn.textContent = "⏷";
-            preview_div = el("div");
-            after_node.parentNode!.insertBefore(preview_div, after_node);
-            const lnkprvw = renderLinkPreview();
-            preview_div.adch(lnkprvw.node);
-
-            // not bothering with show/hide atm because that requires passing show/hide from client
-            //listing into more places
-        }
-        const hidepreview = () => {
-            showpreviewbtn.textContent = "⏵";
-            if(preview_div) {preview_div.remove(); preview_div = undefined;}
-        };
-        hidepreview();
-        after_node.parentNode!.insertBefore(showpreviewbtn, after_node);
     }
     for(let spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
         let children = Array.from(spoilerspan.childNodes);
@@ -609,6 +619,129 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
 
     return {removeSelf(){defer.cleanup();}};
 }}}
+
+function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, container: Node): {cleanup: () => void} {
+    const defer = makeDefer();
+
+    switch(rts.kind) {
+        case "text": {
+            let mainel: Node = el("span");
+            const wrap = (outer: Node) => {
+                outer.adch(mainel);
+                mainel = outer;
+            }
+            if(rts.styles.code) wrap(el("code"));
+            if(rts.styles.emphasis) wrap(el("i"));
+            if(rts.styles.error) wrap(el("span").clss("error").attr({title: rts.styles.error}));
+            if(rts.styles.strikethrough) wrap(el("s"));
+            if(rts.styles.strong) wrap(el("b"));
+            if(rts.styles.superscript) wrap(el("sup"));
+
+            mainel.atxt(rts.text);
+            mainel.adto(container);
+        }; break;
+        case "link": {
+            const {newbtn} = renderPreviewableLink(client, rts.url, null, container);
+            if(rts.title) newbtn.title = rts.title;
+            for(const child of rts.children) {
+                const chld = renderRichtextSpan(client, child, newbtn);
+                defer(() => chld.cleanup());
+            }
+        }; break;
+        case "br": {
+            container.adch(el("br"));
+        }; break;
+        case "spoiler": {
+            let spoilerspan = el("spoiler").clss("md-spoiler-text");
+            let subspan = el("span").adto(spoilerspan).clss("md-spoiler-content");
+            for(const child of rts.children) {
+                const chld = renderRichtextSpan(client, child, subspan);
+                defer(() => chld.cleanup());
+            }
+            spoilerspan.attr({title: "Click to reveal spoiler"});
+            subspan.style.opacity = "0";
+            spoilerspan.onev("click", () => {
+                subspan.style.opacity = "1";
+                spoilerspan.attr({title: ""});
+            });
+        }; break;
+        default: assertNever(rts);
+    }
+
+    return {cleanup: () => defer.cleanup()};
+}
+
+function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Paragraph, container: Node): {cleanup: () => void} {
+    const defer = makeDefer();
+
+    switch(rtp.kind) {
+        case "paragraph": {
+            const pel = el("p").adto(container);
+            for(const child of rtp.children) {
+                const chld = renderRichtextSpan(client, child, pel);
+                defer(() => chld.cleanup());
+            }
+        }; break;
+        case "heading": {
+            const hel = el("h"+rtp.level).adto(container);
+            for(const child of rtp.children) {
+                const chld = renderRichtextSpan(client, child, hel);
+                defer(() => chld.cleanup());
+            }
+        }; break;
+        case "blockquote": case "list": case "list_item": {
+            const bquot = el(rtp.kind === "blockquote" ?
+                "blockquote" : rtp.kind === "list" ?
+                rtp.ordered ? "ol" : "ul" : rtp.kind
+                === "list_item" ? "li" : assertNever(rtp)
+            ).adto(container);
+            for(const child of rtp.children) {
+                const chld = renderRichtextParagraph(client, child, bquot);
+                defer(() => chld.cleanup());
+            }
+        }; break;
+        case "horizontal_line": {
+            el("hr").adto(container);
+        }; break;
+        case "code_block": {
+            el("pre").adch(el("code").atxt(rtp.text)).adto(container);
+        }; break;
+        case "image": {
+            el("img").attr({src: rtp.url, alt: rtp.alt, title: rtp.alt, width: rtp.w + "px", height: rtp.h + "px"}).clss("preview-image").adto(container);
+            if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
+        }; break;
+        case "video": {
+            el("video").attr({src: rtp.url, width: rtp.w + "px", height: rtp.h + "px"}).clss("preview-image").adto(container);
+            if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
+        }; break;
+        case "table": {
+            const tablel = el("table").adto(container);
+            const thead = el("tr").adto(el("thead").adto(tablel));
+            for(const heading of rtp.headings) {
+                const headth = el("th").adto(thead).attr({align: heading.align});
+                for(const child of heading.children) {
+                    const chld = renderRichtextSpan(client, child, headth);
+                    defer(() => chld.cleanup());
+                }
+            }
+            const tbody = el("tbody").adto(tablel);
+            for(const row of rtp.children) {
+                const rowr = el("tr").adto(tbody);
+                row.forEach((col, i) => {
+                    const align = rtp.headings[i].align;
+                    const td = el("td").adto(rowr).attr({align});
+                    for(const child of col.children) {
+                        const chld = renderRichtextSpan(client, child, td);
+                        defer(() => chld.cleanup());
+                    }
+                });
+            }
+        }; break;
+        default: assertNever(rtp);
+    }
+
+    return {cleanup: () => defer.cleanup()};
+}
 
 let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean, on: {hide: () => void, show: () => void}}, content: ChildNode): {cleanup: () => void} => {
     const defer = makeDefer();
@@ -665,7 +798,11 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
         // TODO child.onShow, child.onHide
         defer(() => child.removeSelf());
     }else if(body.kind === "richtext") {
-        content.atxt("TODO richtext");
+        const txta = el("div").adto(content);
+        for(const pargrph of body.content) {
+            const rendered = renderRichtextParagraph(client, pargrph, txta);
+            defer(() => rendered.cleanup());
+        }
     }else if(body.kind === "poll") {
         const pollcontainer = el("ul").adto(content).clss("poll-container");
         for(const choice of body.choices) {

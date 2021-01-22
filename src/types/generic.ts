@@ -10,19 +10,81 @@ export type BodyText = {
     content: string,
     markdown_format: "reddit" | "none" | "mastodon",
 };
-export type RichTextSpan = {
-    kind: "text",
-    text: string,
-};
-export type RichTextParagraph = {
-    kind: "paragraph",
-    nodes: RichTextSpan[],
-} | {
-    kind: "image", url: string, caption?: string
-};
+export declare namespace Richtext {
+    export type Style = {
+        strong?: boolean,
+        emphasis?: boolean,
+        strikethrough?: boolean,
+        superscript?: boolean,
+        code?: boolean,
+        error?: string,
+    };
+    export type Paragraph = {
+        kind: "paragraph",
+        children: Span[],
+    } | {
+        kind: "image",
+        url: string,
+        w: number,
+        h: number,
+        caption?: string,
+        alt?: string,
+    } | {
+        kind: "video",
+        url: string,
+        w: number,
+        h: number,
+        caption?: string,
+    } | {
+        kind: "heading",
+        level: number,
+        children: Span[],
+    } | {
+        kind: "horizontal_line"
+    } | {
+        kind: "blockquote",
+        children: Paragraph[],
+    } | {
+        kind: "list",
+        ordered: boolean,
+        children: Paragraph[],
+    } | {
+        kind: "list_item",
+        children: Paragraph[],
+    } | {
+        kind: "code_block",
+        text: string,
+    } | {
+        kind: "table",
+        headings: TableHeading[],
+        children: TableItem[][],
+    };
+    export type Span = {
+        kind: "text",
+        text: string,
+        styles: Style,
+    } | {
+        kind: "link",
+        url: string,
+        title?: string,
+        children: Span[],
+    } | {
+        kind: "br",
+    } | {
+        kind: "spoiler",
+        children: Span[],
+    };
+    export type TableHeading = {
+        align?: "left" | "center" | "right",
+        children: Span[],
+    };
+    export type TableItem = {
+        children: Span[],
+    };
+}
 export type RichText = {
     kind: "richtext",
-    content: RichTextParagraph[],
+    content: Richtext.Paragraph[],
 };
 export type Body = BodyText | RichText | {
     kind: "link",
