@@ -840,7 +840,8 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
             });
         }
     }else if(body.kind === "crosspost") {
-        const child = clientListing(client, body.source).insertBefore(content, null);
+        const parentel = el("div").styl({width: "max-content"}).adto(content);
+        const child = clientListing(client, body.source).insertBefore(parentel, null);
         // TODO child.onShow, child.onHide
         defer(() => child.removeSelf());
     }else if(body.kind === "richtext") {
@@ -1066,6 +1067,15 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     return {percent_voted_txt, votecount};
 }
 
+const userLink = (client_id: string, href: string, name: string) => {
+    const [author_color, author_color_dark] = getRandomColor(seededRandom(name));
+    return linkButton(client_id, href)
+        .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
+        .clss("user-link")
+        .atxt(name)
+    ;
+}
+
 function clientListing(client: ThreadClient, listing: Generic.ContentNode) { return {insertBefore(parent: Node, before_once: Node | null) {
     const defer = makeDefer();
     // console.log(listing);
@@ -1182,28 +1192,18 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
     }
     type VoteState = {pt_count: number | undefined, your_vote: 'up' | 'down' | undefined, vote_loading: boolean};
 
-    const author_color = getRandomColor(seededRandom(listing.info?.author.name ?? "no"));
-    const author_color_dark = darkenColor("foreground", author_color);
-
     let reserved_points_area: null | Node = null;
 
     if(listing.layout === "reddit-post" && listing.info) {
         const submission_time = el("span").adch(timeAgo(listing.info.time).defer(defer)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
-        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
-            .styl({"color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
-            .atxt(listing.info.author.name)
-        );
+        content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
             content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
-        content_subminfo_line.adch(linkButton(client.id, listing.info.author.link)
-            .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
-            .clss("user-link")
-            .atxt(listing.info.author.name)
-        );
+        content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.layout === "mastodon-post" && listing.info.author.pfp) {
             frame.clss("spacefiller-pfp");
@@ -1218,13 +1218,11 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
         const submission_time = el("span").adch(timeAgo(listing.info.time).defer(defer)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(" ").adch(submission_time);
         if(listing.info.reblogged_by) {
-            const author_color = getRandomColor(seededRandom(listing.info.reblogged_by.author.name));
-            const author_color_dark = darkenColor("foreground", author_color);
-            content_subminfo_line.atxt(" ← Boosted by ").adch(linkButton(client.id, listing.info.reblogged_by.author.link)
-                .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
-                .clss("user-link")
-                .atxt(listing.info.reblogged_by.author.name)
-            ).atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(defer));
+            const [author_color, author_color_dark] = getRandomColor(seededRandom(listing.info.reblogged_by.author.name));
+            content_subminfo_line.atxt(" ← Boosted by ")
+                .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.name))
+                .atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(defer))
+            ;
             if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author.pfp) {
                 frame.clss("spacefiller-pfp");
                 const pfpimg = el("div").clss("pfp", "pfp-reblog").styl({

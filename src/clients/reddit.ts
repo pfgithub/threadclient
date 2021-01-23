@@ -41,7 +41,7 @@ function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormatting
         return richtextParagraphArray(rtd.document, opt);
     }catch(e) {
         console.log("Error parsing richtext:", e);
-        return [{kind: "paragraph", children: [{kind: "text", styles: {error: "thrown error"}, text: "Error parsing richtext: "+e.toString()}]}];
+        return [{kind: "paragraph", children: [{kind: "text", styles: {error: "thrown error"}, text: "Error parsing richtext: "+e}]}];
     }
 }
 function richtextParagraphArray(rtd: Reddit.Richtext.Paragraph[], opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {

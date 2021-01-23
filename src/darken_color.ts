@@ -244,7 +244,10 @@ export function seededRandom(string: string) {
     return sfc32(seed(), seed(), seed(), seed());
 }
 
-export function getRandomColor(rand: () => number): RGBA {
-    return hslToRGB({h: rand() * 360, s: rand() * 0.5 + 0.5, l: rand() * 0.5 + 0.5, a: 1 });
+export function getRandomColor(rand: () => number): [RGBA, RGBA] {
+    const hsl = {h: rand() * 360, s: rand() * 0.5 + 0.5, l: rand() * 0.4 + 0.1, a: 1 };
+    const hsl_dark = {...hsl, l: 1 - hsl.l};
+    console.log(hsl, hsl_dark);
+    return [hslToRGB(hsl), hslToRGB(hsl_dark)];
     // return {r: rand() * 128 |0, g: rand() * 128 |0, b: rand() * 128 |0, a: 1};
 }
