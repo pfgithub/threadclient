@@ -45,6 +45,9 @@ all todo:
 -   [ ] a button to switch to markdown source view (uh oh what if the comment doesn't have any markdown source…)
 -   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
+-   [ ] fix dark flairs being displayed on a dark background (occurs on reddit flairs with no bg color set)
+-   [ ] fix user name color randomization in light mode (generate a light color and return the same with inverted l for darkness)
+-   [ ] fix youtube embed ignoring time codes
 
 reddit todo:
 
