@@ -130,6 +130,30 @@ a {
     border-radius: 10px;
 }
 
+.mobile-only {
+    display: none;
+}
+@media only screen and (max-width: 600px) {
+    .mobile-only {
+        display: unset;
+    }
+    .desktop-only {
+        display: none;
+    }
+    body {
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .client-main-frame > .post {
+        border-radius: 0;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .post-content-title {
+        font-size: small;
+    }
+}
+
 .replies > .comment:nth-child(1) {
     margin-top: 5px;
 }

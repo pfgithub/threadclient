@@ -37,7 +37,12 @@ function decodeAction(act: string): {kind: "vote", query: string} | {kind: "-"} 
 
 type RichtextFormattingOptions = {};
 function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
-    return richtextParagraphArray(rtd.document, opt);
+    try {
+        return richtextParagraphArray(rtd.document, opt);
+    }catch(e) {
+        console.log("Error parsing richtext:", e);
+        return [{kind: "paragraph", children: [{kind: "text", styles: {error: "thrown error"}, text: "Error parsing richtext: "+e.toString()}]}];
+    }
 }
 function richtextParagraphArray(rtd: Reddit.Richtext.Paragraph[], opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
     return rtd.map(v => richtextParagraph(v, opt));
@@ -157,7 +162,7 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
     return [{kind: "text", text: "TODO "+rtd.e, styles: {error: "TODO «"+JSON.stringify(rtd)+"»"}}];
 }
 function richtextSpanArray(rtsa: Reddit.Richtext.Span[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
-    return rtsa.flatMap(v => richtextSpan(v, opt));
+    return (rtsa ?? []).flatMap(v => richtextSpan(v, opt));
 }
 function richtextStyle(style: number): Generic.Richtext.Style {
     return {

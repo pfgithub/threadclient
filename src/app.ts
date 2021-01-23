@@ -958,27 +958,25 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                     });
                 }
                 reply_btn.disabled = true;
-                label: {
-                    if(reply_state.preview) {
-                        if(prev_preview) {
-                            if(prev_preview.preview === reply_state.preview) {
-                                break label;
-                            }
-                            prev_preview.remove();
-                            prev_preview = undefined;
+                label: if(reply_state.preview) {
+                    if(prev_preview) {
+                        if(prev_preview.preview === reply_state.preview) {
+                            break label;
                         }
-                        // hacky for now. reply buttons should need a special override
-                        // rather than being bundled with the rest of stuff in renderAction
-                        const containerel = el("div").adto(content_buttons_line);
-                        const listing_el = clientListing(client, reply_state.preview).insertBefore(containerel, null);
-                        prev_preview = {
-                            preview: reply_state.preview,
-                            remove: () => {
-                                listing_el.removeSelf();
-                                containerel.remove();
-                            },
-                        };
+                        prev_preview.remove();
+                        prev_preview = undefined;
                     }
+                    // hacky for now. reply buttons should need a special override
+                    // rather than being bundled with the rest of stuff in renderAction
+                    const containerel = el("div").adto(content_buttons_line);
+                    const listing_el = clientListing(client, reply_state.preview).insertBefore(containerel, null);
+                    prev_preview = {
+                        preview: reply_state.preview,
+                        remove: () => {
+                            listing_el.removeSelf();
+                            containerel.remove();
+                        },
+                    };
                 }
             }
         };
@@ -1326,6 +1324,12 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
             }else if(listing.layout === "reddit-post") {
                 content_subminfo_line.atxt(", ");
                 ctr.percent_voted_txt.adto(content_subminfo_line);
+
+                content_voting_area.clss("desktop-only");
+                content_buttons_line.atxt(" ");
+                const cbl_render_area = el("div").clss("mobile-only").adto(content_buttons_line);
+                const actv = renderAction(client, action, cbl_render_area);
+                defer(() => actv.cleanup());
             }
         }else {
             content_buttons_line.atxt(" ");
@@ -1417,6 +1421,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
     parent.insertBefore(outer, before_once);
     defer(() => outer.remove());
     const frame = el("div").adto(outer);
+    frame.classList.add("client-main-frame");
     frame.classList.add("display-loading");
 
     if(!client.isLoggedIn(current_path)) {
