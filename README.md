@@ -31,6 +31,7 @@ all todo:
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 -   [ ] fix dark flairs being displayed on a dark background (occurs on reddit flairs with no bg color set)
 -   [ ] add eslint for formatting and typescript-eslinting
+-   [ ] make pwa
 
 reddit todo:
 
