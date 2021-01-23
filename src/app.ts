@@ -151,7 +151,7 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, 
     }};
 }
 
-function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => {node: Node, onhide?: () => void, onshow?: () => void}) {
+function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
     let url_mut: URL | undefined;
     try { 
         url_mut = new URL(link);
@@ -162,20 +162,25 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
         || path.endsWith(".webp")
-    ) return () => {
+    ) return (): HideShowCleanup<Node> => {
         let img = el("img").clss("preview-image").attr({src: link});
         // a resizable image can be made like this
         // .resizable { display: inline-block; resize: both; overflow: hidden; line-height: 0; }
-        return {node: el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"})};
+        const resn = {node: el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"})};
+        return hideshow(resn.node);
     };
-    if(path.endsWith(".gifv")) return () => {
+    if(path.endsWith(".gifv")) return (): HideShowCleanup<Node> => {
         let video = el("video").attr({controls: ""}).clss("preview-image");
         el("source").attr({src: link.replace(".gifv", ".webm"), type: "video/webm"}).adto(video);
         el("source").attr({src: link.replace(".gifv", ".mp4"), type: "video/mp4"}).adto(video);
         video.loop = true;
-        return {node: video, onhide: () => video.pause()};
+        const hsc = hideshow(video);
+        let playing_before_hide = false;
+        hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause();});
+        hsc.on("show", () => {if(playing_before_hide) video.play();});
+        return hsc;
     };
-    if(link.startsWith("https://v.redd.it/")) return () => {
+    if(link.startsWith("https://v.redd.it/")) return (): HideShowCleanup<Node> => {
         let container = el("div");
 
         let audio = el("audio").adto(container);
@@ -259,37 +264,56 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
 
         let playing_before_hide = false;
 
-        return {node: container, onhide: () => {
+        const hsc = hideshow(container);
+        hsc.on("hide", () => {
             playing_before_hide = !video.paused;
             video.pause();
-        }, onshow: () => {
+        });
+        hsc.on("show", () => {
             if(playing_before_hide) video.play();
-        }};
+        });
+        return hsc;
     };
-    if(path.endsWith(".mp4") || path.endsWith(".webm")) return () => {
+    if(path.endsWith(".mp4") || path.endsWith(".webm")) return (): HideShowCleanup<Node> => {
         let src = el("source").attr({src: link});
         let video = el("video").attr({controls: ""}).clss("preview-image").adch(src);
-        return {node: video, onhide: () => video.pause()};
+        let playing_before_hide = false;
+        const hsc = hideshow(video);
+        hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause();})
+        hsc.on("show", () => {if(playing_before_hide) video.play()});
+        return hsc;
     }
+    const ytvid = (youtube_video_id: string, search: URLSearchParams) => (): HideShowCleanup<Node> => {
+        const container = el("div");
+        const embedv = embedYoutubeVideo(youtube_video_id, opts, search);
+        embedv.node.adto(container);
+        const hsc = hideshow(container);
+        // maybe just delete embedv and recreate it instead
+        // or do like a timeout like if >10s, delete idk
+        hsc.on("hide", () => embedv.onhide?.());
+        hsc.on("show", () => embedv.onshow?.());
+        return hsc;
+    };
     if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
-        const link = url.searchParams.get("v");
-        if(link) return () => {
-            return embedYoutubeVideo(link, opts, url.searchParams);
-        };
+        const ytvid_id = url.searchParams.get("v");
+        if(ytvid_id) return ytvid(ytvid_id, url.searchParams);
     }
-    if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) return () => {
+    if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
         const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
-        return embedYoutubeVideo(youtube_video_id, opts, url.searchParams);
+        return ytvid(youtube_video_id, url.searchParams);
     };
     if(link.startsWith("https://www.reddit.com/gallery/")) {
         // information about galleries is distributed with posts
         // do nothing I guess
     }
-    if(link.startsWith("https://imgur.com/")) return () => {
+    if(link.startsWith("https://imgur.com/")) return (): HideShowCleanup<Node> => {
         const iframe = el("iframe").attr({src: link + "/embed"});
-        return {node: el("div").clss("resizable-iframe").styl({width: "500px", height: "500px"}).adch(iframe)};
+        const resn = {node: el("div").clss("resizable-iframe").styl({width: "500px", height: "500px"}).adch(iframe)};
+        const hsc = hideshow(resn.node);
+        // TODO: onhide delete, onshow recreate. no need to store imgur iframes forever.
+        return hsc;
     };
-    if(opts.suggested_embed) return () => {
+    if(opts.suggested_embed) return (): HideShowCleanup<Node> => {
         try {
             // const parser = new DOMParser();
             // const doc = parser.parseFromString(opts.suggested_embed, "text/html");
@@ -306,23 +330,22 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
                 if(!iframe) iframe = el("iframe").attr({src: iframe_unsafe.src, allow: iframe_unsafe.allow, allowfullsreen: ""}).adto(parent_node);
             };
             initFrame();
-            return {
-                node: parent_node,
-                onhide: () => {if(iframe) {iframe.remove(); iframe = undefined;}},
-                onshow: () => {initFrame();},
-            };
+
+            const hsc = hideshow(parent_node);
+            hsc.on("hide", () => {if(iframe) {iframe.remove(); iframe = undefined;}});
+            hsc.on("show", () => initFrame());
+            return hsc;
         }catch(e) {
             console.log(e);
-            return {
-                node: txt("Error! "+e.toString()),
-            };
+            return hideshow(txt("Error! "+e.toString()));
         }
     }
     return undefined;
 }
 
-function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): {node: Node, cleanup: () => void} {
+function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
     let container = el("div");
+    const hsc = hideshow(container);
     type State = "overview" | {
         index: number
     };
@@ -332,7 +355,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         update();
     }
 
-    let prevbody: {cleanup: () => void} | undefined;
+    let prevbody: HideShowCleanup<undefined> | undefined;
     let prevnode: HTMLDivElement | undefined;
 
     let update = () => {
@@ -358,13 +381,17 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
             <button onclick=${() => setState("overview")}>Gallery</button>
             <div ref=${ref}></div>
         `);
-        prevbody = renderBody(client, selimg.body, {autoplay: true, on: {show: () => {}, hide: () => {}}}, ref.current!);
+        prevbody = renderBody(client, selimg.body, {autoplay: true}, ref.current!);
         prevnode = ref.current;
         // TODO display a loading indicator while the image loads
     };
 
+    hsc.on("cleanup", () => {
+        if(prevbody) prevbody.cleanup();
+    })
+
     setState(state);
-    return {node: container, cleanup: () => {if(prevbody) prevbody.cleanup(); if(prevnode) prevnode.remove()}};
+    return hsc;
 }
 
 function renderFlair(flairs: Generic.Flair[]) {
@@ -428,8 +455,9 @@ function timeAgoText(start_ms: number): [string, number] {
 
 // NOTE that this leaks memory as it holds onto nodes forever and updates them even
 // when they are not being displayed. This can be fixed by uil in the future.
-function timeAgo(start_ms: number): {node: Node, cleanup: () => void, defer: (defobj: MakeDeferReturn) => Node} {
+function timeAgo(start_ms: number): HideShowCleanup<Node> {
     const tanode = txt("…");
+    const hsc = hideshow(tanode);
     let timeout: number | undefined;
     const update = () => {
         timeout = undefined;
@@ -438,10 +466,10 @@ function timeAgo(start_ms: number): {node: Node, cleanup: () => void, defer: (de
         if(wait_time >= 0) timeout = setTimeout(() => update(), wait_time + 100);
     };
     update();
-    const cleanup = () => {
+    hsc.on("cleanup", () => {
         if(timeout !== undefined) clearTimeout(timeout);
-    };
-    return {node: tanode, cleanup, defer: (dobj) => (dobj(() => cleanup()), tanode)};
+    });
+    return hsc;
 }
 
 type RedditMarkdownRenderer = {
@@ -562,7 +590,7 @@ const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
     };
 });
 
-function renderPreviewableLink(client: ThreadClient, href: string, __after_once: Node | null, parent_node: Node): {newbtn: HTMLAnchorElement} {
+function renderPreviewableLink(client: ThreadClient, href: string, __after_once: Node | null, parent_node: Node): HideShowCleanup<{newbtn: HTMLAnchorElement}> {
     const after_node = document.createComment("");
     parent_node.insertBefore(after_node, __after_once);
 
@@ -571,39 +599,47 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
     const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
     parent_node.insertBefore(newbtn, after_node);
 
-    if(!renderLinkPreview) return {newbtn};
+    const hsc = hideshow({newbtn});
+
+    if(!renderLinkPreview) return hsc;
 
     let showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
 
-    let preview_div: undefined | HTMLDivElement;
+    let preview_div: undefined | {hsc: HideShowCleanup<unknown>, node: ChildNode} = undefined;
 
     const togglepreview = () => {
         if(preview_div) hidepreview();
         else showpreview();
-    };
-    showpreviewbtn.onev("click", () => togglepreview());
-    const showpreview = () => {
-        showpreviewbtn.textContent = "⏷";
-        preview_div = el("div");
-        parent_node.insertBefore(preview_div, after_node);
-        const lnkprvw = renderLinkPreview();
-        preview_div.adch(lnkprvw.node);
-
-        // not bothering with show/hide atm because that requires passing show/hide from client
-        //listing into more places
     }
+
     const hidepreview = () => {
         showpreviewbtn.textContent = "⏵";
-        if(preview_div) {preview_div.remove(); preview_div = undefined;}
+        if(preview_div) {preview_div.hsc.cleanup(); preview_div.node.remove(); preview_div = undefined;}
+    };
+    const showpreview = () => {
+        showpreviewbtn.textContent = "⏷";
+        const preview_container = el("div");
+        parent_node.insertBefore(preview_container, after_node);
+        const lprvw = renderLinkPreview();
+        lprvw.associated_data.adto(preview_container);
+        preview_div = {node: preview_container, hsc: lprvw};
     };
     hidepreview();
+
+    hsc.on("hide", () => {if(preview_div) preview_div.hsc.setVisible(false)});
+    hsc.on("show", () => {if(preview_div) preview_div.hsc.setVisible(true)});
+    hsc.on("cleanup", () => {
+        if(preview_div) preview_div.hsc.cleanup();
+    })
+
     parent_node.insertBefore(showpreviewbtn, after_node);
 
-    return {newbtn};
+    return hsc;
 }
 
-function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: Node, class_prefix: string) {
+function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: Node, class_prefix: string): HideShowCleanup<undefined> {
     const divel = el("div").adto(parent_node).clss("slightlybigger");
+    const hsc = hideshow();
     divel.innerHTML = safe_html;
     if(class_prefix) for(let node of Array.from(divel.querySelectorAll("*"))) {
         Array.from(node.classList).forEach(classname => {
@@ -617,7 +653,7 @@ function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: No
         const href = alink.getAttribute("href")!;
         const content = Array.from(alink.childNodes);
 
-        const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode!);
+        const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode!).defer(hsc);
 
         newbtn.attr({"class": alink.getAttribute("class")});
         content.forEach(el => newbtn.appendChild(el));
@@ -632,14 +668,14 @@ function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: No
             spoilerspan.attr({title: ""});
         });
     }
+    return hsc;
 }
 
-function renderText(client: ThreadClient, body: Generic.BodyText) {return {insertBefore(parent: Node, before_once: Node | null) {
+function renderText(client: ThreadClient, body: Generic.BodyText): HideShowCleanup<Node> {
     const defer = makeDefer();
 
     const container = el("div");
-    defer(() => container.remove());
-    parent.insertBefore(container, before_once);
+    const hsc = hideshow(container);
     
     if(body.markdown_format === "reddit") {
         const preel = el("pre").adto(container);
@@ -647,7 +683,7 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
         getRedditMarkdownRenderer().then(mdr => {
             preel.remove();
             const safe_html = mdr.renderMd(body.content);
-            renderSafeHTML(client, safe_html, container, "");
+            renderSafeHTML(client, safe_html, container, "").defer(hsc);
         });
     }else if(body.markdown_format === "none") {
         container.atxt(body.content);
@@ -657,15 +693,15 @@ function renderText(client: ThreadClient, body: Generic.BodyText) {return {inser
         getHtmlSaftifier().then(hsr => {
             preel.remove();
             const safe_html = hsr.saftify(body.content, "mastodon-");
-            renderSafeHTML(client, safe_html, container, "");
+            renderSafeHTML(client, safe_html, container, "").defer(hsc);
         });
     }else assertNever(body.markdown_format);
 
-    return {removeSelf(){defer.cleanup();}};
-}}}
+    return hsc;
+}
 
-function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, container: Node): {cleanup: () => void} {
-    const defer = makeDefer();
+function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, container: Node): HideShowCleanup<undefined> {
+    const hsc = hideshow();
 
     switch(rts.kind) {
         case "text": {
@@ -685,11 +721,10 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             mainel.adto(container);
         }; break;
         case "link": {
-            const {newbtn} = renderPreviewableLink(client, rts.url, null, container);
+            const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
             if(rts.title) newbtn.title = rts.title;
             for(const child of rts.children) {
-                const chld = renderRichtextSpan(client, child, newbtn);
-                defer(() => chld.cleanup());
+                renderRichtextSpan(client, child, newbtn).defer(hsc);
             }
         }; break;
         case "br": {
@@ -699,8 +734,7 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             let spoilerspan = el("spoiler").clss("md-spoiler-text");
             let subspan = el("span").adto(spoilerspan).clss("md-spoiler-content");
             for(const child of rts.children) {
-                const chld = renderRichtextSpan(client, child, subspan);
-                defer(() => chld.cleanup());
+                renderRichtextSpan(client, child, subspan).defer(hsc);
             }
             spoilerspan.attr({title: "Click to reveal spoiler"});
             subspan.style.opacity = "0";
@@ -712,25 +746,23 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
         default: assertNever(rts);
     }
 
-    return {cleanup: () => defer.cleanup()};
+    return hsc;
 }
 
-function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Paragraph, container: Node): {cleanup: () => void} {
-    const defer = makeDefer();
+function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Paragraph, container: Node): HideShowCleanup<undefined> {
+    const hsc = hideshow();
 
     switch(rtp.kind) {
         case "paragraph": {
             const pel = el("p").adto(container);
             for(const child of rtp.children) {
-                const chld = renderRichtextSpan(client, child, pel);
-                defer(() => chld.cleanup());
+                renderRichtextSpan(client, child, pel).defer(hsc);
             }
         }; break;
         case "heading": {
             const hel = el("h"+rtp.level).adto(container);
             for(const child of rtp.children) {
-                const chld = renderRichtextSpan(client, child, hel);
-                defer(() => chld.cleanup());
+                renderRichtextSpan(client, child, hel).defer(hsc);
             }
         }; break;
         case "blockquote": case "list": case "list_item": {
@@ -740,8 +772,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
                 === "list_item" ? "li" : assertNever(rtp)
             ).adto(container);
             for(const child of rtp.children) {
-                const chld = renderRichtextParagraph(client, child, bquot);
-                defer(() => chld.cleanup());
+                renderRichtextParagraph(client, child, bquot).defer(hsc);
             }
         }; break;
         case "horizontal_line": {
@@ -764,8 +795,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             for(const heading of rtp.headings) {
                 const headth = el("th").adto(thead).attr({align: heading.align});
                 for(const child of heading.children) {
-                    const chld = renderRichtextSpan(client, child, headth);
-                    defer(() => chld.cleanup());
+                    renderRichtextSpan(client, child, headth).defer(hsc);
                 }
             }
             const tbody = el("tbody").adto(tablel);
@@ -775,8 +805,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
                     const align = rtp.headings[i].align;
                     const td = el("td").adto(rowr).attr({align});
                     for(const child of col.children) {
-                        const chld = renderRichtextSpan(client, child, td);
-                        defer(() => chld.cleanup());
+                        renderRichtextSpan(client, child, td).defer(hsc);
                     }
                 });
             }
@@ -784,32 +813,26 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
         default: assertNever(rtp);
     }
 
-    return {cleanup: () => defer.cleanup()};
+    return hsc;
 }
 
-let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean, on: {hide: () => void, show: () => void}}, content: ChildNode): {cleanup: () => void} => {
-    const defer = makeDefer();
+let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}, content: ChildNode): HideShowCleanup<undefined> => {
+    const hsc = hideshow();
 
     if(body.kind === "text") {
         const txta = el("div").adto(content);
-        const txt = renderText(client, body).insertBefore(txta, null);
-        defer(() => txt.removeSelf());
+        renderText(client, body).defer(hsc).adto(txta);
     }else if(body.kind === "link") {
         // TODO fix this link button thing
         el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
         const renderLinkPreview = canPreview(body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
         if(renderLinkPreview) {
-            const preview = renderLinkPreview();
-            preview.node.adto(content);
-            if(preview.onhide) opts.on.hide = preview.onhide;
-            if(preview.onshow) opts.on.show = preview.onshow;
+            renderLinkPreview().defer(hsc).adto(content);
         }
     }else if(body.kind === "none") {
         content.remove();
     }else if(body.kind === "gallery") {
-        const rvres = renderImageGallery(client, body.images)
-        rvres.node.adto(content);
-        defer(() => rvres.cleanup());
+        const rvres = renderImageGallery(client, body.images).defer(hsc).adto(content);
     }else if(body.kind === "removed") {
         const removed_v = el("div").adto(content).atxt("Removed by "+body.by+".");
         if(body.fetch_path && client.fetchRemoved) {
@@ -834,19 +857,16 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
                 fetch_btn.textContent = errored ? "Retry" : "Loaded";
                 fetch_btn.disabled = false;
                 if(!errored) removed_v.remove();
-                const rbres = renderBody(client, new_body, {autoplay: true, on: opts.on}, content); defer(() => rbres.cleanup());
+                renderBody(client, new_body, {autoplay: true}, content).defer(hsc);
             });
         }
     }else if(body.kind === "crosspost") {
         const parentel = el("div").styl({width: "max-content"}).adto(content);
-        const child = clientListing(client, body.source).insertBefore(parentel, null);
-        // TODO child.onShow, child.onHide
-        defer(() => child.removeSelf());
+        clientListing(client, body.source).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
         const txta = el("div").adto(content);
         for(const pargrph of body.content) {
-            const rendered = renderRichtextParagraph(client, pargrph, txta);
-            defer(() => rendered.cleanup());
+            renderRichtextParagraph(client, pargrph, txta).defer(hsc);
         }
     }else if(body.kind === "poll") {
         const pollcontainer = el("ul").adto(content).clss("poll-container");
@@ -872,27 +892,25 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
         for(const v of body.body) {
             if(!v) continue;
             const atma = el("div").adto(content);
-            const child = renderBody(client, v, {autoplay: false, on: opts.on}, atma);
-            defer(() => child.cleanup());
+            renderBody(client, v, {autoplay: false}, atma).defer(hsc);
         }
     }else assertNever(body);
 
-    return {cleanup: () => defer.cleanup()};
+    return hsc;
 };
 
-function userProfileListing(client: ThreadClient, profile: Generic.Profile, frame: HTMLDivElement) {
-    const defer = makeDefer();
+function userProfileListing(client: ThreadClient, profile: Generic.Profile, frame: HTMLDivElement): HideShowCleanup<undefined> {
+    const hsc = hideshow();
 
     {
         const bodyel = el("div").adto(frame);
-        renderBody(client, profile.bio, {autoplay: false, on: {hide: () => {}, show: () => {}}}, bodyel);
+        renderBody(client, profile.bio, {autoplay: false}, bodyel);
     }
 
     const action_container = el("div").adto(frame);
     for(const action of profile.actions) {
         action_container.atxt(" ");
-        const actv = renderAction(client, action, action_container);
-        defer(() => actv.cleanup());
+        renderAction(client, action, action_container).defer(hsc);
     }
     action_container.atxt(" ");
     linkLikeButton().adto(action_container).atxt("Code").onev("click", () => {
@@ -904,7 +922,7 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
     //   Follow, Mute, Block, Block Domain
     // so I can use "Block Domain" on "botsin.space"
 
-    return {cleanup: () => defer.cleanup()};
+    return hsc;
 }
 
 const scoreToString = (score: number) => {
@@ -913,17 +931,18 @@ const scoreToString = (score: number) => {
     return (score / 1000 |0) + "k";
 };
 
-function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node): {cleanup: () => void} {
-    const defer = makeDefer();
+function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node): HideShowCleanup<undefined> {
     if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
     else if(action.kind === "reply") {
         let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
         let reply_state: "none" | {preview?: Generic.Thread} = "none"
         const reply_btn = linkLikeButton().atxt("Reply").adto(content_buttons_line);
 
+        const hsc = hideshow();
+
         let reply_container: HTMLDivElement | undefined;
 
-        defer(() => {
+        hsc.on("cleanup", () => {
             if(prev_preview) {prev_preview.remove(); prev_preview = undefined;}
         });
         
@@ -968,11 +987,12 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                     // hacky for now. reply buttons should need a special override
                     // rather than being bundled with the rest of stuff in renderAction
                     const containerel = el("div").adto(content_buttons_line);
-                    const listing_el = clientListing(client, reply_state.preview).insertBefore(containerel, null);
+                    const listing_el = clientListing(client, reply_state.preview);
+                    listing_el.associated_data.adto(containerel);
                     prev_preview = {
                         preview: reply_state.preview,
                         remove: () => {
-                            listing_el.removeSelf();
+                            listing_el.cleanup();
                             containerel.remove();
                         },
                     };
@@ -988,7 +1008,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
     }else if(action.kind === "counter") {
         renderCounterAction(client, action, content_buttons_line, {parens: true});
     }else assertNever(action);
-    return {cleanup: () => defer.cleanup()};
+    return hideshow();
 }
 function renderCounterAction(client: ThreadClient, action: Generic.CounterAction, content_buttons_line: Node, opts: {parens: boolean}) {
     const wrapper = el("span").clss("counter").adto(content_buttons_line);
@@ -1074,18 +1094,16 @@ const userLink = (client_id: string, href: string, name: string) => {
     ;
 }
 
-function clientListing(client: ThreadClient, listing: Generic.ContentNode) { return {insertBefore(parent: Node, before_once: Node | null) {
-    const defer = makeDefer();
+function clientListing(client: ThreadClient, listing: Generic.ContentNode): HideShowCleanup<Node> {
     // console.log(listing);
-
+    
     const frame = el("div").clss("post");
-    defer(() => frame.remove());
-    parent.insertBefore(frame, before_once);
+    const hsc = hideshow(frame);
 
     if(listing.kind === "user-profile") {
         const res = userProfileListing(client, listing, frame);
-        defer(() => res.cleanup());
-        return {removeSelf: () => defer.cleanup()};
+        hsc.on("cleanup", () => res.cleanup());
+        return hsc;
     }
 
     let content_voting_area: HTMLDivElement;
@@ -1134,6 +1152,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
         const update = () => {
             if(collapsed !== prev_collapsed) {
                 prev_collapsed = collapsed;
+                hsc.setVisible(!collapsed);
                 if(collapsed) {
                     frame.classList.add("comment-collapsed");
                 }else{
@@ -1193,7 +1212,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
     let reserved_points_area: null | Node = null;
 
     if(listing.layout === "reddit-post" && listing.info) {
-        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(defer)).attr({title: "" + new Date(listing.info.time)});
+        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.adch(submission_time).atxt(" by ");
         content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
@@ -1213,13 +1232,13 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
             pfpimg.adto(content_voting_area);
         }
         reserved_points_area = document.createComment("").adto(content_subminfo_line);
-        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(defer)).attr({title: "" + new Date(listing.info.time)});
+        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(" ").adch(submission_time);
         if(listing.info.reblogged_by) {
             const [author_color, author_color_dark] = getRandomColor(seededRandom(listing.info.reblogged_by.author.name));
             content_subminfo_line.atxt(" ← Boosted by ")
                 .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.name))
-                .atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(defer))
+                .atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc))
             ;
             if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author.pfp) {
                 frame.clss("spacefiller-pfp");
@@ -1250,10 +1269,8 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
             }
         }
 
-        const on = {
-            hide: () => {},
-            show: () => {},
-        }
+        const body_hsc = hideshow();
+        hsc.addChild(body_hsc);
 
         let initContent = (body: Generic.Body, opts: {autoplay: boolean}) => {
             if(content_warnings.length) {
@@ -1266,11 +1283,11 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
                 el("button").attr({draggable: "true"}).adto(cwbox).atxt("Show Content").onev("click", e => {
                     cwbox.remove();
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
-                    const rbres = renderBody(client, body, {...opts, on}, content); defer(() => rbres.cleanup());
+                    renderBody(client, body, {...opts}, content).defer(body_hsc);
                 });
                 return;
             }
-            const rbres = renderBody(client, body, {...opts, on}, content); return defer(() => rbres.cleanup());
+            renderBody(client, body, {...opts}, content).defer(body_hsc);
         }
         
         if(listing.display_mode.body === "collapsed") {
@@ -1286,12 +1303,9 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
                     initContent(listing.body, {autoplay: true});
                 }
                 open_preview_text.nodeValue = state ? "Hide" : "Show";
+
                 content.style.display = state ? "" : "none";
-                if(state !== prev_state) {
-                    prev_state = state;
-                    if(state) on.show();
-                    else on.hide();
-                }
+                body_hsc.setVisible(state);
             };
             update();
             open_preview_button.onev("click", () => {
@@ -1324,13 +1338,11 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
                 content_voting_area.clss("desktop-only");
                 content_buttons_line.atxt(" ");
                 const cbl_render_area = el("div").clss("mobile-only").adto(content_buttons_line);
-                const actv = renderAction(client, action, cbl_render_area);
-                defer(() => actv.cleanup());
+                renderAction(client, action, cbl_render_area).defer(hsc);
             }
         }else {
             content_buttons_line.atxt(" ");
-            const actv = renderAction(client, action, content_buttons_line);
-            defer(() => actv.cleanup());
+            renderAction(client, action, content_buttons_line).defer(hsc);
         }
     }
 
@@ -1358,15 +1370,14 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode) { ret
             child_listing.replies = [];
         }
         reply_node.clss("comment");
-        const child_node = clientListing(client, child_listing).insertBefore(reply_node, null);
-        defer(() => child_node.removeSelf());
+        clientListing(client, child_listing).defer(hsc).adto(reply_node);
 
         if(futureadd) addChild(futureadd);
     }
     if(listing.replies) listing.replies.forEach(rply => addChild(rply));
 
-    return {removeSelf: () => defer.cleanup()};
-} } }
+    return hsc;
+}
 
 function swtch<T, U>(value: T, ...cases: [T, () => U][]): U {
     return cases.find(cas => cas[0] === value)![1]();
@@ -1411,18 +1422,19 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
 }
 
 function clientMain(client: ThreadClient, current_path: string) { return {insertBefore(parent: Node, before_once: Node | null) {
-    const defer = makeDefer();
+    const hsc = hideshow();
 
     const outer = el("div").clss("client-wrapper");
     parent.insertBefore(outer, before_once);
-    defer(() => outer.remove());
+    hsc.on("cleanup", () => outer.remove());
+
     const frame = el("div").adto(outer);
     frame.classList.add("client-main-frame");
     frame.classList.add("display-loading");
 
     if(!client.isLoggedIn(current_path)) {
         const login_prompt: {removeSelf: () => void} = clientLogin(client, current_path, () => login_prompt.removeSelf()).insertBefore(frame, null);
-        defer(() => login_prompt.removeSelf());
+        hsc.on("cleanup", () => login_prompt.removeSelf());
         // return {removeSelf: () => defer.cleanup(), hide: () => {}, show: () => {}};
     }
     const frame_uhtml_area = document.createElement("div");
@@ -1437,8 +1449,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         frame.classList.add("display-"+listing.display_style);
         
         uhtml.render(frame_uhtml_area, html``);
-        const home_node = clientListing(client, listing.header).insertBefore(frame, null);
-        defer(() => home_node.removeSelf());
+        const home_node = clientListing(client, listing.header).defer(hsc).adto(frame);
 
         const addChild = (child_listing: Generic.Node) => {
             if(child_listing.kind === "load_more") {
@@ -1446,17 +1457,18 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
                 lmbtn.adto(frame);
                 return;
             }
-            const replies_node = clientListing(client, child_listing).insertBefore(frame, null);
-            defer(() => replies_node.removeSelf());
+            const replies_node = clientListing(client, child_listing).defer(hsc).adto(frame);
         };
         if(listing.replies) listing.replies.forEach(rply => addChild(rply));
         if(listing.replies?.length === 0) txt("There is nothing here").adto(frame);
     })().catch(e => console.log(e, e.stack));
 
-    return {removeSelf: () => defer.cleanup(), hide: () => {
+    return {removeSelf: () => hsc.cleanup(), hide: () => {
         if(frame.style.display !== "none") frame.style.display = "none";
+        hsc.setVisible(false);
     }, show: () => {
         if(frame.style.display !== "") frame.style.display = "";
+        hsc.setVisible(true);
     }};
 } } }
 
@@ -1568,40 +1580,84 @@ type URLLike = {search: string, pathname: string};
 
 let navigate_event_handlers: ((url: URLLike) => void)[] = [];
 
-type HideShowCleanup = {
+type HSEvent = "hide" | "show" | "cleanup";
+type HideShowCleanup<T> = {
     setVisible: (new_visible: boolean) => void,
+    setParentVisible: (new_visible: boolean) => void,
     cleanup: () => void,
     readonly visible: boolean,
-    on: (ev: "hide" | "show" | "cleanup", cb: () => void) => void,
+    on: (ev: HSEvent, cb: () => void) => void,
+    emit: (ev: HSEvent) => void,
+    addChild: (child: HideShowCleanup<any>) => void,
+    readonly associated_data: T,
+    defer: (parent: HideShowCleanup<any>) => T,
 };
-function hideshow(): HideShowCleanup {
+
+function hideshow(): HideShowCleanup<undefined>;
+function hideshow<T>(a: T): HideShowCleanup<T>;
+function hideshow<T>(a_any?: T): HideShowCleanup<T> {
+    const a = a_any as T;
     const events: {[key: string]: (() => void)[]} = {};
+
     let is_visible = true;
+    let parent_is_visible = true;
+
+    let prev_derived_visibility = true;
+    let update = () => {
+        const derived_visibility = is_visible && parent_is_visible;
+
+        if(derived_visibility !== prev_derived_visibility) {
+            prev_derived_visibility = derived_visibility;
+            
+            if(derived_visibility) emit("show");
+            else emit("hide");
+
+            children.forEach(child => child.setParentVisible(derived_visibility));
+        }
+    }
+
     let exists = true;
-    const emit = (text: string) => {
+    const children: HideShowCleanup<any>[] = [];
+    const emit = (text: HSEvent) => {
         if(!events[text]) return;
         events[text].forEach(ev => ev());
     }
-    const res: HideShowCleanup = {
+
+    const res: HideShowCleanup<T> = {
         on(ev, cb) {
             if(!events[ev]) events[ev] = [];
             events[ev].push(cb);
         },
         setVisible(nvisible: boolean) {
-            if(!exists) return console.log("setVisible called on a deleted object");
-            if(is_visible && !nvisible) {
-                emit("hide");
-            }else if(!is_visible && nvisible) {
-                emit("show");
+            if(is_visible !== nvisible) {
+                is_visible = nvisible;
+                update();
             }
-            is_visible = nvisible;
+        },
+        setParentVisible(pnvis: boolean) {
+            if(parent_is_visible !== pnvis) {
+                parent_is_visible = pnvis;
+                update();
+            }
         },
         get visible() {
             return is_visible;
         },
         cleanup() {
             exists = false;
+            children.forEach(child => child.cleanup());
             emit("cleanup");
+        },
+        emit,
+        addChild(child) {
+            children.push(child);
+        },
+        get associated_data() {
+            return a;
+        },
+        defer(parent: HideShowCleanup<any>): T {
+            parent.addChild(res);
+            return a;
         },
     };
     return res;
