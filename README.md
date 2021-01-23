@@ -37,6 +37,7 @@ TODO: a websocket or something to get the client to autoreload css on save. also
 all todo:
 
 -   [x] dark mode for people without darkreader
+-   [x] fix youtube embed ignoring time codes (there will probably be more things like this to fix)
 -   [ ] the refresh button
 -   [ ] use onhide in more places, eg when collapsing a comment or navigating away
 -   [ ] give up on onhide just delete the elements to not waste ram storing youtube iframes
@@ -47,7 +48,6 @@ all todo:
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 -   [ ] fix dark flairs being displayed on a dark background (occurs on reddit flairs with no bg color set)
 -   [ ] fix user name color randomization in light mode (generate a light color and return the same with inverted l for darkness)
--   [ ] fix youtube embed ignoring time codes
 
 reddit todo:
 

@@ -139,10 +139,11 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     return res;
 }
 
-function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}): {node: Node, onhide?: () => void, onshow?: () => void} {
+function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, search: URLSearchParams): {node: Node, onhide?: () => void, onshow?: () => void} {
+    const start_code = search.get("t") ?? search.get("start") ?? undefined;
     const yt_player = el("iframe").attr({
         allow: "fullscreen",
-        src: "https://www.youtube.com/embed/"+youtube_video_id+"?version=3&enablejsapi=1&playerapiid=ytplayer"+(opts.autoplay ? "&autoplay=1" : ""),
+        src: "https://www.youtube.com/embed/"+youtube_video_id+"?version=3&enablejsapi=1&playerapiid=ytplayer"+(opts.autoplay ? "&autoplay=1" : "")+(start_code ? "&start="+start_code : ""),
     });
     return {node: el("div").clss("resizable-iframe").styl({width: "640px", height: "360px"}).adch(yt_player), onhide: () => {
         yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
@@ -266,12 +267,12 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
         const link = url.searchParams.get("v");
         if(link) return () => {
-            return embedYoutubeVideo(link, opts);
+            return embedYoutubeVideo(link, opts, url.searchParams);
         };
     }
     if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) return () => {
         const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
-        return embedYoutubeVideo(youtube_video_id, opts);
+        return embedYoutubeVideo(youtube_video_id, opts, url.searchParams);
     };
     if(link.startsWith("https://www.reddit.com/gallery/")) {
         // information about galleries is distributed with posts
