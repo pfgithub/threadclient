@@ -176,14 +176,50 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     if(link.startsWith("https://v.redd.it/")) return () => {
         let container = el("div");
 
-        let video = el("video").attr({controls: ""}).clss("preview-image").adto(container);
+        let audio = el("audio").adto(container);
+        el("source").attr({src: link+"/DASH_audio.mp4", type: "video/mp4"}).adto(audio);
+
+        let video = el("video").attr({controls: ""}).clss("preview-image").adto(el("div").adto(container));
         el("source").attr({src: link+"/DASH_720.mp4", type: "video/mp4"}).adto(video);
         el("source").attr({src: link+"/DASH_480.mp4", type: "video/mp4"}).adto(video);
         el("source").attr({src: link+"/DASH_360.mp4", type: "video/mp4"}).adto(video);
         el("source").attr({src: link+"/DASH_240.mp4", type: "video/mp4"}).adto(video);
-        
-        let audio = el("audio").adto(container);
-        el("source").attr({src: link+"/DASH_audio.mp4", type: "video/mp4"}).adto(audio);
+
+        const speaker_icons = ["🔇", "🔈", "🔊"];
+        let btnarea = el("div").adto(container).styl({display: "flex"});
+        let mutebtn = el("button").adto(btnarea);
+        const muteicn = txt(speaker_icons[2]).adto(mutebtn);
+        let slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
+        const upslider = () => slider.value = "" + (audio.volume * 100);
+        let mute_backv: undefined | number;
+        const upbtn = () => {
+            if(mute_backv === undefined) {
+                if(audio.volume < 0.2) {
+                    muteicn.nodeValue = speaker_icons[1];
+                }else {
+                    muteicn.nodeValue = speaker_icons[2];
+                }
+            }else{
+                muteicn.nodeValue = speaker_icons[0];
+            }
+        };
+        upslider();
+        slider.oninput = () => {
+            audio.volume = (+slider.value) / 100;
+            mute_backv = undefined;
+            upbtn();
+        };
+        mutebtn.onclick = () => {
+            if(mute_backv === undefined) {
+                mute_backv = audio.volume;
+                audio.volume = 0;
+            }else{
+                audio.volume = mute_backv;
+                mute_backv = undefined;
+            }
+            upslider();
+            upbtn();
+        };
 
         // TODO:
         // - proper sync accounting for audio buffering
