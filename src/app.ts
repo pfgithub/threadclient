@@ -5,8 +5,6 @@ import * as Reddit from "./types/api/reddit";
 import * as Generic from "./types/generic";
 import {ThreadClient} from "./clients/base";
 import { darkenColor, getRandomColor, hslToRGB, RGBA, rgbToHSL, rgbToString, seededRandom } from "./darken_color";
-import { reddit } from "./clients/reddit";
-import { mastodon } from "./clients/mastodon";
 
 declare const uhtml: any;
 
@@ -1521,15 +1519,18 @@ window.onpopstate = (ev: PopStateEvent) => {
 };
 
 const client_cache: {[key: string]: ThreadClient} = {};
-const client_initializers: {[key: string]: () => ThreadClient} = {
-    reddit: () => reddit(),
-    mastodon: () => mastodon(),
+const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
+    reddit: () => import("./clients/reddit").then(client => client.reddit("reddit")),
+    mastodon: () =>  import("./clients/mastodon").then(client => client.mastodon("mastodon")),
 };
-const getClient = (name: string) => {
+const getClient = async (name: string) => {
     if(!client_initializers[name]) return undefined;
-    if(!client_cache[name]) client_cache[name] = client_initializers[name]();
+    if(!client_cache[name]) client_cache[name] = await client_initializers[name]();
     if(client_cache[name].id !== name) throw new Error("client has incorrect id");
     return client_cache[name];
+}
+const getClientCached = (name: string): ThreadClient | undefined => {
+    return client_cache[name] ?? undefined;
 }
 
 type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () => void};
@@ -1567,6 +1568,106 @@ type URLLike = {search: string, pathname: string};
 
 let navigate_event_handlers: ((url: URLLike) => void)[] = [];
 
+type HideShowCleanup = {
+    setVisible: (new_visible: boolean) => void,
+    cleanup: () => void,
+    readonly visible: boolean,
+    on: (ev: "hide" | "show" | "cleanup", cb: () => void) => void,
+};
+function hideshow(): HideShowCleanup {
+    const events: {[key: string]: (() => void)[]} = {};
+    let is_visible = true;
+    let exists = true;
+    const emit = (text: string) => {
+        if(!events[text]) return;
+        events[text].forEach(ev => ev());
+    }
+    const res: HideShowCleanup = {
+        on(ev, cb) {
+            if(!events[ev]) events[ev] = [];
+            events[ev].push(cb);
+        },
+        setVisible(nvisible: boolean) {
+            if(!exists) return console.log("setVisible called on a deleted object");
+            if(is_visible && !nvisible) {
+                emit("hide");
+            }else if(!is_visible && nvisible) {
+                emit("show");
+            }
+            is_visible = nvisible;
+        },
+        get visible() {
+            return is_visible;
+        },
+        cleanup() {
+            exists = false;
+            emit("cleanup");
+        },
+    };
+    return res;
+}
+
+function fetchClientThen(client_id: string, cb: (client: ThreadClient, parent: Node, before: Node | null) => NavigationEntryNode): NavigationEntryNode {
+    const cached = getClientCached(client_id);
+    if(cached) {
+        return cb(cached, document.body, null);
+    }
+
+    const hsc = hideshow();
+
+    const wrapper = el("div").adto(document.body);
+    const loader_container = el("div").adto(wrapper);
+    el("span").atxt("Fetching client…").adto(loader_container);
+    
+    getClient(client_id).then(client => {
+        let cbres: NavigationEntryNode;
+        if(client){ 
+            cbres = cb(client, wrapper, null);
+        }else{
+            cbres = fullscreenError("404. Client "+client_id+" not found.").insertBefore(wrapper, null);
+        }
+        loader_container.remove();
+
+        hsc.on("cleanup", () => cbres.removeSelf());
+        hsc.on("hide", () => cbres.hide());
+        hsc.on("show", () => cbres.show()); 
+    });
+
+    let res: NavigationEntryNode = {
+        removeSelf: () => {
+            hsc.cleanup();
+            wrapper.remove();
+        },
+        hide: () => {wrapper.style.display = "none"; hsc.setVisible(false)},
+        show: () => {wrapper.style.display = "";     hsc.setVisible(true)},
+    };
+    return res;
+}
+
+function renderPath(pathraw: string, search: string): NavigationEntryNode {
+    const path = pathraw.split("/").filter(w => w);
+
+    const path0 = path.shift();
+
+    console.log(path);
+
+    if(!path0) {
+        const res = el("div").adto(document.body);
+        return homePage(res);
+    }
+
+    if(path0 === "login"){
+        const client = getClient(path[0]);
+        return fetchClientThen(path[0], (client, parent, before) => {
+            return clientLoginPage(client, path, new URLSearchParams(search)).insertBefore(parent, before);
+        });
+    }
+
+    return fetchClientThen(path0, (client, parent, before) => {
+        return clientMain(client, "/"+path.join("/")+search).insertBefore(parent, before);
+    })
+}
+
 let current_history_index = 0;
 function onNavigate(to_index: number, url: URLLike) {
     console.log("Navigating", to_index, url, nav_history);
@@ -1593,33 +1694,7 @@ function onNavigate(to_index: number, url: URLLike) {
         nav_history.forEach(item => item.node.hide());
     }
 
-    const path = url.pathname.split("/").filter(w => w);
-
-    const path0 = path.shift();
-
-    console.log(path);
-
-    const node: NavigationEntryNode = (() => {
-        if(!path0) {
-            const res = el("div").adto(document.body);
-            return homePage(res);
-        }
-
-        if(path0 === "login"){
-            const client = getClient(path[0]);
-            if(!client) {
-                return fullscreenError("404 unknown client "+path[0]).insertBefore(document.body, null);
-            }
-            return clientLoginPage(client, path, new URLSearchParams(location.search)).insertBefore(document.body, null);
-        }
-
-        const client = getClient(path0);
-
-        if(!client){
-            return fullscreenError("404 unknown client "+path0).insertBefore(document.body, null);
-        }
-        return clientMain(client, "/"+path.join("/")+url.search).insertBefore(document.body, null);
-    })();
+    const node = renderPath(url.pathname, url.search);
 
     nav_history[to_index] = {node, url: thisurl}
 }

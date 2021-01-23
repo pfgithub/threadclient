@@ -175,7 +175,7 @@ function richtextStyle(style: number): Generic.Richtext.Style {
     };
 }
 
-export function reddit() {
+export function reddit(id: string) {
     const isLoggedIn = () => {
         return !!localStorage.getItem("reddit-secret");
     };
@@ -617,7 +617,7 @@ export function reddit() {
     }
 
     const res: ThreadClient = {
-        id: "reddit",
+        id,
         links: () => [
             ["Home", () => "/"],
             ["r/test", () => "/r/test"],

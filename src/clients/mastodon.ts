@@ -423,9 +423,9 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
     };
     return authv;
 };
-export function mastodon() {
+export function mastodon(id: string) {
     const res: ThreadClient = {
-        id: "mastodon",
+        id,
         links: () => [],
         isLoggedIn: (pathraw: string) => {
             const [_, host] = pathraw.split("/");

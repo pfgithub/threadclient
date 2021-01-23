@@ -20,16 +20,19 @@ all todo:
 -   [x] dark mode for people without darkreader
 -   [x] fix youtube embed ignoring time codes (there will probably be more things like this to fix)
 -   [x] fix user name color randomization in light mode (generate a light color and return the same with inverted l for darkness)
+-   [x] decrease bundle size (mostly by making it not add polyfills that use `ActiveXObject`…)
 -   [ ] the refresh button
 -   [ ] use onhide in more places, eg when collapsing a comment or navigating away
 -   [ ] give up on onhide just delete the elements to not waste ram storing youtube iframes
+-   [ ] instead of giving up on onhide just don't store youtube iframes…
+-   [ ] fix onhide with a thing makeOn() and then on.hide(() => …) and on.set(true) on.set(false) eg idk
 -   [ ] proper, non-hacky way to auto disable darkreader extension
 -   [ ] full mobile support maybe, might not be worth it
 -   [ ] a button to switch to markdown source view (uh oh what if the comment doesn't have any markdown source…)
 -   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 -   [ ] fix dark flairs being displayed on a dark background (occurs on reddit flairs with no bg color set)
--   [ ] decrease bundle size (mostly by making it not add polyfills that use `ActiveXObject`…)
+-   [ ] add eslint for formatting and typescript-eslinting
 
 reddit todo:
 
@@ -53,6 +56,7 @@ reddit todo:
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
 -   [ ] code block automatic syntax highlighting (using hljs automatic or something)
+-   [ ] display raw markdown view by default for a comment predominately composed of braille characters (to fix this https://i.imgur.com/0rH8yUf.png)
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
