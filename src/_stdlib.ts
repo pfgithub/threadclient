@@ -2,7 +2,7 @@
 //   el("div") |> adto(#, parent) |> adch(#, child) |> atxt(#, text)
 // unfortunately, typescript doesn't like them
 
-export type a = "";
+export {};
 
 declare global {
 	interface Window {

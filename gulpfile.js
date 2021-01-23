@@ -14,6 +14,8 @@ const typescript = function() {
                 ["@babel/preset-env", {
                     "targets": {"browsers": ">10%"},
                     "modules": false,
+                    "useBuiltIns": "usage",
+                    "corejs": 3
                 }],
             ],
             "plugins": [

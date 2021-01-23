@@ -1,9 +1,12 @@
-import * as Reddit from "./types/api/reddit.js";
-import * as Generic from "./types/generic.js";
-import {ThreadClient} from "./clients/base.js";
-import { darkenColor, getRandomColor, hslToRGB, RGBA, rgbToHSL, rgbToString, seededRandom } from "./darken_color.js";
-import { reddit } from "./clients/reddit.js";
-import { mastodon } from "./clients/mastodon.js";
+import "./_stdlib";
+import "./main.scss";
+
+import * as Reddit from "./types/api/reddit";
+import * as Generic from "./types/generic";
+import {ThreadClient} from "./clients/base";
+import { darkenColor, getRandomColor, hslToRGB, RGBA, rgbToHSL, rgbToString, seededRandom } from "./darken_color";
+import { reddit } from "./clients/reddit";
+import { mastodon } from "./clients/mastodon";
 
 declare const uhtml: any;
 

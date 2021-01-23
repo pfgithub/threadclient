@@ -1,7 +1,7 @@
-import * as Reddit from "../types/api/reddit.js";
-import * as Generic from "../types/generic.js";
-import {ThreadClient} from "./base.js";
-import { query, url } from "../app.js";
+import * as Reddit from "../types/api/reddit";
+import * as Generic from "../types/generic";
+import {ThreadClient} from "./base";
+import { query, url } from "../app";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";

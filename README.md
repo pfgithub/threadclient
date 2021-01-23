@@ -7,11 +7,11 @@ Demo:
 
 get dependencies: `yarn install`
 
-build (watch): `yarn gulp watch`
+build (watch): `yarn webpack --watch`
 
-build (once): `yarn gulp all`
+build (once): `yarn webpack`
 
-in a seperate terminal: `serve -n src -s` (requires `npm i -g serve` / `yarn global add serve`)
+in a seperate terminal: `serve -n dest -s` (requires `npm i -g serve` / `yarn global add serve`)
 
 to log in on a local build, after giving threadreader access to reddit, edit the url from `https://thread.pfg.pw/…` to `http://localhost:…/…`.
 

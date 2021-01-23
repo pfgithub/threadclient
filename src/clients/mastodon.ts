@@ -1,6 +1,6 @@
-import { escapeHTML, query } from "../app.js";
-import * as Generic from "../types/generic.js";
-import {ThreadClient} from "./base.js";
+import { escapeHTML, query } from "../app";
+import * as Generic from "../types/generic";
+import {ThreadClient} from "./base";
 
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
