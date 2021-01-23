@@ -7,30 +7,11 @@ Demo:
 
 get dependencies: `yarn install`
 
-build (watch): `yarn webpack --watch`
+build (dev): `yarn webpack serve`
 
 build (once): `yarn webpack`
 
-in a seperate terminal: `serve -n dest -s` (requires `npm i -g serve` / `yarn global add serve`)
-
 to log in on a local build, after giving threadreader access to reddit, edit the url from `https://thread.pfg.pw/…` to `http://localhost:…/…`.
-
-## hot reload css
-
-```js
-Array.from(document.querySelectorAll("link")).forEach((l) => {
-    const url = new URL(l.href);
-    url.search = "?reload=" + Date.now();
-    const newlink = el("link").attr({ href: url.href, rel: "stylesheet" });
-    l.parentNode.insertBefore(newlink, l);
-    newlink.onload = () => {
-        l.remove();
-        console.log("loaded");
-    };
-});
-```
-
-TODO: a websocket or something to get the client to autoreload css on save. also race protection.
 
 ## todo
 
@@ -48,6 +29,7 @@ all todo:
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 -   [ ] fix dark flairs being displayed on a dark background (occurs on reddit flairs with no bg color set)
 -   [ ] fix user name color randomization in light mode (generate a light color and return the same with inverted l for darkness)
+-   [ ] decrease bundle size (mostly by making it not add polyfills that use `ActiveXObject`…)
 
 reddit todo:
 
