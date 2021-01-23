@@ -6,8 +6,23 @@ module.exports = {
     module: {
         rules: [{
             test: /\.tsx?$/,
-            use: "ts-loader",
             exclude: /node_modules/,
+            use: {loader: "babel-loader", options: {
+                "presets": [
+                    "@babel/preset-typescript",
+                    ["@babel/preset-env", {
+                        "targets": {"browsers": ">10%"},
+                        "modules": false,
+                        "useBuiltIns": "usage",
+                        "corejs": 3
+                    }],
+                ],
+                "plugins": [
+                    ["@babel/plugin-proposal-pipeline-operator", {
+                        "proposal": "smart",
+                    }],
+                ],
+            }},
         }, {
             test: /\.s[ac]ss$/i,
             use: [
