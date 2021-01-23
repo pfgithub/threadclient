@@ -4,6 +4,9 @@
     "main": "index.js",
     "author": "pfg <pfg@pfg.pw>",
     "license": "MIT",
+    "scripts": {
+        "build": "webpack"
+    },
     "devDependencies": {
         "@babel/core": "^7.12.10",
         "@babel/plugin-proposal-pipeline-operator": "^7.12.1",

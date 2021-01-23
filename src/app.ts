@@ -182,12 +182,18 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
 
         let audio = el("audio").adto(container);
         el("source").attr({src: link+"/DASH_audio.mp4", type: "video/mp4"}).adto(audio);
+        el("source").attr({src: link+"/audio", type: "video/mp4"}).adto(audio);
 
         let video = el("video").attr({controls: ""}).clss("preview-image").adto(el("div").adto(container));
         el("source").attr({src: link+"/DASH_720.mp4", type: "video/mp4"}).adto(video);
+        el("source").attr({src: link+"/DASH_720", type: "video/mp4"}).adto(video);
         el("source").attr({src: link+"/DASH_480.mp4", type: "video/mp4"}).adto(video);
+        el("source").attr({src: link+"/DASH_480", type: "video/mp4"}).adto(video);
         el("source").attr({src: link+"/DASH_360.mp4", type: "video/mp4"}).adto(video);
+        el("source").attr({src: link+"/DASH_360", type: "video/mp4"}).adto(video);
         el("source").attr({src: link+"/DASH_240.mp4", type: "video/mp4"}).adto(video);
+        el("source").attr({src: link+"/DASH_240", type: "video/mp4"}).adto(video);
+        el("source").attr({src: link+"/HLSPlaylist.m3u8", type: "application/x-mpegURL"}).adto(video);
 
         const speaker_icons = ["🔇", "🔈", "🔊"];
         let btnarea = el("div").adto(container).styl({display: "flex"});
