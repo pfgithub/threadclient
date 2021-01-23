@@ -1,6 +1,8 @@
 html {
     -webkit-text-size-adjust: none;
+    word-wrap: break-word;
     word-wrap: anywhere;
+    word-break: break-word;
 }
 
 html,
