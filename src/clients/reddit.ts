@@ -175,7 +175,6 @@ function richtextStyle(style: number): Generic.Richtext.Style {
     };
 }
 
-export function reddit(id: string): ThreadClient {
     const isLoggedIn = () => {
         return !!localStorage.getItem("reddit-secret");
     };
@@ -622,202 +621,201 @@ export function reddit(id: string): ThreadClient {
         return url;
     }
 
-    const res: ThreadClient = {
-        id,
-        links: () => [
-            ["Home", () => "/"],
-            ["r/test", () => "/r/test"],
-            ["Notifications", () => "/message/inbox"],
-        ],
-        isLoggedIn,
-        loginURL: getLoginURL(),
-        async getThread(pathraw): Promise<Generic.Page> {
-            const pathsplit = pathraw.split("/");
-            if(pathsplit[1] === "u") pathsplit[1] = "user";
-            const path = pathsplit.join("/");
+const res: ThreadClient = {
+    id: "reddit",
+    links: () => [
+        ["Home", () => "/"],
+        ["r/test", () => "/r/test"],
+        ["Notifications", () => "/message/inbox"],
+    ],
+    isLoggedIn,
+    loginURL: getLoginURL(),
+    async getThread(pathraw): Promise<Generic.Page> {
+        const pathsplit = pathraw.split("/");
+        if(pathsplit[1] === "u") pathsplit[1] = "user";
+        const path = pathsplit.join("/");
 
-            try {
-                const [status, listing] = await fetch(pathURL(path), {
-                    mode: "cors", credentials: "omit",
-                    headers: {...isLoggedIn() ? {
-                        'Authorization': await getAuthorization(),
-                    } : {},
-                        'Accept': 'application/json',
-                    },
-                }).then(async (v) => {
-                    return [v.status, await v.json() as Reddit.Page | Reddit.Listing | Reddit.MoreChildren] as const;
-                });
-                if(status !== 200) {
-                    console.log(status, listing);
-                    throw new Error("Got status "+status);
-                }
-
-                return pageFromListing(path, listing);
-            }catch(e) {
-                console.log(e);
-                const is_networkerror = e.toString().includes("NetworkError");
-                
-                return {
-                    header: {
-                        kind: "thread",
-                        title: {text: "Error"},
-                        body: {
-                            kind: "text",
-                            content: `Error ${e.toString()}`+ (is_networkerror
-                                ? `. If using Firefox, try disabling 'Enhanced Tracker Protection' ${""
-                                    } for this site. Enhanced tracker protection indiscriminately blocks all ${""
-                                    } requests to social media sites, including Reddit.`
-                                : `.`
-                            ),
-                            markdown_format: "none",
-                        },
-                        display_mode: {
-                            body: "visible",
-                            comments: "collapsed",
-                        },
-                        link: path,
-                        layout: "error",
-                        actions: [],
-                        default_collapsed: false,
-                        raw_value: {},
-                    },
-                    display_style: "comments-view",
-                };
-            }
-        },
-        async login(path, query_param) {
-            const code = query_param.get("code");
-            const state = query_param.get("state");
-
-            if(!code || !state) {
-                throw new Error("No login requested");
-            }
-            if(state !== location.host) {
-                throw new Error("Login was for "+state);
-            }
-
-            const v: Reddit.AccessToken = await fetch("https://www.reddit.com/api/v1/access_token", {
-                method: "POST", mode: "cors", credentials: "omit",
-                headers: {
-                    'Authorization': "Basic "+btoa(client_id+":"),
-                    'Content-Type': "application/x-www-form-urlencoded",
+        try {
+            const [status, listing] = await fetch(pathURL(path), {
+                mode: "cors", credentials: "omit",
+                headers: {...isLoggedIn() ? {
+                    'Authorization': await getAuthorization(),
+                } : {},
+                    'Accept': 'application/json',
                 },
-                body: query({grant_type: "authorization_code", code, redirect_uri}),
-            }).then(v => v.json());
-        
-            if(v.error) {
-                console.log(v.error);
-                throw new Error("error "+v.error);
-            }
-
-            const res_data = {
-                access_token: v.access_token,
-                refresh_token: v.refresh_token,
-                expires: Date.now() + (v.expires_in * 1000),
-                scope: v.scope,
-            };
-
-            console.log(v, res_data);
-
-            localStorage.setItem("reddit-secret", JSON.stringify(res_data));
-        },
-        async fetchRemoved(frmlink: string): Promise<Generic.Body> {
-            type PushshiftResult = {data: {selftext?: string, body?: string}[]};
-            const [status, restext] = await fetch(frmlink).then(async (v) => {
-                return [v.status, await v.text()] as const;
+            }).then(async (v) => {
+                return [v.status, await v.json() as Reddit.Page | Reddit.Listing | Reddit.MoreChildren] as const;
             });
-            const res = JSON.parse(restext.split("&lt;").join("<").split("&gt;").join(">").split("&amp;").join("&")) as PushshiftResult
             if(status !== 200) {
-                console.log(status, res);
+                console.log(status, listing);
                 throw new Error("Got status "+status);
             }
-            if(res.data.length === 0) {
-                console.log(status, res);
-                throw new Error("Post was deleted before it could be saved:.");
-            }
-            if(res.data[0].selftext === "[deleted]"
-                || res.data[0].selftext === "[removed]"
-                || res.data[0].body === "[deleted]"
-                || res.data[0].body === "[removed]"
-            ) {
-                throw new Error("Post was deleted before it could be saved.");
-            }
-            if(res.data[0].selftext) {
-                return {
-                    kind: "text",
-                    content: res.data[0].selftext,
-                    markdown_format: "reddit",
-                };
-            }
-            if(res.data[0].body) {
-                return {
-                    kind: "text",
-                    content: res.data[0].body,
-                    markdown_format: "reddit",
-                };
-            }
-            throw new Error("no selftext or body");
-        },
-        async act(action: string): Promise<void> {
-            const act = decodeAction(action);
-            if(act.kind === "vote") {
-                type VoteResult = {__nothing: unknown};
-                const [status, res] = await fetch(baseURL() + "/api/vote", {
-                    method: "post", mode: "cors", credentials: "omit",
-                    headers: isLoggedIn() ? {
-                        'Authorization': await getAuthorization(),
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    } : {},
-                    body: act.query,
-                }).then(async (v) => {
-                    return [v.status, await v.json() as VoteResult] as const;
-                });
-                if(status !== 200) {
-                    console.log(status, res);
-                    throw new Error("got status "+status);
-                }
-            }else if(act.kind === "-") {
-                // placeholder. remove once new action kinds are added.
-            }else assertUnreachable(act);
-        },
-        previewReply(md: string, data: string): Generic.Thread {
-            //eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const reply_info = decodeReplyInfo(data);
+
+            return pageFromListing(path, listing);
+        }catch(e) {
+            console.log(e);
+            const is_networkerror = e.toString().includes("NetworkError");
+            
             return {
-                kind: "thread",
-                body: {kind: "text", content: md, markdown_format: "reddit"},
-                display_mode: {body: "visible", comments: "visible"},
-                raw_value: [md, data],
-                link: "no link",
-                layout: "reddit-comment",
-                info: {
-                    time: Date.now(),
-                    author: {
-                        name: "u/TODO You",
-                        link: "/u/TODO You",
-                        // flair: …
+                header: {
+                    kind: "thread",
+                    title: {text: "Error"},
+                    body: {
+                        kind: "text",
+                        content: `Error ${e.toString()}`+ (is_networkerror
+                            ? `. If using Firefox, try disabling 'Enhanced Tracker Protection' ${""
+                                } for this site. Enhanced tracker protection indiscriminately blocks all ${""
+                                } requests to social media sites, including Reddit.`
+                            : `.`
+                        ),
+                        markdown_format: "none",
                     },
+                    display_mode: {
+                        body: "visible",
+                        comments: "collapsed",
+                    },
+                    link: path,
+                    layout: "error",
+                    actions: [],
+                    default_collapsed: false,
+                    raw_value: {},
                 },
-                actions: [{
-                    kind: "counter",
-                    special: "reddit-points",
-
-                    label: "Vote",
-                    incremented_label: "Voted",
-                    decremented_label: "Voted",
-
-                    count_excl_you: 0,
-                    you: "increment",
-
-                    percent: 1,
-                    actions: {error: "reply not posted"},
-                }],
-                default_collapsed: false,
+                display_style: "comments-view",
             };
-        },
-    };
-    return res;
-}
+        }
+    },
+    async login(path, query_param) {
+        const code = query_param.get("code");
+        const state = query_param.get("state");
+
+        if(!code || !state) {
+            throw new Error("No login requested");
+        }
+        if(state !== location.host) {
+            throw new Error("Login was for "+state);
+        }
+
+        const v: Reddit.AccessToken = await fetch("https://www.reddit.com/api/v1/access_token", {
+            method: "POST", mode: "cors", credentials: "omit",
+            headers: {
+                'Authorization': "Basic "+btoa(client_id+":"),
+                'Content-Type': "application/x-www-form-urlencoded",
+            },
+            body: query({grant_type: "authorization_code", code, redirect_uri}),
+        }).then(v => v.json());
+    
+        if(v.error) {
+            console.log(v.error);
+            throw new Error("error "+v.error);
+        }
+
+        const res_data = {
+            access_token: v.access_token,
+            refresh_token: v.refresh_token,
+            expires: Date.now() + (v.expires_in * 1000),
+            scope: v.scope,
+        };
+
+        console.log(v, res_data);
+
+        localStorage.setItem("reddit-secret", JSON.stringify(res_data));
+    },
+    async fetchRemoved(frmlink: string): Promise<Generic.Body> {
+        type PushshiftResult = {data: {selftext?: string, body?: string}[]};
+        const [status, restext] = await fetch(frmlink).then(async (v) => {
+            return [v.status, await v.text()] as const;
+        });
+        const res = JSON.parse(restext.split("&lt;").join("<").split("&gt;").join(">").split("&amp;").join("&")) as PushshiftResult
+        if(status !== 200) {
+            console.log(status, res);
+            throw new Error("Got status "+status);
+        }
+        if(res.data.length === 0) {
+            console.log(status, res);
+            throw new Error("Post was deleted before it could be saved:.");
+        }
+        if(res.data[0].selftext === "[deleted]"
+            || res.data[0].selftext === "[removed]"
+            || res.data[0].body === "[deleted]"
+            || res.data[0].body === "[removed]"
+        ) {
+            throw new Error("Post was deleted before it could be saved.");
+        }
+        if(res.data[0].selftext) {
+            return {
+                kind: "text",
+                content: res.data[0].selftext,
+                markdown_format: "reddit",
+            };
+        }
+        if(res.data[0].body) {
+            return {
+                kind: "text",
+                content: res.data[0].body,
+                markdown_format: "reddit",
+            };
+        }
+        throw new Error("no selftext or body");
+    },
+    async act(action: string): Promise<void> {
+        const act = decodeAction(action);
+        if(act.kind === "vote") {
+            type VoteResult = {__nothing: unknown};
+            const [status, res] = await fetch(baseURL() + "/api/vote", {
+                method: "post", mode: "cors", credentials: "omit",
+                headers: isLoggedIn() ? {
+                    'Authorization': await getAuthorization(),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                } : {},
+                body: act.query,
+            }).then(async (v) => {
+                return [v.status, await v.json() as VoteResult] as const;
+            });
+            if(status !== 200) {
+                console.log(status, res);
+                throw new Error("got status "+status);
+            }
+        }else if(act.kind === "-") {
+            // placeholder. remove once new action kinds are added.
+        }else assertUnreachable(act);
+    },
+    previewReply(md: string, data: string): Generic.Thread {
+        //eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const reply_info = decodeReplyInfo(data);
+        return {
+            kind: "thread",
+            body: {kind: "text", content: md, markdown_format: "reddit"},
+            display_mode: {body: "visible", comments: "visible"},
+            raw_value: [md, data],
+            link: "no link",
+            layout: "reddit-comment",
+            info: {
+                time: Date.now(),
+                author: {
+                    name: "u/TODO You",
+                    link: "/u/TODO You",
+                    // flair: …
+                },
+            },
+            actions: [{
+                kind: "counter",
+                special: "reddit-points",
+
+                label: "Vote",
+                incremented_label: "Voted",
+                decremented_label: "Voted",
+
+                count_excl_you: 0,
+                you: "increment",
+
+                percent: 1,
+                actions: {error: "reply not posted"},
+            }],
+            default_collapsed: false,
+        };
+    },
+};
+export const client = res;
 
 type ReplyInfo = {parent_id: string};
 function encodeReplyInfo(rply_info: ReplyInfo): string {

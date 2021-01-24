@@ -418,176 +418,174 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
     }
     return authv;
 };
-export function mastodon(id: string): ThreadClient {
-    const res: ThreadClient = {
-        id,
-        links: () => [],
-        isLoggedIn: (pathraw: string) => {
-            const [, host] = pathraw.split("/");
-            if(!host) return false;
-            return isLoggedIn(host);
-        },
-        loginURL: async (pathraw: string): Promise<string> => {
+const res: ThreadClient = {
+    id: "mastodon",
+    links: () => [],
+    isLoggedIn: (pathraw: string) => {
+        const [, host] = pathraw.split("/");
+        if(!host) return false;
+        return isLoggedIn(host);
+    },
+    loginURL: async (pathraw: string): Promise<string> => {
 
-            const pathsplit = pathraw.split("/");
-            const [, host] = pathsplit;
-            if(!host) throw new Error("can't login without selecting host first");
+        const pathsplit = pathraw.split("/");
+        const [, host] = pathsplit;
+        if(!host) throw new Error("can't login without selecting host first");
 
-            const preapp = lsitems.app.get(host);
-            if(preapp) {
-                if(preapp.host !== host) throw new Error("This should never happen.");
-                return getLoginURL(host, preapp.data);
-            }
+        const preapp = lsitems.app.get(host);
+        if(preapp) {
+            if(preapp.host !== host) throw new Error("This should never happen.");
+            return getLoginURL(host, preapp.data);
+        }
 
-            const resv: {error: string} | ApplicationResult = await fetch(mkurl(host, "api/v1", "apps"), {
-                method: "post", mode: "cors", credentials: "omit",
-                headers: {
-                    'Content-Type': "application/json",
-                    'Accept': "application/json",
-                },
-                body: JSON.stringify({
-                    client_name: "ThreadReader",
-                    redirect_uris: redirectURI(host),
-                    scopes: "read write follow push",
-                    website: "https://thread.pfg.pw",
-                }),
-            }).then(v => v.json());
+        const resv: {error: string} | ApplicationResult = await fetch(mkurl(host, "api/v1", "apps"), {
+            method: "post", mode: "cors", credentials: "omit",
+            headers: {
+                'Content-Type': "application/json",
+                'Accept': "application/json",
+            },
+            body: JSON.stringify({
+                client_name: "ThreadReader",
+                redirect_uris: redirectURI(host),
+                scopes: "read write follow push",
+                website: "https://thread.pfg.pw",
+            }),
+        }).then(v => v.json());
 
-            if('error' in resv) {
-                console.log(resv);
-                throw new Error("Got error:"+resv.error);
-            }
-            lsitems.app.set(host, {host, data: resv});
-
-            return getLoginURL(host, resv);
-        },
-        login: async (path, query) => {
-            if(path.length !== 2) throw new Error("bad login");
-            const [, host] = path;
-            const code = query.get("code");
-            if(!code) throw new Error("missing code");
-
-            const appv = lsitems.app.get(host);
-            if(!appv) {
-                throw new Error("An app was not registered - how did you even get here?");
-            }
-            const {data: app} = appv;
-
-            const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
-                method: "post", mode: "cors", credentials: "omit",
-                headers: {
-                    'Content-Type': "application/json",
-                    'Accept': "application/json",
-                },
-                body: JSON.stringify({
-                    client_id: app.client_id,
-                    client_secret: app.client_secret,
-                    redirect_uri: redirectURI(host),
-                    grant_type: "authorization_code",
-                    code,
-                    scope: "read write follow push",
-                }),
-            }).then(v => v.json());
-
-            if('error' in resv) {
-                console.log(resv);
-                throw new Error("Got error (check console): "+resv.error);
-            }
-
-            lsitems.token.set(host, resv);
-
+        if('error' in resv) {
             console.log(resv);
-        },
+            throw new Error("Got error:"+resv.error);
+        }
+        lsitems.app.set(host, {host, data: resv});
 
-        getThread: async (pathraw) => {
-            const [beforequery, afterquery_raw] = pathraw.split("?") as [string, string | undefined];
-            const afterquery = afterquery_raw ?? "";
-            const pathsplit = beforequery.split("/");
-            if(pathsplit.length < 2) return error404();
-            const [, host, ...path] = pathsplit;
+        return getLoginURL(host, resv);
+    },
+    login: async (path, query) => {
+        if(path.length !== 2) throw new Error("bad login");
+        const [, host] = path;
+        const code = query.get("code");
+        if(!code) throw new Error("missing code");
+
+        const appv = lsitems.app.get(host);
+        if(!appv) {
+            throw new Error("An app was not registered - how did you even get here?");
+        }
+        const {data: app} = appv;
+
+        const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
+            method: "post", mode: "cors", credentials: "omit",
+            headers: {
+                'Content-Type': "application/json",
+                'Accept': "application/json",
+            },
+            body: JSON.stringify({
+                client_id: app.client_id,
+                client_secret: app.client_secret,
+                redirect_uri: redirectURI(host),
+                grant_type: "authorization_code",
+                code,
+                scope: "read write follow push",
+            }),
+        }).then(v => v.json());
+
+        if('error' in resv) {
+            console.log(resv);
+            throw new Error("Got error (check console): "+resv.error);
+        }
+
+        lsitems.token.set(host, resv);
+
+        console.log(resv);
+    },
+
+    getThread: async (pathraw) => {
+        const [beforequery, afterquery_raw] = pathraw.split("?") as [string, string | undefined];
+        const afterquery = afterquery_raw ?? "";
+        const pathsplit = beforequery.split("/");
+        if(pathsplit.length < 2) return error404();
+        const [, host, ...path] = pathsplit;
+        
+        const auth = await getAuth(host);
+        
+        const path0 = path.shift();
+        if(!path0) return error404();
+        if(path0 === "timelines") {
+            return await timelineView(host, auth, "/api/v1/"+["timelines", ...path].join("/")+"?"+afterquery, "/"+["timelines", ...path].join("/")+"?"+afterquery, genericHeader());
+        }else if(path0 === "statuses") {
+            const postid = path.shift();
+            if(!postid) return error404();
+            const [postinfo, context] = await Promise.all([
+                getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", postid)),
+                getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", postid, "context")),
+            ]);
+
+            if('error' in postinfo) return error404("Error! "+postinfo.error);
+            if('error' in context) return error404("Error! "+context.error);
             
-            const auth = await getAuth(host);
+            const res: Generic.Page = {
+                header: genericHeader(),
+                replies: [
+                    ...context.ancestors.map(a => postToThread(host, a)),
+                    postArrayToReparentedThread(host, postinfo, context.descendants),
+                ],
+                display_style: "comments-view",
+            };
+            return res;
+        }else if(path0 === "accounts") {
+            const acc_id = path.shift();
+            if(!acc_id) return error404();
+            const [account_info, account_relations] = await Promise.all([
+                getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id)),
+                getResult<Mastodon.AccountRelation[]>(auth, mkurl(host, "api/v1/accounts/relationships/?id[]="+acc_id)),
+            ]);
             
-            const path0 = path.shift();
-            if(!path0) return error404();
-            if(path0 === "timelines") {
-                return await timelineView(host, auth, "/api/v1/"+["timelines", ...path].join("/")+"?"+afterquery, "/"+["timelines", ...path].join("/")+"?"+afterquery, genericHeader());
-            }else if(path0 === "statuses") {
-                const postid = path.shift();
-                if(!postid) return error404();
-                const [postinfo, context] = await Promise.all([
-                    getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", postid)),
-                    getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", postid, "context")),
-                ]);
+            if('error' in account_info) return error404("Error! "+account_info.error);
+            if('error' in account_relations) console.log(account_relations);
+            
+            const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
 
-                if('error' in postinfo) return error404("Error! "+postinfo.error);
-                if('error' in context) return error404("Error! "+context.error);
-                
-                const res: Generic.Page = {
-                    header: genericHeader(),
-                    replies: [
-                        ...context.ancestors.map(a => postToThread(host, a)),
-                        postArrayToReparentedThread(host, postinfo, context.descendants),
-                    ],
-                    display_style: "comments-view",
-                };
-                return res;
-            }else if(path0 === "accounts") {
-                const acc_id = path.shift();
-                if(!acc_id) return error404();
-                const [account_info, account_relations] = await Promise.all([
-                    getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id)),
-                    getResult<Mastodon.AccountRelation[]>(auth, mkurl(host, "api/v1/accounts/relationships/?id[]="+acc_id)),
-                ]);
-                
-                if('error' in account_info) return error404("Error! "+account_info.error);
-                if('error' in account_relations) console.log(account_relations);
-                
-                const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
+            return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
+                kind: "user-profile",
+                username: account_info.display_name,
+                bio: {
+                    kind: "text",
+                    content: account_info.note,
+                    markdown_format: "mastodon",
+                },
+                actions: [{
+                    kind: "counter",
+                    label: "Follow",
+                    incremented_label: "Following",
+                    count_excl_you: account_info.followers_count === -1
+                        ? "hidden"
+                        : account_info.followers_count + (relation?.following ? -1 : 0)
+                    ,
+                    you: relation?.following ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
 
-                return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
-                    kind: "user-profile",
-                    username: account_info.display_name,
-                    bio: {
-                        kind: "text",
-                        content: account_info.note,
-                        markdown_format: "mastodon",
+                    actions: {
+                        increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),
+                        reset: encodeAction({kind: "follow", account_id: account_info.id, host, direction: "un"}),
                     },
-                    actions: [{
-                        kind: "counter",
-                        label: "Follow",
-                        incremented_label: "Following",
-                        count_excl_you: account_info.followers_count === -1
-                            ? "hidden"
-                            : account_info.followers_count + (relation?.following ? -1 : 0)
-                        ,
-                        you: relation?.following ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
-
-                        actions: {
-                            increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),
-                            reset: encodeAction({kind: "follow", account_id: account_info.id, host, direction: "un"}),
-                        },
-                    }],
-                    link: "/"+host+"/accounts/"+acc_id,
-                    raw_value: account_info,
-                });
-            }
-            return error404();
-        },
-        async act(action_raw: string): Promise<void> {
-            const action = decodeAction(action_raw);
-            if(action.kind === "favourite") {
-                await performBasicPostAction(action.host, "api/v1/statuses/"+action.status+"/"+action.direction+"favourite");
-            }else if(action.kind === "follow") {
-                await performBasicPostAction(action.host, "api/v1/accounts/"+action.account_id+"/"+action.direction+"follow");
-            }else assertUnreachable(action);
-        },
-        previewReply(reply_text: string, reply_info: string): Generic.Thread {
-            return genericHeader();
-        },
-    };
-    return res;
-}
+                }],
+                link: "/"+host+"/accounts/"+acc_id,
+                raw_value: account_info,
+            });
+        }
+        return error404();
+    },
+    async act(action_raw: string): Promise<void> {
+        const action = decodeAction(action_raw);
+        if(action.kind === "favourite") {
+            await performBasicPostAction(action.host, "api/v1/statuses/"+action.status+"/"+action.direction+"favourite");
+        }else if(action.kind === "follow") {
+            await performBasicPostAction(action.host, "api/v1/accounts/"+action.account_id+"/"+action.direction+"follow");
+        }else assertUnreachable(action);
+    },
+    previewReply(reply_text: string, reply_info: string): Generic.Thread {
+        return genericHeader();
+    },
+};
+export const client = res;
 
 async function performBasicPostAction(host: string, url: string): Promise<void> {
     const auth = await getAuth(host);

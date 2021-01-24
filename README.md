@@ -46,6 +46,8 @@ all todo:
 -   [ ] fix wrong scrolling occasionally when clicking show on post content
 -   [ ] add a loading indicator to the fullscreen loader thing
 -   [ ] catch errors in more places
+-   [ ] set up hot module replacement to support reloading `clients/reddit.ts` (currently it doesn't because old copies of client objects are stored)
+-   [ ] when a reply window thing is open with entered text, prompt before closing the page. make sure this works for 2+ open reply things even if one is closed
 
 reddit todo:
 

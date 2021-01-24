@@ -5,7 +5,7 @@ const WorkboxPlugin = require("workbox-webpack-plugin");
 const dev = process.env.NODE_ENV === "development";
 
 module.exports = {
-    entry: './src/app.ts',
+    entry: './src/entry.ts',
     module: {
         rules: [{
             test: /\.tsx?$/,

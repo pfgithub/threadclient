@@ -1534,8 +1534,8 @@ window.onpopstate = (ev: PopStateEvent) => {
 
 const client_cache: {[key: string]: ThreadClient} = {};
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
-    reddit: () => import("./clients/reddit").then(client => client.reddit("reddit")),
-    mastodon: () =>  import("./clients/mastodon").then(client => client.mastodon("mastodon")),
+    reddit: () => import("./clients/reddit").then(client => client.client),
+    mastodon: () =>  import("./clients/mastodon").then(client => client.client),
 };
 const getClient = async (name: string) => {
     if(!client_initializers[name]) return undefined;
@@ -1760,6 +1760,7 @@ function onNavigate(to_index: number, url: URLLike) {
     nav_history[to_index] = {node, url: thisurl}
 }
 
+export let bodytop = el("div").adto(document.body);
 {
     const spa_navigator_frame = document.createElement("div");
     document.body.appendChild(spa_navigator_frame);
