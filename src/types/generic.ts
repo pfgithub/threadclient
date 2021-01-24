@@ -143,7 +143,7 @@ export type Thread = {
         comments: "visible" | "collapsed",
     },
     replies?: Node[],
-    raw_value: any,
+    raw_value: unknown,
 
     link: string,
 
@@ -179,7 +179,7 @@ export type LoadMore = {
     count?: number,
     includes_parent?: boolean,
 
-    raw_value: any,
+    raw_value: unknown,
     next?: LoadMore,
 };
 export type Profile = {
@@ -187,7 +187,7 @@ export type Profile = {
     username: string,
     link: string,
     bio: Body,
-    raw_value: any,
+    raw_value: unknown,
     actions: Action[],
 };
 export type ContentNode = Thread | Profile;

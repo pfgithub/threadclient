@@ -108,7 +108,7 @@ declare namespace Mastodon {
     };
 }
 
-const error404 = (msg: string = "404 not found"): Generic.Page => ({
+const error404 = (msg = "404 not found"): Generic.Page => ({
     header: {
         kind: "thread",
         title: {text: "Error"},
@@ -162,6 +162,7 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
         }).then(async (v) => {
             return [v.status, await v.json() as T | {error: string}] as const;
         });
+        if(status !== 200) console.log('got status '+status, posts);
         return posts;
     }catch(e) {
         return {error: "Failed to load! "+e.toString()};
@@ -237,7 +238,6 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
 
     return {thumb: media.preview_url, w: media.meta?.small.width, h: media.meta?.small.height, body: resbody};
 }
-const as = <T>(v: T): T => v;
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], include_parentlink?: boolean, reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {time: new Date(post.created_at).getTime(),
         author: {
@@ -341,11 +341,6 @@ const getLoginURL = (host: string, appres: ApplicationResult) => {
         response_type: "code"
     });
 };
-const lsnameonly = {
-    app: (host: string) => "mastodon-application-"+host,
-    token: (host: string) => "mastodon-secret-"+host,
-    client_credentials: (host: string) => "mastodon-client-secret-"+host,
-};
 const lsgetter = <T>(namegtr: (host: string) => string): {
     get: (host: string) => T | undefined,
     set: (host: string, newval: T | undefined) => void,
@@ -420,22 +415,22 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
         lsitems.client_creds.set(host, resv);
 
         return resv;
-    };
+    }
     return authv;
 };
-export function mastodon(id: string) {
+export function mastodon(id: string): ThreadClient {
     const res: ThreadClient = {
         id,
         links: () => [],
         isLoggedIn: (pathraw: string) => {
-            const [_, host] = pathraw.split("/");
+            const [, host] = pathraw.split("/");
             if(!host) return false;
             return isLoggedIn(host);
         },
         loginURL: async (pathraw: string): Promise<string> => {
 
             const pathsplit = pathraw.split("/");
-            const [_, host] = pathsplit;
+            const [, host] = pathsplit;
             if(!host) throw new Error("can't login without selecting host first");
 
             const preapp = lsitems.app.get(host);
@@ -468,7 +463,7 @@ export function mastodon(id: string) {
         },
         login: async (path, query) => {
             if(path.length !== 2) throw new Error("bad login");
-            const [_, host] = path;
+            const [, host] = path;
             const code = query.get("code");
             if(!code) throw new Error("missing code");
 
@@ -505,11 +500,11 @@ export function mastodon(id: string) {
         },
 
         getThread: async (pathraw) => {
-            let [beforequery, afterquery] = pathraw.split("?");
-            if(!afterquery) afterquery = "";
+            const [beforequery, afterquery_raw] = pathraw.split("?") as [string, string | undefined];
+            const afterquery = afterquery_raw ?? "";
             const pathsplit = beforequery.split("/");
             if(pathsplit.length < 2) return error404();
-            const [_, host, ...path] = pathsplit;
+            const [, host, ...path] = pathsplit;
             
             const auth = await getAuth(host);
             

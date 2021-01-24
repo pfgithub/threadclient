@@ -155,7 +155,7 @@ function applyColorMatrix([r, g, b]: number[], matrix: number[][]) {
     const result = multiplyMatrices(matrix, rgb);
     return [0, 1, 2].map((i) => clamp(Math.round(result[i][0] * 255), 0, 255));
 }
-export function rgbToString(rgb: RGBA) {
+export function rgbToString(rgb: RGBA): string {
     const {r, g, b, a} = rgb;
     if (a != null && a < 1) {
         return `rgba(${toFixed(r)}, ${toFixed(g)}, ${toFixed(b)}, ${toFixed(a, 2)})`;
@@ -179,12 +179,12 @@ function toFixed(n: number, digits = 0) {
     }
     return fixed;
 }
-function rgbToHexString({r, g, b, a}: RGBA) {
+export function rgbToHexString({r, g, b, a}: RGBA): string {
     return `#${(a != null && a < 1 ? [r, g, b, Math.round(a * 255)] : [r, g, b]).map((x) => {
         return `${x < 16 ? '0' : ''}${x.toString(16)}`;
     }).join('')}`;
 }
-export function darkenColor(mode: "foreground" | "background", rgb: RGBA) {
+export function darkenColor(mode: "foreground" | "background", rgb: RGBA): RGBA {
     const hsl = rgbToHSL(rgb);
     const pole = mode === "foreground"
         ? {h: 36, s: 0.09803921568627463, l: 0.9, a: 1}
@@ -212,7 +212,8 @@ export function darkenColor(mode: "foreground" | "background", rgb: RGBA) {
 
 
 function xmur3(str: string) {
-    for (var i = 0, h = 1779033703 ^ str.length; i < str.length; i++)
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++)
         (h = Math.imul(h ^ str.charCodeAt(i), 3432918353)),
             (h = (h << 13) | (h >>> 19));
     return function () {
@@ -228,7 +229,7 @@ function sfc32(a: number, b: number, c: number, d: number) {
         b >>>= 0;
         c >>>= 0;
         d >>>= 0;
-        var t = (a + b) | 0;
+        let t = (a + b) | 0;
         a = b ^ (b >>> 9);
         b = (c + (c << 3)) | 0;
         c = (c << 21) | (c >>> 11);
@@ -239,7 +240,7 @@ function sfc32(a: number, b: number, c: number, d: number) {
     };
 }
 
-export function seededRandom(string: string) {
+export function seededRandom(string: string): () => number {
     const seed = xmur3(string);
     return sfc32(seed(), seed(), seed(), seed());
 }

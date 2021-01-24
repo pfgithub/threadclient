@@ -10,7 +10,7 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
     text_color: "light" | "dark", background_color: string, flair: Reddit.RichtextFlair | undefined,
 ): Generic.Flair[] {
     if(type === "text" && !text) return [];
-    let elems: Generic.RichTextItem[] = type === "richtext" ? (flair ?? []).map(v => {
+    const elems: Generic.RichTextItem[] = type === "richtext" ? (flair ?? []).map(v => {
         if(v.e === "text") {
             return {type: "text", text: v.t};
         }else if(v.e === "emoji") {
@@ -19,7 +19,7 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
         expectUnsupported(v.e);
         return {type: "text", text: "#TODO("+v.e+")"};
     }) : type === "text" ? [{type: "text", text}] : [{type: "text", text: "TODO: "+type}];
-    let flair_text = elems.map(v => v.type === "text" ? v.text : "").join("");
+    const flair_text = elems.map(v => v.type === "text" ? v.text : "").join("");
     return [{
         color: background_color,
         fg_color: text_color === "light" ? "light" : "dark",
@@ -35,7 +35,7 @@ function decodeAction(act: string): {kind: "vote", query: string} | {kind: "-"} 
     return JSON.parse(act);
 }
 
-type RichtextFormattingOptions = {};
+type RichtextFormattingOptions = unknown;
 function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
     try {
         return richtextParagraphArray(rtd.document, opt);
@@ -47,7 +47,7 @@ function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormatting
 function richtextParagraphArray(rtd: Reddit.Richtext.Paragraph[], opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
     return rtd.map(v => richtextParagraph(v, opt));
 }
-function expectUnsupported(text: "unsupported"): void {}
+function expectUnsupported(text: "unsupported"): void {/*no runtime error!*/}
 function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph {
     switch(rtd.e) {
         case "par": return {
@@ -118,7 +118,7 @@ function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormatti
 }
 function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     if(format.length === 0) return [{kind: "text", text: text, styles: {}}];
-    let resitems: Generic.Richtext.Span[] = [];
+    const resitems: Generic.Richtext.Span[] = [];
     let previdx = 0;
     const commit = (endv: number) => {
         const nofmt = text.substring(previdx, endv);
@@ -175,7 +175,7 @@ function richtextStyle(style: number): Generic.Richtext.Style {
     };
 }
 
-export function reddit(id: string) {
+export function reddit(id: string): ThreadClient {
     const isLoggedIn = () => {
         return !!localStorage.getItem("reddit-secret");
     };
@@ -299,7 +299,7 @@ export function reddit(id: string) {
                     reparenting.push(item);
                 }
             }
-            const [pathname, query] = splitURL(path);
+            const [, query] = splitURL(path);
 
             return {
                 header: {
@@ -484,7 +484,9 @@ export function reddit(id: string) {
                         : {kind: "none"}
                     : listing.gallery_data
                     ? {kind: "gallery", images: listing.gallery_data.items.map(gd => {
-                        const moreinfo = listing.media_metadata![gd.media_id];
+                        if(!listing.media_metadata) throw new Error("missing media metadata");
+                        const moreinfo = listing.media_metadata[gd.media_id];
+                        if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
                         return {
                             thumb: moreinfo.p[0].u,
                             w: moreinfo.p[0].x,
@@ -755,7 +757,7 @@ export function reddit(id: string) {
         async act(action: string): Promise<void> {
             const act = decodeAction(action);
             if(act.kind === "vote") {
-                type VoteResult = {};
+                type VoteResult = {__nothing: unknown};
                 const [status, res] = await fetch(baseURL() + "/api/vote", {
                     method: "post", mode: "cors", credentials: "omit",
                     headers: isLoggedIn() ? {
@@ -771,9 +773,11 @@ export function reddit(id: string) {
                     throw new Error("got status "+status);
                 }
             }else if(act.kind === "-") {
+                // placeholder. remove once new action kinds are added.
             }else assertUnreachable(act);
         },
         previewReply(md: string, data: string): Generic.Thread {
+            //eslint-disable-next-line @typescript-eslint/no-unused-vars
             const reply_info = decodeReplyInfo(data);
             return {
                 kind: "thread",

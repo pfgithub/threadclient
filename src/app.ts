@@ -1,31 +1,37 @@
 import "./_stdlib";
 import "./main.scss";
 
-import * as Reddit from "./types/api/reddit";
+import  * as uhtml from "uhtml";
+
 import * as Generic from "./types/generic";
 import {ThreadClient} from "./clients/base";
-import { darkenColor, getRandomColor, hslToRGB, RGBA, rgbToHSL, rgbToString, seededRandom } from "./darken_color";
+import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 
-declare const uhtml: any;
-
-export const raw = (string: string) => ({__raw: "" + string, toString: () => string});
+const rawsym = Symbol("raw");
+export const raw = (string: string): {[rawsym]: string, toString: () => string} => ({[rawsym]: "" + string, toString: () => string});
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const templateGenerator = <InType>(helper: (str: InType) => string) => {
-    type ValueArrayType = (InType | string | {__raw: string})[];
-    return (strings: TemplateStringsArray | InType, ...values: ValueArrayType) => {
-        if(!(strings as TemplateStringsArray).raw && !Array.isArray(strings)) {
-            return helper(strings as any);
-        }
-        const result: ValueArrayType = [];
+    type ValueArrayType = (InType | {[rawsym]: string})[];
+    return (strings: TemplateStringsArray, ...values: ValueArrayType) => {
+        const result: ({raw: string} | {val: InType})[] = [];
         (strings as TemplateStringsArray).forEach((string, i) => {
-            result.push(raw(string), values[i] || "");
+            result.push({raw: string});
+            if(i < values.length) {
+                const val = values[i];
+                if(typeof val === "object" && rawsym in val) {
+                    result.push({raw: (val as {[rawsym]: string})[rawsym]});
+                }else{
+                    result.push({val: val as InType});
+                }
+            }
         });
-        return result.map((el: any) => typeof el.__raw === "string" ? el.__raw : helper(el)).join("");
+        return result.map(el => 'raw' in el ? el : helper(el.val)).join("");
     };
 };
 export const url = templateGenerator<string>(str => encodeURIComponent(str));
 export const html = uhtml.html;
 
-export const query = (items: {[key: string]: string}) => {
+export const query = (items: {[key: string]: string}): string => {
     let res = "";
     for(const [key, value] of Object.entries(items)) {
         if(res) res += "&";
@@ -39,12 +45,12 @@ function assertNever(content: never): never {
     throw new Error("is not never");
 }
 
-export function escapeHTML(html: string) {
+export function escapeHTML(html: string): string {
     return html.replace(/[^a-zA-Z0-9. ]/giu, c => "&#"+c.codePointAt(0)+";");
     // might be a bit &#…; heavy for other languages
 }
 
-const safehtml = templateGenerator((v: string) => escapeHTML(v));
+export const safehtml = templateGenerator((v: string) => escapeHTML(v));
 
 function clientLogin(client: ThreadClient, path: string, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
     const frame = document.createElement("div");
@@ -89,8 +95,8 @@ function clientLogin(client: ThreadClient, path: string, on_complete: () => void
 
 type MakeDeferReturn = ((handler: () => void) => void) & {cleanup: () => void};
 const makeDefer = () => {
-	let list: (() => void)[] = [];
-	let res = (cb => {list.unshift(cb)}) as MakeDeferReturn;
+	const list: (() => void)[] = [];
+	const res = (cb => {list.unshift(cb)}) as MakeDeferReturn;
 	res.cleanup = () => {list.forEach(cb => cb())};
 	return res;
 };
@@ -155,7 +161,9 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     let url_mut: URL | undefined;
     try { 
         url_mut = new URL(link);
-    }catch(e) {}
+    }catch(e) {
+        // ignore
+    }
     const url = url_mut;
     const path = url?.pathname ?? link;
     if(link.startsWith("https://i.redd.it/")
@@ -163,14 +171,14 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
         || path.endsWith(".webp")
     ) return (): HideShowCleanup<Node> => {
-        let img = el("img").clss("preview-image").attr({src: link});
+        const img = el("img").clss("preview-image").attr({src: link});
         // a resizable image can be made like this
         // .resizable { display: inline-block; resize: both; overflow: hidden; line-height: 0; }
         const resn = {node: el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"})};
         return hideshow(resn.node);
     };
     if(path.endsWith(".gifv")) return (): HideShowCleanup<Node> => {
-        let video = el("video").attr({controls: ""}).clss("preview-image");
+        const video = el("video").attr({controls: ""}).clss("preview-image");
         el("source").attr({src: link.replace(".gifv", ".webm"), type: "video/webm"}).adto(video);
         el("source").attr({src: link.replace(".gifv", ".mp4"), type: "video/mp4"}).adto(video);
         video.loop = true;
@@ -181,13 +189,13 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         return hsc;
     };
     if(link.startsWith("https://v.redd.it/")) return (): HideShowCleanup<Node> => {
-        let container = el("div");
+        const container = el("div");
 
-        let audio = el("audio").adto(container);
+        const audio = el("audio").adto(container);
         el("source").attr({src: link+"/DASH_audio.mp4", type: "video/mp4"}).adto(audio);
         el("source").attr({src: link+"/audio", type: "video/mp4"}).adto(audio);
 
-        let video = el("video").attr({controls: ""}).clss("preview-image").adto(el("div").adto(container));
+        const video = el("video").attr({controls: ""}).clss("preview-image").adto(el("div").adto(container));
         el("source").attr({src: link+"/DASH_720.mp4", type: "video/mp4"}).adto(video);
         el("source").attr({src: link+"/DASH_720", type: "video/mp4"}).adto(video);
         el("source").attr({src: link+"/DASH_480.mp4", type: "video/mp4"}).adto(video);
@@ -199,10 +207,10 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         el("source").attr({src: link+"/HLSPlaylist.m3u8", type: "application/x-mpegURL"}).adto(video);
 
         const speaker_icons = ["🔇", "🔈", "🔊"];
-        let btnarea = el("div").adto(container).styl({display: "flex"});
-        let mutebtn = el("button").adto(btnarea);
+        const btnarea = el("div").adto(container).styl({display: "flex"});
+        const mutebtn = el("button").adto(btnarea);
         const muteicn = txt(speaker_icons[2]).adto(mutebtn);
-        let slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
+        const slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
         const upslider = () => slider.value = "" + (audio.volume * 100);
         let mute_backv: undefined | number;
         const upbtn = () => {
@@ -275,8 +283,8 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         return hsc;
     };
     if(path.endsWith(".mp4") || path.endsWith(".webm")) return (): HideShowCleanup<Node> => {
-        let src = el("source").attr({src: link});
-        let video = el("video").attr({controls: ""}).clss("preview-image").adch(src);
+        const src = el("source").attr({src: link});
+        const video = el("video").attr({controls: ""}).clss("preview-image").adch(src);
         let playing_before_hide = false;
         const hsc = hideshow(video);
         hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause();})
@@ -301,7 +309,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
         const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
         return ytvid(youtube_video_id, url.searchParams);
-    };
+    }
     if(link.startsWith("https://www.reddit.com/gallery/")) {
         // information about galleries is distributed with posts
         // do nothing I guess
@@ -319,7 +327,8 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
             // const doc = parser.parseFromString(opts.suggested_embed, "text/html");
             // const iframe = doc.childNodes[0].childNodes[1].childNodes[0];
             const template_el = el("template");
-            template_el.innerHTML = opts.suggested_embed!;
+            if(!opts.suggested_embed) throw new Error("opts was changed between first and second call");
+            template_el.innerHTML = opts.suggested_embed;
             const iframe_unsafe = template_el.content.childNodes[0] as HTMLIFrameElement;
 
             console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
@@ -344,13 +353,13 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
 }
 
 function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
-    let container = el("div");
+    const container = el("div");
     const hsc = hideshow(container);
     type State = "overview" | {
         index: number
     };
     let state: State = "overview";
-    let setState = (newState: State) => {
+    const setState = (newState: State) => {
         state = newState;
         update();
     }
@@ -358,7 +367,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
     let prevbody: HideShowCleanup<undefined> | undefined;
     let prevnode: HTMLDivElement | undefined;
 
-    let update = () => {
+    const update = () => {
         if(prevbody) {prevbody.cleanup(); prevbody = undefined;}
         if(prevnode) prevnode.innerHTML = "";
         if(state === "overview") {
@@ -371,7 +380,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
             `)}`);
             return;
         }
-        let index = state.index;
+        const index = state.index;
         const selimg = images[index];
         const ref: {current?: HTMLDivElement} = {};
         uhtml.render(container, html`
@@ -381,7 +390,8 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
             <button onclick=${() => setState("overview")}>Gallery</button>
             <div ref=${ref}></div>
         `);
-        prevbody = renderBody(client, selimg.body, {autoplay: true}, ref.current!);
+        if(!ref.current) throw new Error("!ref.current");
+        prevbody = renderBody(client, selimg.body, {autoplay: true}, ref.current);
         prevnode = ref.current;
         // TODO display a loading indicator while the image loads
     };
@@ -395,9 +405,9 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
 }
 
 function renderFlair(flairs: Generic.Flair[]) {
-    let resl = document.createDocumentFragment();
+    const resl = document.createDocumentFragment();
     for(const flair of flairs) {
-        let flairv = el("span").clss("flair");
+        const flairv = el("span").clss("flair");
         resl.atxt(" ");
         if(flair.color) flairv.styl({"--flair-color": flair.color, "--flair-color-dark": flair.color});
         if(flair.fg_color) flairv.clss("flair-text-"+flair.fg_color);
@@ -498,7 +508,7 @@ function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
         }
         const lsv = load_state;
         await new Promise<void>(r => lsv.push(r));
-        return (load_state as any as {loaded: T}).loaded;
+        return (load_state as unknown as {loaded: T}).loaded;
     }
 }
 
@@ -580,7 +590,11 @@ const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
         script_el.onerror = re;
         document.head.appendChild(script_el);
     });
-    const xss = (window as any).filterXSS;
+    const xss = (window as unknown as {
+        filterXSS:
+            ((html: string, opts: {onTagAttr: (tag: string, name: string, value: string, isWhiteAttr: string) => string | undefined}) => string)
+            & {escapeAttrValue: (val: string) => string}
+    }).filterXSS;
     return {
         saftify: (html, class_prefix: string) => xss(html, {
             onTagAttr: (tag: string, name: string, value: string, isWhiteAttr: string) => {
@@ -603,7 +617,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
 
     if(!renderLinkPreview) return hsc;
 
-    let showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
+    const showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
 
     let preview_div: undefined | {hsc: HideShowCleanup<unknown>, node: ChildNode} = undefined;
 
@@ -641,26 +655,28 @@ function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: No
     const divel = el("div").adto(parent_node).clss("slightlybigger");
     const hsc = hideshow();
     divel.innerHTML = safe_html;
-    if(class_prefix) for(let node of Array.from(divel.querySelectorAll("*"))) {
+    if(class_prefix) for(const node of Array.from(divel.querySelectorAll("*"))) {
         Array.from(node.classList).forEach(classname => {
             node.classList.replace(classname, class_prefix + classname);
         });
     }
-    for(let alink of Array.from(divel.querySelectorAll("a"))) {
+    for(const alink of Array.from(divel.querySelectorAll("a"))) {
         const after_node = document.createComment("after");
-        alink.parentNode!.replaceChild(after_node, alink);
+        if(!alink.parentNode) throw new Error("alink without parent node. never.");
+        alink.parentNode.replaceChild(after_node, alink);
+        if(!after_node.parentNode) throw new Error("never.");
 
-        const href = alink.getAttribute("href")!;
+        const href = alink.getAttribute("href") ?? "error no href";
         const content = Array.from(alink.childNodes);
 
-        const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode!).defer(hsc);
+        const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode).defer(hsc);
 
         newbtn.attr({"class": alink.getAttribute("class")});
         content.forEach(el => newbtn.appendChild(el));
     }
-    for(let spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
-        let children = Array.from(spoilerspan.childNodes);
-        let subspan = el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
+    for(const spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
+        const children = Array.from(spoilerspan.childNodes);
+        const subspan = el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
         spoilerspan.attr({title: "Click to reveal spoiler"});
         subspan.style.opacity = "0";
         spoilerspan.onev("click", () => {
@@ -672,8 +688,6 @@ function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: No
 }
 
 function renderText(client: ThreadClient, body: Generic.BodyText): HideShowCleanup<Node> {
-    const defer = makeDefer();
-
     const container = el("div");
     const hsc = hideshow(container);
     
@@ -719,20 +733,20 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
 
             mainel.atxt(rts.text);
             mainel.adto(container);
-        }; break;
+        } break;
         case "link": {
             const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
             if(rts.title) newbtn.title = rts.title;
             for(const child of rts.children) {
                 renderRichtextSpan(client, child, newbtn).defer(hsc);
             }
-        }; break;
+        } break;
         case "br": {
             container.adch(el("br"));
-        }; break;
+        } break;
         case "spoiler": {
-            let spoilerspan = el("spoiler").clss("md-spoiler-text");
-            let subspan = el("span").adto(spoilerspan).clss("md-spoiler-content");
+            const spoilerspan = el("spoiler").clss("md-spoiler-text");
+            const subspan = el("span").adto(spoilerspan).clss("md-spoiler-content");
             for(const child of rts.children) {
                 renderRichtextSpan(client, child, subspan).defer(hsc);
             }
@@ -742,7 +756,7 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
                 subspan.style.opacity = "1";
                 spoilerspan.attr({title: ""});
             });
-        }; break;
+        } break;
         default: assertNever(rts);
     }
 
@@ -758,13 +772,13 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             for(const child of rtp.children) {
                 renderRichtextSpan(client, child, pel).defer(hsc);
             }
-        }; break;
+        } break;
         case "heading": {
             const hel = el("h"+rtp.level).adto(container);
             for(const child of rtp.children) {
                 renderRichtextSpan(client, child, hel).defer(hsc);
             }
-        }; break;
+        } break;
         case "blockquote": case "list": case "list_item": {
             const bquot = el(rtp.kind === "blockquote" ?
                 "blockquote" : rtp.kind === "list" ?
@@ -774,21 +788,21 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             for(const child of rtp.children) {
                 renderRichtextParagraph(client, child, bquot).defer(hsc);
             }
-        }; break;
+        } break;
         case "horizontal_line": {
             el("hr").adto(container);
-        }; break;
+        } break;
         case "code_block": {
             el("pre").adch(el("code").atxt(rtp.text)).adto(container);
-        }; break;
+        } break;
         case "image": {
             el("img").attr({src: rtp.url, alt: rtp.alt, title: rtp.alt, width: rtp.w + "px", height: rtp.h + "px"}).clss("preview-image").adto(container);
             if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
-        }; break;
+        } break;
         case "video": {
             el("video").attr({src: rtp.url, width: rtp.w + "px", height: rtp.h + "px"}).clss("preview-image").adto(container);
             if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
-        }; break;
+        } break;
         case "table": {
             const tablel = el("table").adto(container);
             const thead = el("tr").adto(el("thead").adto(tablel));
@@ -809,14 +823,14 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
                     }
                 });
             }
-        }; break;
+        } break;
         default: assertNever(rtp);
     }
 
     return hsc;
 }
 
-let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}, content: ChildNode): HideShowCleanup<undefined> => {
+const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}, content: ChildNode): HideShowCleanup<undefined> => {
     const hsc = hideshow();
 
     if(body.kind === "text") {
@@ -832,7 +846,7 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
     }else if(body.kind === "none") {
         content.remove();
     }else if(body.kind === "gallery") {
-        const rvres = renderImageGallery(client, body.images).defer(hsc).adto(content);
+        renderImageGallery(client, body.images).defer(hsc).adto(content);
     }else if(body.kind === "removed") {
         const removed_v = el("div").adto(content).atxt("Removed by "+body.by+".");
         if(body.fetch_path && client.fetchRemoved) {
@@ -846,8 +860,9 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
                 let errored = false;
                 fetch_btn.textContent = "…";
                 fetch_btn.disabled = true;
+                if(!client.fetchRemoved) throw new Error("client provided a removal fetch path but has no fetchRemoved");
                 try {
-                    new_body = await client.fetchRemoved!(body.fetch_path);
+                    new_body = await client.fetchRemoved(body.fetch_path);
                 }catch(e) {
                     errored = true;
                     console.log(e);
@@ -877,6 +892,7 @@ let renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boo
         }
         if(body.select_many) {
             const submitbtn = el("button").adto(content);
+            submitbtn.onclick = () => "TODO vote on polls";
         }
     }else if(body.kind === "captioned_image") {
         el("div").adto(content).atxt(body.caption ?? "");
@@ -974,6 +990,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                             update();
                         }
                     });
+                    submit.onev("click", () => alert("TODO reply comments"));
                 }
                 reply_btn.disabled = true;
                 label: if(reply_state.preview) {
@@ -1191,24 +1208,6 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
     }
     let content_warnings = (listing.flair ?? []).filter(v => v.content_warning);
 
-    const getScoreMut = (pt_count: number, your_vote: 'up' | 'down' | undefined, initial_vote: 'up' | 'down' | undefined) => {
-        let score_mut = pt_count;
-        if(your_vote !== initial_vote) {
-            if(initial_vote === "up") {
-                score_mut -= 1;
-                if(your_vote === "down") score_mut -= 1;
-            }else if(initial_vote === "down") {
-                score_mut += 1;
-                if(your_vote === "up") score_mut += 1;
-            }else{
-                if(your_vote === "up") score_mut += 1;
-                else if(your_vote === "down") score_mut -= 1;
-            }
-        }
-        return score_mut;
-    }
-    type VoteState = {pt_count: number | undefined, your_vote: 'up' | 'down' | undefined, vote_loading: boolean};
-
     let reserved_points_area: null | Node = null;
 
     if(listing.layout === "reddit-post" && listing.info) {
@@ -1235,7 +1234,6 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(" ").adch(submission_time);
         if(listing.info.reblogged_by) {
-            const [author_color, author_color_dark] = getRandomColor(seededRandom(listing.info.reblogged_by.author.name));
             content_subminfo_line.atxt(" ← Boosted by ")
                 .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.name))
                 .atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc))
@@ -1272,7 +1270,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         const body_hsc = hideshow();
         hsc.addChild(body_hsc);
 
-        let initContent = (body: Generic.Body, opts: {autoplay: boolean}) => {
+        const initContent = (body: Generic.Body, opts: {autoplay: boolean}) => {
             if(content_warnings.length) {
                 const cws = content_warnings;
                 content_warnings = [];
@@ -1296,7 +1294,6 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
 
             let initialized = false;
             let state = listing.display_mode.body_default === "open";
-            let prev_state: boolean | undefined = undefined;
             const update = () => {
                 if(state && !initialized) {
                     initialized = true;
@@ -1379,10 +1376,6 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
     return hsc;
 }
 
-function swtch<T, U>(value: T, ...cases: [T, () => U][]): U {
-    return cases.find(cas => cas[0] === value)![1]();
-}
-
 function linkLikeButton() {
     return el("button").clss("link-like-button").attr({draggable: "true"});
 }
@@ -1449,7 +1442,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         frame.classList.add("display-"+listing.display_style);
         
         uhtml.render(frame_uhtml_area, html``);
-        const home_node = clientListing(client, listing.header).defer(hsc).adto(frame);
+        clientListing(client, listing.header).defer(hsc).adto(frame);
 
         const addChild = (child_listing: Generic.Node) => {
             if(child_listing.kind === "load_more") {
@@ -1457,7 +1450,7 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
                 lmbtn.adto(frame);
                 return;
             }
-            const replies_node = clientListing(client, child_listing).defer(hsc).adto(frame);
+            clientListing(client, child_listing).defer(hsc).adto(frame);
         };
         if(listing.replies) listing.replies.forEach(rply => addChild(rply));
         if(listing.replies?.length === 0) txt("There is nothing here").adto(frame);
@@ -1549,13 +1542,13 @@ type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () =
 type NavigationEntry = {url: string, node: NavigationEntryNode};
 const nav_history: NavigationEntry[] = [];
 
-let session_name = "" + Math.random();
+const session_name = "" + Math.random();
 
 function navigate({path, replace}: {path: string, replace?: boolean}) {
     if(!replace) replace = false;
     if(replace) {
         console.log("Replacing history item", current_history_index, path);
-        nav_history[current_history_index] = {url: "::redirecting::", node: {removeSelf: () => {}, hide: () => {}, show: () => {}}};
+        nav_history[current_history_index] = {url: "::redirecting::", node: {removeSelf: () => {""}, hide: () => {""}, show: () => {""}}};
         history.replaceState({index: current_history_index, session_name}, "ThreadReader", path);
         onNavigate(current_history_index, location);
     }else{
@@ -1578,7 +1571,7 @@ function homePage(res: HTMLDivElement): NavigationEntryNode {
 
 type URLLike = {search: string, pathname: string};
 
-let navigate_event_handlers: ((url: URLLike) => void)[] = [];
+const navigate_event_handlers: ((url: URLLike) => void)[] = [];
 
 type HSEvent = "hide" | "show" | "cleanup";
 type HideShowCleanup<T> = {
@@ -1588,9 +1581,9 @@ type HideShowCleanup<T> = {
     readonly visible: boolean,
     on: (ev: HSEvent, cb: () => void) => void,
     emit: (ev: HSEvent) => void,
-    addChild: (child: HideShowCleanup<any>) => void,
+    addChild: (child: HideShowCleanup<unknown>) => void,
     readonly associated_data: T,
-    defer: (parent: HideShowCleanup<any>) => T,
+    defer: (parent: HideShowCleanup<unknown>) => T,
 };
 
 function hideshow(): HideShowCleanup<undefined>;
@@ -1603,7 +1596,7 @@ function hideshow<T>(a_any?: T): HideShowCleanup<T> {
     let parent_is_visible = true;
 
     let prev_derived_visibility = true;
-    let update = () => {
+    const update = () => {
         const derived_visibility = is_visible && parent_is_visible;
 
         if(derived_visibility !== prev_derived_visibility) {
@@ -1617,7 +1610,7 @@ function hideshow<T>(a_any?: T): HideShowCleanup<T> {
     }
 
     let exists = true;
-    const children: HideShowCleanup<any>[] = [];
+    const children: HideShowCleanup<unknown>[] = [];
     const emit = (text: HSEvent) => {
         if(!events[text]) return;
         events[text].forEach(ev => ev());
@@ -1629,12 +1622,14 @@ function hideshow<T>(a_any?: T): HideShowCleanup<T> {
             events[ev].push(cb);
         },
         setVisible(nvisible: boolean) {
+            if(!exists) return console.log("hideshow called on a deleted object");
             if(is_visible !== nvisible) {
                 is_visible = nvisible;
                 update();
             }
         },
         setParentVisible(pnvis: boolean) {
+            if(!exists) return console.log("hideshow called on a deleted object");
             if(parent_is_visible !== pnvis) {
                 parent_is_visible = pnvis;
                 update();
@@ -1655,7 +1650,7 @@ function hideshow<T>(a_any?: T): HideShowCleanup<T> {
         get associated_data() {
             return a;
         },
-        defer(parent: HideShowCleanup<any>): T {
+        defer(parent: HideShowCleanup<unknown>): T {
             parent.addChild(res);
             return a;
         },
@@ -1689,7 +1684,7 @@ function fetchClientThen(client_id: string, cb: (client: ThreadClient, parent: N
         hsc.on("show", () => cbres.show()); 
     });
 
-    let res: NavigationEntryNode = {
+    const res: NavigationEntryNode = {
         removeSelf: () => {
             hsc.cleanup();
             wrapper.remove();
@@ -1713,7 +1708,6 @@ function renderPath(pathraw: string, search: string): NavigationEntryNode {
     }
 
     if(path0 === "login"){
-        const client = getClient(path[0]);
         return fetchClientThen(path[0], (client, parent, before) => {
             return clientLoginPage(client, path, new URLSearchParams(search)).insertBefore(parent, before);
         });
@@ -1739,7 +1733,9 @@ function onNavigate(to_index: number, url: URLLike) {
             
             // a b c d to_index [… remove these]
             for(let i = nav_history.length - 1; i >= to_index; i--) {
-                nav_history.pop()!.node.removeSelf();
+                const last = nav_history.pop();
+                if(!last) throw new Error("bad logic");
+                last.node.removeSelf();
             }
         }else{
             // show the current history
@@ -1756,14 +1752,14 @@ function onNavigate(to_index: number, url: URLLike) {
 }
 
 {
-    let spa_navigator_frame = document.createElement("div");
+    const spa_navigator_frame = document.createElement("div");
     document.body.appendChild(spa_navigator_frame);
-    let spa_navigator_input = document.createElement("input");
+    const spa_navigator_input = document.createElement("input");
     spa_navigator_frame.appendChild(spa_navigator_input);
-    let spa_navigator_button = document.createElement("button");
+    const spa_navigator_button = document.createElement("button");
     spa_navigator_button.appendChild(document.createTextNode("⏎"));
     spa_navigator_frame.appendChild(spa_navigator_button);
-    let spa_navigator_refresh = document.createElement("button");
+    const spa_navigator_refresh = document.createElement("button");
     spa_navigator_refresh.appendChild(document.createTextNode("🗘"));
     spa_navigator_frame.appendChild(spa_navigator_refresh);
 

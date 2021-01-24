@@ -22,6 +22,7 @@ all todo:
 -   [x] fix user name color randomization in light mode (generate a light color and return the same with inverted l for darkness)
 -   [x] decrease bundle size (mostly by making it not add polyfills that use `ActiveXObject`…)
 -   [x] use onhide in more places, eg when collapsing a comment or navigating away
+-   [x] add eslint
 -   [ ] the refresh button
 -   [ ] instead of giving up on onhide just don't store youtube iframes…
 -   [ ] proper, non-hacky way to auto disable darkreader extension
@@ -29,8 +30,10 @@ all todo:
 -   [ ] a button to switch to markdown source view (uh oh what if the comment doesn't have any markdown source…)
 -   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
+-   [ ] eslint formatting
+-   [ ] eslint strict promise error handling
+-   [ ] eslint disallow shadowing
 -   [ ] fix dark flairs being displayed on a dark background (occurs on reddit flairs with no bg color set)
--   [ ] add eslint for formatting and typescript-eslinting
 -   [ ] make pwa
 
 reddit todo:
