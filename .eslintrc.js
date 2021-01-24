@@ -15,7 +15,7 @@ module.exports = {
         "@typescript-eslint/no-shadow": "warn",
 
         // style rules:
-        // "indent": ["warn", 4],
+        "indent": ["warn", 4, {"SwitchCase": 1, "offsetTernaryExpressions": true, "ignoredNodes": ["ConditionalExpression"]}],
         // "brace-style": ["warn", "1tbs"],
     },
 };

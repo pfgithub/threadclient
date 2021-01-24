@@ -25,7 +25,7 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
         fg_color: text_color === "light" ? "light" : "dark",
         elems,
         content_warning: flair_text.toLowerCase().startsWith("cw:")
-}];
+    }];
 }
 
 function encodeAction(act: "vote", query: string): string {
@@ -135,19 +135,17 @@ function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange
 }
 function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     switch(rtd.e) {
-        case "text":
-            return richtextFormattedText(rtd.t, rtd.f ?? [], opt)
-        ;
-        case "r/": // not sure what rtd.l is for
-            return [{kind: "link", url: "/r/"+rtd.t, children:
-                [{kind: "text", text: (rtd.l ? "/" : "") + "r/"+rtd.t, styles: {}}],
-            }]
-        ;
-        case "u/": // not sure what rtd.l is for
-            return [{kind: "link", url: "/u/"+rtd.t, children:
-                [{kind: "text", text: (rtd.l ? "/" : "") + "u/"+rtd.t, styles: {}}],
-            }]
-        ;
+        case "text": return richtextFormattedText(rtd.t, rtd.f ?? [], opt);
+        case "r/": return [{
+            kind: "link",
+            url: "/r/"+rtd.t,
+            children: [{kind: "text", text: (rtd.l ? "/" : "") + "r/"+rtd.t, styles: {}}],
+        }];
+        case "u/": return [{
+            kind: "link",
+            url: "/u/"+rtd.t,
+            children: [{kind: "text", text: (rtd.l ? "/" : "") + "u/"+rtd.t, styles: {}}],
+        }];
         case "link": return [{
             kind: "link",
             url: rtd.u,
@@ -411,8 +409,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'o
             body: is_deleted
                 ? {kind: "removed", by: is_deleted,
                     fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
-                }
-                : {kind: "richtext", content: richtextDocument(listing.rtjson, {})},
+                } : {kind: "richtext", content: richtextDocument(listing.rtjson, {})},
             display_mode: {body: "visible", comments: "visible"},
             raw_value: listing_raw,
             link: listing.permalink,
@@ -638,9 +635,10 @@ export const client: ThreadClient = {
         try {
             const [status, listing] = await fetch(pathURL(path), {
                 mode: "cors", credentials: "omit",
-                headers: {...isLoggedIn() ? {
-                    'Authorization': await getAuthorization(),
-                } : {},
+                headers: {
+                    ...isLoggedIn() ? {
+                        'Authorization': await getAuthorization(),
+                    } : {},
                     'Accept': 'application/json',
                 },
             }).then(async (v) => {
@@ -664,8 +662,8 @@ export const client: ThreadClient = {
                         kind: "text",
                         content: `Error ${e.toString()}`+ (is_networkerror
                             ? `. If using Firefox, try disabling 'Enhanced Tracker Protection' ${""
-                                } for this site. Enhanced tracker protection indiscriminately blocks all ${""
-                                } requests to social media sites, including Reddit.`
+                            } for this site. Enhanced tracker protection indiscriminately blocks all ${""
+                            } requests to social media sites, including Reddit.`
                             : `.`
                         ),
                         markdown_format: "none",

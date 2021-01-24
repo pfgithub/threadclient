@@ -602,21 +602,21 @@ function assertUnreachable(value: never): never {
 }
 
 async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode): Promise<Generic.Page> {
-        const thisurl = mkurl(host, api_path);
-        const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
+    const thisurl = mkurl(host, api_path);
+    const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
 
-        if('error' in posts) return error404("Error! "+posts.error);
+    if('error' in posts) return error404("Error! "+posts.error);
 
-        const last_post = posts[posts.length - 1];
+    const last_post = posts[posts.length - 1];
 
-        const res: Generic.Page = {
-            header: header,
-            replies: [...postArrayToReparentedTimeline(host, posts), ...last_post ? [{
-                kind: "load_more",
-                load_more: updateQuery("/"+host+web_path, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
-                raw_value: "",
-            } as Generic.LoadMore] : []],
-            display_style: "comments-view",
-        };
-        return res;
+    const res: Generic.Page = {
+        header: header,
+        replies: [...postArrayToReparentedTimeline(host, posts), ...last_post ? [{
+            kind: "load_more",
+            load_more: updateQuery("/"+host+web_path, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
+            raw_value: "",
+        } as Generic.LoadMore] : []],
+        display_style: "comments-view",
+    };
+    return res;
 }

@@ -96,10 +96,10 @@ function clientLogin(client: ThreadClient, path: string, on_complete: () => void
 
 type MakeDeferReturn = ((handler: () => void) => void) & {cleanup: () => void};
 const makeDefer = () => {
-	const list: (() => void)[] = [];
-	const res = (cb => {list.unshift(cb)}) as MakeDeferReturn;
-	res.cleanup = () => {list.forEach(cb => cb())};
-	return res;
+    const list: (() => void)[] = [];
+    const res = (cb => {list.unshift(cb)}) as MakeDeferReturn;
+    res.cleanup = () => {list.forEach(cb => cb())};
+    return res;
 };
 
 function isModifiedEvent(event: MouseEvent) {
@@ -780,10 +780,16 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             }
         } break;
         case "blockquote": case "list": case "list_item": {
-            const bquot = el(rtp.kind === "blockquote" ?
-                "blockquote" : rtp.kind === "list" ?
-                rtp.ordered ? "ol" : "ul" : rtp.kind
-                === "list_item" ? "li" : assertNever(rtp)
+            const bquot = el(
+                rtp.kind === "blockquote"
+                    ? "blockquote"
+                    : rtp.kind === "list"
+                    ? rtp.ordered
+                        ? "ol"
+                        : "ul"
+                    : rtp.kind === "list_item"
+                    ? "li"
+                    : assertNever(rtp)
             ).adto(container);
             for(const child of rtp.children) {
                 renderRichtextParagraph(client, child, bquot).defer(hsc);
