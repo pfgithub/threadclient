@@ -25,7 +25,8 @@ export const templateGenerator = <InType>(helper: (str: InType) => string) => {
                 }
             }
         });
-        return result.map(el => 'raw' in el ? el : helper(el.val)).join("");
+        const res = result.map(el => 'raw' in el ? el.raw : helper(el.val)).join("");
+        return res;
     };
 };
 export const url = templateGenerator<string>(str => encodeURIComponent(str));

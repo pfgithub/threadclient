@@ -230,6 +230,10 @@ export function reddit(id: string): ThreadClient {
                 console.log("Error! got", v, "with status code", status);
                 throw new Error("Status code "+status);
             }
+            if('error' in v) {
+                console.log("refresh attempt: ", v, json);
+                throw new Error("Got error while refreshing token: "+v.error);
+            }
             const res_data = {
                 access_token: v.access_token,
                 refresh_token: v.refresh_token || json.refresh_token,
