@@ -16,6 +16,6 @@ module.exports = {
 
         // style rules:
         "indent": ["warn", 4, {"SwitchCase": 1, "offsetTernaryExpressions": true, "ignoredNodes": ["ConditionalExpression"]}],
-        // "brace-style": ["warn", "1tbs"],
+        "brace-style": ["warn", "1tbs", {"allowSingleLine": true}],
     },
 };

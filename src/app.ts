@@ -53,9 +53,9 @@ export function escapeHTML(unsafe_html: string): string {
 
 export const safehtml = templateGenerator((v: string) => escapeHTML(v));
 
-function clientLogin(client: ThreadClient, path: string, on_complete: () => void) { return {insertBefore(parent: Node, before_once: Node | null) {
-    const frame = document.createElement("div");
-    parent.insertBefore(frame, before_once);
+function clientLogin(client: ThreadClient, path: string, on_complete: () => void): HideShowCleanup<HTMLDivElement> {
+    const frame = el("div");
+    const hsc = hideshow(frame);
 
     const renderLink = (href: string) => {
         uhtml.render(frame, uhtml_html`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
@@ -87,20 +87,10 @@ function clientLogin(client: ThreadClient, path: string, on_complete: () => void
         }
     };
     document.addEventListener("focus", event_listener);
+    hsc.on("cleanup", () => document.removeEventListener("focus", event_listener));
 
-    return {removeSelf() {
-        frame.remove();
-        document.removeEventListener("focus", event_listener)
-    } };
-} } }
-
-type MakeDeferReturn = ((handler: () => void) => void) & {cleanup: () => void};
-const makeDefer = () => {
-    const list: (() => void)[] = [];
-    const res = (cb => {list.unshift(cb)}) as MakeDeferReturn;
-    res.cleanup = () => {list.forEach(cb => cb())};
-    return res;
-};
+    return hsc;
+}
 
 function isModifiedEvent(event: MouseEvent) {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
@@ -1427,21 +1417,21 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
     return container;
 }
 
-function clientMain(client: ThreadClient, current_path: string) { return {insertBefore(parent: Node, before_once: Node | null) {
-    const hsc = hideshow();
-
+function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
     const outer = el("div").clss("client-wrapper");
-    parent.insertBefore(outer, before_once);
-    hsc.on("cleanup", () => outer.remove());
+    const hsc = hideshow(outer);
 
     const frame = el("div").adto(outer);
     frame.classList.add("client-main-frame");
     frame.classList.add("display-loading");
 
     if(!client.isLoggedIn(current_path)) {
-        const login_prompt: {removeSelf: () => void} = clientLogin(client, current_path, () => login_prompt.removeSelf()).insertBefore(frame, null);
-        hsc.on("cleanup", () => login_prompt.removeSelf());
-        // return {removeSelf: () => defer.cleanup(), hide: () => {}, show: () => {}};
+        clientLogin(client, current_path, () => {
+            // uh oh! this hsc node has a parent, so when it gets cleaned up it needs to tell its parent it no longer exists
+            // otherwise there is a leak
+            console.log("TODO remove clientLogin");
+            // just removing the node isn't good enough because the hsc still exists
+        }).defer(hsc).adto(frame);
     }
     const loader_area = el("div").adto(frame);
     loader_area.adch(loadingSpinner());
@@ -1471,37 +1461,21 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         el("div").atxt("Error! "+e+", check console.").clss("error").adto(frame);
     });
 
-    return {removeSelf: () => hsc.cleanup(), hide: () => {
-        if(frame.style.display !== "none") frame.style.display = "none";
-        hsc.setVisible(false);
-    }, show: () => {
-        if(frame.style.display !== "") frame.style.display = "";
-        hsc.setVisible(true);
-    }};
-} } }
+    return hsc;
+}
 
-function fullscreenError(message: string) { return {insertBefore(parent: Node, before_once: Node | null) {
-    const defer = makeDefer();
-
+function fullscreenError(message: string): HideShowCleanup<HTMLDivElement> {
     const frame = document.createElement("div");
-    defer(() => frame.remove());
-    parent.insertBefore(frame, before_once);
+    const hsc = hideshow(frame);
 
     frame.appendChild(document.createTextNode(message));
 
-    return {removeSelf: () => defer.cleanup(), hide: () => {
-        if(frame.style.display !== "none") frame.style.display = "none";
-    }, show: () => {
-        if(frame.style.display !== "") frame.style.display = "";
-    }};
-} } }
+    return hsc;
+}
 
-function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchParams) { return {insertBefore(parent: Node, before_once: Node | null) {
-    const defer = makeDefer();
-
+function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchParams): HideShowCleanup<HTMLDivElement> {
     const frame = document.createElement("div");
-    defer(() => frame.remove());
-    parent.insertBefore(frame, before_once);
+    const hsc = hideshow(frame);
 
     uhtml.render(frame, uhtml.html`<div>…</div>`);
     (async () => {
@@ -1519,12 +1493,8 @@ function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchP
         uhtml.render(frame, uhtml.html`<div>Logged In! You may now close this page.</div>`);
     })();
 
-    return {removeSelf: () => defer.cleanup(), hide: () => {
-        if(frame.style.display !== "none") frame.style.display = "none";
-    }, show: () => {
-        if(frame.style.display !== "") frame.style.display = "";
-    }};
-} } }
+    return hsc;
+}
 
 
 window.onpopstate = (ev: PopStateEvent) => {
@@ -1573,15 +1543,13 @@ function navigate({path, replace}: {path: string, replace?: boolean}) {
     }
 }
 
-function homePage(res: HTMLDivElement): NavigationEntryNode {
+function homePage(): HideShowCleanup<HTMLDivElement> {
+    const res = el("div");
+    const hsc = hideshow(res);
     linkButton("", "/reddit").atxt("Reddit").adto(res);
     res.atxt(" · ");
     linkButton("", "/mastodon").atxt("Mastodon").adto(res);
-    return {removeSelf: () => res.remove(), hide: () => {
-        if(res.style.display !== "none") res.style.display = "none";
-    }, show: () => {
-        if(res.style.display !== "") res.style.display = "";
-    }};
+    return hsc;
 }
 
 type URLLike = {search: string, pathname: string};
@@ -1673,44 +1641,31 @@ function hideshow<T>(a_any?: T): HideShowCleanup<T> {
     return res;
 }
 
-function fetchClientThen(client_id: string, cb: (client: ThreadClient, parent: Node, before: Node | null) => NavigationEntryNode): NavigationEntryNode {
+function fetchClientThen(client_id: string, cb: (client: ThreadClient) => HideShowCleanup<HTMLDivElement>): HideShowCleanup<HTMLDivElement> {
     const cached = getClientCached(client_id);
     if(cached) {
-        return cb(cached, document.body, null);
+        return cb(cached);
     }
 
-    const hsc = hideshow();
-
+    
     const wrapper = el("div").adto(document.body);
+    const hsc = hideshow(wrapper);
     const loader_container = el("div").adto(wrapper);
     el("span").atxt("Fetching client…").adto(loader_container);
     
     getClient(client_id).then(client => {
-        let cbres: NavigationEntryNode;
         if(client){ 
-            cbres = cb(client, wrapper, null);
+            cb(client).defer(hsc).adto(wrapper);
         }else{
-            cbres = fullscreenError("404. Client "+client_id+" not found.").insertBefore(wrapper, null);
+            fullscreenError("404. Client "+client_id+" not found.").defer(hsc).adto(wrapper);
         }
         loader_container.remove();
-
-        hsc.on("cleanup", () => cbres.removeSelf());
-        hsc.on("hide", () => cbres.hide());
-        hsc.on("show", () => cbres.show()); 
     });
 
-    const res: NavigationEntryNode = {
-        removeSelf: () => {
-            hsc.cleanup();
-            wrapper.remove();
-        },
-        hide: () => {wrapper.style.display = "none"; hsc.setVisible(false)},
-        show: () => {wrapper.style.display = "";     hsc.setVisible(true)},
-    };
-    return res;
+    return hsc;
 }
 
-function renderPath(pathraw: string, search: string): NavigationEntryNode {
+function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivElement> {
     const path = pathraw.split("/").filter(w => w);
 
     const path0 = path.shift();
@@ -1718,18 +1673,17 @@ function renderPath(pathraw: string, search: string): NavigationEntryNode {
     console.log(path);
 
     if(!path0) {
-        const res = el("div").adto(document.body);
-        return homePage(res);
+        return homePage();
     }
 
     if(path0 === "login"){
-        return fetchClientThen(path[0], (client, parent, before) => {
-            return clientLoginPage(client, path, new URLSearchParams(search)).insertBefore(parent, before);
+        return fetchClientThen(path[0], (client) => {
+            return clientLoginPage(client, path, new URLSearchParams(search));
         });
     }
 
-    return fetchClientThen(path0, (client, parent, before) => {
-        return clientMain(client, "/"+path.join("/")+search).insertBefore(parent, before);
+    return fetchClientThen(path0, (client) => {
+        return clientMain(client, "/"+path.join("/")+search);
     })
 }
 
@@ -1761,9 +1715,19 @@ function onNavigate(to_index: number, url: URLLike) {
         nav_history.forEach(item => item.node.hide());
     }
 
-    const node = renderPath(url.pathname, url.search);
+    const hsc = hideshow();
+    const node = renderPath(url.pathname, url.search).defer(hsc).adto(document.body);
+    hsc.on("cleanup", () => node.remove());
+    hsc.on("hide", () => node.style.display = "none");
+    hsc.on("show", () => node.style.display = "");
 
-    nav_history[to_index] = {node, url: thisurl}
+    const naventry: NavigationEntryNode = {
+        removeSelf: () => hsc.cleanup(),
+        hide: () => hsc.setVisible(false),
+        show: () => hsc.setVisible(true),
+    };
+
+    nav_history[to_index] = {node: naventry, url: thisurl}
 }
 
 export const bodytop = el("div").adto(document.body);
