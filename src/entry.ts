@@ -7,7 +7,7 @@ declare let module: {hot: HotModule | undefined};
 const hot = module.hot;
 if(hot) {
     hot.accept("./src/app.ts", () => {
-        let alertel = el("div").clss("alert");
+        const alertel = el("div").clss("alert");
         alertel.atxt("Page is out of date, needs reload!");
         bodytop.adch(alertel);
     });

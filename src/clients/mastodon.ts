@@ -1,4 +1,4 @@
-import { escapeHTML, query } from "../app";
+import { escapeHTML, encodeQuery } from "../app";
 import * as Generic from "../types/generic";
 import {ThreadClient} from "./base";
 
@@ -334,7 +334,7 @@ type TokenResult = {
     token_type: "Bearer",
 };
 const getLoginURL = (host: string, appres: ApplicationResult) => {
-    return "https://"+host+"/oauth/authorize?"+query({
+    return "https://"+host+"/oauth/authorize?"+encodeQuery({
         client_id: appres.client_id,
         scope: "read write follow push",
         redirect_uri: redirectURI(host),
@@ -418,7 +418,7 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
     }
     return authv;
 };
-const res: ThreadClient = {
+export const client: ThreadClient = {
     id: "mastodon",
     links: () => [],
     isLoggedIn: (pathraw: string) => {
@@ -585,7 +585,6 @@ const res: ThreadClient = {
         return genericHeader();
     },
 };
-export const client = res;
 
 async function performBasicPostAction(host: string, url: string): Promise<void> {
     const auth = await getAuth(host);

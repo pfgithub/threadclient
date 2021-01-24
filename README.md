@@ -24,6 +24,7 @@ all todo:
 -   [x] use onhide in more places, eg when collapsing a comment or navigating away
 -   [x] add eslint
 -   [x] make pwa
+-   [x] eslint disallow shadowing
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] proper, non-hacky way to auto disable darkreader extension
@@ -33,7 +34,6 @@ all todo:
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 -   [ ] eslint formatting
 -   [ ] eslint strict promise error handling
--   [ ] eslint disallow shadowing
 -   [ ] simplify css to have less `>` selectors and more classes added by js
 -   [ ] fix youtube embeds causing horizontal scrolling on mobile
 -   [ ] improve appearence of very indented comments on mobile

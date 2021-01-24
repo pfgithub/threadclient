@@ -1,7 +1,7 @@
 import * as Reddit from "../types/api/reddit";
 import * as Generic from "../types/generic";
 import {ThreadClient} from "./base";
-import { query, url } from "../app";
+import { encodeQuery, encode_url } from "../app";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -175,7 +175,7 @@ function richtextStyle(style: number): Generic.Richtext.Style {
     };
 }
 
-    const isLoggedIn = () => {
+    const isLoggedIn = (): boolean => {
         return !!localStorage.getItem("reddit-secret");
     };
 
@@ -221,9 +221,9 @@ function richtextStyle(style: number): Generic.Richtext.Style {
                     'Authorization': "Basic "+btoa(client_id+":"),
                     'Content-Type': "application/x-www-form-urlencoded",
                 },
-                body: url`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
-            }).then(async (v) => {
-                return [v.status, await v.json()] as const;
+                body: encode_url`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
+            }).then(async (res) => {
+                return [res.status, await res.json()] as const;
             });
             if(status !== 200) {
                 console.log("Error! got", v, "with status code", status);
@@ -384,9 +384,9 @@ function richtextStyle(style: number): Generic.Richtext.Style {
 
             percent: listing.upvote_ratio,
             actions: listing.archived ? {error: "archived <6mo"} : isLoggedIn() ? {
-                increment: encodeAction("vote", query({...vote_data, dir: "1"})),
-                decrement: encodeAction("vote", query({...vote_data, dir: "-1"})),
-                reset: encodeAction("vote", query({...vote_data, dir: "0"})),
+                increment: encodeAction("vote", encodeQuery({...vote_data, dir: "1"})),
+                decrement: encodeAction("vote", encodeQuery({...vote_data, dir: "-1"})),
+                reset: encodeAction("vote", encodeQuery({...vote_data, dir: "0"})),
             } : {error: "not logged in"},
         };
     };
@@ -616,12 +616,12 @@ function richtextStyle(style: number): Generic.Richtext.Style {
         ;
 
         const url = `https://www.reddit.com/api/v1/authorize?` +
-            query({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
+            encodeQuery({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
         ;
         return url;
     }
 
-const res: ThreadClient = {
+export const client: ThreadClient = {
     id: "reddit",
     links: () => [
         ["Home", () => "/"],
@@ -701,8 +701,8 @@ const res: ThreadClient = {
                 'Authorization': "Basic "+btoa(client_id+":"),
                 'Content-Type': "application/x-www-form-urlencoded",
             },
-            body: query({grant_type: "authorization_code", code, redirect_uri}),
-        }).then(v => v.json());
+            body: encodeQuery({grant_type: "authorization_code", code, redirect_uri}),
+        }).then(res => res.json());
     
         if(v.error) {
             console.log(v.error);
@@ -815,7 +815,6 @@ const res: ThreadClient = {
         };
     },
 };
-export const client = res;
 
 type ReplyInfo = {parent_id: string};
 function encodeReplyInfo(rply_info: ReplyInfo): string {

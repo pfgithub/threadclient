@@ -29,14 +29,14 @@ export const templateGenerator = <InType>(helper: (str: InType) => string) => {
         return res;
     };
 };
-export const url = templateGenerator<string>(str => encodeURIComponent(str));
-export const html = uhtml.html;
+export const encode_url = templateGenerator<string>(str => encodeURIComponent(str));
+export const uhtml_html = uhtml.html;
 
-export const query = (items: {[key: string]: string}): string => {
+export const encodeQuery = (items: {[key: string]: string}): string => {
     let res = "";
     for(const [key, value] of Object.entries(items)) {
         if(res) res += "&";
-        res += url`${key}=${value}`;
+        res += encode_url`${key}=${value}`;
     }
     return res;
 };
@@ -46,8 +46,8 @@ function assertNever(content: never): never {
     throw new Error("is not never");
 }
 
-export function escapeHTML(html: string): string {
-    return html.replace(/[^a-zA-Z0-9. ]/giu, c => "&#"+c.codePointAt(0)+";");
+export function escapeHTML(unsafe_html: string): string {
+    return unsafe_html.replace(/[^a-zA-Z0-9. ]/giu, c => "&#"+c.codePointAt(0)+";");
     // might be a bit &#…; heavy for other languages
 }
 
@@ -58,7 +58,7 @@ function clientLogin(client: ThreadClient, path: string, on_complete: () => void
     parent.insertBefore(frame, before_once);
 
     const renderLink = (href: string) => {
-        uhtml.render(frame, html`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
+        uhtml.render(frame, uhtml_html`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
     }
     const clurl = client.loginURL;
     if(typeof clurl === "string") {
@@ -82,7 +82,7 @@ function clientLogin(client: ThreadClient, path: string, on_complete: () => void
     const event_listener = () => {
         if(!done && client.isLoggedIn(path)) {
             done = true;
-            uhtml.render(frame, html`Logged In!`);
+            uhtml.render(frame, uhtml_html`Logged In!`);
             on_complete();
         }
     };
@@ -157,7 +157,6 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, 
         yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
     }};
 }
-
 function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
     let url_mut: URL | undefined;
     try { 
@@ -372,7 +371,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         if(prevbody) {prevbody.cleanup(); prevbody = undefined;}
         if(prevnode) prevnode.innerHTML = "";
         if(state === "overview") {
-            uhtml.render(container, html`${images.map((image, i) => html`
+            uhtml.render(container, uhtml_html`${images.map((image, i) => uhtml_html`
                 <button class="gallery-overview-item" onclick=${() => {setState({index: i});}}>
                     <img src=${image.thumb} width=${image.w+"px"} height=${image.h+"px"}
                         class="preview-image gallery-overview-image"
@@ -384,7 +383,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         const index = state.index;
         const selimg = images[index];
         const ref: {current?: HTMLDivElement} = {};
-        uhtml.render(container, html`
+        uhtml.render(container, uhtml_html`
             <button onclick=${() => setState({index: index - 1})} disabled=${index <= 0 ? "" : undefined}>Prev</button>
             ${index + 1}/${images.length}
             <button onclick=${() => setState({index: index + 1})} disabled=${index >= images.length - 1 ? "" : undefined}>Next</button>
@@ -797,11 +796,12 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             el("pre").adch(el("code").atxt(rtp.text)).adto(container);
         } break;
         case "image": {
-            el("img").attr({src: rtp.url, alt: rtp.alt, title: rtp.alt, width: rtp.w + "px", height: rtp.h + "px"}).clss("preview-image").adto(container);
+            // TODO remove as const in ts 4.2 or something
+            el("img").attr({src: rtp.url, alt: rtp.alt, title: rtp.alt, width: `${rtp.w}px` as const, height: `${rtp.h}px` as const}).clss("preview-image").adto(container);
             if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
         } break;
         case "video": {
-            el("video").attr({src: rtp.url, width: rtp.w + "px", height: rtp.h + "px"}).clss("preview-image").adto(container);
+            el("video").attr({src: rtp.url, width: `${rtp.w}px` as const, height: `${rtp.h}px` as const}).clss("preview-image").adto(container);
             if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
         } break;
         case "table": {
@@ -897,9 +897,9 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         }
     }else if(body.kind === "captioned_image") {
         el("div").adto(content).atxt(body.caption ?? "");
-        el("img").adto(el("div").adto(content)).clss("preview-image").attr({src: body.url, width: body.w + "px", height: body.h + "px", alt: body.alt, title: body.alt});
+        el("img").adto(el("div").adto(content)).clss("preview-image").attr({src: body.url, width: `${body.w}px` as const, height: `${body.h}px` as const, alt: body.alt, title: body.alt});
     }else if(body.kind === "video") {
-        const vid = el("video").adch(el("source").attr({src: body.url})).attr({width: body.w + "px", height: body.h + "px", controls: ""}).clss("preview-image").adto(content);
+        const vid = el("video").adch(el("source").attr({src: body.url})).attr({width: `${body.w}px` as const, height: `${body.h}px` as const, controls: ""}).clss("preview-image").adto(content);
         if(body.gifv) {
             vid.loop = true;
             if(opts.autoplay) vid.controls = false;
@@ -1390,7 +1390,7 @@ function loadingSpinner() {
 // doesn't matter atm but later.
 function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChild: (children: Generic.Node) => void, removeSelf: () => void) {
     const container = el("div");
-    const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: e => {
+    const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: ev => {
         const loading_txt = el("div").adto(container);
         loading_txt.adch(el("span").atxt("Loading…"));
         loading_txt.adch(loadingSpinner());
@@ -1407,7 +1407,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
             removeSelf();
         }).catch(e => {
             console.log("error loading more:", e);
-            try{current_node.remove();}catch(e){console.log(e);}
+            if(current_node.parentNode) current_node.remove();
             current_node = el("span").atxt("Error. ").adch(makeButton().atxt("🗘 Retry")).adto(container);
         });
     }});
@@ -1760,7 +1760,7 @@ function onNavigate(to_index: number, url: URLLike) {
     nav_history[to_index] = {node, url: thisurl}
 }
 
-export let bodytop = el("div").adto(document.body);
+export const bodytop = el("div").adto(document.body);
 {
     const spa_navigator_frame = document.createElement("div");
     document.body.appendChild(spa_navigator_frame);
