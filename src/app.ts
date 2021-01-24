@@ -1776,4 +1776,20 @@ function onNavigate(to_index: number, url: URLLike) {
 history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);
 onNavigate(0, location);
 
-setInterval(() => document.querySelector('.darkreader')?.remove(), 1000)
+let drtime = 100;
+const rmdarkreader = () => {
+    document.head.querySelector('.darkreader')?.remove();
+    drtime *= 2;
+    setTimeout(() => rmdarkreader(), drtime);
+}
+setTimeout(() => rmdarkreader(), 0);
+
+if('serviceWorker' in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").then(regr => {
+            console.log("ServiceWorker registered", regr, regr.scope);
+        }).catch(e => {
+            console.log("ServiceWorker registration failed", e);
+        })
+    });
+}

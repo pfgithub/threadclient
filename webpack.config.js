@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
+const WorkboxPlugin = require("workbox-webpack-plugin");
 
 module.exports = {
     entry: './src/app.ts',
@@ -35,7 +36,7 @@ module.exports = {
     },
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'bundle.js'
+        filename: 'bundle.js',
     },
     plugins: [
         new CopyPlugin({
@@ -43,6 +44,7 @@ module.exports = {
                 {from: "static", to: ""},
             ],
         }),
+        new WorkboxPlugin.GenerateSW(),
     ],
     devServer: {
         contentBase: path.join(__dirname, "dist"),
