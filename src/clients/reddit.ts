@@ -180,7 +180,7 @@ const isLoggedIn = (): boolean => {
 const baseURL = () => {
     const base = isLoggedIn() ? "oauth.reddit.com" : "www.reddit.com";
     return "https://"+base;
-}
+};
 const pathURL = (path: string) => {
     const [pathname, query] = splitURL(path);
     if(!pathname.startsWith("/")) {
@@ -243,18 +243,18 @@ const getAccessToken = async () => {
         return res_data.access_token;
     }
     return json.access_token;
-}
+};
 
 const getAuthorization = async () => {
     const access_token = await getAccessToken();
     if(!access_token) return '';
     return 'Bearer '+access_token;
-}
+};
 
 const splitURL = (path: string): [string, URLSearchParams] => {
     const [pathname, ...query] = path.split("?");
     return [pathname, new URLSearchParams(query.join("?"))];
-}
+};
 const updateQuery = (path: string, update: {[key: string]: string | undefined}) => {
     const [pathname, query] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
@@ -602,7 +602,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'o
     }
     // console.log("Post: ",listing);
     
-}
+};
 
 const getLoginURL = () => {
     const state = location.host;
@@ -616,7 +616,7 @@ const getLoginURL = () => {
         encodeQuery({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
     ;
     return url;
-}
+};
 
 export const client: ThreadClient = {
     id: "reddit",
@@ -723,7 +723,7 @@ export const client: ThreadClient = {
         const [status, restext] = await fetch(frmlink).then(async (v) => {
             return [v.status, await v.text()] as const;
         });
-        const res = JSON.parse(restext.split("&lt;").join("<").split("&gt;").join(">").split("&amp;").join("&")) as PushshiftResult
+        const res = JSON.parse(restext.split("&lt;").join("<").split("&gt;").join(">").split("&amp;").join("&")) as PushshiftResult;
         if(status !== 200) {
             console.log(status, res);
             throw new Error("Got status "+status);

@@ -59,7 +59,7 @@ function clientLogin(client: ThreadClient, path: string, on_complete: () => void
 
     const renderLink = (href: string) => {
         uhtml.render(frame, uhtml_html`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
-    }
+    };
     const clurl = client.loginURL;
     if(typeof clurl === "string") {
         renderLink(clurl);
@@ -174,7 +174,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         video.loop = true;
         const hsc = hideshow(video);
         let playing_before_hide = false;
-        hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause();});
+        hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
         hsc.on("show", () => {if(playing_before_hide) video.play();});
         return hsc;
     };
@@ -277,10 +277,10 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         const video = el("video").attr({controls: ""}).clss("preview-image").adch(src);
         let playing_before_hide = false;
         const hsc = hideshow(video);
-        hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause();})
-        hsc.on("show", () => {if(playing_before_hide) video.play()});
+        hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
+        hsc.on("show", () => {if(playing_before_hide) video.play();});
         return hsc;
-    }
+    };
     const ytvid = (youtube_video_id: string, search: URLSearchParams) => (): HideShowCleanup<Node> => {
         const container = el("div");
         const embedv = embedYoutubeVideo(youtube_video_id, opts, search);
@@ -331,14 +331,14 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
             initFrame();
 
             const hsc = hideshow(parent_node);
-            hsc.on("hide", () => {if(iframe) {iframe.remove(); iframe = undefined;}});
+            hsc.on("hide", () => {if(iframe) {iframe.remove(); iframe = undefined}});
             hsc.on("show", () => initFrame());
             return hsc;
         }catch(e) {
             console.log(e);
             return hideshow(txt("Error! "+e.toString()));
         }
-    }
+    };
     return undefined;
 }
 
@@ -352,17 +352,17 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
     const setState = (newState: State) => {
         state = newState;
         update();
-    }
+    };
 
     let prevbody: HideShowCleanup<undefined> | undefined;
     let prevnode: HTMLDivElement | undefined;
 
     const update = () => {
-        if(prevbody) {prevbody.cleanup(); prevbody = undefined;}
+        if(prevbody) {prevbody.cleanup(); prevbody = undefined}
         if(prevnode) prevnode.innerHTML = "";
         if(state === "overview") {
             uhtml.render(container, uhtml_html`${images.map((image, i) => uhtml_html`
-                <button class="gallery-overview-item" onclick=${() => {setState({index: i});}}>
+                <button class="gallery-overview-item" onclick=${() => {setState({index: i})}}>
                     <img src=${image.thumb} width=${image.w+"px"} height=${image.h+"px"}
                         class="preview-image gallery-overview-image"
                     />
@@ -388,7 +388,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
 
     hsc.on("cleanup", () => {
         if(prevbody) prevbody.cleanup();
-    })
+    });
 
     setState(state);
     return hsc;
@@ -499,7 +499,7 @@ function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
         const lsv = load_state;
         await new Promise<void>(r => lsv.push(r));
         return (load_state as unknown as {loaded: T}).loaded;
-    }
+    };
 }
 
 const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdownRenderer> => {
@@ -614,11 +614,11 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
     const togglepreview = () => {
         if(preview_div) hidepreview();
         else showpreview();
-    }
+    };
 
     const hidepreview = () => {
         showpreviewbtn.textContent = "⏵";
-        if(preview_div) {preview_div.hsc.cleanup(); preview_div.node.remove(); preview_div = undefined;}
+        if(preview_div) {preview_div.hsc.cleanup(); preview_div.node.remove(); preview_div = undefined}
     };
     const showpreview = () => {
         showpreviewbtn.textContent = "⏷";
@@ -630,11 +630,11 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
     };
     hidepreview();
 
-    hsc.on("hide", () => {if(preview_div) preview_div.hsc.setVisible(false)});
-    hsc.on("show", () => {if(preview_div) preview_div.hsc.setVisible(true)});
+    hsc.on("hide", () => {if(preview_div) preview_div.hsc.setVisible(false);});
+    hsc.on("show", () => {if(preview_div) preview_div.hsc.setVisible(true);});
     hsc.on("cleanup", () => {
         if(preview_div) preview_div.hsc.cleanup();
-    })
+    });
 
     parent_node.insertBefore(showpreviewbtn, after_node);
 
@@ -713,7 +713,7 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             const wrap = (outer: Node) => {
                 outer.adch(mainel);
                 mainel = outer;
-            }
+            };
             if(rts.styles.code) wrap(el("code"));
             if(rts.styles.emphasis) wrap(el("i"));
             if(rts.styles.error) wrap(el("span").clss("error").attr({title: rts.styles.error}));
@@ -900,7 +900,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
             vid.loop = true;
             if(opts.autoplay) vid.controls = false;
         }
-        if(opts.autoplay) {vid.play();}
+        if(opts.autoplay) {vid.play()}
     }else if(body.kind === "array") {
         for(const v of body.body) {
             if(!v) continue;
@@ -928,7 +928,7 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
     action_container.atxt(" ");
     linkLikeButton().adto(action_container).atxt("Code").onev("click", () => {
         console.log(profile);
-    })
+    });
 
     // TODO add all the buttons
     // specifically ::
@@ -948,7 +948,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
     if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
     else if(action.kind === "reply") {
         let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
-        let reply_state: "none" | {preview?: Generic.Thread} = "none"
+        let reply_state: "none" | {preview?: Generic.Thread} = "none";
         const reply_btn = linkLikeButton().atxt("Reply").adto(content_buttons_line);
 
         const hsc = hideshow();
@@ -956,13 +956,13 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         let reply_container: HTMLDivElement | undefined;
 
         hsc.on("cleanup", () => {
-            if(prev_preview) {prev_preview.remove(); prev_preview = undefined;}
+            if(prev_preview) {prev_preview.remove(); prev_preview = undefined}
         });
         
         const update = () => {
             if(reply_state === "none") {
-                if(reply_container) {reply_container.remove(); reply_container = undefined;}
-                if(prev_preview) {prev_preview.remove(); prev_preview = undefined;}
+                if(reply_container) {reply_container.remove(); reply_container = undefined}
+                if(prev_preview) {prev_preview.remove(); prev_preview = undefined}
                 reply_btn.disabled = false;
             }else{
                 if(!reply_container) {
@@ -972,12 +972,12 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                     const preview = el("button").adto(reply_container).atxt("Preview");
                     const cancel = el("button").adto(reply_container).atxt("Cancel");
                     preview.onev("click", () => {
-                        reply_state = {preview: client.previewReply(textarea.value, action.reply_info)}
+                        reply_state = {preview: client.previewReply(textarea.value, action.reply_info)};
                         update();
                     });
                     // this might lag too much idk
                     textarea.onev("input", () => {
-                        reply_state = {preview: client.previewReply(textarea.value, action.reply_info)}
+                        reply_state = {preview: client.previewReply(textarea.value, action.reply_info)};
                         update();
                     });
                     cancel.onev("click", () => {
@@ -1032,7 +1032,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     const btxt = txt("…").adto(btn_span);
     const votecount = el("span").adto(wrapper.atxt(" ")).clss("counter-count");
     const votecount_txt = txt("…").adto(votecount);
-    const percent_voted_txt = action.percent == null ? txt("—% upvoted") : txt(action.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted")
+    const percent_voted_txt = action.percent == null ? txt("—% upvoted") : txt(action.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted");
     let decr_button: HTMLButtonElement | undefined;
 
     const state = {loading: false, pt_count: action.count_excl_you === "hidden" ? null : action.count_excl_you, your_vote: action.you};
@@ -1073,9 +1073,9 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
             state.loading = false;
             update();
             console.log(e);
-            alert("Got error: "+e)
+            alert("Got error: "+e);
         });
-    }
+    };
 
     if(action.decremented_label) {
         pretxt.nodeValue = "⯅ ";
@@ -1106,7 +1106,7 @@ const userLink = (client_id: string, href: string, name: string) => {
         .clss("user-link")
         .atxt(name)
     ;
-}
+};
 
 function clientListing(client: ThreadClient, listing: Generic.ContentNode): HideShowCleanup<Node> {
     // console.log(listing);
@@ -1180,7 +1180,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
             update();
             const topv = collapsed_button.getBoundingClientRect().top;
             const heightv = 5;
-            if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv; }
+            if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv }
         });
         frame.insertBefore(collapsed_button, frame.childNodes[0] ?? null);
         update();
@@ -1283,7 +1283,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
                 return;
             }
             renderBody(client, body, {...opts}, content).defer(body_hsc);
-        }
+        };
         
         if(listing.display_mode.body === "collapsed") {
             const open_preview_button = el("button").clss("not-this-button").adto(content_buttons_line);
@@ -1322,9 +1322,9 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
             frame.clss("spacefiller-redditpoints");
             const ctr = renderCounterAction(client, action, content_voting_area, {parens: false});
             if(listing.layout === "reddit-comment") {
-                content_subminfo_line.insertBefore(txt(" "), reserved_points_area)
+                content_subminfo_line.insertBefore(txt(" "), reserved_points_area);
                 content_subminfo_line.insertBefore(ctr.votecount, reserved_points_area);
-                content_subminfo_line.insertBefore(txt(" points"), reserved_points_area)
+                content_subminfo_line.insertBefore(txt(" points"), reserved_points_area);
             }else if(listing.layout === "reddit-post") {
                 content_subminfo_line.atxt(", ");
                 ctr.percent_voted_txt.adto(content_subminfo_line);
@@ -1367,7 +1367,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         clientListing(client, child_listing).defer(hsc).adto(reply_node);
 
         if(futureadd) addChild(futureadd);
-    }
+    };
     if(listing.replies) listing.replies.forEach(rply => addChild(rply));
 
     return hsc;
@@ -1518,10 +1518,10 @@ const getClient = async (name: string) => {
     if(!client_cache[name]) client_cache[name] = await client_initializers[name]();
     if(client_cache[name].id !== name) throw new Error("client has incorrect id");
     return client_cache[name];
-}
+};
 const getClientCached = (name: string): ThreadClient | undefined => {
     return client_cache[name] ?? undefined;
-}
+};
 
 type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () => void};
 type NavigationEntry = {url: string, node: NavigationEntryNode};
@@ -1590,14 +1590,14 @@ function hideshow<T>(a_any?: T): HideShowCleanup<T> {
 
             children.forEach(child => child.setParentVisible(derived_visibility));
         }
-    }
+    };
 
     let exists = true;
     const children: HideShowCleanup<unknown>[] = [];
     const emit = (text: HSEvent) => {
         if(!events[text]) return;
         events[text].forEach(ev => ev());
-    }
+    };
 
     const res: HideShowCleanup<T> = {
         on(ev, cb) {
@@ -1684,7 +1684,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 
     return fetchClientThen(path0, (client) => {
         return clientMain(client, "/"+path.join("/")+search);
-    })
+    });
 }
 
 let current_history_index = 0;
@@ -1727,7 +1727,7 @@ function onNavigate(to_index: number, url: URLLike) {
         show: () => hsc.setVisible(true),
     };
 
-    nav_history[to_index] = {node: naventry, url: thisurl}
+    nav_history[to_index] = {node: naventry, url: thisurl};
 }
 
 export const bodytop = el("div").adto(document.body);
@@ -1760,7 +1760,7 @@ const rmdarkreader = () => {
     document.head.querySelector('.darkreader')?.remove();
     drtime *= 2;
     setTimeout(() => rmdarkreader(), drtime);
-}
+};
 setTimeout(() => rmdarkreader(), 0);
 
 if('serviceWorker' in navigator) {
@@ -1769,6 +1769,6 @@ if('serviceWorker' in navigator) {
             console.log("ServiceWorker registered", regr, regr.scope);
         }).catch(e => {
             console.log("ServiceWorker registration failed", e);
-        })
+        });
     });
 }

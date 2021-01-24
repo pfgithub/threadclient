@@ -39,15 +39,15 @@ declare global {
 //@ts-ignore
 window.el = (...a) => document.createElement(...a);
 window.txt = (txt: string) => document.createTextNode(txt);
-window.anychange = (itms, cb) => {itms.forEach(itm => itm.oninput = () => cb()); cb(); return cb;};
+window.anychange = (itms, cb) => {itms.forEach(itm => itm.oninput = () => cb()); cb(); return cb};
 window.body = document.getElementById("maincontent") || document.body;
-Node.prototype.attr = function(atrs) {Object.entries(atrs).forEach(([k, v]) => v == null ? this.removeAttribute(k) : this.setAttribute(k, v)); return this;};
-Node.prototype.adto = function(prnt) {prnt.appendChild(this); return this;};
-Node.prototype.adch = function(...chlds) {chlds.forEach(chld => this.appendChild(chld)); return this;};
-Node.prototype.atxt = function(txta) {this.appendChild(txt(txta)); return this;};
+Node.prototype.attr = function(atrs) {Object.entries(atrs).forEach(([k, v]) => v == null ? this.removeAttribute(k) : this.setAttribute(k, v)); return this};
+Node.prototype.adto = function(prnt) {prnt.appendChild(this); return this};
+Node.prototype.adch = function(...chlds) {chlds.forEach(chld => this.appendChild(chld)); return this};
+Node.prototype.atxt = function(txta) {this.appendChild(txt(txta)); return this};
 //@ts-ignore
-Node.prototype.onev = function(...a) {this.addEventListener(...a); return this;};
-Node.prototype.clss = function(...clss) {clss.forEach(clitm => clitm.split(/[. ]/g).filter(q => q).map(itm => (this as unknown as HTMLElement).classList.add(itm))); return this;};
-Node.prototype.styl = function(styl) {Object.entries(styl).forEach(([k, v]) => this.style.setProperty(k, v)); return this;};
+Node.prototype.onev = function(...a) {this.addEventListener(...a); return this};
+Node.prototype.clss = function(...clss) {clss.forEach(clitm => clitm.split(/[. ]/g).filter(q => q).map(itm => (this as unknown as HTMLElement).classList.add(itm))); return this};
+Node.prototype.styl = function(styl) {Object.entries(styl).forEach(([k, v]) => this.style.setProperty(k, v)); return this};
 Object.defineProperty(Array.prototype, "last", {enumerable: false, get: function() {return this[this.length - 1]}});
-Object.defineProperty(Object.prototype, "dwth", {enumerable: false, value: function(cb: (v: unknown) => unknown) {cb(this); return this;}});
+Object.defineProperty(Object.prototype, "dwth", {enumerable: false, value: function(cb: (v: unknown) => unknown) {cb(this); return this}});

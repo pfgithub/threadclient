@@ -1,4 +1,4 @@
-function assertNever(v: never): never {console.log(v); throw new Error("not never");}
+function assertNever(v: never): never {console.log(v); throw new Error("not never")}
 
 
 export type RGBA = {r: number, g: number, b: number, a: number};

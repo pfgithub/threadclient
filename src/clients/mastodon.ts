@@ -148,7 +148,7 @@ const genericHeader = (): Generic.Thread => ({
 });
 const mkurl = (host: string, ...bits: string[]): string => {
     return "https://"+host+"/"+bits.join("/");
-}
+};
 const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "GET" | "POST" = "GET"): Promise<T | {error: string}> => {
     try {
         const [status, posts] = await fetch(url, {
@@ -167,7 +167,7 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
     }catch(e) {
         return {error: "Failed to load! "+e.toString()};
     }
-}
+};
 const wrapWithParentLink = (thread: Generic.Thread, host: string, parent_id: string): Generic.Thread => {
     const parentlink = "/"+host+"/statuses/"+parent_id;
     return {
@@ -185,7 +185,7 @@ const wrapWithParentLink = (thread: Generic.Thread, host: string, parent_id: str
         raw_value: parentlink,
         replies: [thread],
     };
-}
+};
 const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Generic.Thread[] => {
     let nextv: Generic.Thread | undefined;
     return posts.flatMap((post, i) => {
@@ -205,7 +205,7 @@ const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Ge
         }
         return [thread];
     });
-}
+};
 const postArrayToReparentedThread = (host: string, root: Mastodon.Post, posts: Mastodon.Post[]): Generic.Thread => {
     const root_thread = postToThread(host, root);
     const id_map = new Map<string, Generic.Thread>();
@@ -237,7 +237,7 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
     }
 
     return {thumb: media.preview_url, w: media.meta?.small.width, h: media.meta?.small.height, body: resbody};
-}
+};
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], include_parentlink?: boolean, reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {time: new Date(post.created_at).getTime(),
         author: {
@@ -305,11 +305,11 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         res = wrapWithParentLink(res, host, post.in_reply_to_id);
     }
     return res;
-}
+};
 const splitURL = (path: string): [string, URLSearchParams] => {
     const [pathname, ...query] = path.split("?");
     return [pathname, new URLSearchParams(query.join("?"))];
-}
+};
 const updateQuery = (path: string, update: {[key: string]: string | undefined}) => {
     const [pathname, query] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
@@ -362,7 +362,7 @@ const lsgetter = <T>(namegtr: (host: string) => string): {
             localStorage.setItem(namegtr(host), JSON.stringify(newval));
         }
     };
-}
+};
 const lsitems = {
     app: lsgetter<{host: string, data: ApplicationResult}>((host: string) => "mastodon-application-"+host),
     token: lsgetter<TokenResult>((host: string) => "mastodon-secret-"+host),
