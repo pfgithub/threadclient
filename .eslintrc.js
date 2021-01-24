@@ -18,5 +18,6 @@ module.exports = {
         "indent": ["warn", 4, {"SwitchCase": 1, "offsetTernaryExpressions": true, "ignoredNodes": ["ConditionalExpression"]}],
         "brace-style": ["warn", "1tbs", {"allowSingleLine": true}],
         "semi": ["warn", "always", {"omitLastInOneLineBlock": true}],
+        "no-else-return": 1,
     },
 };

@@ -199,9 +199,8 @@ const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Ge
             if(posts[i + 1]?.id == post.in_reply_to_id) {
                 nextv = thread;
                 return [];
-            }else{
-                thread = wrapWithParentLink(thread, host, post.in_reply_to_id);
             }
+            thread = wrapWithParentLink(thread, host, post.in_reply_to_id);
         }
         return [thread];
     });

@@ -584,7 +584,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'o
         }
         if(!root) throw new Error("this should never happen");
         return root;
-    }else{
+    }else{ //eslint-disable-line no-else-return
         return {
             kind: "thread",
             title: {text: "unsupported listing kind "+listing_raw.kind},
