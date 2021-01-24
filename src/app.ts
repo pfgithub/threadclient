@@ -1437,18 +1437,16 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         hsc.on("cleanup", () => login_prompt.removeSelf());
         // return {removeSelf: () => defer.cleanup(), hide: () => {}, show: () => {}};
     }
-    const frame_uhtml_area = document.createElement("div");
-    frame.appendChild(frame_uhtml_area);
-
-    uhtml.render(frame_uhtml_area, html`Loading…`);
+    const loader_area = el("div").adto(frame);
+    loader_area.adch(loadingSpinner());
 
     (async () => {
         const listing = await client.getThread(current_path);
 
         frame.classList.remove("display-loading");
         frame.classList.add("display-"+listing.display_style);
+        loader_area.remove();
         
-        uhtml.render(frame_uhtml_area, html``);
         clientListing(client, listing.header).defer(hsc).adto(frame);
 
         const addChild = (child_listing: Generic.Node) => {
@@ -1461,7 +1459,11 @@ function clientMain(client: ThreadClient, current_path: string) { return {insert
         };
         if(listing.replies) listing.replies.forEach(rply => addChild(rply));
         if(listing.replies?.length === 0) txt("There is nothing here").adto(frame);
-    })().catch(e => console.log(e, e.stack));
+    })().catch(e => {
+        console.log(e, e.stack);
+        if(loader_area.parentNode) loader_area.remove();
+        el("div").atxt("Error! "+e+", check console.").clss("error").adto(frame);
+    });
 
     return {removeSelf: () => hsc.cleanup(), hide: () => {
         if(frame.style.display !== "none") frame.style.display = "none";

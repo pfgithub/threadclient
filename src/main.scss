@@ -693,3 +693,9 @@ table {
         opacity: 0;
     }
 }
+
+.client-main-frame.display-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
