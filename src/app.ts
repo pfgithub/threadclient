@@ -618,7 +618,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
 
     if(!renderLinkPreview) return hsc;
 
-    const showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn");
+    const showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn").onev("click", () => togglepreview());
 
     let preview_div: undefined | {hsc: HideShowCleanup<unknown>, node: ChildNode} = undefined;
 
