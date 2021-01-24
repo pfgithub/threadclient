@@ -1381,13 +1381,19 @@ function linkLikeButton() {
     return el("button").clss("link-like-button").attr({draggable: "true"});
 }
 
+function loadingSpinner() {
+    return el("div").clss("lds-ripple").adch(el("div")).adch(el("div"));
+}
+
 // TODO I guess support loading more in places other than the end of the list
 // that means :: addChildren needs to have a second before_once argument and this needs to have a before_once
 // doesn't matter atm but later.
 function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChild: (children: Generic.Node) => void, removeSelf: () => void) {
     const container = el("div");
     const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: e => {
-        const loading_txt = el("span").atxt("Loading…").adto(container);
+        const loading_txt = el("div").adto(container);
+        loading_txt.adch(el("span").atxt("Loading…"));
+        loading_txt.adch(loadingSpinner());
         current_node.remove();
         current_node = loading_txt;
 

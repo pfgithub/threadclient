@@ -2,6 +2,8 @@ const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
 const WorkboxPlugin = require("workbox-webpack-plugin");
 
+const dev = process.env.NODE_ENV === "development";
+
 module.exports = {
     entry: './src/app.ts',
     module: {
@@ -44,7 +46,7 @@ module.exports = {
                 {from: "static", to: ""},
             ],
         }),
-        new WorkboxPlugin.GenerateSW(),
+        ...(dev ? [] : [new WorkboxPlugin.GenerateSW()]),
     ],
     devServer: {
         contentBase: path.join(__dirname, "dist"),
