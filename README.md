@@ -45,6 +45,7 @@ all todo:
 -   [ ] fix wrong scrolling when going to a comment section and pressing back in firefox
 -   [ ] fix wrong scrolling occasionally when clicking show on post content
 -   [ ] add a loading indicator to the fullscreen loader thing
+-   [ ] catch errors in more places
 
 reddit todo:
 
@@ -70,6 +71,9 @@ reddit todo:
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
 -   [ ] code block automatic syntax highlighting (using hljs automatic or something)
 -   [ ] display raw markdown view by default for a comment predominately composed of braille characters (to fix this https://i.imgur.com/0rH8yUf.png)
+-   [ ] when revealing a crosspost with the same content warnings as the parent post, don't require accepting twice
+-   [ ] add sidebars containing information
+-   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
