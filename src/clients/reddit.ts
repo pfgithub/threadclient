@@ -1,7 +1,7 @@
 import * as Reddit from "../types/api/reddit";
 import * as Generic from "../types/generic";
 import {ThreadClient} from "./base";
-import { encodeQuery, encode_url } from "../app";
+import { encodeQuery, encodeURL } from "../app";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -219,7 +219,7 @@ const getAccessToken = async () => {
                 'Authorization': "Basic "+btoa(client_id+":"),
                 'Content-Type': "application/x-www-form-urlencoded",
             },
-            body: encode_url`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
+            body: encodeURL`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
         }).then(async (res) => {
             return [res.status, await res.json()] as const;
         });

@@ -4,8 +4,8 @@ function assertNever(v: never): never {console.log(v); throw new Error("not neve
 export type RGBA = {r: number, g: number, b: number, a: number};
 export type HSLA = {h: number, s: number, l: number, a: number};
 
-function scale(x: number, inLow: number, inHigh: number, outLow: number, outHigh: number) {
-    return (x - inLow) * (outHigh - outLow) / (inHigh - inLow) + outLow;
+function scale(x: number, in_low: number, in_high: number, out_low: number, out_high: number) {
+    return (x - in_low) * (out_high - out_low) / (in_high - in_low) + out_low;
 }
 
 function clamp(x: number, min: number, max: number) {
@@ -77,51 +77,51 @@ export function hslToRGB({h, s, l, a = 1}: HSLA): RGBA {
 function modifyBlueFgHue(hue: number) {
     return scale(hue, 205, 245, 205, 220);
 }
-const MIN_FG_LIGHTNESS = 0.55;
-const MAX_BG_LIGHTNESS = 0.4;
+const min_fg_lightness = 0.55;
+const max_bg_lightness = 0.4;
 function modifyFgHSL({h, s, l, a}: HSLA, pole: HSLA) {
-    const isLight = l > 0.5;
-    const isNeutral = l < 0.2 || s < 0.24;
-    const isBlue = !isNeutral && h > 205 && h < 245;
-    if (isLight) {
-        const lx = scale(l, 0.5, 1, MIN_FG_LIGHTNESS, pole.l);
-        if (isNeutral) {
+    const is_light = l > 0.5;
+    const is_neutral = l < 0.2 || s < 0.24;
+    const is_blue = !is_neutral && h > 205 && h < 245;
+    if (is_light) {
+        const lx = scale(l, 0.5, 1, min_fg_lightness, pole.l);
+        if (is_neutral) {
             const hx = pole.h;
             const sx = pole.s;
             return {h: hx, s: sx, l: lx, a};
         }
         let hx = h;
-        if (isBlue) {
+        if (is_blue) {
             hx = modifyBlueFgHue(h);
         }
         return {h: hx, s, l: lx, a};
     }
 
-    if (isNeutral) {
+    if (is_neutral) {
         const hx = pole.h;
         const sx = pole.s;
-        const lx = scale(l, 0, 0.5, pole.l, MIN_FG_LIGHTNESS);
+        const lx = scale(l, 0, 0.5, pole.l, min_fg_lightness);
         return {h: hx, s: sx, l: lx, a};
     }
 
     let hx = h;
     let lx: number;
-    if (isBlue) {
+    if (is_blue) {
         hx = modifyBlueFgHue(h);
-        lx = scale(l, 0, 0.5, pole.l, Math.min(1, MIN_FG_LIGHTNESS + 0.05));
+        lx = scale(l, 0, 0.5, pole.l, Math.min(1, min_fg_lightness + 0.05));
     } else {
-        lx = scale(l, 0, 0.5, pole.l, MIN_FG_LIGHTNESS);
+        lx = scale(l, 0, 0.5, pole.l, min_fg_lightness);
     }
 
     return {h: hx, s, l: lx, a};
 }
 function modifyBgHSL({h, s, l, a}: HSLA, pole: HSLA) {
-    const isDark = l < 0.5;
-    const isBlue = h > 200 && h < 280;
-    const isNeutral = s < 0.12 || (l > 0.8 && isBlue);
-    if (isDark) {
-        const lx = scale(l, 0, 0.5, 0, MAX_BG_LIGHTNESS);
-        if (isNeutral) {
+    const is_dark = l < 0.5;
+    const is_blue = h > 200 && h < 280;
+    const is_neutral = s < 0.12 || (l > 0.8 && is_blue);
+    if (is_dark) {
+        const lx = scale(l, 0, 0.5, 0, max_bg_lightness);
+        if (is_neutral) {
             const hx = pole.h;
             const sx = pole.s;
             return {h: hx, s: sx, l: lx, a};
@@ -129,19 +129,19 @@ function modifyBgHSL({h, s, l, a}: HSLA, pole: HSLA) {
         return {h, s, l: lx, a};
     }
 
-    const lx = scale(l, 0.5, 1, MAX_BG_LIGHTNESS, pole.l);
+    const lx = scale(l, 0.5, 1, max_bg_lightness, pole.l);
 
-    if (isNeutral) {
+    if (is_neutral) {
         const hx = pole.h;
         const sx = pole.s;
         return {h: hx, s: sx, l: lx, a};
     }
 
     let hx = h;
-    const isYellow = h > 60 && h < 180;
-    if (isYellow) {
-        const isCloserToGreen = h > 120;
-        if (isCloserToGreen) {
+    const is_yellow = h > 60 && h < 180;
+    if (is_yellow) {
+        const is_closer_to_green = h > 120;
+        if (is_closer_to_green) {
             hx = scale(h, 120, 180, 135, 180);
         } else {
             hx = scale(h, 60, 120, 60, 105);
@@ -169,12 +169,12 @@ function toFixed(n: number, digits = 0) {
     }
     const dot = fixed.indexOf('.');
     if (dot >= 0) {
-        const zerosMatch = fixed.match(/0+$/);
-        if (zerosMatch) {
-            if (zerosMatch.index === dot + 1) {
+        const zeros_match = fixed.match(/0+$/);
+        if (zeros_match) {
+            if (zeros_match.index === dot + 1) {
                 return fixed.substring(0, dot);
             }
-            return fixed.substring(0, zerosMatch.index);
+            return fixed.substring(0, zeros_match.index);
         }
     }
     return fixed;

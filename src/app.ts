@@ -29,14 +29,14 @@ export const templateGenerator = <InType>(helper: (str: InType) => string) => {
         return res;
     };
 };
-export const encode_url = templateGenerator<string>(str => encodeURIComponent(str));
-export const uhtml_html = uhtml.html;
+export const encodeURL = templateGenerator<string>(str => encodeURIComponent(str));
+export const htmlr = uhtml.html;
 
 export const encodeQuery = (items: {[key: string]: string}): string => {
     let res = "";
     for(const [key, value] of Object.entries(items)) {
         if(res) res += "&";
-        res += encode_url`${key}=${value}`;
+        res += encodeURL`${key}=${value}`;
     }
     return res;
 };
@@ -53,12 +53,12 @@ export function escapeHTML(unsafe_html: string): string {
 
 export const safehtml = templateGenerator((v: string) => escapeHTML(v));
 
-function clientLogin(client: ThreadClient, path: string, on_complete: () => void): HideShowCleanup<HTMLDivElement> {
+function clientLogin(client: ThreadClient, path: string, onComplete: () => void): HideShowCleanup<HTMLDivElement> {
     const frame = el("div");
     const hsc = hideshow(frame);
 
     const renderLink = (href: string) => {
-        uhtml.render(frame, uhtml_html`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
+        uhtml.render(frame, htmlr`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
     };
     const clurl = client.loginURL;
     if(typeof clurl === "string") {
@@ -79,15 +79,15 @@ function clientLogin(client: ThreadClient, path: string, on_complete: () => void
     }
 
     let done = false;
-    const event_listener = () => {
+    const onFocus = () => {
         if(!done && client.isLoggedIn(path)) {
             done = true;
-            uhtml.render(frame, uhtml_html`Logged In!`);
-            on_complete();
+            uhtml.render(frame, htmlr`Logged In!`);
+            onComplete();
         }
     };
-    document.addEventListener("focus", event_listener);
-    hsc.on("cleanup", () => document.removeEventListener("focus", event_listener));
+    document.addEventListener("focus", onFocus);
+    hsc.on("cleanup", () => document.removeEventListener("focus", onFocus));
 
     return hsc;
 }
@@ -349,8 +349,8 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         index: number
     };
     let state: State = "overview";
-    const setState = (newState: State) => {
-        state = newState;
+    const setState = (new_state: State) => {
+        state = new_state;
         update();
     };
 
@@ -361,7 +361,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         if(prevbody) {prevbody.cleanup(); prevbody = undefined}
         if(prevnode) prevnode.innerHTML = "";
         if(state === "overview") {
-            uhtml.render(container, uhtml_html`${images.map((image, i) => uhtml_html`
+            uhtml.render(container, htmlr`${images.map((image, i) => htmlr`
                 <button class="gallery-overview-item" onclick=${() => {setState({index: i})}}>
                     <img src=${image.thumb} width=${image.w+"px"} height=${image.h+"px"}
                         class="preview-image gallery-overview-image"
@@ -373,7 +373,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         const index = state.index;
         const selimg = images[index];
         const ref: {current?: HTMLDivElement} = {};
-        uhtml.render(container, uhtml_html`
+        uhtml.render(container, htmlr`
             <button onclick=${() => setState({index: index - 1})} disabled=${index <= 0 ? "" : undefined}>Prev</button>
             ${index + 1}/${images.length}
             <button onclick=${() => setState({index: index + 1})} disabled=${index >= images.length - 1 ? "" : undefined}>Next</button>
@@ -587,7 +587,7 @@ const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
     }).filterXSS;
     return {
         saftify: (html, class_prefix: string) => xss(html, {
-            onTagAttr: (tag: string, name: string, value: string, isWhiteAttr: string) => {
+            onTagAttr: (tag: string, name: string, value: string, is_white_attr: string) => {
                 if(name === "class") return name+"=\""+xss.escapeAttrValue(value.split(" ").map(v => class_prefix + v).join(" "))+"\"";
             },
         }),

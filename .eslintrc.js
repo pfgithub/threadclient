@@ -20,4 +20,19 @@ module.exports = {
         "semi": ["warn", "always", {"omitLastInOneLineBlock": true}],
         "no-else-return": 1,
     },
+    "overrides": [{
+        "files": ["*.ts", "*.tsx"],
+        "parserOptions": {
+            "project": "./tsconfig.json",
+        },
+        "rules": {
+            "@typescript-eslint/naming-convention": ["warn",
+                {selector: ["variable", "function", "parameter"], format: ["snake_case"]},
+                {selector: ["variable", "function", "parameter"], format: ["snake_case"], prefix: ["__"], filter: {regex: '^__', match: true}},
+                {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase"]},
+                {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase"], prefix: ["__"], filter: {regex: "^__", match: true}},
+                {selector: "typeLike", format: ["PascalCase"]},
+            ],
+        }
+    }],
 };
