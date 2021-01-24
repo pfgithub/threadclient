@@ -23,8 +23,9 @@ all todo:
 -   [x] decrease bundle size (mostly by making it not add polyfills that use `ActiveXObject`…)
 -   [x] use onhide in more places, eg when collapsing a comment or navigating away
 -   [x] add eslint
+-   [x] make pwa
 -   [ ] the refresh button
--   [ ] instead of giving up on onhide just don't store youtube iframes…
+-   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] proper, non-hacky way to auto disable darkreader extension
 -   [ ] full mobile support maybe, might not be worth it
 -   [ ] a button to switch to markdown source view (uh oh what if the comment doesn't have any markdown source…)
@@ -33,8 +34,7 @@ all todo:
 -   [ ] eslint formatting
 -   [ ] eslint strict promise error handling
 -   [ ] eslint disallow shadowing
--   [ ] fix dark flairs being displayed on a dark background (occurs on reddit flairs with no bg color set)
--   [ ] make pwa
+-   [ ] simplify css to have less `>` selectors and more classes added by js
 
 reddit todo:
 
@@ -49,6 +49,7 @@ reddit todo:
 -   do not pass through cors, so ban messages cannot be shown.
 -   [ ] replies + reply preview
 -   [ ] posts + post preview
+-   [ ] fix dark flairs being displayed on a dark background
 -   [ ] user profile pages, defaulting to the overview tab
 -   [ ] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
 -   [ ] wiki pages + wiki markdown parser (easy to add)
@@ -77,3 +78,9 @@ mastodon todo:
 -   [ ] fix that "view parent" thing that looks bad
 -   [ ] improved url paths
 -   [ ] emojis. why did they make emojis some weird text replacement thing instead of … including them in the html that already has to be decoded, or for usernames eg rich text like reddit flairs
+-   [ ] make the `/mastodon` page not 404
+
+twitter todo:
+
+-   [ ] set up the proxy server
+-   [ ] try a request
