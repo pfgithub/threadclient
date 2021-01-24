@@ -35,6 +35,16 @@ all todo:
 -   [ ] eslint strict promise error handling
 -   [ ] eslint disallow shadowing
 -   [ ] simplify css to have less `>` selectors and more classes added by js
+-   [ ] fix youtube embeds causing horizontal scrolling on mobile
+-   [ ] improve appearence of very indented comments on mobile
+-   [ ] make the buttons more seperate on mobile - possibly remove all links except for a … link and an upvote link and make the whole post a link like apollo
+-   [ ] make images fullscreen when tapping them rather than opening in a new tab (the fullscreen api is really nice on mobile but not really made for this purpose on desktop)
+-   [ ] do the thing where opening a page has it overlay and you can click out to go back
+-   [ ] fix history items when navigating past a reload - currently if you navigate back past a reload and navigate forward, navigating back will require another reload when it shouldn't
+-   [ ] make images a bit smaller on desktop - 95% of viewport height is kind of big
+-   [ ] fix wrong scrolling when going to a comment section and pressing back in firefox
+-   [ ] fix wrong scrolling occasionally when clicking show on post content
+-   [ ] add a loading indicator to the fullscreen loader thing
 
 reddit todo:
 
