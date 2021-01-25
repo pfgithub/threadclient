@@ -7,7 +7,7 @@ export {};
 type AttrsSet = {
 	"width"?: `${number}px`,
 	"height"?: `${number}px`,
-	[key: string]: string | null | undefined
+	[key: string]: string | null | undefined,
 };
 
 declare global {

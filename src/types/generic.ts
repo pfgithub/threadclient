@@ -42,7 +42,7 @@ export declare namespace Richtext {
         level: number,
         children: Span[],
     } | {
-        kind: "horizontal_line"
+        kind: "horizontal_line",
     } | {
         kind: "blockquote",
         children: Paragraph[],

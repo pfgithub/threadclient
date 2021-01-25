@@ -3,7 +3,7 @@ import * as Generic from "../types/generic";
 
 export type ThreadClient = {
     id: string,
-    links: () => [string, () => string][]
+    links: () => [string, () => string][],
     isLoggedIn: (path: string) => boolean,
     loginURL: string | ((path: string) => Promise<string>),
     getThread: (path: string) => Promise<Generic.Page>,

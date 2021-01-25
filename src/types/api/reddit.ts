@@ -156,7 +156,7 @@ export type RichtextFlair = ({
     e: "text",
     t: string, // text
 } | {
-    e: "unsupported"
+    e: "unsupported",
 })[];
 
 export declare namespace Richtext {
@@ -235,13 +235,13 @@ export declare namespace Richtext {
     };
     export type TableItem = {
         c: Span[],
-    }
+    };
     // TODO use hljs or something to detect language and highlight
     export type Raw = {
         e: "raw",
         t: string,
     } | {
-        e: "unsupported"
+        e: "unsupported",
     };
     export type FormatRange = [
         FormatMode,

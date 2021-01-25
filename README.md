@@ -100,3 +100,11 @@ twitter todo:
 
 -   [ ] set up the proxy server
 -   [ ] try a request
+
+## other notes
+
+lints with eslint
+
+note this pr needs to be merged before eslint passes
+
+https://github.com/typescript-eslint/typescript-eslint/pull/2970

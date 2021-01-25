@@ -9,12 +9,8 @@ Module._resolveFilename = (original => (...a) => {
 
 module.exports = {
     root: true,
-    parserOptions: {
-        ecmaVersion: 6,
-        sourceType: "module",
-        ecmaFeatures: {jsx: true},
-    },
-    plugins: ["custom-quote-rule"],
+    parser: "@typescript-eslint/parser",
+    plugins: ["@typescript-eslint", "custom-quote-rule"],
     extends: ["eslint:recommended", "plugin:custom-quote-rule/recommended"],
     rules: {
         // losening default rules
@@ -22,17 +18,22 @@ module.exports = {
 
         // style rules:
         "indent": ["warn", 4, {'SwitchCase': 1, "offsetTernaryExpressions": true, "ignoredNodes": ["ConditionalExpression"]}],
-        "brace-style": ["warn", "1tbs", {"allowSingleLine": true}],
-        "semi": ["warn", "always", {"omitLastInOneLineBlock": true}],
+        "@typescript-eslint/brace-style": ["warn", "1tbs", {"allowSingleLine": true}],
+        "@typescript-eslint/semi": ["warn", "always", {"omitLastInOneLineBlock": true}],
         "no-else-return": 1,
+        "@typescript-eslint/member-delimiter-style": [1, {
+            multiline: {delimiter: "comma", requireLast: true},
+            singleline: {delimiter: "comma", requireLast: false},
+            overrides: {
+                interface: {multiline: {delimiter: "semi", requireLast: true}, singleline: {delimiter: "semi", requireLast: false}}
+            },
+        }],
     },
     "overrides": [{
         "files": ["*.ts", "*.tsx"],
         "parserOptions": {
             "project": "./tsconfig.json",
         },
-        plugins: ["@typescript-eslint"],
-        parser: "@typescript-eslint/parser",
         extends: ["plugin:@typescript-eslint/recommended"],
         "rules": {
             // loosening default rules:

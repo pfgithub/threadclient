@@ -346,7 +346,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
     const container = el("div");
     const hsc = hideshow(container);
     type State = "overview" | {
-        index: number
+        index: number,
     };
     let state: State = "overview";
     const setState = (new_state: State) => {
@@ -583,7 +583,7 @@ const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
     const xss = (window as unknown as {
         filterXSS:
             ((html: string, opts: {onTagAttr: (tag: string, name: string, value: string, isWhiteAttr: string) => string | undefined}) => string)
-            & {escapeAttrValue: (val: string) => string}
+            & {escapeAttrValue: (val: string) => string},
     }).filterXSS;
     return {
         saftify: (html, class_prefix: string) => xss(html, {
