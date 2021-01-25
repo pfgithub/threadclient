@@ -1843,7 +1843,8 @@ const rmdarkreader = () => {
 };
 setTimeout(() => rmdarkreader(), 0);
 
-if('serviceWorker' in navigator) {
+declare const fakevar: {build: "development" | "production"};
+if(fakevar.build === "production" && 'serviceWorker' in navigator) {
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("/service-worker.js").then(regr => {
             console.log("ServiceWorker registered", regr, regr.scope);

@@ -1,26 +1,27 @@
-const path = require('path');
+const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 const WorkboxPlugin = require("workbox-webpack-plugin");
+const webpack = require("webpack");
 
 const dev = process.env.NODE_ENV === "development";
 
 module.exports = {
-    entry: './src/entry.ts',
+    entry: "./src/entry.ts",
     module: {
         rules: [{
             test: /\.tsx?$/,
             exclude: /node_modules/,
             use: {loader: "babel-loader", options: {
-                "presets": [
+                presets: [
                     "@babel/preset-typescript",
                     ["@babel/preset-env", {
-                        "targets": {"browsers": ">10%"},
-                        "modules": false,
+                        targets: {browsers: ">10%"},
+                        modules: false,
                     }],
                 ],
-                "plugins": [
+                plugins: [
                     ["@babel/plugin-proposal-pipeline-operator", {
-                        "proposal": "smart",
+                        proposal: "smart",
                     }],
                 ],
             }},
@@ -37,10 +38,13 @@ module.exports = {
         extensions: [".tsx", ".ts", ".js"],
     },
     output: {
-        path: path.resolve(__dirname, 'dist'),
-        filename: 'bundle.js',
+        path: path.resolve(__dirname, "dist"),
+        filename: "bundle.js",
     },
     plugins: [
+        new webpack.DefinePlugin({
+            'fakevar.build': JSON.stringify(dev ? "development" : "production"),
+        }),
         new CopyPlugin({
             patterns: [
                 {from: "static", to: ""},
