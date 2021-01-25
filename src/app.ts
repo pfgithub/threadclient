@@ -661,7 +661,7 @@ function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: No
 
         const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode).defer(hsc);
 
-        newbtn.attr({"class": alink.getAttribute("class")});
+        newbtn.attr({class: alink.getAttribute("class")});
         content.forEach(el => newbtn.appendChild(el));
     }
     for(const spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
@@ -1045,7 +1045,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
 
     const update = () => {
         const [pt_text, pt_raw] = getPointsText();
-        btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label ?? "ERR", "": action.label}[state.your_vote ?? ""];
+        btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label ?? "ERR", none: action.label}[state.your_vote ?? "none"];
         votecount_txt.nodeValue = opts.parens ? "(" + pt_text + ")" : pt_text;
         votecount.title = pt_raw;
         wrapper.classList.remove("counted-increment", "counted-decrement", "counted-reset");

@@ -17,9 +17,9 @@ module.exports = {
         "no-undef": "off",
 
         // style rules:
-        "indent": ["warn", 4, {'SwitchCase': 1, "offsetTernaryExpressions": true, "ignoredNodes": ["ConditionalExpression"]}],
-        "@typescript-eslint/brace-style": ["warn", "1tbs", {"allowSingleLine": true}],
-        "@typescript-eslint/semi": ["warn", "always", {"omitLastInOneLineBlock": true}],
+        "indent": ["warn", 4, {'SwitchCase': 1, 'offsetTernaryExpressions': true, 'ignoredNodes': ["ConditionalExpression"]}],
+        "@typescript-eslint/brace-style": ["warn", "1tbs", {allowSingleLine: true}],
+        "@typescript-eslint/semi": ["warn", "always", {omitLastInOneLineBlock: true}],
         "no-else-return": 1,
         "@typescript-eslint/member-delimiter-style": [1, {
             multiline: {delimiter: "comma", requireLast: true},
@@ -28,19 +28,20 @@ module.exports = {
                 interface: {multiline: {delimiter: "semi", requireLast: true}, singleline: {delimiter: "semi", requireLast: false}}
             },
         }],
+        // make a custom rule: quote props: consistent as needed but needed is anything that doesn't match ^[a-z][A-Za-z0-9]*$
     },
-    "overrides": [{
-        "files": ["*.ts", "*.tsx"],
-        "parserOptions": {
-            "project": "./tsconfig.json",
+    overrides: [{
+        files: ["*.ts", "*.tsx"],
+        parserOptions: {
+            project: "./tsconfig.json",
         },
         extends: ["plugin:@typescript-eslint/recommended"],
-        "rules": {
+        rules: {
             // loosening default rules:
             "@typescript-eslint/ban-ts-ignore": "off",
             "@typescript-eslint/ban-ts-comment": "off",
-            "@typescript-eslint/no-unused-vars": ["warn", {"args": "none"}],
-            "@typescript-eslint/no-namespace": ["error", {"allowDeclarations": true}],
+            "@typescript-eslint/no-unused-vars": ["warn", {args: "none"}],
+            "@typescript-eslint/no-namespace": ["error", {allowDeclarations: true}],
 
             // stricter linting rules:
             "@typescript-eslint/no-shadow": "warn",

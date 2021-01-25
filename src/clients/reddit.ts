@@ -106,7 +106,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
 }
 function richtextTableHeading(tbh: Reddit.Richtext.TableHeading, opt: RichtextFormattingOptions): Generic.Richtext.TableHeading {
     return {
-        align: tbh.a ? ({L: "left", C: "center", R: "right"} as const)[tbh.a] : undefined,
+        align: tbh.a ? ({'L': "left", 'C': "center", 'R': "right"} as const)[tbh.a] : undefined,
         children: richtextSpanArray(tbh.c, opt),
     };
 }

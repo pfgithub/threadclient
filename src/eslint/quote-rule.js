@@ -26,6 +26,11 @@ const quoteFixer = (node, new_quote) => {
     };
 };
 
+const propNameRequiresQuotes = (prop_name) => {
+    if(prop_name.match(/^[a-z_][a-zA-Z0-9_]*$/)) return false;
+    return true;
+};
+
 const default_rule = function(context) {
     return {
         Literal(node) {
@@ -52,6 +57,40 @@ const default_rule = function(context) {
                     message: "Prefer "+quotkind,
                     fix: quoteFixer(node, expected_quote_type),
                 });
+            }
+        },
+        ObjectExpression(node) {
+            const anyRequireQuotes = node.properties.some(prop => {
+                if(prop.type !== "Property") return false;
+                if(prop.computed) return false; // ignored
+                if(prop.method) return false; // ignored
+                if(prop.shorthand) return false; // ignored
+                const key = prop.key;
+                if(key.type === "Identifier") return propNameRequiresQuotes(key.name);
+                if(key.type === "Literal" && typeof key.value === "string") return propNameRequiresQuotes(key.value);
+                // key.raw.substring(1, node.raw.length - 1)? otherwise "\x68": a → h: a
+                return false;
+            });
+            for(const prop of node.properties) {
+                if(prop.type !== "Property") continue;
+                if(prop.computed) continue;
+                if(prop.method) continue;
+                if(prop.shorthand) continue;
+                const key = prop.key;
+                if(!anyRequireQuotes && key.type === "Literal" && typeof key.value === "string") {
+                    context.report({
+                        node: key,
+                        message: "Quotes not required",
+                        fix: (fixer) => [fixer.replaceText(key, key.value)],
+                    });
+                }
+                if(anyRequireQuotes && key.type === "Identifier") {
+                    context.report({
+                        node: key,
+                        message: "Quotes required",
+                        fix: (fixer) => [fixer.replaceText(key, "'" + key.name + "'")],
+                    });
+                }
             }
         },
     };
