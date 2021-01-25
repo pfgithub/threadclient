@@ -161,11 +161,8 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
         || path.endsWith(".webp")
     ) return (): HideShowCleanup<Node> => {
-        const img = el("img").clss("preview-image").attr({src: link});
-        // a resizable image can be made like this
-        // .resizable { display: inline-block; resize: both; overflow: hidden; line-height: 0; }
-        const resn = {node: el("a").adch(img).attr({href: link, target: "_blank", rel: "noreferrer noopener"})};
-        return hideshow(resn.node);
+        const resn = zoomableImage(link, {});
+        return hideshow(resn);
     };
     if(path.endsWith(".gifv")) return (): HideShowCleanup<Node> => {
         const video = el("video").attr({controls: ""}).clss("preview-image");
@@ -792,8 +789,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             el("pre").adch(el("code").atxt(rtp.text)).adto(container);
         } break;
         case "image": {
-            // TODO remove as const in ts 4.2 or something
-            el("img").attr({src: rtp.url, alt: rtp.alt, title: rtp.alt, width: `${rtp.w}px` as const, height: `${rtp.h}px` as const}).clss("preview-image").adto(container);
+            zoomableImage(rtp.url, {alt: rtp.alt, w: rtp.w, h: rtp.h}).adto(container);
             if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
         } break;
         case "video": {
@@ -893,7 +889,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         }
     }else if(body.kind === "captioned_image") {
         el("div").adto(content).atxt(body.caption ?? "");
-        el("img").adto(el("div").adto(content)).clss("preview-image").attr({src: body.url, width: `${body.w}px` as const, height: `${body.h}px` as const, alt: body.alt, title: body.alt});
+        zoomableImage(body.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
     }else if(body.kind === "video") {
         const vid = el("video").adch(el("source").attr({src: body.url})).attr({width: `${body.w}px` as const, height: `${body.h}px` as const, controls: ""}).clss("preview-image").adto(content);
         if(body.gifv) {
@@ -911,6 +907,98 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
 
     return hsc;
 };
+
+function getButton(e: PointerEvent) {
+    // ??? what is this why is it weird
+    return [1, 4, 2, 8, 16][e.button];
+}
+export function startDragWatcher(
+    start_event: PointerEvent,
+    cb: (e: PointerEvent) => void,
+): Promise<PointerEvent> {
+    return new Promise(resolve => {
+        const moveListener = (e: PointerEvent) => {
+            if (e.pointerId !== start_event.pointerId) {
+                return;
+            }
+            if (
+                e.pointerType === "mouse" &&
+                !(e.buttons & getButton(start_event))
+            ) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            cb(e);
+        };
+        window.addEventListener("pointermove", moveListener, { capture: true });
+        const stopListener = (e: PointerEvent) => {
+            if (e.pointerId !== start_event.pointerId) {
+                return;
+            }
+            if (
+                e.pointerType === "mouse" &&
+                e.buttons & getButton(start_event)
+            ) {
+                // button will be excluded on a mouseup
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            window.removeEventListener("pointermove", moveListener, {
+                capture: true,
+            });
+            window.removeEventListener("pointerup", stopListener, {
+                capture: true,
+            });
+            resolve(e);
+        };
+        window.addEventListener("pointerup", stopListener, { capture: true });
+    });
+}
+
+function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLElement {
+    const res = el("img").clss("preview-image")
+        .attr({
+            src: url,
+            width: opt.w != null ? `${opt.w}px` as const : undefined,
+            height: opt.h != null ? `${opt.h}px` as const : undefined,
+            alt: opt.alt, title: opt.alt
+        })
+    ;
+    res.styl({"transform": "scale(100%)", "transform-origin": "top left"});
+    let current_offset = 0;
+    const updateImage = (updated: number) => {
+        const offset = current_offset + updated;
+        const scale = (2**(offset / 300));
+        res.styl({transform: "scale("+scale+")"});
+    };
+    const getOffset = (start_ev: PointerEvent, e: PointerEvent) => {
+        const diff = [e.clientX - start_ev.clientX, e.clientY - start_ev.clientY];
+        return diff[0] + diff[1];
+    };
+    res.addEventListener("click", () => {
+        (res as unknown as {webkitRequestFullscreen: typeof res.requestFullscreen}).webkitRequestFullscreen();
+    });
+    res.addEventListener("pointerdown", async start_event => {
+        start_event.preventDefault();
+        start_event.stopPropagation();
+        if(start_event.pointerType === "touch") {
+            return;
+        }
+        const end_event = await startDragWatcher(start_event, (e) => {
+            const total = getOffset(start_event, e);
+            updateImage(total);
+        });
+        console.log(end_event);
+        const total = getOffset(start_event, end_event);
+        current_offset = current_offset + total;
+        updateImage(0);
+    });
+    // mouse events: resize image
+    // touch events: open fullscreen and allow zooming
+    return res;
+}
 
 function userProfileListing(client: ThreadClient, profile: Generic.Profile, frame: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
