@@ -247,8 +247,8 @@ const getAccessToken = async () => {
 
 const getAuthorization = async () => {
     const access_token = await getAccessToken();
-    if(!access_token) return '';
-    return 'Bearer '+access_token;
+    if(!access_token) return "";
+    return "Bearer "+access_token;
 };
 
 const splitURL = (path: string): [string, URLSearchParams] => {
@@ -388,8 +388,8 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
         } : {error: "not logged in"},
     };
 };
-const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'open' | 'crosspost' | 'closed', link_fullname?: string} = {}, parent_permalink: string): Generic.Node => {
-    options.force_expand ??= 'closed';
+const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string} = {}, parent_permalink: string): Generic.Node => {
+    options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
         // Comment
         const listing = listing_raw.data;
@@ -476,7 +476,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'o
                 }
                 : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
                 ? {kind: "crosspost", source:
-                    threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: 'crosspost'}, listing.permalink) as Generic.Thread
+                    threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: "crosspost"}, listing.permalink) as Generic.Thread
                 }
                 : listing.is_self
                 ? listing.rtjson.document.length
@@ -502,7 +502,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: 'o
                 })}
                 : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
             ,
-            display_mode: options.force_expand === 'crosspost'
+            display_mode: options.force_expand === "crosspost"
                 ? {body: "visible", comments: "collapsed"}
                 : {body: "collapsed", body_default: options.force_expand, comments: "collapsed"}
             ,
@@ -639,7 +639,7 @@ export const client: ThreadClient = {
                     ...isLoggedIn() ? {
                         'Authorization': await getAuthorization(),
                     } : {},
-                    'Accept': 'application/json',
+                    'Accept': "application/json",
                 },
             }).then(async (v) => {
                 return [v.status, await v.json() as Reddit.Page | Reddit.Listing | Reddit.MoreChildren] as const;
@@ -763,7 +763,7 @@ export const client: ThreadClient = {
                 method: "post", mode: "cors", credentials: "omit",
                 headers: isLoggedIn() ? {
                     'Authorization': await getAuthorization(),
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': "application/x-www-form-urlencoded",
                 } : {},
                 body: act.query,
             }).then(async (v) => {

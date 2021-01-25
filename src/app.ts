@@ -1757,7 +1757,7 @@ onNavigate(0, location);
 
 let drtime = 100;
 const rmdarkreader = () => {
-    document.head.querySelector('.darkreader')?.remove();
+    document.head.querySelector(".darkreader")?.remove();
     drtime *= 2;
     setTimeout(() => rmdarkreader(), drtime);
 };

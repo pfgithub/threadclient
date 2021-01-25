@@ -167,7 +167,7 @@ function toFixed(n: number, digits = 0) {
     if (digits === 0) {
         return fixed;
     }
-    const dot = fixed.indexOf('.');
+    const dot = fixed.indexOf(".");
     if (dot >= 0) {
         const zeros_match = fixed.match(/0+$/);
         if (zeros_match) {
@@ -181,8 +181,8 @@ function toFixed(n: number, digits = 0) {
 }
 export function rgbToHexString({r, g, b, a}: RGBA): string {
     return `#${(a != null && a < 1 ? [r, g, b, Math.round(a * 255)] : [r, g, b]).map((x) => {
-        return `${x < 16 ? '0' : ''}${x.toString(16)}`;
-    }).join('')}`;
+        return `${x < 16 ? "0" : ""}${x.toString(16)}`;
+    }).join("")}`;
 }
 export function darkenColor(mode: "foreground" | "background", rgb: RGBA): RGBA {
     const hsl = rgbToHSL(rgb);

@@ -154,7 +154,7 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
         const [status, posts] = await fetch(url, {
             method,
             headers: {
-                "Accept": "application/json",
+                'Accept': "application/json",
                 ...auth ? {
                     'Authorization': auth.token_type + " " + auth.access_token
                 } : {},
@@ -162,7 +162,7 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
         }).then(async (v) => {
             return [v.status, await v.json() as T | {error: string}] as const;
         });
-        if(status !== 200) console.log('got status '+status, posts);
+        if(status !== 200) console.log("got status "+status, posts);
         return posts;
     }catch(e) {
         return {error: "Failed to load! "+e.toString()};
