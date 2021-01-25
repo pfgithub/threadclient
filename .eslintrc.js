@@ -11,10 +11,17 @@ module.exports = {
     root: true,
     parser: "@typescript-eslint/parser",
     plugins: ["@typescript-eslint", "custom-quote-rule"],
-    extends: ["eslint:recommended", "plugin:custom-quote-rule/recommended"],
+    extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:custom-quote-rule/recommended"],
     rules: {
         // losening default rules
         "no-undef": "off",
+        "@typescript-eslint/ban-ts-ignore": "off",
+        "@typescript-eslint/ban-ts-comment": "off",
+        "@typescript-eslint/no-unused-vars": ["warn", {args: "none"}],
+        "@typescript-eslint/no-namespace": ["error", {allowDeclarations: true}],
+
+        // stricter linting rules:
+        "@typescript-eslint/no-shadow": "warn",
 
         // style rules:
         "indent": ["warn", 4, {'SwitchCase': 1, 'offsetTernaryExpressions': true, 'ignoredNodes': ["ConditionalExpression"]}],
@@ -30,21 +37,17 @@ module.exports = {
         }],
     },
     overrides: [{
+        files: ["*.js", "*.jsx"],
+        rules: {
+            "@typescript-eslint/no-var-requires": 0,
+            "@typescript-eslint/naming-convention": 0,
+        },
+    }, {
         files: ["*.ts", "*.tsx"],
         parserOptions: {
             project: "./tsconfig.json",
         },
-        extends: ["plugin:@typescript-eslint/recommended"],
         rules: {
-            // loosening default rules:
-            "@typescript-eslint/ban-ts-ignore": "off",
-            "@typescript-eslint/ban-ts-comment": "off",
-            "@typescript-eslint/no-unused-vars": ["warn", {args: "none"}],
-            "@typescript-eslint/no-namespace": ["error", {allowDeclarations: true}],
-
-            // stricter linting rules:
-            "@typescript-eslint/no-shadow": "warn",
-
             // style rules:
             "@typescript-eslint/naming-convention": ["warn",
                 {selector: ["variable", "function", "parameter"], format: ["snake_case"]},
