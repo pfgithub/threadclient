@@ -104,22 +104,14 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     if(!href.startsWith("http") && !href.startsWith("/")) {
         return el("a").clss("error").attr({title: href}).clss("error").onev("click", () => alert(href));
     }
-    const replacers = {
-        "https://www.reddit.com": "/reddit",
-        "https://old.reddit.com": "/reddit",
-        "http://reddit.com": "/reddit",
-        "http://www.reddit.com":
-        "/reddit"
-    };
-    for(const [replacer, value] of Object.entries(replacers)) {
-        if(href === replacer) {
-            href = value;
-            break;
-        }
-        if(href.startsWith(replacer + "/")){
-            href = href.replace(replacer + "/", value + "/");
-            break;
-        }
+    let urlparsed: URL | undefined;
+    try {
+        urlparsed = new URL(href);
+    }catch(e) {
+        urlparsed = undefined;
+    }
+    if(urlparsed && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
+        href = "/reddit"+urlparsed.pathname;
     }
     const res = el("a").attr({href, target: "_blank", rel: "noreferrer noopener"});
     if(href.startsWith("/") || opts.onclick) res.onclick = event => {
