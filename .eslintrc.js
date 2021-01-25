@@ -28,7 +28,6 @@ module.exports = {
                 interface: {multiline: {delimiter: "semi", requireLast: true}, singleline: {delimiter: "semi", requireLast: false}}
             },
         }],
-        // make a custom rule: quote props: consistent as needed but needed is anything that doesn't match ^[a-z][A-Za-z0-9]*$
     },
     overrides: [{
         files: ["*.ts", "*.tsx"],
