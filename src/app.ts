@@ -982,6 +982,8 @@ function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string})
         return diff[0] + diff[1];
     };
     // ideally on mobile make this enter fullscreen. unfortunately, ios safari.
+    res.addEventListener("touchdown", e => {e.preventDefault(); e.stopPropagation()});
+    res.addEventListener("touchmove", e => {e.preventDefault(); e.stopPropagation()});
     res.addEventListener("pointerdown", async start_event => {
         start_event.preventDefault();
         start_event.stopPropagation();
