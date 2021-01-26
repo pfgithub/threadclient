@@ -1267,7 +1267,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
             }
             // collapsed_button // some aria thing idk
         };
-        const collapsed_button = el("button").clss("collapse-btn").onev("click", () => {
+        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).onev("click", () => {
             collapsed =! collapsed;
             update();
             const topv = collapsed_button.getBoundingClientRect().top;
