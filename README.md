@@ -78,6 +78,7 @@ reddit todo:
 -   [ ] when revealing a crosspost with the same content warnings as the parent post, don't require accepting twice
 -   [ ] add sidebars containing information
 -   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button
+-   [ ] support op, mod distinguished, and admin distinguished comments and posts
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
