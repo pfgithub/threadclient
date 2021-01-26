@@ -88,6 +88,7 @@ mastodon todo:
 -   [ ] option to mute user, block user, or block domain on user profiles
 -   [ ] user profile fields
 -   [ ] user profile pins (`/?pinned=true`) + make user profiles load on the dev server (express? doesn't like the `@`s in urls)
+-   [ ] update how user profiles work :: have a main page that loads the profile and pins and then a seperate page for loading all the posts and stuff that is embeded with load more
 -   [ ] language support
 -   [ ] user profiles including follow and block buttons and stuff
 -   [ ] navigating to specific users by `@`
