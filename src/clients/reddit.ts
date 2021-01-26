@@ -35,7 +35,9 @@ function decodeAction(act: string): {kind: "vote", query: string} | {kind: "-"} 
     return JSON.parse(act);
 }
 
-type RichtextFormattingOptions = unknown;
+type RichtextFormattingOptions = {
+    media_metadata: Reddit.MediaMetadata,
+};
 function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
     try {
         return richtextParagraphArray(rtd.document, opt);
@@ -155,9 +157,22 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
         case "br": return [{kind: "br"}];
         case "spoilertext": return [{kind: "spoiler", children: richtextSpanArray(rtd.c, opt)}];
         case "raw": return [{kind: "text", text: rtd.t, styles: {}}];
+        case "gif": {
+            const meta = opt.media_metadata[rtd.id];
+            if(meta.e !== "AnimatedImage") return richtextError("Unsupported "+meta.e, JSON.stringify(meta));
+            if(meta.status !== "valid") return richtextError("Bad status "+meta.status, JSON.stringify(meta));
+            return [
+                {kind: "link", url: meta.s.mp4 ?? meta.s.gif,
+                    children: [{kind: "text", text: "[embedded "+rtd.id.split("|")[0]+"]", styles: {}}],
+                }
+            ];
+        }
     }
     expectUnsupported(rtd.e);
     return [{kind: "text", text: "TODO "+rtd.e, styles: {error: "TODO «"+JSON.stringify(rtd)+"»"}}];
+}
+function richtextError(text: string, hover: string): Generic.Richtext.Span[] {
+    return [{kind: "text", text: text, styles: {error: hover}}];
 }
 function richtextSpanArray(rtsa: Reddit.Richtext.Span[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     return (rtsa ?? []).flatMap(v => richtextSpan(v, opt));
@@ -403,7 +418,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
             body: is_deleted
                 ? {kind: "removed", by: is_deleted,
                     fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
-                } : {kind: "richtext", content: richtextDocument(listing.rtjson, {})},
+                } : {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})},
             display_mode: {body: "visible", comments: "visible"},
             raw_value: listing_raw,
             link: listing.permalink,
@@ -475,25 +490,28 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
                 }
                 : listing.is_self
                 ? listing.rtjson.document.length
-                    ? {kind: "richtext", content: richtextDocument(listing.rtjson, {})}
+                    ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
                     : {kind: "none"}
                 : listing.gallery_data
                 ? {kind: "gallery", images: listing.gallery_data.items.map(gd => {
                     if(!listing.media_metadata) throw new Error("missing media metadata");
                     const moreinfo = listing.media_metadata[gd.media_id];
                     if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
-                    return {
-                        thumb: moreinfo.p[0].u,
+                    if(moreinfo.e !== "Image") throw new Error("galleries only support images atm "+gd.media_id);
+                    if(moreinfo.status !== "valid") throw new Error("unsupported status in gallery "+gd.media_id);
+                    const res: Generic.GalleryItem = {
+                        thumb: moreinfo.p[0].u ?? "error",
                         w: moreinfo.p[0].x,
                         h: moreinfo.p[0].y,
                         body: {
                             kind: "captioned_image",
-                            url: moreinfo.s.u,
+                            url: moreinfo.s.u ?? "error",
                             w: moreinfo.s.x,
                             h: moreinfo.s.y,
                             caption: gd.caption,
                         }
                     };
+                    return res;
                 })}
                 : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
             ,

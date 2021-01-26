@@ -48,7 +48,41 @@ export type PostOrComment = {
     author_flair_richtext?: RichtextFlair,
     author_flair_background_color: string,
     author_flair_text_color: "light" | "dark",
+
+    media_metadata?: MediaMetadata,
 };
+
+export type BaseMediaMeta = {
+    x: number, y: number,
+};
+export type ImageMeta = BaseMediaMeta & {
+    u: string,
+};
+export type AnimatedImageMeta = BaseMediaMeta & {
+    gif: string,
+    mp4?: string,
+};
+export type BaseMedia = {
+    m: string, // eg image/png or image/gif
+    status: "valid" | "unsupported", // maybe this can include processing? not sure
+};
+export type Media = BaseMedia & ({
+    e: "Image",
+    m: string, // eg image/png
+
+    p: ImageMeta[], // alternate sizes, small → large
+    s: ImageMeta, // source size
+} | {
+    e: "AnimatedImage",
+    ext?: string, // external link, eg giphy.com/…
+    m: string, // eg image/gif
+
+    p?: AnimatedImageMeta[], // alternate sizes
+    s: AnimatedImageMeta, // source size
+} | {
+    e: "unsupported",
+});
+export type MediaMetadata = {[key: string]: Media};
 
 export type PostSubmission = PostBase & PostOrComment & {
     title: string,
@@ -71,12 +105,6 @@ export type PostSubmission = PostBase & PostOrComment & {
         caption?: string,
         media_id: string, // →media_metadata
     }[]},
-
-    media_metadata?: {[key: string]: {
-        // e: "Image",
-        p: {y: number, x: number, u: string}[], // preview
-        s: {y: number, x: number, u: string}, // source
-    }},
 
     preview?: {
         images: {
@@ -228,6 +256,9 @@ export declare namespace Richtext {
     } | {
         e: "raw", // only in headings idk
         t: string,
+    } | {
+        e: "gif",
+        id: string, // information is provided in media_metadata
     } | {
         e: "unsupported",
     };

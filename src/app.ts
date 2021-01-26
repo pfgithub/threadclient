@@ -148,6 +148,17 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     }
     const url = url_mut;
     const path = url?.pathname ?? link;
+    const is_mp4_link_masking_as_gif = url ? path.endsWith(".gif") && url.searchParams.get("format") === "mp4" : false;
+    if(is_mp4_link_masking_as_gif) return (): HideShowCleanup<Node> => {
+        const video = el("video").clss("preview-image");
+        el("source").attr({src: link, type: "video/mp4"}).adto(video);
+        video.loop = true;
+        const hsc = hideshow(video);
+        video.play();
+        hsc.on("hide", () => {video.pause()});
+        hsc.on("show", () => {video.play()});
+        return hsc;
+    };
     if(link.startsWith("https://i.redd.it/")
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
@@ -163,6 +174,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         video.loop = true;
         const hsc = hideshow(video);
         let playing_before_hide = false;
+        if(opts.autoplay) video.play();
         hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
         hsc.on("show", () => {if(playing_before_hide) video.play();});
         return hsc;
