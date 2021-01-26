@@ -34,6 +34,7 @@ all todo:
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 -   [ ] eslint formatting
 -   [ ] eslint strict promise error handling
+-   [ ] maybe? eslint strict booleans in ifs and stuff
 -   [ ] simplify css to have less `>` selectors and more classes added by js
 -   [ ] fix youtube embeds causing horizontal scrolling on mobile
 -   [ ] improve appearence of very indented comments on mobile
@@ -86,6 +87,7 @@ mastodon todo:
 -   [x] image alt text (+ hover text) rather than visible caption
 -   [ ] option to mute user, block user, or block domain on user profiles
 -   [ ] user profile fields
+-   [ ] user profile pins (`/?pinned=true`) + make user profiles load on the dev server (express? doesn't like the `@`s in urls)
 -   [ ] language support
 -   [ ] user profiles including follow and block buttons and stuff
 -   [ ] navigating to specific users by `@`

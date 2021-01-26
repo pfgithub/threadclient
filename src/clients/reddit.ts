@@ -310,9 +310,6 @@ const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | R
                 display_mode: {body: "collapsed", comments: "collapsed"},
                 link: "TODO no link",
                 layout: "error",
-                info: {time: 0,
-                    author: {name: "no one", link: "TODO no link"},
-                },
                 actions: [],
                 default_collapsed: false,
                 raw_value: {},
@@ -355,9 +352,6 @@ const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | R
             display_mode: {body: "collapsed", comments: "collapsed"},
             link: "TODO no link",
             layout: "error",
-            info: {time: 0,
-                author: {name: "no one", link: "TODO no link"},
-            },
             actions: [],
             default_collapsed: false,
             raw_value: listing,
@@ -421,6 +415,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
                     link: "/u/"+listing.author,
                     flair: flairToGenericFlair(listing.author_flair_type, listing.author_flair_text, listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                 },
+                pinned: listing.stickied,
             },
             actions: [{
                 kind: "reply",
@@ -526,6 +521,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
                     link: "/"+listing.subreddit_name_prefixed,
                     name: listing.subreddit_name_prefixed,
                 },
+                pinned: listing.stickied,
             },
             actions: [{
                 kind: "link",
@@ -593,9 +589,6 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
             raw_value: listing_raw,
             link: "TODO no link",
             layout: "error",
-            info: {time: 0,
-                author: {name: "no one", link: "TODO no link"},
-            },
             actions: [],
             default_collapsed: false,
         };
@@ -794,6 +787,7 @@ export const client: ThreadClient = {
                     link: "/u/TODO You",
                     // flair: …
                 },
+                pinned: false,
             },
             actions: [{
                 kind: "counter",

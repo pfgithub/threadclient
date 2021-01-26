@@ -119,6 +119,8 @@ export type PostComment = PostBase & PostOrComment & {
 
     rtjson: Richtext.Document,
 
+    stickied: boolean,
+
     collapsed: boolean,
     // collapsed_reason: ?,
     // collapsed_because_crowd_control: ?,

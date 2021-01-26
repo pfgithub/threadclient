@@ -1295,6 +1295,9 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         if(listing.info.in) {
             content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
         }
+        if(listing.info.pinned) {
+            content_subminfo_line.atxt(", Pinned");
+        }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
         content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
@@ -1310,6 +1313,9 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         reserved_points_area = document.createComment("").adto(content_subminfo_line);
         const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc)).attr({title: "" + new Date(listing.info.time)});
         content_subminfo_line.atxt(" ").adch(submission_time);
+        if(listing.info.pinned) {
+            content_subminfo_line.atxt(", Pinned");
+        }
         if(listing.info.reblogged_by) {
             content_subminfo_line.atxt(" ← Boosted by ")
                 .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.name))

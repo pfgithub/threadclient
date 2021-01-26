@@ -123,9 +123,6 @@ const error404 = (msg = "404 not found"): Generic.Page => ({
         },
         link: "TODO no link",
         layout: "error",
-        info: {time: 0,
-            author: {name: "no one", link: "TODO no link"},
-        },
         actions: [],
         default_collapsed: false,
         raw_value: {},
@@ -139,9 +136,6 @@ const genericHeader = (): Generic.Thread => ({
     display_mode: {body: "collapsed", comments: "collapsed"},
     link: "TODO no link",
     layout: "error",
-    info: {time: 0,
-        author: {name: "no one", link: "TODO no link"},
-    },
     actions: [],
     default_collapsed: false,
     raw_value: {},
@@ -249,6 +243,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             },
         },
         reblogged_by: opts.reblogged_by,
+        pinned: false,
     };
     if(post.reblog) {
         return postToThread(host, post.reblog, {...opts, reblogged_by: info});

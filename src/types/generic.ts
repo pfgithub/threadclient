@@ -171,6 +171,7 @@ export type Info = {
     },
     in?: {name: string, link: string},
     reblogged_by?: RebloggedBy,
+    pinned: boolean,
 };
 export type RebloggedBy = Info;
 export type LoadMore = {
