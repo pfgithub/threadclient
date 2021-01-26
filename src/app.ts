@@ -981,15 +981,13 @@ function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string})
         const diff = [e.clientX - start_ev.clientX, e.clientY - start_ev.clientY];
         return diff[0] + diff[1];
     };
-    res.addEventListener("click", () => {
-        (res as unknown as {webkitRequestFullscreen: typeof res.requestFullscreen}).webkitRequestFullscreen();
-    });
+    // ideally on mobile make this enter fullscreen. unfortunately, ios safari.
     res.addEventListener("pointerdown", async start_event => {
         start_event.preventDefault();
         start_event.stopPropagation();
-        if(start_event.pointerType === "touch") {
-            return;
-        }
+        // if(start_event.pointerType === "touch") {
+        //     return;
+        // }
         const end_event = await startDragWatcher(start_event, (e) => {
             const total = getOffset(start_event, e);
             updateImage(total);
