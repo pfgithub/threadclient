@@ -441,7 +441,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
             }, {
                 kind: "link",
                 text: "Permalink",
-                url: listing.permalink,
+                url: listing.permalink ?? "Error no permalink",
             }, getPointsOn(listing)],
             default_collapsed: listing.collapsed,
         };
