@@ -379,17 +379,17 @@ html {
     }
 }
 
+.post.layout-commentlike > .post-voting {
+    position: absolute;
+    left: var(--left-v);
+    top: 10px;
+}
 .post-voting > .counter {
     display: flex;
     flex-direction: column;
     gap: 2px;
     margin-right: 5px;
     align-items: center;
-    .post.layout-commentlike > & {
-        position: absolute;
-        left: var(--left-v);
-        top: 10px;
-    }
     & > button {
         all: unset;
         background-image: url("https://www.redditstatic.com/sprite-reddit.e1D0120k5y4.png");
