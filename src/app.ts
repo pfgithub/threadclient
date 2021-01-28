@@ -903,8 +903,16 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "video") {
         if(!body.url) {
+            if(!body.url_backup_image) {
+                el("div").clss("error").atxt("missing stuff?? ?? :: "+JSON.stringify(body));
+                if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
+
+                return hsc;
+            }
             zoomableImage(body.url_backup_image, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
             if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
+            
+            return hsc;
         }
         const vid = el("video").adch(
             el("source").attr({src: body.url})).attr({width: `${body.w}px` as const, height: `${body.h}px` as const, controls: "", alt: body.alt}

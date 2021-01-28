@@ -342,3 +342,9 @@ export declare namespace Richtext {
         code = 64,       // 1 << 6    1000000
     }
 }
+
+export type VoteBody = {
+    id: string, // fullname of a post/comment
+    rank: string, // a number above 1, unclear the purpose
+    dir: "-1" | "0" | "1",
+};

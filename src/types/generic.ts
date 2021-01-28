@@ -92,7 +92,7 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "video",
     url?: string,
-    url_backup_image: string,
+    url_backup_image?: string,
     w: number,
     h: number,
     gifv: boolean,

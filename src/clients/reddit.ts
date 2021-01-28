@@ -40,10 +40,12 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     return [{elems: resitems, content_warning: false}];
 }
 
-function encodeAction(act: "vote", query: string): string {
-    return JSON.stringify({kind: act, query});
+type Action = {kind: "vote", query: Reddit.VoteBody} | {kind: "-"};
+function encodeAction(act: "vote", query: Reddit.VoteBody): string {
+    const action: Action = {kind: act, query};
+    return JSON.stringify(action);
 }
-function decodeAction(act: string): {kind: "vote", query: string} | {kind: "-"} {
+function decodeAction(act: string): Action  {
     return JSON.parse(act);
 }
 
@@ -338,7 +340,7 @@ const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | R
             link_fullname = listing[0].data.children[0].data.name;
         }
         return {
-            header: threadFromListing(listing[0].data.children[0], {force_expand: "open"}, path) as Generic.Thread,
+            header: threadFromListing(listing[0].data.children[0], {force_expand: "open", show_post_reply_button: true}, path) as Generic.Thread,
             replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, path)),
             display_style: "comments-view",
         };
@@ -442,13 +444,13 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
 
         percent: listing.upvote_ratio,
         actions: listing.archived ? {error: "archived <6mo"} : isLoggedIn() ? {
-            increment: encodeAction("vote", encodeQuery({...vote_data, dir: "1"})),
-            decrement: encodeAction("vote", encodeQuery({...vote_data, dir: "-1"})),
-            reset: encodeAction("vote", encodeQuery({...vote_data, dir: "0"})),
+            increment: encodeAction("vote", {...vote_data, dir: "1"}),
+            decrement: encodeAction("vote", {...vote_data, dir: "-1"}),
+            reset: encodeAction("vote", {...vote_data, dir: "0"}),
         } : {error: "not logged in"},
     };
 };
-const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string} = {}, parent_permalink: string): Generic.Node => {
+const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean} = {}, parent_permalink: string): Generic.Node => {
     options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
         // Comment
@@ -492,8 +494,6 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
             actions: [{
                 kind: "reply",
                 text: "Reply",
-                // POST /api/comment {api_type: json, return_rtjson: true, richtext_json: JSON, text: string, thing_id: parent_thing_id}
-                // wait I can use the api to post richtext comments but I can't use the api to get richtext comments what?
                 reply_info: encodeReplyInfo({parent_id: listing.name}),
             }, {
                 kind: "link",
@@ -599,7 +599,11 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
                 },
                 pinned: listing.stickied,
             },
-            actions: [{
+            actions: [options.show_post_reply_button ? {
+                kind: "reply",
+                text: "Reply",
+                reply_info: encodeReplyInfo({parent_id: listing.name}),
+            } : {
                 kind: "link",
                 url: listing.permalink,
                 text: listing.num_comments + " comment"+(listing.num_comments === 1 ? "" : "s"),
@@ -702,21 +706,9 @@ export const client: ThreadClient = {
         const path = pathsplit.join("/");
 
         try {
-            const [status, listing] = await fetch(pathURL(path), {
-                mode: "cors", credentials: "omit",
-                headers: {
-                    ...isLoggedIn() ? {
-                        'Authorization': await getAuthorization(),
-                    } : {},
-                    'Accept': "application/json",
-                },
-            }).then(async (v) => {
-                return [v.status, await v.json() as Reddit.Page | Reddit.Listing | Reddit.MoreChildren] as const;
+            const listing = await redditRequest<Reddit.Page | Reddit.Listing | Reddit.MoreChildren>(pathURL(path), {
+                method: "GET",
             });
-            if(status !== 200) {
-                console.log(status, listing);
-                throw new Error("Got status "+status);
-            }
 
             return pageFromListing(path, listing);
         }catch(e) {
@@ -828,20 +820,11 @@ export const client: ThreadClient = {
         const act = decodeAction(action);
         if(act.kind === "vote") {
             type VoteResult = {__nothing: unknown};
-            const [status, res] = await fetch(baseURL() + "/api/vote", {
-                method: "post", mode: "cors", credentials: "omit",
-                headers: isLoggedIn() ? {
-                    'Authorization': await getAuthorization(),
-                    'Content-Type': "application/x-www-form-urlencoded",
-                } : {},
+            const res = await redditRequest<VoteResult>(baseURL() + "/api/vote", {
+                method: "POST",
                 body: act.query,
-            }).then(async (v) => {
-                return [v.status, await v.json() as VoteResult] as const;
             });
-            if(status !== 200) {
-                console.log(status, res);
-                throw new Error("got status "+status);
-            }
+            console.log(res);
         }else if(act.kind === "-") {
             // placeholder. remove once new action kinds are added.
         }else assertUnreachable(act);
@@ -882,8 +865,31 @@ export const client: ThreadClient = {
             default_collapsed: false,
         };
     },
+    // sendReply(md: string, data_raw: string): Promise<void> {
+    //     const reply_info = decodeReplyInfo(data_raw);
+
+    // },
 };
 
+async function redditRequest<ResponseType>(url: string, opts: {method: "GET"} | {method: "POST", body: {[key: string]: string | undefined}}): Promise<ResponseType> {
+    const [status, res] = await fetch(url, {
+        method: opts.method, mode: "cors", credentials: "omit",
+        headers: {
+            ...isLoggedIn() ? {'Authorization': await getAuthorization()} : {},
+            'Content-Type': "application/x-www-form-urlencoded",
+        },
+        ...opts.method === "POST" ? {body: Object.entries(opts.body).flatMap(([a, b]) => b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]).join("&")} : {},
+    }).then(async (v) => {
+        return [v.status, await v.json() as ResponseType] as const;
+    });
+    if(status !== 200) {
+        console.log(status, res);
+        throw new Error("got status "+status);
+    }
+    return res;
+}
+
+// POST /api/comment {api_type: json, return_rtjson: true, richtext_json: JSON, text: string, thing_id: parent_thing_id}
 type ReplyInfo = {parent_id: string};
 function encodeReplyInfo(rply_info: ReplyInfo): string {
     return JSON.stringify(rply_info);
