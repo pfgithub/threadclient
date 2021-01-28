@@ -919,8 +919,8 @@ export const client: ThreadClient = {
             api_type: "json",
             thing_id: reply_info.parent_id,
             return_rtjson: "true",
-            richtext_json: JSON.stringify(richtext_json), // richtext text
-            // text: "test reply", // markdown text
+            // richtext_json: JSON.stringify(richtext_json), // richtext text
+            text: md, // markdown text
         };
         const reply = await redditRequest<Reddit.PostComment>(baseURL() + "/api/comment", {
             method: "POST",
