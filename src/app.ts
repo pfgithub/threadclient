@@ -873,7 +873,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
             });
         }
     }else if(body.kind === "crosspost") {
-        const parentel = el("div").styl({width: "max-content"}).adto(content);
+        const parentel = el("div").styl({"max-width": "max-content"}).adto(content);
         clientListing(client, body.source).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
         const txta = el("div").adto(content);
