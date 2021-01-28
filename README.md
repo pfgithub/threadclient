@@ -82,6 +82,7 @@ reddit todo:
 -   [ ] option to disable default collapsed comments (eg due to crowd control or downvoting)
 -   [ ] preview subreddit links like sneakpeakbot does and also hide sneakpeakbot replies unless they have comments (may require slight restructuring | just fetch the reddit client yeah ok)
 -   [ ] what if sneakpeakbot replies got embedded into the comment itself hmm - as a crosspost thing but collapsed by default
+-   [ ] support `redd.it` links
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
