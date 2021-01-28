@@ -285,7 +285,6 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                 you: post.favourited ? "increment" : undefined,
 
                 actions: {
-                    error: undefined,
                     increment: encodeAction({kind: "favourite", direction: "", status: post.id, host}),
                     reset: encodeAction({kind: "favourite", direction: "un", status: post.id, host}),
                 },
