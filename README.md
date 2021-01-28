@@ -80,6 +80,8 @@ reddit todo:
 -   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button
 -   [ ] support op, mod distinguished, and admin distinguished comments and posts
 -   [ ] option to disable default collapsed comments (eg due to crowd control or downvoting)
+-   [ ] preview subreddit links like sneakpeakbot does and also hide sneakpeakbot replies unless they have comments (may require slight restructuring | just fetch the reddit client yeah ok)
+-   [ ] what if sneakpeakbot replies got embedded into the comment itself hmm - as a crosspost thing but collapsed by default
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
