@@ -31,6 +31,8 @@ export type PostBase = {
 };
 
 export type PostOrComment = {
+    all_awardings: Award[],
+
     likes?: true | false,
 
     score_hidden: boolean,
@@ -176,6 +178,51 @@ export type Post = {
     data: PostSubmission,
 } | PostCommentLike | {
     kind: "unknown",
+};
+
+export type Award = {
+    // info about the post awarding
+    count: number,
+    
+    // info about the award
+    id: string,
+    name: string,
+    description: string,
+
+    icon_format: "APNG" | "unsupported",
+    icon_width: number,
+    icon_height: number,
+    icon_url: string,
+    resized_icons: {url: string, width: number, height: number}[],
+
+    static_icon_width: number,
+    static_icon_height: number,
+    static_icon_url: string, // non-animated icon
+    resized_static_icons: {url: string, width: number, height: number}[],
+
+    is_enabled: boolean,
+    is_new: boolean,
+
+    coin_price: number, // # coins it costs to give this award
+    coin_reward: number, // # coins the reciever gets
+    giver_coin_reward: number, // # coins the giver gets
+    penny_donate: number, // ?
+    penny_price: number, // ?
+
+    subreddit_coin_reward: number, // # coins the subreddit gets
+    subreddit_id?: string,
+
+    days_of_drip_extension: number, // ??
+    days_of_premium: number, // # days premium reciever gets
+
+    start_date?: unknown,
+    end_date?: unknown,
+
+    award_type: "global" | "unsupported",
+    award_sub_type: "GLOBAL" | "unsupported",
+    awardings_required_to_grant_benefits?: unknown,
+
+    tiers_by_required_awardings?: unknown,
 };
 
 export type RichtextFlair = ({

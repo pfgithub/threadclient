@@ -28,6 +28,17 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
     }];
 }
 
+function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
+    const resitems: Generic.RichTextItem[] = [];
+    for(const awarding of awardings.sort((a1, a2) => a2.count - a1.count)) {
+        if(resitems.length > 0) resitems.push({type: "text", text: ", "});
+        resitems.push({type: "emoji", url: awarding.static_icon_url, name: awarding.name});
+        if(awarding.count > 1) resitems.push({type: "text", text: "x" + awarding.count});
+    }
+    if(resitems.length === 0) return [];
+    return [{elems: resitems, content_warning: false}];
+}
+
 function encodeAction(act: "vote", query: string): string {
     return JSON.stringify({kind: act, query});
 }
@@ -428,7 +439,13 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
                 author: {
                     name: listing.author,
                     link: "/u/"+listing.author,
-                    flair: flairToGenericFlair(listing.author_flair_type, listing.author_flair_text, listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
+                    flair: [
+                        ...flairToGenericFlair(listing.author_flair_type, listing.author_flair_text,
+                            listing.author_flair_text_color, listing.author_flair_background_color,
+                            listing.author_flair_richtext
+                        ),
+                        ...awardingsToFlair(listing.all_awardings ?? []),
+                    ],
                 },
                 pinned: listing.stickied,
             },
@@ -478,7 +495,8 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
                 ...flairToGenericFlair(listing.link_flair_type, listing.link_flair_text, listing.link_flair_text_color,
                     listing.link_flair_background_color, listing.link_flair_richtext
                 ),
-                ...content_warnings
+                ...content_warnings,
+                ...awardingsToFlair(listing.all_awardings ?? []),
             ],
             body: is_deleted
                 ? {kind: "removed", by: is_deleted,
