@@ -101,6 +101,9 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     if(href.startsWith("/") && client_id) {
         href = "/"+client_id+href;
     }
+    if(href.startsWith("mailto:")) {
+        return el("span").attr({title: href.replace("mailto:", "")});
+    }
     if(!href.startsWith("http") && !href.startsWith("/")) {
         return el("a").clss("error").attr({title: href}).clss("error").onev("click", () => alert(href));
     }
@@ -607,7 +610,7 @@ const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
     };
 });
 
-function renderPreviewableLink(client: ThreadClient, href: string, __after_once: Node | null, parent_node: Node): HideShowCleanup<{newbtn: HTMLAnchorElement}> {
+function renderPreviewableLink(client: ThreadClient, href: string, __after_once: Node | null, parent_node: Node): HideShowCleanup<{newbtn: HTMLElement}> {
     const after_node = document.createComment("");
     parent_node.insertBefore(after_node, __after_once);
 
