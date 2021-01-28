@@ -538,9 +538,10 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: {force_exp
         }
         const post_id_no_pfx = listing.name.substring(3);
 
-        const content_warnings: Generic.Flair[] = [];
-        if(listing.spoiler) content_warnings.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
-        if(listing.over_18) content_warnings.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
+        const extra_flairs: Generic.Flair[] = [];
+        if(listing.spoiler) extra_flairs.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
+        if(listing.over_18) extra_flairs.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
+        if(listing.is_original_content) extra_flairs.push({elems: [{type: "text", text: "OC"}], content_warning: false});
 
         const result: Generic.Node = {
             kind: "thread",
@@ -551,7 +552,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: {force_exp
                 ...flairToGenericFlair(listing.link_flair_type, listing.link_flair_text, listing.link_flair_text_color,
                     listing.link_flair_background_color, listing.link_flair_richtext
                 ),
-                ...content_warnings,
+                ...extra_flairs,
                 ...awardingsToFlair(listing.all_awardings ?? []),
             ],
             body: is_deleted

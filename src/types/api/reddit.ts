@@ -103,6 +103,7 @@ export type PostSubmission = PostBase & PostOrComment & {
     // content warnings
     spoiler: boolean,
     over_18: boolean,
+    is_original_content: boolean,
 
     // content
     url: string,
