@@ -34,7 +34,7 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     for(const awarding of awardings.sort((a1, a2) => a2.count - a1.count)) {
         if(resitems.length > 0) resitems.push({type: "text", text: " "});
         resitems.push({type: "emoji", url: awarding.static_icon_url, name: awarding.name});
-        if(awarding.count > 1) resitems.push({type: "text", text: "x" + awarding.count});
+        if(awarding.count > 1) resitems.push({type: "text", text: "×" + awarding.count});
     }
     if(resitems.length === 0) return [];
     return [{elems: resitems, content_warning: false}];

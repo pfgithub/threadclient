@@ -79,6 +79,7 @@ reddit todo:
 -   [ ] add sidebars containing information
 -   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button
 -   [ ] support op, mod distinguished, and admin distinguished comments and posts
+-   [ ] option to disable default collapsed comments (eg due to crowd control or downvoting)
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
