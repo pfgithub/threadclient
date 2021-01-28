@@ -1118,6 +1118,11 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                             console.log("Got response", r);
                             reply_state = "none";
                             update();
+                            if(r.kind === "load_more") {
+                                console.log("got back load more item. todo display it.");
+                                return;
+                            }
+                            clientListing(client, r).defer(hsc).adto(el("div").adto(content_buttons_line));
                         }).catch(e => {
                             submit.disabled = false;
                             submit.textContent = "Reply";

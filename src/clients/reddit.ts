@@ -928,6 +928,7 @@ export const client: ThreadClient = {
             body,
         });
         console.log(reply);
+        // the reply also has a "rte_mode": "markdown" | "unsupported"
         return threadFromListing({kind: "t1", data: reply}, {}, "TODO");
     },
 };
