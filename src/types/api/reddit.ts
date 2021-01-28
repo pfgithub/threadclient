@@ -244,13 +244,9 @@ export declare namespace Richtext {
         e: "par",
         c: Span[],
     } | {
-        e: "img",
+        e: "img" | "video",
         c: string, // caption, displays below the image
         id: string, // media id. more info in media_metadata including the link.
-    } | {
-        e: "video",
-        c: string, // caption
-        id: string, // media id. more info in media_metadata.
     } | {
         e: "h",
         l: number, // h1 h2 …

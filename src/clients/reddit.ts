@@ -68,14 +68,19 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
             kind: "paragraph",
             children: richtextSpanArray(rtd.c, opt),
         };
-        case "img": return {
-            kind: "paragraph",
-            children: [{kind: "text", text: "TODO image", styles: {error: "todo image"}}],
-        };
-        case "video": return {
-            kind: "paragraph",
-            children: [{kind: "text", text: "TODO video", styles: {error: "todo video"}}],
-        };
+        case "img": case "video": {
+            const data = opt.media_metadata[rtd.id];
+            if(!data) return richtextErrorP("unknown id "+rtd.id, JSON.stringify(opt));
+            if(data.e !== "Image") return richtextErrorP("TODO "+data.e, JSON.stringify(data));
+            return {
+                kind: "image",
+                url: data.s.u,
+                w: data.s.x,
+                h: data.s.y,
+                caption: rtd.c,
+                alt: undefined, // reddit does not support image alt
+            };
+        }
         case "h": return {
             kind: "heading",
             level: rtd.l,
@@ -185,6 +190,12 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
 }
 function richtextError(text: string, hover: string): Generic.Richtext.Span[] {
     return [{kind: "text", text: text, styles: {error: hover}}];
+}
+function richtextErrorP(text: string, hover: string): Generic.Richtext.Paragraph {
+    return {
+        kind: "paragraph",
+        children: richtextError(text, hover),
+    };
 }
 function richtextSpanArray(rtsa: Reddit.Richtext.Span[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     return (rtsa ?? []).flatMap(v => richtextSpan(v, opt));
