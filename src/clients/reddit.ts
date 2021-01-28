@@ -71,15 +71,30 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
         case "img": case "video": {
             const data = opt.media_metadata[rtd.id];
             if(!data) return richtextErrorP("unknown id "+rtd.id, JSON.stringify(opt));
-            if(data.e !== "Image") return richtextErrorP("TODO "+data.e, JSON.stringify(data));
-            return {
-                kind: "image",
-                url: data.s.u,
-                w: data.s.x,
-                h: data.s.y,
-                caption: rtd.c,
-                alt: undefined, // reddit does not support image alt
+            if(data.e === "Image") return {
+                kind: "body",
+                body: {
+                    kind: "captioned_image",
+                    url: data.s.u,
+                    w: data.s.x,
+                    h: data.s.y,
+                    caption: rtd.c,
+                },
             };
+            if(data.e === "AnimatedImage") return {
+                kind: "body",
+                body: {
+                    kind: "video",
+                    url: data.s.mp4,
+                    url_backup_image: data.s.gif,
+                    w: data.s.x,
+                    h: data.s.y,
+                    gifv: true,
+                    caption: rtd.c,
+                },
+            };
+            expectUnsupported(data.e);
+            return richtextErrorP("TODO "+data.e, JSON.stringify(data));
         }
         case "h": return {
             kind: "heading",

@@ -25,18 +25,8 @@ export declare namespace Richtext {
         kind: "paragraph",
         children: Span[],
     } | {
-        kind: "image",
-        url: string,
-        w: number,
-        h: number,
-        caption?: string,
-        alt?: string,
-    } | {
-        kind: "video",
-        url: string,
-        w: number,
-        h: number,
-        caption?: string,
+        kind: "body",
+        body: Body,
     } | {
         kind: "heading",
         level: number,
@@ -101,10 +91,13 @@ export type Body = BodyText | RichText | {
     h: number,
 } | {
     kind: "video",
-    url: string,
+    url?: string,
+    url_backup_image: string,
     w: number,
     h: number,
     gifv: boolean,
+    caption?: string,
+    alt?: string,
 } | {
     kind: "gallery",
     images: GalleryItem[],

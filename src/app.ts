@@ -754,7 +754,7 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
     return hsc;
 }
 
-function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Paragraph, container: Node): HideShowCleanup<undefined> {
+function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Paragraph, container: ChildNode): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     switch(rtp.kind) {
@@ -792,13 +792,8 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
         case "code_block": {
             el("pre").adch(el("code").atxt(rtp.text)).adto(container);
         } break;
-        case "image": {
-            zoomableImage(rtp.url, {alt: rtp.alt, w: rtp.w, h: rtp.h}).adto(container);
-            if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
-        } break;
-        case "video": {
-            el("video").attr({src: rtp.url, width: `${rtp.w}px` as const, height: `${rtp.h}px` as const}).clss("preview-image").adto(container);
-            if(rtp.caption) el("p").atxt("Caption: "+rtp.caption).adto(container);
+        case "body": {
+            renderBody(client, rtp.body, {autoplay: false}, container).defer(hsc);
         } break;
         case "table": {
             const tablel = el("table").adto(container);
@@ -892,15 +887,25 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
             submitbtn.onclick = () => "TODO vote on polls";
         }
     }else if(body.kind === "captioned_image") {
-        el("div").adto(content).atxt(body.caption ?? "");
         zoomableImage(body.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
+        if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "video") {
-        const vid = el("video").adch(el("source").attr({src: body.url})).attr({width: `${body.w}px` as const, height: `${body.h}px` as const, controls: ""}).clss("preview-image").adto(content);
+        if(!body.url) {
+            zoomableImage(body.url_backup_image, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
+            if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
+        }
+        const vid = el("video").adch(
+            el("source").attr({src: body.url})).attr({width: `${body.w}px` as const, height: `${body.h}px` as const, controls: "", alt: body.alt}
+        ).clss("preview-image").adto(content);
         if(body.gifv) {
             vid.loop = true;
-            if(opts.autoplay) vid.controls = false;
+            vid.onplaying = () => vid.controls = false;
         }
         if(opts.autoplay) {vid.play()}
+        let playing_before_hide = !vid.paused;
+        hsc.on("hide", () => {playing_before_hide = !vid.paused; vid.pause()});
+        hsc.on("show", () => {if(playing_before_hide) vid.play();});
+        if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "array") {
         for(const v of body.body) {
             if(!v) continue;
