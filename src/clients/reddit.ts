@@ -9,6 +9,7 @@ const redirect_uri = "https://thread.pfg.pw/login/reddit";
 function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: string,
     text_color: "light" | "dark", background_color: string, flair: Reddit.RichtextFlair | undefined,
 ): Generic.Flair[] {
+    if(type == null) return []; // deleted comments
     if(type === "text" && !text) return [];
     const elems: Generic.RichTextItem[] = type === "richtext" ? (flair ?? []).map(v => {
         if(v.e === "text") {
@@ -31,7 +32,7 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
 function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     const resitems: Generic.RichTextItem[] = [];
     for(const awarding of awardings.sort((a1, a2) => a2.count - a1.count)) {
-        if(resitems.length > 0) resitems.push({type: "text", text: ", "});
+        if(resitems.length > 0) resitems.push({type: "text", text: " "});
         resitems.push({type: "emoji", url: awarding.static_icon_url, name: awarding.name});
         if(awarding.count > 1) resitems.push({type: "text", text: "x" + awarding.count});
     }
