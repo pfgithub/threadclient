@@ -386,7 +386,6 @@ const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | R
             display_style: "comments-view",
         };
     }
-
     if(!('data' in listing) || listing.kind !== "Listing") {
         return {
             header: {
@@ -822,6 +821,7 @@ export const client: ThreadClient = {
             type VoteResult = {__nothing: unknown};
             const res = await redditRequest<VoteResult>(baseURL() + "/api/vote", {
                 method: "POST",
+                mode: "urlencoded",
                 body: act.query,
             });
             console.log(res);
@@ -865,20 +865,54 @@ export const client: ThreadClient = {
             default_collapsed: false,
         };
     },
-    // sendReply(md: string, data_raw: string): Promise<void> {
-    //     const reply_info = decodeReplyInfo(data_raw);
-
-    // },
+    async sendReply(md: string, data_raw: string): Promise<Generic.Node> {
+        const reply_info = decodeReplyInfo(data_raw);
+        const richtext_json: Reddit.Richtext.Document = {
+            document: [{e: "par", c: [{e: "text", t: md}]}],
+        };
+        const body: {
+            api_type: "json",
+            thing_id: string,
+            return_rtjson?: "true" | "false",
+            richtext_json?: string,//Reddit.Richtext.Document,
+            text?: string,
+        } = {
+            api_type: "json",
+            thing_id: reply_info.parent_id,
+            return_rtjson: "true",
+            richtext_json: JSON.stringify(richtext_json), // richtext text
+            // text: "test reply", // markdown text
+        };
+        const reply = await redditRequest<Reddit.PostComment>(baseURL() + "/api/comment", {
+            method: "POST",
+            mode: "urlencoded",
+            body,
+        });
+        console.log(reply);
+        return threadFromListing({kind: "t1", data: reply}, {}, "TODO");
+    },
 };
 
-async function redditRequest<ResponseType>(url: string, opts: {method: "GET"} | {method: "POST", body: {[key: string]: string | undefined}}): Promise<ResponseType> {
+type RequestOpts =
+    | {method: "GET"}
+    | {method: "POST", mode: "urlencoded", body: {[key: string]: string | undefined}}
+    | {method: "POST", mode: "json", body: unknown}
+;
+async function redditRequest<ResponseType>(url: string, opts: RequestOpts): Promise<ResponseType> {
     const [status, res] = await fetch(url, {
         method: opts.method, mode: "cors", credentials: "omit",
         headers: {
             ...isLoggedIn() ? {'Authorization': await getAuthorization()} : {},
-            'Content-Type': "application/x-www-form-urlencoded",
+            ...opts.method === "POST" ? {'Content-Type': {json: "application/json", urlencoded: "application/x-www-form-urlencoded"}[opts.mode]} : {},
         },
-        ...opts.method === "POST" ? {body: Object.entries(opts.body).flatMap(([a, b]) => b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]).join("&")} : {},
+        ...opts.method === "POST" ? {
+            body: opts.mode === "json"
+                ? JSON.stringify(opts.body)
+                : opts.mode === "urlencoded"
+                ? Object.entries(opts.body).flatMap(([a, b]) => b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]).join("&")
+                : assertUnreachable(opts)
+            ,
+        } : {},
     }).then(async (v) => {
         return [v.status, await v.json() as ResponseType] as const;
     });

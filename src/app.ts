@@ -911,7 +911,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
             }
             zoomableImage(body.url_backup_image, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
             if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
-            
+
             return hsc;
         }
         const vid = el("video").adch(
@@ -1107,7 +1107,20 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                             update();
                         }
                     });
-                    submit.onev("click", () => alert("TODO reply comments"));
+                    submit.onev("click", () => {
+                        submit.disabled = true;
+                        submit.textContent = "…";
+                        console.log("SUBMITTING");
+                        client.sendReply(textarea.value, action.reply_info).then(r => {
+                            console.log("Got response", r);
+                            reply_state = "none";
+                            update();
+                        }).catch(e => {
+                            submit.disabled = false;
+                            submit.textContent = "Reply";
+                            console.log("Got error", e);
+                        });
+                    });
                 }
                 reply_btn.disabled = true;
                 label: if(reply_state.preview) {

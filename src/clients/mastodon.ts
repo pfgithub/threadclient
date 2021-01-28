@@ -577,6 +577,9 @@ export const client: ThreadClient = {
     previewReply(reply_text: string, reply_info: string): Generic.Thread {
         return genericHeader();
     },
+    sendReply(reply_text, reply_info) {
+        throw new Error("NIY");
+    },
 };
 
 async function performBasicPostAction(host: string, url: string): Promise<void> {
