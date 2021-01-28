@@ -62,6 +62,39 @@ function richtextParagraphArray(rtd: Reddit.Richtext.Paragraph[], opt: RichtextF
     return rtd.map(v => richtextParagraph(v, opt));
 }
 function expectUnsupported(text: "unsupported"): void {/*no runtime error!*/}
+
+// TODO use this for galleries and gifs? make it return Generic.GalleryItem? idk only image has a thumbnail
+function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Body {
+    if(media_meta.e === "Image") return {
+        kind: "captioned_image",
+        url: media_meta.s.u,
+        w: media_meta.s.x,
+        h: media_meta.s.y,
+        caption: caption,
+    };
+    if(media_meta.e === "AnimatedImage") return {
+        kind: "video",
+        url: media_meta.s.mp4,
+        url_backup_image: media_meta.s.gif,
+        w: media_meta.s.x,
+        h: media_meta.s.y,
+        gifv: true,
+        caption: caption,
+    };
+    if(media_meta.e === "RedditVideo") return {
+        kind: "vreddit_video",
+        id: media_meta.id,
+        w: media_meta.x,
+        h: media_meta.y,
+        gifv: media_meta.isGif ?? false,
+        caption: caption,
+    };
+    expectUnsupported(media_meta.e);
+    return {
+        kind: "richtext",
+        content: [richtextErrorP("TODO "+media_meta.e, JSON.stringify(media_meta))],
+    };
+}
 function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph {
     switch(rtd.e) {
         case "par": return {
@@ -71,30 +104,10 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
         case "img": case "video": {
             const data = opt.media_metadata[rtd.id];
             if(!data) return richtextErrorP("unknown id "+rtd.id, JSON.stringify(opt));
-            if(data.e === "Image") return {
+            return {
                 kind: "body",
-                body: {
-                    kind: "captioned_image",
-                    url: data.s.u,
-                    w: data.s.x,
-                    h: data.s.y,
-                    caption: rtd.c,
-                },
+                body: mediaMetaToBody(data, rtd.c),
             };
-            if(data.e === "AnimatedImage") return {
-                kind: "body",
-                body: {
-                    kind: "video",
-                    url: data.s.mp4,
-                    url_backup_image: data.s.gif,
-                    w: data.s.x,
-                    h: data.s.y,
-                    gifv: true,
-                    caption: rtd.c,
-                },
-            };
-            expectUnsupported(data.e);
-            return richtextErrorP("TODO "+data.e, JSON.stringify(data));
         }
         case "h": return {
             kind: "heading",

@@ -99,6 +99,13 @@ export type Body = BodyText | RichText | {
     caption?: string,
     alt?: string,
 } | {
+    kind: "vreddit_video",
+    id: string,
+    w: number,
+    h: number,
+    gifv: boolean,
+    caption?: string,
+} | {
     kind: "gallery",
     images: GalleryItem[],
 } | {

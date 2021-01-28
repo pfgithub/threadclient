@@ -82,6 +82,14 @@ export type Media = BaseMedia & ({
     p?: AnimatedImageMeta[], // alternate sizes
     s: AnimatedImageMeta, // source size
 } | {
+    e: "RedditVideo",
+    dashUrl: string, // https://v.redd.it/link/:postname/asset/:id/DASHPlaylist.mpd?a=…&v=1&f=sd
+    hlsUrl: string, // https://v.redd.it/link/:postname/asset/:id/HLSPlaylist.m3u8?a=…&v=1&f=sd
+    id: string,
+    x: number,
+    y: number,
+    isGif: boolean,
+} | {
     e: "unsupported",
 });
 export type MediaMetadata = {[key: string]: Media};

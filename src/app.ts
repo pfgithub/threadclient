@@ -139,6 +139,101 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, 
         yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
     }};
 }
+function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
+    const container = el("div");
+    const link = "https://v.redd.it/"+id;
+
+    const audio = el("audio").adto(container);
+    el("source").attr({src: link+"/DASH_audio.mp4", type: "video/mp4"}).adto(audio);
+    el("source").attr({src: link+"/audio", type: "video/mp4"}).adto(audio);
+
+    const video = el("video").attr({controls: ""}).clss("preview-image").adto(el("div").adto(container));
+    el("source").attr({src: link+"/DASH_720.mp4", type: "video/mp4"}).adto(video);
+    el("source").attr({src: link+"/DASH_720", type: "video/mp4"}).adto(video);
+    el("source").attr({src: link+"/DASH_480.mp4", type: "video/mp4"}).adto(video);
+    el("source").attr({src: link+"/DASH_480", type: "video/mp4"}).adto(video);
+    el("source").attr({src: link+"/DASH_360.mp4", type: "video/mp4"}).adto(video);
+    el("source").attr({src: link+"/DASH_360", type: "video/mp4"}).adto(video);
+    el("source").attr({src: link+"/DASH_240.mp4", type: "video/mp4"}).adto(video);
+    el("source").attr({src: link+"/DASH_240", type: "video/mp4"}).adto(video);
+    el("source").attr({src: link+"/HLSPlaylist.m3u8", type: "application/x-mpegURL"}).adto(video);
+
+    const speaker_icons = ["🔇", "🔈", "🔊"];
+    const btnarea = el("div").adto(container).styl({display: "flex"});
+    const mutebtn = el("button").adto(btnarea);
+    const muteicn = txt(speaker_icons[2]).adto(mutebtn);
+    const slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
+    const upslider = () => slider.value = "" + (audio.volume * 100);
+    let mute_backv: undefined | number;
+    const upbtn = () => {
+        if(mute_backv === undefined) {
+            if(audio.volume < 0.2) {
+                muteicn.nodeValue = speaker_icons[1];
+            }else {
+                muteicn.nodeValue = speaker_icons[2];
+            }
+        }else{
+            muteicn.nodeValue = speaker_icons[0];
+        }
+    };
+    upslider();
+    slider.oninput = () => {
+        audio.volume = (+slider.value) / 100;
+        mute_backv = undefined;
+        upbtn();
+    };
+    mutebtn.onclick = () => {
+        if(mute_backv === undefined) {
+            mute_backv = audio.volume;
+            audio.volume = 0;
+        }else{
+            audio.volume = mute_backv;
+            mute_backv = undefined;
+        }
+        upslider();
+        upbtn();
+    };
+
+    // TODO:
+    // - proper sync accounting for audio buffering
+    // - custom player:
+    //   - audio volume controls
+    //   - /DASH_96.mp4 preview when hovering the scrubber bar
+
+    const sync = () => {
+        audio.currentTime = video.currentTime;
+        audio.playbackRate = video.playbackRate;
+    };
+    video.onplay = () => {
+        sync();
+        audio.play();
+    };
+    video.onplaying = () => {
+        sync();
+        audio.play();
+    };
+    video.onseeking = () => sync();
+    video.ontimeupdate = () => {
+        if(!video.paused) return;
+        sync();
+    };
+    video.onpause = () => {
+        audio.pause();
+        sync();
+    };
+
+    let playing_before_hide = false;
+
+    const hsc = hideshow(container);
+    hsc.on("hide", () => {
+        playing_before_hide = !video.paused;
+        video.pause();
+    });
+    hsc.on("show", () => {
+        if(playing_before_hide) video.play();
+    });
+    return hsc;
+}
 function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
     let url_mut: URL | undefined;
     try { 
@@ -180,99 +275,16 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         return hsc;
     };
     if(link.startsWith("https://v.redd.it/")) return (): HideShowCleanup<Node> => {
-        const container = el("div");
-
-        const audio = el("audio").adto(container);
-        el("source").attr({src: link+"/DASH_audio.mp4", type: "video/mp4"}).adto(audio);
-        el("source").attr({src: link+"/audio", type: "video/mp4"}).adto(audio);
-
-        const video = el("video").attr({controls: ""}).clss("preview-image").adto(el("div").adto(container));
-        el("source").attr({src: link+"/DASH_720.mp4", type: "video/mp4"}).adto(video);
-        el("source").attr({src: link+"/DASH_720", type: "video/mp4"}).adto(video);
-        el("source").attr({src: link+"/DASH_480.mp4", type: "video/mp4"}).adto(video);
-        el("source").attr({src: link+"/DASH_480", type: "video/mp4"}).adto(video);
-        el("source").attr({src: link+"/DASH_360.mp4", type: "video/mp4"}).adto(video);
-        el("source").attr({src: link+"/DASH_360", type: "video/mp4"}).adto(video);
-        el("source").attr({src: link+"/DASH_240.mp4", type: "video/mp4"}).adto(video);
-        el("source").attr({src: link+"/DASH_240", type: "video/mp4"}).adto(video);
-        el("source").attr({src: link+"/HLSPlaylist.m3u8", type: "application/x-mpegURL"}).adto(video);
-
-        const speaker_icons = ["🔇", "🔈", "🔊"];
-        const btnarea = el("div").adto(container).styl({display: "flex"});
-        const mutebtn = el("button").adto(btnarea);
-        const muteicn = txt(speaker_icons[2]).adto(mutebtn);
-        const slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
-        const upslider = () => slider.value = "" + (audio.volume * 100);
-        let mute_backv: undefined | number;
-        const upbtn = () => {
-            if(mute_backv === undefined) {
-                if(audio.volume < 0.2) {
-                    muteicn.nodeValue = speaker_icons[1];
-                }else {
-                    muteicn.nodeValue = speaker_icons[2];
-                }
-            }else{
-                muteicn.nodeValue = speaker_icons[0];
-            }
-        };
-        upslider();
-        slider.oninput = () => {
-            audio.volume = (+slider.value) / 100;
-            mute_backv = undefined;
-            upbtn();
-        };
-        mutebtn.onclick = () => {
-            if(mute_backv === undefined) {
-                mute_backv = audio.volume;
-                audio.volume = 0;
-            }else{
-                audio.volume = mute_backv;
-                mute_backv = undefined;
-            }
-            upslider();
-            upbtn();
-        };
-
-        // TODO:
-        // - proper sync accounting for audio buffering
-        // - custom player:
-        //   - audio volume controls
-        //   - /DASH_96.mp4 preview when hovering the scrubber bar
-
-        const sync = () => {
-            audio.currentTime = video.currentTime;
-            audio.playbackRate = video.playbackRate;
-        };
-        video.onplay = () => {
-            sync();
-            audio.play();
-        };
-        video.onplaying = () => {
-            sync();
-            audio.play();
-        };
-        video.onseeking = () => sync();
-        video.ontimeupdate = () => {
-            if(!video.paused) return;
-            sync();
-        };
-        video.onpause = () => {
-            audio.pause();
-            sync();
-        };
-
-        let playing_before_hide = false;
-
-        const hsc = hideshow(container);
-        hsc.on("hide", () => {
-            playing_before_hide = !video.paused;
-            video.pause();
-        });
-        hsc.on("show", () => {
-            if(playing_before_hide) video.play();
-        });
-        return hsc;
+        return previewVreddit(link.replace("https://v.redd.it/", ""), {autoplay: opts.autoplay});
     };
+    if(link.startsWith("https://reddit.com/link/")) {
+        const pathsplit = path.split("/");
+        pathsplit.shift();
+        // /link/:postname/video/:videoid/player
+        if(pathsplit[0] === "link" && pathsplit[2] === "video" && pathsplit[4] === "player") return (): HideShowCleanup<Node> => {
+            return previewVreddit(pathsplit[3], {autoplay: opts.autoplay});
+        };
+    }
     if(path.endsWith(".mp4") || path.endsWith(".webm")) return (): HideShowCleanup<Node> => {
         const src = el("source").attr({src: link});
         const video = el("video").attr({controls: ""}).clss("preview-image").adch(src);
@@ -905,6 +917,9 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         let playing_before_hide = !vid.paused;
         hsc.on("hide", () => {playing_before_hide = !vid.paused; vid.pause()});
         hsc.on("show", () => {if(playing_before_hide) vid.play();});
+        if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
+    }else if(body.kind === "vreddit_video") {
+        previewVreddit(body.id, {autoplay: false}).defer(hsc).adto(content);
         if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "array") {
         for(const v of body.body) {
