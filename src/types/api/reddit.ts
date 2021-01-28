@@ -79,7 +79,7 @@ export type Media = BaseMedia & ({
     ext?: string, // external link, eg giphy.com/…
     m: string, // eg image/gif
 
-    p?: AnimatedImageMeta[], // alternate sizes
+    p?: ImageMeta[], // alternate sizes
     s: AnimatedImageMeta, // source size
 } | {
     e: "RedditVideo",
