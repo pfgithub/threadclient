@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const experimental_utils_1 = require("@typescript-eslint/experimental-utils");
-const util = __importStar(require("@typescript-eslint/eslint-plugin/dist/util/index"));
+const util = __importStar(require("@typescript-eslint/eslint-plugin/dist/util"));
 const definition = {
     type: "object",
     properties: {
