@@ -25,6 +25,8 @@ all todo:
 -   [x] add eslint
 -   [x] make pwa
 -   [x] eslint disallow shadowing
+-   [x] maybe? eslint strict booleans in ifs and stuff
+-   [x] eslint formatting
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] proper, non-hacky way to auto disable darkreader extension
@@ -32,9 +34,7 @@ all todo:
 -   [ ] a button to switch to markdown source view (uh oh what if the comment doesn't have any markdown source…)
 -   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
--   [ ] eslint formatting
 -   [ ] eslint strict promise error handling
--   [ ] maybe? eslint strict booleans in ifs and stuff
 -   [ ] simplify css to have less `>` selectors and more classes added by js
 -   [ ] fix youtube embeds causing horizontal scrolling on mobile
 -   [ ] improve appearence of very indented comments on mobile
