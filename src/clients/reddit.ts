@@ -489,6 +489,7 @@ const deleteButton = (fullname: string): Generic.Action => {
         data: encodeDeleteAction(fullname),
     };
 };
+const as = <T>(a: T): T => a;
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
     options.force_expand ??= "closed";
@@ -645,8 +646,17 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             thumbnail: options.force_expand === "crosspost"
                 ? undefined
                 : listing.preview?.images?.[0]?.resolutions?.[0]?.url != null
-                ? {url: listing.preview.images[0].resolutions[0].url}
-                : {url: listing.thumbnail ?? "none"}
+                ? {kind: "image", url: listing.preview.images[0].resolutions[0].url}
+                : listing.thumbnail == null
+                ? undefined
+                : listing.thumbnail.includes("/")
+                ? {kind: "image", url: listing.thumbnail}
+                // : listing.gallery_data // new.reddit has this but old.reddit doesn't
+                // ? {kind: "default", thumb: "gallery"}
+                : {kind: "default", thumb: (as<{[key: string]: Generic.ThumbType}>({
+                    self: "self", default: "default", image: "image",
+                    spoiler: "spoiler", nsfw: "nsfw", account: "account",
+                }))[listing.thumbnail] ?? "error"}
             ,
             layout: "reddit-post",
             info: {

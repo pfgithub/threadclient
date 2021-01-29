@@ -1455,18 +1455,16 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         const content = el("div");
 
         if(listing.thumbnail) {
-            if(listing.thumbnail.url === "none" || listing.thumbnail.url === "") {
-                thumbnail_loc.classList.add("no-thumbnail");
-            }else if(listing.thumbnail.url === "self") {
-                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-self"));
-            }else if(listing.thumbnail.url === "default") {
-                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-default"));
-            }else if(listing.thumbnail.url === "image") {
-                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-image"));
-            }else {
+            if(listing.thumbnail.kind === "image") {
                 thumbnail_loc.adch(el("img").attr({src: listing.thumbnail.url}));
                 if(content_warnings.length) thumbnail_loc.clss("thumbnail-content-warning");
-            }
+            }else if(listing.thumbnail.kind === "default") {
+                const thumbimg: string = {
+                    self: "self", default: "default", image: "image", spoiler: "spoiler",
+                    nsfw: "nsfw", account: "account", error: "error"
+                }[listing.thumbnail.thumb];
+                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-" + thumbimg));
+            }else assertNever(listing.thumbnail);
         }
 
         const body_hsc = hideshow();

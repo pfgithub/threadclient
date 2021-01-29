@@ -307,6 +307,18 @@ button:disabled {
     &.thumbnail-default {
         background-position: 0px -1099px;
     }
+    &.thumbnail-spoiler {
+        background-position: 0px -1211px;
+    }
+    &.thumbnail-nsfw {
+        background-position: 0px -1155px;
+    }
+    &.thumbnail-account {
+        background-position: 0px -1211px;
+    }
+    &.thumbnail-error {
+        background: red;
+    }
 }
 
 .post.layout-commentlike {

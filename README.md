@@ -28,6 +28,7 @@ all todo:
 -   [x] maybe? eslint strict booleans in ifs and stuff
 -   [x] eslint formatting
 -   [x] eslint strict promise error handling
+-   [ ] eslint `@typescript-eslint/restrict-plus-operands`
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] proper, non-hacky way to auto disable darkreader extension

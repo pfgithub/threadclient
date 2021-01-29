@@ -130,12 +130,17 @@ export type Body = BodyText | RichText | {
     body: (Body | undefined)[],
 };
 export type GalleryItem = {body: Body, thumb: string, w: number | null | undefined, h: number | null | undefined};
+export type ThumbType = "self" | "default" | "image" | "spoiler" | "error" | "nsfw" | "account";
 export type Thread = {
     kind: "thread",
 
     body: Body,
     thumbnail?: {
+        kind: "image",
         url: string,
+    } | {
+        kind: "default",
+        thumb: ThumbType,
     },
     display_mode: {
         body: "visible" | "collapsed",
