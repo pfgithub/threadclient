@@ -19,9 +19,11 @@ module.exports = {
         "@typescript-eslint/ban-ts-comment": "off",
         "@typescript-eslint/no-unused-vars": ["warn", {args: "none"}],
         "@typescript-eslint/no-namespace": ["error", {allowDeclarations: true}],
+        "@typescript-eslint/no-non-null-assertion": "off",
 
         // stricter linting rules:
         "@typescript-eslint/no-shadow": "warn",
+        "eqeqeq": ["warn", "always", {null: "never"}],
 
         // style rules:
         "indent": ["warn", 4, {'SwitchCase': 1, 'offsetTernaryExpressions': true, 'ignoredNodes': ["ConditionalExpression"]}],
@@ -56,6 +58,7 @@ module.exports = {
                 {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase"], prefix: ["__"], filter: {regex: "^__", match: true}},
                 {selector: "typeLike", format: ["PascalCase"]},
             ],
+            "@typescript-eslint/strict-boolean-expressions": "warn",
         }
     }],
 };

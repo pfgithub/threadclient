@@ -157,7 +157,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
 }
 function richtextTableHeading(tbh: Reddit.Richtext.TableHeading, opt: RichtextFormattingOptions): Generic.Richtext.TableHeading {
     return {
-        align: tbh.a ? ({'L': "left", 'C': "center", 'R': "right"} as const)[tbh.a] : undefined,
+        align: tbh.a != null ? ({'L': "left", 'C': "center", 'R': "right"} as const)[tbh.a] : undefined,
         children: richtextSpanArray(tbh.c, opt),
     };
 }
@@ -208,6 +208,7 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
         case "raw": return [{kind: "text", text: rtd.t, styles: {}}];
         case "gif": {
             const meta = opt.media_metadata[rtd.id];
+            if(!meta) return richtextError("Missing media id "+rtd.id, JSON.stringify(meta));
             if(meta.e !== "AnimatedImage") return richtextError("Unsupported "+meta.e, JSON.stringify(meta));
             if(meta.status !== "valid") return richtextError("Bad status "+meta.status, JSON.stringify(meta));
             return [
@@ -244,7 +245,9 @@ function richtextStyle(style: number): Generic.Richtext.Style {
 }
 
 const isLoggedIn = (): boolean => {
-    return !!localStorage.getItem("reddit-secret");
+    const item = localStorage.getItem("reddit-secret");
+    if(item == null || item === "") return false;
+    return true;
 };
 
 const baseURL = () => {
@@ -277,9 +280,15 @@ const pathURL = (path: string) => {
 
 const getAccessToken = async () => {
     const data = localStorage.getItem("reddit-secret");
-    if(!data) return null;
-    const json = JSON.parse(data);
+    if(data === "" || data == null) return null;
+    const json = JSON.parse(data) as {
+        access_token: string,
+        expires: number,
+        refresh_token: string,
+        scope: string,
+    };
     console.log(json.expires, Date.now());
+    // TODO rather than relying on the system clock, update the token if a request returns a old token error
     if(json.expires < Date.now()) {
         // refresh token
         console.log("Token expired, refreshing…");
@@ -291,7 +300,12 @@ const getAccessToken = async () => {
             },
             body: encodeURL`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
         }).then(async (res) => {
-            return [res.status, await res.json()] as const;
+            return [res.status, await res.json() as {
+                access_token: string,
+                refresh_token?: string,
+                expires_in: number,
+                scope: string,
+            } | {error: string}] as const;
         });
         if(status !== 200) {
             console.log("Error! got", v, "with status code", status);
@@ -303,7 +317,7 @@ const getAccessToken = async () => {
         }
         const res_data = {
             access_token: v.access_token,
-            refresh_token: v.refresh_token || json.refresh_token,
+            refresh_token: v.refresh_token ?? json.refresh_token,
             expires: Date.now() + (v.expires_in * 1000),
             scope: v.scope,
         };
@@ -317,18 +331,18 @@ const getAccessToken = async () => {
 
 const getAuthorization = async () => {
     const access_token = await getAccessToken();
-    if(!access_token) return "";
+    if(access_token == null) return "";
     return "Bearer "+access_token;
 };
 
 const splitURL = (path: string): [string, URLSearchParams] => {
     const [pathname, ...query] = path.split("?");
-    return [pathname, new URLSearchParams(query.join("?"))];
+    return [pathname ?? "", new URLSearchParams(query.join("?"))];
 };
 const updateQuery = (path: string, update: {[key: string]: string | undefined}) => {
     const [pathname, query] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
-        if(v) query.set(k, v);
+        if(v != null) query.set(k, v);
         else query.delete(k);
     }
     return pathname + "?" + query.toString();
@@ -338,11 +352,12 @@ const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | R
 
     if(Array.isArray(listing)) {
         let link_fullname: string | undefined;
-        if(listing[0].data.children[0].kind === "t3") {
-            link_fullname = listing[0].data.children[0].data.name;
+        const firstchild = listing[0].data.children[0]!;
+        if(firstchild.kind === "t3") {
+            link_fullname = firstchild.data.name;
         }
         return {
-            header: threadFromListing(listing[0].data.children[0], {force_expand: "open", show_post_reply_button: true}, path) as Generic.Thread,
+            header: threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, path) as Generic.Thread,
             replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, path)),
             display_style: "comments-view",
         };
@@ -405,10 +420,10 @@ const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | R
     }
 
     const replies = listing.data.children.map(child => threadFromListing(child, undefined, path));
-    if(listing.data.before) {
+    if(listing.data.before != null) {
         // TODO?
     }
-    if(listing.data.after) {
+    if(listing.data.after != null) {
         const next_path = updateQuery(path, {before: undefined, after: listing.data.after});
         replies.push({kind: "load_more", load_more: next_path, count: undefined, raw_value: listing});
     }
@@ -444,7 +459,7 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
         you: listing.likes === true ? "increment" : listing.likes === false ? "decrement" : undefined,
 
         percent: listing.upvote_ratio,
-        actions: listing.archived ? {error: "archived <6mo"} : isLoggedIn() ? {
+        actions: listing.archived ?? false ? {error: "archived <6mo"} : isLoggedIn() ? {
             increment: encodeVoteAction({...vote_data, dir: "1"}),
             decrement: encodeVoteAction({...vote_data, dir: "-1"}),
             reset: encodeVoteAction({...vote_data, dir: "0"}),
@@ -467,13 +482,13 @@ const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, p
             default_collapsed: false,
         };
     }
-}
+};
 const deleteButton = (fullname: string): Generic.Action => {
     return {
         kind: "delete",
         data: encodeDeleteAction(fullname),
     };
-}
+};
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
     options.force_expand ??= "closed";
@@ -493,7 +508,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
 
         const result: Generic.Node = {
             kind: "thread",
-            body: is_deleted
+            body: is_deleted != null
                 ? {kind: "removed", by: is_deleted,
                     fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
                 } : {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})},
@@ -564,13 +579,13 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 ...extra_flairs,
                 ...awardingsToFlair(listing.all_awardings ?? []),
             ],
-            body: is_deleted
+            body: is_deleted != null
                 ? {kind: "removed", by: is_deleted,
                     fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
                 }
                 : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
                 ? {kind: "crosspost", source:
-                    threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]}, {force_expand: "crosspost"}, listing.permalink) as Generic.Thread
+                    threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]!}, {force_expand: "crosspost"}, listing.permalink) as Generic.Thread
                 }
                 : listing.is_self
                 ? listing.rtjson.document.length
@@ -584,9 +599,9 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     if(moreinfo.status !== "valid") throw new Error("unsupported status in gallery "+gd.media_id);
                     if(moreinfo.e === "Image") {
                         const res: Generic.GalleryItem = {
-                            thumb: moreinfo.p[0].u ?? "error",
-                            w: moreinfo.p[0].x,
-                            h: moreinfo.p[0].y,
+                            thumb: moreinfo.p[0]!.u ?? "error",
+                            w: moreinfo.p[0]!.x,
+                            h: moreinfo.p[0]!.y,
                             body: {
                                 kind: "captioned_image",
                                 url: moreinfo.s.u ?? "error",
@@ -599,9 +614,9 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     }
                     if(moreinfo.e === "AnimatedImage") {
                         const res: Generic.GalleryItem = {
-                            thumb: moreinfo.p![0].u ?? "error",
-                            w: moreinfo.p![0].x,
-                            h: moreinfo.p![0].y,
+                            thumb: moreinfo.p![0]!.u ?? "error",
+                            w: moreinfo.p![0]!.x,
+                            h: moreinfo.p![0]!.y,
                             body: {
                                 kind: "video",
                                 url: moreinfo.s.mp4 ?? moreinfo.s.gif,
@@ -629,7 +644,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             link: listing.permalink,
             thumbnail: options.force_expand === "crosspost"
                 ? undefined
-                : listing.preview?.images?.[0]?.resolutions?.[0]?.url
+                : listing.preview?.images?.[0]?.resolutions?.[0]?.url != null
                 ? {url: listing.preview.images[0].resolutions[0].url}
                 : {url: listing.thumbnail ?? "none"}
             ,
@@ -647,7 +662,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 },
                 pinned: listing.stickied,
             },
-            actions: [options.show_post_reply_button ? {
+            actions: [options.show_post_reply_button ?? false ? {
                 kind: "reply",
                 text: "Reply",
                 reply_info: encodeReplyInfo({parent_id: listing.name}),
@@ -691,7 +706,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         for(const batch of batches) {
             const envy: Generic.LoadMore = {
                 kind: "load_more",
-                load_more: options.link_fullname
+                load_more: options.link_fullname != null
                     ? "/api/morechildren?api_type=json&limit_children=false&children="+batch.join(",")+"&link_id="+options.link_fullname
                     : "Error: No link fullname provided."
                 ,
@@ -759,7 +774,8 @@ export const client: ThreadClient = {
             });
 
             return pageFromListing(path, listing);
-        }catch(e) {
+        }catch(err_raw) {
+            const e = err_raw as Error;
             console.log(e);
             const is_networkerror = e.toString().includes("NetworkError");
             
@@ -795,7 +811,7 @@ export const client: ThreadClient = {
         const code = query_param.get("code");
         const state = query_param.get("state");
 
-        if(!code || !state) {
+        if(code == null || state == null) {
             throw new Error("No login requested");
         }
         if(state !== location.host) {
@@ -841,24 +857,27 @@ export const client: ThreadClient = {
             console.log(status, res);
             throw new Error("Post was deleted before it could be saved:.");
         }
-        if(res.data[0].selftext === "[deleted]"
-            || res.data[0].selftext === "[removed]"
-            || res.data[0].body === "[deleted]"
-            || res.data[0].body === "[removed]"
+        const item = res.data[0]!;
+        if(item.selftext === "[deleted]"
+            || item.selftext === "[removed]"
+            || item.body === "[deleted]"
+            || item.body === "[removed]"
         ) {
             throw new Error("Post was deleted before it could be saved.");
         }
-        if(res.data[0].selftext) {
+        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        if(item.selftext) {
             return {
                 kind: "text",
-                content: res.data[0].selftext,
+                content: item.selftext,
                 markdown_format: "reddit",
             };
         }
-        if(res.data[0].body) {
+        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        if(item.body) {
             return {
                 kind: "text",
-                content: res.data[0].body,
+                content: item.body,
                 markdown_format: "reddit",
             };
         }
@@ -925,6 +944,7 @@ export const client: ThreadClient = {
         const richtext_json: Reddit.Richtext.Document = {
             document: [{e: "par", c: [{e: "text", t: md}]}],
         };
+        console.log("richtext json (unused)", richtext_json);
         const body: {
             api_type: "json",
             thing_id: string,

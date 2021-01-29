@@ -189,8 +189,8 @@ const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Ge
             thread.replies.push(nextv);
             nextv = undefined;
         }
-        if(post.in_reply_to_id) {
-            if(posts[i + 1]?.id == post.in_reply_to_id) {
+        if(post.in_reply_to_id != null) {
+            if(posts[i + 1]?.id === post.in_reply_to_id) {
                 nextv = thread;
                 return [];
             }
@@ -294,19 +294,19 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         raw_value: post,
         replies: opts.replies,
     };
-    if((opts.include_parentlink ?? false) && post.in_reply_to_id) {
+    if((opts.include_parentlink ?? false) && post.in_reply_to_id != null) {
         res = wrapWithParentLink(res, host, post.in_reply_to_id);
     }
     return res;
 };
 const splitURL = (path: string): [string, URLSearchParams] => {
     const [pathname, ...query] = path.split("?");
-    return [pathname, new URLSearchParams(query.join("?"))];
+    return [pathname ?? "", new URLSearchParams(query.join("?"))];
 };
 const updateQuery = (path: string, update: {[key: string]: string | undefined}) => {
     const [pathname, query] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
-        if(v) query.set(k, v);
+        if(v != null) query.set(k, v);
         else query.delete(k);
     }
     return pathname + "?" + query.toString();
@@ -342,7 +342,7 @@ const lsgetter = <T>(namegtr: (host: string) => string): {
         get(host): undefined | T {
             if(!host) return undefined;
             const rtxt = localStorage.getItem(namegtr(host));
-            if(!rtxt) return undefined;
+            if(rtxt == null || rtxt === "") return undefined;
             return JSON.parse(rtxt) as T;
 
         },
@@ -380,7 +380,7 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
     const authv = lsitems.token.get(host) ?? lsitems.client_creds.get(host);
     if(!authv) {
         const appraw = lsitems.app.get(host);
-        if(!appraw || lsitems.client_did_error.get(host)) return undefined;
+        if(!appraw || (lsitems.client_did_error.get(host) ?? false)) return undefined;
 
         const {data: app} = appraw;
 
@@ -416,14 +416,14 @@ export const client: ThreadClient = {
     links: () => [],
     isLoggedIn: (pathraw: string) => {
         const [, host] = pathraw.split("/");
-        if(!host) return false;
+        if(host == null) return false;
         return isLoggedIn(host);
     },
     loginURL: async (pathraw: string): Promise<string> => {
 
         const pathsplit = pathraw.split("/");
         const [, host] = pathsplit;
-        if(!host) throw new Error("can't login without selecting host first");
+        if(host == null) throw new Error("can't login without selecting host first");
 
         const preapp = lsitems.app.get(host);
         if(preapp) {
@@ -455,9 +455,9 @@ export const client: ThreadClient = {
     },
     login: async (path, query) => {
         if(path.length !== 2) throw new Error("bad login");
-        const [, host] = path;
+        const host = path[1]!;
         const code = query.get("code");
-        if(!code) throw new Error("missing code");
+        if(code == null) throw new Error("missing code");
 
         const appv = lsitems.app.get(host);
         if(!appv) {
@@ -496,17 +496,18 @@ export const client: ThreadClient = {
         const afterquery = afterquery_raw ?? "";
         const pathsplit = beforequery.split("/");
         if(pathsplit.length < 2) return error404();
-        const [, host, ...path] = pathsplit;
+        const [, host_raw, ...path] = pathsplit;
+        const host = host_raw!;
         
         const auth = await getAuth(host);
         
-        const path0 = path.shift();
+        const path0 = path.shift()!;
         if(!path0) return error404();
         if(path0 === "timelines") {
             return await timelineView(host, auth, "/api/v1/"+["timelines", ...path].join("/")+"?"+afterquery, "/"+["timelines", ...path].join("/")+"?"+afterquery, genericHeader());
         }else if(path0 === "statuses") {
             const postid = path.shift();
-            if(!postid) return error404();
+            if(postid == null) return error404();
             const [postinfo, context] = await Promise.all([
                 getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", postid)),
                 getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", postid, "context")),
@@ -526,7 +527,7 @@ export const client: ThreadClient = {
             return res;
         }else if(path0 === "accounts") {
             const acc_id = path.shift();
-            if(!acc_id) return error404();
+            if(acc_id == null) return error404();
             const [account_info, account_relations] = await Promise.all([
                 getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id)),
                 getResult<Mastodon.AccountRelation[]>(auth, mkurl(host, "api/v1/accounts/relationships/?id[]="+acc_id)),
@@ -551,9 +552,9 @@ export const client: ThreadClient = {
                     incremented_label: "Following",
                     count_excl_you: account_info.followers_count === -1
                         ? "hidden"
-                        : account_info.followers_count + (relation?.following ? -1 : 0)
+                        : account_info.followers_count + (relation?.following ?? false ? -1 : 0)
                     ,
-                    you: relation?.following ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
+                    you: relation?.following ?? false ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
 
                     actions: {
                         increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),

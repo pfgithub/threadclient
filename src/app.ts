@@ -136,7 +136,11 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, 
     const start_code = search.get("t") ?? search.get("start") ?? undefined;
     const yt_player = el("iframe").attr({
         allow: "fullscreen",
-        src: "https://www.youtube.com/embed/"+youtube_video_id+"?version=3&enablejsapi=1&playerapiid=ytplayer"+(opts.autoplay ? "&autoplay=1" : "")+(start_code ? "&start="+start_code : ""),
+        src: "https://www.youtube.com/embed/"
+            +youtube_video_id+"?version=3&enablejsapi=1&playerapiid=ytplayer"
+            +(opts.autoplay ? "&autoplay=1" : "")
+            +(start_code != null ? "&start="+start_code : "")
+        ,
     });
     return {node: el("div").clss("resizable-iframe").styl({width: "640px", height: "360px"}).adch(yt_player), onhide: () => {
         yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
@@ -161,7 +165,7 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     el("source").attr({src: link+"/DASH_240", type: "video/mp4"}).adto(video);
     el("source").attr({src: link+"/HLSPlaylist.m3u8", type: "application/x-mpegURL"}).adto(video);
 
-    const speaker_icons = ["🔇", "🔈", "🔊"];
+    const speaker_icons = ["🔇", "🔈", "🔊"] as const;
     const btnarea = el("div").adto(container).styl({display: "flex"});
     const mutebtn = el("button").adto(btnarea);
     const muteicn = txt(speaker_icons[2]).adto(mutebtn);
@@ -285,7 +289,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         pathsplit.shift();
         // /link/:postname/video/:videoid/player
         if(pathsplit[0] === "link" && pathsplit[2] === "video" && pathsplit[4] === "player") return (): HideShowCleanup<Node> => {
-            return previewVreddit(pathsplit[3], {autoplay: opts.autoplay});
+            return previewVreddit(pathsplit[3] ?? "", {autoplay: opts.autoplay});
         };
     }
     if(path.endsWith(".mp4") || path.endsWith(".webm")) return (): HideShowCleanup<Node> => {
@@ -310,7 +314,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     };
     if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
         const ytvid_id = url.searchParams.get("v");
-        if(ytvid_id) return ytvid(ytvid_id, url.searchParams);
+        if(ytvid_id != null) return ytvid(ytvid_id, url.searchParams);
     }
     if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
         const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
@@ -327,14 +331,13 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         // TODO: onhide delete, onshow recreate. no need to store imgur iframes forever.
         return hsc;
     };
-    if(opts.suggested_embed) return (): HideShowCleanup<Node> => {
+    if(opts.suggested_embed != null) return (): HideShowCleanup<Node> => {
         try {
             // const parser = new DOMParser();
             // const doc = parser.parseFromString(opts.suggested_embed, "text/html");
             // const iframe = doc.childNodes[0].childNodes[1].childNodes[0];
             const template_el = el("template");
-            if(!opts.suggested_embed) throw new Error("opts was changed between first and second call");
-            template_el.innerHTML = opts.suggested_embed;
+            template_el.innerHTML = opts.suggested_embed!;
             const iframe_unsafe = template_el.content.childNodes[0] as HTMLIFrameElement;
 
             console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
@@ -387,7 +390,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
             return;
         }
         const index = state.index;
-        const selimg = images[index];
+        const selimg = images[index]!;
         const ref: {current?: HTMLDivElement} = {};
         uhtml.render(container, htmlr`
             <button onclick=${() => setState({index: index - 1})} disabled=${index <= 0 ? "" : undefined}>Prev</button>
@@ -415,8 +418,8 @@ function renderFlair(flairs: Generic.Flair[]) {
     for(const flair of flairs) {
         const flairv = el("span").clss("flair");
         resl.atxt(" ");
-        if(flair.color) flairv.styl({"--flair-color": flair.color, "--flair-color-dark": flair.color});
-        if(flair.fg_color) flairv.clss("flair-text-"+flair.fg_color);
+        if(flair.color != null) flairv.styl({"--flair-color": flair.color, "--flair-color-dark": flair.color});
+        if(flair.fg_color != null) flairv.clss("flair-text-"+flair.fg_color);
         for(const flairelem of flair.elems) {
             if(flairelem.type === "text") {
                 flairv.atxt(flairelem.text);
@@ -431,7 +434,7 @@ function renderFlair(flairs: Generic.Flair[]) {
 
 function s(number: number, text: string) {
     if(!text.endsWith("s")) throw new Error("!s");
-    if(number == 1) return number + text.substring(0, text.length - 1);
+    if(number === 1) return number + text.substring(0, text.length - 1);
     return number + text;
 }
 
@@ -730,19 +733,19 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
                 outer.adch(mainel);
                 mainel = outer;
             };
-            if(rts.styles.code) wrap(el("code"));
-            if(rts.styles.emphasis) wrap(el("i"));
-            if(rts.styles.error) wrap(el("span").clss("error").attr({title: rts.styles.error}));
-            if(rts.styles.strikethrough) wrap(el("s"));
-            if(rts.styles.strong) wrap(el("b"));
-            if(rts.styles.superscript) wrap(el("sup"));
+            if(rts.styles.code ?? false) wrap(el("code"));
+            if(rts.styles.emphasis ?? false) wrap(el("i"));
+            if(rts.styles.error != null) wrap(el("span").clss("error").attr({title: rts.styles.error}));
+            if(rts.styles.strikethrough ?? false) wrap(el("s"));
+            if(rts.styles.strong ?? false) wrap(el("b"));
+            if(rts.styles.superscript ?? false) wrap(el("sup"));
 
             mainel.atxt(rts.text);
             mainel.adto(container);
         } break;
         case "link": {
             const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
-            if(rts.title) newbtn.title = rts.title;
+            if(rts.title != null) newbtn.title = rts.title;
             for(const child of rts.children) {
                 renderRichtextSpan(client, child, newbtn).defer(hsc);
             }
@@ -823,7 +826,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             for(const row of rtp.children) {
                 const rowr = el("tr").adto(tbody);
                 row.forEach((col, i) => {
-                    const align = rtp.headings[i].align;
+                    const align = rtp.headings[i]!.align;
                     const td = el("td").adto(rowr).attr({align});
                     for(const child of col.children) {
                         renderRichtextSpan(client, child, td).defer(hsc);
@@ -903,17 +906,16 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         }
     }else if(body.kind === "captioned_image") {
         zoomableImage(body.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
-        if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
+        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "video") {
-        if(!body.url) {
-            if(!body.url_backup_image) {
+        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
+        if(body.url == null) {
+            if(body.url_backup_image == null) {
                 el("div").clss("error").atxt("missing stuff?? ?? :: "+JSON.stringify(body));
-                if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
 
                 return hsc;
             }
             zoomableImage(body.url_backup_image, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
-            if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
 
             return hsc;
         }
@@ -928,10 +930,9 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         let playing_before_hide = !vid.paused;
         hsc.on("hide", () => {playing_before_hide = !vid.paused; vid.pause()});
         hsc.on("show", () => {if(playing_before_hide) vid.play();});
-        if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "vreddit_video") {
+        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
         previewVreddit(body.id, {autoplay: false}).defer(hsc).adto(content);
-        if(body.caption) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "array") {
         for(const v of body.body) {
             if(!v) continue;
@@ -945,7 +946,8 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
 
 function getButton(e: PointerEvent) {
     // ??? what is this why is it weird
-    return [1, 4, 2, 8, 16][e.button];
+    // I have no idea what this function does
+    return [1, 4, 2, 8, 16][e.button] ?? 32;
 }
 export function startDragWatcher(
     start_event: PointerEvent,
@@ -1009,7 +1011,7 @@ function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string})
         res.styl({transform: "scale("+scale+")"});
     };
     const getOffset = (start_ev: PointerEvent, e: PointerEvent) => {
-        const diff = [e.clientX - start_ev.clientX, e.clientY - start_ev.clientY];
+        const diff = [e.clientX - start_ev.clientX, e.clientY - start_ev.clientY] as const;
         return diff[0] + diff[1];
     };
     // ideally on mobile make this enter fullscreen. unfortunately, ios safari.
@@ -1264,11 +1266,11 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         });
     };
 
-    if(action.decremented_label) {
+    if(action.decremented_label != null) {
         pretxt.nodeValue = "⯅ ";
         wrapper.atxt(" ");
         decr_button = linkLikeButton().adch(el("span").atxt("⯆")).adto(wrapper).onev("click", () => {
-            if(state.your_vote == "decrement") {
+            if(state.your_vote === "decrement") {
                 doAct(undefined);
             }else{
                 doAct("decrement");
@@ -1276,7 +1278,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         }).clss("counter-decrement-btn");
     }
     button.onev("click", e => {
-        if(state.your_vote == "increment") {
+        if(state.your_vote === "increment") {
             doAct(undefined);
         }else{
             doAct("increment");
@@ -1439,7 +1441,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         }
     }
 
-    if(listing.body) {
+    {
         const content = el("div");
 
         if(listing.thumbnail) {
@@ -1552,7 +1554,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
             return;
         }
         let futureadd: undefined | Generic.Node;
-        if(allow_threading && child_listing.replies?.length == 1) {
+        if(allow_threading && child_listing.replies?.length === 1) {
             futureadd = child_listing.replies[0];
             child_listing.replies = [];
         }
@@ -1588,7 +1590,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
 
         client.getThread(load_more_node.load_more).then(res => {
             current_node.remove();
-            if(load_more_node.includes_parent && res.replies && res.replies.length === 1) {
+            if((load_more_node.includes_parent ?? false) && res.replies && res.replies.length === 1) {
                 res.replies = (res.replies[0] as Generic.Thread).replies ?? [];
             }
             if(res.replies) res.replies.forEach(rply => addChild(rply));
@@ -1601,7 +1603,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
         });
     }});
 
-    let current_node: ChildNode = makeButton().atxt(load_more_node.count ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container).clss("load-more");
+    let current_node: ChildNode = makeButton().atxt(load_more_node.count != null ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container).clss("load-more");
 
     container.atxt(" ");
     linkLikeButton().onev("click", e => {
@@ -1707,9 +1709,10 @@ const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     mastodon: () =>  import("./clients/mastodon").then(client => client.client),
 };
 const getClient = async (name: string) => {
-    if(!client_initializers[name]) return undefined;
-    if(!client_cache[name]) client_cache[name] = await client_initializers[name]();
-    if(client_cache[name].id !== name) throw new Error("client has incorrect id");
+    const clientInitializer = client_initializers[name];
+    if(!clientInitializer) return undefined;
+    if(!client_cache[name]) client_cache[name] = await clientInitializer();
+    if(client_cache[name]!.id !== name) throw new Error("client has incorrect id");
     return client_cache[name];
 };
 const getClientCached = (name: string): ThreadClient | undefined => {
@@ -1723,7 +1726,7 @@ const nav_history: NavigationEntry[] = [];
 const session_name = "" + Math.random();
 
 function navigate({path, replace}: {path: string, replace?: boolean}) {
-    if(!replace) replace = false;
+    replace ??= false;
     if(replace) {
         console.log("Replacing history item", current_history_index, path);
         nav_history[current_history_index] = {url: "::redirecting::", node: {removeSelf: () => {""}, hide: () => {""}, show: () => {""}}};
@@ -1788,14 +1791,15 @@ function hideshow<T>(a_any?: T): HideShowCleanup<T> {
     let exists = true;
     const children: HideShowCleanup<unknown>[] = [];
     const emit = (text: HSEvent) => {
-        if(!events[text]) return;
-        events[text].forEach(ev => ev());
+        const event = events[text];
+        if(!event) return;
+        event.forEach(ev => ev());
     };
 
     const res: HideShowCleanup<T> = {
         on(ev, cb) {
-            if(!events[ev]) events[ev] = [];
-            events[ev].push(cb);
+            events[ev] ??= [];
+            events[ev]!.push(cb);
         },
         setVisible(nvisible: boolean) {
             if(!exists) return console.log("hideshow called on a deleted object");
@@ -1865,12 +1869,12 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 
     console.log(path);
 
-    if(!path0) {
+    if(path0 == null) {
         return homePage();
     }
 
     if(path0 === "login"){
-        return fetchClientThen(path[0], (client) => {
+        return fetchClientThen(path[0] ?? "ENOCLIENT", (client) => {
             return clientLoginPage(client, path, new URLSearchParams(search));
         });
     }
@@ -1887,11 +1891,12 @@ function onNavigate(to_index: number, url: URLLike) {
 
     const thisurl = url.pathname + url.search;
     current_history_index = to_index;
-    if(nav_history[to_index]) {
+    const history_item = nav_history[to_index];
+    if(history_item) {
         // hide all history
         nav_history.forEach(item => item.node.hide());
-        if(nav_history[to_index].url !== thisurl) {
-            console.log("URLS differ. «", nav_history[to_index].url, "» «", thisurl, "»");
+        if(history_item.url !== thisurl) {
+            console.log("URLS differ. «", history_item.url, "» «", thisurl, "»");
             
             // a b c d to_index [… remove these]
             for(let i = nav_history.length - 1; i >= to_index; i--) {
@@ -1901,7 +1906,7 @@ function onNavigate(to_index: number, url: URLLike) {
             }
         }else{
             // show the current history
-            nav_history[to_index].node.show();
+            history_item.node.show();
             return; // done
         }
     }else{
