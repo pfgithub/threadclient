@@ -1162,6 +1162,52 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         update();
     }else if(action.kind === "counter") {
         renderCounterAction(client, action, content_buttons_line, {parens: true});
+    }else if(action.kind === "delete") {
+        const resdelwrap = el("span").adto(content_buttons_line);
+        const resyeswrap = el("span").adto(content_buttons_line);
+        const resgonwrap = el("span").adto(content_buttons_line);
+        const reserrwrap = el("span").adto(content_buttons_line);
+        const resloadwrap = el("span").adto(content_buttons_line);
+
+        const delbtn = linkLikeButton().atxt("Delete").adto(resdelwrap);
+
+        resyeswrap.atxt("Are you sure? ");
+        const confirmbtn = linkLikeButton().clss("error").atxt("Delete").adto(resyeswrap);
+        resyeswrap.atxt(" / ");
+        const nvmbtn = linkLikeButton().atxt("Cancel").adto(resyeswrap);
+
+        resloadwrap.atxt("Deleting…");
+
+        resgonwrap.atxt("Deleted!");
+
+        type State = "none" | "confirm" | "load" | "deleted" | {error: string};
+        const setv = (nv: State) => {
+            resdelwrap.style.display = nv === "none" ? "" : "none";
+            resyeswrap.style.display = nv === "confirm" ? "" : "none";
+            resgonwrap.style.display = nv === "deleted" ? "" : "none";
+            resloadwrap.style.display = nv === "load" ? "" : "none";
+            reserrwrap.style.display = typeof nv !== "string" ? "" : "none";
+            if(typeof nv !== "string") {
+                reserrwrap.adch(el("span").clss("error").atxt(nv.error));
+            }
+        };
+        setv("none");
+
+        delbtn.onev("click", () => {
+            setv("confirm");
+        });
+        confirmbtn.onev("click", () => {
+            setv("load");
+            client.act(action.data).then(r => {
+                setv("deleted");
+            }).catch(e => {
+                console.log("Got error:", e);
+                setv({error: e.toString()});
+            });
+        });
+        nvmbtn.onev("click", () => {
+            setv("none");
+        });
     }else assertNever(action);
     return hideshow();
 }

@@ -40,9 +40,11 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     return [{elems: resitems, content_warning: false}];
 }
 
-type Action = {kind: "vote", query: Reddit.VoteBody} | {kind: "-"};
-function encodeAction(act: "vote", query: Reddit.VoteBody): string {
-    const action: Action = {kind: act, query};
+type Action = {kind: "vote", query: Reddit.VoteBody} | {kind: "delete", fullname: string};
+
+function encodeVoteAction(query: Reddit.VoteBody): string {return encodeAction({kind: "vote", query})}
+function encodeDeleteAction(fullname: string): string {return encodeAction({kind: "delete", fullname})}
+function encodeAction(action: Action): string {
     return JSON.stringify(action);
 }
 function decodeAction(act: string): Action  {
@@ -443,13 +445,13 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
 
         percent: listing.upvote_ratio,
         actions: listing.archived ? {error: "archived <6mo"} : isLoggedIn() ? {
-            increment: encodeAction("vote", {...vote_data, dir: "1"}),
-            decrement: encodeAction("vote", {...vote_data, dir: "-1"}),
-            reset: encodeAction("vote", {...vote_data, dir: "0"}),
+            increment: encodeVoteAction({...vote_data, dir: "1"}),
+            decrement: encodeVoteAction({...vote_data, dir: "-1"}),
+            reset: encodeVoteAction({...vote_data, dir: "0"}),
         } : {error: "not logged in"},
     };
 };
-const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean} = {}, parent_permalink: string): Generic.Node => {
+const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
     try {
         return threadFromListingMayError(listing_raw, options, parent_permalink);
     }catch(e) {
@@ -466,7 +468,14 @@ const threadFromListing = (listing_raw: Reddit.Post, options: {force_expand?: "o
         };
     }
 }
-const threadFromListingMayError = (listing_raw: Reddit.Post, options: {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean} = {}, parent_permalink: string): Generic.Node => {
+const deleteButton = (fullname: string): Generic.Action => {
+    return {
+        kind: "delete",
+        data: encodeDeleteAction(fullname),
+    };
+}
+type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
+const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
     options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
         // Comment
@@ -515,7 +524,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: {force_exp
                 kind: "link",
                 text: "Permalink",
                 url: listing.permalink ?? "Error no permalink",
-            }, getPointsOn(listing)],
+            }, deleteButton(listing.name), getPointsOn(listing)],
             default_collapsed: listing.collapsed,
         };
         if(listing.replies) {
@@ -650,7 +659,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: {force_exp
                 kind: "link",
                 url: "/domain/"+listing.domain,
                 text: listing.domain,
-            }, getPointsOn(listing)],
+            }, deleteButton(listing.name), getPointsOn(listing)],
             default_collapsed: false,
         };
         return result;
@@ -865,8 +874,14 @@ export const client: ThreadClient = {
                 body: act.query,
             });
             console.log(res);
-        }else if(act.kind === "-") {
-            // placeholder. remove once new action kinds are added.
+        }else if(act.kind === "delete") {
+            type DeleteResult = {__nothing: unknown};
+            const res = await redditRequest<DeleteResult>(baseURL() + "/api/del", {
+                method: "POST",
+                mode: "urlencoded",
+                body: {id: act.fullname},
+            });
+            console.log(res);
         }else assertUnreachable(act);
     },
     previewReply(md: string, data: string): Generic.Thread {
