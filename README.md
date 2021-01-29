@@ -28,7 +28,7 @@ all todo:
 -   [x] maybe? eslint strict booleans in ifs and stuff
 -   [x] eslint formatting
 -   [x] eslint strict promise error handling
--   [ ] eslint `@typescript-eslint/restrict-plus-operands`
+-   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] proper, non-hacky way to auto disable darkreader extension
@@ -110,11 +110,3 @@ twitter todo:
 
 -   [ ] set up the proxy server
 -   [ ] try a request
-
-## other notes
-
-lints with eslint
-
-note this pr needs to be merged before eslint passes
-
-https://github.com/typescript-eslint/typescript-eslint/pull/2970

@@ -99,6 +99,7 @@ const default_rule = function(context) {
 module.exports = {
     rules: {
         'quote-style': {create: default_rule},
+        'member-delimiter-style': require("./member-delimiter-style").default,
     },
     configs: {
         recommended: {

@@ -30,7 +30,7 @@ module.exports = {
         "@typescript-eslint/brace-style": ["warn", "1tbs", {allowSingleLine: true}],
         "@typescript-eslint/semi": ["warn", "always", {omitLastInOneLineBlock: true}],
         "no-else-return": 1,
-        "@typescript-eslint/member-delimiter-style": [1, {
+        "custom-quote-rule/member-delimiter-style": [1, {
             multiline: {delimiter: "comma", requireLast: true},
             singleline: {delimiter: "comma", requireLast: false},
             overrides: {
