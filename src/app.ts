@@ -6,6 +6,7 @@ import  * as uhtml from "uhtml";
 import * as Generic from "./types/generic";
 import {ThreadClient} from "./clients/base";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
+import { richtextEditor } from "./editors/reddit-richtext";
 
 const rawsym = Symbol("raw");
 export const raw = (string: string): {[rawsym]: string, toString: () => string} => ({[rawsym]: "" + string, toString: () => string});
@@ -1763,8 +1764,8 @@ type URLLike = {search: string, pathname: string};
 
 const navigate_event_handlers: ((url: URLLike) => void)[] = [];
 
-type HSEvent = "hide" | "show" | "cleanup";
-type HideShowCleanup<T> = {
+export type HSEvent = "hide" | "show" | "cleanup";
+export type HideShowCleanup<T> = {
     setVisible: (new_visible: boolean) => void,
     setParentVisible: (new_visible: boolean) => void,
     cleanup: () => void,
@@ -1776,9 +1777,9 @@ type HideShowCleanup<T> = {
     defer: (parent: HideShowCleanup<unknown>) => T,
 };
 
-function hideshow(): HideShowCleanup<undefined>;
-function hideshow<T>(a: T): HideShowCleanup<T>;
-function hideshow<T>(a_any?: T): HideShowCleanup<T> {
+export function hideshow(): HideShowCleanup<undefined>;
+export function hideshow<T>(a: T): HideShowCleanup<T>;
+export function hideshow<T>(a_any?: T): HideShowCleanup<T> {
     const a = a_any as T;
     const events: {[key: string]: (() => void)[]} = {};
 
@@ -1891,6 +1892,10 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         return fetchClientThen(path[0] ?? "ENOCLIENT", (client) => {
             return clientLoginPage(client, path, new URLSearchParams(search));
         });
+    }
+
+    if(path0 === "richtext") {
+        return richtextEditor({usernames: []});
     }
 
     return fetchClientThen(path0, (client) => {

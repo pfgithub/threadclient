@@ -1,0 +1,15 @@
+.richtext-editor-content {
+    border: 1px solid #fff;
+    margin: 10px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.richtext-placeholder:after {
+    content: "What are your thoughts?";
+    color: gray;
+}
+
+.richtext-editor-content {
+    cursor: text;
+}
