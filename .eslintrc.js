@@ -50,6 +50,10 @@ module.exports = {
             project: "./tsconfig.json",
         },
         rules: {
+            // stricter linting rules:
+            "@typescript-eslint/no-floating-promises": "warn",
+            "@typescript-eslint/strict-boolean-expressions": "warn",
+
             // style rules:
             "@typescript-eslint/naming-convention": ["warn",
                 {selector: ["variable", "function", "parameter"], format: ["snake_case"]},
@@ -58,7 +62,6 @@ module.exports = {
                 {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase"], prefix: ["__"], filter: {regex: "^__", match: true}},
                 {selector: "typeLike", format: ["PascalCase"]},
             ],
-            "@typescript-eslint/strict-boolean-expressions": "warn",
         }
     }],
 };

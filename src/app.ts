@@ -213,11 +213,11 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     };
     video.onplay = () => {
         sync();
-        audio.play();
+        void audio.play();
     };
     video.onplaying = () => {
         sync();
-        audio.play();
+        void audio.play();
     };
     video.onseeking = () => sync();
     video.ontimeupdate = () => {
@@ -229,6 +229,8 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
         sync();
     };
 
+    if(opts.autoplay) void video.play();
+
     let playing_before_hide = false;
 
     const hsc = hideshow(container);
@@ -237,7 +239,7 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
         video.pause();
     });
     hsc.on("show", () => {
-        if(playing_before_hide) video.play();
+        if(playing_before_hide) void video.play();
     });
     return hsc;
 }
@@ -256,9 +258,9 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         el("source").attr({src: link, type: "video/mp4"}).adto(video);
         video.loop = true;
         const hsc = hideshow(video);
-        video.play();
+        void video.play();
         hsc.on("hide", () => {video.pause()});
-        hsc.on("show", () => {video.play()});
+        hsc.on("show", () => {void video.play()});
         return hsc;
     };
     if(link.startsWith("https://i.redd.it/")
@@ -276,9 +278,9 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         video.loop = true;
         const hsc = hideshow(video);
         let playing_before_hide = false;
-        if(opts.autoplay) video.play();
+        if(opts.autoplay) void video.play();
         hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
-        hsc.on("show", () => {if(playing_before_hide) video.play();});
+        hsc.on("show", () => {if(playing_before_hide) void video.play();});
         return hsc;
     };
     if(link.startsWith("https://v.redd.it/")) return (): HideShowCleanup<Node> => {
@@ -298,7 +300,7 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         let playing_before_hide = false;
         const hsc = hideshow(video);
         hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
-        hsc.on("show", () => {if(playing_before_hide) video.play();});
+        hsc.on("show", () => {if(playing_before_hide) void video.play();});
         return hsc;
     };
     const ytvid = (youtube_video_id: string, search: URLSearchParams) => (): HideShowCleanup<Node> => {
@@ -707,6 +709,10 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
             preel.remove();
             const safe_html = mdr.renderMd(body.content);
             renderSafeHTML(client, safe_html, container, "").defer(hsc);
+        }).catch(e => {
+            preel.remove();
+            console.log(e);
+            renderSafeHTML(client, "Got error! Check console!", container, "").defer(hsc);
         });
     }else if(body.markdown_format === "none") {
         container.atxt(body.content);
@@ -717,6 +723,10 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
             preel.remove();
             const safe_html = hsr.saftify(body.content, "mastodon-");
             renderSafeHTML(client, safe_html, container, "").defer(hsc);
+        }).catch(e => {
+            preel.remove();
+            console.log(e);
+            renderSafeHTML(client, "Got error! Check console!", container, "").defer(hsc);
         });
     }else assertNever(body.markdown_format);
 
@@ -926,10 +936,10 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
             vid.loop = true;
             vid.onplaying = () => vid.controls = false;
         }
-        if(opts.autoplay) {vid.play()}
+        if(opts.autoplay) {void vid.play()}
         let playing_before_hide = !vid.paused;
         hsc.on("hide", () => {playing_before_hide = !vid.paused; vid.pause()});
-        hsc.on("show", () => {if(playing_before_hide) vid.play();});
+        hsc.on("show", () => {if(playing_before_hide) void vid.play();});
     }else if(body.kind === "vreddit_video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
         previewVreddit(body.id, {autoplay: false}).defer(hsc).adto(content);
@@ -1686,7 +1696,10 @@ function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchP
         }
         // if this page is still active, navigate({path: "/login/success", replace: true}); to get rid of the token in the url
         uhtml.render(frame, uhtml.html`<div>Logged In! You may now close this page.</div>`);
-    })();
+    })().catch(e => {
+        console.log(e);
+        alert("Unexpected error "+e.toString());
+    });
 
     return hsc;
 }
@@ -1857,6 +1870,9 @@ function fetchClientThen(client_id: string, cb: (client: ThreadClient) => HideSh
             fullscreenError("404. Client "+client_id+" not found.").defer(hsc).adto(wrapper);
         }
         loader_container.remove();
+    }).catch(e => {
+        console.log("error rendering", e);
+        wrapper.adch(el("span").clss("error").atxt("Got error! Check console! "+e.toString()));
     });
 
     return hsc;
