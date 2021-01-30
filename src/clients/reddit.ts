@@ -653,6 +653,8 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 ? {kind: "image", url: listing.thumbnail}
                 // : listing.gallery_data // new.reddit has this but old.reddit doesn't
                 // ? {kind: "default", thumb: "gallery"}
+                : listing.thumbnail == null || listing.thumbnail === ""
+                ? undefined
                 : {kind: "default", thumb: (as<{[key: string]: Generic.ThumbType}>({
                     self: "self", default: "default", image: "image",
                     spoiler: "spoiler", nsfw: "nsfw", account: "account",
