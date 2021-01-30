@@ -1006,7 +1006,7 @@ export function startDragWatcher(
 }
 
 function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLElement {
-    const res = el("img").clss("preview-image")
+    const res = el("img").clss("preview-image", "image-loading")
         .attr({
             src: url,
             width: opt.w != null ? `${opt.w}px` as const : undefined,
@@ -1015,6 +1015,8 @@ function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string})
         })
     ;
     res.styl({"transform": "scale(100%)", "transform-origin": "top left"});
+    res.onload = () => res.classList.remove("image-loading");
+    res.onerror = () => res.classList.remove("image-loading");
     let current_offset = 0;
     const updateImage = (updated: number) => {
         const offset = current_offset + updated;
