@@ -59,6 +59,8 @@ function clearRange(range: StaticRange): Range {
             return mkrange(range.startContainer, range.startOffset, range.startContainer, range.startOffset);
         }
     }
+    // :: find nearest parent
+    // :: loop do stuff
     console.log("Cannot clear range");
     return mkrange(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
 }
@@ -72,8 +74,9 @@ function insertAt(start_container: Node, start_offset: number, text: string): Ra
         const data_type = start_container.getAttribute("data-type");
         if(data_type === "paragraph_list") {
             // insert a new paragraph
-            const text_node = txt(text);
-            el("p").adto(start_container).adch(el("span").attr({'data-type': "text"}).adch(text_node)).attr({'data-type': "paragraph"});
+            const [fmt_node, text_node] = createTextNode({});
+            el("p").adto(start_container).adch(fmt_node).attr({'data-type': "paragraph"});
+            text_node.nodeValue = text;
 
             return mkrange(text_node, text.length, text_node, text.length);
         }
@@ -84,6 +87,43 @@ function insertAt(start_container: Node, start_offset: number, text: string): Ra
     return mkrange(start_container, start_offset, start_container, start_offset);
 }
 
+function createTextNode(format: TextStyle): [HTMLElement, Text] {
+    const tn = txt("");
+    return [el("span").attr({'data-type': "text"}).adch(tn), tn];
+}
+function createErrorNode(text: string): HTMLElement {
+    return el("img").clss("richtext-span-error-element").attr({alt: text}); // works right on chrome but not firefox
+
+    // works-ish on firefox but not chrome
+    // bad because it's possible to get your cursor in the text
+    // const res = el("span").clss("richtext-span-error-element");
+    // const shadow = res.attachShadow({mode: "closed"});
+    // shadow.atxt(text);
+    // return res;
+}
+
+function splitAt(container: Node, offset: number): [ChildNode, Range] {
+    if(container instanceof Text) {
+        const val = container.nodeValue ?? "";
+        const text_v_left = val.substr(0, offset);
+        const text_v_right = val.substr(offset);
+
+        const parent_item = container.parentElement!;
+        const data_type = parent_item.getAttribute("data-type");
+        if(data_type === "text") {
+            if(parent_item.childNodes.length !== 1) throw new Error("incorrect child node count");
+            const [new_lhs, lhs_tn] = createTextNode({});
+            lhs_tn.nodeValue = text_v_left;
+            container.nodeValue = text_v_right;
+            parent_item.parentElement!.insertBefore(new_lhs, parent_item);
+
+            return [parent_item, mkrange(container, 0, container, 0)];
+        }
+        throw new Error("uuh?");
+    }
+    throw new Error("unsupported");
+}
+
 // shift-enter: insert line break, enter: insert paragraph
 // instead of this, what about one enter = line break, enter on line break = paragraph
 // the reddit editor does enter/shift+enter but idk
@@ -91,6 +131,8 @@ const input_type_map: {[key: string]: FakeInputType} = {
     insertText: "insert",
     insertFromPaste: "insert_data_transfer",
     insertFromDrop: "insert_data_transfer",
+    insertLineBreak: "insert_line_break",
+    insertParagraph: "insert_line_break",
     deleteContentForward: "delete",
     deleteContentBackward: "delete",
     deleteWordForward: "delete",
@@ -100,13 +142,35 @@ const input_type_map: {[key: string]: FakeInputType} = {
 
 type FakeInputType = 
     | "insert"
+    | "insert_line_break"
     | "insert_data_transfer"
     | "delete"
 ;
 
+// TODO figure out how to use composition events. composition events seem to make changes to the dom without asking first.
+
+// - ok so::
+// - on enter: clear the range
+// - split the current node at the range left
+// » if left node is br
+//   - delete br
+//   - split the current node at the current position
+//   - insert a paragraph below the current paragraph
+//   - take all the rhs and put them in the new paragraph
+//   - set selection beginning of new paragraph
+// » else
+//   - insert br
+//   - set selection beginning of next line
+
 export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
-    const frame = el("div");
-    const hsc = hideshow(frame);
+    const outer_frame = el("div");
+    const hsc = hideshow(outer_frame);
+
+    const frame = outer_frame;
+    // // shadow dom version. this is unnecessary and probably bad and would require some hacky stuff
+    // // to reload css on save
+    // const frame = outer_frame.attachShadow({mode: "open"});
+    // frame.adch(el("style").atxt(…));
 
     if(!isBeforeInputEventAvailable()) {
         // https://bugzilla.mozilla.org/show_bug.cgi?id=970802
@@ -123,28 +187,20 @@ export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
 
     contenteditable.onev("beforeinput", (event_raw) => {
         const e = event_raw as InputEvent;
-        const ranges = (e as unknown as {getTargetRanges: () => StaticRange[]}).getTargetRanges();
-        console.log("Beforeinput", e, ranges);
         e.preventDefault();
         e.stopPropagation();
+        const ranges = (e as unknown as {getTargetRanges: () => StaticRange[]}).getTargetRanges();
         const input_type = input_type_map[e.inputType] ?? "unsupported";
+        console.log("Beforeinput", input_type, e, ranges);
+
+        contenteditable.classList.remove("richtext-placeholder");
 
         const sel = window.getSelection()!;
         sel.removeAllRanges();
         for(const range of ranges) {
             if(input_type === "insert") {
-                console.log("Insert text:", e.data);
-                // from start container[start offset] to end container[end offset]::
-                // delete things in between
-                // add things
-
-                // ok so the idea is to update state :: find the state node with start container, the state node with endcontainer, update
-
-                    
                 clearRange(range);
                 sel.addRange(insertAt(range.startContainer, range.startOffset, e.data!));
-        
-                // startContainer startOffset endContainer endOffset
             }else if(input_type === "delete") {
                 sel.addRange(clearRange(range));
             }else if(input_type === "insert_data_transfer") {
@@ -158,10 +214,18 @@ export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
                 }
 
                 sel.addRange(insertAt(range.startContainer, range.startOffset, text));
+            }else if(input_type === "insert_line_break") {
+                clearRange(range);
+                // TODO check if left of range is a br. if so, delete it and splitParagraphAt
+                const [rhs_node, end_range] = splitAt(range.startContainer, range.startOffset);
+                rhs_node.parentNode!.insertBefore(el("br").attr({'data-type': "line-break"}), rhs_node);
+                sel.addRange(end_range);
             }else{
                 expectUnsupported(input_type);
                 clearRange(range);
-                sel.addRange(insertAt(range.startContainer, range.startOffset, e.inputType));
+                const [rhs_node, end_range] = splitAt(range.startContainer, range.startOffset);
+                rhs_node.parentNode!.insertBefore(createErrorNode(e.inputType), rhs_node);
+                sel.addRange(end_range);
             }
         }
     });

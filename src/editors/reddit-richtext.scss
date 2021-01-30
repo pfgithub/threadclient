@@ -3,6 +3,7 @@
     margin: 10px;
     padding: 10px;
     border-radius: 5px;
+    white-space: pre-wrap;
 }
 
 .richtext-placeholder:after {
@@ -12,4 +13,11 @@
 
 .richtext-editor-content {
     cursor: text;
+}
+
+.richtext-span-error-element {
+    background-color: rgba(255, 0, 0, 0.1);
+    border-radius: 5px;
+    font-family: monospace;
+    padding: 3px;
 }
