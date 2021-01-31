@@ -37,7 +37,7 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
         if(awarding.count > 1) resitems.push({type: "text", text: "×" + awarding.count});
     }
     if(resitems.length === 0) return [];
-    return [{elems: resitems, content_warning: false}];
+    return [{elems: resitems, content_warning: false, color: "transparent"}];
 }
 
 type Action = {kind: "vote", query: Reddit.VoteBody} | {kind: "delete", fullname: string};
