@@ -6,7 +6,6 @@ import  * as uhtml from "uhtml";
 import * as Generic from "./types/generic";
 import {ThreadClient} from "./clients/base";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
-import { richtextEditor } from "./editors/reddit-richtext";
 
 const rawsym = Symbol("raw");
 export const raw = (string: string): {[rawsym]: string, toString: () => string} => ({[rawsym]: "" + string, toString: () => string});
@@ -1858,18 +1857,23 @@ function fetchClientThen(client_id: string, cb: (client: ThreadClient) => HideSh
         return cb(cached);
     }
 
-    
+    return fetchPromiseThen(getClient(client_id), client => {
+        if(!client){ 
+            return fullscreenError("404. Client "+client_id+" not found.");
+        }
+        return cb(client);
+    });
+
+}
+// import { richtextEditor } from "./editors/reddit-richtext"; 
+function fetchPromiseThen<T>(promise: Promise<T>, cb: (v: T) => HideShowCleanup<HTMLDivElement>): HideShowCleanup<HTMLDivElement> {
     const wrapper = el("div").adto(document.body);
     const hsc = hideshow(wrapper);
     const loader_container = el("div").adto(wrapper);
     el("span").atxt("Fetching client…").adto(loader_container);
     
-    getClient(client_id).then(client => {
-        if(client){ 
-            cb(client).defer(hsc).adto(wrapper);
-        }else{
-            fullscreenError("404. Client "+client_id+" not found.").defer(hsc).adto(wrapper);
-        }
+    promise.then(resv => {
+        cb(resv).defer(hsc).adto(wrapper);
         loader_container.remove();
     }).catch(e => {
         console.log("error rendering", e);
@@ -1897,7 +1901,9 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
     }
 
     if(path0 === "richtext") {
-        return richtextEditor({usernames: []});
+        return fetchPromiseThen(import("./editors/reddit-richtext"), editor => {
+            return editor.richtextEditor({usernames: []});
+        });
     }
 
     return fetchClientThen(path0, (client) => {
