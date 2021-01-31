@@ -349,7 +349,6 @@ const updateQuery = (path: string, update: {[key: string]: string | undefined}) 
 };
 
 const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | Reddit.MoreChildren): Generic.Page => {
-
     if(Array.isArray(listing)) {
         let link_fullname: string | undefined;
         const firstchild = listing[0].data.children[0]!;
@@ -953,10 +952,25 @@ export const client: ThreadClient = {
     },
     async sendReply(md: string, data_raw: string): Promise<Generic.Node> {
         const reply_info = decodeReplyInfo(data_raw);
+        // const paragraphs: Reddit.Richtext.Paragraph[] = [];
+        // for(let i = 0; i <= 7; i++) {
+        //     if(i === 2) continue;
+        //     if(i === 4) continue;
+        //     if(i === 7) continue;
+        //     const textv = "Testing 1<<"+i;
+        //     paragraphs.push({e: "par", c: [
+        //         {e: "text", t: textv, f: [
+        //             [1 << i, 0, 7],
+        //             [64, 8, textv.length],
+        //         ]}
+        //     ]});
+        // }
         const richtext_json: Reddit.Richtext.Document = {
-            document: [{e: "par", c: [{e: "text", t: md}]}],
+            document: [{e: "par", c: [
+                {e: "text", t: "Gif: "},
+                {e: "gif", id: "giphy|YBmxhCXlyhCr1EOSCY"},
+            ]}],
         };
-        console.log("richtext json (unused)", richtext_json);
         const body: {
             api_type: "json",
             thing_id: string,
@@ -967,14 +981,21 @@ export const client: ThreadClient = {
             api_type: "json",
             thing_id: reply_info.parent_id,
             return_rtjson: "true",
-            // richtext_json: JSON.stringify(richtext_json), // richtext text
-            text: md, // markdown text
+            ...md === "richtext_demo"
+                ? {richtext_json: JSON.stringify(richtext_json)}
+                : {text: md}
+            ,
         };
-        const reply = await redditRequest<Reddit.PostComment>(baseURL() + "/api/comment", {
+        const reply = await redditRequest<Reddit.PostComment | {json: {errors: [id: string, desc: string, other: string][]}}>(baseURL() + "/api/comment", {
             method: "POST",
             mode: "urlencoded",
             body,
         });
+        if('json' in reply) {
+            const errortxt = reply.json.errors.map(err => "[" + err[0] + "]" + ": " + err[1] + " (in "+err[2]+")").join("\n");
+            console.log(errortxt, reply);
+            throw new Error(errortxt);
+        }
         console.log(reply);
         // the reply also has a "rte_mode": "markdown" | "unsupported"
         return threadFromListing({kind: "t1", data: reply}, {}, "TODO");

@@ -329,9 +329,9 @@ export declare namespace Richtext {
         e: "unsupported",
     };
     export type FormatRange = [
-        FormatMode,
-        number, // start index
-        number // length
+        mode: FormatMode,
+        start: number, // start index
+        length: number // length
     ]; // note: format ranges never overlap. this makes it easier to translate this to generic
 
     // FormatMode is a bitfield

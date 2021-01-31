@@ -1138,9 +1138,12 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                             }
                             clientListing(client, r).defer(hsc).adto(el("div").adto(content_buttons_line));
                         }).catch(e => {
+                            const error = e as Error;
                             submit.disabled = false;
                             submit.textContent = "Reply";
                             console.log("Got error", e);
+                            const displayv = el("div").adto(content_buttons_line).clss("error").styl({'white-space': "pre-wrap"});
+                            displayv.atxt(error.toString()+"\n\n"+error.stack);
                         });
                     });
                 }
