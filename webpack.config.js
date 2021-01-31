@@ -19,6 +19,7 @@ module.exports = {
                         targets: {browsers: ">10%"},
                         modules: false,
                     }],
+                    "@babel/preset-react",
                 ],
                 plugins: [
                     ["@babel/plugin-proposal-pipeline-operator", {

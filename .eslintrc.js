@@ -59,7 +59,7 @@ module.exports = {
             "@typescript-eslint/naming-convention": ["warn",
                 {selector: ["variable", "function", "parameter"], format: ["snake_case"]},
                 {selector: ["variable", "function", "parameter"], format: ["snake_case"], prefix: ["__"], filter: {regex: "^__", match: true}},
-                {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase"]},
+                {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase", "PascalCase"]},
                 {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase"], prefix: ["__"], filter: {regex: "^__", match: true}},
                 {selector: "typeLike", format: ["PascalCase"]},
             ],
