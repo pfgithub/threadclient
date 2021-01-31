@@ -952,24 +952,27 @@ export const client: ThreadClient = {
     },
     async sendReply(md: string, data_raw: string): Promise<Generic.Node> {
         const reply_info = decodeReplyInfo(data_raw);
-        // const paragraphs: Reddit.Richtext.Paragraph[] = [];
-        // for(let i = 0; i <= 7; i++) {
-        //     if(i === 2) continue;
-        //     if(i === 4) continue;
-        //     if(i === 7) continue;
-        //     const textv = "Testing 1<<"+i;
-        //     paragraphs.push({e: "par", c: [
-        //         {e: "text", t: textv, f: [
-        //             [1 << i, 0, 7],
-        //             [64, 8, textv.length],
-        //         ]}
-        //     ]});
-        // }
+        const paragraphs: Reddit.Richtext.Paragraph[] = [];
+        // huh, if you pass a format 1<<2 it puts tildes around the range and then removes the format item, weird
+        for(let i = 0; i <= 7; i++) {
+            if(i === 4) continue;
+            if(i === 7) continue;
+            const textv = "Testing 1<<"+i;
+            paragraphs.push({e: "par", c: [
+                {e: "text", t: textv, f: [
+                    [1 << i, 0, 7],
+                    [64, 8, textv.length],
+                ]}
+            ]});
+        }
+        // const richtext_json: Reddit.Richtext.Document = {
+        //     document: [{e: "par", c: [
+        //         {e: "text", t: "Gif: "},
+        //         {e: "gif", id: "giphy|YBmxhCXlyhCr1EOSCY"},
+        //     ]}],
+        // };
         const richtext_json: Reddit.Richtext.Document = {
-            document: [{e: "par", c: [
-                {e: "text", t: "Gif: "},
-                {e: "gif", id: "giphy|YBmxhCXlyhCr1EOSCY"},
-            ]}],
+            document: paragraphs,
         };
         const body: {
             api_type: "json",
