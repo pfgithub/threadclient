@@ -37,6 +37,33 @@ const withMentions = (editor: Editor): Editor => {
     return editor;
 };
 
+type FormatType = "bold" | "italic" | "strike" | "inline_code" | "sup" | "spoiler";
+function updateFormat(editor: Editor, new_fmt: FormatType) {
+    const [match] = Editor.nodes(editor, {
+        match: n => Text.isText(n) && !!(n[new_fmt] as boolean),
+    });
+    Transforms.setNodes(editor, {[new_fmt]: !match}, {match: n => Text.isText(n), split: true});
+}
+
+const Spoiler: React.FC = (props): React.ReactElement => {
+    const selected = useSelected();
+    const focused = useFocused();
+    return <span className={"rt-spoiler "+(selected && focused ? "rt-spoiler-reveal " : "")}><span className="rt-spoiler-content">{props.children}</span></span>;
+};
+
+const FormatButton = (props: {editor: Editor, format: FormatType, children?: React.ReactNode}): React.ReactElement => {
+    return <button onMouseDown={e => {
+        e.preventDefault();
+        e.stopPropagation();
+        updateFormat(props.editor, props.format);
+    }}>{props.children}</button>;
+}
+
+// TODO: if the cursor is at the bottom or top of the document, pressing down/up should insert a paragraph below/above
+// basically to make sure you don't get stuck in code blocks
+
+// TODO: pressing enter should insert a newline, pressing enter again should make a paragraph break
+
 export const App: React.FC = (): React.ReactElement => {
     const editor = useMemo(() => withHistory(withReact(withMentions(createEditor()))), []);
 
@@ -54,7 +81,22 @@ export const App: React.FC = (): React.ReactElement => {
     }, []);
     // render spans
     const renderLeaf = useCallback((props): React.ReactElement => {
-        return <span {...props.attributes} style={{fontWeight: props.leaf.bold ? "bold" : "normal"}}>{props.children}</span>;
+        const leaf_info = props.leaf as {[key in FormatType]: boolean};
+
+        let outer_elem: React.ReactElement = <span>{props.children}</span>;
+
+        if(leaf_info.inline_code) {
+            outer_elem = <code className="rt-inline-code">{outer_elem}</code>;
+        }else{
+            if(leaf_info.bold) outer_elem = <b>{outer_elem}</b>;
+            if(leaf_info.italic) outer_elem = <i>{outer_elem}</i>;
+            if(leaf_info.strike) outer_elem = <s>{outer_elem}</s>;
+            if(leaf_info.sup) outer_elem = <sup>{outer_elem}</sup>;
+        }
+        // uh oh spoilers don't work right - they might need to be inline, non-void elements instead
+        if(leaf_info.spoiler) outer_elem = <Spoiler>{outer_elem}</Spoiler>;
+
+        return <span {...props.attributes}>{outer_elem}</span>;
     }, []);
 
     return <Slate
@@ -62,6 +104,23 @@ export const App: React.FC = (): React.ReactElement => {
         value={value}
         onChange={new_value => setValue(new_value)}
     >
+        <div className="rt-buttons">
+            <FormatButton editor={editor} format="bold">Bold</FormatButton>
+            <FormatButton editor={editor} format="italic">Italic</FormatButton>
+            <button>Link</button>
+            <FormatButton editor={editor} format="strike">Strike</FormatButton>
+            <FormatButton editor={editor} format="inline_code">Inline Code</FormatButton>
+            <FormatButton editor={editor} format="sup">Superscript</FormatButton>
+            <FormatButton editor={editor} format="spoiler">Spoiler</FormatButton>
+            <div className="rt-button-sep" />
+            <button>Heading lv</button>
+            <button>Bulleted List</button>
+            <button>Numbered List</button>
+            <button>Blockquote</button>
+            <button>Block Code</button>
+            <div className="rt-button-sep" />
+            <button>Table</button>
+        </div>
         <Editable
             renderElement={renderElement}
             renderLeaf={renderLeaf}
@@ -92,10 +151,7 @@ export const App: React.FC = (): React.ReactElement => {
                 }
                 if(event.key === "b" && event.ctrlKey) {
                     event.preventDefault();
-                    const [match] = Editor.nodes(editor, {
-                        match: n => Text.isText(n) && !!n.bold,
-                    });
-                    Transforms.setNodes(editor, {bold: !match}, {match: n => Text.isText(n), split: true});
+                    updateFormat(editor, "bold");
                 }
             }}
         />

@@ -31,3 +31,25 @@
     border-radius: 5px;
     font-size: 1rem;
 }
+
+.rt-spoiler {
+    background-color: var(--spoiler-color);
+    border-radius: 3px;
+    &:hover {
+        background-color: var(--spoiler-color-hover);
+    }
+}
+.rt-spoiler-content {
+    opacity: 0;
+    background-color: var(--spoiler-color-revealed);
+    transition: 0.2s opacity;
+}
+.rt-spoiler.rt-spoiler-reveal > .rt-spoiler-content {
+    opacity: 0.5;
+}
+
+.rt-inline-code {
+    background-color: var(--spoiler-color-revealed);
+    padding: 5px;
+    border-radius: 3px;
+}
