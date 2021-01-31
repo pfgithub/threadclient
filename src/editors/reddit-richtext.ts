@@ -1,6 +1,43 @@
 import "./reddit-richtext.scss";
 import { hideshow, HideShowCleanup } from "../app";
 
+import Quill from "quill";
+import "quill/dist/quill.snow.css";
+
+export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
+    const frame = el("div");
+    const hsc = hideshow(frame);
+    
+    // import txt from "!!raw-loader!quill/dist/quill.snow.css";
+    // // putting quill in a shadow causes it to not function properly
+    // // pressing ctrl+a test does weird stuff
+    // const shadow = frame.attachShadow({mode: "open"});
+    // shadow.adch(el("style").atxt(txt));
+
+    const inner_frame = el("div").adto(el("div").adto(frame));
+
+    const quill = new Quill(inner_frame, {
+        modules: {
+            toolbar: {
+                container: [
+                    ["bold", "italic", "link", "strike", "code", {script: "super"}, "spoiler"], // , custom: spoiler
+                    [{header: [1, 2, 3, 4, 5, 6, false]}],               
+                    [{list: "ordered"}, {list: "bullet"}, "blockquote", "code-block"], // TODO table
+                ],
+                handlers: {
+                    spoiler: function(value: string) {
+                        console.log("spoiler", value);
+                    },
+                },
+            },
+        },
+        theme: "snow",
+    });
+    hsc.on("cleanup", () => quill.disable());
+
+    return hsc;
+}
+
 type Env = {usernames: string[]};
 
 type TextStyle = {
@@ -295,7 +332,7 @@ type FakeInputType =
 // uuh
 // this architecture is flawed isn't it
 
-export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
+export function richtextEditorCustom(env: Env): HideShowCleanup<HTMLDivElement> {
     const outer_frame = el("div");
     const hsc = hideshow(outer_frame);
 
