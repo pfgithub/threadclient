@@ -47,23 +47,96 @@ function mkrange(start: Node, s_offset: number, end: Node, e_offset: number): Ra
     return res;
 }
 
-function clearRange(range: StaticRange): Range {
-    if(range.startContainer === range.endContainer && range.startOffset === range.endOffset) {
-        return mkrange(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
+function clearNodeRange(parent: Node, left_child_index: number, right_child_index?: number): void {
+    if(parent instanceof Text) {
+        const val = parent.nodeValue ?? "";
+        const new_rhs = right_child_index != null ? val.substring(right_child_index) : "";
+        parent.nodeValue = val.substring(0, left_child_index) + new_rhs;
+    }else if(parent instanceof HTMLElement){
+        const children = parent.childNodes;
+        const final_index = right_child_index ?? children.length;
+        
+        const to_remove: ChildNode[] = [];
+        for(let i = left_child_index; i < final_index; i++) {
+            to_remove.push(children[i]!);
+        }
+        to_remove.forEach(v => v.remove());
+    }else {
+        console.log("Uh oh! Not sure how to delete this range!");
     }
-    if(range.startContainer === range.endContainer) {
-        if(range.startContainer instanceof Text) {
-            const val = range.startContainer.nodeValue ?? "";
-            range.startContainer.nodeValue = val.slice(0, range.startOffset) + val.slice(range.endOffset);
+}
+function clearRange(range: StaticRange): Range {
+    const [left_container, left_offset, right_container, right_offset] = [range.startContainer, range.startOffset, range.endContainer, range.endOffset] as const;
 
-            return mkrange(range.startContainer, range.startOffset, range.startContainer, range.startOffset);
+    // 1: find nearest parent
+    let nearest_parent: Node; {
+        const seen_nodes = new Set<Node>();
+
+        let lv: Node | null = left_container;
+        let rv: Node | null = right_container;
+
+        whlp: while(true) {
+            for(const v of [lv, rv]) {
+                if(seen_nodes.has(v)) {
+                    nearest_parent = v;
+                    break whlp;
+                }
+                seen_nodes.add(v);
+            }
+
+            lv = lv.parentNode!;
+            rv = rv.parentNode!;
         }
     }
-    // :: find nearest parent
-    // :: loop do stuff
-    console.log("Cannot clear range");
-    return mkrange(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
+
+    // 2: assemble left_stack and right_stack *including* parent
+
+
+    const left_stack: [Node, number][] = [];
+    const right_stack: [Node, number][] = [];
+
+    for(const [base, offset, stack] of [[left_container, left_offset, left_stack], [right_container, right_offset, right_stack]] as const) {
+        let node = base;
+        stack.push([base, offset]);
+        while(true) {
+            if(node === nearest_parent) break;
+            const parent = node.parentElement;
+            if(!parent) throw new Error("never");
+            const is_left = base === left_container;
+            stack.push([parent, findChildIndex(parent, node) + (is_left ? 1 : 0)]); // + 1 for left only
+            // why? this is why:
+            // … left | …    … | right …
+            // | is the cursor that things should delete from/to
+            node = parent;
+        }
+    }
+
+    const [, parent_left] = left_stack.pop()!;
+    const [, parent_right] = right_stack.pop()!;
+    
+    for(const [container, offset] of left_stack) {
+        clearNodeRange(container, offset);
+    }
+    for(const [container, offset] of right_stack) {
+        clearNodeRange(container, 0, offset);
+    }
+        
+    clearNodeRange(nearest_parent, parent_left, parent_right);
+    
+    return mkrange(left_container, left_offset, left_container, left_offset);
 }
+
+function mkel<K extends keyof HTMLElementTagNameMap>(tag_name: K, data: ElemData): HTMLElementTagNameMap[K] {
+    return el(tag_name).attr({'data-json': JSON.stringify(data)});
+}
+function getData(el: HTMLElement): ElemData {
+    const data = el.getAttribute("data-json");
+    if(data == null || data === "") return {level: "unsupported"};
+    return JSON.parse(data) as ElemData;
+}
+// so atm this insertAt is uuh not right
+// should insertAt allow you to say insertAt(container, 5, mkel("br", …))?
+// and a seperate method for inserting text? idk
 function insertAt(start_container: Node, start_offset: number, text: string): Range {
     if(start_container instanceof Text) {
         const val = start_container.nodeValue ?? "";
@@ -71,26 +144,29 @@ function insertAt(start_container: Node, start_offset: number, text: string): Ra
 
         return mkrange(start_container, start_offset + text.length, start_container, start_offset + text.length);
     }else if(start_container instanceof HTMLElement){
-        const data_type = start_container.getAttribute("data-type");
-        if(data_type === "paragraph_list") {
+        const attrs = getData(start_container);
+        // this should be recursive
+        if(attrs.level === "root") {
             // insert a new paragraph
-            const [fmt_node, text_node] = createTextNode({});
-            el("p").adto(start_container).adch(fmt_node).attr({'data-type': "paragraph"});
-            text_node.nodeValue = text;
-
-            return mkrange(text_node, text.length, text_node, text.length);
+            const node = mkel("p", {type: "paragraph", level: "paragraph"});
+            start_container.insertBefore(node, start_container.childNodes[start_offset] ?? null);
+            return insertAt(node, 0, text);
+        }else if(attrs.level === "paragraph" && attrs.type === "paragraph") {
+            const node = mkel("span", {level: "span", type: "text"});
+            start_container.insertBefore(node, start_container.childNodes[start_offset] ?? null);
+            return insertAt(node, 0, text);
+        }else if(attrs.level === "span" && attrs.type === "text") {
+            const txtn = txt("");
+            start_container.insertBefore(txtn, start_container.childNodes[start_offset] ?? null);
+            return insertAt(txtn, 0, text);
         }
-        console.log("unsupported", start_container, data_type);
+        console.log("unsupported", start_container, attrs.level);
         return mkrange(start_container, start_offset, start_container, start_offset);
     }
     console.log("unsupported", start_container);
     return mkrange(start_container, start_offset, start_container, start_offset);
 }
 
-function createTextNode(format: TextStyle): [HTMLElement, Text] {
-    const tn = txt("");
-    return [el("span").attr({'data-type': "text"}).adch(tn), tn];
-}
 function createErrorNode(text: string): HTMLElement {
     return el("img").clss("richtext-span-error-element").attr({alt: text}); // works right on chrome but not firefox
 
@@ -102,26 +178,87 @@ function createErrorNode(text: string): HTMLElement {
     // return res;
 }
 
-function splitAt(container: Node, offset: number): [ChildNode, Range] {
+type ElemData = {
+    level: "root",
+    type: "paragraph-list",
+} | {
+    level: "paragraph",
+    type: "paragraph",
+} | {
+    level: "span",
+    type: "text" | "line-break",
+} | {
+    level: "unsupported",
+};
+type DataLevel = ElemData["level"];
+
+function findChildIndex(parent: HTMLElement, search_child: Node): number {
+    const node_list = parent.childNodes;
+    let res_index: number | undefined;
+    // Array.from(node_list).findIndex(node => node === search_child)
+    node_list.forEach((node, i) => {
+        if(node === search_child) res_index = i;
+    });
+    if(res_index === undefined) throw new Error("invalid call to findChildIndex");
+    return res_index;
+}
+
+function splitAt(container: Node, offset: number, level: DataLevel): [Node, ChildNode | null, number] {
+    const parent = container.parentElement!;
     if(container instanceof Text) {
+        
+        // 1: split self
         const val = container.nodeValue ?? "";
-        const text_v_left = val.substr(0, offset);
-        const text_v_right = val.substr(offset);
+        const text_left = val.substring(0, offset);
+        const text_right = val.substring(offset);
 
-        const parent_item = container.parentElement!;
-        const data_type = parent_item.getAttribute("data-type");
-        if(data_type === "text") {
-            if(parent_item.childNodes.length !== 1) throw new Error("incorrect child node count");
-            const [new_lhs, lhs_tn] = createTextNode({});
-            lhs_tn.nodeValue = text_v_left;
-            container.nodeValue = text_v_right;
-            parent_item.parentElement!.insertBefore(new_lhs, parent_item);
+        const new_lhs = txt(text_left);
+        container.nodeValue = text_right;
 
-            return [parent_item, mkrange(container, 0, container, 0)];
-        }
-        throw new Error("uuh?");
+        parent.insertBefore(new_lhs, container);
+
+        // 2: split parent
+        const split_index = findChildIndex(parent, container);
+        return splitAt(parent, split_index, level);
     }
-    throw new Error("unsupported");
+    if(!(container instanceof HTMLElement)) {
+        console.log("not supported>3:", container);
+        throw new Error("not supported node type");
+    }
+    const attrs = getData(container);
+    if(attrs.level === "span") {
+        if(attrs.type === "text") {
+            // create a new before_span
+            const before_span = mkel("span", {level: "span", type: "text"});
+            
+            // move all the nodes 0..offset → before_span
+            const nodes_to_move: Node[] = [];
+            for(let i = 0; i < offset; i++) {
+                nodes_to_move.push(container.childNodes[i]!);
+            }
+            nodes_to_move.forEach(node => before_span.adch(node));
+
+            parent.insertBefore(before_span, container);
+
+            if(level === "span") return [parent, container, findChildIndex(parent, container)];
+            const split_index = findChildIndex(parent, container);
+            return splitAt(parent, split_index, level);
+        }else if(attrs.type === "line-break"){
+            console.log(attrs, container);
+            throw new Error("asked to split a line break? idk what to do?");
+        }else assertNever(attrs.type);
+    }
+    if(attrs.level === "paragraph") {
+        if(level === "span") {
+            // it's already split lol nothing to do;
+            return [container, container.childNodes[offset] ?? null, offset];
+        }
+    }
+    throw new Error("TODO: "+attrs.level);
+}
+function assertNever(v: never): never {
+    console.log("expected never, got", v);
+    throw new Error("expected never");
 }
 
 // shift-enter: insert line break, enter: insert paragraph
@@ -149,18 +286,14 @@ type FakeInputType =
 
 // TODO figure out how to use composition events. composition events seem to make changes to the dom without asking first.
 
-// - ok so::
-// - on enter: clear the range
-// - split the current node at the range left
-// » if left node is br
-//   - delete br
-//   - split the current node at the current position
-//   - insert a paragraph below the current paragraph
-//   - take all the rhs and put them in the new paragraph
-//   - set selection beginning of new paragraph
-// » else
-//   - insert br
-//   - set selection beginning of next line
+// TODO: figure out how to use undo/redo
+
+// I think the resolution to these will have to be changing the architecture quite a bit or something
+// no idea actually
+// like I can do undo myself easily by copying nodes every input or whatever
+// but that isn't right and won't behave properly
+// uuh
+// this architecture is flawed isn't it
 
 export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
     const outer_frame = el("div");
@@ -181,9 +314,7 @@ export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
         return hsc;
     }
 
-    const contenteditable = el("div").attr({contenteditable: "true"}).adto(frame).clss("richtext-editor-content").clss("richtext-placeholder");
-
-    contenteditable.attr({'data-type': "paragraph_list"});
+    const contenteditable = mkel("div", {type: "paragraph-list", level: "root"}).attr({contenteditable: "true"}).adto(frame).clss("richtext-editor-content").clss("richtext-placeholder");
 
     contenteditable.onev("beforeinput", (event_raw) => {
         const e = event_raw as InputEvent;
@@ -217,15 +348,15 @@ export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
             }else if(input_type === "insert_line_break") {
                 clearRange(range);
                 // TODO check if left of range is a br. if so, delete it and splitParagraphAt
-                const [rhs_node, end_range] = splitAt(range.startContainer, range.startOffset);
-                rhs_node.parentNode!.insertBefore(el("br").attr({'data-type': "line-break"}), rhs_node);
-                sel.addRange(end_range);
+                const [parent_node, rhs_node, rhs_idx] = splitAt(range.startContainer, range.startOffset, "span");
+                parent_node.insertBefore(mkel("br", {type: "line-break", level: "span"}), rhs_node);
+                sel.addRange(mkrange(parent_node, rhs_idx + 1, parent_node, rhs_idx + 1));
             }else{
                 expectUnsupported(input_type);
                 clearRange(range);
-                const [rhs_node, end_range] = splitAt(range.startContainer, range.startOffset);
-                rhs_node.parentNode!.insertBefore(createErrorNode(e.inputType), rhs_node);
-                sel.addRange(end_range);
+                const [parent_node, rhs_node, rhs_idx] = splitAt(range.startContainer, range.startOffset, "span");
+                parent_node.insertBefore(createErrorNode(e.inputType), rhs_node);
+                sel.addRange(mkrange(parent_node, rhs_idx + 1, parent_node, rhs_idx + 1));
             }
         }
     });

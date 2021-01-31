@@ -20,6 +20,7 @@ module.exports = {
         "@typescript-eslint/no-unused-vars": ["warn", {args: "none"}],
         "@typescript-eslint/no-namespace": ["error", {allowDeclarations: true}],
         "@typescript-eslint/no-non-null-assertion": "off",
+        "no-constant-condition": ["warn", {checkLoops: false}],
 
         // stricter linting rules:
         "@typescript-eslint/no-shadow": "warn",

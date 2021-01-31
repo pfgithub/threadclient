@@ -7,6 +7,7 @@ const dev = process.env.NODE_ENV === "development";
 
 module.exports = {
     entry: "./src/entry.ts",
+    devtool: "eval-cheap-module-source-map",
     module: {
         rules: [{
             test: /\.tsx?$/,
