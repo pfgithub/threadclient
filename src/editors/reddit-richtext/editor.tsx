@@ -27,16 +27,18 @@ const ImageElement: React.FC = (props: any): React.ReactElement => {
 const withMentions = (editor: Editor): Editor => {
     const {isInline, isVoid} = editor;
     editor.isInline = element => {
-        return element.type === "image" ? true : isInline(element);
+        if(element.type === "error") return true;
+        return isInline(element);
     };
     editor.isVoid = element => {
-        return element.type === "image" ? true : isVoid(element);
+        if(element.type === "error") return true;
+        return isVoid(element);
     };
     return editor;
-}
+};
 
 export const App: React.FC = (): React.ReactElement => {
-    const editor = useMemo(() => withMentions(withHistory(withReact(createEditor()))), []);
+    const editor = useMemo(() => withHistory(withReact(withMentions(createEditor()))), []);
 
     const [value, setValue] = useState<Node[]>([
         {type: "paragraph", children: [{text: "A line of text"}]}
@@ -45,7 +47,7 @@ export const App: React.FC = (): React.ReactElement => {
     // render blocks
     const renderElement = useCallback((props): React.ReactElement => {
         switch(props.element.type) {
-            case "image": return <ImageElement {...props} />;
+            case "error": return <ImageElement {...props} />;
             case "code": return <CodeElement {...props} />;
             default: return <DefaultElement {...props} />;
         }
@@ -67,13 +69,17 @@ export const App: React.FC = (): React.ReactElement => {
             // uh oh! this code block doesn't respond properly to newlines
             onKeyDown={(event: KeyboardEvent) => {
                 if(event.code === "Enter") {
+                    const [match] = Editor.nodes(editor, {
+                        match: n => Editor.isBlock(editor, n) && n.type === "code",
+                    });
+                    if(!event.shiftKey && !match) return;
                     event.preventDefault();
                     // this does not show the cursor in the right position in firefox
                     return Transforms.insertText(editor, "\n");
                 }
                 if(event.key === "m" && event.ctrlKey) {
                     event.preventDefault();
-                    return Transforms.insertNodes(editor, {image_text: "Hi!", type: "image", children: [{text: ""}]});
+                    return Transforms.insertNodes(editor, {image_text: "Hi!", type: "error", children: [{text: ""}]});
                 }
                 if(event.key === "`" && event.ctrlKey) {
                     event.preventDefault();
