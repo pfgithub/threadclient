@@ -15,9 +15,19 @@
     cursor: text;
 }
 
-.richtext-span-error-element {
+.rt-error {
     background-color: rgba(255, 0, 0, 0.1);
     border-radius: 5px;
     font-family: monospace;
     padding: 3px;
+}
+.rt-error.rt-focus {
+    outline: 1px dotted var(--outline-color);
+}
+
+.rte-pre {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 1rem;
 }
