@@ -334,14 +334,16 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         return hsc;
     };
     if(opts.suggested_embed != null) return (): HideShowCleanup<Node> => {
+        // TODO: render a body with markdown type unsafe-html that supports iframes
         try {
             // const parser = new DOMParser();
             // const doc = parser.parseFromString(opts.suggested_embed, "text/html");
             // const iframe = doc.childNodes[0].childNodes[1].childNodes[0];
             const template_el = el("template");
             template_el.innerHTML = opts.suggested_embed!;
-            const iframe_unsafe = template_el.content.querySelector("iframe") as HTMLIFrameElement | undefined;
+            const iframe_unsafe = template_el.content.childNodes[0];
             if(!iframe_unsafe) throw new Error("missing iframe");
+            if(!(iframe_unsafe instanceof HTMLIFrameElement)) throw new Error("iframe was not first child");
 
             console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
 
@@ -358,7 +360,10 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
             return hsc;
         }catch(e) {
             console.log(e);
-            return hideshow(txt("Error! "+e.toString()));
+            const frame = el("div");
+            frame.adch(el("p").atxt("Error adding suggestedembed: "+e.toString()).clss("error"));
+            frame.adch(el("pre").adch(el("code").atxt(opts.suggested_embed!)));
+            return hideshow(frame);
         }
     };
     return undefined;
