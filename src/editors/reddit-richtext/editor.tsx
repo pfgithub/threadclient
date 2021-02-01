@@ -5,20 +5,17 @@ import {withHistory} from "slate-history";
 
 const { useCallback, useMemo, useState } = React;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CodeElement: React.FC = (props: any): React.ReactElement => {
+const CodeElement = (props: RProps<CodeElement>): React.ReactElement => {
     return <pre {...props.attributes} className="rte-pre">
         <code>{props.children}</code>
     </pre>;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const DefaultElement: React.FC = (props: any): React.ReactElement => {
+const DefaultElement = (props: RProps<ParagraphElement>): React.ReactElement => {
     return <p {...props.attributes} className="rte-p">{props.children}</p>;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ImageElement: React.FC = (props: any): React.ReactElement => {
+const ImageElement = (props: RProps<ErrorElement>): React.ReactElement => {
     const selected = useSelected();
     const focused = useFocused();
     return <span {...props.attributes}><span className={"rt-error "+(selected && focused ? "rt-focus " : "")}>{props.element.image_text}</span>{props.children}</span>;
@@ -59,6 +56,32 @@ const FormatButton = (props: {editor: Editor, format: FormatType, children?: Rea
     }}>{props.children}</button>;
 };
 
+// either block or inline
+type BaseElement = {children: (Element | Leaf)[]};
+type ParagraphElement = BaseElement & {
+    type: "paragraph",
+};
+type ErrorElement = BaseElement & {
+    type: "error",
+    image_text: string,
+};
+type CodeElement = BaseElement & {
+    type: "code",
+};
+type Element = ParagraphElement | ErrorElement | CodeElement;
+
+// a text node
+type BaseLeaf = {text: string};
+type Leaf = BaseLeaf & ({
+    [key in FormatType]: boolean;
+});
+
+type RProps<T> = {attributes: {[key: string]: unknown}, children: React.ReactElement}
+    & (T extends BaseElement ? {element: T} : T extends BaseLeaf ? {leaf: T} : unknown)
+;
+type RenderElement = (props: RProps<Element>) => React.ReactElement;
+type RenderLeaf = (props: RProps<Leaf>) => React.ReactElement;
+
 // TODO: if the cursor is at the bottom or top of the document, pressing down/up should insert a paragraph below/above
 // basically to make sure you don't get stuck in code blocks
 
@@ -72,29 +95,28 @@ export const App: React.FC = (): React.ReactElement => {
     ]);
 
     // render blocks
-    const renderElement = useCallback((props): React.ReactElement => {
+    const renderElement: RenderElement = useCallback((props: RProps<Element>): React.ReactElement => {
         switch(props.element.type) {
-            case "error": return <ImageElement {...props} />;
-            case "code": return <CodeElement {...props} />;
-            default: return <DefaultElement {...props} />;
+            case "error": return <ImageElement {...{...props, element: props.element}} />;
+            case "code": return <CodeElement {...{...props, element: props.element}} />;
+            default: return <DefaultElement {...{...props, element: props.element}} />;
         }
     }, []);
     // render spans
-    const renderLeaf = useCallback((props): React.ReactElement => {
-        const leaf_info = props.leaf as {[key in FormatType]: boolean};
-
+    const renderLeaf: RenderLeaf = useCallback((props: RProps<Leaf>): React.ReactElement => {
         let outer_elem: React.ReactElement = <span>{props.children}</span>;
+        const leaf = props.leaf;
 
-        if(leaf_info.inline_code) {
+        if(leaf.inline_code) {
             outer_elem = <code className="rt-inline-code">{outer_elem}</code>;
         }else{
-            if(leaf_info.bold) outer_elem = <b>{outer_elem}</b>;
-            if(leaf_info.italic) outer_elem = <i>{outer_elem}</i>;
-            if(leaf_info.strike) outer_elem = <s>{outer_elem}</s>;
-            if(leaf_info.sup) outer_elem = <sup>{outer_elem}</sup>;
+            if(leaf.bold) outer_elem = <b>{outer_elem}</b>;
+            if(leaf.italic) outer_elem = <i>{outer_elem}</i>;
+            if(leaf.strike) outer_elem = <s>{outer_elem}</s>;
+            if(leaf.sup) outer_elem = <sup>{outer_elem}</sup>;
         }
         // uh oh spoilers don't work right - they might need to be inline, non-void elements instead
-        if(leaf_info.spoiler) outer_elem = <Spoiler>{outer_elem}</Spoiler>;
+        if(leaf.spoiler) outer_elem = <Spoiler>{outer_elem}</Spoiler>;
 
         return <span {...props.attributes}>{outer_elem}</span>;
     }, []);
