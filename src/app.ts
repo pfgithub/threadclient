@@ -1500,10 +1500,11 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
 
             let initialized = false;
             let state = listing.display_mode.body_default === "open";
+            const autoplay = !state;
             const update = () => {
                 if(state && !initialized) {
                     initialized = true;
-                    initContent(listing.body, {autoplay: true});
+                    initContent(listing.body, {autoplay});
                 }
                 open_preview_text.nodeValue = state ? "Hide" : "Show";
 
