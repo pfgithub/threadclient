@@ -1895,7 +1895,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 
     console.log(path);
 
-    if(path0 == null) {
+    if(path0 == null || path0 === "pwa-start") {
         return homePage();
     }
 
@@ -1960,26 +1960,28 @@ function onNavigate(to_index: number, url: URLLike) {
     nav_history[to_index] = {node: naventry, url: thisurl};
 }
 
+// TODO add support for navigation without any browser navigation things
+// eg within the frame of /pwa-start, display the client and have custom nav buttons
+// on the top that don't use history or whatever
+
 export const bodytop = el("div").adto(document.body);
 {
-    const spa_navigator_frame = document.createElement("div");
-    document.body.appendChild(spa_navigator_frame);
-    const spa_navigator_input = document.createElement("input");
-    spa_navigator_frame.appendChild(spa_navigator_input);
-    const spa_navigator_button = document.createElement("button");
-    spa_navigator_button.appendChild(document.createTextNode("⏎"));
-    spa_navigator_frame.appendChild(spa_navigator_button);
-    const spa_navigator_refresh = document.createElement("button");
-    spa_navigator_refresh.appendChild(document.createTextNode("🗘"));
-    spa_navigator_frame.appendChild(spa_navigator_refresh);
+    const frame = el("div").clss("navbar").adto(document.body);
 
-    const go = () => navigate({path: spa_navigator_input.value});
-    spa_navigator_button.onclick = () => go();
-    spa_navigator_input.onkeydown = k => k.key === "Enter" ? go() : 0;
+    el("button").adto(frame).atxt("←").onev("click", () => history.back());
+    el("button").adto(frame).atxt("→").onev("click", () => history.forward());
 
-    spa_navigator_refresh.onclick = () => alert("TODO refresh");
+    const nav_path = el("input").adto(frame);
+    const nav_go = el("button").atxt("⏎").adto(frame);
+    const nav_reload = el("button").atxt("🗘").adto(frame);
 
-    navigate_event_handlers.push(url => spa_navigator_input.value = url.pathname + url.search);
+    const go = () => navigate({path: nav_path.value});
+    nav_go.onclick = () => go();
+    nav_path.onkeydown = k => k.key === "Enter" ? go() : 0;
+
+    nav_reload.onclick = () => alert("TODO refresh");
+
+    navigate_event_handlers.push(url => nav_path.value = url.pathname + url.search);
 }
 
 history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);

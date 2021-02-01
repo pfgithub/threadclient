@@ -18,7 +18,7 @@
     ],
     "start_url": "/pwa_start",
     "background_color": "#000",
-    "display": "minimal-ui",
+    "display": "standalone",
     "scope": "/",
     "shortcuts": [
         {
