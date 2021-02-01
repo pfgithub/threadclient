@@ -51,6 +51,7 @@ all todo:
 -   [ ] set up hot module replacement to support reloading `clients/reddit.ts` (currently it doesn't because old copies of client objects are stored)
 -   [ ] when a reply window thing is open with entered text, prompt before closing the page. make sure this works for 2+ open reply things even if one is closed
 -   [ ] res-like click and drag image to zoom. and get rid of the click to open in new tab, there's a link right above the image you can click
+-   [ ] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
 
 reddit todo:
 
