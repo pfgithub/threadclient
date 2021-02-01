@@ -348,7 +348,7 @@ const updateQuery = (path: string, update: {[key: string]: string | undefined}) 
     return pathname + "?" + query.toString();
 };
 
-const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | Reddit.MoreChildren): Generic.Page => {
+const pageFromListing = (path: string, listing: Reddit.AnyResult): Generic.Page => {
     if(Array.isArray(listing)) {
         let link_fullname: string | undefined;
         const firstchild = listing[0].data.children[0]!;
@@ -362,7 +362,7 @@ const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | R
         };
     }
     if('json' in listing) {
-        if(listing.json.errors.length) {
+        if(listing.json.errors.length > 0) {
             console.log(listing.json.errors);
             alert("errors, check console");
         }
@@ -399,6 +399,21 @@ const pageFromListing = (path: string, listing: Reddit.Page | Reddit.Listing | R
                 raw_value: {},
             },
             replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined}, path)),
+            display_style: "comments-view",
+        };
+    }
+    if(listing.kind === "wikipage") {
+        return {
+            header: {
+                kind: "thread",
+                raw_value: listing,
+                body: {kind: "text", markdown_format: "reddit", content: listing.data.content_md},
+                display_mode: {body: "visible", comments: "visible"},
+                link: path,
+                layout: "error",
+                actions: [],
+                default_collapsed: false,
+            },
             display_style: "comments-view",
         };
     }

@@ -5,6 +5,30 @@ export type AccessToken =
     | {error: false, access_token: string, refresh_token: string, expires_in: number, scope: string}
 ;
 
+export type AnyResult = Page | Listing | MoreChildren | WikiPage;
+
+export type WikiPage = {
+    kind: "wikipage",
+    data: {
+        content_md: string,
+        content_html: string,
+        // not sure how/if it is possible to get richtext
+
+        may_revise: boolean,
+        revision_date: number, // s since epoch (utc)
+        revision_by: T2,
+        revision_id: string,
+    },
+};
+
+// user info
+export type T2 = {
+    kind: "t2",
+    data: {
+        todo: true,
+    },
+};
+
 export type Page = [Listing, Listing];
 export type Listing = {
     kind: "Listing",
