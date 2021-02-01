@@ -340,7 +340,8 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
             // const iframe = doc.childNodes[0].childNodes[1].childNodes[0];
             const template_el = el("template");
             template_el.innerHTML = opts.suggested_embed!;
-            const iframe_unsafe = template_el.content.childNodes[0] as HTMLIFrameElement;
+            const iframe_unsafe = template_el.content.querySelector("iframe") as HTMLIFrameElement | undefined;
+            if(!iframe_unsafe) throw new Error("missing iframe");
 
             console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
 
