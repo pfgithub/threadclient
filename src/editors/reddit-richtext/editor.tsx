@@ -57,7 +57,7 @@ const FormatButton = (props: {editor: Editor, format: FormatType, children?: Rea
         e.stopPropagation();
         updateFormat(props.editor, props.format);
     }}>{props.children}</button>;
-}
+};
 
 // TODO: if the cursor is at the bottom or top of the document, pressing down/up should insert a paragraph below/above
 // basically to make sure you don't get stuck in code blocks
