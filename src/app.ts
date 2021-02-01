@@ -263,10 +263,10 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         hsc.on("show", () => {void video.play()});
         return hsc;
     };
-    if(link.startsWith("https://i.redd.it/")
+    if((url?.hostname ?? "") === "i.redd.it"
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
-        || path.endsWith(".webp")
+        || path.endsWith(".webp")|| (url?.hostname ?? "") === "pbs.twimg.com"
     ) return (): HideShowCleanup<Node> => {
         const resn = zoomableImage(link, {});
         return hideshow(resn);
