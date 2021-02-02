@@ -2006,6 +2006,7 @@ export function showAlert(text: string): void {
     const alert = el("div").clss("alert").adto(document.body);
     el("div").clss("alert-body").adto(alert).atxt(text);
     el("button").clss("alert-close").atxt("🗙 Close").adto(alert).onev("click", () => alert.remove());
+    el("button").clss("alert-close").atxt("🗘 Refresh").adto(alert).onev("click", () => location.reload());
 }
 
 declare const fakevar: {build: "development" | "production"};
