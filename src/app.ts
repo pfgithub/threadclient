@@ -1389,7 +1389,7 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
             collapsed =! collapsed;
             update();
             const topv = collapsed_button.getBoundingClientRect().top;
-            const heightv = 5;
+            const heightv = 5 + navbar.getBoundingClientRect().height;
             if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv }
         });
         frame.insertBefore(collapsed_button, frame.childNodes[0] ?? null);
@@ -1970,13 +1970,15 @@ function onNavigate(to_index: number, url: URLLike) {
 // on the top that don't use history or whatever
 
 export const bodytop = el("div").adto(document.body);
-{
+let navbar: HTMLDivElement; {
     const frame = el("div").clss("navbar").adto(document.body);
+    navbar = frame;
 
     el("button").adto(frame).atxt("←").onev("click", () => history.back());
     el("button").adto(frame).atxt("→").onev("click", () => history.forward());
 
-    const nav_path = el("input").adto(frame);
+    const nav_path = el("input").adto(frame).clss("navbar-path");
+
     const nav_go = el("button").atxt("⏎").adto(frame);
     const nav_reload = el("button").atxt("🗘").adto(frame);
 

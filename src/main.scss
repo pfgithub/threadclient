@@ -818,4 +818,14 @@ table {
     @media only screen and (max-width: 600px) {
         margin: 0;
     }
+
+    display: grid;
+    grid-template-columns: max-content max-content 1fr max-content max-content;
+    gap: 5px;
+
+    overflow-x: auto;
+}
+
+input {
+    font-size: 1em;
 }
