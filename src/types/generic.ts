@@ -120,7 +120,7 @@ export type Body = BodyText | RichText | {
     kind: "none",
 } | {
     kind: "removed",
-    by: "author" | "moderator",
+    by: "author" | "moderator" | "error",
     fetch_path: string,
 } | {
     kind: "crosspost",

@@ -565,15 +565,11 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         const listing = listing_raw.data;
         // if((listing as any).preview) console.log((listing as any).preview);
 
-        let is_deleted: undefined | "author" | "moderator";
-        if(listing.author === "[deleted]") {
-            if(listing.is_self) {
-                if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
-                    is_deleted = "author";
-                }else if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[removed]"}], e: "par"}]})) {
-                    is_deleted = "moderator";
-                }
-            }
+        let is_deleted: undefined | "author" | "moderator" | "error";
+        if(listing.removed_by_category != null) {
+            if(listing.removed_by_category === "moderator") is_deleted = "moderator";
+            else if(listing.removed_by_category === "deleted") is_deleted = "author";
+            else is_deleted = "error";
         }
         const post_id_no_pfx = listing.name.substring(3);
 
