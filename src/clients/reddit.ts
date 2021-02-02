@@ -260,7 +260,7 @@ const pathURL = (path: string) => {
         throw new Error("path didn't start with `/` : `"+path+"`");
     }
     query.set("raw_json", "1");
-    query.set("rtj", "only");
+    query.set("rtj", "yes"); // undefined | "yes" | "only" but it turns out in listings eg /r/subreddit.json rtj=only cuts off after like 10 paragraphs but rtj=yes doesn't weird
     query.set("emotes_as_images", "true");
     return baseURL()+pathname+".json?"+query.toString();
 };
