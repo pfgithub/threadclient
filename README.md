@@ -66,7 +66,7 @@ reddit todo:
 -   [x] sidebars and stuff (that contain information about the subreddit, not the post)
 -   [x] sidebar info: use /r/…/api/widgets to get topbar+sidebar widgets
 -   [ ] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
--   [ ] option to view old.reddit sidebar nodes for subreddits that don't have new.reddit sidebar support (implement with ^)
+-   [ ] option to view old.reddit sidebar nodes for subreddits that don't have new.reddit sidebar support (implement with ^) (also only the old.sidebar can be supported when logged out)
 -   [ ] post duplicates ("discussions in x other subs")
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
 -   do not pass through cors, so ban messages cannot be shown.
