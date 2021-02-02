@@ -815,7 +815,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
                     : rtp.kind === "list_item"
                     ? "li"
                     : assertNever(rtp)
-            ).adto(container);
+            ).adto(container).clss("richtext-render-node");
             for(const child of rtp.children) {
                 renderRichtextParagraph(client, child, bquot).defer(hsc);
             }

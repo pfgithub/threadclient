@@ -854,3 +854,8 @@ input {
     }
     border-radius: 10px;
 }
+
+li.richtext-render-node > p:only-child {
+    margin-top: 0;
+    margin-bottom: 0;
+}
