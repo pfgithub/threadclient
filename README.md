@@ -32,7 +32,7 @@ all todo:
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] proper, non-hacky way to auto disable darkreader extension
--   [ ] full mobile support maybe, might not be worth it
+-   [ ] full mobile support (no buttons that are too close together + design more optimized for mobile)
 -   [ ] a button to switch to markdown source view (uh oh what if the comment doesn't have any markdown source…)
 -   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
@@ -65,13 +65,15 @@ reddit todo:
 -   [x] fix "load more" buttons with empty children arrays but 10 depth or something
 -   [x] sidebars and stuff (that contain information about the subreddit, not the post)
 -   [x] sidebar info: use /r/…/api/widgets to get topbar+sidebar widgets
+-   [x] replies + reply preview
 -   [ ] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
--   [ ] option to view old.reddit sidebar nodes for subreddits that don't have new.reddit sidebar support (implement with ^) (also only the old.sidebar can be supported when logged out)
+-   [ ] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle + show rules /r/…/about/rules
+-   [ ] improve mobile sidebars (do a custom route for /r/:subreddit/sidebar and rather than showing the sidebar, have a link to there)
 -   [ ] post duplicates ("discussions in x other subs")
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
 -   do not pass through cors, so ban messages cannot be shown.
--   [ ] replies + reply preview
--   [ ] posts + post preview
+-   [ ] richtext replies
+-   [ ] posts + post preview (+ /api/v1/:subreddit/post_requirements)
 -   [ ] fix dark flairs being displayed on a dark background
 -   [ ] user profile pages, defaulting to the overview tab
 -   [ ] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
