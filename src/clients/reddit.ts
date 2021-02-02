@@ -109,7 +109,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
             kind: "paragraph",
             children: richtextSpanArray(rtd.c, opt),
         };
-        case "img": case "video": {
+        case "img": case "video": case "gif": {
             const data = opt.media_metadata[rtd.id];
             if(!data) return richtextErrorP("unknown id "+rtd.id, JSON.stringify(opt));
             return {
