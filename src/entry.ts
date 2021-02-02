@@ -1,4 +1,4 @@
-import {bodytop, showAlert} from "./app";
+import {showAlert} from "./app";
 
 type HotModule = {
     accept: (filename: string | string[], cb: () => void) => void,
