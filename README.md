@@ -28,6 +28,8 @@ all todo:
 -   [x] maybe? eslint strict booleans in ifs and stuff
 -   [x] eslint formatting
 -   [x] eslint strict promise error handling
+-   [x] add a loading indicator to the fullscreen loader thing
+-   [x] catch errors in more places
 -   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
@@ -46,8 +48,6 @@ all todo:
 -   [ ] make images a bit smaller on desktop - 95% of viewport height is kind of big
 -   [ ] fix wrong scrolling when going to a comment section and pressing back in firefox
 -   [ ] fix wrong scrolling occasionally when clicking show on post content
--   [ ] add a loading indicator to the fullscreen loader thing
--   [ ] catch errors in more places
 -   [ ] set up hot module replacement to support reloading `clients/reddit.ts` (currently it doesn't because old copies of client objects are stored)
 -   [ ] when a reply window thing is open with entered text, prompt before closing the page. make sure this works for 2+ open reply things even if one is closed
 -   [ ] res-like click and drag image to zoom. and get rid of the click to open in new tab, there's a link right above the image you can click
@@ -55,6 +55,7 @@ all todo:
 -   [ ] send a notification when the serviceworker has new content available on reload
 -   [ ] add the first line of the body richtext to show up when the thing is collapsed (and make sure it's max 1 line overflow ellipsis)
 -   [ ] some simple unit tests (eg number shortening like 12502 → 12.5k, 350351 → 350k)
+-   [ ] improve poll appearence
 
 reddit todo:
 
@@ -66,6 +67,8 @@ reddit todo:
 -   [x] sidebars and stuff (that contain information about the subreddit, not the post)
 -   [x] sidebar info: use /r/…/api/widgets to get topbar+sidebar widgets
 -   [x] replies + reply preview
+-   [x] wiki pages + wiki markdown parser (note: currently the wiki parser is the same as the normal parser. TODO fix in snudown.wasm)
+-   [ ] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
 -   [ ] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
 -   [ ] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle + show rules /r/…/about/rules
 -   [ ] improve mobile sidebars (do a custom route for /r/:subreddit/sidebar and rather than showing the sidebar, have a link to there)
@@ -76,8 +79,6 @@ reddit todo:
 -   [ ] posts + post preview (+ /api/v1/:subreddit/post_requirements)
 -   [ ] fix dark flairs being displayed on a dark background
 -   [ ] user profile pages, defaulting to the overview tab
--   [ ] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
--   [ ] wiki pages + wiki markdown parser (easy to add)
 -   [ ] navigation buttons eg homepage link
 -   [ ] mod tools and stuff + mod messages also + post removal tools that have options to use the subreddit things like comment distinguished stickied
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
@@ -91,6 +92,8 @@ reddit todo:
 -   [ ] preview subreddit links like sneakpeakbot does and also hide sneakpeakbot replies unless they have comments (may require slight restructuring | just fetch the reddit client yeah ok)
 -   [ ] what if sneakpeakbot replies got embedded into the comment itself hmm - as a crosspost thing but collapsed by default
 -   [ ] support `redd.it` links
+-   [ ] properly handle request errors + refresh token when a request fails rather than relying on the system clock
+-   [ ] improve login flow, especially on mobile pwa
 -   [ ] infinite things there are infinite things to do
 
 mastodon todo:
