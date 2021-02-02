@@ -1900,7 +1900,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 
     console.log(path);
 
-    if(path0 == null || path0 === "pwa-start") {
+    if(path0 == null || path0 === "pwa_start") {
         return homePage();
     }
 
