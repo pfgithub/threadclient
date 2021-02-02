@@ -123,6 +123,18 @@ button {
     }
 }
 
+// normalization
+button,
+input {
+    border: 1px solid var(--collapse-line-color-hover);
+    &:focus {
+        outline: 1px dotted var(--outline-color);
+    }
+}
+input {
+    border-radius: 5px;
+}
+
 a {
     color: var(--link-color);
 }
@@ -832,6 +844,11 @@ table {
     gap: 5px;
 
     overflow-x: auto;
+}
+
+.navbar-path {
+    text-align: center;
+    min-width: 0;
 }
 
 input {
