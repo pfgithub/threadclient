@@ -52,6 +52,7 @@ all todo:
 -   [ ] when a reply window thing is open with entered text, prompt before closing the page. make sure this works for 2+ open reply things even if one is closed
 -   [ ] res-like click and drag image to zoom. and get rid of the click to open in new tab, there's a link right above the image you can click
 -   [ ] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
+-   [ ] make my own service worker using https://www.npmjs.com/package/serviceworker-webpack-plugin (bonus: this can work in dev builds while workbox can't)
 
 reddit todo:
 

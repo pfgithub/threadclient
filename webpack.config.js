@@ -7,7 +7,8 @@ const dev = process.env.NODE_ENV === "development";
 
 module.exports = {
     entry: "./src/entry.ts",
-    devtool: "eval-cheap-module-source-map",
+    mode: dev ? "development" : "production",
+    ...(dev ? {devtool: "eval-cheap-module-source-map"} : {}),
     module: {
         rules: [{
             test: /\.tsx?$/,
@@ -58,7 +59,7 @@ module.exports = {
                 {from: "static", to: ""},
             ],
         }),
-        ...(dev ? [] : [new WorkboxPlugin.GenerateSW()]),
+        ...(dev ? [] : [new WorkboxPlugin.GenerateSW({})]),
     ],
     devServer: {
         contentBase: path.join(__dirname, "dist"),
