@@ -2002,6 +2002,12 @@ const rmdarkreader = () => {
 };
 setTimeout(() => rmdarkreader(), 0);
 
+export function showAlert(text: string): void {
+    const alert = el("div").clss("alert").adto(document.body);
+    el("div").clss("alert-body").adto(alert).atxt(text);
+    el("button").clss("alert-close").atxt("🗙 Close").adto(alert).onev("click", () => alert.remove());
+}
+
 declare const fakevar: {build: "development" | "production"};
 if(fakevar.build === "production" && 'serviceWorker' in navigator) {
     window.addEventListener("load", () => {
