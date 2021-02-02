@@ -700,7 +700,11 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 kind: "link",
                 url: "/domain/"+listing.domain,
                 text: listing.domain,
-            }, deleteButton(listing.name), getPointsOn(listing)],
+            }, deleteButton(listing.name), getPointsOn(listing), {
+                kind: "link",
+                url: listing.permalink.replace("/comments/", "/duplicates/"),
+                text: "Duplicates"
+            }],
             default_collapsed: false,
         };
         return result;
