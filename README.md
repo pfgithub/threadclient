@@ -54,6 +54,7 @@ all todo:
 -   [ ] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
 -   [ ] send a notification when the serviceworker has new content available on reload
 -   [ ] add the first line of the body richtext to show up when the thing is collapsed (and make sure it's max 1 line overflow ellipsis)
+-   [ ] some simple unit tests (eg number shortening like 12502 → 12.5k, 350351 → 350k)
 
 reddit todo:
 
@@ -62,8 +63,10 @@ reddit todo:
 -   [x] markdown parser
 -   [x] link previews within post bodies and comments
 -   [x] fix "load more" buttons with empty children arrays but 10 depth or something
+-   [x] sidebars and stuff (that contain information about the subreddit, not the post)
+-   [x] sidebar info: use /r/…/api/widgets to get topbar+sidebar widgets
+-   [ ] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
 -   [ ] post duplicates ("discussions in x other subs")
--   [ ] subscribe to subreddits (put it in an info thing at the top of a subreddit listing and then todo show a sidebar on posts)
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
 -   do not pass through cors, so ban messages cannot be shown.
 -   [ ] replies + reply preview
@@ -73,8 +76,6 @@ reddit todo:
 -   [ ] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
 -   [ ] wiki pages + wiki markdown parser (easy to add)
 -   [ ] navigation buttons eg homepage link
--   [ ] sidebars and stuff (that contain information about the subreddit, not the post)
--   [ ] sidebar info: use /r/…/api/widgets to get topbar+sidebar widgets
 -   [ ] mod tools and stuff + mod messages also + post removal tools that have options to use the subreddit things like comment distinguished stickied
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown

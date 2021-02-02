@@ -1094,6 +1094,7 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
 const scoreToString = (score: number) => {
     if(score < 10_000) return "" + score;
     if(score < 100_000) return (score / 1_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
+    if(score < 1_000_000) return (score / 1_000 |0) + "k";
     if(score < 100_000_000) return (score / 1_000_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "m";
     return (score / 1_000_000 |0) + "m";
 };
@@ -1341,49 +1342,49 @@ function hListing(client: ThreadClient, listing: Generic.HList, frame: HTMLDivEl
     return hsc;
 }
 
-function redditWidget(client: ThreadClient, listing: Generic.RedditWidget, frame: HTMLDivElement): HideShowCleanup<undefined> {
+function widgetRender(client: ThreadClient, widget: Generic.Widget, frame: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
-    const widget = listing.data;
-
-    frame.clss("reddit-widget");
-    const title = txt("…").adto(el("div").adto(frame).clss("reddit-widget-header"));
+    frame.clss("widget");
+    txt(widget.title).adto(el("div").adto(frame).clss("widget-header"));
     
-    if(widget.kind === "id-card") {
-        frame.clss("sub-id-card");
-        title.nodeValue = widget.shortName;
-        frame.adch(el("p").atxt(widget.description));
-        frame.adch(el("div").atxt(scoreToString(widget.subscribersCount) + " Subscribers"));
-        // add a subscribe button (just a counter) // this should be from associated info in the generic.redditwidget
-        frame.adch(el("div").atxt(scoreToString(widget.currentlyViewingCount) + " Currently Viewing"));
-    }else if(widget.kind === "moderators") {
-        frame.clss("sub-moderators-card");
-        linkButton(client.id, "/message/compose?to="+listing.associated.subreddit).atxt("Message the mods").adto(frame);
-        title.nodeValue = "Moderators";
-        const modslist = el("ul").clss("moderators-ul").adto(frame);
-        for(const mod of widget.mods) {
-            const li = el("li").adto(modslist).clss("moderator");
-            // it's necessary here to get flairs too. that is a function in reddit.ts.
-            // some of this data transformation would be better done in reddit.ts
-            linkButton(client.id, "/u/"+mod.name).atxt(mod.name).adto(li);
+    if(widget.actions_top) {
+        const actionstop = el("div").clss("widget-actions-top").adto(frame);
+        for(const action of widget.actions_top) {
+            renderAction(client, action, actionstop).defer(hsc);
         }
-        linkButton(client.id, "/r/"+listing.associated.subreddit+"/about/moderators").atxt("View All").adto(frame);
-    }else if(widget.kind === "community-list") {
-        frame.clss("sub-community-list");
-        title.nodeValue = widget.shortName;
-        const communitieslist = el("ul").clss("communities-ul").adto(frame);
-        for(const community of widget.data) {
-            const li = el("li").adto(communitieslist).clss("community");
-            if(community.type === "subreddit") {
-                linkButton(client.id, "/r/"+community.name).atxt(community.name).adto(li);
-            }else{
-                li.atxt("unsupported "+community.type);
+    }
+
+    const content = widget.widget_content;
+    if(content.kind === "list") {
+        const list = el("ul").clss("widget-list").adto(frame);
+        for(const item of content.items) {
+            const ili = el("li").adto(list);
+            if(item.icon != null) {
+                el("div").adto(ili).clss("widget-list-icon").styl({"--background-image-url": "url("+item.icon+")"});
+            }
+            linkButton(client.id, item.link).atxt(item.name).adto(ili);
+            if(item.action) {
+                const actionv = el("span").adto(ili).atxt(" ");
+                renderAction(client, item.action, actionv).defer(hsc);
             }
         }
-    }else{
-        el("div").atxt("Sidebar Widget: "+widget.kind).adto(frame);
-        linkLikeButton().atxt("Code").adto(frame).onev("click", () => console.log(listing));
+    }else if(content.kind === "community-details") {
+        el("p").atxt(content.description).adto(frame);
+    }else if(content.kind === "richtext") {
+        const container = el("div").adto(frame);
+        for(const par of content.text) {
+            renderRichtextParagraph(client, par, container).defer(hsc);
+        }
+    }else assertNever(content);
+
+    if(widget.actions_bottom) {
+        const actionstop = el("div").clss("widget-actions-bottom").adto(frame);
+        for(const action of widget.actions_bottom) {
+            renderAction(client, action, actionstop).defer(hsc);
+        }
     }
+    el("div").adto(frame).adch(linkLikeButton().atxt("Code").onev("click", () => console.log(widget)));
 
     return hsc;
 }
@@ -1402,8 +1403,8 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         hListing(client, listing, frame).defer(hsc);
         return hsc;
     }
-    if(listing.kind === "reddit-widget") {
-        redditWidget(client, listing, frame).defer(hsc);
+    if(listing.kind === "widget") {
+        widgetRender(client, listing, frame).defer(hsc);
         return hsc;
     }
 

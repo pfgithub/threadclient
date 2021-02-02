@@ -912,6 +912,18 @@ li.richtext-render-node > p:only-child {
 }
 // TODO on mobile hide sidebar widgets behind a menu button
 
-.moderators-ul {
+.widget-list {
     padding-left: 15px;
+}
+
+.widget-list-icon {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-image: var(--background-image-url);
+    border-radius: 25px;
+    background-repeat: no-repeat;
+    background-size: contain;
+    margin-right: 4px;
+    vertical-align: middle;
 }

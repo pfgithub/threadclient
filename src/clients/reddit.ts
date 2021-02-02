@@ -40,7 +40,11 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     return [{elems: resitems, content_warning: false, color: "transparent"}];
 }
 
-type Action = {kind: "vote", query: Reddit.VoteBody} | {kind: "delete", fullname: string} | {kind: "save", fullname: string, direction: "" | "un"};
+type Action =
+    | {kind: "vote", query: Reddit.VoteBody}
+    | {kind: "delete", fullname: string}
+    | {kind: "save", fullname: string, direction: "" | "un"}
+    | {kind: "subscribe", subreddit: string, direction: "sub" | "unsub"};
 
 function encodeVoteAction(query: Reddit.VoteBody): string {return encodeAction({kind: "vote", query})}
 function encodeDeleteAction(fullname: string): string {return encodeAction({kind: "delete", fullname})}
@@ -348,6 +352,23 @@ const updateQuery = (path: string, update: {[key: string]: string | undefined}) 
     return pathname + "?" + query.toString();
 };
 
+function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.Action {
+    return {
+        kind: "counter",
+
+        label: "Subscribe",
+        incremented_label: "Subscribed",
+
+        count_excl_you: you_subbed ? subscribers - 1 : subscribers,
+        you: you_subbed ? "increment" : undefined,
+
+        actions: {
+            increment: encodeAction({kind: "subscribe", subreddit, direction: "sub"}),
+            reset: encodeAction({kind: "subscribe", subreddit, direction: "unsub"}),
+        },
+    };
+}
+
 function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "header" | "sidebar", subreddit: string): Generic.ContentNode[] {
     const mode: {header: boolean, sidebar: boolean} = {header: mode_raw === "header" || mode_raw === "both", sidebar: mode_raw === "sidebar" || mode_raw === "both"};
     const getItem = (id: string): Reddit.Widget => {
@@ -356,7 +377,80 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
         return resv;
     };
     const wrap = (data: Reddit.Widget): Generic.ContentNode => {
-        return {kind: "reddit-widget", data, associated: {subreddit}};
+        if(data.kind === "moderators") return {
+            kind: "widget",
+            title: "Moderators",
+            raw_value: data,
+            widget_content: {
+                kind: "list",
+                items: data.mods.map(moderator => ({
+                    name: moderator.name,
+                    link: "/u/"+moderator.name,
+                })),
+            },
+            actions_top: [{
+                kind: "link",
+                url: "/message/compose?to="+subreddit,
+                text: "Message the mods",
+            }],
+            actions_bottom: [{
+                kind: "link",
+                url: "/r/"+subreddit+"/about/moderators",
+                text: "View All Moderators",
+            }],
+        }; else if(data.kind === "community-list") return {
+            kind: "widget",
+            title: data.shortName,
+            raw_value: data,
+            widget_content: {
+                kind: "list",
+                items: data.data.map(sub => {
+                    if(sub.type === "subreddit") return {
+                        icon: sub.communityIcon || undefined,
+                        name: "r/"+sub.name,
+                        link: "/r/"+sub.name,
+                        action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
+                    };
+                    expectUnsupported(sub.type);
+                    return {
+                        name: "ERROR UNSUPPORTED" + sub.type,
+                        link: "error",
+                    };
+                }),
+            },
+            actions_top: [{
+                kind: "link",
+                url: "/message/compose?to="+subreddit,
+                text: "Message the mods",
+            }],
+            actions_bottom: [{
+                kind: "link",
+                url: "/r/"+subreddit+"/about/moderators",
+                text: "View All Moderators",
+            }],
+        }; else if(data.kind === "id-card") return {
+            kind: "widget",
+            title: data.shortName,
+            raw_value: data,
+            widget_content: {
+                kind: "community-details",
+                description: data.description,
+            },
+            // this doesn't tell you if you're subbed or not oops
+            // actions_bottom: [createSubscribeAction(subreddit, data.subscribersCount, false)],
+        }; else if(data.kind === "menu") return {
+            kind: "widget",
+            title: "Error!",
+            raw_value: data,
+            widget_content: {kind: "richtext", text: [richtextErrorP("Uh oh! TODO widget "+data.kind, JSON.stringify(data))]}
+        };
+        expectUnsupported(data.kind);
+        return {
+            kind: "widget",
+            title: "Error!",
+            raw_value: data,
+            widget_content: {kind: "richtext", text: [richtextErrorP("Uh oh! Unsupported widget "+data.kind, JSON.stringify(data))]}
+        };
     };
     // TODO moderator widget
     return [
@@ -1003,6 +1097,17 @@ export const client: ThreadClient = {
                 method: "POST",
                 mode: "urlencoded",
                 body: {id: act.fullname},
+            });
+            console.log(res);
+        }else if(act.kind === "subscribe") {
+            type DeleteResult = {__nothing: unknown};
+            const res = await redditRequest<DeleteResult>("/api/subscribe", {
+                method: "POST",
+                mode: "urlencoded",
+                body: {
+                    action: act.direction,
+                    sr_name: act.subreddit,
+                },
             });
             console.log(res);
         }else assertUnreachable(act);

@@ -201,12 +201,33 @@ export type HList = {
     kind: "hlist",
     items: ContentNode[],
 };
-import * as Reddit from "./api/reddit";
-export type RedditWidgetData = {
-    subreddit: string,
+
+export type WidgetListItem = {
+    icon?: string,
+    name: string,
+    link: string,
+    action?: Action,
 };
-export type RedditWidget = {kind: "reddit-widget", associated: RedditWidgetData, data: Reddit.Widget};
-export type ContentNode = Thread | Profile | HList | RedditWidget;
+
+export type Widget = {
+    kind: "widget",
+    title: string,
+    actions_top?: Action[],
+    actions_bottom?: Action[],
+    widget_content: {
+        kind: "list",
+        items: WidgetListItem[],
+    } | {
+        kind: "community-details",
+        description: string,
+    } | {
+        kind: "richtext",
+        text: Richtext.Paragraph[],
+    },
+    raw_value: unknown,
+};
+
+export type ContentNode = Thread | Profile | HList | Widget;
 export type Node = Thread | LoadMore;
 export type RichTextItem = {
     type: "text",
