@@ -450,7 +450,7 @@ function s(number: number, text: string) {
 // returns [time_string, time_until_update]
 function timeAgoText(start_ms: number): [string, number] {
     const ms = Date.now() - start_ms;
-    if(ms < 0) return ["in the future", -ms];
+    if(ms < 0) return ["in the future "+new Date(start_ms).toISOString(), -ms];
     if(ms < 60 * 1000) return ["just now", 60 * 1000 - ms];
 
     let step = 60 * 1000;
@@ -913,9 +913,11 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         }
     }else if(body.kind === "poll") {
         const pollcontainer = el("ul").adto(content).clss("poll-container");
+        const expires = el("div").adto(pollcontainer).atxt("Expires: ");
+        timeAgo(body.close_time).defer(hsc).adto(expires);
         for(const choice of body.choices) {
             const choicebtn = el("button").adto(el("li").adto(pollcontainer).clss("poll-choice-li")).clss("poll-choice");
-            choicebtn.atxt(choice.name + " ("+s(choice.votes, " Votes")+")");
+            choicebtn.atxt(choice.name + " ("+(choice.votes === "hidden" ? "hidden" : s(choice.votes, " Votes"))+")");
             choicebtn.onev("click", () => alert("TODO voting on polls"));
         }
         if(body.select_many) {

@@ -68,7 +68,7 @@ reddit todo:
 -   [x] sidebar info: use /r/…/api/widgets to get topbar+sidebar widgets
 -   [x] replies + reply preview
 -   [x] wiki pages + wiki markdown parser (note: currently the wiki parser is the same as the normal parser. TODO fix in snudown.wasm)
--   [ ] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
+-   [x] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
 -   [ ] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
 -   [ ] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle + show rules /r/…/about/rules
 -   [ ] improve mobile sidebars (do a custom route for /r/:subreddit/sidebar and rather than showing the sidebar, have a link to there)

@@ -728,10 +728,24 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             ? {kind: "crosspost", source:
                 threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]!}, {force_expand: "crosspost"}, listing.permalink) as Generic.Thread
             }
+            : listing.poll_data
+            ? {kind: "poll",
+                votable: "Cannot vote",
+                total_votes: listing.poll_data.total_vote_count,
+                choices: listing.poll_data.options.map(choice => ({
+                    name: choice.text,
+                    votes: choice.vote_count ?? "hidden",
+                    id: choice.id,
+                })),
+                vote_data: "",
+                select_many: false,
+                your_votes: listing.poll_data.user_selection != null ? [{id: listing.poll_data.user_selection}] : [],
+                close_time: listing.poll_data.voting_end_timestamp,
+            }
             : listing.is_self
             ? listing.rtjson.document.length
                 ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
-                : {kind: "none"}
+                : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
             : listing.gallery_data
             ? {kind: "gallery", images: listing.gallery_data.items.map(gd => {
                 if(!listing.media_metadata) throw new Error("missing media metadata");
@@ -777,6 +791,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             })}
             : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
         ;
+        console.log("got body content", body_content, listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1, listing.is_self, listing.gallery_data);
 
         const result: Generic.Node = {
             kind: "thread",

@@ -267,6 +267,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                     vote_data: post.poll.id,
                     select_many: post.poll.multiple,
                     your_votes: (post.poll.own_votes ?? []).map(ov => ({id: "" + ov})),
+                    close_time: new Date(post.poll.expires_at).getTime(),
                 } : undefined
             ],
         },

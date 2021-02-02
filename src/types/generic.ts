@@ -112,10 +112,11 @@ export type Body = BodyText | RichText | {
     kind: "poll",
     votable: true | string,
     total_votes: number,
-    choices: {name: string, votes: number, id: string}[],
+    choices: {name: string, votes: number | "hidden", id: string}[],
     vote_data: string,
     select_many: boolean,
     your_votes: {id: string}[],
+    close_time: number, // ms since epoch utc
 } | {
     kind: "none",
 } | {

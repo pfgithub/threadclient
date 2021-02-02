@@ -881,7 +881,7 @@ li.richtext-render-node > p:only-child {
     .client-main-frame {
         display: grid;
         grid-template-columns: [content] 1fr [sidebar] 320px [end];
-        grid-template-rows: [verytop] max-content [header] max-content [content] max-content [end];
+        grid-template-rows: [verytop] max-content [header] max-content [content] max-content [bottom] max-content [end];
     }
     .login-button-area {
         grid-row: verytop;

@@ -234,6 +234,22 @@ export type PostSubmission = PostBase & PostOrComment & {
 
     domain: string,
 
+    poll_data?: {
+        options: {
+            text: string, id: string,
+            vote_count?: number,
+        }[],
+        resolved_option_id: null,
+        total_vote_count: number,
+        user_selection: string | null,
+        voting_end_timestamp: number, // ms since epoch
+        
+        // for gambling polls
+        is_prediction: boolean,
+        total_stake_amount: null,
+        user_won_amount: null,
+    },
+
     // this is only available on posts
     // the new.reddit desktopapi gets a "deletedBy" property on both posts and comments
     // but unfortunately on the public api you have to check the comment body to determine if it is deleted
