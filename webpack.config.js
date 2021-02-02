@@ -59,7 +59,10 @@ module.exports = {
                 {from: "static", to: ""},
             ],
         }),
-        ...(dev ? [] : [new WorkboxPlugin.GenerateSW({})]),
+        ...(dev ? [] : [new WorkboxPlugin.GenerateSW({
+            clientsClaim: true,
+            skipWaiting: true,
+        })]),
     ],
     devServer: {
         contentBase: path.join(__dirname, "dist"),
