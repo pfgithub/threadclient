@@ -901,6 +901,8 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
                 renderBody(client, new_body, {autoplay: true}, content).defer(hsc);
             });
         }
+        const existing_body_v = el("div").adto(content);
+        renderBody(client, body.body, {autoplay: opts.autoplay}, existing_body_v).defer(hsc);
     }else if(body.kind === "crosspost") {
         const parentel = el("div").styl({"max-width": "max-content"}).adto(content);
         clientListing(client, body.source).defer(hsc).adto(parentel);

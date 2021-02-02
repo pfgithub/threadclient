@@ -536,12 +536,17 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         }
         const post_id_no_pfx = listing.name.substring(3);
 
+        const body_content: Generic.Body = {
+            kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})
+        };
+
         const result: Generic.Node = {
             kind: "thread",
             body: is_deleted != null
                 ? {kind: "removed", by: is_deleted,
                     fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
-                } : {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})},
+                    body: body_content,
+                } : body_content,
             display_mode: {body: "visible", comments: "visible"},
             raw_value: listing_raw,
             link: listing.permalink,
@@ -580,11 +585,12 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         const listing = listing_raw.data;
         // if((listing as any).preview) console.log((listing as any).preview);
 
-        let is_deleted: undefined | "author" | "moderator" | "error";
+        let is_deleted: undefined | "author" | "moderator" | "anti_evil_ops" | "error";
         if(listing.removed_by_category != null) {
             if(listing.removed_by_category === "moderator") is_deleted = "moderator";
             else if(listing.removed_by_category === "deleted") is_deleted = "author";
-            else is_deleted = "error";
+            else if(listing.removed_by_category === "anti_evil_ops") is_deleted = "anti_evil_ops";
+            else{expectUnsupported(listing.removed_by_category); is_deleted = "error"}
         }
         const post_id_no_pfx = listing.name.substring(3);
 
@@ -592,6 +598,60 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         if(listing.spoiler) extra_flairs.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
         if(listing.over_18) extra_flairs.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
         if(listing.is_original_content) extra_flairs.push({elems: [{type: "text", text: "OC"}], content_warning: false});
+
+        const body_content: Generic.Body = listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
+            ? {kind: "crosspost", source:
+                threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]!}, {force_expand: "crosspost"}, listing.permalink) as Generic.Thread
+            }
+            : listing.is_self
+            ? listing.rtjson.document.length
+                ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
+                : {kind: "none"}
+            : listing.gallery_data
+            ? {kind: "gallery", images: listing.gallery_data.items.map(gd => {
+                if(!listing.media_metadata) throw new Error("missing media metadata");
+                const moreinfo = listing.media_metadata[gd.media_id];
+                if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
+                if(moreinfo.status !== "valid") throw new Error("unsupported status in gallery "+gd.media_id);
+                if(moreinfo.e === "Image") {
+                    const res: Generic.GalleryItem = {
+                        thumb: moreinfo.p[0]!.u ?? "error",
+                        w: moreinfo.p[0]!.x,
+                        h: moreinfo.p[0]!.y,
+                        body: {
+                            kind: "captioned_image",
+                            url: moreinfo.s.u ?? "error",
+                            w: moreinfo.s.x,
+                            h: moreinfo.s.y,
+                            caption: gd.caption,
+                        }
+                    };
+                    return res;
+                }
+                if(moreinfo.e === "AnimatedImage") {
+                    const res: Generic.GalleryItem = {
+                        thumb: moreinfo.p![0]!.u ?? "error",
+                        w: moreinfo.p![0]!.x,
+                        h: moreinfo.p![0]!.y,
+                        body: {
+                            kind: "video",
+                            url: moreinfo.s.mp4 ?? moreinfo.s.gif,
+                            w: moreinfo.s.x,
+                            h: moreinfo.s.y,
+                            caption: gd.caption,
+                            gifv: true,
+                        }
+                    };
+                    return res;
+                }
+                if(moreinfo.e === "RedditVideo") {
+                    throw new Error("TODO gallery item moreinfo video");
+                }
+                expectUnsupported(moreinfo.e);
+                throw new Error("TODO gallery item "+moreinfo.e);
+            })}
+            : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
+        ;
 
         const result: Generic.Node = {
             kind: "thread",
@@ -608,59 +668,9 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             body: is_deleted != null
                 ? {kind: "removed", by: is_deleted,
                     fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
+                    body: body_content,
                 }
-                : listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
-                ? {kind: "crosspost", source:
-                    threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]!}, {force_expand: "crosspost"}, listing.permalink) as Generic.Thread
-                }
-                : listing.is_self
-                ? listing.rtjson.document.length
-                    ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
-                    : {kind: "none"}
-                : listing.gallery_data
-                ? {kind: "gallery", images: listing.gallery_data.items.map(gd => {
-                    if(!listing.media_metadata) throw new Error("missing media metadata");
-                    const moreinfo = listing.media_metadata[gd.media_id];
-                    if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
-                    if(moreinfo.status !== "valid") throw new Error("unsupported status in gallery "+gd.media_id);
-                    if(moreinfo.e === "Image") {
-                        const res: Generic.GalleryItem = {
-                            thumb: moreinfo.p[0]!.u ?? "error",
-                            w: moreinfo.p[0]!.x,
-                            h: moreinfo.p[0]!.y,
-                            body: {
-                                kind: "captioned_image",
-                                url: moreinfo.s.u ?? "error",
-                                w: moreinfo.s.x,
-                                h: moreinfo.s.y,
-                                caption: gd.caption,
-                            }
-                        };
-                        return res;
-                    }
-                    if(moreinfo.e === "AnimatedImage") {
-                        const res: Generic.GalleryItem = {
-                            thumb: moreinfo.p![0]!.u ?? "error",
-                            w: moreinfo.p![0]!.x,
-                            h: moreinfo.p![0]!.y,
-                            body: {
-                                kind: "video",
-                                url: moreinfo.s.mp4 ?? moreinfo.s.gif,
-                                w: moreinfo.s.x,
-                                h: moreinfo.s.y,
-                                caption: gd.caption,
-                                gifv: true,
-                            }
-                        };
-                        return res;
-                    }
-                    if(moreinfo.e === "RedditVideo") {
-                        throw new Error("TODO gallery item moreinfo video");
-                    }
-                    expectUnsupported(moreinfo.e);
-                    throw new Error("TODO gallery item "+moreinfo.e);
-                })}
-                : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
+                : body_content
             ,
             display_mode: options.force_expand === "crosspost"
                 ? {body: "visible", comments: "collapsed"}

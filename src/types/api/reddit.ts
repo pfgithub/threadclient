@@ -173,7 +173,7 @@ export type PostSubmission = PostBase & PostOrComment & {
     // this is only available on posts
     // the new.reddit desktopapi gets a "deletedBy" property on both posts and comments
     // but unfortunately on the public api you have to check the comment body to determine if it is deleted
-    removed_by_category: "moderator" | "deleted" | "unknown" | null,
+    removed_by_category: "moderator" | "deleted" | "anti_evil_ops" | "unsupported" | null,
 };
 
 export type PostComment = PostBase & PostOrComment & {
