@@ -1010,7 +1010,14 @@ export function startDragWatcher(
     });
 }
 
+// TODO
+// ideally:
+// click to fullscreen the image and have like a neat view where
+// - mobile: zoom/pan with gestures
+// - desktop: zoom/pan with mouse/scroll
+// and then when the image isn't fullscreened, make it possible to like make it smaller or something
 function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLElement {
+    const frame = el("a").attr({href: url, target: "_blank", rel: "noreferrer noopener"});
     const res = el("img").clss("preview-image", "image-loading")
         .attr({
             src: url,
@@ -1018,41 +1025,42 @@ function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string})
             height: opt.h != null ? `${opt.h}px` as const : undefined,
             alt: opt.alt, title: opt.alt
         })
+        .adto(frame)
     ;
     res.styl({"transform": "scale(100%)", "transform-origin": "top left"});
     res.onload = () => res.classList.remove("image-loading");
     res.onerror = () => res.classList.remove("image-loading");
-    let current_offset = 0;
-    const updateImage = (updated: number) => {
-        const offset = current_offset + updated;
-        const scale = (2**(offset / 300));
-        res.styl({transform: "scale("+scale+")"});
-    };
-    const getOffset = (start_ev: PointerEvent, e: PointerEvent) => {
-        const diff = [e.clientX - start_ev.clientX, e.clientY - start_ev.clientY] as const;
-        return diff[0] + diff[1];
-    };
-    // ideally on mobile make this enter fullscreen. unfortunately, ios safari.
-    res.addEventListener("touchdown", e => {e.preventDefault(); e.stopPropagation()});
-    res.addEventListener("touchmove", e => {e.preventDefault(); e.stopPropagation()});
-    res.addEventListener("pointerdown", async start_event => {
-        start_event.preventDefault();
-        start_event.stopPropagation();
-        // if(start_event.pointerType === "touch") {
-        //     return;
-        // }
-        const end_event = await startDragWatcher(start_event, (e) => {
-            const total = getOffset(start_event, e);
-            updateImage(total);
-        });
-        console.log(end_event);
-        const total = getOffset(start_event, end_event);
-        current_offset = current_offset + total;
-        updateImage(0);
-    });
-    // mouse events: resize image
-    // touch events: open fullscreen and allow zooming
-    return res;
+    // let current_offset = 0;
+    // const updateImage = (updated: number) => {
+    //     const offset = current_offset + updated;
+    //     const scale = (2**(offset / 300));
+    //     res.styl({transform: "scale("+scale+")"});
+    // };
+    // const getOffset = (start_ev: PointerEvent, e: PointerEvent) => {
+    //     const diff = [e.clientX - start_ev.clientX, e.clientY - start_ev.clientY] as const;
+    //     return diff[0] + diff[1];
+    // };
+    // // ideally on mobile make this enter fullscreen. unfortunately, ios safari.
+    // res.addEventListener("touchdown", e => {e.preventDefault(); e.stopPropagation()});
+    // res.addEventListener("touchmove", e => {e.preventDefault(); e.stopPropagation()});
+    // res.addEventListener("pointerdown", async start_event => {
+    //     start_event.preventDefault();
+    //     start_event.stopPropagation();
+    //     // if(start_event.pointerType === "touch") {
+    //     //     return;
+    //     // }
+    //     const end_event = await startDragWatcher(start_event, (e) => {
+    //         const total = getOffset(start_event, e);
+    //         updateImage(total);
+    //     });
+    //     console.log(end_event);
+    //     const total = getOffset(start_event, end_event);
+    //     current_offset = current_offset + total;
+    //     updateImage(0);
+    // });
+    // // mouse events: resize image
+    // // touch events: open fullscreen and allow zooming
+    return frame;
 }
 
 function userProfileListing(client: ThreadClient, profile: Generic.Profile, frame: HTMLDivElement): HideShowCleanup<undefined> {
