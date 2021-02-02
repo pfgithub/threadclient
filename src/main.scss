@@ -913,6 +913,17 @@ li.richtext-render-node > p:only-child {
             grid-row: content;
         }
     }
+    .sidebar-toggle-mobile {
+        display: none;
+    }
+}
+@media only screen and (max-width: 999px) {
+    .sidebar-area {
+        display: none;
+    }
+    .sidebar-area.sidebar-visible-mobile {
+        display: block;
+    }
 }
 // TODO on mobile hide sidebar widgets behind a menu button
 

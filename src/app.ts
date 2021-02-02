@@ -1741,6 +1741,10 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         clientListing(client, listing.header).defer(hsc).adto(header_area);
 
         if(listing.sidebar) {
+            // on mobile, ideally this would be a link that opens the sidebar in a new history item
+            const mobile_toggle_btn = el("button").adto(frame).clss("sidebar-toggle-mobile").atxt("Toggle Sidebar").onev("click", () => {
+                sidebar_area.classList.toggle("sidebar-visible-mobile");
+            });
             const sidebar_area = el("div").adto(frame).clss("sidebar-area");
             for(const sidebar_elem of listing.sidebar) {
                 clientListing(client, sidebar_elem).defer(hsc).adto(sidebar_area);
