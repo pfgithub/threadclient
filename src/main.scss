@@ -880,8 +880,12 @@ li.richtext-render-node > p:only-child {
 @media only screen and (min-width: 1000px) {
     .client-main-frame {
         display: grid;
-        grid-template-columns: [content] 1fr [sidebar] 320px;
-        grid-template-rows: [header] max-content [content] max-content [end];
+        grid-template-columns: [content] 1fr [sidebar] 320px [end];
+        grid-template-rows: [verytop] max-content [header] max-content [content] max-content [end];
+    }
+    .login-button-area {
+        grid-row: verytop;
+        grid-column: content / end;
     }
     .header-post {
         grid-column: content;

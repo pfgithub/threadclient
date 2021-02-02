@@ -1723,7 +1723,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             // otherwise there is a leak
             console.log("TODO remove clientLogin");
             // just removing the node isn't good enough because the hsc still exists
-        }).defer(hsc).adto(frame);
+        }).defer(hsc).adto(el("div").clss("login-button-area").adto(frame));
     }
     const loader_area = el("div").adto(frame);
     loader_area.classList.add("display-loading");
