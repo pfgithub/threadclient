@@ -221,8 +221,8 @@ export type Widget = {
         kind: "community-details",
         description: string,
     } | {
-        kind: "richtext",
-        text: Richtext.Paragraph[],
+        kind: "body",
+        body: Body,
     },
     raw_value: unknown,
 };

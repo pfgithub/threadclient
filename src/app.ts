@@ -1371,11 +1371,9 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, frame: HTMLD
         }
     }else if(content.kind === "community-details") {
         el("p").atxt(content.description).adto(frame);
-    }else if(content.kind === "richtext") {
+    }else if(content.kind === "body") {
         const container = el("div").adto(frame);
-        for(const par of content.text) {
-            renderRichtextParagraph(client, par, container).defer(hsc);
-        }
+        renderBody(client, content.body, {autoplay: false}, container).defer(hsc);
     }else assertNever(content);
 
     if(widget.actions_bottom) {

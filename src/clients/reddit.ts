@@ -442,14 +442,19 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
             kind: "widget",
             title: "Error!",
             raw_value: data,
-            widget_content: {kind: "richtext", text: [richtextErrorP("Uh oh! TODO widget "+data.kind, JSON.stringify(data))]}
+            widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! TODO widget "+data.kind, JSON.stringify(data))]}},
+        }; else if(data.kind === "textarea") return {
+            kind: "widget",
+            title: data.shortName,
+            raw_value: data,
+            widget_content: {kind: "body", body: {kind: "text", content: data.text, markdown_format: "reddit"}},
         };
         expectUnsupported(data.kind);
         return {
             kind: "widget",
             title: "Error!",
             raw_value: data,
-            widget_content: {kind: "richtext", text: [richtextErrorP("Uh oh! Unsupported widget "+data.kind, JSON.stringify(data))]}
+            widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! Unsupported widget "+data.kind, JSON.stringify(data))]}},
         };
     };
     // TODO moderator widget

@@ -66,6 +66,12 @@ export type Widget = {
     data: MenuItem[],
     showWiki: boolean,
 } | {
+    kind: "textarea",
+    shortName: string,
+    text: string,
+    textHtml: string,
+    // not sure how/if it's possible to get richtext for this
+} | {
     kind: "unsupported",
 });
 
