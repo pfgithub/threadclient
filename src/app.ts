@@ -1093,8 +1093,9 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
 
 const scoreToString = (score: number) => {
     if(score < 10_000) return "" + score;
-    if(score < 100_000) return (score / 1000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
-    return (score / 1000 |0) + "k";
+    if(score < 100_000) return (score / 1_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
+    if(score < 100_000_000) return (score / 1_000_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "m";
+    return (score / 1_000_000 |0) + "m";
 };
 
 function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node): HideShowCleanup<undefined> {
@@ -1343,9 +1344,46 @@ function hListing(client: ThreadClient, listing: Generic.HList, frame: HTMLDivEl
 function redditWidget(client: ThreadClient, listing: Generic.RedditWidget, frame: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
+    const widget = listing.data;
 
-    el("div").atxt("Sidebar Widget").adto(frame);
-    linkLikeButton().atxt("Code").adto(frame).onev("click", () => console.log(listing));
+    frame.clss("reddit-widget");
+    const title = txt("…").adto(el("div").adto(frame).clss("reddit-widget-header"));
+    
+    if(widget.kind === "id-card") {
+        frame.clss("sub-id-card");
+        title.nodeValue = widget.shortName;
+        frame.adch(el("p").atxt(widget.description));
+        frame.adch(el("div").atxt(scoreToString(widget.subscribersCount) + " Subscribers"));
+        // add a subscribe button (just a counter) // this should be from associated info in the generic.redditwidget
+        frame.adch(el("div").atxt(scoreToString(widget.currentlyViewingCount) + " Currently Viewing"));
+    }else if(widget.kind === "moderators") {
+        frame.clss("sub-moderators-card");
+        linkButton(client.id, "/message/compose?to="+listing.associated.subreddit).atxt("Message the mods").adto(frame);
+        title.nodeValue = "Moderators";
+        const modslist = el("ul").clss("moderators-ul").adto(frame);
+        for(const mod of widget.mods) {
+            const li = el("li").adto(modslist).clss("moderator");
+            // it's necessary here to get flairs too. that is a function in reddit.ts.
+            // some of this data transformation would be better done in reddit.ts
+            linkButton(client.id, "/u/"+mod.name).atxt(mod.name).adto(li);
+        }
+        linkButton(client.id, "/r/"+listing.associated.subreddit+"/about/moderators").atxt("View All").adto(frame);
+    }else if(widget.kind === "community-list") {
+        frame.clss("sub-community-list");
+        title.nodeValue = widget.shortName;
+        const communitieslist = el("ul").clss("communities-ul").adto(frame);
+        for(const community of widget.data) {
+            const li = el("li").adto(communitieslist).clss("community");
+            if(community.type === "subreddit") {
+                linkButton(client.id, "/r/"+community.name).atxt(community.name).adto(li);
+            }else{
+                li.atxt("unsupported "+community.type);
+            }
+        }
+    }else{
+        el("div").atxt("Sidebar Widget: "+widget.kind).adto(frame);
+        linkLikeButton().atxt("Code").adto(frame).onev("click", () => console.log(listing));
+    }
 
     return hsc;
 }

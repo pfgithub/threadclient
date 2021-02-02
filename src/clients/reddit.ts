@@ -348,7 +348,7 @@ const updateQuery = (path: string, update: {[key: string]: string | undefined}) 
     return pathname + "?" + query.toString();
 };
 
-function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "header" | "sidebar"): Generic.ContentNode[] {
+function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "header" | "sidebar", subreddit: string): Generic.ContentNode[] {
     const mode: {header: boolean, sidebar: boolean} = {header: mode_raw === "header" || mode_raw === "both", sidebar: mode_raw === "sidebar" || mode_raw === "both"};
     const getItem = (id: string): Reddit.Widget => {
         const resv = widgets.items[id];
@@ -356,7 +356,7 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
         return resv;
     };
     const wrap = (data: Reddit.Widget): Generic.ContentNode => {
-        return {kind: "reddit-widget", data};
+        return {kind: "reddit-widget", data, associated: {subreddit}};
     };
     // TODO moderator widget
     return [
@@ -367,7 +367,7 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
     ];
 }
 
-const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinfo?: {widgets: Reddit.ApiWidgets}}): Generic.Page => {
+const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinfo?: {subreddit: string, widgets: Reddit.ApiWidgets}}): Generic.Page => {
     console.log("Got extra:", extra);
 
     if(Array.isArray(listing)) {
@@ -379,7 +379,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
         return {
             header: threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, path) as Generic.Thread,
             replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, path)),
-            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both")} : null,
+            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both", extra.subinfo.subreddit)} : null,
             display_style: "comments-view",
         };
     }
@@ -421,7 +421,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
                 raw_value: {},
             },
             replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined}, path)),
-            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both")} : null,
+            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both", extra.subinfo.subreddit)} : null,
             display_style: "comments-view",
         };
     }
@@ -437,7 +437,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
                 actions: [],
                 default_collapsed: false,
             },
-            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both")} : null,
+            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both", extra.subinfo.subreddit)} : null,
             display_style: "comments-view",
         };
     }
@@ -453,7 +453,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
                 actions: [],
                 default_collapsed: false,
             },
-            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both")} : null,
+            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both", extra.subinfo.subreddit)} : null,
             display_style: "comments-view",
         };
     }
@@ -468,7 +468,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
     }
 
     return {
-        header: extra.subinfo ? {kind: "hlist", items: sidebarFromWidgets(extra.subinfo.widgets, "header")} : {
+        header: extra.subinfo ? {kind: "hlist", items: sidebarFromWidgets(extra.subinfo.widgets, "header", extra.subinfo.subreddit)} : {
             kind: "thread",
             title: {text: "Listing"},
             body: {kind: "text", content: "Listing", markdown_format: "none"},
@@ -480,7 +480,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
             raw_value: listing,
         },
         replies,
-        ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "sidebar")} : null,
+        ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "sidebar", extra.subinfo.subreddit)} : null,
         display_style: "fullscreen-view",
     };
 };
@@ -869,7 +869,7 @@ export const client: ThreadClient = {
                 })() : undefined,
             ]);
 
-            return pageFromListing(path, listing, {...widgets ? {subinfo: {widgets}} : null});
+            return pageFromListing(path, listing, {...widgets ? {subinfo: {widgets, subreddit: is_subreddit!}} : null});
         }catch(err_raw) {
             const e = err_raw as Error;
             console.log(e);

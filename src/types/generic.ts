@@ -202,7 +202,10 @@ export type HList = {
     items: ContentNode[],
 };
 import * as Reddit from "./api/reddit";
-export type RedditWidget = {kind: "reddit-widget", data: Reddit.Widget};
+export type RedditWidgetData = {
+    subreddit: string,
+};
+export type RedditWidget = {kind: "reddit-widget", associated: RedditWidgetData, data: Reddit.Widget};
 export type ContentNode = Thread | Profile | HList | RedditWidget;
 export type Node = Thread | LoadMore;
 export type RichTextItem = {
