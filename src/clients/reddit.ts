@@ -40,7 +40,7 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     return [{elems: resitems, content_warning: false, color: "transparent"}];
 }
 
-type Action = {kind: "vote", query: Reddit.VoteBody} | {kind: "delete", fullname: string};
+type Action = {kind: "vote", query: Reddit.VoteBody} | {kind: "delete", fullname: string} | {kind: "save", fullname: string, direction: "" | "un"};
 
 function encodeVoteAction(query: Reddit.VoteBody): string {return encodeAction({kind: "vote", query})}
 function encodeDeleteAction(fullname: string): string {return encodeAction({kind: "delete", fullname})}
@@ -503,6 +503,21 @@ const deleteButton = (fullname: string): Generic.Action => {
         data: encodeDeleteAction(fullname),
     };
 };
+const saveButton = (fullname: string, saved: boolean): Generic.Action => {
+    return {
+        kind: "counter",
+        
+        label: "Save",
+        incremented_label: "Unsave",
+
+        count_excl_you: "none",
+        you: saved ? "increment" : undefined,
+        actions: {
+            increment: encodeAction({kind: "save", fullname,  direction: ""}),
+            reset: encodeAction({kind: "save", fullname, direction: "un"}),
+        },
+    };
+};
 const as = <T>(a: T): T => a;
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
@@ -554,7 +569,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 kind: "link",
                 text: "Permalink",
                 url: listing.permalink ?? "Error no permalink",
-            }, deleteButton(listing.name), getPointsOn(listing)],
+            }, deleteButton(listing.name), saveButton(listing.name, listing.saved), getPointsOn(listing)],
             default_collapsed: listing.collapsed,
         };
         if(listing.replies) {
@@ -696,7 +711,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 kind: "link",
                 url: "/domain/"+listing.domain,
                 text: listing.domain,
-            }, deleteButton(listing.name), getPointsOn(listing), {
+            }, deleteButton(listing.name), saveButton(listing.name, listing.saved), getPointsOn(listing), {
                 kind: "link",
                 url: listing.permalink.replace("/comments/", "/duplicates/"),
                 text: "Duplicates"
@@ -922,6 +937,14 @@ export const client: ThreadClient = {
         }else if(act.kind === "delete") {
             type DeleteResult = {__nothing: unknown};
             const res = await redditRequest<DeleteResult>("/api/del", {
+                method: "POST",
+                mode: "urlencoded",
+                body: {id: act.fullname},
+            });
+            console.log(res);
+        }else if(act.kind === "save") {
+            type DeleteResult = {__nothing: unknown};
+            const res = await redditRequest<DeleteResult>("/api/" + act.direction + "save", {
                 method: "POST",
                 mode: "urlencoded",
                 body: {id: act.fullname},

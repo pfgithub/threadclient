@@ -76,6 +76,8 @@ export type PostOrComment = {
     author_flair_text_color: "light" | "dark",
 
     media_metadata?: MediaMetadata,
+
+    saved: boolean,
 };
 
 export type BaseMediaMeta = {

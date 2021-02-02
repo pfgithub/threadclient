@@ -225,6 +225,7 @@ export type Action = {
     kind: "delete",
     data: string,
 };
+// a counter or a button with 2-3 states
 export type CounterAction = {
     kind: "counter",
 
@@ -234,7 +235,7 @@ export type CounterAction = {
     incremented_label: ActionLabel,
     decremented_label?: ActionLabel,
 
-    count_excl_you: number | "hidden",
+    count_excl_you: number | "hidden" | "none",
     you: "increment" | "decrement" | undefined,
 
     actions: {

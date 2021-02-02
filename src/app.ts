@@ -1235,6 +1235,8 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
     return hideshow();
 }
 function renderCounterAction(client: ThreadClient, action: Generic.CounterAction, content_buttons_line: Node, opts: {parens: boolean}) {
+    const display_count = action.count_excl_you !== "none";
+
     const wrapper = el("span").clss("counter").adto(content_buttons_line);
     const button = linkLikeButton().adto(wrapper).clss("counter-increment-btn");
     const btn_span = el("span").adto(button);
@@ -1245,7 +1247,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     const percent_voted_txt = action.percent == null ? txt("—% upvoted") : txt(action.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted");
     let decr_button: HTMLButtonElement | undefined;
 
-    const state = {loading: false, pt_count: action.count_excl_you === "hidden" ? null : action.count_excl_you, your_vote: action.you};
+    const state = {loading: false, pt_count: action.count_excl_you === "hidden" || action.count_excl_you === "none" ? null : action.count_excl_you, your_vote: action.you};
 
     const getPointsText = () => {
         if(state.pt_count == null) return ["—", "[score hidden]"];
@@ -1257,6 +1259,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         const [pt_text, pt_raw] = getPointsText();
         btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label ?? "ERR", none: action.label}[state.your_vote ?? "none"];
         votecount_txt.nodeValue = opts.parens ? "(" + pt_text + ")" : pt_text;
+        if(!display_count) votecount_txt.nodeValue = ""; // hmm
         votecount.title = pt_raw;
         wrapper.classList.remove("counted-increment", "counted-decrement", "counted-reset");
         wrapper.classList.add("counted-"+(state.your_vote ?? "reset"));
