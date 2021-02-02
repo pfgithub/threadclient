@@ -795,7 +795,7 @@ export const client: ThreadClient = {
         const path = pathsplit.join("/");
 
         try {
-            const listing = await redditRequest<Reddit.Page | Reddit.Listing | Reddit.MoreChildren>(pathURL(path), {
+            const listing = await redditRequest<Reddit.Page | Reddit.Listing | Reddit.MoreChildren>(path, {
                 method: "GET",
             });
 
@@ -913,7 +913,7 @@ export const client: ThreadClient = {
         const act = decodeAction(action);
         if(act.kind === "vote") {
             type VoteResult = {__nothing: unknown};
-            const res = await redditRequest<VoteResult>(baseURL() + "/api/vote", {
+            const res = await redditRequest<VoteResult>("/api/vote", {
                 method: "POST",
                 mode: "urlencoded",
                 body: act.query,
@@ -921,7 +921,7 @@ export const client: ThreadClient = {
             console.log(res);
         }else if(act.kind === "delete") {
             type DeleteResult = {__nothing: unknown};
-            const res = await redditRequest<DeleteResult>(baseURL() + "/api/del", {
+            const res = await redditRequest<DeleteResult>("/api/del", {
                 method: "POST",
                 mode: "urlencoded",
                 body: {id: act.fullname},
@@ -1004,7 +1004,7 @@ export const client: ThreadClient = {
                 : {text: md}
             ,
         };
-        const reply = await redditRequest<Reddit.PostComment | {json: {errors: [id: string, desc: string, other: string][]}}>(baseURL() + "/api/comment", {
+        const reply = await redditRequest<Reddit.PostComment | {json: {errors: [id: string, desc: string, other: string][]}}>("/api/comment", {
             method: "POST",
             mode: "urlencoded",
             body,
@@ -1026,7 +1026,7 @@ type RequestOpts =
     | {method: "POST", mode: "json", body: unknown}
 ;
 async function redditRequest<ResponseType>(url: string, opts: RequestOpts): Promise<ResponseType> {
-    const [status, res] = await fetch(url, {
+    const [status, res] = await fetch(pathURL(url), {
         method: opts.method, mode: "cors", credentials: "omit",
         headers: {
             ...isLoggedIn() ? {'Authorization': await getAuthorization()} : {},
