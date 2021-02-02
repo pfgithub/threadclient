@@ -74,13 +74,13 @@ reddit todo:
 -   [ ] wiki pages + wiki markdown parser (easy to add)
 -   [ ] navigation buttons eg homepage link
 -   [ ] sidebars and stuff (that contain information about the subreddit, not the post)
+-   [ ] sidebar info: use /r/…/api/widgets to get topbar+sidebar widgets
 -   [ ] mod tools and stuff + mod messages also + post removal tools that have options to use the subreddit things like comment distinguished stickied
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
 -   [ ] code block automatic syntax highlighting (using hljs automatic or something)
 -   [ ] display raw markdown view by default for a comment predominately composed of braille characters (to fix this https://i.imgur.com/0rH8yUf.png)
 -   [ ] when revealing a crosspost with the same content warnings as the parent post, don't require accepting twice
--   [ ] add sidebars containing information
 -   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button
 -   [ ] support op, mod distinguished, and admin distinguished comments and posts
 -   [ ] option to disable default collapsed comments (eg due to crowd control or downvoting)

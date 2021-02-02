@@ -793,11 +793,16 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
 
 const getLoginURL = () => {
     const state = location.host;
-    const scope =
-        "identity edit flair history modconfig modflair modlog" + " " +
-        "modposts modwiki mysubreddits privatemessages read report save" + " " +
-        "submit subscribe vote wikiedit wikiread"
-    ;
+    // https://www.reddit.com/api/v1/scopes.json → {[key: string]: {description: string, id: string, name: string}}
+    // except "modtraffic" isn't a thing, why is it listed there?
+    const scope = [
+        "account", "creddits", "edit", "flair", "history", "identity",
+        "livemanage", "modconfig", "modcontributors", "modflair", "modlog",
+        "modmail", "modothers", "modposts", "modself", "modwiki",
+        "mysubreddits", "privatemessages", "read", "report", "save",
+        "structuredstyles", "submit", "subscribe", "vote", "wikiedit",
+        "wikiread"
+    ].join(" ");
 
     const url = `https://www.reddit.com/api/v1/authorize?` +
         encodeQuery({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
