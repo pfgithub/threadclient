@@ -1331,6 +1331,25 @@ const userLink = (client_id: string, href: string, name: string) => {
     ;
 };
 
+function hListing(client: ThreadClient, listing: Generic.HList, frame: HTMLDivElement): HideShowCleanup<undefined> {
+    const hsc = hideshow();
+
+    el("div").atxt("HListing").adto(frame);
+    linkLikeButton().atxt("Code").adto(frame).onev("click", () => console.log(listing));
+
+    return hsc;
+}
+
+function redditWidget(client: ThreadClient, listing: Generic.RedditWidget, frame: HTMLDivElement): HideShowCleanup<undefined> {
+    const hsc = hideshow();
+
+
+    el("div").atxt("Sidebar Widget").adto(frame);
+    linkLikeButton().atxt("Code").adto(frame).onev("click", () => console.log(listing));
+
+    return hsc;
+}
+
 function clientListing(client: ThreadClient, listing: Generic.ContentNode): HideShowCleanup<Node> {
     // console.log(listing);
     
@@ -1338,8 +1357,15 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
     const hsc = hideshow(frame);
 
     if(listing.kind === "user-profile") {
-        const res = userProfileListing(client, listing, frame);
-        hsc.on("cleanup", () => res.cleanup());
+        userProfileListing(client, listing, frame).defer(hsc);
+        return hsc;
+    }
+    if(listing.kind === "hlist") {
+        hListing(client, listing, frame).defer(hsc);
+        return hsc;
+    }
+    if(listing.kind === "reddit-widget") {
+        redditWidget(client, listing, frame).defer(hsc);
         return hsc;
     }
 
@@ -1621,7 +1647,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
         current_node.remove();
         current_node = loading_txt;
 
-        client.getThread(load_more_node.load_more).then(res => {
+        client.getThread(load_more_node.load_more, "loadmore").then(res => {
             current_node.remove();
             if((load_more_node.includes_parent ?? false) && res.replies && res.replies.length === 1) {
                 res.replies = (res.replies[0] as Generic.Thread).replies ?? [];
@@ -1666,23 +1692,34 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        const listing = await client.getThread(current_path);
+        const listing = await client.getThread(current_path, "pageload");
 
         frame.classList.add("display-"+listing.display_style);
         loader_area.remove();
+
+        const header_area = el("div").adto(frame).clss("header-post");
         
-        clientListing(client, listing.header).defer(hsc).adto(frame);
+        clientListing(client, listing.header).defer(hsc).adto(header_area);
+
+        if(listing.sidebar) {
+            const sidebar_area = el("div").adto(frame).clss("sidebar-area");
+            for(const sidebar_elem of listing.sidebar) {
+                clientListing(client, sidebar_elem).defer(hsc).adto(sidebar_area);
+            }
+        }
+        
+        const comments_area = el("div").adto(frame).clss("comments-area");
 
         const addChild = (child_listing: Generic.Node) => {
             if(child_listing.kind === "load_more") {
                 const lmbtn = loadMoreButton(client, child_listing, addChild, () => lmbtn.remove());
-                lmbtn.adto(frame);
+                lmbtn.adto(comments_area);
                 return;
             }
-            clientListing(client, child_listing).defer(hsc).adto(frame);
+            clientListing(client, child_listing).defer(hsc).adto(comments_area);
         };
         if(listing.replies) listing.replies.forEach(rply => addChild(rply));
-        if(listing.replies?.length === 0) txt("There is nothing here").adto(frame);
+        if(listing.replies?.length === 0) txt("There is nothing here").adto(comments_area);
     })().catch(e => {
         console.log(e, e.stack);
         if(loader_area.parentNode) loader_area.remove();

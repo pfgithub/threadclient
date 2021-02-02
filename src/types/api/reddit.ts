@@ -21,6 +21,64 @@ export type WikiPage = {
     },
 };
 
+export type MenuItem = {
+    text: string,
+    children: MenuItem[], 
+} | {
+    text: string,
+    url: string,
+};
+
+export type Widget = {
+    id: string,
+    styles: {
+        headerColor: null,
+        backgroundColor: null,
+    },
+} & ({
+    kind: "moderators",
+    mods: {name: string}[], // TODO flairs
+    totalMods: number,
+} | {
+    kind: "id-card",
+    subscribersCount: number,
+    currentlyViewingText: string,
+    currentlyViewingCount: number,
+    description: string,
+    shortName: string,
+} | {
+    kind: "community-list",
+    data: ({
+        iconUrl: "" | string,
+        name: string,
+        subscribers: number,
+        primaryColor: "" | `#{string}`,
+        isSubscribed: boolean,
+        type: "subreddit",
+        communityIcon: "" | string,
+        isNSFW: boolean,
+    } | {
+        type: "unsupported",
+    })[],
+    shortName: string,
+} | {
+    kind: "menu",
+    data: MenuItem[],
+    showWiki: boolean,
+} | {
+    kind: "unsupported",
+});
+
+export type ApiWidgets = {
+    items: {[key: string]: Widget},
+    layout: {
+        idCardWidget: string,
+        topbar: {order: string[]},
+        sidebar: {order: string[]},
+        moderatorWidget: string,
+    },
+};
+
 // user info
 export type T2 = {
     kind: "t2",

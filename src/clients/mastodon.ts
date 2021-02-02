@@ -491,7 +491,7 @@ export const client: ThreadClient = {
         console.log(resv);
     },
 
-    getThread: async (pathraw) => {
+    getThread: async (pathraw, from) => {
         const [beforequery, afterquery_raw] = pathraw.split("?") as [string, string | undefined];
         const afterquery = afterquery_raw ?? "";
         const pathsplit = beforequery.split("/");

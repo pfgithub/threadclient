@@ -876,3 +876,38 @@ li.richtext-render-node > p:only-child {
     margin-top: 0;
     margin-bottom: 0;
 }
+
+@media only screen and (min-width: 1000px) {
+    .client-main-frame {
+        display: grid;
+        grid-template-columns: [content] 1fr [sidebar] 320px;
+        grid-template-rows: [header] max-content [content] max-content [end];
+    }
+    .header-post {
+        grid-column: content;
+        grid-row: header;
+    }
+    .sidebar-area {
+        grid-column: sidebar;
+        grid-row: header / end;
+    }
+    .comments-area {
+        grid-column: content;
+        grid-row: content;
+    }
+    .display-fullscreen-view {
+        .header-post {
+            grid-column: content / end;
+            grid-row: header;
+        }
+        .sidebar-area {
+            grid-column: sidebar;
+            grid-row: content;
+        }
+        .comments-area {
+            grid-column: content;
+            grid-row: content;
+        }
+    }
+}
+// TODO on mobile hide sidebar widgets behind a menu button

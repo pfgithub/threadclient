@@ -2,9 +2,9 @@
 
 export type Page = {
     header: ContentNode,
+    sidebar?: ContentNode[],
     reply_button?: Action,
     replies?: Node[],
-    sidebar?: ContentNode,
     display_style: string,
 };
 export type BodyText = {
@@ -197,7 +197,13 @@ export type Profile = {
     raw_value: unknown,
     actions: Action[],
 };
-export type ContentNode = Thread | Profile;
+export type HList = {
+    kind: "hlist",
+    items: ContentNode[],
+};
+import * as Reddit from "./api/reddit";
+export type RedditWidget = {kind: "reddit-widget", data: Reddit.Widget};
+export type ContentNode = Thread | Profile | HList | RedditWidget;
 export type Node = Thread | LoadMore;
 export type RichTextItem = {
     type: "text",
