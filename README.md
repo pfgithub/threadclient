@@ -53,6 +53,7 @@ all todo:
 -   [ ] res-like click and drag image to zoom. and get rid of the click to open in new tab, there's a link right above the image you can click
 -   [ ] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
 -   [ ] send a notification when the serviceworker has new content available on reload
+-   [ ] add the first line of the body richtext to show up when the thing is collapsed (and make sure it's max 1 line overflow ellipsis)
 
 reddit todo:
 
