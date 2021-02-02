@@ -2100,6 +2100,7 @@ export function showAlert(text: string): void {
     const alert = el("div").clss("alert").adto(alertarea);
     el("div").clss("alert-body").adto(alert).atxt(text);
     el("button").clss("alert-close").atxt("🗙 Close").adto(alert).onev("click", () => alert.remove());
+    alert.atxt(" ");
     el("button").clss("alert-close").atxt("🗘 Refresh").adto(alert).onev("click", () => location.reload());
 }
 
