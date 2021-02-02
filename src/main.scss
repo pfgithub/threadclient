@@ -710,10 +710,14 @@ table {
     }
 }
 
-.client-main-frame.display-loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.display-loading {
+    // display: flex;
+    // justify-content: center;
+    // align-items: center;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .image-loading {

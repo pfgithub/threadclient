@@ -1638,7 +1638,6 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     const frame = el("div").adto(outer);
     frame.classList.add("client-main-frame");
-    frame.classList.add("display-loading");
 
     if(!client.isLoggedIn(current_path)) {
         clientLogin(client, current_path, () => {
@@ -1649,12 +1648,13 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         }).defer(hsc).adto(frame);
     }
     const loader_area = el("div").adto(frame);
+    loader_area.classList.add("display-loading");
     loader_area.adch(loadingSpinner());
 
     (async () => {
+        // await new Promise(r => 0);
         const listing = await client.getThread(current_path);
 
-        frame.classList.remove("display-loading");
         frame.classList.add("display-"+listing.display_style);
         loader_area.remove();
         
