@@ -109,6 +109,7 @@ declare namespace Mastodon {
 }
 
 const error404 = (msg = "404 not found"): Generic.Page => ({
+    title: "Error",
     header: {
         kind: "thread",
         title: {text: "Error"},
@@ -518,6 +519,7 @@ export const client: ThreadClient = {
             if('error' in context) return error404("Error! "+context.error);
             
             const res: Generic.Page = {
+                title: "Status",
                 header: genericHeader(),
                 replies: [
                     ...context.ancestors.map(a => postToThread(host, a)),
@@ -608,6 +610,7 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
     const last_post = posts[posts.length - 1];
 
     const res: Generic.Page = {
+        title: "Timeline | "+web_path,
         header: header,
         replies: [...postArrayToReparentedTimeline(host, posts), ...last_post ? [{
             kind: "load_more",

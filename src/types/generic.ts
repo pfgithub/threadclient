@@ -1,6 +1,7 @@
 // types that clients return
 
 export type Page = {
+    title: string,
     header: ContentNode,
     sidebar?: ContentNode[],
     reply_button?: Action,

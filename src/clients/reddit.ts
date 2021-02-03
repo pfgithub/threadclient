@@ -570,6 +570,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
             link_fullname = firstchild.data.name;
         }
         return {
+            title: firstchild.kind === "t3" ? firstchild.data.title : "ERR top not t3",
             header: threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, path) as Generic.Thread,
             replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, path)),
             ...makeSidebar(extra, "both"),
@@ -602,6 +603,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
         const [, query] = splitURL(path);
 
         return {
+            title: "MoreChildren",
             header: {
                 kind: "thread",
                 title: {text: "MoreChildren"},
@@ -620,6 +622,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
     }
     if(listing.kind === "wikipage") {
         return {
+            title: path + " | Wiki",
             header: {
                 kind: "thread",
                 raw_value: listing,
@@ -636,6 +639,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
     }
     if(!('data' in listing) || listing.kind !== "Listing") {
         return {
+            title: path + " | Error View",
             header: {
                 kind: "thread",
                 raw_value: listing,
@@ -661,6 +665,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
     }
 
     return {
+        title: path,
         header: extra.subinfo  && extra.subinfo.widgets
             ? {
                 kind: "hlist",
@@ -1100,6 +1105,7 @@ export const client: ThreadClient = {
             const is_networkerror = e.toString().includes("NetworkError");
             
             return {
+                title: "Error",
                 header: {
                     kind: "thread",
                     title: {text: "Error"},

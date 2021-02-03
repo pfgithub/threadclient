@@ -1785,6 +1785,25 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
     return container;
 }
 
+function updateTitle(hsc: HideShowCleanup<unknown>, client_id: string): {setTitle: (new_title: string) => void} {
+    let is_visible_v = hsc.visible;
+    hsc.on("hide", () => is_visible_v = false);
+    hsc.on("show", () => {
+        is_visible_v = true;
+        document.title = titleFrom(title);
+    });
+
+    const titleFrom = (t: string) => t + " | "+client_id+" | ThreadReader";
+
+    let title = "…";
+    const res = {setTitle(new_title: string) {
+        title = new_title;
+        if(is_visible_v) document.title = titleFrom(new_title);
+    }};
+    res.setTitle("…");
+    return res;
+}
+
 function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
     const outer = el("div").clss("client-wrapper");
     const hsc = hideshow(outer);
@@ -1804,9 +1823,13 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
     loader_area.classList.add("display-loading");
     loader_area.adch(loadingSpinner());
 
+    const title = updateTitle(hsc, client.id);
+    title.setTitle("Loading "+client.id+"…");
+
     (async () => {
         // await new Promise(r => 0);
         const listing = await client.getThread(current_path, "pageload");
+        title.setTitle(listing.title);
 
         frame.classList.add("display-"+listing.display_style);
         loader_area.remove();
@@ -2095,6 +2118,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 let current_history_index = 0;
 function onNavigate(to_index: number, url: URLLike) {
     console.log("Navigating", to_index, url, nav_history);
+    document.title = "ThreadReader";
     navigate_event_handlers.forEach(evh => evh(url));
 
     const thisurl = url.pathname + url.search;
