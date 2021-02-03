@@ -503,18 +503,29 @@ function customIDCardWidget(t5: Reddit.T5, subreddit: string): Generic.ContentNo
 }
 function oldSidebarWidget(t5: Reddit.T5, subreddit: string, {collapsed}: {collapsed: boolean}): Generic.ContentNode {
     return {
-        kind: "widget",
-        title: "Old Sidebar",
+        kind: "thread",
         raw_value: t5,
-        widget_content: {
-            kind: "body",
-            body: {
-                kind: "text",
-                markdown_format: "reddit",
-                content: t5.data.description,
-            },
-        },
+        body: {kind: "text", markdown_format: "reddit", content: t5.data.description},
+        display_mode: {body: collapsed ? "collapsed" : "visible", comments: "visible"},
+        link: "/r/"+subreddit+"/about",
+        layout: "reddit-post",
+        title: {text: "old.reddit sidebar"},
+        actions: [],
+        default_collapsed: false,
     };
+    // return {
+    //     kind: "widget",
+    //     title: "Old Sidebar",
+    //     raw_value: t5,
+    //     widget_content: {
+    //         kind: "body",
+    //         body: {
+    //             kind: "text",
+    //             markdown_format: "reddit",
+    //             content: t5.data.description,
+    //         },
+    //     },
+    // };
 }
 function sidebarFromWidgets(subinfo: SubInfo, mode_raw: "both" | "header" | "sidebar"): Generic.ContentNode[] {
     const widgets = subinfo.widgets;
