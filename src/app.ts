@@ -1577,7 +1577,16 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
             renderBody(client, body, {...opts}, content).defer(body_hsc);
         };
         
-        if(listing.display_mode.body === "collapsed") {
+        const isEmpty = (body: Generic.Body): boolean => {
+            if(body.kind === "none") return true;
+            if(body.kind === "array") {
+                return body.body.every(item => item == null ? true : isEmpty(item));
+            }
+            return false;
+        };
+        if(isEmpty(listing.body)) {
+            // do nothing
+        }else if(listing.display_mode.body === "collapsed") {
             const open_preview_button = el("button").clss("not-this-button").adto(content_buttons_line);
             const open_preview_text = txt("…").adto(open_preview_button);
 
