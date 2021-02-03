@@ -733,6 +733,8 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 body: [
                     listing.rtjson.document.length
                         ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
+                        : listing.url === "https://www.reddit.com" + listing.permalink
+                        ? {kind: "none"}
                         : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content},
                     listing.poll_data
                     ? {kind: "poll",
