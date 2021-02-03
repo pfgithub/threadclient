@@ -1790,7 +1790,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
         const header_area = el("div").adto(frame).clss("header-post");
         
-        clientContent(client, listing.header).defer(hsc).adto(header_area);
+        clientContent(client, listing.header).defer(hsc).adto(header_area).clss("top-level-post");
 
         if(listing.sidebar) {
             // on mobile, ideally this would be a link that opens the sidebar in a new history item
@@ -1799,7 +1799,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             });
             const sidebar_area = el("div").adto(frame).clss("sidebar-area");
             for(const sidebar_elem of listing.sidebar) {
-                clientContent(client, sidebar_elem).defer(hsc).adto(sidebar_area);
+                clientContent(client, sidebar_elem).defer(hsc).adto(sidebar_area).clss("top-level-post");
             }
         }
         
@@ -1814,7 +1814,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
                 lmbtn.adto(comments_area);
                 return;
             }
-            clientContent(client, child_listing).defer(hsc).adto(comments_area);
+            clientContent(client, child_listing).defer(hsc).adto(comments_area).clss("top-level-post");
         };
         if(listing.replies) addChildren(listing.replies);
         if(listing.replies?.length === 0) txt("There is nothing here").adto(comments_area);

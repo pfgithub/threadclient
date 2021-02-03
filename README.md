@@ -31,6 +31,8 @@ all todo:
 -   [x] add a loading indicator to the fullscreen loader thing
 -   [x] catch errors in more places
 -   [x] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
+-   [x] fix comments on mobile (they used to go edge to edge, now they don't for some reason)
+-   [ ] decrease indent width on mobile and make the permalink button more prominent or something for when things get too deep
 -   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
@@ -70,10 +72,10 @@ reddit todo:
 -   [x] replies + reply preview
 -   [x] wiki pages + wiki markdown parser (note: currently the wiki parser is the same as the normal parser. TODO fix in snudown.wasm)
 -   [x] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
+-   [ ] post duplicates ("discussions in x other subs") (still todo: fetch duplicate count when loading a post)
 -   [ ] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
 -   [ ] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle + show rules /r/…/about/rules
 -   [ ] improve mobile sidebars (do a custom route for /r/:subreddit/sidebar and rather than showing the sidebar, have a link to there)
--   [ ] post duplicates ("discussions in x other subs")
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
 -   do not pass through cors, so ban messages cannot be shown.
 -   [ ] richtext replies
