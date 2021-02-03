@@ -905,7 +905,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         renderBody(client, body.body, {autoplay: opts.autoplay}, existing_body_v).defer(hsc);
     }else if(body.kind === "crosspost") {
         const parentel = el("div").styl({"max-width": "max-content"}).adto(content);
-        clientListing(client, body.source).defer(hsc).adto(parentel);
+        clientContent(client, body.source).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
         const txta = el("div").adto(content);
         for(const pargrph of body.content) {
@@ -1156,7 +1156,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                                 console.log("got back load more item. todo display it.");
                                 return;
                             }
-                            clientListing(client, r).defer(hsc).adto(el("div").adto(content_buttons_line));
+                            clientContent(client, r).defer(hsc).adto(el("div").adto(content_buttons_line));
                         }).catch(e => {
                             const error = e as Error;
                             submit.disabled = false;
@@ -1179,7 +1179,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                     // hacky for now. reply buttons should need a special override
                     // rather than being bundled with the rest of stuff in renderAction
                     const containerel = el("div").adto(content_buttons_line);
-                    const listing_el = clientListing(client, reply_state.preview);
+                    const listing_el = clientContent(client, reply_state.preview);
                     listing_el.associated_data.adto(containerel);
                     prev_preview = {
                         preview: reply_state.preview,
@@ -1399,12 +1399,12 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, frame: HTMLD
     el("div").adto(frame).adch(linkLikeButton().atxt("Code").onev("click", () => console.log(widget)));
 
     return hsc;
-}
+} 
 
-function clientListing(client: ThreadClient, listing: Generic.ContentNode): HideShowCleanup<Node> {
+function clientContent(client: ThreadClient, listing: Generic.ContentNode): HideShowCleanup<Node> {
     // console.log(listing);
     
-    const frame = el("div").clss("post");
+    const frame = clientListingWrapperNode();
     const hsc = hideshow(frame);
 
     if(listing.kind === "user-profile") {
@@ -1420,6 +1420,15 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
         return hsc;
     }
 
+    clientListing(client, listing, frame).defer(hsc);
+    return hsc;
+}
+function clientListingWrapperNode(): HTMLDivElement {
+    const frame = el("div").clss("post");
+    return frame;
+}
+type AddChildrenFn = (children: Generic.Node[]) => void;
+function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTMLDivElement): HideShowCleanup<{addChildren: AddChildrenFn}> {
     let content_voting_area: HTMLDivElement;
     let thumbnail_loc: HTMLButtonElement;
     let preview_area: HTMLDivElement;
@@ -1429,6 +1438,10 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
     let content_subminfo_line: HTMLDivElement;
     let content_buttons_line: HTMLDivElement;
 
+    const result_v: {addChildren: AddChildrenFn} = {
+        addChildren: undefined as unknown as AddChildrenFn,
+    };
+    const hsc = hideshow(result_v);
 
     if(listing.layout === "reddit-post") {
         content_voting_area = el("div").adto(frame).clss("post-voting");
@@ -1663,26 +1676,42 @@ function clientListing(client: ThreadClient, listing: Generic.ContentNode): Hide
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
-    const allow_threading = listing.replies?.length === 1 && (listing.replies[0] as Generic.Thread).replies?.length === 1;
+    const added_comments_are_threaded = listing.replies?.length === 1 && (listing.replies[0] as Generic.Thread).replies?.length === 1;
 
+    let lastElemAddChildren: AddChildrenFn | undefined;
+
+    const addChildren = (children: Generic.Node[]) => {
+        if(added_comments_are_threaded && children.length > 1) {
+            if(!lastElemAddChildren) {
+                throw new Error("threaded comment has no lastElemAddChildren");
+            }
+            lastElemAddChildren(children);
+            return;
+        }
+        children.forEach(child => addChild(child));
+    };
     const addChild = (child_listing: Generic.Node) => {
         const reply_node = el("li").adto(children_node);
-        if(allow_threading) reply_node.clss("threaded");
+        if(added_comments_are_threaded) reply_node.clss("threaded");
         if(child_listing.kind === "load_more") {
-            loadMoreButton(client, child_listing, addChild, () => reply_node.remove()).adto(reply_node);
+            loadMoreButton(client, child_listing, addChildren, () => reply_node.remove()).adto(reply_node);
             return;
         }
         let futureadd: undefined | Generic.Node;
-        if(allow_threading && child_listing.replies?.length === 1) {
+        if(added_comments_are_threaded && child_listing.replies?.length === 1) {
             futureadd = child_listing.replies[0];
             child_listing.replies = [];
         }
         reply_node.clss("comment");
-        clientListing(client, child_listing).defer(hsc).adto(reply_node);
+        const reply_frame = clientListingWrapperNode();
+        lastElemAddChildren = clientListing(client, child_listing, reply_frame).defer(hsc).addChildren;
+        reply_frame.adto(reply_node);
 
         if(futureadd) addChild(futureadd);
     };
-    if(listing.replies) listing.replies.forEach(rply => addChild(rply));
+    if(listing.replies) addChildren(listing.replies);
+
+    hsc.associated_data.addChildren = addChildren;
 
     return hsc;
 }
@@ -1698,7 +1727,7 @@ function loadingSpinner() {
 // TODO I guess support loading more in places other than the end of the list
 // that means :: addChildren needs to have a second before_once argument and this needs to have a before_once
 // doesn't matter atm but later.
-function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChild: (children: Generic.Node) => void, removeSelf: () => void) {
+function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChildren: (children: Generic.Node[]) => void, removeSelf: () => void) {
     const container = el("div");
     const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: ev => {
         const loading_txt = el("div").adto(container);
@@ -1712,8 +1741,10 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
             if((load_more_node.includes_parent ?? false) && res.replies && res.replies.length === 1) {
                 res.replies = (res.replies[0] as Generic.Thread).replies ?? [];
             }
-            if(res.replies) res.replies.forEach(rply => addChild(rply));
-            if(load_more_node.next) addChild(load_more_node.next);
+            addChildren([
+                ...res.replies ?? [],
+                ...load_more_node.next ? [load_more_node.next] : [],
+            ]);
             removeSelf();
         }).catch(e => {
             console.log("error loading more:", e);
@@ -1759,7 +1790,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
         const header_area = el("div").adto(frame).clss("header-post");
         
-        clientListing(client, listing.header).defer(hsc).adto(header_area);
+        clientContent(client, listing.header).defer(hsc).adto(header_area);
 
         if(listing.sidebar) {
             // on mobile, ideally this would be a link that opens the sidebar in a new history item
@@ -1768,21 +1799,24 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             });
             const sidebar_area = el("div").adto(frame).clss("sidebar-area");
             for(const sidebar_elem of listing.sidebar) {
-                clientListing(client, sidebar_elem).defer(hsc).adto(sidebar_area);
+                clientContent(client, sidebar_elem).defer(hsc).adto(sidebar_area);
             }
         }
         
         const comments_area = el("div").adto(frame).clss("comments-area");
 
+        const addChildren = (children: Generic.Node[]) => {
+            children.forEach(v => addChild(v));
+        };
         const addChild = (child_listing: Generic.Node) => {
             if(child_listing.kind === "load_more") {
-                const lmbtn = loadMoreButton(client, child_listing, addChild, () => lmbtn.remove());
+                const lmbtn = loadMoreButton(client, child_listing, addChildren, () => lmbtn.remove());
                 lmbtn.adto(comments_area);
                 return;
             }
-            clientListing(client, child_listing).defer(hsc).adto(comments_area);
+            clientContent(client, child_listing).defer(hsc).adto(comments_area);
         };
-        if(listing.replies) listing.replies.forEach(rply => addChild(rply));
+        if(listing.replies) addChildren(listing.replies);
         if(listing.replies?.length === 0) txt("There is nothing here").adto(comments_area);
     })().catch(e => {
         console.log(e, e.stack);

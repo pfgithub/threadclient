@@ -30,6 +30,7 @@ all todo:
 -   [x] eslint strict promise error handling
 -   [x] add a loading indicator to the fullscreen loader thing
 -   [x] catch errors in more places
+-   [x] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
 -   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
@@ -51,7 +52,6 @@ all todo:
 -   [ ] set up hot module replacement to support reloading `clients/reddit.ts` (currently it doesn't because old copies of client objects are stored)
 -   [ ] when a reply window thing is open with entered text, prompt before closing the page. make sure this works for 2+ open reply things even if one is closed
 -   [ ] res-like click and drag image to zoom. and get rid of the click to open in new tab, there's a link right above the image you can click
--   [ ] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
 -   [ ] send a notification when the serviceworker has new content available on reload
 -   [ ] add the first line of the body richtext to show up when the thing is collapsed (and make sure it's max 1 line overflow ellipsis)
 -   [ ] some simple unit tests (eg number shortening like 12502 → 12.5k, 350351 → 350k)
