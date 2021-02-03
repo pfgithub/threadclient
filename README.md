@@ -72,13 +72,14 @@ reddit todo:
 -   [x] replies + reply preview
 -   [x] wiki pages + wiki markdown parser (note: currently the wiki parser is the same as the normal parser. TODO fix in snudown.wasm)
 -   [x] poll viewing. poll voting requires gql.reddit.com which needs a website session and proxying, so no voting.
+-   [x] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
+-   [x] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle
 -   [ ] post duplicates ("discussions in x other subs") (still todo: fetch duplicate count when loading a post)
--   [ ] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
--   [ ] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle + show rules /r/…/about/rules
 -   [ ] improve mobile sidebars (do a custom route for /r/:subreddit/sidebar and rather than showing the sidebar, have a link to there)
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
 -   do not pass through cors, so ban messages cannot be shown.
 -   [ ] richtext replies
+-   [ ] post report button with rules from `/r/…/about/rules`
 -   [ ] posts + post preview (+ /api/v1/:subreddit/post_requirements)
 -   [ ] fix dark flairs being displayed on a dark background
 -   [ ] user profile pages, defaulting to the overview tab

@@ -368,125 +368,163 @@ function createSubscribeAction(subreddit: string, subscribers: number, you_subbe
         },
     };
 }
+const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): Generic.ContentNode => {
+    if(data.kind === "moderators") return {
+        kind: "widget",
+        title: "Moderators",
+        raw_value: data,
+        widget_content: {
+            kind: "list",
+            items: data.mods.map(moderator => ({
+                name: moderator.name,
+                click: {kind: "link", url: "/u/"+moderator.name},
+            })),
+        },
+        actions_top: [{
+            kind: "link",
+            url: "/message/compose?to="+subreddit,
+            text: "Message the mods",
+        }],
+        actions_bottom: [{
+            kind: "link",
+            url: "/r/"+subreddit+"/about/moderators",
+            text: "View All Moderators",
+        }],
+    }; else if(data.kind === "community-list") return {
+        kind: "widget",
+        title: data.shortName,
+        raw_value: data,
+        widget_content: {
+            kind: "list",
+            items: data.data.map(sub => {
+                if(sub.type === "subreddit") return {
+                    icon: sub.communityIcon || undefined,
+                    name: "r/"+sub.name,
+                    click: {kind: "link", url: "/r/"+sub.name},
+                    action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
+                };
+                expectUnsupported(sub.type);
+                return {
+                    name: "ERROR UNSUPPORTED" + sub.type,
+                    click: {kind: "body", body: {kind: "richtext", content: [{kind: "code_block", text: JSON.stringify(sub, null, "\t")}]}},
+                };
+            }),
+        },
+        actions_top: [{
+            kind: "link",
+            url: "/message/compose?to="+subreddit,
+            text: "Message the mods",
+        }],
+        actions_bottom: [{
+            kind: "link",
+            url: "/r/"+subreddit+"/about/moderators",
+            text: "View All Moderators",
+        }],
+    }; else if(data.kind === "id-card") return {
+        kind: "widget",
+        title: "Error!",
+        raw_value: data,
+        widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Not supported "+data.kind, JSON.stringify(data))]}},
+    }; else if(data.kind === "menu") return {
+        kind: "widget",
+        title: "Error!",
+        raw_value: data,
+        widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! TODO widget "+data.kind, JSON.stringify(data))]}},
+    }; else if(data.kind === "textarea") return {
+        kind: "widget",
+        title: data.shortName,
+        raw_value: data,
+        widget_content: {kind: "body", body: {kind: "text", content: data.text, markdown_format: "reddit"}},
+    }; else if(data.kind === "subreddit-rules") return {
+        kind: "widget",
+        title: data.shortName,
+        raw_value: data,
+        widget_content: {kind: "list", items: data.data.map((rule, i) => ({
+            name: "" + (i + 1) + ". " + rule.shortName,
+            click: {kind: "body", body: {kind: "text", content: rule.description, markdown_format: "reddit"}},
+        }))},
+    }; else if(data.kind === "image") return {
+        kind: "widget",
+        title: data.shortName,
+        raw_value: data,
+        widget_content: {kind: "body", body: {
+            kind: "captioned_image",
+            url: data.data[data.data.length - 1]!.url,
+            w: data.data[data.data.length - 1]!.width,
+            h: data.data[data.data.length - 1]!.height,
+        }},
+    };
+    expectUnsupported(data.kind);
+    return {
+        kind: "widget",
+        title: "Error!",
+        raw_value: data,
+        widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! Unsupported widget "+data.kind, JSON.stringify(data))]}},
+    };
+};
+function customIDCardWidget(t5: Reddit.T5, subreddit: string): Generic.ContentNode {
+    return {
+        kind: "widget",
+        title: t5.data.title,
+        raw_value: t5,
+        widget_content: {
+            kind: "community-details",
+            description: t5.data.public_description,
+        },
+        actions_bottom: [createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false)],
+    };
+}
+function oldSidebarWidget(t5: Reddit.T5, subreddit: string, {collapsed}: {collapsed: boolean}): Generic.ContentNode {
+    return {
+        kind: "widget",
+        title: "Old Sidebar",
+        raw_value: t5,
+        widget_content: {
+            kind: "body",
+            body: {
+                kind: "text",
+                markdown_format: "reddit",
+                content: t5.data.description,
+            },
+        },
+    };
+}
+function sidebarFromWidgets(subinfo: SubInfo, mode_raw: "both" | "header" | "sidebar"): Generic.ContentNode[] {
+    const widgets = subinfo.widgets;
 
-function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "header" | "sidebar", subreddit: string): Generic.ContentNode[] {
     const mode: {header: boolean, sidebar: boolean} = {header: mode_raw === "header" || mode_raw === "both", sidebar: mode_raw === "sidebar" || mode_raw === "both"};
     const getItem = (id: string): Reddit.Widget => {
-        const resv = widgets.items[id];
+        const resv = widgets!.items[id];
         if(!resv) throw new Error("bad widget "+id);
         return resv;
     };
-    const wrap = (data: Reddit.Widget): Generic.ContentNode => {
-        if(data.kind === "moderators") return {
-            kind: "widget",
-            title: "Moderators",
-            raw_value: data,
-            widget_content: {
-                kind: "list",
-                items: data.mods.map(moderator => ({
-                    name: moderator.name,
-                    click: {kind: "link", url: "/u/"+moderator.name},
-                })),
-            },
-            actions_top: [{
-                kind: "link",
-                url: "/message/compose?to="+subreddit,
-                text: "Message the mods",
-            }],
-            actions_bottom: [{
-                kind: "link",
-                url: "/r/"+subreddit+"/about/moderators",
-                text: "View All Moderators",
-            }],
-        }; else if(data.kind === "community-list") return {
-            kind: "widget",
-            title: data.shortName,
-            raw_value: data,
-            widget_content: {
-                kind: "list",
-                items: data.data.map(sub => {
-                    if(sub.type === "subreddit") return {
-                        icon: sub.communityIcon || undefined,
-                        name: "r/"+sub.name,
-                        click: {kind: "link", url: "/r/"+sub.name},
-                        action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
-                    };
-                    expectUnsupported(sub.type);
-                    return {
-                        name: "ERROR UNSUPPORTED" + sub.type,
-                        click: {kind: "body", body: {kind: "richtext", content: [{kind: "code_block", text: JSON.stringify(sub, null, "\t")}]}},
-                    };
-                }),
-            },
-            actions_top: [{
-                kind: "link",
-                url: "/message/compose?to="+subreddit,
-                text: "Message the mods",
-            }],
-            actions_bottom: [{
-                kind: "link",
-                url: "/r/"+subreddit+"/about/moderators",
-                text: "View All Moderators",
-            }],
-        }; else if(data.kind === "id-card") return {
-            kind: "widget",
-            title: data.shortName,
-            raw_value: data,
-            widget_content: {
-                kind: "community-details",
-                description: data.description,
-            },
-            // this doesn't tell you if you're subbed or not oops
-            // actions_bottom: [createSubscribeAction(subreddit, data.subscribersCount, false)],
-        }; else if(data.kind === "menu") return {
-            kind: "widget",
-            title: "Error!",
-            raw_value: data,
-            widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! TODO widget "+data.kind, JSON.stringify(data))]}},
-        }; else if(data.kind === "textarea") return {
-            kind: "widget",
-            title: data.shortName,
-            raw_value: data,
-            widget_content: {kind: "body", body: {kind: "text", content: data.text, markdown_format: "reddit"}},
-        }; else if(data.kind === "subreddit-rules") return {
-            kind: "widget",
-            title: data.shortName,
-            raw_value: data,
-            widget_content: {kind: "list", items: data.data.map((rule, i) => ({
-                name: "" + (i + 1) + ". " + rule.shortName,
-                click: {kind: "body", body: {kind: "text", content: rule.description, markdown_format: "reddit"}},
-            }))},
-        }; else if(data.kind === "image") return {
-            kind: "widget",
-            title: data.shortName,
-            raw_value: data,
-            widget_content: {kind: "body", body: {
-                kind: "captioned_image",
-                url: data.data[data.data.length - 1]!.url,
-                w: data.data[data.data.length - 1]!.width,
-                h: data.data[data.data.length - 1]!.height,
-            }},
-        };
-        expectUnsupported(data.kind);
-        return {
-            kind: "widget",
-            title: "Error!",
-            raw_value: data,
-            widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! Unsupported widget "+data.kind, JSON.stringify(data))]}},
-        };
-    };
+
+    const wrap = (data: Reddit.Widget): Generic.ContentNode => sidebarWidgetToGenericWidget(data, subinfo.subreddit);
+    
     // TODO moderator widget
     return [
-        ...mode.header ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
-        ...mode.sidebar ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
-        ...mode.sidebar ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
-        ...mode.sidebar ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
+        ...mode.header && widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
+        // ...mode.sidebar && widgets ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
+        ...mode.sidebar && subinfo.sub_t5 ? [customIDCardWidget(subinfo.sub_t5, subinfo.subreddit)] : [],
+        ...mode.sidebar && subinfo.sub_t5 ? [oldSidebarWidget(subinfo.sub_t5, subinfo.subreddit, {collapsed: widgets ? true : false})] : [],
+        ...mode.sidebar && widgets ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
+        ...mode.sidebar && widgets ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
     ];
 }
 
-const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinfo?: {subreddit: string, widgets: Reddit.ApiWidgets}}): Generic.Page => {
-    console.log("Got extra:", extra);
-
+type SubInfo = {
+    subreddit: string,
+    widgets?: Reddit.ApiWidgets
+    sub_t5?: Reddit.T5,
+};
+type PageExtra = {subinfo?: SubInfo};
+function makeSidebar(extra: PageExtra, mode_raw: "both" | "header" | "sidebar"): {sidebar: Generic.ContentNode[]} | null {
+    if(extra.subinfo) {
+        return {sidebar: sidebarFromWidgets(extra.subinfo, mode_raw)};
+    }
+    return null;
+}
+const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
     if(Array.isArray(listing)) {
         let link_fullname: string | undefined;
         const firstchild = listing[0].data.children[0]!;
@@ -496,7 +534,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
         return {
             header: threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, path) as Generic.Thread,
             replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, path)),
-            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both", extra.subinfo.subreddit)} : null,
+            ...makeSidebar(extra, "both"),
             display_style: "comments-view",
         };
     }
@@ -538,7 +576,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
                 raw_value: {},
             },
             replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined}, path)),
-            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both", extra.subinfo.subreddit)} : null,
+            ...makeSidebar(extra, "both"),
             display_style: "comments-view",
         };
     }
@@ -554,7 +592,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
                 actions: [],
                 default_collapsed: false,
             },
-            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both", extra.subinfo.subreddit)} : null,
+            ...makeSidebar(extra, "both"),
             display_style: "comments-view",
         };
     }
@@ -570,7 +608,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
                 actions: [],
                 default_collapsed: false,
             },
-            ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "both", extra.subinfo.subreddit)} : null,
+            ...makeSidebar(extra, "both"),
             display_style: "comments-view",
         };
     }
@@ -585,19 +623,25 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: {subinf
     }
 
     return {
-        header: extra.subinfo ? {kind: "hlist", items: sidebarFromWidgets(extra.subinfo.widgets, "header", extra.subinfo.subreddit)} : {
-            kind: "thread",
-            title: {text: "Listing"},
-            body: {kind: "text", content: "Listing", markdown_format: "none"},
-            display_mode: {body: "collapsed", comments: "collapsed"},
-            link: "TODO no link",
-            layout: "error",
-            actions: [],
-            default_collapsed: false,
-            raw_value: listing,
-        },
+        header: extra.subinfo  && extra.subinfo.widgets
+            ? {
+                kind: "hlist",
+                items: sidebarFromWidgets(extra.subinfo, "header"),
+            }
+            : {
+                kind: "thread",
+                title: {text: "Listing"},
+                body: {kind: "text", content: "Listing", markdown_format: "none"},
+                display_mode: {body: "collapsed", comments: "collapsed"},
+                link: "TODO no link",
+                layout: "error",
+                actions: [],
+                default_collapsed: false,
+                raw_value: listing,
+            }
+        ,
         replies,
-        ...extra.subinfo ? {sidebar: sidebarFromWidgets(extra.subinfo.widgets, "sidebar", extra.subinfo.subreddit)} : null,
+        ...makeSidebar(extra, "sidebar"),
         display_style: "fullscreen-view",
     };
 };
@@ -993,21 +1037,25 @@ export const client: ThreadClient = {
         const path = pathsplit.join("/") + "?" + pathrawquery.toString();
 
         try {
-            const [listing, widgets] = await Promise.all([
+            const [listing, widgets, sub_t5] = await Promise.all([
                 redditRequest<Reddit.Page | Reddit.Listing | Reddit.MoreChildren>(path, {
                     method: "GET",
                 }),
-                is_subreddit != null && from === "pageload" ? (async () => {
-                    try {
-                        return await redditRequest<Reddit.ApiWidgets>("/r/"+is_subreddit+"/api/widgets", {method: "GET"});
-                    }catch(e) {
-                        console.log("Error fetching widgets", e);
-                        return undefined;
-                    }
-                })() : undefined,
+                is_subreddit != null && from === "pageload"
+                    ? redditRequest<Reddit.ApiWidgets | undefined>("/r/"+is_subreddit+"/api/widgets", {method: "GET", onerror: e => undefined, cache: true})
+                    : undefined
+                ,
+                is_subreddit != null && from === "pageload"
+                    ? redditRequest<Reddit.T5 | undefined>("/r/"+is_subreddit+"/about", {method: "GET", onerror: e => undefined, cache: true})
+                    : undefined
+                ,
             ]);
 
-            return pageFromListing(path, listing, {...widgets ? {subinfo: {widgets, subreddit: is_subreddit!}} : null});
+            return pageFromListing(path, listing, {...is_subreddit ? {subinfo: {
+                widgets,
+                subreddit: is_subreddit!,
+                sub_t5,
+            }} : null});
         }catch(err_raw) {
             const e = err_raw as Error;
             console.log(e);
@@ -1247,34 +1295,52 @@ export const client: ThreadClient = {
     },
 };
 
-type RequestOpts =
+type RequestOpts<ResponseType> = (
     | {method: "GET"}
     | {method: "POST", mode: "urlencoded", body: {[key: string]: string | undefined}}
     | {method: "POST", mode: "json", body: unknown}
-;
-async function redditRequest<ResponseType>(url: string, opts: RequestOpts): Promise<ResponseType> {
-    const [status, res] = await fetch(pathURL(url), {
-        method: opts.method, mode: "cors", credentials: "omit",
-        headers: {
-            ...isLoggedIn() ? {'Authorization': await getAuthorization()} : {},
-            ...opts.method === "POST" ? {'Content-Type': {json: "application/json", urlencoded: "application/x-www-form-urlencoded"}[opts.mode]} : {},
-        },
-        ...opts.method === "POST" ? {
-            body: opts.mode === "json"
-                ? JSON.stringify(opts.body)
-                : opts.mode === "urlencoded"
-                ? Object.entries(opts.body).flatMap(([a, b]) => b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]).join("&")
-                : assertUnreachable(opts)
-            ,
-        } : {},
-    }).then(async (v) => {
-        return [v.status, await v.json() as ResponseType] as const;
-    });
-    if(status !== 200) {
-        console.log(status, res);
-        throw new Error("got status "+status);
+) & {
+    onerror?: (e: Error) => ResponseType,
+    onstatus?: (status: number, res: ResponseType) => ResponseType,
+    cache?: boolean,
+};
+const request_cache = new Map<string, unknown>();
+async function redditRequest<ResponseType>(path: string, opts: RequestOpts<ResponseType>): Promise<ResponseType> {
+    try {
+        const full_url = pathURL(path);
+        const fetchopts: RequestInit = {
+            method: opts.method, mode: "cors", credentials: "omit",
+            headers: {
+                ...isLoggedIn() ? {'Authorization': await getAuthorization()} : {},
+                ...opts.method === "POST" ? {'Content-Type': {json: "application/json", urlencoded: "application/x-www-form-urlencoded"}[opts.mode]} : {},
+            },
+            ...opts.method === "POST" ? {
+                body: opts.mode === "json"
+                    ? JSON.stringify(opts.body)
+                    : opts.mode === "urlencoded"
+                    ? Object.entries(opts.body).flatMap(([a, b]) => b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]).join("&")
+                    : assertUnreachable(opts)
+                ,
+            } : {},
+        };
+        const cache_text = JSON.stringify([full_url, fetchopts]);
+        const prev_cache = request_cache.get(cache_text);
+        if(prev_cache && opts.cache) return prev_cache as ResponseType;
+        const [status, res] = await fetch(full_url, fetchopts).then(async (v) => {
+            return [v.status, await v.json() as ResponseType] as const;
+        });
+        if(status !== 200) {
+            if(opts.onstatus) return opts.onstatus(status, res);
+            console.log(status, res);
+            throw new Error("got status "+status);
+        }
+        if(opts.cache) request_cache.set(cache_text, res);
+        return res;
+    }catch(e) {
+        console.log("Got error", e);
+        if(opts.onerror) return opts.onerror(e);
+        throw e;
     }
-    return res;
 }
 
 // POST /api/comment {api_type: json, return_rtjson: true, richtext_json: JSON, text: string, thing_id: parent_thing_id}

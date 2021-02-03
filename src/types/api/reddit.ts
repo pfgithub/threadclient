@@ -114,6 +114,185 @@ export type T2 = {
     },
 };
 
+export type Markdown = string & {__distinct_fakeprop: "markdown"};
+export type HTML = string & {__distinct_fakeprop: "html"};
+
+export declare namespace Date {
+    export type Sec = number & {__distinct_fakeprop: "sec"}; // sec since epoch (utc)
+    export type Ms = number & {__distinct_fakeprop: "ms"};  // ms since epoch (utc)
+}
+
+type LoginState<LoggedIn, NotLoggedIn> = {_logged_in: LoggedIn, _not_logged_in: NotLoggedIn};
+type LoginWrap<T extends {[key: string]: LoginState<unknown, unknown>}> =
+    {[key in keyof T]: T[key]["_logged_in"]} | {[key in keyof T]: T[key]["_not_logged_in"]}
+;
+
+// outdated documentation: https://github.com/reddit-archive/reddit/wiki/JSON
+// more here: https://github.com/Pyprohly/reddit-api-doc-notes/blob/master/docs/api-reference/subreddit.rst
+// oh my this is a mess
+export type T5 = {
+    kind: "t5",
+    data: {
+        // basic info
+        id: string,
+        name: `t5_${string}`, // fullname
+        display_name: string, // :subreddit
+        display_name_prefixed: string, // r/:subreddit 
+    } & {
+        // information displayed on the sidebar
+        subscribers: number,
+
+        title: string,
+
+        public_description: Markdown,
+        public_description_html: HTML,
+
+        description: Markdown,
+        description_html: HTML, // old.reddit sidebar text
+
+        header_title: string,
+        header_size: null,
+
+        subreddit_type: "public" | "private" | "restricted" | "gold_restricted" | "archived" | "unsupported",
+        user_is_contributor: boolean | null, // note, only contributers can create posts in restricted subs
+
+        key_color: string,
+
+        created: Date.Sec,
+        created_utc: Date.Sec,
+
+        user_is_subscriber: boolean | null,
+    } & {
+        // information required for when creating posts
+        submit_text: Markdown,
+        submit_text_html: HTML,
+        original_content_tag_enabled: boolean,
+
+        allow_polls: boolean,
+        allow_galleries: boolean,
+        allow_videogifs: boolean,
+        allow_videos: boolean,
+        allow_images: boolean,
+
+        can_assign_link_flair: boolean,
+
+        is_crosspostable_subreddit: boolean,
+
+        allow_chat_post_creation: boolean,
+    } & {
+        // flair assignment info
+        can_assign_user_flair: boolean,
+
+        user_flair_background_color: null,
+        user_flair_position: "right" | "unsupported",
+        user_flair_type: "text" | "unsupported",
+    } & LoginWrap<{
+        // information about the signed in user
+        user_is_banned: LoginState<boolean, null>,
+        user_is_moderator: LoginState<boolean, null>,
+
+        user_is_muted: LoginState<boolean, null>,
+        user_flair_richtext: LoginState<never[], never[]>,
+        user_has_favorited: LoginState<boolean, null>,
+        user_flair_template_id: LoginState<null, null>,
+        notification_level: LoginState<"low" | "unsupported", null>,
+        user_sr_flair_enabled: LoginState<boolean, null>,
+        user_sr_theme_enabled: LoginState<boolean, null>,
+        user_flair_text: LoginState<null, null>,
+        user_flair_text_color: LoginState<null, null>,
+        user_flair_css_class: LoginState<null, null>,
+    }> & {
+        // uncategorized stuff
+        emojis_enabled: boolean,
+        spoilers_enabled: boolean,
+
+        lang: "en" | "unsupported",
+        whitelist_status: "some_ads" | "unsupported",
+        url: string, // eg /r/…/
+
+        banner_size: null,
+        mobile_banner_image: "",
+
+        over18: boolean,
+
+        restrict_commenting: boolean,
+
+        is_chat_post_feature_enabled: boolean,
+        submit_link_label: "",
+
+        restrict_posting: boolean,
+        allow_predictions_tournament: boolean,
+
+        icon_size: [number, number],
+        icon_img: string, // url
+
+        all_original_content: boolean,
+
+        link_flair_enabled: boolean,
+
+        banner_background_color: "",
+        show_media: boolean,
+
+        allow_discovery: boolean,
+
+        suggested_comment_sort: null,
+        banner_img: "",
+
+        primary_color: "",
+
+        active_user_count: number,
+        accounts_active_is_fuzzed: boolean,
+
+        submit_text_label: "",
+        link_flair_position: "left" | "right" | "unsupported",
+
+        disable_contributer_requests: boolean,
+
+        user_flair_enabled_in_sr: boolean,
+
+        public_traffic: boolean,
+
+        collapse_deleted_comments: boolean,
+
+        emojis_custom_size: null,
+
+        wls: number,
+
+        show_media_preview: boolean,
+        submission_type: "any" | "unsupported",
+
+        community_icon: "",
+        banner_background_image: "",
+        
+        quarrentine: boolean,
+        hide_ads: boolean,
+        prediction_leaderboard_entry_type: "IN_FEED" | "unsupported",
+        advertiser_category: "",
+
+        videostream_links_count: number,
+
+        comment_score_hide_mins: number,
+
+        allow_predictions: boolean, // allow gambling polls
+
+        free_form_reports: boolean,
+        wiki_enabled: null,
+
+        user_can_flair_in_sr: true | null,
+
+        header_img: null,
+    } & {
+        // experiments with 100% enrollment
+        is_enrolled_in_new_modmail: null,
+    } & Depricated<{
+        // depricated in favor of different props
+        has_menu_widget: boolean,
+        accounts_active: number, // active_user_count
+    }>,
+};
+
+type Depricated<T> = T;
+
 export type Page = [Listing, Listing];
 export type Listing = {
     kind: "Listing",
