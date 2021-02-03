@@ -79,11 +79,19 @@ export type Widget = {
         createdUtc: number, // s since epoch
         description: string, // markdown
         descriptionHtml: string,
-        // again, not sure if there is a way to get richtext. the documentation mentions progressive_images but nothing about richtext.
+        // again, not sure if there is a way to get richtext.
         priority: number, // ?
         shortName: string,
         violationReason: string,
     }[],
+} | {
+    kind: "image",
+    data: {
+        url: string,
+        width: number,
+        height: number,
+    }[], // only contains one item unless progressive_images is enabled
+    shortName: string,
 } | {
     kind: "unsupported",
 });

@@ -456,6 +456,16 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
                 name: "" + (i + 1) + ". " + rule.shortName,
                 click: {kind: "body", body: {kind: "text", content: rule.description, markdown_format: "reddit"}},
             }))},
+        }; else if(data.kind === "image") return {
+            kind: "widget",
+            title: data.shortName,
+            raw_value: data,
+            widget_content: {kind: "body", body: {
+                kind: "captioned_image",
+                url: data.data[data.data.length - 1]!.url,
+                w: data.data[data.data.length - 1]!.width,
+                h: data.data[data.data.length - 1]!.height,
+            }},
         };
         expectUnsupported(data.kind);
         return {
