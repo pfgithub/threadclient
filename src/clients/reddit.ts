@@ -369,6 +369,19 @@ function createSubscribeAction(subreddit: string, subscribers: number, you_subbe
     };
 }
 const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): Generic.ContentNode => {
+    try {
+        return sidebarWidgetToGenericWidgetTry(data, subreddit);
+    }catch(e) {
+        console.log("widget error", e);
+        return {
+            kind: "widget",
+            title: "Error!",
+            raw_value: data,
+            widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! Error "+e.toString(), JSON.stringify(data))]}},
+        };
+    }
+}
+const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string): Generic.ContentNode => {
     if(data.kind === "moderators") return {
         kind: "widget",
         title: "Moderators",
@@ -376,7 +389,7 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
         widget_content: {
             kind: "list",
             items: data.mods.map(moderator => ({
-                name: moderator.name,
+                name: {kind: "username", username: moderator.name},
                 click: {kind: "link", url: "/u/"+moderator.name},
             })),
         },
@@ -399,13 +412,13 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
             items: data.data.map(sub => {
                 if(sub.type === "subreddit") return {
                     icon: sub.communityIcon || undefined,
-                    name: "r/"+sub.name,
+                    name: {kind: "text", text: "r/"+sub.name},
                     click: {kind: "link", url: "/r/"+sub.name},
                     action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
                 };
                 expectUnsupported(sub.type);
                 return {
-                    name: "ERROR UNSUPPORTED" + sub.type,
+                    name: {kind: "text", text: "ERROR UNSUPPORTED" + sub.type},
                     click: {kind: "body", body: {kind: "richtext", content: [{kind: "code_block", text: JSON.stringify(sub, null, "\t")}]}},
                 };
             }),
@@ -440,7 +453,7 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
         title: data.shortName,
         raw_value: data,
         widget_content: {kind: "list", items: data.data.map((rule, i) => ({
-            name: "" + (i + 1) + ". " + rule.shortName,
+            name: {kind: "text", text: "" + (i + 1) + ". " + rule.shortName},
             click: {kind: "body", body: {kind: "text", content: rule.description, markdown_format: "reddit"}},
         }))},
     }; else if(data.kind === "image") return {
@@ -453,6 +466,20 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
             w: data.data[data.data.length - 1]!.width,
             h: data.data[data.data.length - 1]!.height,
         }},
+    }; else if(data.kind === "post-flair") return {
+        kind: "widget",
+        // /r/…/?f=flair_name:"…"
+        title: data.shortName,
+        raw_value: data,
+        widget_content: {kind: "list", items: data.order.map((id) => {
+            const val = data.templates[id]!;
+            const flairv = flairToGenericFlair(val.type, val.text, val.textColor, val.backgroundColor, val.richtext);
+            if(flairv.length !== 1) throw new Error("bad flair");
+            return {
+                name: {kind: "flair", flair: flairv[0]!},
+                click: {kind: "link", url: "/r/"+subreddit+"/?f=flair_name:\""+encodeURIComponent(val.text)+"\""}
+            };
+        })}
     };
     expectUnsupported(data.kind);
     return {

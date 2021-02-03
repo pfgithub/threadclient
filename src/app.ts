@@ -1373,10 +1373,24 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, frame: HTMLD
             if(item.icon != null) {
                 el("div").adto(ili).clss("widget-list-icon").styl({"--background-image-url": "url("+item.icon+")"});
             }
+            let name_node: Node;
+            if(item.name.kind === "text") {
+                name_node = txt(item.name.text);
+            }else if(item.name.kind === "flair") {
+                name_node = el("span");
+                renderFlair([item.name.flair]).adto(name_node);
+            }else if(item.name.kind === "username") {
+                name_node = txt(item.name.username);
+            }else assertNever(item.name);
+
             if(item.click.kind === "link") {
-                linkButton(client.id, item.click.url).atxt(item.name).adto(ili);
+                if(item.name.kind === "username") {
+                    userLink(client.id, item.click.url, item.name.username).adto(ili);
+                }else {
+                    linkButton(client.id, item.click.url).adch(name_node).adto(ili);
+                }
             }else{
-                el("span").atxt(item.name).adto(ili);
+                el("span").adch(name_node).adto(ili);
             }
             if(item.action) {
                 const actionv = el("span").adto(ili).atxt(" ");
@@ -1407,21 +1421,30 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode): Hide
     const frame = clientListingWrapperNode();
     const hsc = hideshow(frame);
 
-    if(listing.kind === "user-profile") {
-        userProfileListing(client, listing, frame).defer(hsc);
-        return hsc;
-    }
-    if(listing.kind === "hlist") {
-        hListing(client, listing, frame).defer(hsc);
-        return hsc;
-    }
-    if(listing.kind === "widget") {
-        widgetRender(client, listing, frame).defer(hsc);
-        return hsc;
-    }
+    try {
+        if(listing.kind === "user-profile") {
+            userProfileListing(client, listing, frame).defer(hsc);
+            return hsc;
+        }
+        if(listing.kind === "hlist") {
+            hListing(client, listing, frame).defer(hsc);
+            return hsc;
+        }
+        if(listing.kind === "widget") {
+            widgetRender(client, listing, frame).defer(hsc);
+            return hsc;
+        }
 
-    clientListing(client, listing, frame).defer(hsc);
-    return hsc;
+        clientListing(client, listing, frame).defer(hsc);
+        return hsc;
+    }catch(e) {
+        hsc.cleanup();
+        console.log("Got error", e); 
+        frame.innerHTML = "";
+        frame.adch(el("pre").adch(el("code").atxt(e.toString() + "\n\n" + e.stack)));
+        frame.adch(linkLikeButton().atxt("Code").onev("click", () => console.log(listing)));
+        return hideshow(frame);
+    }
 }
 function clientListingWrapperNode(): HTMLDivElement {
     const frame = el("div").clss("post");

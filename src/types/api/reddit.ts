@@ -93,6 +93,18 @@ export type Widget = {
     }[], // only contains one item unless progressive_images is enabled
     shortName: string,
 } | {
+    kind: "post-flair",
+    shortName: string,
+    order: string[], // keys into the templates map
+    templates: {[key: string]: {
+        backgroundColor: string,
+        templateId: typeof key,
+        textColor: "light" | "dark",
+        text: string,
+        richtext?: RichtextFlair,
+        type: "text" | "richtext" | "unsupported",
+    }},
+} | {
     kind: "unsupported",
 });
 
