@@ -5,20 +5,20 @@ html {
     word-break: break-word;
 }
 
-html,
-body,
 input,
 textarea,
 select,
 button {
+    background-color: var(--post-color);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+html,
+body {
     background-color: var(--body-color);
-    border-color: black;
-    color: black;
-    @media (prefers-color-scheme: dark) {
-        background-color: var(--body-color);
-        border-color: #736b5e;
-        color: #e8e6e3;
-    }
+    border-color: var(--border-color);
+    color: var(--text-color);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -66,8 +66,11 @@ button {
 :root {
     --max-height: 95vh;
 
-    --body-color: white;
+    --body-color: #d6dde4;
+    --post-color: white;
     --text-color: black;
+
+    --border-color: black;
 
     --link-color: rgb(51, 125, 255);
     --outline-color: #212121;
@@ -94,8 +97,11 @@ button {
     --alert-color: #ff4242;
 
     @media (prefers-color-scheme: dark) {
-        --body-color: #181a1b;
+        --body-color: #2b3035;
+        --post-color: #181a1b;
         --text-color: white;
+
+        --border-color: #736b5e;
 
         --link-color: #3391ff;
         --outline-color: rgb(129, 120, 106);
@@ -144,7 +150,7 @@ a {
     padding: 10px;
     padding-left: 30px;
     box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
-    background-color: var(--body-color);
+    background-color: var(--post-color);
     border-radius: 10px;
 }
 
@@ -200,7 +206,7 @@ ul.replies {
                 position: absolute;
                 left: -15px;
                 top: 4px;
-                background-color: var(--body-color);
+                background-color: var(--post-color);
                 pointer-events: none;
             }
         }
@@ -831,8 +837,9 @@ table {
     margin-top: -8px;
     margin-left: -8px;
     margin-right: -8px;
+    margin-bottom: 10px;
     padding: 8px;
-    background-color: var(--body-color);
+    background-color: var(--post-color);
     box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
     z-index: 1000000;
     @media only screen and (max-width: 600px) {
