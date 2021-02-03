@@ -206,7 +206,7 @@ export type HList = {
 export type WidgetListItem = {
     icon?: string,
     name: string,
-    link: string,
+    click: {kind: "link", url: string} | {kind: "body", body: Body},
     action?: Action,
 };
 

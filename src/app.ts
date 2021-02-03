@@ -1361,11 +1361,23 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, frame: HTMLD
     if(content.kind === "list") {
         const list = el("ul").clss("widget-list").adto(frame);
         for(const item of content.items) {
-            const ili = el("li").adto(list);
+            const ili_wrapper = el("li").adto(list);
+            let ili: HTMLElement;
+            if(item.click.kind === "body") {
+                const details = el("details").adto(ili_wrapper);
+                ili = el("summary").adto(details);
+                renderBody(client, item.click.body, {autoplay: false}, details).defer(hsc);
+            }else{
+                ili = ili_wrapper;
+            }
             if(item.icon != null) {
                 el("div").adto(ili).clss("widget-list-icon").styl({"--background-image-url": "url("+item.icon+")"});
             }
-            linkButton(client.id, item.link).atxt(item.name).adto(ili);
+            if(item.click.kind === "link") {
+                linkButton(client.id, item.click.url).atxt(item.name).adto(ili);
+            }else{
+                el("span").atxt(item.name).adto(ili);
+            }
             if(item.action) {
                 const actionv = el("span").adto(ili).atxt(" ");
                 renderAction(client, item.action, actionv).defer(hsc);

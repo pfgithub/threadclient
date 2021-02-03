@@ -56,6 +56,7 @@ all todo:
 -   [ ] add the first line of the body richtext to show up when the thing is collapsed (and make sure it's max 1 line overflow ellipsis)
 -   [ ] some simple unit tests (eg number shortening like 12502 → 12.5k, 350351 → 350k)
 -   [ ] improve poll appearence
+-   [ ] "unsupported" → type unsupported = …
 
 reddit todo:
 

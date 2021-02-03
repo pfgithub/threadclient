@@ -385,7 +385,7 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
                 kind: "list",
                 items: data.mods.map(moderator => ({
                     name: moderator.name,
-                    link: "/u/"+moderator.name,
+                    click: {kind: "link", url: "/u/"+moderator.name},
                 })),
             },
             actions_top: [{
@@ -408,13 +408,13 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
                     if(sub.type === "subreddit") return {
                         icon: sub.communityIcon || undefined,
                         name: "r/"+sub.name,
-                        link: "/r/"+sub.name,
+                        click: {kind: "link", url: "/r/"+sub.name},
                         action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
                     };
                     expectUnsupported(sub.type);
                     return {
                         name: "ERROR UNSUPPORTED" + sub.type,
-                        link: "error",
+                        click: {kind: "body", body: {kind: "richtext", content: [{kind: "code_block", text: JSON.stringify(sub, null, "\t")}]}},
                     };
                 }),
             },
@@ -448,6 +448,14 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
             title: data.shortName,
             raw_value: data,
             widget_content: {kind: "body", body: {kind: "text", content: data.text, markdown_format: "reddit"}},
+        }; else if(data.kind === "subreddit-rules") return {
+            kind: "widget",
+            title: data.shortName,
+            raw_value: data,
+            widget_content: {kind: "list", items: data.data.map((rule, i) => ({
+                name: "" + (i + 1) + ". " + rule.shortName,
+                click: {kind: "body", body: {kind: "text", content: rule.description, markdown_format: "reddit"}},
+            }))},
         };
         expectUnsupported(data.kind);
         return {
@@ -461,8 +469,8 @@ function sidebarFromWidgets(widgets: Reddit.ApiWidgets, mode_raw: "both" | "head
     return [
         ...mode.header ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
         ...mode.sidebar ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
-        ...mode.sidebar ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
         ...mode.sidebar ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
+        ...mode.sidebar ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
     ];
 }
 

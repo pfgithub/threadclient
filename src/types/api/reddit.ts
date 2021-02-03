@@ -72,6 +72,19 @@ export type Widget = {
     textHtml: string,
     // not sure how/if it's possible to get richtext for this
 } | {
+    kind: "subreddit-rules",
+    display: "compact" | "unsupported",
+    shortName: string,
+    data: {
+        createdUtc: number, // s since epoch
+        description: string, // markdown
+        descriptionHtml: string,
+        // again, not sure if there is a way to get richtext. the documentation mentions progressive_images but nothing about richtext.
+        priority: number, // ?
+        shortName: string,
+        violationReason: string,
+    }[],
+} | {
     kind: "unsupported",
 });
 
