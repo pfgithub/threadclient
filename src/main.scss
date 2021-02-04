@@ -8,7 +8,8 @@ html {
 input,
 textarea,
 select,
-button {
+button,
+textarea {
     background-color: var(--post-color);
     border-color: var(--border-color);
     color: var(--text-color);
@@ -131,13 +132,15 @@ body {
 
 // normalization
 button,
-input {
+input,
+textarea {
     border: 1px solid var(--collapse-line-color-hover);
     &:focus {
         outline: 1px dotted var(--outline-color);
     }
 }
-input {
+input,
+textarea {
     border-radius: 5px;
 }
 
@@ -871,8 +874,9 @@ table {
     min-width: 0;
 }
 
-input {
-    font-size: 1em;
+input,
+textarea {
+    font-size: 16px;
 }
 
 .alert {
