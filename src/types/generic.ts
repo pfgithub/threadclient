@@ -300,11 +300,13 @@ export type ReportAction = {
     data: Opaque<"send_report">,
 } | {
     kind: "textarea",
+    input_title: string,
     char_limit: number,
     data: Opaque<"send_report">,
 } | {
     kind: "link",
     url: string,
+    text: string,
 } | {
     kind: "more",
     screens: ReportScreen[],

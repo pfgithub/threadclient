@@ -104,6 +104,11 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     if(href.startsWith("mailto:")) {
         return el("span").attr({title: href.replace("mailto:", "")});
     }
+    let is_raw = false;
+    if(href.startsWith("raw!")) {
+        href = href.replace("raw!", "");
+        is_raw = true;
+    }
     if(!href.startsWith("http") && !href.startsWith("/")) {
         return el("a").clss("error").attr({title: href}).clss("error").onev("click", () => alert(href));
     }
@@ -113,7 +118,7 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     }catch(e) {
         urlparsed = undefined;
     }
-    if(urlparsed && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
+    if(urlparsed && !is_raw && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
         href = "/reddit"+urlparsed.pathname;
     }
     const res = el("a").attr({href, target: "_blank", rel: "noreferrer noopener"});
@@ -1247,10 +1252,82 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
             setv("none");
         });
     }else if(action.kind === "report") {
-        linkLikeButton().atxt("Report").adto(content_buttons_line).onev("click", () => alert("TODO report"));
+        let report_container: HTMLDivElement | undefined;
+        const hsc = hideshow();
+
+        linkLikeButton().atxt("Report").adto(content_buttons_line).onev("click", () => {
+            if(!report_container) report_container = renderReportScreen(client, action.data).defer(hsc).adto(content_buttons_line);
+        });
+
+        return hsc;
     }else assertNever(action);
     return hideshow();
 }
+
+function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportScreen, onreported: () => void): HideShowCleanup<HTMLElement> {
+    const outer_v = el("details").clss("report-item");
+    const hsc = hideshow(outer_v);
+
+    outer_v.adch(el("summary").attr({draggable: "true"}).atxt(report_item.title));
+
+    const frame = el("div").clss("report-content").adto(outer_v);
+
+    if(report_item.description) {
+        const body_cont = el("div").adto(frame);
+        renderBody(client, report_item.description, {autoplay: false}, body_cont).defer(hsc);
+    }
+
+    switch(report_item.report.kind) {
+        case "submit": {
+            el("button").atxt("Send Report").adto(frame).onev("click", () => alert("TODO send report"));
+        } break;
+        case "textarea": {
+            el("textarea").adto(frame);
+            el("button").atxt("Send Report").adto(frame).onev("click", () => alert("TODO send report"));
+        } break;
+        case "link": {
+            linkButton(client.id, report_item.report.url).atxt(report_item.report.text).adto(frame);
+        } break;
+        case "more": {
+            const childsv = el("div").adto(frame);
+            for(const child of report_item.report.screens) {
+                renderOneReportItem(client, child, onreported).defer(hsc).adto(childsv);
+            }
+        } break;
+        default: assertNever(report_item.report);
+    }
+
+    return hsc;
+}
+
+function renderReportScreen(client: ThreadClient, report_fetch_info: Generic.Opaque<"report">): HideShowCleanup<HTMLDivElement> {
+    const frame = el("div").clss("report-screen");
+    const hsc = hideshow(frame);
+
+    if(!client.fetchReportScreen) {
+        frame.atxt("Missing fetchreportscreen?");
+        frame.clss("error");
+        console.log(client);
+        return hsc;
+    }
+    const loader = loadingSpinner().adto(frame);
+    client.fetchReportScreen(report_fetch_info).then(res => {
+        loader.remove();
+        for(const item of res) {
+            renderOneReportItem(client, item, () => {
+                frame.innerHTML = "";
+                frame.atxt("Report sent!");
+            }).defer(hsc).adto(frame);
+        }
+    }).catch(e => {
+        console.log("error loading report screen", e);
+        frame.adch(el("div").clss("error").atxt("Error loading: "+e.toString()));
+        loader.remove();
+    });
+
+    return hsc;
+}
+
 function renderCounterAction(client: ThreadClient, action: Generic.CounterAction, content_buttons_line: Node, opts: {parens: boolean}) {
     const display_count = action.count_excl_you !== "none";
 
@@ -1372,7 +1449,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outer_el: HT
             let ili: HTMLElement;
             if(item.click.kind === "body") {
                 const details = el("details").adto(ili_wrapper);
-                ili = el("summary").adto(details);
+                ili = el("summary").attr({draggable: "true"}).adto(details);
                 renderBody(client, item.click.body, {autoplay: false}, details).defer(hsc);
             }else{
                 ili = ili_wrapper;

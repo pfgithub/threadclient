@@ -963,3 +963,14 @@ li.richtext-render-node > p:only-child {
     margin-right: 4px;
     vertical-align: middle;
 }
+
+.report-screen {
+    margin: 10px;
+    font-size: small;
+}
+.report-content {
+    margin: 10px;
+}
+summary {
+    cursor: pointer;
+}

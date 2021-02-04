@@ -25,7 +25,7 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
         color: background_color,
         fg_color: text_color === "light" ? "light" : "dark",
         elems,
-        content_warning: flair_text.toLowerCase().startsWith("cw:")
+        content_warning: flair_text.toLowerCase().startsWith("cw:") || flair_text.toLowerCase().startsWith("tw:")
     }];
 }
 
@@ -46,10 +46,10 @@ type Action =
     | {kind: "save", fullname: string, direction: "" | "un"}
     | {kind: "subscribe", subreddit: string, direction: "sub" | "unsub"};
 
-function encodeVoteAction(query: Reddit.VoteBody): Generic.Opaque<"act"> {return action.encode({kind: "vote", query})}
-function encodeDeleteAction(fullname: string): Generic.Opaque<"act"> {return action.encode({kind: "delete", fullname})}
+function encodeVoteAction(query: Reddit.VoteBody): Generic.Opaque<"act"> {return act_encoder.encode({kind: "vote", query})}
+function encodeDeleteAction(fullname: string): Generic.Opaque<"act"> {return act_encoder.encode({kind: "delete", fullname})}
 
-const action = encoderGenerator<Action, "act">("act");
+const act_encoder = encoderGenerator<Action, "act">("act");
 
 type RichtextFormattingOptions = {
     media_metadata: Reddit.MediaMetadata,
@@ -360,8 +360,8 @@ function createSubscribeAction(subreddit: string, subscribers: number, you_subbe
         you: you_subbed ? "increment" : undefined,
 
         actions: {
-            increment: action.encode({kind: "subscribe", subreddit, direction: "sub"}),
-            reset: action.encode({kind: "subscribe", subreddit, direction: "unsub"}),
+            increment: act_encoder.encode({kind: "subscribe", subreddit, direction: "sub"}),
+            reset: act_encoder.encode({kind: "subscribe", subreddit, direction: "unsub"}),
         },
     };
 }
@@ -760,8 +760,8 @@ const saveButton = (fullname: string, saved: boolean): Generic.Action => {
         count_excl_you: "none",
         you: saved ? "increment" : undefined,
         actions: {
-            increment: action.encode({kind: "save", fullname,  direction: ""}),
-            reset: action.encode({kind: "save", fullname, direction: "un"}),
+            increment: act_encoder.encode({kind: "save", fullname,  direction: ""}),
+            reset: act_encoder.encode({kind: "save", fullname, direction: "un"}),
         },
     };
 };
@@ -1231,7 +1231,7 @@ export const client: ThreadClient = {
         throw new Error("no selftext or body");
     },
     async act(action_raw: Generic.Opaque<"act">): Promise<void> {
-        const act = action.decode(action_raw);
+        const act = act_encoder.decode(action_raw);
         if(act.kind === "vote") {
             type VoteResult = {__nothing: unknown};
             const res = await redditRequest<VoteResult>("/api/vote", {
@@ -1360,16 +1360,122 @@ export const client: ThreadClient = {
         return threadFromListing({kind: "t1", data: reply}, {}, "TODO");
     },
     async fetchReportScreen(data_raw) {
-        // fetch ["/r/:subreddit/about/rules", "/r/:subreddit/about"] (both cached)
-        // assemble a report screen
-        // It breaks r/…'s rules
-        // - … rule 1
-        // - … rule 2
-        // - about.free_form_reports ? Custom Response {textbox}
-        // … sitewide rules
-        throw new Error("TODO");
+        const data = report_encoder.decode(data_raw);
+        const [sub_rules, sub_about] = await Promise.all([
+            await redditRequest<Reddit.Rules>("/r/"+data.subreddit+"/about/rules", {method: "GET", cache: true}),
+            await redditRequest<Reddit.T5>("/r/"+data.subreddit+"/about", {method: "GET", cache: true}),
+        ]);
+
+        const result: Generic.ReportScreen[] = [];
+
+        const sub_rules_out: Generic.ReportScreen[] = [];
+        for(const sub_rule of sub_rules.rules) {
+            sub_rules_out.push({
+                title: sub_rule.violation_reason,
+                description: {kind: "text", content: sub_rule.description, markdown_format: "reddit"},
+                report: {
+                    kind: "submit",
+                    data: report_action_encoder.encode({
+                        fullname: data.fullname,
+                        subreddit: data.subreddit,
+                        reason: {kind: "sub", id: sub_rule.short_name},
+                    }),
+                },
+            });
+        }
+        if(sub_about.data.free_form_reports) {
+            const char_limit = 100;
+            sub_rules_out.push({
+                title: "Custom Reason",
+                report: {
+                    kind: "textarea",
+                    input_title: "Custom Reason",
+                    char_limit,
+                    data: report_action_encoder.encode({
+                        fullname: data.fullname,
+                        subreddit: data.subreddit,
+                        reason: {kind: "sub_other"},
+                        text_max: char_limit,
+                    }),
+                },
+            });
+        }
+        result.push({
+            title: "r/"+data.subreddit+"'s rules",
+            report: {kind: "more", screens: sub_rules_out},
+        });
+
+        for(const site_rule of sub_rules.site_rules_flow) {
+            result.push(siteRuleToReportScreen(data, site_rule));   
+        }
+
+        return result;
     }
 };
+const siteRuleToReportScreen = (data: ReportInfo, site_rule: Reddit.FlowRule): Generic.ReportScreen => {
+    let action: Generic.ReportAction;
+    if('nextStepReasons' in site_rule) {
+        action = {
+            kind: "more",
+            screens: site_rule.nextStepReasons.map(reason => siteRuleToReportScreen(data, reason)),
+        };
+    }else if('fileComplaint' in site_rule && site_rule.fileComplaint === true) {
+        const updated_url = site_rule.complaintUrl.replace("%25%28thing%29", encodeURIComponent(data.fullname)); // %(thing)
+        action = {
+            kind: "more",
+            screens: [{
+                title: site_rule.complaintPageTitle,
+                description: {kind: "text", content: site_rule.complaintPrompt, markdown_format: "none"},
+                report: {
+                    kind: "link",
+                    url: "raw!"+updated_url,
+                    text: site_rule.complaintButtonText,
+                },
+            }],
+        };
+    }else if('canWriteNotes' in site_rule && site_rule.canWriteNotes === true) {
+        const char_limit = site_rule.isAbuseOfReportButton ?? false ? 250 : 2000;
+        action = {
+            kind: "textarea",
+            input_title: site_rule.notesInputTitle,
+            char_limit: char_limit,
+            data: report_action_encoder.encode({
+                fullname: data.fullname,
+                subreddit: data.subreddit,
+                text_max: char_limit,
+                reason: {kind: "site", id: site_rule.reasonText},
+            }),
+        };
+    }else if('canSpecifyUsernames' in site_rule && site_rule.canSpecifyUsernames === true) {
+        action = {
+            kind: "link",
+            url: "raw!https://reddit.com/report",
+            text: "Open Reddit",
+        };
+    }else{
+        action = {
+            kind: "submit",
+            data: report_action_encoder.encode({
+                fullname: data.fullname,
+                subreddit: data.subreddit,
+                reason: {kind: "site", id: site_rule.reasonText},
+            }),
+        };
+    }
+    return {
+        title: site_rule.reasonTextToShow,
+        report: action,
+    };
+};
+
+type ReportAction = {
+    fullname: string,
+    subreddit: string,
+    text_max?: number,
+    reason: {kind: "sub", id: string} | {kind: "site", id: string} | {kind: "sub_other"},
+};
+// note: sub_other should pass the text through the other_reason field when reporting
+const report_action_encoder = encoderGenerator<ReportAction, "send_report">("send_report");
 
 type RequestOpts<ResponseType> = (
     | {method: "GET"}
@@ -1380,6 +1486,9 @@ type RequestOpts<ResponseType> = (
     onstatus?: (status: number, res: ResponseType) => ResponseType,
     cache?: boolean,
 };
+// note: TODO reset caches on a few occasions
+// : if you send any requests to edit the subreddit about text or anything like that, clear all caches containing /r/:subname/ or ending with /r/:subname
+// : if you click the refresh button at the top of the page, clear caches maybe
 const request_cache = new Map<string, unknown>();
 async function redditRequest<ResponseType>(path: string, opts: RequestOpts<ResponseType>): Promise<ResponseType> {
     try {
