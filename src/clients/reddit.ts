@@ -732,6 +732,24 @@ const deleteButton = (fullname: string): Generic.Action => {
         data: encodeDeleteAction(fullname),
     };
 };
+type ReportInfo = {
+    subreddit: string,
+    fullname: string,
+};
+const report_encoder = encoderGenerator<ReportInfo, "report">("report");
+const reportButton = (fullname: string, subreddit: string): Generic.Action => {
+    return {
+        kind: "report",
+        data: report_encoder.encode({subreddit, fullname}),
+    };
+};
+const replyButton = (fullname: string): Generic.Action => {
+    return {
+        kind: "reply",
+        text: "Reply",
+        reply_info: reply_encoder.encode({parent_id: fullname}),
+    };
+};
 const saveButton = (fullname: string, saved: boolean): Generic.Action => {
     return {
         kind: "counter",
@@ -799,15 +817,17 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 },
                 pinned: listing.stickied,
             },
-            actions: [{
-                kind: "reply",
-                text: "Reply",
-                reply_info: reply_encoder.encode({parent_id: listing.name}),
-            }, {
-                kind: "link",
-                text: "Permalink",
-                url: listing.permalink ?? "Error no permalink",
-            }, deleteButton(listing.name), saveButton(listing.name, listing.saved), getPointsOn(listing)],
+            actions: [
+                replyButton(listing.name), {
+                    kind: "link",
+                    text: "Permalink",
+                    url: listing.permalink ?? "Error no permalink",
+                },
+                deleteButton(listing.name),
+                saveButton(listing.name, listing.saved),
+                reportButton(listing.name, listing.subreddit),
+                getPointsOn(listing)
+            ],
             default_collapsed: listing.collapsed,
         };
         if(listing.replies) {
@@ -964,11 +984,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 },
                 pinned: listing.stickied,
             },
-            actions: [options.show_post_reply_button ?? false ? {
-                kind: "reply",
-                text: "Reply",
-                reply_info: reply_encoder.encode({parent_id: listing.name}),
-            } : {
+            actions: [options.show_post_reply_button ?? false ? replyButton(listing.name) : {
                 kind: "link",
                 url: listing.permalink,
                 text: listing.num_comments + " comment"+(listing.num_comments === 1 ? "" : "s"),
@@ -980,7 +996,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 kind: "link",
                 url: listing.permalink.replace("/comments/", "/duplicates/"),
                 text: "Duplicates"
-            }],
+            }, reportButton(listing.name, listing.subreddit)],
             default_collapsed: false,
         };
         return result;
@@ -1343,6 +1359,16 @@ export const client: ThreadClient = {
         // the reply also has a "rte_mode": "markdown" | "unsupported"
         return threadFromListing({kind: "t1", data: reply}, {}, "TODO");
     },
+    async fetchReportScreen(data_raw) {
+        // fetch ["/r/:subreddit/about/rules", "/r/:subreddit/about"] (both cached)
+        // assemble a report screen
+        // It breaks r/…'s rules
+        // - … rule 1
+        // - … rule 2
+        // - about.free_form_reports ? Custom Response {textbox}
+        // … sitewide rules
+        throw new Error("TODO");
+    }
 };
 
 type RequestOpts<ResponseType> = (

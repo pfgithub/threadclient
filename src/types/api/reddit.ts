@@ -199,6 +199,8 @@ type LoginWrap<T extends {[key: string]: LoginState<unknown, unknown>}> =
     {[key in keyof T]: T[key]["_logged_in"]} | {[key in keyof T]: T[key]["_not_logged_in"]}
 ;
 
+export type SubredditType = "public" | "private" | "restricted" | "gold_restricted" | "archived" | "unsupported";
+
 // outdated documentation: https://github.com/reddit-archive/reddit/wiki/JSON
 // more here: https://github.com/Pyprohly/reddit-api-doc-notes/blob/master/docs/api-reference/subreddit.rst
 // oh my this is a mess
@@ -225,7 +227,7 @@ export type T5 = {
         header_title: string,
         header_size: null,
 
-        subreddit_type: "public" | "private" | "restricted" | "gold_restricted" | "archived" | "unsupported",
+        subreddit_type: SubredditType,
         user_is_contributor: boolean | null, // note, only contributers can create posts in restricted subs
 
         key_color: string,
@@ -251,6 +253,10 @@ export type T5 = {
         is_crosspostable_subreddit: boolean,
 
         allow_chat_post_creation: boolean,
+    } & {
+        // information required when reporting posts
+        free_form_reports: boolean,
+        // most information is in /about/report, not sure why this one bit is here
     } & {
         // flair assignment info
         can_assign_user_flair: boolean,
@@ -346,8 +352,6 @@ export type T5 = {
         comment_score_hide_mins: number,
 
         allow_predictions: boolean, // allow gambling polls
-
-        free_form_reports: boolean,
         wiki_enabled: null,
 
         user_can_flair_in_sr: true | null,
@@ -415,6 +419,11 @@ export type PostOrComment = {
 
     saved: boolean,
     edited: false | number,
+
+    subreddit: string,
+    subreddit_name_prefixed: string, // post subreddit (u/ or r/)
+    subreddit_id: string, // fullname
+    subreddit_type: SubredditType,
 };
 
 export type BaseMediaMeta = {
@@ -461,7 +470,6 @@ export type PostSubmission = PostBase & PostOrComment & {
     title: string,
     
     stickied: boolean,
-    subreddit_name_prefixed: string, // post subreddit (u/ or r/)
 
     // content warnings
     spoiler: boolean,

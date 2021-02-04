@@ -12,6 +12,8 @@ export type ThreadClient = {
     //v I guess this should return the updated action state. mastodon returns an entire updated post, reddit returns nothing.
     //v since this isn't uil, I don't have any easy way to update an entire post at once so that wouldn't be very useful
     act: (action: Generic.Opaque<"act">) => Promise<void>,
+    fetchReportScreen?: (report: Generic.Opaque<"report">) => Promise<Generic.ReportFlow>,
+    sendReport?: (action: Generic.Opaque<"send_report">, text?: string) => Promise<void>,
     previewReply: (body: string, reply_info: Generic.Opaque<"reply">) => Generic.Thread,
     sendReply: (body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>,
 };

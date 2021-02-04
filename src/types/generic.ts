@@ -263,7 +263,7 @@ export type Action = {
     data: Opaque<"report">,
 };
 
-export type DataEncodings = "reply" | "act" | "report" | "fetch_removed_path";
+export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path";
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 
 // a counter or a button with 2-3 states
@@ -297,10 +297,11 @@ export type ReportScreen = {
 
 export type ReportAction = {
     kind: "submit",
-    data: string,
+    data: Opaque<"send_report">,
 } | {
     kind: "textarea",
     char_limit: number,
+    data: Opaque<"send_report">,
 } | {
     kind: "link",
     url: string,
