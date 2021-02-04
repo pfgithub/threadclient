@@ -1344,11 +1344,13 @@ function hListing(client: ThreadClient, listing: Generic.HList, frame: HTMLDivEl
     return hsc;
 }
 
-function widgetRender(client: ThreadClient, widget: Generic.Widget, frame: HTMLDivElement): HideShowCleanup<undefined> {
+function widgetRender(client: ThreadClient, widget: Generic.Widget, container: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
-    frame.clss("widget");
-    txt(widget.title).adto(el("div").adto(frame).clss("widget-header"));
+    container.clss("widget");
+    txt(widget.title).adto(el("div").adto(container).clss("widget-header"));
+
+    const frame = el("div").clss("widget-content").adto(container);
     
     if(widget.actions_top) {
         const actionstop = el("div").clss("widget-actions-top").adto(frame);

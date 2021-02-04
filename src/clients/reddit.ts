@@ -498,7 +498,9 @@ function customIDCardWidget(t5: Reddit.T5, subreddit: string): Generic.ContentNo
             kind: "community-details",
             description: t5.data.public_description,
         },
-        actions_bottom: [createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false)],
+        actions_bottom: [
+            createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false),
+        ],
     };
 }
 function oldSidebarWidget(t5: Reddit.T5, subreddit: string, {collapsed}: {collapsed: boolean}): Generic.ContentNode {

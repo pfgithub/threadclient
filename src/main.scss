@@ -174,9 +174,20 @@ a {
         margin-left: 0;
         margin-right: 0;
     }
-    .post-content-title {
+    .post-content-title,
+    .widget-header {
         font-size: small;
     }
+}
+
+.widget-header {
+    font-weight: bold;
+    opacity: 0.5;
+    margin-bottom: 10px;
+}
+
+.widget-content {
+    font-size: small;
 }
 
 .replies > .comment:nth-child(1) {
@@ -277,10 +288,11 @@ button:disabled {
     grid-template-rows: [content] max-content [preview] max-content [replies] max-content [end];
     padding-left: 10px;
     & > .post-voting {
+        width: 60px;
         grid-column: voting;
         grid-row: content;
         & > .counter {
-            margin-right: 20px;
+            margin-right: 10px;
             justify-content: center;
             height: 100%;
         }
