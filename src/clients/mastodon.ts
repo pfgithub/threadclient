@@ -1,6 +1,6 @@
 import { escapeHTML, encodeQuery } from "../app";
 import * as Generic from "../types/generic";
-import {ThreadClient} from "./base";
+import {encoderGenerator, ThreadClient} from "./base";
 
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
@@ -289,8 +289,8 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                 you: post.favourited ? "increment" : undefined,
 
                 actions: {
-                    increment: encodeAction({kind: "favourite", direction: "", status: post.id, host}),
-                    reset: encodeAction({kind: "favourite", direction: "un", status: post.id, host}),
+                    increment: action_encoder.encode({kind: "favourite", direction: "", status: post.id, host}),
+                    reset: action_encoder.encode({kind: "favourite", direction: "un", status: post.id, host}),
                 },
             },
         ],
@@ -370,12 +370,9 @@ type Action =
     | {kind: "favourite", direction: "" | "un", status: string, host: string}
     | {kind: "follow", direction: "" | "un", account_id: string, host: string}
 ;
-function encodeAction(action: Action): string {
-    return JSON.stringify(action);
-}
-function decodeAction(action: string): Action {
-    return JSON.parse(action);
-}
+
+const action_encoder = encoderGenerator<Action, "act">("act");
+
 const isLoggedIn = (host: string) => {
     return !!lsitems.token.get(host);
 };
@@ -562,8 +559,8 @@ export const client: ThreadClient = {
                     you: relation?.following ?? false ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
 
                     actions: {
-                        increment: encodeAction({kind: "follow", account_id: account_info.id, host, direction: ""}),
-                        reset: encodeAction({kind: "follow", account_id: account_info.id, host, direction: "un"}),
+                        increment: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: ""}),
+                        reset: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: "un"}),
                     },
                 }],
                 link: "/"+host+"/accounts/"+acc_id,
@@ -572,15 +569,15 @@ export const client: ThreadClient = {
         }
         return error404();
     },
-    async act(action_raw: string): Promise<void> {
-        const action = decodeAction(action_raw);
+    async act(action_raw): Promise<void> {
+        const action = action_encoder.decode(action_raw);
         if(action.kind === "favourite") {
             await performBasicPostAction(action.host, "api/v1/statuses/"+action.status+"/"+action.direction+"favourite");
         }else if(action.kind === "follow") {
             await performBasicPostAction(action.host, "api/v1/accounts/"+action.account_id+"/"+action.direction+"follow");
         }else assertUnreachable(action);
     },
-    previewReply(reply_text: string, reply_info: string): Generic.Thread {
+    previewReply(reply_text: string, reply_info): Generic.Thread {
         return genericHeader();
     },
     sendReply(reply_text, reply_info) {

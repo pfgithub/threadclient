@@ -889,7 +889,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
                 fetch_btn.disabled = true;
                 if(!client.fetchRemoved) throw new Error("client provided a removal fetch path but has no fetchRemoved");
                 try {
-                    new_body = await client.fetchRemoved(body.fetch_path);
+                    new_body = await client.fetchRemoved(body.fetch_path!);
                 }catch(e) {
                     errored = true;
                     console.log(e);
@@ -1246,6 +1246,8 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         nvmbtn.onev("click", () => {
             setv("none");
         });
+    }else if(action.kind === "report") {
+        linkLikeButton().atxt("Report").adto(content_buttons_line).onev("click", () => alert("TODO report"));
     }else assertNever(action);
     return hideshow();
 }
@@ -1292,7 +1294,9 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         state.your_vote = vote;
         state.loading = true;
         update();
-        client.act(action.actions[vote ?? "reset"] ?? "error").then(() => {
+        const action_v = action.actions[vote ?? "reset"];
+        if(action_v == null) throw new Error("downvote label available but downvote action not provided");
+        client.act(action_v).then(() => {
             state.your_vote = vote;
             state.loading = false;
             update();
@@ -1345,13 +1349,13 @@ function hListing(client: ThreadClient, listing: Generic.HList, frame: HTMLDivEl
     return hsc;
 }
 
-function widgetRender(client: ThreadClient, widget: Generic.Widget, container: HTMLDivElement): HideShowCleanup<undefined> {
+function widgetRender(client: ThreadClient, widget: Generic.Widget, outer_el: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
-    container.clss("widget");
-    txt(widget.title).adto(el("div").adto(container).clss("widget-header"));
+    outer_el.clss("widget");
+    txt(widget.title).adto(el("div").adto(outer_el).clss("widget-header"));
 
-    const frame = el("div").clss("widget-content").adto(container);
+    const frame = el("div").clss("widget-content").adto(outer_el);
     
     if(widget.actions_top) {
         const actionstop = el("div").clss("widget-actions-top").adto(frame);

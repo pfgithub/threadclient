@@ -21,6 +21,66 @@ export type WikiPage = {
     },
 };
 
+// almost the same as the rules in the rules widget but different capitalization
+export type Rule = {
+    kind: "link" | "comment" | "all" | "unsupported",
+    description: Markdown, // optional, might be empty
+    description_html?: HTML,
+    short_name: string, // send this one as the rule_reason
+    violation_reason: string, // show this one when submitting a report
+    created_utc: Date.Sec,
+    priority: number,
+};
+
+// return of /api/sitewide_rules
+export type SitewideRules = {
+    sitewide_rules: SitewideRulesFlow,
+};
+
+// return of /r/…/about/rules
+// note: also check /r/…/about to see if free_form reports are enabled
+export type Rules = {
+    rules: Rule[],
+    site_rules_flow: SitewideRulesFlow,
+
+    // depricated
+    // site_rules: string[],
+};
+
+export type SitewideRulesFlow = FlowRule[];
+
+export type FlowRule = {
+    reasonText: string, // rule id, to be sent in the api request `site_reason`
+
+    reasonTextToShow: string,
+} & (
+    {
+        __nothing?: undefined,
+    } | {
+        nextStepHeader: string,
+        nextStepReasons: FlowRule[],
+    } | {
+        fileComplaint: true,
+
+        complaintPrompt: string,
+        complaintButtonText: string,
+        complaintUrl: string, // NOTE: replace urldecoded `(thing)` with thing id, then re-urlencode the url (or don't, it doesn't seem to matter)
+        complaintPageTitle: string,
+    } | {
+        canWriteNotes: true,
+        notesInputTitle: string,
+        isAbuseOfReportButton?: true,
+    } | {
+        // when reporting a specific post or comment, automatically fill in the username
+        // and don't show the prompt to pick a username
+        canSpecifyUsernames: true,
+        usernamesInputTitle: string,
+        
+        requestCrisisSupport?: boolean,
+        oneUsername?: boolean,
+    }
+);
+
 export type MenuItem = {
     text: string,
     children: MenuItem[], 

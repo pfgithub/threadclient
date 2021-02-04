@@ -9,7 +9,7 @@ if(hot) {
     hot.accept("./src/app.ts", () => {
         showAlert("Page is out of date, needs reload!");
     });
-    hot.accept(["./src/clients/reddit.ts", "./src/clients/mastodon.ts", "./src/editors/reddit-richtext.ts"], () => {
+    hot.accept(["./src/clients/base.ts", "./src/clients/reddit.ts", "./src/clients/mastodon.ts", "./src/editors/reddit-richtext.ts"], () => {
         console.log("hot reloaded reddit");
         // if it were possible, retransform the input json and rerender the page
     });

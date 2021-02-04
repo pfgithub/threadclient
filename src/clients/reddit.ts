@@ -1,6 +1,6 @@
 import * as Reddit from "../types/api/reddit";
 import * as Generic from "../types/generic";
-import {ThreadClient} from "./base";
+import {encoderGenerator, ThreadClient} from "./base";
 import { encodeQuery, encodeURL } from "../app";
 
 const client_id = "biw1k0YZmDUrjg";
@@ -46,14 +46,10 @@ type Action =
     | {kind: "save", fullname: string, direction: "" | "un"}
     | {kind: "subscribe", subreddit: string, direction: "sub" | "unsub"};
 
-function encodeVoteAction(query: Reddit.VoteBody): string {return encodeAction({kind: "vote", query})}
-function encodeDeleteAction(fullname: string): string {return encodeAction({kind: "delete", fullname})}
-function encodeAction(action: Action): string {
-    return JSON.stringify(action);
-}
-function decodeAction(act: string): Action  {
-    return JSON.parse(act);
-}
+function encodeVoteAction(query: Reddit.VoteBody): Generic.Opaque<"act"> {return action.encode({kind: "vote", query})}
+function encodeDeleteAction(fullname: string): Generic.Opaque<"act"> {return action.encode({kind: "delete", fullname})}
+
+const action = encoderGenerator<Action, "act">("act");
 
 type RichtextFormattingOptions = {
     media_metadata: Reddit.MediaMetadata,
@@ -364,8 +360,8 @@ function createSubscribeAction(subreddit: string, subscribers: number, you_subbe
         you: you_subbed ? "increment" : undefined,
 
         actions: {
-            increment: encodeAction({kind: "subscribe", subreddit, direction: "sub"}),
-            reset: encodeAction({kind: "subscribe", subreddit, direction: "unsub"}),
+            increment: action.encode({kind: "subscribe", subreddit, direction: "sub"}),
+            reset: action.encode({kind: "subscribe", subreddit, direction: "unsub"}),
         },
     };
 }
@@ -381,7 +377,7 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
             widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! Error "+e.toString(), JSON.stringify(data))]}},
         };
     }
-}
+};
 const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string): Generic.ContentNode => {
     if(data.kind === "moderators") return {
         kind: "widget",
@@ -555,7 +551,7 @@ function sidebarFromWidgets(subinfo: SubInfo, mode_raw: "both" | "header" | "sid
 
 type SubInfo = {
     subreddit: string,
-    widgets?: Reddit.ApiWidgets
+    widgets?: Reddit.ApiWidgets,
     sub_t5?: Reddit.T5,
 };
 type PageExtra = {subinfo?: SubInfo};
@@ -746,11 +742,14 @@ const saveButton = (fullname: string, saved: boolean): Generic.Action => {
         count_excl_you: "none",
         you: saved ? "increment" : undefined,
         actions: {
-            increment: encodeAction({kind: "save", fullname,  direction: ""}),
-            reset: encodeAction({kind: "save", fullname, direction: "un"}),
+            increment: action.encode({kind: "save", fullname,  direction: ""}),
+            reset: action.encode({kind: "save", fullname, direction: "un"}),
         },
     };
 };
+
+const fetch_path = encoderGenerator<{path: string}, "fetch_removed_path">("fetch_removed_path");
+
 const as = <T>(a: T): T => a;
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
@@ -777,7 +776,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             kind: "thread",
             body: is_deleted != null
                 ? {kind: "removed", by: is_deleted,
-                    fetch_path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx,
+                    fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx}),
                     body: body_content,
                 } : body_content,
             display_mode: {body: "visible", comments: "visible"},
@@ -803,7 +802,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             actions: [{
                 kind: "reply",
                 text: "Reply",
-                reply_info: encodeReplyInfo({parent_id: listing.name}),
+                reply_info: reply_encoder.encode({parent_id: listing.name}),
             }, {
                 kind: "link",
                 text: "Permalink",
@@ -922,7 +921,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             ],
             body: is_deleted != null
                 ? {kind: "removed", by: is_deleted,
-                    fetch_path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx,
+                    fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx}),
                     body: body_content,
                 }
                 : body_content
@@ -968,7 +967,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             actions: [options.show_post_reply_button ?? false ? {
                 kind: "reply",
                 text: "Reply",
-                reply_info: encodeReplyInfo({parent_id: listing.name}),
+                reply_info: reply_encoder.encode({parent_id: listing.name}),
             } : {
                 kind: "link",
                 url: listing.permalink,
@@ -1099,9 +1098,9 @@ export const client: ThreadClient = {
                 ,
             ]);
 
-            return pageFromListing(path, listing, {...is_subreddit ? {subinfo: {
+            return pageFromListing(path, listing, {...is_subreddit != null ? {subinfo: {
                 widgets,
-                subreddit: is_subreddit!,
+                subreddit: is_subreddit,
                 sub_t5,
             }} : null});
         }catch(err_raw) {
@@ -1174,9 +1173,10 @@ export const client: ThreadClient = {
 
         localStorage.setItem("reddit-secret", JSON.stringify(res_data));
     },
-    async fetchRemoved(frmlink: string): Promise<Generic.Body> {
+    async fetchRemoved(frmlink_raw: Generic.Opaque<"fetch_removed_path">): Promise<Generic.Body> {
+        const frmlink = fetch_path.decode(frmlink_raw);
         type PushshiftResult = {data: {selftext?: string, body?: string}[]};
-        const [status, restext] = await fetch(frmlink).then(async (v) => {
+        const [status, restext] = await fetch(frmlink.path).then(async (v) => {
             return [v.status, await v.text()] as const;
         });
         const res = JSON.parse(restext.split("&lt;").join("<").split("&gt;").join(">").split("&amp;").join("&")) as PushshiftResult;
@@ -1214,8 +1214,8 @@ export const client: ThreadClient = {
         }
         throw new Error("no selftext or body");
     },
-    async act(action: string): Promise<void> {
-        const act = decodeAction(action);
+    async act(action_raw: Generic.Opaque<"act">): Promise<void> {
+        const act = action.decode(action_raw);
         if(act.kind === "vote") {
             type VoteResult = {__nothing: unknown};
             const res = await redditRequest<VoteResult>("/api/vote", {
@@ -1253,9 +1253,9 @@ export const client: ThreadClient = {
             console.log(res);
         }else assertUnreachable(act);
     },
-    previewReply(md: string, data: string): Generic.Thread {
+    previewReply(md: string, data: Generic.Opaque<"reply">): Generic.Thread {
         //eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const reply_info = decodeReplyInfo(data);
+        const reply_info = reply_encoder.decode(data);
         return {
             kind: "thread",
             body: {kind: "text", content: md, markdown_format: "reddit"},
@@ -1290,8 +1290,8 @@ export const client: ThreadClient = {
             default_collapsed: false,
         };
     },
-    async sendReply(md: string, data_raw: string): Promise<Generic.Node> {
-        const reply_info = decodeReplyInfo(data_raw);
+    async sendReply(md: string, data_raw: Generic.Opaque<"reply">): Promise<Generic.Node> {
+        const reply_info = reply_encoder.decode(data_raw);
         const paragraphs: Reddit.Richtext.Paragraph[] = [];
         // huh, if you pass a format 1<<2 it puts tildes around the range and then removes the format item, weird
         for(let i = 0; i <= 7; i++) {
@@ -1375,7 +1375,7 @@ async function redditRequest<ResponseType>(path: string, opts: RequestOpts<Respo
         };
         const cache_text = JSON.stringify([full_url, fetchopts]);
         const prev_cache = request_cache.get(cache_text);
-        if(prev_cache && opts.cache) return prev_cache as ResponseType;
+        if(prev_cache != null && (opts.cache ?? false)) return prev_cache as ResponseType;
         const [status, res] = await fetch(full_url, fetchopts).then(async (v) => {
             return [v.status, await v.json() as ResponseType] as const;
         });
@@ -1384,7 +1384,7 @@ async function redditRequest<ResponseType>(path: string, opts: RequestOpts<Respo
             console.log(status, res);
             throw new Error("got status "+status);
         }
-        if(opts.cache) request_cache.set(cache_text, res);
+        if(opts.cache ?? false) request_cache.set(cache_text, res);
         return res;
     }catch(e) {
         console.log("Got error", e);
@@ -1395,12 +1395,7 @@ async function redditRequest<ResponseType>(path: string, opts: RequestOpts<Respo
 
 // POST /api/comment {api_type: json, return_rtjson: true, richtext_json: JSON, text: string, thing_id: parent_thing_id}
 type ReplyInfo = {parent_id: string};
-function encodeReplyInfo(rply_info: ReplyInfo): string {
-    return JSON.stringify(rply_info);
-}
-function decodeReplyInfo(rply_info: string): ReplyInfo {
-    return JSON.parse(rply_info);
-}
+const reply_encoder = encoderGenerator<ReplyInfo, "reply">("reply");
 
 function assertUnreachable(v: never): never {
     console.log(v);

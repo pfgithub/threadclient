@@ -123,7 +123,7 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "removed",
     by: "author" | "moderator" | "anti_evil_ops" | "error",
-    fetch_path: string,
+    fetch_path?: Opaque<"fetch_removed_path">,
     body: Body,
 } | {
     kind: "crosspost",
@@ -254,11 +254,18 @@ export type Action = {
 } | {
     kind: "reply",
     text: ActionLabel,
-    reply_info: string,
+    reply_info: Opaque<"reply">,
 } | CounterAction | {
     kind: "delete",
-    data: string,
+    data: Opaque<"act">,
+} | {
+    kind: "report",
+    data: Opaque<"report">,
 };
+
+export type DataEncodings = "reply" | "act" | "report" | "fetch_removed_path";
+export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
+
 // a counter or a button with 2-3 states
 export type CounterAction = {
     kind: "counter",
@@ -273,10 +280,31 @@ export type CounterAction = {
     you: "increment" | "decrement" | undefined,
 
     actions: {
-        increment: string,
-        reset: string,
-        decrement?: string,
+        increment: Opaque<"act">,
+        reset: Opaque<"act">,
+        decrement?: Opaque<"act">,
     } | {error: string},
 
     percent?: number,
+};
+
+export type ReportFlow = ReportScreen[];
+export type ReportScreen = {
+    title: string,
+    description?: Body,
+    report: ReportAction,
+};
+
+export type ReportAction = {
+    kind: "submit",
+    data: string,
+} | {
+    kind: "textarea",
+    char_limit: number,
+} | {
+    kind: "link",
+    url: string,
+} | {
+    kind: "more",
+    screens: ReportScreen[],
 };
