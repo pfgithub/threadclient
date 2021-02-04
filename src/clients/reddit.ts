@@ -785,6 +785,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             layout: "reddit-comment",
             info: {
                 time: listing.created_utc * 1000,
+                edited: listing.edited === false ? false : listing.edited * 1000,
                 author: {
                     name: listing.author,
                     link: "/u/"+listing.author,
@@ -951,6 +952,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             layout: "reddit-post",
             info: {
                 time: listing.created_utc * 1000,
+                edited: listing.edited === false ? false : listing.edited * 1000,
                 author: {
                     name: listing.author,
                     link: "/u/"+listing.author,
@@ -1262,6 +1264,7 @@ export const client: ThreadClient = {
             layout: "reddit-comment",
             info: {
                 time: Date.now(),
+                edited: false,
                 author: {
                     name: "u/TODO You",
                     link: "/u/TODO You",

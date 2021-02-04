@@ -233,7 +233,9 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
     return {thumb: media.preview_url, w: media.meta?.small.width, h: media.meta?.small.height, body: resbody};
 };
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], include_parentlink?: boolean, reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
-    const info: Generic.Info = {time: new Date(post.created_at).getTime(),
+    const info: Generic.Info = {
+        time: new Date(post.created_at).getTime(),
+        edited: false,
         author: {
             name: post.account.display_name + " (@"+post.account.acct+")",
             link: "/"+host+"/accounts/"+post.account.id+"/@"+post.account.acct,

@@ -170,6 +170,7 @@ export type Thread = {
 };
 export type Info = {
     time: number,
+    edited: false | number,
     author: {
         name: string, link: string, flair?: Flair[],
         pfp?: {

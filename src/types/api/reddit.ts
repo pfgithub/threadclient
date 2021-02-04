@@ -354,6 +354,7 @@ export type PostOrComment = {
     media_metadata?: MediaMetadata,
 
     saved: boolean,
+    edited: false | number,
 };
 
 export type BaseMediaMeta = {

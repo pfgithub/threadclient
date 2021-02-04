@@ -482,9 +482,10 @@ function timeAgoText(start_ms: number): [string, number] {
 
 // NOTE that this leaks memory as it holds onto nodes forever and updates them even
 // when they are not being displayed. This can be fixed by uil in the future.
-function timeAgo(start_ms: number): HideShowCleanup<Node> {
-    const tanode = txt("…");
-    const hsc = hideshow(tanode);
+function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
+    const span = el("span").attr({title: "" + new Date(start_ms)});
+    const hsc = hideshow(span);
+    const tanode = txt("…").adto(span);
     let timeout: number | undefined;
     const update = () => {
         timeout = undefined;
@@ -1546,13 +1547,16 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     let reserved_points_area: null | Node = null;
 
     if(listing.layout === "reddit-post" && listing.info) {
-        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc)).attr({title: "" + new Date(listing.info.time)});
-        content_subminfo_line.adch(submission_time).atxt(" by ");
-        content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.name));
+        content_subminfo_line
+            .adch(timeAgo(listing.info.time).defer(hsc))
+            .atxt(" by ")
+            .adch(userLink(client.id, listing.info.author.link, listing.info.author.name))
+        ;
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
             content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
         }
+        if(listing.info.edited !== false) content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
         if(listing.info.pinned) {
             content_subminfo_line.atxt(", Pinned");
         }
@@ -1569,8 +1573,11 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             pfpimg.adto(content_voting_area);
         }
         reserved_points_area = document.createComment("").adto(content_subminfo_line);
-        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc)).attr({title: "" + new Date(listing.info.time)});
+        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc));
         content_subminfo_line.atxt(" ").adch(submission_time);
+        if(listing.info.edited !== false) {
+            content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
+        }
         if(listing.info.pinned) {
             content_subminfo_line.atxt(", Pinned");
         }
