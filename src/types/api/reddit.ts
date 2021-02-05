@@ -392,49 +392,6 @@ export type MoreChildren = {
     },
 };
 
-export type PostBase = {
-    name: string, // post id
-
-    // use to fetch replies I guess
-    permalink: string,
-};
-
-export type PostOrComment = {
-    all_awardings: Award[],
-
-    likes?: true | false,
-
-    score_hidden: boolean,
-    score: number,
-
-    upvote_ratio?: number, // on posts
-    controversiality?: 0 | 1, // on comments
-
-    archived?: boolean,
-
-    distinguished?: "admin",
-
-    author_flair_type: "text" | "richtext" | "unsupported",
-    author_flair_text: string,
-    author_flair_richtext?: RichtextFlair,
-    author_flair_background_color: string,
-    author_flair_text_color: "light" | "dark",
-
-    media_metadata?: MediaMetadata,
-
-    saved: boolean,
-    edited: false | number,
-
-    subreddit: string,
-    subreddit_name_prefixed: string, // post subreddit (u/ or r/)
-    subreddit_id: string, // fullname
-    subreddit_type: SubredditType,
-
-    mod_reports: ModReport[],
-    mod_reports_dismissed: ModReport[],
-    user_reports: UserReport[],
-};
-
 type ModReport = [text: string, reporter: string];
 type UserReport = [text: string, count: number];
 
@@ -478,7 +435,52 @@ export type Media = BaseMedia & ({
 });
 export type MediaMetadata = {[key: string]: Media};
 
-export type PostSubmission = PostBase & PostOrComment & {
+export type SimplePostOrComment = {
+    name: string, // post id
+    
+    likes: true | false | null,
+
+    score: number, // uuh why do inbox entries have score but not score_hidden
+
+    distinguished?: "admin" | "unsupported",
+
+    created_utc: Date.Sec, // there's also created but that's not utc
+};
+
+export type PostOrComment = SimplePostOrComment & {
+    permalink: string,
+
+    all_awardings: Award[],
+
+    score_hidden: boolean,
+
+    upvote_ratio?: number, // on posts
+    controversiality?: 0 | 1, // on comments
+
+    archived?: boolean,
+
+    author_flair_type: "text" | "richtext" | "unsupported",
+    author_flair_text: string,
+    author_flair_richtext?: RichtextFlair,
+    author_flair_background_color: string,
+    author_flair_text_color: "light" | "dark",
+
+    media_metadata?: MediaMetadata,
+
+    saved: boolean,
+    edited: false | number,
+
+    subreddit: string,
+    subreddit_name_prefixed: string, // post subreddit (u/ or r/)
+    subreddit_id: string, // fullname
+    subreddit_type: SubredditType,
+
+    mod_reports: ModReport[],
+    mod_reports_dismissed: ModReport[],
+    user_reports: UserReport[],
+};
+
+export type PostSubmission = PostOrComment & {
     title: string,
     
     stickied: boolean,
@@ -511,7 +513,6 @@ export type PostSubmission = PostBase & PostOrComment & {
     },
 
     author: string,
-    created_utc: number,
     
     link_flair_type: "text" | "richtext" | "unsupported",
     link_flair_text: string,
@@ -549,16 +550,18 @@ export type PostSubmission = PostBase & PostOrComment & {
     removed_by_category: "moderator" | "deleted" | "anti_evil_ops" | "unsupported" | null,
 };
 
-export type PostComment = PostBase & PostOrComment & {
+export type SimpleComment = {
+    author: string,
+    author_fullname: string,
+};
+
+export type PostComment = PostOrComment & SimpleComment & {
     replies?: Listing,
     parent_id: string,
 
-    author: string,
-    created_utc: number,
-
     author_flair_richtext: RichtextFlair,
 
-    is_submitter: boolean,
+    is_submitter: boolean, // is OP of post
 
     rtjson: Richtext.Document,
 
@@ -569,7 +572,18 @@ export type PostComment = PostBase & PostOrComment & {
     // collapsed_because_crowd_control: ?,
 };
 
-export type PostMore = PostBase & {
+export type InboxT1 = SimplePostOrComment & SimpleComment & {
+    num_comments: number,
+    new: boolean, // has been seen or not
+    type: "comment_reply" | "unsupported",
+    header: string,
+    was_comment: boolean,
+    context: string, // like permalink but ?context=3 also there is no permalink
+
+    link_title: string,
+};
+
+export type PostMore = {
     count: number,
     depth: number,
     id: string,
