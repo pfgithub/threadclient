@@ -75,6 +75,11 @@ reddit todo:
 -   [x] subscribe to subreddits (requires an api request to /r/…/about to determine if subbed) (also this will add support for subreddit banner images)
 -   [x] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle
 -   [x] post report button with rules from `/r/…/about/rules`
+-   [ ] mod tools including:
+    -   [ ] view post reports (using `post.mod_reports`, `post.mod_reports_dismissed`, `post.user_reports`)
+    -   [ ] remove posts + add removal reasons like new.reddit including the option to add stickied comment prefilled with a template using the markdown editor
+    -   [ ] mod messages
+    -   [ ] edit the subreddit sidebar new.reddit widgets and old.reddit sidebar (and clear the cache)
 -   [ ] post duplicates ("discussions in x other subs") (still todo: fetch duplicate count when loading a post)
 -   [ ] improve mobile sidebars (do a custom route for /r/:subreddit/sidebar and rather than showing the sidebar, have a link to there)
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
@@ -84,7 +89,6 @@ reddit todo:
 -   [ ] fix dark flairs being displayed on a dark background
 -   [ ] user profile pages, defaulting to the overview tab
 -   [ ] navigation buttons eg homepage link
--   [ ] mod tools and stuff + mod messages also + post removal tools that have options to use the subreddit things like comment distinguished stickied
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
 -   [ ] code block automatic syntax highlighting (using hljs automatic or something)

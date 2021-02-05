@@ -429,7 +429,14 @@ export type PostOrComment = {
     subreddit_name_prefixed: string, // post subreddit (u/ or r/)
     subreddit_id: string, // fullname
     subreddit_type: SubredditType,
+
+    mod_reports: ModReport[],
+    mod_reports_dismissed: ModReport[],
+    user_reports: UserReport[],
 };
+
+type ModReport = [text: string, reporter: string];
+type UserReport = [text: string, count: number];
 
 export type BaseMediaMeta = {
     x: number, y: number,
