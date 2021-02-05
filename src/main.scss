@@ -867,6 +867,10 @@ table {
     gap: 5px;
 
     overflow-x: auto;
+
+    @media only screen and (max-width: 600px) {
+        transform: var(--mobile-transform);
+    }
 }
 
 .navbar-path {

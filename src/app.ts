@@ -2337,6 +2337,19 @@ let navbar: HTMLDivElement; {
     nav_reload.onclick = () => alert("TODO refresh");
 
     navigate_event_handlers.push(url => nav_path.value = url.pathname + url.search);
+
+    let prev_scroll = window.scrollY;
+    let scroll_total = 0;
+    document.addEventListener("scroll", e => {
+        const this_scroll = window.scrollY;
+        scroll_total += this_scroll - prev_scroll;
+        prev_scroll = this_scroll;
+        if(scroll_total < -100) scroll_total = -100;
+        if(scroll_total > 100) scroll_total = 100;
+        console.log(scroll_total);
+        const navbar_h = scroll_total < 25 ? 0 : -(scroll_total - 25);
+        frame.style.setProperty("--mobile-transform", "translateY("+navbar_h+"px)");
+    });
 }
 
 history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);
