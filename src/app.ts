@@ -776,17 +776,22 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             container.adch(el("br"));
         } break;
         case "spoiler": {
-            const spoilerspan = el("spoiler").clss("md-spoiler-text");
+            const spoilerspan = el("spoiler").clss("md-spoiler-text").adto(container);
             const subspan = el("span").adto(spoilerspan).clss("md-spoiler-content");
             for(const child of rts.children) {
                 renderRichtextSpan(client, child, subspan).defer(hsc);
             }
             spoilerspan.attr({title: "Click to reveal spoiler"});
             subspan.style.opacity = "0";
-            spoilerspan.onev("click", () => {
+            let open = false;
+            spoilerspan.onev("click", (e) => {
+                if(open) return;
+                open = true;
+                e.preventDefault();
+                e.stopPropagation();
                 subspan.style.opacity = "1";
                 spoilerspan.attr({title: ""});
-            });
+            }, {capture: true});
         } break;
         default: assertNever(rts);
     }
