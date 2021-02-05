@@ -1,7 +1,48 @@
 Demo:
 
 -   Reddit: https://thread.pfg.pw/reddit
--   Mastodon (wip) `https://thread.pfg.pw/mastodon/:your_instance/timelines/public`
+-   Mastodon (wip) `https://thread.pfg.pw/mastodon/`your.instance`/timelines/public`
+
+## new features reddit doesn't have
+
+-   gifs in comments are collapsed by default
+-   "threaded replies" to decrease indentation ([some examples in this thread](thread.pfg.pw/reddit/r/woooosh/comments/lcd26e/these_people_always_misunderstand_everything/))
+-   ability to preview links in comments like RES adds
+-   ability to preview comments written in markdown mode before posting them
+-   all external links open in a new tab by default so you never have to worry if you should click or ctrl click a link
+-   usernames are different colors to make it easier to notice repeat users (new.reddit has profile pictures for this)
+
+## why this instead of new.reddit?
+
+-   new.reddit is really slow and buggy. everything about the ui feels sluggish and bad.
+    -   loading videos causes them to play like 3 times before they can be paused
+    -   collapsing any comment causes the entire page to rerender in react, which is quite slow
+    -   collapsing comments doesn't interact with the page scroll properly. only top level comments update the scroll when collapsed.
+    -   clicking the expand button on a post image causes my cpu to spike for a second
+    -   moving my mouse around the page causes my cpu to spike
+-   when you get a message it shows up in the icons on all the tabs, but if you view the message it only goes away on the current tab (notifications are TODO in threadreader)
+
+## why this instead of old.reddit?
+
+-   old.reddit is missing many features including
+    -   the "3 discussions in other communities" feature (wip in threadreader) ([userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this in old.reddit)
+    -   the ability to collapse a comment from anywhere in a comment (I have a [userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this)
+    -   richtext comments (wip in threadreader)
+    -   sidebar widgets (only supported when logged in in threadreader due to reddit api restrictions)
+    -   removal reasons (TODO in threadreader)
+    -   adding flairs to posts before posting and submission guidelines (TODO in threadreader)
+-   old.reddit takes a while to go back/forwards in the browser, so you have to use tabs instead
+-   threadreader has dark mode support
+
+## why this instead of m.reddit
+
+-   m.reddit was turned from a mostly-working mobile site into an unusable ad to get the reddit app in 2019
+-   threadreader already has better mobile support than both new.reddit and old.reddit
+
+## why this instead of mastodon
+
+-   it has a tree view which is more intuitive to me
+-   it doesn't constantly link out to other sites with completely different ui and a non-functioning follow button
 
 ## building
 
@@ -42,6 +83,7 @@ all todo:
 -   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 -   [ ] simplify css to have less `>` selectors and more classes added by js
+-   [ ] choose how to sort comments
 -   [ ] fix youtube embeds causing horizontal scrolling on mobile
 -   [ ] improve appearence of very indented comments on mobile
 -   [ ] make the buttons more seperate on mobile - possibly remove all links except for a … link and an upvote link and make the whole post a link like apollo
@@ -81,12 +123,15 @@ reddit todo:
     -   [ ] mod messages
     -   [ ] edit the subreddit sidebar new.reddit widgets and old.reddit sidebar (and clear the cache)
 -   [ ] post duplicates ("discussions in x other subs") (still todo: fetch duplicate count when loading a post)
+-   [ ] fix load more buttons when there are >100 things to load. right now it seems to load in the wrong order.
 -   [ ] improve mobile sidebars (do a custom route for /r/:subreddit/sidebar and rather than showing the sidebar, have a link to there)
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
 -   do not pass through cors, so ban messages cannot be shown.
 -   [ ] richtext replies
 -   [ ] posts + post preview (+ /api/v1/:subreddit/post_requirements)
 -   [ ] fix dark flairs being displayed on a dark background
+-   [ ] header images
+-   [ ] get more information about specific awards by clicking them
 -   [ ] user profile pages, defaulting to the overview tab
 -   [ ] navigation buttons eg homepage link
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
