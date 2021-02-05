@@ -170,6 +170,37 @@ export type Widget = {
         type: "text" | "richtext" | "unsupported",
     }},
 } | {
+    kind: "button",
+    shortName: string,
+    description: Markdown,
+    descriptionHtml: HTML,
+    buttons: ({
+        kind: "text",
+        text: string,
+        url: string,
+
+        color?: string,
+        textColor?: string,
+        fillColor?: string,
+    } | {
+        kind: "unsupported",
+    })[],
+} | {
+    kind: "custom",
+    // display this in a shadow dom and use a html renderer with no class modifications
+    // or just display it in an iframe srcdoc like new.reddit does. that seems easier.
+    imageData: {width: number, height: number, name: string, url: string}[],
+    css: string, // replace %%name%% with url() imagedata.url
+
+    text: Markdown,
+    textHtml: HTML,
+
+    stylesheetUrl: string, // pre-replaced css. use this instead of css, why not
+
+    height: number,
+
+    shortName: string,
+} | {
     kind: "unsupported",
 });
 

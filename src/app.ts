@@ -1478,8 +1478,10 @@ function hListing(client: ThreadClient, listing: Generic.HList, frame: HTMLDivEl
     return hsc;
 }
 
-function widgetRender(client: ThreadClient, widget: Generic.Widget, outer_el: HTMLDivElement): HideShowCleanup<undefined> {
+function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
+
+    const outer_el = el("div").adto(outest_el);
 
     outer_el.clss("widget");
     txt(widget.title).adto(el("div").adto(outer_el).clss("widget-header"));
@@ -1538,6 +1540,11 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outer_el: HT
     }else if(content.kind === "body") {
         const container = el("div").adto(frame);
         renderBody(client, content.body, {autoplay: false}, container).defer(hsc);
+    }else if(content.kind === "iframe") {
+        const alt_frame = el("div");
+        outest_el.replaceChild(alt_frame, outer_el);
+        outest_el.clss("widget", "widget-iframe");
+        el("iframe").adto(alt_frame).attr({height: content.height as unknown as `${number}px`, srcdoc: content.srcdoc});
     }else assertNever(content);
 
     if(widget.actions_bottom) {

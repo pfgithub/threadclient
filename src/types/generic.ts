@@ -226,6 +226,10 @@ export type Widget = {
     } | {
         kind: "body",
         body: Body,
+    } | {
+        kind: "iframe",
+        srcdoc: string,
+        height: string,
     },
     raw_value: unknown,
 };

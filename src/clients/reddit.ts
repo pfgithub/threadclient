@@ -477,6 +477,22 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
                 click: {kind: "link", url: "/r/"+subreddit+"/?f=flair_name:\""+encodeURIComponent(val.text)+"\""}
             };
         })}
+    }; else if(data.kind === "custom") return {
+        kind: "widget",
+        title: data.shortName,
+        raw_value: data,
+        widget_content: {kind: "iframe", height: "" + data.height, srcdoc: `
+            <head>
+                <link rel="stylesheet" href="${data.stylesheetUrl}">
+                <base target="_blank">
+            </head>
+            <body>${data.textHtml}</body>
+        `},
+    }; else if(data.kind === "button") return {
+        kind: "widget",
+        title: "Error!",
+        raw_value: data,
+        widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("TODO button widget", JSON.stringify(data))]}},
     };
     expectUnsupported(data.kind);
     return {

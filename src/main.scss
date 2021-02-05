@@ -978,3 +978,11 @@ li.richtext-render-node > p:only-child {
 summary {
     cursor: pointer;
 }
+
+.widget.widget-iframe {
+    padding: 0;
+}
+.widget-iframe iframe {
+    width: 312px;
+    border-radius: 10px;
+}
