@@ -311,3 +311,7 @@ export type ReportAction = {
     kind: "more",
     screens: ReportScreen[],
 };
+export type SentReport = {
+    title: string,
+    body: Body,
+};

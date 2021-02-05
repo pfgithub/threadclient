@@ -13,7 +13,7 @@ export type ThreadClient = {
     //v since this isn't uil, I don't have any easy way to update an entire post at once so that wouldn't be very useful
     act: (action: Generic.Opaque<"act">) => Promise<void>,
     fetchReportScreen?: (report: Generic.Opaque<"report">) => Promise<Generic.ReportFlow>,
-    sendReport?: (action: Generic.Opaque<"send_report">, text?: string) => Promise<void>,
+    sendReport?: (action: Generic.Opaque<"send_report">, text?: string) => Promise<Generic.SentReport>,
     previewReply: (body: string, reply_info: Generic.Opaque<"reply">) => Generic.Thread,
     sendReply: (body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>,
 };

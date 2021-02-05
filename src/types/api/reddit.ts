@@ -49,6 +49,11 @@ export type Rules = {
 
 export type SitewideRulesFlow = FlowRule[];
 
+export type ReportResponse = {
+    jquery: unknown, // says to hide the post in jquery
+    success: boolean,
+};
+
 export type FlowRule = {
     reasonText: string, // rule id, to be sent in the api request `site_reason`
 

@@ -1410,7 +1410,53 @@ export const client: ThreadClient = {
         }
 
         return result;
-    }
+    },
+    async sendReport(action, text): Promise<Generic.SentReport> {
+        const report = report_action_encoder.decode(action);
+        console.log(report, text);
+
+        if(report.text_max == null) {
+            if(text != null) throw new Error("never. got text in non-textual entry?");
+        }else{
+            if(text == null) throw new Error("never. missing text");
+            if(text.length > report.text_max) throw new Error("report text too long (max "+report.text_max+")");
+        }
+        if(report.reason.kind === "sub_other") {
+            if(text == null) throw new Error("never. missing text on sub_other");
+        }
+
+        const response = await redditRequest<Reddit.ReportResponse>("/api/report", {
+            method: "POST",
+            mode: "urlencoded",
+            body: {
+                sr_name: report.subreddit,
+                thing_id: report.fullname,
+                ...report.reason.kind === "sub"
+                    ? {rule_reason: report.reason.id}
+                    : report.reason.kind === "site"
+                    ? {site_reason: report.reason.id, custom_text: text == null ? undefined : text} // assuming this is right, can't test it
+                    : report.reason.kind === "sub_other"
+                    ? {reason: text!}
+                    : assertNever(report.reason)
+                ,
+            },
+        });
+        console.log("GOT Response:", response);
+        if(response.success !== true) {
+            // huh I tried sending a report "nope".repeat(100) and it said it was success but didn't actually send the report
+            console.log(response);
+            throw new Error("Got error response, check console");
+        }
+
+        return {
+            title: report.reason.kind === "sub_other" ? "Report Sent!" : report.reason.id,
+            body: text != null ? {kind: "text", content: text, markdown_format: "none"} : {kind: "none"},
+        };
+    },
+};
+const assertNever = (v: never): never => {
+    console.log("not never", v);
+    throw new Error("Expected never");
 };
 const siteRuleToReportScreen = (data: ReportInfo, site_rule: Reddit.FlowRule): Generic.ReportScreen => {
     let action: Generic.ReportAction;

@@ -1258,10 +1258,16 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         });
     }else if(action.kind === "report") {
         let report_container: HTMLDivElement | undefined;
-        const hsc = hideshow();
+        let hsc = hideshow();
 
         linkLikeButton().atxt("Report").adto(content_buttons_line).onev("click", () => {
             if(!report_container) report_container = renderReportScreen(client, action.data).defer(hsc).adto(content_buttons_line);
+            else {
+                hsc.cleanup();
+                hsc = hideshow();
+                report_container.remove();
+                report_container = undefined;
+            }
         });
 
         return hsc;
@@ -1269,7 +1275,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
     return hideshow();
 }
 
-function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportScreen, onreported: () => void): HideShowCleanup<HTMLElement> {
+function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportScreen, onreported: (sentr: Generic.SentReport) => void): HideShowCleanup<HTMLElement> {
     const outer_v = el("details").clss("report-item");
     const hsc = hideshow(outer_v);
 
@@ -1283,12 +1289,44 @@ function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportSc
     }
 
     switch(report_item.report.kind) {
-        case "submit": {
-            el("button").atxt("Send Report").adto(frame).onev("click", () => alert("TODO send report"));
-        } break;
-        case "textarea": {
-            el("textarea").adto(frame);
-            el("button").atxt("Send Report").adto(frame).onev("click", () => alert("TODO send report"));
+        case "submit": case "textarea": {
+            const textarea = report_item.report.kind === "textarea"
+                ? el("textarea").adto(el("div").adto(frame))//.attr({maxlength: "" + report_item.report.char_limit})
+                : undefined
+            ;
+            let state: "none" | "load" | {error: string} = "none";
+            const btn = el("button").adto(frame);
+            const btxt = txt("…").adto(btn);
+            const errorlist = el("div").adto(frame);
+
+            const update = () => {
+                if(state === "none") {
+                    btxt.nodeValue = "Send Report";
+                    btn.disabled = false;
+                }else if(state === "load") {
+                    btxt.nodeValue = "…";
+                    btn.disabled = true;
+                }else{
+                    btxt.nodeValue = "Retry";
+                    btn.disabled = false;
+                    errorlist.adch(el("div").clss("error").atxt("Error: "+state.error));
+                }
+            };
+            update();
+
+            const report_data = report_item.report.data;
+
+            btn.onev("click", () => {
+                state = "load";
+                update();
+                client.sendReport!(report_data, textarea?.value).then(res => {
+                    onreported(res);
+                }).catch(e => {
+                    console.log(e);
+                    state = {error: e.toString()};
+                    update();
+                });
+            });
         } break;
         case "link": {
             linkButton(client.id, report_item.report.url).atxt(report_item.report.text).adto(frame);
@@ -1318,11 +1356,20 @@ function renderReportScreen(client: ThreadClient, report_fetch_info: Generic.Opa
     const loader = loadingSpinner().adto(frame);
     client.fetchReportScreen(report_fetch_info).then(res => {
         loader.remove();
+        const report_item_hsc = hideshow();
+        const cleanup_child = hsc.addChild(report_item_hsc);
         for(const item of res) {
-            renderOneReportItem(client, item, () => {
+            renderOneReportItem(client, item, (sentr) => {
+                cleanup_child.cleanup();
                 frame.innerHTML = "";
                 frame.atxt("Report sent!");
-            }).defer(hsc).adto(frame);
+                console.log("Completed report", sentr);
+                const resdiv = el("div").clss("post").adto(frame);
+                resdiv.adch(el("div").atxt(sentr.title));
+                const body_cont = el("div").adto(resdiv);
+                renderBody(client, sentr.body, {autoplay: false}, body_cont).defer(hsc);
+                console.log(resdiv, frame, frame.childNodes);
+            }).defer(report_item_hsc).adto(frame);
         }
     }).catch(e => {
         console.log("error loading report screen", e);
@@ -2072,7 +2119,7 @@ export type HideShowCleanup<T> = {
     readonly visible: boolean,
     on: (ev: HSEvent, cb: () => void) => void,
     emit: (ev: HSEvent) => void,
-    addChild: (child: HideShowCleanup<unknown>) => void,
+    addChild: (child: HideShowCleanup<unknown>) => {cleanup: () => void},
     readonly associated_data: T,
     defer: (parent: HideShowCleanup<unknown>) => T,
 };
@@ -2101,7 +2148,7 @@ export function hideshow<T>(a_any?: T): HideShowCleanup<T> {
     };
 
     let exists = true;
-    const children: HideShowCleanup<unknown>[] = [];
+    const children = new Set<HideShowCleanup<unknown>>();
     const emit = (text: HSEvent) => {
         const event = events[text];
         if(!event) return;
@@ -2137,7 +2184,11 @@ export function hideshow<T>(a_any?: T): HideShowCleanup<T> {
         },
         emit,
         addChild(child) {
-            children.push(child);
+            children.add(child);
+            return {cleanup: () => {
+                child.cleanup();
+                children.delete(child);
+            }};
         },
         get associated_data() {
             return a;
