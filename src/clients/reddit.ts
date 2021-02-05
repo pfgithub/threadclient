@@ -727,7 +727,35 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
 };
 const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
     try {
-        return threadFromListingMayError(listing_raw, options, parent_permalink);
+        const res = threadFromListingMayError(listing_raw, options, parent_permalink);
+        if(listing_raw.kind === "t1" && 'link_title' in listing_raw.data) {
+            return {
+                kind: "thread",
+                title: {text: listing_raw.data.link_title},
+                info: {
+                    time: false,
+                    edited: false,
+                    in: {
+                        name: listing_raw.data.subreddit_name_prefixed,
+                        link: "/"+listing_raw.data.subreddit_name_prefixed,
+                    },
+                    author: {
+                        name: listing_raw.data.link_author,
+                        link: "/u/"+listing_raw.data.link_author,
+                    },
+                    pinned: false,
+                },
+                body: listing_raw.data.parent_id === listing_raw.data.link_id ? {kind: "none"} : {kind: "text", content: "…", markdown_format: "none"},
+                display_mode: {body: "visible", comments: "collapsed"},
+                link: listing_raw.data.link_permalink,
+                layout: "reddit-post",
+                default_collapsed: false,
+                actions: [{kind: "link", url: listing_raw.data.link_permalink, text: "Permalink"}],
+                raw_value: listing_raw,
+                replies: [res],
+            };
+        }
+        return res;
     }catch(e) {
         console.log(e);
         return {

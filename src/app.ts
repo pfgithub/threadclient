@@ -1687,9 +1687,12 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     let reserved_points_area: null | Node = null;
 
     if(listing.layout === "reddit-post" && listing.info) {
+        if(listing.info.time !== false) {
+            content_subminfo_line.adch(timeAgo(listing.info.time).defer(hsc));
+            content_subminfo_line.atxt(" ");
+        }
         content_subminfo_line
-            .adch(timeAgo(listing.info.time).defer(hsc))
-            .atxt(" by ")
+            .atxt("by ")
             .adch(userLink(client.id, listing.info.author.link, listing.info.author.name))
         ;
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
@@ -1713,8 +1716,10 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             pfpimg.adto(content_voting_area);
         }
         reserved_points_area = document.createComment("").adto(content_subminfo_line);
-        const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc));
-        content_subminfo_line.atxt(" ").adch(submission_time);
+        if(listing.info.time !== false) {
+            const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc));
+            content_subminfo_line.atxt(" ").adch(submission_time);
+        }
         if(listing.info.edited !== false) {
             content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
         }
@@ -1724,8 +1729,10 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         if(listing.info.reblogged_by) {
             content_subminfo_line.atxt(" ← Boosted by ")
                 .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.name))
-                .atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc))
             ;
+            if(listing.info.reblogged_by.time !== false) {
+                content_subminfo_line.atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc));
+            }
             if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author.pfp) {
                 frame.clss("spacefiller-pfp");
                 const pfpimg = el("div").clss("pfp", "pfp-reblog").styl({
@@ -1838,6 +1845,8 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             renderAction(client, action, content_buttons_line).defer(hsc);
         }
     }
+
+    if(content_voting_area.childNodes.length === 0) content_voting_area.remove();
 
     content_buttons_line.atxt(" ");
     listing.actions.length === 0 && linkButton(client.id, listing.link).atxt("View").adto(content_buttons_line);

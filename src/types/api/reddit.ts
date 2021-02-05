@@ -601,7 +601,15 @@ export type PostComment = PostOrComment & SimpleComment & {
     collapsed: boolean,
     // collapsed_reason: ?,
     // collapsed_because_crowd_control: ?,
-};
+} & ({
+    link_id: string,
+    link_author: string,
+    link_permalink: string,
+    link_title: string,
+    link_url: string,
+} | {
+    __nothing?: undefined,
+});
 
 export type InboxT1 = SimplePostOrComment & SimpleComment & {
     num_comments: number,
