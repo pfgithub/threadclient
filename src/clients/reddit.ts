@@ -187,15 +187,10 @@ function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange
 function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     switch(rtd.e) {
         case "text": return richtextFormattedText(rtd.t, rtd.f ?? [], opt);
-        case "r/": return [{
+        case "r/": case "u/": return [{
             kind: "link",
-            url: "/r/"+rtd.t,
-            children: [{kind: "text", text: (rtd.l ? "/" : "") + "r/"+rtd.t, styles: {}}],
-        }];
-        case "u/": return [{
-            kind: "link",
-            url: "/u/"+rtd.t,
-            children: [{kind: "text", text: (rtd.l ? "/" : "") + "u/"+rtd.t, styles: {}}],
+            url: "/"+rtd.e+rtd.t,
+            children: [{kind: "text", text: (rtd.l ? "/" : "") + rtd.e + rtd.t, styles: {}}],
         }];
         case "link": return [{
             kind: "link",
