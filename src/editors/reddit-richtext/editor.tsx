@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Node, createEditor, Editor, Transforms, Text } from "slate";
+import { Node as UntypedNode, createEditor, Editor, Transforms, Text, Path } from "slate";
 import { Slate, Editable, withReact, useSelected, useFocused } from "slate-react";
 import {withHistory} from "slate-history";
 
@@ -11,30 +11,25 @@ const CodeElement = (props: RProps<CodeElement>): React.ReactElement => {
     </pre>;
 };
 
-const DefaultElement = (props: RProps<ParagraphElement>): React.ReactElement => {
+const ParagraphElement = (props: RProps<ParagraphElement>): React.ReactElement => {
     return <p {...props.attributes} className="rte-p">{props.children}</p>;
 };
 
-const ImageElement = (props: RProps<ErrorElement>): React.ReactElement => {
+const NeverElement = (props: RProps<AnyElement>): React.ReactElement => {
+    return <p {...props.attributes} className="rte-never">{props.children}</p>;
+};
+
+const BlockquoteElement = (props: RProps<BlockquoteElement>): React.ReactElement => {
+    return <blockquote {...props.attributes} className="rte-quote">{props.children}</blockquote>;
+};
+
+const ImageElement = (props: RProps<ErrorSpan>): React.ReactElement => {
     const selected = useSelected();
     const focused = useFocused();
     return <span {...props.attributes}><span className={"rt-error "+(selected && focused ? "rt-focus " : "")}>{props.element.image_text}</span>{props.children}</span>;
 };
 
-const withMentions = (editor: Editor): Editor => {
-    const {isInline, isVoid} = editor;
-    editor.isInline = element => {
-        if(element.type === "error") return true;
-        return isInline(element);
-    };
-    editor.isVoid = element => {
-        if(element.type === "error") return true;
-        return isVoid(element);
-    };
-    return editor;
-};
-
-type FormatType = "bold" | "italic" | "strike" | "inline_code" | "sup" | "spoiler";
+type FormatType = "bold" | "italic" | "strike" | "inline_code" | "sup";
 function updateFormat(editor: Editor, new_fmt: FormatType) {
     const [match] = Editor.nodes(editor, {
         match: n => Text.isText(n) && !!(n[new_fmt] as boolean),
@@ -57,49 +52,124 @@ const FormatButton = (props: {editor: Editor, format: FormatType, children?: Rea
 };
 
 // either block or inline
-type BaseElement = {children: (Element | Leaf)[]};
-type ParagraphElement = BaseElement & {
+type ParagraphElement = {
     type: "paragraph",
+    children: AnySpan[],
 };
-type ErrorElement = BaseElement & {
+type CodeElement = {
+    type: "code",
+    children: UnformattedLeaf[],
+};
+type BlockquoteElement = {
+    type: "blockquote",
+    children: BlockElement[],
+};
+type BlockElement = ParagraphElement | CodeElement | BlockquoteElement;
+
+type SpoilerSpan = {
+    type: "spoiler",
+    children: AnySpan[],
+};
+type ErrorSpan = {
     type: "error",
     image_text: string,
+    children: [EmptyLeaf],
 };
-type CodeElement = BaseElement & {
-    type: "code",
+const inline_vs: {[key in InlineElementType]: true} = {
+    spoiler: true,
+    error: true,
 };
-type Element = ParagraphElement | ErrorElement | CodeElement;
+const void_vs: {[key in VoidElementType]: true} = {
+    error: true,
+};
+
+type SpanElement = SpoilerSpan | ErrorSpan;
+type VoidElement = ErrorSpan;
+
+type InlineElementType = SpanElement["type"];
+type BlockElementType = BlockElement["type"];
+type VoidElementType = VoidElement["type"];
+
+type AnySpan = Leaf | SpanElement;
+type AnyElement = BlockElement | SpanElement;
 
 // a text node
-type BaseLeaf = {text: string};
-type Leaf = BaseLeaf & ({
-    [key in FormatType]: boolean;
+type UnformattedLeaf = {text: string};
+type Leaf = UnformattedLeaf & ({
+    [key in FormatType]?: boolean;
 });
+type EmptyLeaf = {text: ""};
+
+type Node = BlockElement | Leaf;
 
 type RProps<T> = {attributes: {[key: string]: unknown}, children: React.ReactElement}
-    & (T extends BaseElement ? {element: T} : T extends BaseLeaf ? {leaf: T} : unknown)
+    & (T extends {children: unknown[]} ? {element: T} : T extends {text: string} ? {leaf: T} : unknown)
 ;
-type RenderElement = (props: RProps<Element>) => React.ReactElement;
+type RenderElement = (props: RProps<BlockElement>) => React.ReactElement;
 type RenderLeaf = (props: RProps<Leaf>) => React.ReactElement;
 
-// TODO: if the cursor is at the bottom or top of the document, pressing down/up should insert a paragraph below/above
-// basically to make sure you don't get stuck in code blocks
+// should the start and end of spoilers have a text node like `>` and `<`? that way it's easier to choose if you are adding to the spoiler or not?
 
-// TODO: pressing enter should insert a newline, pressing enter again should make a paragraph break
+const withPlugin = (editor: Editor): Editor => {
+    const {isInline, isVoid, normalizeNode} = editor;
 
+    editor.normalizeNode = entry => {
+        const [node, path] = entry as [Node, Path];
+
+        if('children' in node && node.type === "blockquote") {
+            for(const [child_raw, child_path] of UntypedNode.children(editor, path)) {
+                const child = child_raw as Node;
+                if('text' in child) {
+                    Transforms.wrapNodes(editor, {type: "blockquote", children: []}, {at: child_path});
+                    return;
+                }
+            }
+        }
+        if('text' in node && (node.inline_code ?? false)) {
+            Transforms.setNodes(editor, {bold: false, italic: false, strike: false, sup: false} as Partial<Leaf>, {at: path});
+            return;
+        }
+
+        return normalizeNode(entry);
+    };
+    editor.isInline = (element_raw) => {
+        const element = element_raw as AnyElement;
+        if(element.type in inline_vs) return true;
+        return isInline(element);
+    };
+    editor.isVoid = (element_raw) => {
+        const element = element_raw as AnyElement;
+        if(element.type in void_vs) return true;
+        return isVoid(element);
+    }
+
+    return editor;
+};
+
+function expectNeverValue<T>(a: never, b: T): T {
+    return b;
+};
+
+// TODO: down arrow at bottom of page : insert a paragraph below if the outer element is not a paragraph
 export const App: React.FC = (): React.ReactElement => {
-    const editor = useMemo(() => withHistory(withReact(withMentions(createEditor()))), []);
+    const editor = useMemo(() => withHistory(withReact(withPlugin(createEditor()))), []);
 
     const [value, setValue] = useState<Node[]>([
-        {type: "paragraph", children: [{text: "A line of text"}]}
+        {type: "paragraph", children: [{text: "Hello and welcome!"}]},
+        {type: "paragraph", children: [{text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"}]},
+        {type: "blockquote", children: [{type: "paragraph", children: [{text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"}]}]},
+        {type: "paragraph", children: [{text: "Here is a spoiler: "}, {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]}]},
     ]);
 
     // render blocks
-    const renderElement: RenderElement = useCallback((props: RProps<Element>): React.ReactElement => {
+    const renderElement: RenderElement = useCallback((props: RProps<AnyElement>): React.ReactElement => {
         switch(props.element.type) {
             case "error": return <ImageElement {...{...props, element: props.element}} />;
             case "code": return <CodeElement {...{...props, element: props.element}} />;
-            default: return <DefaultElement {...{...props, element: props.element}} />;
+            case "blockquote": return <BlockquoteElement {...{...props, element: props.element}} />;
+            case "paragraph": return <ParagraphElement {...{...props, element: props.element}} />;
+            case "spoiler": return <span {...props.attributes}><Spoiler>{props.children}</Spoiler></span>;
+            default: return expectNeverValue(props.element, <NeverElement {...props} />);
         }
     }, []);
     // render spans
@@ -107,16 +177,14 @@ export const App: React.FC = (): React.ReactElement => {
         let outer_elem: React.ReactElement = <span>{props.children}</span>;
         const leaf = props.leaf;
 
-        if(leaf.inline_code) {
+        if(leaf.inline_code ?? false) {
             outer_elem = <code className="rt-inline-code">{outer_elem}</code>;
         }else{
-            if(leaf.bold) outer_elem = <b>{outer_elem}</b>;
-            if(leaf.italic) outer_elem = <i>{outer_elem}</i>;
-            if(leaf.strike) outer_elem = <s>{outer_elem}</s>;
-            if(leaf.sup) outer_elem = <sup>{outer_elem}</sup>;
+            if(leaf.bold ?? false) outer_elem = <b>{outer_elem}</b>;
+            if(leaf.italic ?? false) outer_elem = <i>{outer_elem}</i>;
+            if(leaf.strike ?? false) outer_elem = <s>{outer_elem}</s>;
+            if(leaf.sup ?? false) outer_elem = <sup>{outer_elem}</sup>;
         }
-        // uh oh spoilers don't work right - they might need to be inline, non-void elements instead
-        if(leaf.spoiler) outer_elem = <Spoiler>{outer_elem}</Spoiler>;
 
         return <span {...props.attributes}>{outer_elem}</span>;
     }, []);
@@ -124,7 +192,7 @@ export const App: React.FC = (): React.ReactElement => {
     return <Slate
         editor={editor}
         value={value}
-        onChange={new_value => setValue(new_value)}
+        onChange={new_value => setValue(new_value as Node[])}
     >
         <div className="rt-buttons">
             <FormatButton editor={editor} format="bold">Bold</FormatButton>
@@ -133,7 +201,7 @@ export const App: React.FC = (): React.ReactElement => {
             <FormatButton editor={editor} format="strike">Strike</FormatButton>
             <FormatButton editor={editor} format="inline_code">Inline Code</FormatButton>
             <FormatButton editor={editor} format="sup">Superscript</FormatButton>
-            <FormatButton editor={editor} format="spoiler">Spoiler</FormatButton>
+            <button>Spoiler</button>
             <div className="rt-button-sep" />
             <button>Heading lv</button>
             <button>Bulleted List</button>
@@ -168,7 +236,6 @@ export const App: React.FC = (): React.ReactElement => {
                     const [match] = Editor.nodes(editor, {
                         match: n => n.type === "code",
                     });
-
                     Transforms.setNodes(editor, {type: match ? "paragraph" : "code"}, {match: n => Editor.isBlock(editor, n)});
                 }
                 if(event.key === "b" && event.ctrlKey) {
