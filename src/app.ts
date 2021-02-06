@@ -216,10 +216,6 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
         audio.currentTime = video.currentTime;
         audio.playbackRate = video.playbackRate;
     };
-    video.onplay = () => {
-        sync();
-        void audio.play();
-    };
     video.onplaying = () => {
         sync();
         void audio.play();
