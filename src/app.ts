@@ -2353,14 +2353,17 @@ let navbar: HTMLDivElement; {
         const diff = this_scroll - prev_scroll;
         prev_scroll = this_scroll;
 
+        const max_resp = Math.max(0, Math.min(100, this_scroll));
+
         resp += diff;
-        if(resp > 100) resp = 100;
+        if(resp > max_resp) resp = max_resp;
         if(resp < 0) resp = 0;
-        const navbar_h = resp;
-        console.log(navbar_h);
+        let navbar_h = resp;
+
+        if(this_scroll < 0) navbar_h = -this_scroll;
 
         frame.style.setProperty("--mobile-transform", "translateY("+(-navbar_h)+"px)");
-    });
+    }, {passive: false});
 }
 
 history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);

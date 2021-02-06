@@ -964,7 +964,6 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             })}
             : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
         ;
-        console.log("got body content", body_content, listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1, listing.is_self, listing.gallery_data);
 
         const result: Generic.Node = {
             kind: "thread",
