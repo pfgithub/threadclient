@@ -1036,6 +1036,12 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 text: "Duplicates"
             }, reportButton(listing.name, listing.subreddit)],
             default_collapsed: false,
+            replies: [{
+                kind: "load_more",
+                raw_value: undefined,
+                load_more: listing.permalink,
+                count: listing.num_comments,
+            }],
         };
         return result;
     }else if(listing_raw.kind === "more") {
