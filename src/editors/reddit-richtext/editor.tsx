@@ -26,7 +26,7 @@ const BlockquoteElement = (props: RProps<BlockquoteElement>): React.ReactElement
 const ImageElement = (props: RProps<ErrorSpan>): React.ReactElement => {
     const selected = useSelected();
     const focused = useFocused();
-    return <span {...props.attributes}><span className={"rt-error "+(selected && focused ? "rt-focus " : "")}>{props.element.image_text}</span>{props.children}</span>;
+    return <span {...props.attributes}><span draggable="true" className={"rt-error "+(selected && focused ? "rt-focus " : "")}>{props.element.image_text}</span>{props.children}</span>;
 };
 
 type FormatType = "bold" | "italic" | "strike" | "inline_code" | "sup";
@@ -111,13 +111,13 @@ type RenderLeaf = (props: RProps<Leaf>) => React.ReactElement;
 // should the start and end of spoilers have a text node like `>` and `<`? that way it's easier to choose if you are adding to the spoiler or not?
 
 const withPlugin = (editor: Editor): Editor => {
-    const {isInline, isVoid, normalizeNode} = editor;
+    const {isInline, isVoid, normalizeNode, deleteBackward, insertText, insertBreak} = editor;
 
     editor.normalizeNode = entry => {
-        const [node, path] = entry as [Node, Path];
+        const [node, node_path] = entry as [Node, Path];
 
         if('children' in node && node.type === "blockquote") {
-            for(const [child_raw, child_path] of UntypedNode.children(editor, path)) {
+            for(const [child_raw, child_path] of UntypedNode.children(editor, node_path)) {
                 const child = child_raw as Node;
                 if('text' in child) {
                     Transforms.wrapNodes(editor, {type: "blockquote", children: []}, {at: child_path});
@@ -125,8 +125,28 @@ const withPlugin = (editor: Editor): Editor => {
                 }
             }
         }
+        if('children' in node && node.type === "code") {
+            for(const [child_raw, child_path] of UntypedNode.children(editor, node_path)) {
+                const child = child_raw as Node;
+                if('text' in child) {
+                    if((child.bold ?? false) || (child.inline_code ?? false) || (child.italic ?? false) || (child.strike ?? false) || (child.sup ?? false)) {
+                        Transforms.setNodes(editor, {bold: false, italic: false, strike: false, sup: false, inline_code: false} as Partial<Leaf>, {at: child_path}); 
+                        return;
+                    }
+                }else if('children' in child) {
+                    console.log("cleanup", child);
+                    // TODO: remove the node but replace it with a markdown equivalent rather than just deleting it entirely
+                    // so if you copy in a spoiler or something and it works
+                    Transforms.unwrapNodes(editor, {at: child_path});
+                    // Transforms.removeNodes(editor, {at: child_path});
+                    return;
+                }else{
+                    console.log("never", child, child_path);
+                }
+            }
+        }
         if('text' in node && (node.inline_code ?? false)) {
-            Transforms.setNodes(editor, {bold: false, italic: false, strike: false, sup: false} as Partial<Leaf>, {at: path});
+            Transforms.setNodes(editor, {bold: false, italic: false, strike: false, sup: false} as Partial<Leaf>, {at: node_path});
             return;
         }
 
@@ -142,6 +162,34 @@ const withPlugin = (editor: Editor): Editor => {
         if(element.type in void_vs) return true;
         return isVoid(element);
     }
+    // editor.insertText // this can be used to detect "u/" or "/u/" and show a list of users eg
+
+    editor.insertText = (arg) => {
+        console.log(arg);
+        return insertText(arg);
+    };
+    editor.deleteBackward = (arg) => {
+        console.log(arg);
+        // :: get at cursor
+        // :: if is start of line && is paragraph && above paragraph is quote
+        // split quote and put paragraph between quote above and below
+
+        console.log(editor.selection);
+
+        return deleteBackward(arg);
+    };
+    editor.insertBreak = () => {
+        const [match] = Editor.nodes(editor, {
+            match: n => Editor.isBlock(editor, n) && n.type === "code",
+        });
+        // this does not show the cursor in the right position in firefox
+        if(match) return Transforms.insertText(editor, "\n");
+        return insertBreak();
+
+        // console.log("break");
+        // console.log(editor.selection);
+        // return insertBreak();
+    };
 
     return editor;
 };
@@ -158,6 +206,8 @@ export const App: React.FC = (): React.ReactElement => {
         {type: "paragraph", children: [{text: "Hello and welcome!"}]},
         {type: "paragraph", children: [{text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"}]},
         {type: "blockquote", children: [{type: "paragraph", children: [{text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"}]}]},
+        {type: "paragraph", children: [{text: "Here is a spoiler: "}, {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]}]},
+        {type: "code", children: [{text: "Here is a spoiler: "}]},
         {type: "paragraph", children: [{text: "Here is a spoiler: "}, {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]}]},
     ]);
 
@@ -217,15 +267,6 @@ export const App: React.FC = (): React.ReactElement => {
             // todo update newline to isnert a br then a parargraph break if there alreads aflk
             // uh oh! this code block doesn't respond properly to newlines
             onKeyDown={(event: KeyboardEvent) => {
-                if(event.code === "Enter") {
-                    const [match] = Editor.nodes(editor, {
-                        match: n => Editor.isBlock(editor, n) && n.type === "code",
-                    });
-                    if(!event.shiftKey && !match) return;
-                    event.preventDefault();
-                    // this does not show the cursor in the right position in firefox
-                    return Transforms.insertText(editor, "\n");
-                }
                 if(event.key === "m" && event.ctrlKey) {
                     event.preventDefault();
                     return Transforms.insertNodes(editor, {image_text: "Hi!", type: "error", children: [{text: ""}]});

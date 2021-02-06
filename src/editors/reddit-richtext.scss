@@ -27,7 +27,7 @@
 
 .rte-pre {
     background-color: rgba(0, 0, 0, 0.1);
-    padding: 5px;
+    padding: 10px;
     border-radius: 5px;
     font-size: 1rem;
 }
@@ -45,11 +45,12 @@
     transition: 0.2s opacity;
 }
 .rt-spoiler.rt-spoiler-reveal > .rt-spoiler-content {
-    opacity: 0.5;
+    opacity: 1;
+    border-radius: 3px;
 }
 
 .rt-inline-code {
-    background-color: var(--spoiler-color-revealed);
+    background-color: var(--spoiler-color-hover);
     padding: 5px;
     border-radius: 3px;
 }
