@@ -2348,6 +2348,8 @@ let navbar: HTMLDivElement; {
 
     let prev_scroll = window.scrollY;
     let resp = 0;
+    // TODO:
+    // on touch release, either transition resp to 0 or to 100
     document.addEventListener("scroll", e => {
         const this_scroll = window.scrollY;
         const diff = this_scroll - prev_scroll;
