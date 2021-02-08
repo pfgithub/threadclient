@@ -505,7 +505,7 @@ function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
 }
 
 type RedditMarkdownRenderer = {
-    renderMd(text: string): string,
+    renderMd(text: string): string & {_is_safe: true},
 };
 
 function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
@@ -593,17 +593,17 @@ const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdown
             const decoded = dec.decode(outarr);
             exports.freeText(strptr, utf8.byteLength);
             exports.freeText(res, outlen);
-            return decoded;
+            return decoded as string & {_is_safe: true};
         }catch(e){
             // note that chrome sometimes crashes on wasm errors and this
             // handler might not run.
             console.log(e.toString() + "\n" + e.stack);
-            return escapeHTML("Error "+e.toString()+"\n"+e.stack);
+            return escapeHTML("Error "+e.toString()+"\n"+e.stack) as string & {_is_safe: true};
         }
     }};
 });
 
-type HtmlSaftifier = {saftify: (html: string, class_prefix: string) => string};
+type HtmlSaftifier = {saftify: (html: string, class_prefix: string) => string & {_is_safe: true}};
 const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
     await new Promise((r, re) => {
         const script_el = el("script");
@@ -622,7 +622,7 @@ const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
             onTagAttr: (tag: string, name: string, value: string, is_white_attr: string) => {
                 if(name === "class") return name+"=\""+xss.escapeAttrValue(value.split(" ").map(v => class_prefix + v).join(" "))+"\"";
             },
-        }),
+        }) as string & {_is_safe: true},
     };
 });
 
@@ -673,7 +673,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
     return hsc;
 }
 
-function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: Node, class_prefix: string): HideShowCleanup<undefined> {
+function renderSafeHTML(client: ThreadClient, safe_html: string & {_is_safe: true}, parent_node: Node, class_prefix: string): HideShowCleanup<undefined> {
     const divel = el("div").adto(parent_node).clss("slightlybigger");
     const hsc = hideshow();
     divel.innerHTML = safe_html;
@@ -706,6 +706,9 @@ function renderSafeHTML(client: ThreadClient, safe_html: string, parent_node: No
             spoilerspan.attr({title: ""});
         });
     }
+    for(const image of Array.from(divel.querySelectorAll("img"))) {
+        image.clss("preview-image");
+    }
     return hsc;
 }
 
@@ -723,7 +726,7 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
         }).catch(e => {
             preel.remove();
             console.log(e);
-            renderSafeHTML(client, "Got error! Check console!", container, "").defer(hsc);
+            renderSafeHTML(client, "Got error! Check console!" as string & {_is_safe: true}, container, "").defer(hsc);
         });
     }else if(body.markdown_format === "none") {
         container.atxt(body.content);
@@ -737,7 +740,19 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
         }).catch(e => {
             preel.remove();
             console.log(e);
-            renderSafeHTML(client, "Got error! Check console!", container, "").defer(hsc);
+            renderSafeHTML(client, "Got error! Check console!" as string & {_is_safe: true}, container, "").defer(hsc);
+        });
+    }else if(body.markdown_format === "reddit_html") {
+        const preel = el("pre").adto(container);
+        el("code").atxt(body.content).adto(preel);
+        getHtmlSaftifier().then(hsr => {
+            preel.remove();
+            const safe_html = hsr.saftify(body.content, "");
+            renderSafeHTML(client, safe_html, container, "").defer(hsc);
+        }).catch(e => {
+            preel.remove();
+            console.log(e);
+            renderSafeHTML(client, "Got error! Check console!" as string & {_is_safe: true}, container, "").defer(hsc);
         });
     }else assertNever(body.markdown_format);
 

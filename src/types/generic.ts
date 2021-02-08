@@ -11,7 +11,7 @@ export type Page = {
 export type BodyText = {
     kind: "text",
     content: string,
-    markdown_format: "reddit" | "none" | "mastodon",
+    markdown_format: "reddit" | "reddit_html" | "none" | "mastodon",
 };
 export declare namespace Richtext {
     export type Style = {

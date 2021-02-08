@@ -655,7 +655,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
             header: {
                 kind: "thread",
                 raw_value: listing,
-                body: {kind: "text", markdown_format: "reddit", content: listing.data.content_md},
+                body: {kind: "text", markdown_format: "reddit_html", content: listing.data.content_html},
                 display_mode: {body: "visible", comments: "visible"},
                 link: path,
                 layout: "error",
