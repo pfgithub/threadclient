@@ -994,3 +994,18 @@ summary {
 .richtext-container {
     white-space: pre-wrap;
 }
+
+.post.widget {
+    padding-left: 10px;
+}
+.post.widget.widget-image {
+    padding: 0;
+    line-height: 0;
+    overflow: hidden;
+}
+
+.widget-image-img {
+    max-width: 100%;
+    width: auto;
+    height: auto;
+}

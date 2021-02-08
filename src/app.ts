@@ -1479,10 +1479,10 @@ function hListing(client: ThreadClient, listing: Generic.HList, frame: HTMLDivEl
 
 function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
+    outest_el.clss("widget");
 
     const outer_el = el("div").adto(outest_el);
 
-    outer_el.clss("widget");
     txt(widget.title).adto(el("div").adto(outer_el).clss("widget-header"));
 
     const frame = el("div").clss("widget-content").adto(outer_el);
@@ -1542,8 +1542,18 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
     }else if(content.kind === "iframe") {
         const alt_frame = el("div");
         outest_el.replaceChild(alt_frame, outer_el);
-        outest_el.clss("widget", "widget-iframe");
+        outest_el.clss("widget-iframe");
         el("iframe").adto(alt_frame).attr({height: content.height as unknown as `${number}px`, srcdoc: content.srcdoc});
+    }else if(content.kind === "image") {
+        const alt_frame = el("div");
+        outest_el.clss("widget-image");
+        outest_el.replaceChild(alt_frame, outer_el);
+        linkButton(client.id, content.link_url ?? content.src)
+            .adch(el("img")
+                .attr({src: content.src, width: `${content.width}px` as const, height: `${content.height}px` as const})
+                .clss("widget-image-img")
+            ).adto(alt_frame)
+        ;
     }else assertNever(content);
 
     if(widget.actions_bottom) {

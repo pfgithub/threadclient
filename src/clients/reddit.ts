@@ -471,12 +471,12 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         kind: "widget",
         title: data.shortName,
         raw_value: data,
-        widget_content: {kind: "body", body: {
-            kind: "captioned_image",
-            url: data.data[data.data.length - 1]!.url,
-            w: data.data[data.data.length - 1]!.width,
-            h: data.data[data.data.length - 1]!.height,
-        }},
+        widget_content: {kind: "image",
+            src: data.data[data.data.length - 1]!.url,
+            link_url: data.data[data.data.length - 1]!.linkUrl,
+            width: data.data[data.data.length - 1]!.width,
+            height: data.data[data.data.length - 1]!.height,
+        },
     }; else if(data.kind === "post-flair") return {
         kind: "widget",
         // /r/…/?f=flair_name:"…"

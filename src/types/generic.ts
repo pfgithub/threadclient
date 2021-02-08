@@ -230,6 +230,12 @@ export type Widget = {
         kind: "iframe",
         srcdoc: string,
         height: string,
+    } | {
+        kind: "image",
+        width: number,
+        height: number,
+        src: string,
+        link_url?: string,
     },
     raw_value: unknown,
 };

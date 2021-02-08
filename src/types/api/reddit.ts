@@ -153,6 +153,7 @@ export type Widget = {
     kind: "image",
     data: {
         url: string,
+        linkUrl?: string,
         width: number,
         height: number,
     }[], // only contains one item unless progressive_images is enabled
