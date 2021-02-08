@@ -917,7 +917,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         const parentel = el("div").styl({"max-width": "max-content"}).adto(content);
         clientContent(client, body.source).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
-        const txta = el("div").adto(content);
+        const txta = el("div").adto(content).clss("richtext-container");
         for(const pargrph of body.content) {
             renderRichtextParagraph(client, pargrph, txta).defer(hsc);
         }

@@ -168,7 +168,26 @@ function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormatti
     };
 }
 function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
-    if(format.length === 0) return [{kind: "text", text: text, styles: {}}];
+    if(format.length === 0) {
+        const is_braille = [...text].every(char => {
+            const codepoint = char.codePointAt(0)!;
+            if(codepoint >= 0x2800 && codepoint <= 0x28FF) return true;
+            if(codepoint === 32) return true;
+            return false;
+        });
+        if(is_braille) {
+            // // not necessary with white-space: pre
+            // const braille_blocks = text.split(" ");
+            // const len = braille_blocks.length - 1;
+            // return braille_blocks.flatMap((bblk, i) => {
+            //     const segment: Generic.Richtext.Span = {kind: "text", text: bblk, styles: {}};
+            //     if(i == len) return [segment];
+            //     return [segment, {kind: "br"}]
+            // });
+            return [{kind: "text", text: text.split(" ").join("\n"), styles: {}}];
+        }
+        return [{kind: "text", text: text, styles: {}}];
+    }
     const resitems: Generic.Richtext.Span[] = [];
     let previdx = 0;
     const commit = (endv: number) => {
