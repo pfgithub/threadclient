@@ -1055,7 +1055,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 text: "Duplicates"
             }, reportButton(listing.name, listing.subreddit)],
             default_collapsed: false,
-            replies: [{
+            replies: options.show_post_reply_button ?? false ? undefined : [{
                 kind: "load_more",
                 raw_value: undefined,
                 load_more: listing.permalink,
