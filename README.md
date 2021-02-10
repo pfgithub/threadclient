@@ -48,7 +48,7 @@ Demo:
 
 get dependencies: `yarn install`
 
-build (dev): `yarn webpack serve`
+build (dev): `env NODE_ENV=development yarn webpack serve`
 
 build (once): `yarn webpack`
 
