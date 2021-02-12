@@ -268,6 +268,7 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
     const loader = loadingSpinner().adto(resdiv);
     
     fetch("https://api."+gfy_host+"/v1/gfycats/"+gfy_link).then(r => r.json()).then(r => {
+        loader.remove()
         type GfyContentUrl = {
             url: string,
             size: number,
@@ -276,6 +277,16 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
         };
         if((r as {errorMessage: string}).errorMessage != null) {
             throw new Error("Got error: "+r.errorMessage);
+        }
+        resdiv.adch(el("div").adch(linkLikeButton().atxt("code").onev("click", () => console.log(r))));
+        const error_v = r as {
+            logged: boolean,
+            message: string,
+            reported: boolean,
+        };
+        if('message' in error_v) {
+            el("div").clss("error").adto(resdiv).atxt("Error: "+error_v.message + " ; logged="+error_v.logged+" ; reported="+error_v.reported);
+            return;
         }
         const {gfyItem: gfy_item} = r as {
             gfyItem: {
@@ -298,11 +309,8 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
                 height: number,
             },
         };
-        resdiv.adch(el("div").adch(linkLikeButton().atxt("code").onev("click", () => console.log(gfy_item))));
         if(gfy_item.title != null) resdiv.adch(el("div").atxt("Title: " + gfy_item.title));
         if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
-
-        loader.remove();
 
         videoPreview([
             ...gfy_item.content_urls.mobile ? [{src: gfy_item.content_urls.mobile.url}] : [],
