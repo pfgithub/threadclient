@@ -77,6 +77,7 @@ all todo:
 -   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
 -   [ ] the refresh button
 -   [ ] avoid keeping iframes in dom when they are not visible
+-   [ ] twitter tweet preview support (`https://cdn.syndication.twimg.com/tweet?id=`:id`&lang=en`)
 -   [ ] proper, non-hacky way to auto disable darkreader extension
 -   [ ] full mobile support (no buttons that are too close together + design more optimized for mobile)
 -   [ ] a button to switch to markdown source view (uh oh what if the comment doesn't have any markdown source…)
