@@ -81,6 +81,7 @@ all todo:
         has the same. improve how this is represented in Generic data and improve how it is displayed on the page. currently, {header, replies}
         is how posts exist. instead, change so the top level can have either a listing or a single thread. listings are single_thread[].
         single_thread has {parents: thing[]} which might have a load more on top and {replies: thing[]}
+-   [ ] support open in new tab on added to homescreen version of page
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] twitter tweet preview support (`https://cdn.syndication.twimg.com/tweet?id=`:id`&lang=en`)
 -   [ ] proper, non-hacky way to auto disable darkreader extension

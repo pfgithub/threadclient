@@ -281,28 +281,36 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
             gfyItem: {
                 avgColor: string,
                 content_urls: {
-                    mobile: GfyContentUrl,
-                    mobilePoster?: GfyContentUrl,
-                    mp4: GfyContentUrl,
+                    // thumbnails
+                    poster: GfyContentUrl,
+                    mobilePoster: GfyContentUrl,
+                    
+                    // videos
+                    mp4?: GfyContentUrl,
+                    mobile?: GfyContentUrl,
                     webm?: GfyContentUrl,
                     webp?: GfyContentUrl,
                 },
                 createDate: number,
                 description?: string,
-                title: string,
+                title?: string,
                 width: number,
                 height: number,
             },
         };
-        resdiv.adch(el("div").atxt(gfy_item.title));
+        resdiv.adch(el("div").adch(linkLikeButton().atxt("code").onev("click", () => console.log(gfy_item))));
+        if(gfy_item.title != null) resdiv.adch(el("div").atxt("Title: " + gfy_item.title));
         if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
 
         loader.remove();
 
         videoPreview([
-            {src: gfy_item.content_urls.mobile.url},
+            ...gfy_item.content_urls.mobile ? [{src: gfy_item.content_urls.mobile.url}] : [],
             ...gfy_item.content_urls.webm ? [{src: gfy_item.content_urls.webm.url}] : [],
-            {src: gfy_item.content_urls.mp4.url},
+            ...gfy_item.content_urls.mp4 ? [
+                {src: gfy_item.content_urls.mp4.url},
+                {src: gfy_item.content_urls.mp4.url.replace(".mp4", "-mobile.mp4")}, // hack
+            ] : [],
         ], {autoplay: opts.autoplay, width: gfy_item.width, height: gfy_item.height}).defer(hsc).adto(resdiv);
     }).catch(e => {
         console.log(e);
