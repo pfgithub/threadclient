@@ -118,6 +118,9 @@ reddit todo:
 -   [x] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle
 -   [x] post report button with rules from `/r/…/about/rules`
 -   [x] fix braille images that show up right on mobile but not desktop
+-   [ ] more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gamw9br/)
+-   [ ] even more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gjq382v/)
+-   [ ] make it clear that there are more comments available to be viewed when you are viewing just one thread
 -   [ ] mod tools including:
     -   [ ] view post reports (using `post.mod_reports`, `post.mod_reports_dismissed`, `post.user_reports`)
     -   [ ] remove posts + add removal reasons like new.reddit including the option to add stickied comment prefilled with a template using the markdown editor
