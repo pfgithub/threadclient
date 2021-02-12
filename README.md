@@ -76,6 +76,11 @@ all todo:
 -   [ ] decrease indent width on mobile and make the permalink button more prominent or something for when things get too deep
 -   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
 -   [ ] the refresh button
+-   [ ] improve how parent and child nodes and listings are represented:
+        reddit lets you link to a comment that might be deep in the thread. mastodon
+        has the same. improve how this is represented in Generic data and improve how it is displayed on the page. currently, {header, replies}
+        is how posts exist. instead, change so the top level can have either a listing or a single thread. listings are single_thread[].
+        single_thread has {parents: thing[]} which might have a load more on top and {replies: thing[]}
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] twitter tweet preview support (`https://cdn.syndication.twimg.com/tweet?id=`:id`&lang=en`)
 -   [ ] proper, non-hacky way to auto disable darkreader extension
