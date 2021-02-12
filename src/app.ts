@@ -330,13 +330,6 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
         // information about galleries is distributed with posts
         // do nothing I guess
     }
-    if(link.startsWith("https://imgur.com/")) return (): HideShowCleanup<Node> => {
-        const iframe = el("iframe").attr({src: link + "/embed"});
-        const resn = {node: el("div").clss("resizable-iframe").styl({width: "500px", height: "500px"}).adch(iframe)};
-        const hsc = hideshow(resn.node);
-        // TODO: onhide delete, onshow recreate. no need to store imgur iframes forever.
-        return hsc;
-    };
     if(opts.suggested_embed != null) return (): HideShowCleanup<Node> => {
         // TODO: render a body with markdown type unsafe-html that supports iframes
         try {

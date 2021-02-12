@@ -118,6 +118,7 @@ reddit todo:
 -   [x] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle
 -   [x] post report button with rules from `/r/…/about/rules`
 -   [x] fix braille images that show up right on mobile but not desktop
+-   [ ] figure out what "url_overridden_by_dest" is
 -   [ ] more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gamw9br/)
 -   [ ] even more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gjq382v/)
 -   [ ] make it clear that there are more comments available to be viewed when you are viewing just one thread
@@ -130,7 +131,7 @@ reddit todo:
 -   [ ] fix load more buttons when there are >100 things to load. right now it seems to load in the wrong order.
 -   [ ] improve mobile sidebars (do a custom route for /r/:subreddit/sidebar and rather than showing the sidebar, have a link to there)
 -   [ ] show messages for quarrentined subreddits (these pass through cors luckily). banned subreddit messages
--   do not pass through cors, so ban messages cannot be shown.
+        do not pass through cors, so ban messages cannot be shown.
 -   [ ] richtext replies
 -   [ ] posts + post preview (+ /api/v1/:subreddit/post_requirements)
 -   [ ] fix dark flairs being displayed on a dark background
@@ -140,6 +141,10 @@ reddit todo:
 -   [ ] navigation buttons eg homepage link
 -   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
+-   [ ] use the `post.media`/`post.secure_media` property?
+-   [ ] jsonp hack when cors requests fail (spooky, evaluating code from a remote server) eg `?jsonp=jsonp_response_#` where each request adds a `window.jsonp_response_#`
+        function and removes it after the jsonp request is completed. note that this doesn't work for requests that require authentication so maybe don't do it.
+-   [ ] imgur gallery api? `https://api.imgur.com/3/gallery/7Yn3dUp`
 -   [ ] code block automatic syntax highlighting (using hljs automatic or something)
 -   [ ] when revealing a crosspost with the same content warnings as the parent post, don't require accepting twice
 -   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button
