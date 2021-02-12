@@ -247,7 +247,7 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     });
     return hsc;
 }
-function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
+function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
     let url_mut: URL | undefined;
     try { 
         url_mut = new URL(link);
@@ -329,6 +329,67 @@ function canPreview(link: string, opts: {autoplay: boolean, suggested_embed?: st
     if(link.startsWith("https://www.reddit.com/gallery/")) {
         // information about galleries is distributed with posts
         // do nothing I guess
+    }
+    if(url && (url.host === "www.imgur.com" || url.host === "imgur.com") && url.pathname.startsWith("/gallery/")) {
+        const galleryid = url.pathname.replace("/gallery/", "");
+        if(!galleryid.includes("/")) return (): HideShowCleanup<Node> => {
+            const resdiv = el("div");
+            const hsc = hideshow(resdiv);
+
+            fetch("https://api.imgur.com/3/gallery/"+galleryid).then(r => r.json()).then(r => {
+                const typed = r as ({
+                    success: false,
+                    status: number,
+                    data: {
+                        error: string,
+                    },
+                } | {
+                    success: true,
+                    status: number,
+                    data: {
+                        title: string,
+                        layout: "blog" | "unknown",
+                        images_count: number,
+                        images: {
+                            id: string,
+                            description: string,
+                            link: string, // img src
+                            width: number,
+                            height: number,
+                        }[],
+                    },
+                });
+                console.log("imgur result", typed);
+                if(typed.success) {
+                    const gallery: Generic.Body = {
+                        kind: "gallery",
+                        images: typed.data.images.map(image => {
+                            const res: Generic.GalleryItem = {
+                                thumb: image.link,
+                                w: image.width,
+                                h: image.height,
+                                body: {
+                                    kind: "captioned_image",
+                                    caption: image.description,
+                                    url: image.link,
+                                    w: image.width,
+                                    h: image.height,
+                                },
+                            };
+                            return res;
+                        }),
+                    };
+                    renderBody(client, gallery, {autoplay: false}, el("div").adto(resdiv));
+                }else{
+                    resdiv.adch(el("div").clss("error").atxt("Error loading imgur: "+typed.data.error));
+                }
+            }).catch(e => {
+                console.log(e);
+                resdiv.adch(el("div").clss("error").atxt("Error loading imgur : "+e.toString()));
+            });
+
+            return hsc;
+        };
     }
     if(opts.suggested_embed != null) return (): HideShowCleanup<Node> => {
         // TODO: render a body with markdown type unsafe-html that supports iframes
@@ -623,7 +684,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
     const after_node = document.createComment("");
     parent_node.insertBefore(after_node, __after_once);
 
-    const renderLinkPreview = canPreview(href, {autoplay: true});
+    const renderLinkPreview = canPreview(client, href, {autoplay: true});
 
     const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
     parent_node.insertBefore(newbtn, after_node);
@@ -883,7 +944,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
     }else if(body.kind === "link") {
         // TODO fix this link button thing
         el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
-        const renderLinkPreview = canPreview(body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
+        const renderLinkPreview = canPreview(client, body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
         if(renderLinkPreview) {
             renderLinkPreview().defer(hsc).adto(content);
         }

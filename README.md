@@ -118,6 +118,7 @@ reddit todo:
 -   [x] show old.reddit sidebar /r/…/sidebar when logged out or with a toggle
 -   [x] post report button with rules from `/r/…/about/rules`
 -   [x] fix braille images that show up right on mobile but not desktop
+-   [x] imgur gallery api? `https://api.imgur.com/3/gallery/7Yn3dUp`
 -   [ ] figure out what "url_overridden_by_dest" is
 -   [ ] more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gamw9br/)
 -   [ ] even more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gjq382v/)
@@ -144,7 +145,6 @@ reddit todo:
 -   [ ] use the `post.media`/`post.secure_media` property?
 -   [ ] jsonp hack when cors requests fail (spooky, evaluating code from a remote server) eg `?jsonp=jsonp_response_#` where each request adds a `window.jsonp_response_#`
         function and removes it after the jsonp request is completed. note that this doesn't work for requests that require authentication so maybe don't do it.
--   [ ] imgur gallery api? `https://api.imgur.com/3/gallery/7Yn3dUp`
 -   [ ] code block automatic syntax highlighting (using hljs automatic or something)
 -   [ ] when revealing a crosspost with the same content warnings as the parent post, don't require accepting twice
 -   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button
