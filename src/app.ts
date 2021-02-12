@@ -247,6 +247,71 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     });
     return hsc;
 }
+function videoPreview(sources: {src: string, type?: string}[], opts: {autoplay: boolean, width?: number, height?: number}): HideShowCleanup<Node> {
+    const video = el("video").attr({controls: "",
+        width: opts.width ? `${opts.width}px` as const : undefined, height: opts.height ? `${opts.height}px` as const : undefined
+    }).clss("preview-image");
+    sources.forEach(source => {
+        el("source").attr({src: source.src, type: source.type}).adto(video);
+    })
+    if(opts.autoplay) video.play();
+    let playing_before_hide = false;
+    const hsc = hideshow(video);
+    hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
+    hsc.on("show", () => {if(playing_before_hide) void video.play();});
+    return hsc;
+}
+function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
+    const resdiv = el("div");
+    const hsc = hideshow(resdiv);
+    
+    const loader = loadingSpinner().adto(resdiv);
+    
+    fetch("https://api."+gfy_host+"/v1/gfycats/"+gfy_link).then(r => r.json()).then(r => {
+        type GfyContentUrl = {
+            url: string,
+            size: number,
+            width: number,
+            height: number,
+        };
+        if((r as {errorMessage: string}).errorMessage != null) {
+            throw new Error("Got error: "+r.errorMessage);
+        }
+        const {gfyItem: gfy_item} = r as {
+            gfyItem: {
+                avgColor: string,
+                content_urls: {
+                    mobile: GfyContentUrl,
+                    mobilePoster?: GfyContentUrl,
+                    mp4: GfyContentUrl,
+                    webm?: GfyContentUrl,
+                    webp?: GfyContentUrl,
+                },
+                createDate: number,
+                description?: string,
+                title: string,
+                width: number,
+                height: number,
+            },
+        };
+        resdiv.adch(el("div").atxt(gfy_item.title));
+        if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
+
+        loader.remove();
+
+        videoPreview([
+            {src: gfy_item.content_urls.mobile.url},
+            ...gfy_item.content_urls.webm ? [{src: gfy_item.content_urls.webm.url}] : [],
+            {src: gfy_item.content_urls.mp4.url},
+        ], {autoplay: opts.autoplay, width: gfy_item.width, height: gfy_item.height}).defer(hsc).adto(resdiv);
+    }).catch(e => {
+        console.log(e);
+        if(loader.parentNode) loader.remove();
+        resdiv.adch(el("div").clss("error").atxt("Error loading gfycat : " + e.toString()));
+    });
+    
+    return hsc;
+}
 function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
     let url_mut: URL | undefined;
     try { 
@@ -298,14 +363,16 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
             return previewVreddit(pathsplit[3] ?? "", {autoplay: opts.autoplay});
         };
     }
+    if(url && url.host === "gfycat.com" && url.pathname.split("/").length === 2) return (): HideShowCleanup<Node> => {
+        const gfylink = url.pathname.replace("/", "").split("-")[0]!.toLowerCase();
+        return gfyLike("gfycat.com", gfylink, {autoplay: opts.autoplay});
+    };
+    if(url && url.host === "\x72\x65\x64gifs.com" && url.pathname.split("/").length === 3 && url.pathname.startsWith("/watch/")) return (): HideShowCleanup<Node> => {
+        const gfylink = url.pathname.replace("/watch/", "").split("-")[0]!.toLowerCase();
+        return gfyLike(url.host, gfylink, {autoplay: opts.autoplay});
+    };
     if(path.endsWith(".mp4") || path.endsWith(".webm")) return (): HideShowCleanup<Node> => {
-        const src = el("source").attr({src: link});
-        const video = el("video").attr({controls: ""}).clss("preview-image").adch(src);
-        let playing_before_hide = false;
-        const hsc = hideshow(video);
-        hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
-        hsc.on("show", () => {if(playing_before_hide) void video.play();});
-        return hsc;
+        return videoPreview([{src: path}], opts);
     };
     const ytvid = (youtube_video_id: string, search: URLSearchParams) => (): HideShowCleanup<Node> => {
         const container = el("div");
@@ -335,6 +402,7 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
         if(!galleryid.includes("/")) return (): HideShowCleanup<Node> => {
             const resdiv = el("div");
             const hsc = hideshow(resdiv);
+            const loader = loadingSpinner().adto(resdiv);
 
             fetch("https://api.imgur.com/3/gallery/"+galleryid).then(r => r.json()).then(r => {
                 const typed = r as ({
@@ -379,8 +447,10 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
                             return res;
                         }),
                     };
-                    renderBody(client, gallery, {autoplay: false}, el("div").adto(resdiv));
+                    renderBody(client, gallery, {autoplay: false}, el("div").adto(resdiv)).defer(hsc);
+                    loader.remove();
                 }else{
+                    if(loader.parentNode) loader.remove();
                     resdiv.adch(el("div").clss("error").atxt("Error loading imgur: "+typed.data.error));
                 }
             }).catch(e => {
