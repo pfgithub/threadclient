@@ -172,7 +172,7 @@ const wrapWithParentLink = (thread: Generic.Thread, host: string, parent_id: str
             content: "<a href=\""+escapeHTML(parentlink)+"\">View Parent</a>",
             markdown_format: "mastodon",
         },
-        display_mode: {body: "visible", comments: "collapsed"},
+        display_mode: {body: "visible", comments: "visible"},
         link: parentlink,
         layout: "reddit-post",
         default_collapsed: false,
@@ -274,7 +274,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                 } : undefined
             ],
         },
-        display_mode: {body: "visible", comments: "collapsed"},
+        display_mode: {body: "visible", comments: "visible"},
         link: "/"+host+"/statuses/"+post.id,
         layout: "mastodon-post",
         info,

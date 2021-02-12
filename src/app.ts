@@ -2038,7 +2038,13 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
 
         if(futureadd) addChild(futureadd);
     };
-    if(listing.replies) addChildren(listing.replies);
+    if(listing.replies) {
+        if(listing.display_mode.comments === "collapsed") {
+            // TODO uuh
+        }else{
+            addChildren(listing.replies);
+        }
+    }
 
     hsc.associated_data.addChildren = addChildren;
 
