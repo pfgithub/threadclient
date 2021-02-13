@@ -985,7 +985,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 replyButton(listing.name), {
                     kind: "link",
                     text: "Permalink",
-                    url: listing.permalink ?? "Error no permalink",
+                    url: listing.permalink ? updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}) : "Error no permalink",
                 },
                 deleteButton(listing.name),
                 saveButton(listing.name, listing.saved),
