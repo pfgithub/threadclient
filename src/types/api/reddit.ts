@@ -5,7 +5,7 @@ export type AccessToken =
     | {error: false, access_token: string, refresh_token: string, expires_in: number, scope: string}
 ;
 
-export type AnyResult = Page | Listing | MoreChildren | WikiPage;
+export type AnyResult = Page | Listing | WikiPage;
 
 export type WikiPage = {
     kind: "wikipage",
@@ -46,6 +46,8 @@ export type Rules = {
     // depricated
     // site_rules: string[],
 };
+// note "best" is "confidence"
+export type Sort = "confidence" | "top" | "new" | "controversial" | "old" | "random" | "qa" | "live" | "unsupported";
 
 export type SitewideRulesFlow = FlowRule[];
 
@@ -580,6 +582,8 @@ export type PostSubmission = PostOrComment & {
     // the new.reddit desktopapi gets a "deletedBy" property on both posts and comments
     // but unfortunately on the public api you have to check the comment body to determine if it is deleted
     removed_by_category: "moderator" | "deleted" | "anti_evil_ops" | "unsupported" | null,
+
+    suggested_sort?: Sort | null,
 };
 
 export type SimpleComment = {

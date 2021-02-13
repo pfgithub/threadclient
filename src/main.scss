@@ -148,13 +148,28 @@ a {
     color: var(--link-color);
 }
 
-.post {
+.object-wrapper {
     margin: 10px;
     padding: 10px;
-    padding-left: 30px;
     box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
     background-color: var(--post-color);
     border-radius: 10px;
+    & > .post {
+        padding-top: 0;
+        margin-left: -10px;
+        margin-top: -10px;
+        padding-top: 10px;
+        margin-bottom: -10px;
+        padding-bottom: 10px;
+    }
+}
+.post {
+    padding-left: 30px;
+    padding-top: 10px;
+}
+
+.replies > .comment:nth-child(1) {
+    margin-top: 5px;
 }
 
 .mobile-only {
@@ -172,7 +187,7 @@ a {
         margin-right: 0;
         margin-top: 0;
     }
-    .top-level-post {
+    .object-wrapper.top-level-wrapper {
         border-radius: 0;
         margin-left: 0;
         margin-right: 0;
@@ -191,20 +206,6 @@ a {
 
 .widget-content {
     font-size: small;
-}
-
-.replies > .comment:nth-child(1) {
-    margin-top: 5px;
-}
-
-.replies > .comment > .post {
-    box-shadow: none;
-    background-color: transparent;
-    padding-right: 0;
-    padding-top: 10px;
-    padding-bottom: 0;
-    margin: 0;
-    border-radius: 0;
 }
 
 ul.replies {
@@ -916,7 +917,7 @@ li.richtext-render-node > p:only-child {
         grid-row: verytop;
         grid-column: content / end;
     }
-    .header-post {
+    .header-area {
         grid-column: content;
         grid-row: header;
     }
@@ -924,12 +925,12 @@ li.richtext-render-node > p:only-child {
         grid-column: sidebar;
         grid-row: header / end;
     }
-    .comments-area {
+    .content-area {
         grid-column: content;
         grid-row: content;
     }
     .display-fullscreen-view {
-        .header-post {
+        .header-area {
             grid-column: content / end;
             grid-row: header;
         }
@@ -937,7 +938,7 @@ li.richtext-render-node > p:only-child {
             grid-column: sidebar;
             grid-row: content;
         }
-        .comments-area {
+        .content-area {
             grid-column: content;
             grid-row: content;
         }

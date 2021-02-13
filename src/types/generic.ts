@@ -2,11 +2,24 @@
 
 export type Page = {
     title: string,
-    header: ContentNode,
     sidebar?: ContentNode[],
     reply_button?: Action,
-    replies?: Node[],
+    body: {
+        kind: "listing",
+        header: ContentNode,
+        previous?: LoadMore,
+        items: UnmountedNode[],
+        next?: LoadMoreUnmounted,
+    } | {
+        kind: "one",
+        item: UnmountedNode,
+    },
     display_style: string,
+};
+export type UnmountedNode = {
+    // [...Node[], ContentNode] // requires a newer version of typescript
+    parents: Node[], // might contain load_more. the last item in parents is this_node.
+    replies: Node[],
 };
 export type BodyText = {
     kind: "text",
@@ -185,12 +198,19 @@ export type Info = {
 export type RebloggedBy = Info;
 export type LoadMore = {
     kind: "load_more",
-    load_more: string,
+    load_more: Opaque<"load_more">,
+    url: string, // right click, open in new tab
     count?: number,
-    includes_parent?: boolean,
 
     raw_value: unknown,
-    next?: LoadMore,
+};
+export type LoadMoreUnmounted = {
+    kind: "load_more_unmounted",
+    load_more_unmounted: Opaque<"load_more_unmounted">,
+    url: string,
+    count?: number,
+    
+    raw_value: unknown,
 };
 export type Profile = {
     kind: "user-profile",
@@ -273,7 +293,7 @@ export type Action = {
     data: Opaque<"report">,
 };
 
-export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path";
+export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more" | "load_more_unmounted";
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 
 // a counter or a button with 2-3 states

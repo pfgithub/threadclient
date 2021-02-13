@@ -110,7 +110,7 @@ declare namespace Mastodon {
 
 const error404 = (msg = "404 not found"): Generic.Page => ({
     title: "Error",
-    header: {
+    body: {kind: "one", item: {parents: [{
         kind: "thread",
         title: {text: "Error"},
         body: {
@@ -127,7 +127,7 @@ const error404 = (msg = "404 not found"): Generic.Page => ({
         actions: [],
         default_collapsed: false,
         raw_value: {},
-    },
+    }], replies: []}},
     display_style: "comments-view",
 });
 const genericHeader = (): Generic.Thread => ({
@@ -492,7 +492,7 @@ export const client: ThreadClient = {
         console.log(resv);
     },
 
-    getThread: async (pathraw, from) => {
+    getThread: async (pathraw) => {
         const [beforequery, afterquery_raw] = pathraw.split("?") as [string, string | undefined];
         const afterquery = afterquery_raw ?? "";
         const pathsplit = beforequery.split("/");
@@ -519,11 +519,16 @@ export const client: ThreadClient = {
             
             const res: Generic.Page = {
                 title: "Status",
-                header: genericHeader(),
-                replies: [
-                    ...context.ancestors.map(a => postToThread(host, a)),
-                    postArrayToReparentedThread(host, postinfo, context.descendants),
-                ],
+                body: {
+                    kind: "one",
+                    item: {
+                        parents: [
+                            ...context.ancestors.map(a => postToThread(host, a)),
+                            postArrayToReparentedThread(host, postinfo, context.descendants),
+                        ],
+                        replies: [],
+                    },
+                },
                 display_style: "comments-view",
             };
             return res;
@@ -583,6 +588,20 @@ export const client: ThreadClient = {
     sendReply(reply_text, reply_info) {
         throw new Error("NIY");
     },
+
+    async loadMore(action) {
+        throw new Error("not used");
+    },
+    async loadMoreUnmounted(action) {
+        const act = load_more_unmounted_encoder.decode(action);
+        const auth = await getAuth(act.tl_info.host);
+        const timeline_view = await timelineView(act.tl_info.host, auth, act.tl_info.api_path, act.tl_info.web_path, genericHeader());
+        if(timeline_view.body.kind === "listing") {
+            return {children: timeline_view.body.items, next: timeline_view.body.next};
+        }
+        console.log("ERROR got", timeline_view);
+        throw new Error("TODO support "+timeline_view.body.kind);
+    },
 };
 
 async function performBasicPostAction(host: string, url: string): Promise<void> {
@@ -608,15 +627,32 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
 
     const last_post = posts[posts.length - 1];
 
+    let next: Generic.LoadMoreUnmounted | undefined;
+    if(last_post) {
+        const updated_link = updateQuery("/"+host+web_path, {since_id: undefined, min_id: undefined, max_id: last_post.id});
+        next = {
+            kind: "load_more_unmounted",
+            load_more_unmounted: load_more_unmounted_encoder.encode({kind: "timeline", tl_info: {host, api_path, web_path}}),
+            url: updated_link,
+            raw_value: last_post,
+        };
+    }
+
     const res: Generic.Page = {
         title: "Timeline | "+web_path,
-        header: header,
-        replies: [...postArrayToReparentedTimeline(host, posts), ...last_post ? [{
-            kind: "load_more",
-            load_more: updateQuery("/"+host+web_path, {since_id: undefined, min_id: undefined, max_id: last_post.id}),
-            raw_value: "",
-        } as Generic.LoadMore] : []],
+        body: {
+            kind: "listing",
+            header,
+            items: postArrayToReparentedTimeline(host, posts).map(post => ({parents: [post], replies: []})),
+            next: next,
+        },
         display_style: "comments-view",
     };
     return res;
 }
+
+type LoadMoreUnmountedData = {
+    kind: "timeline",
+    tl_info: {host: string, api_path: string, web_path: string},
+};
+const load_more_unmounted_encoder = encoderGenerator<LoadMoreUnmountedData, "load_more_unmounted">("load_more_unmounted");

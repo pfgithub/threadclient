@@ -218,7 +218,7 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     };
     video.onplay = () => {
         sync();
-    }
+    };
     video.onplaying = () => {
         sync();
         void audio.play();
@@ -249,12 +249,12 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
 }
 function videoPreview(sources: {src: string, type?: string}[], opts: {autoplay: boolean, width?: number, height?: number}): HideShowCleanup<Node> {
     const video = el("video").attr({controls: "",
-        width: opts.width ? `${opts.width}px` as const : undefined, height: opts.height ? `${opts.height}px` as const : undefined
+        width: opts.width != null ? `${opts.width}px` as const : undefined, height: opts.height != null ? `${opts.height}px` as const : undefined
     }).clss("preview-image");
     sources.forEach(source => {
         el("source").attr({src: source.src, type: source.type}).adto(video);
-    })
-    if(opts.autoplay) video.play();
+    });
+    if(opts.autoplay) void video.play();
     let playing_before_hide = false;
     const hsc = hideshow(video);
     hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
@@ -268,7 +268,7 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
     const loader = loadingSpinner().adto(resdiv);
     
     fetch("https://api."+gfy_host+"/v1/gfycats/"+gfy_link).then(r => r.json()).then(r => {
-        loader.remove()
+        loader.remove();
         type GfyContentUrl = {
             url: string,
             size: number,
@@ -1069,7 +1069,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         const existing_body_v = el("div").adto(content);
         renderBody(client, body.body, {autoplay: opts.autoplay}, existing_body_v).defer(hsc);
     }else if(body.kind === "crosspost") {
-        const parentel = el("div").styl({"max-width": "max-content"}).adto(content);
+        const parentel = el("div").styl({"max-width": "max-content"}).clss("object-wrapper").adto(content);
         clientContent(client, body.source).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
         const txta = el("div").adto(content).clss("richtext-container");
@@ -2080,22 +2080,16 @@ function loadingSpinner() {
 // doesn't matter atm but later.
 function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChildren: (children: Generic.Node[]) => void, removeSelf: () => void) {
     const container = el("div");
-    const makeButton = () => linkButton(client.id, load_more_node.load_more, {onclick: ev => {
+    const makeButton = () => linkButton(client.id, load_more_node.url, {onclick: ev => {
         const loading_txt = el("div").adto(container);
         loading_txt.adch(el("span").atxt("Loading…"));
         loading_txt.adch(loadingSpinner());
         current_node.remove();
         current_node = loading_txt;
 
-        client.getThread(load_more_node.load_more, "loadmore").then(res => {
+        client.loadMore(load_more_node.load_more).then(res => {
             current_node.remove();
-            if((load_more_node.includes_parent ?? false) && res.replies && res.replies.length === 1) {
-                res.replies = (res.replies[0] as Generic.Thread).replies ?? [];
-            }
-            addChildren([
-                ...res.replies ?? [],
-                ...load_more_node.next ? [load_more_node.next] : [],
-            ]);
+            addChildren(res);
             removeSelf();
         }).catch(e => {
             console.log("error loading more:", e);
@@ -2110,6 +2104,47 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
     linkLikeButton().onev("click", e => {
         console.log(load_more_node);
     }).atxt("Code").adto(container);
+    return container;
+}
+// kind of a mess uuh
+// the idea is that this can look different than other load more nodes
+// but uuh
+function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: Generic.LoadMoreUnmounted,
+    addChildren: (children: Generic.UnmountedNode[]) => void, removeSelf: () => void
+) {
+    const container = el("div");
+    const makeButton = (lmnode: Generic.LoadMoreUnmounted) => linkButton(client.id, lmnode.url, {onclick: ev => {
+        const loading_txt = el("div").adto(container);
+        loading_txt.adch(el("span").atxt("Loading…"));
+        loading_txt.adch(loadingSpinner());
+        if(current_node) current_node.remove();
+        current_node = loading_txt;
+
+        client.loadMoreUnmounted(lmnode.load_more_unmounted).then(res => {
+            if(current_node) current_node.remove();
+            addChildren(res.children);
+            if(res.next) {
+                mkbtn(res.next);
+            }else{
+                removeSelf();
+            }
+        }).catch(e => {
+            console.log("error loading more:", e);
+            if(current_node && current_node.parentNode) current_node.remove();
+            current_node = el("span").atxt("Error. ").adch(makeButton(lmnode).atxt("🗘 Retry")).adto(container);
+        });
+    }});
+
+    const mkbtn = (lmnode: Generic.LoadMoreUnmounted) => {
+        current_node = el("div").adch(
+            makeButton(lmnode).atxt(lmnode.count != null ? "Load "+lmnode.count+" More…" : "Load More…").adto(container).clss("load-more")
+        ).atxt(" ").adch(linkLikeButton().onev("click", e => {
+            console.log(lmnode);
+        }).atxt("Code")).adto(container);
+    };
+
+    let current_node: ChildNode | undefined;
+    mkbtn(load_more_node_initial);
     return container;
 }
 
@@ -2156,15 +2191,16 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        const listing = await client.getThread(current_path, "pageload");
+        const listing = await client.getThread(current_path);
         title.setTitle(listing.title);
 
         frame.classList.add("display-"+listing.display_style);
         loader_area.remove();
 
-        const header_area = el("div").adto(frame).clss("header-post");
-        
-        clientContent(client, listing.header).defer(hsc).adto(header_area).clss("top-level-post");
+        const header_area = el("div").adto(frame).clss("header-area");
+        const content_area = el("div").adto(frame).clss("content-area");
+
+        const toplevel = () => el("div").clss("top-level-wrapper", "object-wrapper");
 
         if(listing.sidebar) {
             // on mobile, ideally this would be a link that opens the sidebar in a new history item
@@ -2173,25 +2209,83 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             });
             const sidebar_area = el("div").adto(frame).clss("sidebar-area");
             for(const sidebar_elem of listing.sidebar) {
-                clientContent(client, sidebar_elem).defer(hsc).adto(sidebar_area).clss("top-level-post");
+                clientContent(client, sidebar_elem).defer(hsc).adto(toplevel().adto(sidebar_area));
             }
         }
-        
-        const comments_area = el("div").adto(frame).clss("comments-area");
 
-        const addChildren = (children: Generic.Node[]) => {
-            children.forEach(v => addChild(v));
-        };
-        const addChild = (child_listing: Generic.Node) => {
-            if(child_listing.kind === "load_more") {
-                const lmbtn = loadMoreButton(client, child_listing, addChildren, () => lmbtn.remove());
-                lmbtn.adto(comments_area);
-                return;
+        if(listing.body.kind === "listing") {
+            clientContent(client, listing.body.header).defer(hsc).adto(toplevel().adto(header_area));
+
+            const listing_area = el("div").adto(content_area);
+            const addChildren = (children: Generic.UnmountedNode[]) => {
+                for(const child of children) addChild(child);   
+            };
+            const addChild = (child: Generic.UnmountedNode) => {
+                // TODO show parent nodes and stuff
+                if(child.parents.length === 0) {
+                    const errn = el("div").clss("error").atxt("unmounted.parents.length === 0");
+                    errn.adto(toplevel().adto(listing_area));
+                    return;
+                }
+                const toplevel_area = toplevel().adto(listing_area);
+                const last_parent = child.parents[child.parents.length - 1]!;
+                if(last_parent.kind === "load_more") throw new Error("this error will never nope");
+                clientContent(client, last_parent).defer(hsc).adto(toplevel_area);
+            };
+            addChildren(listing.body.items);
+
+            if(listing.body.next) {
+                const lmub = loadMoreUnmountedButton(client, listing.body.next, addChildren, () => lmub.remove());
+                lmub.adto(content_area);
             }
-            clientContent(client, child_listing).defer(hsc).adto(comments_area).clss("top-level-post");
-        };
-        if(listing.replies) addChildren(listing.replies);
-        if(listing.replies?.length === 0) txt("There is nothing here").adto(comments_area);
+        }else if(listing.body.kind === "one") {
+            // TODO: all the parent items go into the same post shadow box thing
+            // then each child goes in a seperate one
+            // ALSO todo: rather than having a top-level-post class,
+            // instead have a "top-level-post-frame" div that wraps top level items
+            for(const parent of listing.body.item.parents) {
+                if(parent.kind === "load_more") {
+                    // uuh uuh
+                    el("div").clss("error").atxt("todo load more here").adto(header_area);
+                    return;
+                }
+                clientContent(client, parent).defer(hsc).adto(toplevel().adto(header_area));
+            }
+            const addChildren = (children: Generic.Node[]) => {
+                for(const child of children) addChild(child);
+            };
+            const addChild = (child: Generic.Node) => {
+                if(child.kind === "load_more") {
+                    const lmbtn = loadMoreButton(client, child, addChildren, () => lmbtn.remove());
+                    lmbtn.adto(content_area).clss("top-level-load-more");
+                    return;
+                }
+                clientContent(client, child).defer(hsc).adto(toplevel().adto(content_area));
+            };
+            addChildren(listing.body.item.replies);
+        }else assertNever(listing.body);
+
+        
+        // clientContent(client, listing.header).defer(hsc).adto(header_area).clss("top-level-post");
+
+        // if(listing.sidebar) {
+        // }
+        
+        // const comments_area = el("div").adto(frame).clss("comments-area");
+
+        // const addChildren = (children: Generic.Node[]) => {
+        //     children.forEach(v => addChild(v));
+        // };
+        // const addChild = (child_listing: Generic.Node) => {
+        //     if(child_listing.kind === "load_more") {
+        //         const lmbtn = loadMoreButton(client, child_listing, addChildren, () => lmbtn.remove());
+        //         lmbtn.adto(comments_area);
+        //         return;
+        //     }
+        //     clientContent(client, child_listing).defer(hsc).adto(comments_area).clss("top-level-post");
+        // };
+        // if(listing.replies) addChildren(listing.replies);
+        // if(listing.replies?.length === 0) txt("There is nothing here").adto(comments_area);
     })().catch(e => {
         console.log(e, e.stack);
         if(loader_area.parentNode) loader_area.remove();

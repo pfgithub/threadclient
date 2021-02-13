@@ -592,59 +592,29 @@ function makeSidebar(extra: PageExtra, mode_raw: "both" | "header" | "sidebar"):
     return null;
 }
 const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
+    const [, path_query] = splitURL(path);
+    const path_sort = path_query.get("sort") as Reddit.Sort | null;
     if(Array.isArray(listing)) {
         let link_fullname: string | undefined;
+        let default_sort: Reddit.Sort | null | undefined = null;
         const firstchild = listing[0].data.children[0]!;
         if(firstchild.kind === "t3") {
             link_fullname = firstchild.data.name;
+            default_sort = firstchild.data.suggested_sort;
         }
+        const sort_v = path_sort ?? default_sort ?? "confidence";
         return {
             title: firstchild.kind === "t3" ? firstchild.data.title : "ERR top not t3",
-            header: threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, path) as Generic.Thread,
-            replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, path)),
-            ...makeSidebar(extra, "both"),
-            display_style: "comments-view",
-        };
-    }
-    if('json' in listing) {
-        if(listing.json.errors.length > 0) {
-            console.log(listing.json.errors);
-            alert("errors, check console");
-        }
-
-        // reparent comments because morechildren returns a flat array of comments rather than a tree
-        const reparenting: Reddit.PostCommentLike[] = [];
-        const id_map = new Map<string, Reddit.PostCommentLike>();
-        for(const item of listing.json.data.things) {
-            id_map.set(item.data.name, item);
-            const parent_comment = id_map.get(item.data.parent_id);
-            if(parent_comment) {
-                if(parent_comment.kind !== "t1") {
-                    throw new Error("expected t1 here");
-                }
-                // ||= because replies might be "" if it's empty
-                parent_comment.data.replies ||= {kind: "Listing", data: {before: null, children: [], after: null}};
-                parent_comment.data.replies.data.children.push(item);
-            }else{
-                reparenting.push(item);
-            }
-        }
-        const [, query] = splitURL(path);
-
-        return {
-            title: "MoreChildren",
-            header: {
-                kind: "thread",
-                title: {text: "MoreChildren"},
-                body: {kind: "text", content: "MoreChildren", markdown_format: "none"},
-                display_mode: {body: "collapsed", comments: "collapsed"},
-                link: "TODO no link",
-                layout: "error",
-                actions: [],
-                default_collapsed: false,
-                raw_value: {},
+            body: {
+                kind: "one",
+                item: {
+                    parents: [
+                        threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, {permalink: path, sort: "unsupported"}),
+                        // TODO if comments[0].parent node id !== parent node id, add a "load more" here
+                    ],
+                    replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, {permalink: updateQuery(path, {sort: sort_v}), sort: sort_v})),
+                },
             },
-            replies: reparenting.map(child => threadFromListing(child, {link_fullname: query.get("link_id") ?? undefined}, path)),
             ...makeSidebar(extra, "both"),
             display_style: "comments-view",
         };
@@ -652,71 +622,125 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
     if(listing.kind === "wikipage") {
         return {
             title: path + " | Wiki",
-            header: {
-                kind: "thread",
-                raw_value: listing,
-                body: {kind: "text", markdown_format: "reddit_html", content: listing.data.content_html},
-                display_mode: {body: "visible", comments: "visible"},
-                link: path,
-                layout: "error",
-                actions: [],
-                default_collapsed: false,
+            body: {
+                kind: "one",
+                item: {
+                    parents: [{
+                        kind: "thread",
+                        raw_value: listing,
+                        body: {kind: "text", markdown_format: "reddit_html", content: listing.data.content_html},
+                        display_mode: {body: "visible", comments: "visible"},
+                        link: path,
+                        layout: "error",
+                        actions: [],
+                        default_collapsed: false,
+                    }],
+                    replies: [],
+                },
             },
             ...makeSidebar(extra, "both"),
             display_style: "comments-view",
         };
     }
     if(!('data' in listing) || listing.kind !== "Listing") {
+        const rtitems: Generic.Richtext.Paragraph[] = [];
+        const listing_json = listing as {json: {errors: string[]}};
+        if('json' in listing_json && 'errors' in listing_json.json && Array.isArray(listing_json.json.errors)) {
+            if(listing_json.json.errors.length > 0) {
+                rtitems.push({
+                    kind: "heading",
+                    level: 1,
+                    children: [{kind: "text", text: "Errors:", styles: {}}],
+                });
+                rtitems.push({
+                    kind: "list",
+                    ordered: false,
+                    children: listing_json.json.errors.map(error => {
+                        const res: Generic.Richtext.Paragraph = {kind: "list_item", children: [{kind: "paragraph", children: [{kind: "text", text: error, styles: {}}]}]};
+                        return res;
+                    }),
+                });
+            }
+        }
         return {
             title: path + " | Error View",
-            header: {
-                kind: "thread",
-                raw_value: listing,
-                body: {kind: "richtext", content: [{kind: "code_block", text: JSON.stringify(listing, null, "\t")}]},
-                display_mode: {body: "visible", comments: "visible"},
-                link: path,
-                layout: "error",
-                actions: [],
-                default_collapsed: false,
+            body: {
+                kind: "one",
+                item: {
+                    parents: [{
+                        kind: "thread",
+                        raw_value: listing,
+                        body: {kind: "richtext", content: [...rtitems, {kind: "code_block", text: JSON.stringify(listing, null, "\t")}]},
+                        display_mode: {body: "visible", comments: "visible"},
+                        link: path,
+                        layout: "error",
+                        actions: [],
+                        default_collapsed: false,
+                    }],
+                    replies: [],
+                },
             },
             ...makeSidebar(extra, "both"),
             display_style: "comments-view",
         };
     }
-
-    const replies = listing.data.children.map(child => threadFromListing(child, undefined, path));
-    if(listing.data.before != null) {
-        // TODO?
+    
+    if(listing.data.before != null){
+        // TODO
     }
+    let next: Generic.LoadMoreUnmounted | undefined;
     if(listing.data.after != null) {
         const next_path = updateQuery(path, {before: undefined, after: listing.data.after});
-        replies.push({kind: "load_more", load_more: next_path, count: undefined, raw_value: listing});
+        next = {kind: "load_more_unmounted", load_more_unmounted: load_more_unmounted_encoder.encode({kind: "listing", url: next_path}), url: next_path, count: undefined, raw_value: listing};
     }
 
     return {
         title: path,
-        header: extra.subinfo  && extra.subinfo.widgets
-            ? {
-                kind: "hlist",
-                items: sidebarFromWidgets(extra.subinfo, "header"),
-            }
-            : {
-                kind: "thread",
-                title: {text: "Listing"},
-                body: {kind: "text", content: "Listing", markdown_format: "none"},
-                display_mode: {body: "collapsed", comments: "collapsed"},
-                link: "TODO no link",
-                layout: "error",
-                actions: [],
-                default_collapsed: false,
-                raw_value: listing,
-            }
-        ,
-        replies,
+        body: {
+            kind: "listing",
+            header: extra.subinfo && extra.subinfo.widgets
+                ? {
+                    kind: "hlist",
+                    items: sidebarFromWidgets(extra.subinfo, "header"),
+                }
+                : {
+                    kind: "thread",
+                    title: {text: "Listing"},
+                    body: {kind: "text", content: "Listing", markdown_format: "none"},
+                    display_mode: {body: "collapsed", comments: "collapsed"},
+                    link: "TODO no link",
+                    layout: "error",
+                    actions: [],
+                    default_collapsed: false,
+                    raw_value: listing,
+                }
+            ,
+            items: listing.data.children.map(child => ({parents: [threadFromListing(child, undefined, {permalink: path, sort: "unsupported"})], replies: []})),
+            next,
+        },
         ...makeSidebar(extra, "sidebar"),
         display_style: "fullscreen-view",
     };
 };
+
+type LoadMoreUnmountedData = {
+    kind: "listing",
+    url: string,
+} | {
+    kind: "TODO more",
+};
+const load_more_unmounted_encoder = encoderGenerator<LoadMoreUnmountedData, "load_more_unmounted">("load_more_unmounted");
+
+type LoadMoreData = {
+    kind: "api_loadmore",
+    link_fullname: string,
+    children: string[],
+    parent_permalink: SortedPermalink,
+} | {
+    kind: "parent_permalink",
+    permalink: string,
+};
+const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Generic.Action => {
     // not sure what rank is for
     const vote_data = {id: listing.name, rank: "2"};
@@ -739,7 +763,7 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
         } : {error: "not logged in"},
     };
 };
-const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
+const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
     try {
         const res = threadFromListingMayError(listing_raw, options, parent_permalink);
         if(listing_raw.kind === "t1" && 'link_title' in listing_raw.data) {
@@ -826,9 +850,22 @@ const saveButton = (fullname: string, saved: boolean): Generic.Action => {
 
 const fetch_path = encoderGenerator<{path: string}, "fetch_removed_path">("fetch_removed_path");
 
+type SortedPermalink = {
+    permalink: string, // with sort param
+    sort: Reddit.Sort,
+};
+
+// TODO instead of this, make a function to get the permalink from a SortedPermalink object
+function sortWrap(parent: SortedPermalink, next: string): SortedPermalink {
+    return {
+        permalink: updateQuery(next, {sort: parent.sort}),
+        sort: parent.sort,
+    };
+}
+
 const as = <T>(a: T): T => a;
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
-const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: string): Generic.Node => {
+const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
     options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
         // Comment
@@ -889,7 +926,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             default_collapsed: listing.collapsed,
         };
         if(listing.replies) {
-            result.replies = listing.replies.data.children.map(v => threadFromListing(v, options, listing.permalink));
+            result.replies = listing.replies.data.children.map(v => threadFromListing(v, options, sortWrap(parent_permalink, listing.permalink)));
         }
         return result;
     }else if(listing_raw.kind === "t3") {
@@ -912,7 +949,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
 
         const body_content: Generic.Body = listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
             ? {kind: "crosspost", source:
-                threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]!}, {force_expand: "crosspost"}, listing.permalink) as Generic.Thread
+                threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]!}, {force_expand: "crosspost"}, sortWrap(parent_permalink, listing.permalink)) as Generic.Thread
             }
             : listing.is_self
             ? {kind: "array",
@@ -1055,12 +1092,6 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 text: "Duplicates"
             }, reportButton(listing.name, listing.subreddit)],
             default_collapsed: false,
-            replies: options.show_post_reply_button ?? false ? undefined : [{
-                kind: "load_more",
-                raw_value: undefined,
-                load_more: listing.permalink,
-                count: listing.num_comments,
-            }],
         };
         return result;
     }else if(listing_raw.kind === "more") {
@@ -1069,45 +1100,26 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         if(listing.children.length === 0) {
             return {
                 kind: "load_more",
-                load_more: parent_permalink,
+                load_more: load_more_encoder.encode({kind: "parent_permalink", permalink: parent_permalink.permalink}),
+                url: parent_permalink.permalink,
                 count: undefined,
                 raw_value: listing_raw,
-                includes_parent: true,
             };
         }
 
-        const batches: string[][] = [];
-        let current_batch: string[] = [];
-        for(const itm of listing.children) {
-            current_batch.push(itm);
-            if(current_batch.length === 100) {
-                batches.push(current_batch);
-                current_batch = [];
-            }
-        }
-        batches.push(current_batch);
-        let root: Generic.LoadMore | undefined;
-        let current = root;
-        for(const batch of batches) {
-            const envy: Generic.LoadMore = {
-                kind: "load_more",
-                load_more: options.link_fullname != null
-                    ? "/api/morechildren?api_type=json&limit_children=false&children="+batch.join(",")+"&link_id="+options.link_fullname
-                    : "Error: No link fullname provided."
-                ,
-                count: listing.count,
-                raw_value: listing_raw,
-            };
-            if(!current) {
-                root = envy;
-                current = root;
-            }else{
-                current.next = envy;
-                current = envy;
-            }
-        }
-        if(!root) throw new Error("this should never happen");
-        return root;
+        if(options.link_fullname == null) throw new Error("!options.link_fullname");
+        return {
+            kind: "load_more",
+            load_more: load_more_encoder.encode({
+                kind: "api_loadmore",
+                link_fullname: options.link_fullname,
+                children: listing.children,
+                parent_permalink,
+            }),
+            url: parent_permalink.permalink,
+            count: listing.children.length,
+            raw_value: listing_raw,
+        };
     }else{ //eslint-disable-line no-else-return
         return {
             kind: "thread",
@@ -1153,7 +1165,7 @@ export const client: ThreadClient = {
     ],
     isLoggedIn,
     loginURL: getLoginURL(),
-    async getThread(pathraw, from): Promise<Generic.Page> {
+    async getThread(pathraw): Promise<Generic.Page> {
         const [pathrawpath, pathrawquery] = splitURL(pathraw);
         const pathsplit = pathrawpath.split("/");
         if(pathsplit[1] === "u") pathsplit[1] = "user";
@@ -1164,14 +1176,14 @@ export const client: ThreadClient = {
 
         try {
             const [listing, widgets, sub_t5] = await Promise.all([
-                redditRequest<Reddit.Page | Reddit.Listing | Reddit.MoreChildren>(path, {
+                redditRequest<Reddit.AnyResult>(path, {
                     method: "GET",
                 }),
-                is_subreddit != null && from === "pageload"
+                is_subreddit != null
                     ? redditRequest<Reddit.ApiWidgets | undefined>("/r/"+is_subreddit+"/api/widgets", {method: "GET", onerror: e => undefined, cache: true})
                     : undefined
                 ,
-                is_subreddit != null && from === "pageload"
+                is_subreddit != null
                     ? redditRequest<Reddit.T5 | undefined>("/r/"+is_subreddit+"/about", {method: "GET", onerror: e => undefined, cache: true})
                     : undefined
                 ,
@@ -1189,7 +1201,7 @@ export const client: ThreadClient = {
             
             return {
                 title: "Error",
-                header: {
+                body: {kind: "one", item: {parents: [{
                     kind: "thread",
                     title: {text: "Error"},
                     body: {
@@ -1211,7 +1223,7 @@ export const client: ThreadClient = {
                     actions: [],
                     default_collapsed: false,
                     raw_value: {},
-                },
+                }], replies: []}},
                 display_style: "comments-view",
             };
         }
@@ -1420,7 +1432,7 @@ export const client: ThreadClient = {
         }
         console.log(reply);
         // the reply also has a "rte_mode": "markdown" | "unsupported"
-        return threadFromListing({kind: "t1", data: reply}, {}, "TODO");
+        return threadFromListing({kind: "t1", data: reply}, {}, {permalink: "TODO", sort: "unsupported"});
     },
     async fetchReportScreen(data_raw) {
         const data = report_encoder.decode(data_raw);
@@ -1516,11 +1528,100 @@ export const client: ThreadClient = {
             body: text != null ? {kind: "text", content: text, markdown_format: "none"} : {kind: "none"},
         };
     },
+
+    async loadMore(action: Generic.Opaque<"load_more">): Promise<Generic.Node[]> {
+        const act = load_more_encoder.decode(action);
+        if(act.kind === "api_loadmore") {
+            const remaining = act.children;
+            const batch = remaining.splice(0, 100);
+
+            const url = "/api/morechildren?api_type=json&limit_children=false&children="+batch.join(",")+"&link_id="+encodeURIComponent(act.link_fullname)+"&sort="+act.parent_permalink.sort;
+            const resp = await redditRequest<Reddit.MoreChildren>(url, {
+                method: "GET",
+            });
+
+            if(resp.json.errors.length > 0) {
+                console.log("got errors", resp);
+                throw new Error("Got errors: "+resp.json.errors.join(", "));
+            }
+
+            const reparenting: Reddit.PostCommentLike[] = [];
+            const id_map = new Map<string, Reddit.PostCommentLike>();
+
+            for(const item of resp.json.data.things) {
+                id_map.set(item.data.name, item);
+                const parent_comment = id_map.get(item.data.parent_id);
+                if(parent_comment) {
+                    if(parent_comment.kind !== "t1") {
+                        throw new Error("expected t1 here");
+                    }
+                    // ||= because replies might be "" if it's empty
+                    parent_comment.data.replies ||= {kind: "Listing", data: {before: null, children: [], after: null}};
+                    parent_comment.data.replies.data.children.push(item);
+                }else {
+                    reparenting.push(item);
+                }
+            }
+
+            const res_value = reparenting.map(child => threadFromListing(child, {link_fullname: act.link_fullname}, act.parent_permalink));
+
+            if(remaining.length > 0) {
+                const last_res_value = res_value[res_value.length - 1];
+                if(last_res_value && last_res_value.kind === "load_more") {
+                    const decoded = load_more_encoder.decode(last_res_value.load_more);
+                    if(decoded.kind === "api_loadmore") {
+                        decoded.children = [...remaining, ...decoded.children];
+                        last_res_value.load_more = load_more_encoder.encode(decoded);
+                    }else{
+                        throw new Error("bad (this is not good)");
+                    }
+                }else res_value.push({
+                    kind: "load_more",
+                    load_more: load_more_encoder.encode({kind: "api_loadmore", link_fullname: act.link_fullname, children: remaining, parent_permalink: act.parent_permalink}),
+                    url: act.parent_permalink.permalink,
+                    raw_value: remaining,
+                });
+            }
+
+            return res_value;
+        }else if(act.kind === "parent_permalink") {
+            // TODO: request to skip the parent post
+            const resp = await redditRequest<Reddit.Page>(act.permalink, {
+                method: "GET",
+            });
+            const translated_resp = pageFromListing(act.permalink, resp, {});
+            if(translated_resp.body.kind === "one") {
+                return translated_resp.body.item.replies;
+            }
+            console.log("Error", translated_resp);
+            throw new Error("todo support load more returning other body ("+translated_resp.body.kind+")");
+        }else assertNever(act);
+    },
+    async loadMoreUnmounted(action: Generic.Opaque<"load_more_unmounted">): Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}> {
+        const act = load_more_unmounted_encoder.decode(action);
+        if(act.kind === "listing") {
+            const resp = await redditRequest<Reddit.Page>(act.url, {
+                method: "GET",
+            });
+            const translated_resp = pageFromListing(act.url, resp, {});
+            if(translated_resp.body.kind === "listing") {
+                return {children: translated_resp.body.items, next: translated_resp.body.next};
+            }
+            console.log("Error", translated_resp);
+            throw new Error("todo support load more returning other body ("+translated_resp.body.kind+")");
+        }else if(act.kind === "TODO more") {
+            throw new Error("TODO more");
+        }else assertNever(act);
+    },
 };
-const assertNever = (v: never): never => {
-    console.log("not never", v);
+
+// turns out (content: never): never => {} doesn't work properly
+// TODO make a util.ts file that has stuff like assertNever, expectUnsupported, …
+// or add expectUnsupported to base.ts
+function assertNever(content: never): never {
+    console.log("not never:", content);
     throw new Error("Expected never");
-};
+}
 const siteRuleToReportScreen = (data: ReportInfo, site_rule: Reddit.FlowRule): Generic.ReportScreen => {
     let action: Generic.ReportAction;
     if('nextStepReasons' in site_rule) {

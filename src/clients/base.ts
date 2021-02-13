@@ -6,7 +6,7 @@ export type ThreadClient = {
     links: () => [string, () => string][],
     isLoggedIn: (path: string) => boolean,
     loginURL: string | ((path: string) => Promise<string>),
-    getThread: (path: string, from: "pageload" | "loadmore") => Promise<Generic.Page>,
+    getThread: (path: string) => Promise<Generic.Page>,
     login: (path: string[], query: URLSearchParams) => Promise<void>,
     fetchRemoved?: (fetch_removed_path: Generic.Opaque<"fetch_removed_path">) => Promise<Generic.Body>,
     //v I guess this should return the updated action state. mastodon returns an entire updated post, reddit returns nothing.
@@ -16,6 +16,9 @@ export type ThreadClient = {
     sendReport?: (action: Generic.Opaque<"send_report">, text?: string) => Promise<Generic.SentReport>,
     previewReply: (body: string, reply_info: Generic.Opaque<"reply">) => Generic.Thread,
     sendReply: (body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>,
+
+    loadMore: (action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>,
+    loadMoreUnmounted: (action: Generic.Opaque<"load_more_unmounted">) => Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}>,
 };
 
 //eslint-disable-next-line @typescript-eslint/ban-types

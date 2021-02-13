@@ -86,9 +86,9 @@ const void_vs: {[key in VoidElementType]: true} = {
 type SpanElement = SpoilerSpan | ErrorSpan;
 type VoidElement = ErrorSpan;
 
-type InlineElementType = SpanElement["type"];
-type BlockElementType = BlockElement["type"];
-type VoidElementType = VoidElement["type"];
+export type InlineElementType = SpanElement["type"];
+export type BlockElementType = BlockElement["type"];
+export type VoidElementType = VoidElement["type"];
 
 type AnySpan = Leaf | SpanElement;
 type AnyElement = BlockElement | SpanElement;
@@ -161,7 +161,7 @@ const withPlugin = (editor: Editor): Editor => {
         const element = element_raw as AnyElement;
         if(element.type in void_vs) return true;
         return isVoid(element);
-    }
+    };
     // editor.insertText // this can be used to detect "u/" or "/u/" and show a list of users eg
 
     editor.insertText = (arg) => {
@@ -196,7 +196,7 @@ const withPlugin = (editor: Editor): Editor => {
 
 function expectNeverValue<T>(a: never, b: T): T {
     return b;
-};
+}
 
 // TODO: down arrow at bottom of page : insert a paragraph below if the outer element is not a paragraph
 export const App: React.FC = (): React.ReactElement => {
