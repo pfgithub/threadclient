@@ -2247,7 +2247,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
                 if(parent.kind === "load_more") {
                     // uuh uuh
                     el("div").clss("error").atxt("todo load more here").adto(header_area);
-                    return;
+                    continue;
                 }
                 clientContent(client, parent).defer(hsc).adto(toplevel().adto(header_area));
             }

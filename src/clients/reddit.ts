@@ -603,6 +603,73 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
             default_sort = firstchild.data.suggested_sort;
         }
         const sort_v = path_sort ?? default_sort ?? "confidence";
+        const children_root = listing[1].data.children;
+        const header_children: Generic.Node[] = [];
+        if(children_root[0] && children_root[0].kind === "t1" && children_root[0].data.parent_id !== link_fullname) {
+            header_children.push({kind: "load_more", load_more: load_more_encoder.encode({
+                kind: "context",
+            }), url: "TODO context url", raw_value: children_root[0]});
+        }
+        let replies = children_root.map(child => threadFromListing(child, {link_fullname}, {permalink: updateQuery(path, {sort: sort_v}), sort: sort_v}));
+
+        // a mess of code:
+        // - search for the comment that should be highlighted (for /r/…/comments/…/…/:commentid urls)
+        // - unwrap the parent comments and that comment into header_children
+        // - update children to contain the replies below that comment
+        const getRootReply = (nodes: Generic.Node[]): Generic.Thread | undefined => {
+            if(nodes.length !== 1) return undefined;
+            const node0 = nodes[0]!;
+            if(node0.kind !== "thread") return undefined;
+            return node0;
+        };
+        const getIdFromReply = (node: Generic.Thread): string | undefined => {
+            // hack
+            const raw_val = node.raw_value as {data: {name: string | null} | null} | null;
+            if(typeof raw_val === "object" && raw_val && 'data' in raw_val && typeof raw_val.data === "object"
+                && raw_val.data && 'name' in raw_val.data && typeof raw_val.data.name === "string"
+            ) {
+                const name = raw_val.data.name;
+                if(name.startsWith("t1_")) return name.replace("t1_", "");
+                return undefined;
+            }
+            return undefined;
+        };
+        let root_reply: Generic.Node | undefined = getRootReply(replies);
+        let found_reply: Generic.Node | undefined;
+        while(root_reply) {
+            const val_id = getIdFromReply(root_reply);
+            if(val_id != null && path.includes("/"+val_id)) {
+                // found
+                found_reply = root_reply;
+                break;
+            }
+            root_reply = getRootReply(root_reply.replies ?? []);
+        }
+        if(found_reply) {
+            root_reply = getRootReply(replies);
+            while(root_reply && root_reply !== found_reply) {
+                header_children.push(root_reply);
+                const children = root_reply.replies;
+                root_reply.replies = undefined;
+                root_reply = getRootReply(children ?? []);
+            }
+            if(root_reply) {
+                header_children.push(root_reply);
+                const children = root_reply.replies;
+                root_reply.replies = undefined;
+                replies = children ?? [];
+            }else{
+                replies = [];
+            }
+        }
+
+        // search down and see if in one-reply comments if a comment with path.includes(comment.id) exists
+        // if it does, start reparenting :
+        // header_children.push(threadFromListing(parent))
+        // children_root = parent.children[0]
+        // children_root_permalink = …
+        // parent.children = nope
+
         return {
             title: firstchild.kind === "t3" ? firstchild.data.title : "ERR top not t3",
             body: {
@@ -610,9 +677,9 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
                 item: {
                     parents: [
                         threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, {permalink: path, sort: "unsupported"}),
-                        // TODO if comments[0].parent node id !== parent node id, add a "load more" here
+                        ...header_children,
                     ],
-                    replies: listing[1].data.children.map(child => threadFromListing(child, {link_fullname}, {permalink: updateQuery(path, {sort: sort_v}), sort: sort_v})),
+                    replies,
                 },
             },
             ...makeSidebar(extra, "both"),
@@ -739,6 +806,8 @@ type LoadMoreData = {
 } | {
     kind: "parent_permalink",
     permalink: string,
+} | {
+    kind: "context",
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Generic.Action => {
@@ -1595,6 +1664,8 @@ export const client: ThreadClient = {
             }
             console.log("Error", translated_resp);
             throw new Error("todo support load more returning other body ("+translated_resp.body.kind+")");
+        }else if(act.kind === "context") {
+            throw new Error("TODO load more context");
         }else assertNever(act);
     },
     async loadMoreUnmounted(action: Generic.Opaque<"load_more_unmounted">): Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}> {
