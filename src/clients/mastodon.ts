@@ -630,9 +630,10 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
     let next: Generic.LoadMoreUnmounted | undefined;
     if(last_post) {
         const updated_link = updateQuery("/"+host+web_path, {since_id: undefined, min_id: undefined, max_id: last_post.id});
+        const updated_api_path = updateQuery(api_path, {since_id: undefined, min_id: undefined, max_id: last_post.id});
         next = {
             kind: "load_more_unmounted",
-            load_more_unmounted: load_more_unmounted_encoder.encode({kind: "timeline", tl_info: {host, api_path, web_path}}),
+            load_more_unmounted: load_more_unmounted_encoder.encode({kind: "timeline", tl_info: {host, api_path: updated_api_path, web_path: updated_link}}),
             url: updated_link,
             raw_value: last_post,
         };
