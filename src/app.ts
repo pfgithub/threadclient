@@ -1915,7 +1915,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
 
         if(listing.thumbnail) {
             if(listing.thumbnail.kind === "image") {
-                thumbnail_loc.adch(el("img").attr({src: listing.thumbnail.url}));
+                thumbnail_loc.adch(el("img").attr({src: listing.thumbnail.url, alt: ""}));
                 if(content_warnings.length) thumbnail_loc.clss("thumbnail-content-warning");
             }else if(listing.thumbnail.kind === "default") {
                 const thumbimg: string = {
