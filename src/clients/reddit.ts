@@ -537,7 +537,7 @@ function oldSidebarWidget(t5: Reddit.T5, subreddit: string, {collapsed}: {collap
         raw_value: t5,
         body: {kind: "text", markdown_format: "reddit", content: t5.data.description},
         display_mode: {body: collapsed ? "collapsed" : "visible", comments: "visible"},
-        link: "/r/"+subreddit+"/about",
+        link: "/r/"+subreddit+"/about/sidebar",
         layout: "reddit-post",
         title: {text: "old.reddit sidebar"},
         actions: [],
@@ -705,6 +705,27 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
                     }],
                     replies: [],
                 },
+            },
+            ...makeSidebar(extra, "both"),
+            display_style: "comments-view",
+        };
+    }
+    if(listing.kind === "t5") {
+        return {
+            title: path + " | Sidebar",
+            body: {
+                kind: "one",
+                item: {parents: [{
+                    kind: "thread",
+                    raw_value: listing,
+                    body: {kind: "text", markdown_format: "reddit", content: listing.data.description},
+                    display_mode: {body: "visible", comments: "visible"},
+                    link: path,
+                    layout: "reddit-post",
+                    title: {text: "old.reddit sidebar"},
+                    actions: [],
+                    default_collapsed: false,
+                }], replies: []},
             },
             ...makeSidebar(extra, "both"),
             display_style: "comments-view",
@@ -1239,6 +1260,7 @@ export const client: ThreadClient = {
         const [pathrawpath, pathrawquery] = splitURL(pathraw);
         const pathsplit = pathrawpath.split("/");
         if(pathsplit[1] === "u") pathsplit[1] = "user";
+        if(pathsplit[1] === "r" && pathsplit[3] === "about" && pathsplit[4] === "sidebar") pathsplit.pop();
 
         const is_subreddit: string | undefined = pathsplit[1] === "r" ? pathsplit[2] ?? undefined : undefined;
 

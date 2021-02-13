@@ -5,7 +5,7 @@ export type AccessToken =
     | {error: false, access_token: string, refresh_token: string, expires_in: number, scope: string}
 ;
 
-export type AnyResult = Page | Listing | WikiPage;
+export type AnyResult = Page | Listing | WikiPage | T5;
 
 export type WikiPage = {
     kind: "wikipage",
