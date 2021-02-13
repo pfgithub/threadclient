@@ -576,7 +576,7 @@ function renderFlair(flairs: Generic.Flair[]) {
             if(flairelem.type === "text") {
                 flairv.atxt(flairelem.text);
             }else if(flairelem.type === "emoji") {
-                el("img").attr({title: flairelem.name, src: flairelem.url}).clss("flair-emoji").adto(flairv);
+                el("img").attr({title: flairelem.name, src: flairelem.url, width: `${flairelem.w}px` as const, height: `${flairelem.h}px` as const}).clss("flair-emoji").adto(flairv);
             }else assertNever(flairelem);
         }
         resl.adch(flairv);

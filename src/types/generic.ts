@@ -269,6 +269,8 @@ export type RichTextItem = {
     type: "emoji",
     url: string,
     name: string,
+    w: number,
+    h: number,
 };
 export type Flair = {
     color?: string,

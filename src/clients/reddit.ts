@@ -15,7 +15,7 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
         if(v.e === "text") {
             return {type: "text", text: v.t};
         }else if(v.e === "emoji") {
-            return {type: "emoji", url: v.u, name: v.a};
+            return {type: "emoji", url: v.u, name: v.a, w: 16, h: 16}; // only aspect is known uuh
         }
         expectUnsupported(v.e);
         return {type: "text", text: "#TODO("+v.e+")"};
@@ -33,7 +33,8 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     const resitems: Generic.RichTextItem[] = [];
     for(const awarding of awardings.sort((a1, a2) => a2.count - a1.count)) {
         if(resitems.length > 0) resitems.push({type: "text", text: " "});
-        resitems.push({type: "emoji", url: awarding.static_icon_url, name: awarding.name});
+        const icon = awarding.resized_static_icons[0]!;
+        resitems.push({type: "emoji", url: icon.url, w: icon.width, h: icon.height, name: awarding.name});
         if(awarding.count > 1) resitems.push({type: "text", text: "×" + awarding.count});
     }
     if(resitems.length === 0) return [];
