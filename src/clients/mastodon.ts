@@ -200,24 +200,26 @@ const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Ge
         return [thread];
     });
 };
-const postArrayToReparentedThread = (host: string, root: Mastodon.Post, posts: Mastodon.Post[]): Generic.Thread => {
-    const root_thread = postToThread(host, root);
-    const id_map = new Map<string, Generic.Thread>();
-    id_map.set(root.id, root_thread);
+const postArrayToReparentedThread = (host: string, root_id: string, posts: Mastodon.Post[]): Generic.Node[] => {
+    const id_map = new Map<string, {replies?: Generic.Node[]}>();
+
+    const root: {replies: Generic.Node[]} = {replies: []};
+    id_map.set(root_id, root);
+
     for(const post of posts) {
         const parent_id = post.in_reply_to_id ?? "nope";
         let parent_v = id_map.get(parent_id);
         if(!parent_v) {
             console.log("Missing parent id in reparented thread", parent_id);
             alert("Reparenting error, check console");
-            parent_v = root_thread;
+            parent_v = root;
         }
         const thispost = postToThread(host, post);
-        if(!parent_v.replies) parent_v.replies = [];
+        parent_v.replies ??= [];
         parent_v.replies.push(thispost);
         id_map.set(post.id, thispost);
     }
-    return root_thread;
+    return root.replies;
 };
 const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.GalleryItem => {
     
@@ -524,9 +526,11 @@ export const client: ThreadClient = {
                     item: {
                         parents: [
                             ...context.ancestors.map(a => postToThread(host, a)),
-                            postArrayToReparentedThread(host, postinfo, context.descendants),
+                            postToThread(host, postinfo),
                         ],
-                        replies: [],
+                        replies: [
+                            ...postArrayToReparentedThread(host, postinfo.id, context.descendants),
+                        ],
                     },
                 },
                 display_style: "comments-view",
