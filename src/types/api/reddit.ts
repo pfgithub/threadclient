@@ -264,7 +264,8 @@ export type T5 = {
         description_html: HTML, // old.reddit sidebar text
 
         header_title: string,
-        header_size: null,
+        header_size: null | [w: number, h: number],
+        header_img: null | string,
 
         subreddit_type: SubredditType,
         user_is_contributor: boolean | null, // note, only contributers can create posts in restricted subs
@@ -275,6 +276,12 @@ export type T5 = {
         created_utc: Date.Sec,
 
         user_is_subscriber: boolean | null,
+
+        community_icon: "" | string,
+        banner_background_image: "" | string,
+        banner_img?: "" | string,
+        mobile_banner_image: "" | string,
+        banner_size: null | [w: number, h: number],
     } & {
         // information required for when creating posts
         submit_text: Markdown,
@@ -327,9 +334,6 @@ export type T5 = {
         whitelist_status: "some_ads" | "unsupported",
         url: string, // eg /r/…/
 
-        banner_size: null,
-        mobile_banner_image: "",
-
         over18: boolean,
 
         restrict_commenting: boolean,
@@ -353,7 +357,6 @@ export type T5 = {
         allow_discovery: boolean,
 
         suggested_comment_sort: null,
-        banner_img: "",
 
         primary_color: "",
 
@@ -377,9 +380,6 @@ export type T5 = {
 
         show_media_preview: boolean,
         submission_type: "any" | "unsupported",
-
-        community_icon: "",
-        banner_background_image: "",
         
         quarrentine: boolean,
         hide_ads: boolean,
@@ -394,8 +394,6 @@ export type T5 = {
         wiki_enabled: null,
 
         user_can_flair_in_sr: true | null,
-
-        header_img: null,
     } & {
         // experiments with 100% enrollment
         is_enrolled_in_new_modmail: null,

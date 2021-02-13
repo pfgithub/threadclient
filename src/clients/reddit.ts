@@ -580,21 +580,111 @@ function sidebarFromWidgets(subinfo: SubInfo, mode_raw: "both" | "header" | "sid
     ];
 }
 
+const nullish = (v: "" | null | undefined | string): v is string => {
+    if(v == null) return false;
+    if(v === "") return false;
+    return true;
+};
+
+
+function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
+    if(!subinfo) return {
+        kind: "thread",
+        title: {text: "Listing"},
+        body: {kind: "text", content: "Listing", markdown_format: "none"},
+        display_mode: {body: "collapsed", comments: "collapsed"},
+        link: "TODO no link",
+        layout: "error",
+        actions: [],
+        default_collapsed: false,
+        raw_value: subinfo,
+    };
+    // banner image
+    // subreddit icon, name, link
+    // subscribe button
+    return {
+        kind: "reddit-header",
+        // huh, r/askreddit does not have banner_background_image but it does have a banner positionedimage in structuredstyles
+        // I can't get structuredstyles so I can't use that image
+        banner: subinfo.sub_t5 && (subinfo.sub_t5.data.banner_background_image || nullish(subinfo.sub_t5.data.banner_img)) ? {
+            desktop: subinfo.sub_t5.data.banner_background_image || subinfo.sub_t5.data.banner_img || "never",
+            mobile: subinfo.sub_t5.data.mobile_banner_image || undefined,
+        } : undefined,
+        icon: subinfo.sub_t5 ? {
+            url: subinfo.sub_t5.data.community_icon,
+        } : undefined,
+        name: {
+            display: subinfo.sub_t5?.data.title,
+            link_name: subinfo.sub_t5 ? subinfo.sub_t5.data.display_name_prefixed : "r/"+subinfo.subreddit,
+        },
+        subscribe: subinfo.sub_t5 ? createSubscribeAction(subinfo.subreddit, subinfo.sub_t5.data.subscribers, subinfo.sub_t5.data.user_is_subscriber ?? false) : undefined,
+        menu: {
+            todo: "TODO",
+        },
+        raw_value: subinfo,
+    };
+}
+
 type SubInfo = {
     subreddit: string,
     widgets?: Reddit.ApiWidgets,
     sub_t5?: Reddit.T5,
 };
-type PageExtra = {subinfo?: SubInfo};
+type PageExtra = {subinfo?: SubInfo, display_mode?: "rendered" | "raw"};
 function makeSidebar(extra: PageExtra, mode_raw: "both" | "header" | "sidebar"): {sidebar: Generic.ContentNode[]} | null {
     if(extra.subinfo) {
         return {sidebar: sidebarFromWidgets(extra.subinfo, mode_raw)};
     }
     return null;
 }
+const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
+    const rtitems: Generic.Richtext.Paragraph[] = [];
+    const listing_json = listing as unknown as {json: {errors: string[]}};
+    if(typeof listing_json === "object" && 'json' in listing_json && typeof listing_json.json === "object"
+        && 'errors' in listing_json.json && Array.isArray(listing_json.json.errors)
+    ) {
+        if(listing_json.json.errors.length > 0) {
+            rtitems.push({
+                kind: "heading",
+                level: 1,
+                children: [{kind: "text", text: "Errors:", styles: {}}],
+            });
+            rtitems.push({
+                kind: "list",
+                ordered: false,
+                children: listing_json.json.errors.map(error => {
+                    const res: Generic.Richtext.Paragraph = {kind: "list_item", children: [{kind: "paragraph", children: [{kind: "text", text: error, styles: {}}]}]};
+                    return res;
+                }),
+            });
+        }
+    }
+    return {
+        title: path + " | Error View",
+        body: {
+            kind: "one",
+            item: {
+                parents: [{
+                    kind: "thread",
+                    raw_value: listing,
+                    body: {kind: "richtext", content: [...rtitems, {kind: "code_block", text: JSON.stringify(listing, null, "\t")}]},
+                    display_mode: {body: "visible", comments: "visible"},
+                    link: path,
+                    layout: "error",
+                    actions: [],
+                    default_collapsed: false,
+                }],
+                replies: [],
+            },
+        },
+        ...makeSidebar(extra, "both"),
+        display_style: "comments-view",
+    };
+};
 const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
     const [, path_query] = splitURL(path);
     const path_sort = path_query.get("sort") as Reddit.Sort | null;
+    if(extra.display_mode === "raw") return pathFromListingRaw(path, listing, extra);
     if(Array.isArray(listing)) {
         let link_fullname: string | undefined;
         let default_sort: Reddit.Sort | null | undefined = null;
@@ -732,46 +822,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
         };
     }
     if(!('data' in listing) || listing.kind !== "Listing") {
-        const rtitems: Generic.Richtext.Paragraph[] = [];
-        const listing_json = listing as {json: {errors: string[]}};
-        if('json' in listing_json && 'errors' in listing_json.json && Array.isArray(listing_json.json.errors)) {
-            if(listing_json.json.errors.length > 0) {
-                rtitems.push({
-                    kind: "heading",
-                    level: 1,
-                    children: [{kind: "text", text: "Errors:", styles: {}}],
-                });
-                rtitems.push({
-                    kind: "list",
-                    ordered: false,
-                    children: listing_json.json.errors.map(error => {
-                        const res: Generic.Richtext.Paragraph = {kind: "list_item", children: [{kind: "paragraph", children: [{kind: "text", text: error, styles: {}}]}]};
-                        return res;
-                    }),
-                });
-            }
-        }
-        return {
-            title: path + " | Error View",
-            body: {
-                kind: "one",
-                item: {
-                    parents: [{
-                        kind: "thread",
-                        raw_value: listing,
-                        body: {kind: "richtext", content: [...rtitems, {kind: "code_block", text: JSON.stringify(listing, null, "\t")}]},
-                        display_mode: {body: "visible", comments: "visible"},
-                        link: path,
-                        layout: "error",
-                        actions: [],
-                        default_collapsed: false,
-                    }],
-                    replies: [],
-                },
-            },
-            ...makeSidebar(extra, "both"),
-            display_style: "comments-view",
-        };
+        return pathFromListingRaw(path, listing, extra);
     }
     
     if(listing.data.before != null){
@@ -787,23 +838,7 @@ const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExt
         title: path,
         body: {
             kind: "listing",
-            header: extra.subinfo && extra.subinfo.widgets
-                ? {
-                    kind: "hlist",
-                    items: sidebarFromWidgets(extra.subinfo, "header"),
-                }
-                : {
-                    kind: "thread",
-                    title: {text: "Listing"},
-                    body: {kind: "text", content: "Listing", markdown_format: "none"},
-                    display_mode: {body: "collapsed", comments: "collapsed"},
-                    link: "TODO no link",
-                    layout: "error",
-                    actions: [],
-                    default_collapsed: false,
-                    raw_value: listing,
-                }
-            ,
+            header: subredditHeader(extra.subinfo),
             items: listing.data.children.map(child => ({parents: [threadFromListing(child, undefined, {permalink: path, sort: "unsupported"})], replies: []})),
             next,
         },
@@ -1261,6 +1296,7 @@ export const client: ThreadClient = {
         const pathsplit = pathrawpath.split("/");
         if(pathsplit[1] === "u") pathsplit[1] = "user";
         if(pathsplit[1] === "r" && pathsplit[3] === "about" && pathsplit[4] === "sidebar") pathsplit.pop();
+        const display_raw_json = pathrawquery.get("tr_display") === "raw";
 
         const is_subreddit: string | undefined = pathsplit[1] === "r" ? pathsplit[2] ?? undefined : undefined;
 
@@ -1285,7 +1321,7 @@ export const client: ThreadClient = {
                 widgets,
                 subreddit: is_subreddit,
                 sub_t5,
-            }} : null});
+            }} : null, display_mode: display_raw_json ? "raw" : "rendered"});
         }catch(err_raw) {
             const e = err_raw as Error;
             console.log(e);

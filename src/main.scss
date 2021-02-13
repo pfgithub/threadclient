@@ -1013,3 +1013,58 @@ summary {
     width: auto;
     height: auto;
 }
+
+.post.subreddit-banner {
+    padding-left: 10px;
+    position: relative;
+}
+.sub-banner-img {
+    // margin-left: -10px;
+    // margin-top: -10px;
+    // margin-right: -10px;
+    height: 200px;
+    background-image: var(--desktop-banner-url);
+    background-position: top center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+.subreddit-banner-content {
+    position: relative;
+    display: grid;
+    grid-template-rows: [start] 150px [icon_top] 50px [title_top] max-content [spacer] 10px [remaining] max-content;
+    grid-template-columns: [icon] 100px [spacer] 10px [titles] 1fr [end];
+}
+.sub-icon-img {
+    grid-row: icon_top / remaining;
+    grid-column: icon;
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    border-radius: 10px;
+}
+.subreddit-title-area {
+    grid-row: title_top;
+    grid-column: titles;
+    display: inline-block;
+}
+.sub-title,
+.sub-subreddit {
+    margin: 0;
+}
+.sub-title {
+    font-size: 1.5em;
+}
+.sub-subreddit {
+    font-size: 1em;
+}
+.sub-subreddit {
+    opacity: 0.5;
+}
+.sub-subscribe-area {
+    grid-row: remaining;
+    grid-column: icon / end;
+}

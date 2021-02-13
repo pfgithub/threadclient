@@ -220,9 +220,24 @@ export type Profile = {
     raw_value: unknown,
     actions: Action[],
 };
-export type HList = {
-    kind: "hlist",
-    items: ContentNode[],
+export type RedditHeader = {
+    kind: "reddit-header",
+    banner?: {
+        desktop: string,
+        mobile?: string,
+    },
+    icon?: {
+        url: string,
+    },
+    name: {
+        display?: string,
+        link_name: string,
+    },
+    subscribe?: Action,
+    menu: {
+        todo: "TODO",
+    },
+    raw_value: unknown,
 };
 
 export type WidgetListItem = {
@@ -260,7 +275,7 @@ export type Widget = {
     raw_value: unknown,
 };
 
-export type ContentNode = Thread | Profile | HList | Widget;
+export type ContentNode = Thread | Profile | RedditHeader | Widget;
 export type Node = Thread | LoadMore;
 export type RichTextItem = {
     type: "text",

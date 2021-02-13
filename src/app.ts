@@ -1626,10 +1626,32 @@ const userLink = (client_id: string, href: string, name: string) => {
     ;
 };
 
-function hListing(client: ThreadClient, listing: Generic.HList, frame: HTMLDivElement): HideShowCleanup<undefined> {
+function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
-    el("div").atxt("HListing").adto(frame);
+    frame.clss("subreddit-banner");
+
+    if(listing.banner) {
+        el("div").clss("sub-banner-img").attr({alt: ""}).styl({
+            '--desktop-banner-url': "url("+encodeURI(listing.banner.desktop)+")",
+            '--mobile-banner-url': "url("+encodeURI(listing.banner.mobile ?? listing.banner.desktop)+")",
+        }).adto(frame);
+    }
+
+    const area = el("div").clss("subreddit-banner-content").adto(frame);
+
+    if(listing.icon) {
+        el("img").clss("sub-icon-img").attr({alt: "", src: listing.icon.url}).adto(area);
+    }
+    const title_area = el("div").clss("subreddit-title-area").adto(area);
+    if(listing.name.display != null) el("h1").atxt(listing.name.display).clss("sub-title").adto(title_area);
+    el("h2").atxt(listing.name.link_name).clss("sub-subreddit").adto(title_area);
+
+    if(listing.subscribe) {
+        const subscrarea = el("div").clss("sub-subscribe-area").adto(area);
+        renderAction(client, listing.subscribe, subscrarea).defer(hsc);
+    }
+
     linkLikeButton().atxt("Code").adto(frame).onev("click", () => console.log(listing));
 
     return hsc;
@@ -1736,8 +1758,8 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode): Hide
             userProfileListing(client, listing, frame).defer(hsc);
             return hsc;
         }
-        if(listing.kind === "hlist") {
-            hListing(client, listing, frame).defer(hsc);
+        if(listing.kind === "reddit-header") {
+            redditHeader(client, listing, frame).defer(hsc);
             return hsc;
         }
         if(listing.kind === "widget") {
