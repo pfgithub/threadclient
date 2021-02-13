@@ -1538,7 +1538,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     const display_count = action.count_excl_you !== "none";
 
     const wrapper = el("span").clss("counter").adto(content_buttons_line);
-    const button = linkLikeButton().adto(wrapper).clss("counter-increment-btn");
+    const button = linkLikeButton().adto(wrapper).clss("counter-increment-btn").attr({'aria-label': "Up"});
     const btn_span = el("span").adto(button);
     const pretxt = txt("").adto(btn_span);
     const btxt = txt("…").adto(btn_span);
@@ -1566,6 +1566,9 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         wrapper.classList.toggle("counted-loading", state.loading);
         button.disabled = state.loading;
         if(decr_button) decr_button.disabled = state.loading;
+
+        button.setAttribute("aria-pressed", state.your_vote === "increment" ? "true" : "false");
+        if(decr_button) decr_button.setAttribute("aria-pressed", state.your_vote === "decrement" ? "true" : "false");
     };
     update();
 
@@ -1595,7 +1598,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     if(action.decremented_label != null) {
         pretxt.nodeValue = "⯅ ";
         wrapper.atxt(" ");
-        decr_button = linkLikeButton().adch(el("span").atxt("⯆")).adto(wrapper).onev("click", () => {
+        decr_button = linkLikeButton().adch(el("span").atxt("⯆")).attr({'aria-label': "Down"}).adto(wrapper).onev("click", () => {
             if(state.your_vote === "decrement") {
                 doAct(undefined);
             }else{
@@ -1804,19 +1807,18 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     if(!listing.thumbnail) thumbnail_loc.clss("no-thumbnail");
 
     if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
-        let prev_collapsed = false;
         let collapsed = listing.default_collapsed;
         const update = () => {
-            if(collapsed !== prev_collapsed) {
-                prev_collapsed = collapsed;
-                hsc.setVisible(!collapsed);
-                if(collapsed) {
-                    frame.classList.add("comment-collapsed");
-                }else{
-                    frame.classList.remove("comment-collapsed");
-                }
+            hsc.setVisible(!collapsed);
+            if(collapsed) {
+                frame.classList.add("comment-collapsed");
+                collapsed_button.setAttribute("aria-label", "Uncollapse");
+                collapsed_button.setAttribute("aria-pressed", "true");
+            }else{
+                frame.classList.remove("comment-collapsed");
+                collapsed_button.setAttribute("aria-label", "Collapse");
+                collapsed_button.setAttribute("aria-pressed", "false");
             }
-            // collapsed_button // some aria thing idk
         };
         const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).onev("click", () => {
             collapsed =! collapsed;
