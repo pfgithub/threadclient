@@ -1141,7 +1141,23 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 if(!listing.media_metadata) throw new Error("missing media metadata");
                 const moreinfo = listing.media_metadata[gd.media_id];
                 if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
-                if(moreinfo.status !== "valid") throw new Error("unsupported status in gallery "+gd.media_id);
+                if(moreinfo.status !== "valid") {
+                    const res: Generic.GalleryItem = {
+                        thumb: "error: "+moreinfo.status,
+                        w: 200,
+                        h: 200,
+                        body: {
+                            kind: "richtext",
+                            content: [{kind: "paragraph", children: [
+                                {kind: "text", text: "bad status: "+moreinfo.status, styles: {error: moreinfo.status}}
+                            ]}, {
+                                kind: "code_block",
+                                text: JSON.stringify(moreinfo, null, "\t"),
+                            }],
+                        },
+                    };
+                    return res;
+                }
                 if(moreinfo.e === "Image") {
                     const res: Generic.GalleryItem = {
                         thumb: moreinfo.p[0]!.u ?? "error",
@@ -1177,7 +1193,21 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     throw new Error("TODO gallery item moreinfo video");
                 }
                 expectUnsupported(moreinfo.e);
-                throw new Error("TODO gallery item "+moreinfo.e);
+                const res: Generic.GalleryItem = {
+                    thumb: "error: "+moreinfo.e,
+                    w: 200,
+                    h: 200,
+                    body: {
+                        kind: "richtext",
+                        content: [{kind: "paragraph", children: [
+                            {kind: "text", text: "unsupported kind: "+moreinfo.e, styles: {error: moreinfo.e}}
+                        ]}, {
+                            kind: "code_block",
+                            text: JSON.stringify(moreinfo, null, "\t"),
+                        }],
+                    },
+                };
+                return res;
             })}
             : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
         ;

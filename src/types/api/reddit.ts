@@ -442,9 +442,12 @@ export type AnimatedImageMeta = BaseMediaMeta & {
 };
 export type BaseMedia = {
     m: string, // eg image/png or image/gif
-    status: "valid" | "unsupported", // maybe this can include processing? not sure
+    status: "valid",
 };
-export type Media = BaseMedia & ({
+export type ErroredMedia = {
+    status: "failed" | "unsupported",
+};
+export type Media = (BaseMedia & ({
     e: "Image",
     m: string, // eg image/png
 
@@ -467,7 +470,7 @@ export type Media = BaseMedia & ({
     isGif: boolean,
 } | {
     e: "unsupported",
-});
+})) | ErroredMedia;
 export type MediaMetadata = {[key: string]: Media};
 
 export type SimplePostOrComment = {
