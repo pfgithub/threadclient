@@ -234,10 +234,20 @@ export type RedditHeader = {
         link_name: string,
     },
     subscribe?: Action,
-    menu: {
-        todo: "TODO",
-    },
+    menu?: TopLevelMenuItem[],
     raw_value: unknown,
+};
+
+export type TopLevelMenuItem = MenuItem & {selected: boolean};
+export type MenuItem = {
+    text: string,
+    action: {
+        kind: "link",
+        url: string,
+    } | {
+        kind: "menu",
+        children: MenuItem[],
+    },
 };
 
 export type WidgetListItem = {

@@ -1652,6 +1652,14 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         renderAction(client, listing.subscribe, subscrarea).defer(hsc);
     }
 
+    if(listing.menu) {
+        const menu_area = el("div").clss("subreddit-menu").adto(frame);
+        for(const item of listing.menu) {
+            el("span").clss("menu-item").atxt(item.text).adto(menu_area);
+            txt(" ").adto(menu_area);
+        }
+    }
+
     linkLikeButton().atxt("Code").adto(frame).onev("click", () => console.log(listing));
 
     return hsc;

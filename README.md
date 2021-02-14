@@ -76,6 +76,13 @@ all todo:
 -   [ ] decrease indent width on mobile and make the permalink button more prominent or something for when things get too deep
 -   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
 -   [ ] the refresh button
+-   [ ] watchable counters
+
+    1. all counters should have IDs.
+    2. when a counter is seen, it should register to watch any changes to the counter value of that ID.
+    3. when you count on a counter, it should send a signal to all the counters with the same ID to update.
+    4. when you load a new page with counters, the new values of the counters should take precedence over the old values of the counters.
+
 -   [ ] improve how parent and child nodes and listings are represented:
         reddit lets you link to a comment that might be deep in the thread. mastodon
         has the same. improve how this is represented in Generic data and improve how it is displayed on the page. currently, {header, replies}

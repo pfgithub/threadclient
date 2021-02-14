@@ -88,14 +88,17 @@ export type FlowRule = {
     }
 );
 
-export type MenuItem = {
+export type TopLevelMenuItem = {
     text: string,
     children: MenuItem[], 
-} | {
+} | MenuItem;
+export type MenuItem = {
     text: string,
     url: string,
 };
 
+// documented here https://www.reddit.com/dev/api/#POST_api_widget
+// (note, that's for POST while this is for GET so there is a chance of differences)
 export type Widget = {
     id: string,
     styles: {
@@ -130,7 +133,7 @@ export type Widget = {
     shortName: string,
 } | {
     kind: "menu",
-    data: MenuItem[],
+    data: TopLevelMenuItem[],
     showWiki: boolean,
 } | {
     kind: "textarea",

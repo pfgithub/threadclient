@@ -571,7 +571,7 @@ function sidebarFromWidgets(subinfo: SubInfo, mode_raw: "both" | "header" | "sid
     
     // TODO moderator widget
     return [
-        ...mode.header && widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
+        // ...mode.header && widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
         // ...mode.sidebar && widgets ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
         ...mode.sidebar && subinfo.sub_t5 ? [customIDCardWidget(subinfo.sub_t5, subinfo.subreddit)] : [],
         ...mode.sidebar && subinfo.sub_t5 ? [oldSidebarWidget(subinfo.sub_t5, subinfo.subreddit, {collapsed: widgets ? true : false})] : [],
@@ -602,6 +602,43 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     // banner image
     // subreddit icon, name, link
     // subscribe button
+
+    const res_menu: Generic.TopLevelMenuItem[] = [
+        {text: "Posts", action: {kind: "link", url: "/r/"+subinfo.subreddit}, selected: true}
+    ];
+
+    wdgs: if(subinfo.widgets) {
+        if(subinfo.widgets?.layout.topbar.order.length !== 1) {
+            res_menu.push({text: "ERROR Topbar Order", action: {kind: "link", url: "error"}, selected: false});
+            break wdgs;
+        }
+        const menu = subinfo.widgets.items[subinfo.widgets.layout.topbar.order[0]!]!;
+        
+        if(menu.kind !== "menu") {
+            res_menu.push({text: "ERROR Topbar Item", action: {kind: "link", url: "error"}, selected: false});
+            break wdgs;
+        }
+
+        if(menu.showWiki) {
+            res_menu.push(
+                {text: "Wiki", action: {kind: "link", url: "/r/"+subinfo.subreddit+"/wiki"}, selected: false}, // true if the path looks like /wiki
+            );
+        }
+
+        const redditMenuToMenu = (data_item: Reddit.TopLevelMenuItem): Generic.MenuItem => {
+            if('children' in data_item) return {
+                text: data_item.text,
+                action: {kind: "menu", children: data_item.children.map(redditMenuToMenu)},
+            }; else if('url' in data_item) return {
+                text: data_item.text,
+                action: {kind: "link", url: data_item.url}
+            };
+            assertNever(data_item); // expectNever could be better
+        };
+
+        res_menu.push(...menu.data.map(data_item => ({...redditMenuToMenu(data_item), selected: false})));
+    }
+
     return {
         kind: "reddit-header",
         // huh, r/askreddit does not have banner_background_image but it does have a banner positionedimage in structuredstyles
@@ -618,9 +655,7 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
             link_name: subinfo.sub_t5 ? subinfo.sub_t5.data.display_name_prefixed : "r/"+subinfo.subreddit,
         },
         subscribe: subinfo.sub_t5 ? createSubscribeAction(subinfo.subreddit, subinfo.sub_t5.data.subscribers, subinfo.sub_t5.data.user_is_subscriber ?? false) : undefined,
-        menu: {
-            todo: "TODO",
-        },
+        menu: res_menu.length === 1 ? undefined : res_menu,
         raw_value: subinfo,
     };
 }
