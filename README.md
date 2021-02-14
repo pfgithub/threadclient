@@ -75,6 +75,9 @@ all todo:
 -   [x] fix comments on mobile (they used to go edge to edge, now they don't for some reason)
 -   [ ] decrease indent width on mobile and make the permalink button more prominent or something for when things get too deep
 -   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
+-   [ ] fix spoilers :: 1: only have one spoiler implementation instead of two. 2: use a css class rather than .style.opacity. 3: set the cursor to pointer
+        on the outside and set pointer-events: none on the content while the content is not revealed. I thought I did this already but maybe something
+        with having two seperate implementations caused it.
 -   [ ] the refresh button
 -   [ ] watchable counters
 
