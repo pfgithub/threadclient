@@ -159,6 +159,7 @@ reddit todo:
         do not pass through cors, so ban messages cannot be shown.
 -   [ ] richtext replies
 -   [ ] posts + post preview (+ /api/v1/:subreddit/post_requirements)
+-   [ ] upload images to reddit (it seems possible, post to /asset to get perms and then upload to `reddit-uploaded-media.s3-accelerate.amazonaws.com`)
 -   [ ] fix dark flairs being displayed on a dark background
 -   [ ] header images
 -   [ ] support live comment / chat threads (eg used in rpan chat)
