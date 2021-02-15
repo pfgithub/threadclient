@@ -168,7 +168,9 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     el("source").attr({src: link+"/DASH_360", type: "video/mp4"}).adto(video);
     el("source").attr({src: link+"/DASH_240.mp4", type: "video/mp4"}).adto(video);
     el("source").attr({src: link+"/DASH_240", type: "video/mp4"}).adto(video);
+
     el("source").attr({src: link+"/HLSPlaylist.m3u8", type: "application/x-mpegURL"}).adto(video);
+    // cross-origin request blocked, can't use this unless the browser happens to support it
 
     const speaker_icons = ["🔇", "🔈", "🔊"] as const;
     const btnarea = el("div").adto(container).styl({display: "flex"});
@@ -247,13 +249,17 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     });
     return hsc;
 }
-function videoPreview(sources: {src: string, type?: string}[], opts: {autoplay: boolean, width?: number, height?: number}): HideShowCleanup<Node> {
+function videoPreview(sources: {src: string, type?: string}[], opts: {autoplay: boolean, width?: number, height?: number, gifv: boolean}): HideShowCleanup<Node> {
     const video = el("video").attr({controls: "",
         width: opts.width != null ? `${opts.width}px` as const : undefined, height: opts.height != null ? `${opts.height}px` as const : undefined
     }).clss("preview-image");
     sources.forEach(source => {
         el("source").attr({src: source.src, type: source.type}).adto(video);
     });
+    if(opts.gifv) {
+        video.loop = true;
+        video.onplaying = () => video.controls = false;
+    }
     if(opts.autoplay) void video.play();
     let playing_before_hide = false;
     const hsc = hideshow(video);
@@ -319,7 +325,7 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
                 {src: gfy_item.content_urls.mp4.url},
                 {src: gfy_item.content_urls.mp4.url.replace(".mp4", "-mobile.mp4")}, // hack
             ] : [],
-        ], {autoplay: opts.autoplay, width: gfy_item.width, height: gfy_item.height}).defer(hsc).adto(resdiv);
+        ], {autoplay: opts.autoplay, width: gfy_item.width, height: gfy_item.height, gifv: false}).defer(hsc).adto(resdiv);
     }).catch(e => {
         console.log(e);
         if(loader.parentNode) loader.remove();
@@ -328,6 +334,9 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
     
     return hsc;
 }
+
+// what instead of actually previewing the link, this returned a body? pretty resonable idea tbh, just make sure not to allow
+// infinite loops where this returns a link body
 function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
     let url_mut: URL | undefined;
     try { 
@@ -339,14 +348,7 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
     const path = url?.pathname ?? link;
     const is_mp4_link_masking_as_gif = url ? path.endsWith(".gif") && url.searchParams.get("format") === "mp4" : false;
     if(is_mp4_link_masking_as_gif) return (): HideShowCleanup<Node> => {
-        const video = el("video").clss("preview-image");
-        el("source").attr({src: link, type: "video/mp4"}).adto(video);
-        video.loop = true;
-        const hsc = hideshow(video);
-        void video.play();
-        hsc.on("hide", () => {video.pause()});
-        hsc.on("show", () => {void video.play()});
-        return hsc;
+        return videoPreview([{src: link, type: "video/mp4"}], {autoplay: opts.autoplay, gifv: true});
     };
     if((url?.hostname ?? "") === "i.redd.it"
         || path.endsWith(".png") || path.endsWith(".jpg")
@@ -388,7 +390,7 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
         return gfyLike(url.host, gfylink, {autoplay: opts.autoplay});
     };
     if(path.endsWith(".mp4") || path.endsWith(".webm")) return (): HideShowCleanup<Node> => {
-        return videoPreview([{src: path}], opts);
+        return videoPreview([{src: path}], {autoplay: opts.autoplay, gifv: false});
     };
     const ytvid = (youtube_video_id: string, search: URLSearchParams) => (): HideShowCleanup<Node> => {
         const container = el("div");
@@ -1094,27 +1096,17 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
-        if(body.url == null) {
-            if(body.url_backup_image == null) {
-                el("div").clss("error").atxt("missing stuff?? ?? :: "+JSON.stringify(body));
-
-                return hsc;
-            }
-            zoomableImage(body.url_backup_image, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
-
+        if(body.source.kind === "img") {
+            zoomableImage(body.source.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
             return hsc;
+        }else if(body.source.kind === "video") {
+            videoPreview(body.source.sources.map(src => ({src: src.url, type: src.type})), {autoplay: opts.autoplay, width: body.w, height: body.h, gifv: body.gifv})
+                .defer(hsc)
+                .adto(content)
+            ;
+        }else if(body.source.kind === "m3u8") {
+            el("div").clss("error").atxt("TODO m3u8 : "+body.source.url).adto(content);
         }
-        const vid = el("video").adch(
-            el("source").attr({src: body.url})).attr({width: `${body.w}px` as const, height: `${body.h}px` as const, controls: "", alt: body.alt}
-        ).clss("preview-image").adto(content);
-        if(body.gifv) {
-            vid.loop = true;
-            vid.onplaying = () => vid.controls = false;
-        }
-        if(opts.autoplay) {void vid.play()}
-        let playing_before_hide = !vid.paused;
-        hsc.on("hide", () => {playing_before_hide = !vid.paused; vid.pause()});
-        hsc.on("show", () => {if(playing_before_hide) void vid.play();});
     }else if(body.kind === "vreddit_video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
         previewVreddit(body.id, {autoplay: false}).defer(hsc).adto(content);

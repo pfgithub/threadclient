@@ -70,6 +70,12 @@ function expectUnsupported(text: "unsupported"): void {/*no runtime error!*/}
 
 // TODO use this for galleries and gifs? make it return Generic.GalleryItem? idk only image has a thumbnail
 function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Body {
+    if(media_meta.status !== "valid") {
+        return {
+            kind: "richtext",
+            content: [richtextErrorP("Bad Status "+media_meta.status, JSON.stringify(media_meta))],
+        };
+    }
     if(media_meta.e === "Image") return {
         kind: "captioned_image",
         url: media_meta.s.u,
@@ -79,8 +85,10 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Bo
     };
     if(media_meta.e === "AnimatedImage") return {
         kind: "video",
-        url: media_meta.s.mp4,
-        url_backup_image: media_meta.s.gif,
+        source: media_meta.s.mp4 != null
+            ? {kind: "video", sources: [{url: media_meta.s.mp4}]}
+            : {kind: "img", url: media_meta.s.gif}
+        ,
         w: media_meta.s.x,
         h: media_meta.s.y,
         gifv: true,
@@ -224,8 +232,8 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
         case "gif": {
             const meta = opt.media_metadata[rtd.id];
             if(!meta) return richtextError("Missing media id "+rtd.id, JSON.stringify(meta));
-            if(meta.e !== "AnimatedImage") return richtextError("Unsupported "+meta.e, JSON.stringify(meta));
             if(meta.status !== "valid") return richtextError("Bad status "+meta.status, JSON.stringify(meta));
+            if(meta.e !== "AnimatedImage") return richtextError("Unsupported "+meta.e, JSON.stringify(meta));
             return [
                 {kind: "link", url: meta.s.mp4 ?? meta.s.gif,
                     children: [{kind: "text", text: "[embedded "+rtd.id.split("|")[0]+"]", styles: {}}],
@@ -1180,7 +1188,10 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                         h: moreinfo.p![0]!.y,
                         body: {
                             kind: "video",
-                            url: moreinfo.s.mp4 ?? moreinfo.s.gif,
+                            source: moreinfo.s.mp4 != null
+                                ? {kind: "video", sources: [{url: moreinfo.s.mp4}]}
+                                : {kind: "img", url: moreinfo.s.gif}
+                            ,
                             w: moreinfo.s.x,
                             h: moreinfo.s.y,
                             caption: gd.caption,

@@ -588,6 +588,11 @@ export type PostSubmission = PostOrComment & {
     removed_by_category: "moderator" | "deleted" | "anti_evil_ops" | "unsupported" | null,
 
     suggested_sort?: Sort | null,
+
+    rpan_video?: {
+        hls_url: string, // https://watch.redd.it/hls/…/index.m3u8 // note this can be fetched, it allows cross-origin requests
+        scrubber_media_url: string, // https://watch.redd.it/hls/…/thumbnail.jpg // not sure why this would be a jpg file
+    },
 };
 
 export type SimpleComment = {

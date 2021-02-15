@@ -105,8 +105,7 @@ export type Body = BodyText | RichText | {
     h: number,
 } | {
     kind: "video",
-    url?: string,
-    url_backup_image?: string,
+    source: VideoSource,
     w: number,
     h: number,
     gifv: boolean,
@@ -144,6 +143,19 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "array",
     body: (Body | undefined)[],
+};
+export type VideoSource = {
+    kind: "video",
+    sources: {
+        url: string,
+        type?: string,
+    }[],
+} | {
+    kind: "img",
+    url: string,
+} | {
+    kind: "m3u8",
+    url: string,
 };
 export type GalleryItem = {body: Body, thumb: string, w: number | null | undefined, h: number | null | undefined};
 export type ThumbType = "self" | "default" | "image" | "spoiler" | "error" | "nsfw" | "account";
