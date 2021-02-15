@@ -13,7 +13,7 @@ export function playM3U8(m3u8: string, poster: string | undefined, opts: {autopl
     const video = el("video").attr({'controls': "", 'class': "video-js", 'data-setup': "{}", 'poster': poster}).adto(el("div").adto(container));
     el("source").attr({src: m3u8, type: "application/x-mpegURL"}).adto(video);
 
-    const player = videojs(video, {autoplay: opts.autoplay, liveui: true}, () => {
+    const player = videojs(video, {autoplay: opts.autoplay, liveui: true, playbackRates: [0.25, 0.5, 1, 1.5, 1.75, 2]}, () => {
         console.log("Player initialized");
     });
     
