@@ -1,4 +1,4 @@
-import { escapeHTML, encodeQuery } from "../app";
+import { escapeHTML, encodeQuery } from "../util";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 

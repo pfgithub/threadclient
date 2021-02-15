@@ -572,7 +572,7 @@ export type PostSubmission = PostOrComment & {
 
     crosspost_parent_list?: PostSubmission[],
 
-    media_embed?: {content: string} | {__nothing?: undefined},
+    media_embed?: {content?: string},
 
     domain: string,
 

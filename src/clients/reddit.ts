@@ -1,16 +1,16 @@
 import * as Reddit from "../types/api/reddit";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
-import { encodeQuery, encodeURL } from "../app";
+import { encodeQuery, encodeURL } from "../util";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
 
-function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: string,
-    text_color: "light" | "dark", background_color: string, flair: Reddit.RichtextFlair | undefined,
+function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: string | null,
+    text_color: "light" | "dark" | null, background_color: string | null, flair: Reddit.RichtextFlair | undefined,
 ): Generic.Flair[] {
     if(type == null) return []; // deleted comments
-    if(type === "text" && !text) return [];
+    if(type === "text" && (text == null || text === "")) return [];
     const elems: Generic.RichTextItem[] = type === "richtext" ? (flair ?? []).map(v => {
         if(v.e === "text") {
             return {type: "text", text: v.t};
@@ -19,10 +19,10 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
         }
         expectUnsupported(v.e);
         return {type: "text", text: "#TODO("+v.e+")"};
-    }) : type === "text" ? [{type: "text", text}] : [{type: "text", text: "TODO: "+type}];
+    }) : type === "text" ? [{type: "text", text: text!}] : [{type: "text", text: "TODO: "+type}];
     const flair_text = elems.map(v => v.type === "text" ? v.text : "").join("");
     return [{
-        color: background_color,
+        color: background_color ?? undefined,
         fg_color: text_color === "light" ? "light" : "dark",
         elems,
         content_warning: flair_text.toLowerCase().startsWith("cw:") || flair_text.toLowerCase().startsWith("tw:")
@@ -724,7 +724,7 @@ const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: Page
         display_style: "comments-view",
     };
 };
-const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
+export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
     const [, path_query] = splitURL(path);
     const path_sort = path_query.get("sort") as Reddit.Sort | null;
     if(extra.display_mode === "raw") return pathFromListingRaw(path, listing, extra);
@@ -925,11 +925,11 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
         you: listing.likes === true ? "increment" : listing.likes === false ? "decrement" : undefined,
 
         percent: listing.upvote_ratio,
-        actions: listing.archived ?? false ? {error: "archived <6mo"} : isLoggedIn() ? {
+        actions: listing.archived ?? false ? {error: "archived <6mo"} : {
             increment: encodeVoteAction({...vote_data, dir: "1"}),
             decrement: encodeVoteAction({...vote_data, dir: "-1"}),
             reset: encodeVoteAction({...vote_data, dir: "0"}),
-        } : {error: "not logged in"},
+        },
     };
 };
 const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
@@ -1344,7 +1344,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
 };
 
 const getLoginURL = () => {
-    const state = location.host;
+    const state = typeof location !== "undefined" ? location.host : "NOSTATE";
     // https://www.reddit.com/api/v1/scopes.json → {[key: string]: {description: string, id: string, name: string}}
     // except "modtraffic" isn't a thing, why is it listed there?
     const scope = [
