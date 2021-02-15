@@ -905,6 +905,9 @@ textarea {
     border-radius: 10px;
 }
 
+ul.richtext-render-node {
+    padding-left: 15px;
+}
 li.richtext-render-node > p:only-child {
     margin-top: 0;
     margin-bottom: 0;

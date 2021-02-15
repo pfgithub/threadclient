@@ -176,22 +176,6 @@ export type Widget = {
         type: "text" | "richtext" | "unsupported",
     }},
 } | {
-    kind: "button",
-    shortName: string,
-    description: Markdown,
-    descriptionHtml: HTML,
-    buttons: ({
-        kind: "text",
-        text: string,
-        url: string,
-
-        color?: string,
-        textColor?: string,
-        fillColor?: string,
-    } | {
-        kind: "unsupported",
-    })[],
-} | {
     kind: "custom",
     // display this in a shadow dom and use a html renderer with no class modifications
     // or just display it in an iframe srcdoc like new.reddit does. that seems easier.
@@ -206,6 +190,23 @@ export type Widget = {
     height: number,
 
     shortName: string,
+} | {
+    kind: "button",
+    shortName: string,
+
+    description: Markdown,
+    description_html: HTML,
+
+    buttons: ({url: string} & ({
+        kind: "text",
+        text: string,
+
+        color?: string,
+        textColor?: string,
+        fillColor?: string,
+    } | {
+        kind: "unsupported", // image but I'm not sure the props
+    }))[],
 } | {
     kind: "unsupported",
 });

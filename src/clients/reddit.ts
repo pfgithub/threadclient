@@ -498,7 +498,7 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
             return {
                 name: {kind: "flair", flair: flairv[0]!},
                 click: {kind: "link", url: "/r/"+subreddit+"/?f=flair_name:\""+encodeURIComponent(val.text)+"\""}
-            };
+            }; // TODO make flairs a component that can be in richtext and make this return a body component rather than a special thing
         })}
     }; else if(data.kind === "custom") return {
         kind: "widget",
@@ -513,9 +513,23 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         `},
     }; else if(data.kind === "button") return {
         kind: "widget",
-        title: "Error!",
+        title: data.shortName,
         raw_value: data,
-        widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("TODO button widget", JSON.stringify(data))]}},
+        widget_content: {kind: "body", body: {kind: "array", body: [
+            {kind: "text", content: data.description, markdown_format: "reddit"},
+            {kind: "richtext", content: [{kind: "list", ordered: false, children: data.buttons.map((button): Generic.Richtext.Paragraph => {
+                // todo real buttons instead of these links
+                // todo support background-color
+                return {kind: "list_item", children: [{kind: "paragraph", children: [
+                    {kind: "link", url: button.url, children: [
+                        button.kind === "text"
+                            ? {kind: "text", text: button.text, styles: {}}
+                            : (expectUnsupported(button.kind), {kind: "text", text: "unsupported "+button.kind, styles: {error: JSON.stringify(button)}})
+                        ,
+                    ]}
+                ]}]};
+            })}]},
+        ]}},
     };
     expectUnsupported(data.kind);
     return {
