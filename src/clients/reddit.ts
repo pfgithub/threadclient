@@ -1125,9 +1125,9 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 body: [
                     listing.rtjson.document.length
                         ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
-                        : listing.url === "https://www.reddit.com" + listing.permalink
+                        : listing.url === "https://www.reddit.com" + listing.permalink // isn't this what is_self is for? why am I doing this check?
                         ? {kind: "none"}
-                        : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content},
+                        : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}, // does this code path ever get used?
                     listing.poll_data
                     ? {kind: "poll",
                         votable: "Cannot vote",
@@ -1220,6 +1220,8 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 };
                 return res;
             })}
+            : listing.rpan_video
+            ? {kind: "video", source: {kind: "m3u8", url: listing.rpan_video.hls_url}, gifv: false}
             : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
         ;
 
@@ -1254,6 +1256,8 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 ? {kind: "image", url: listing.preview.images[0].resolutions[0].url}
                 : listing.thumbnail == null
                 ? undefined
+                : listing.rpan_video
+                ? {kind: "image", url: listing.rpan_video.scrubber_media_url}
                 : listing.thumbnail.includes("/")
                 ? {kind: "image", url: listing.thumbnail}
                 // : listing.gallery_data // new.reddit has this but old.reddit doesn't

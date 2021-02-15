@@ -1105,7 +1105,14 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
                 .adto(content)
             ;
         }else if(body.source.kind === "m3u8") {
-            el("div").clss("error").atxt("TODO m3u8 : "+body.source.url).adto(content);
+            const srcurl = body.source.url;
+            const poster = body.source.poster;
+            fetchPromiseThen(import("./components/video"), vidplayer => {
+                const cframe = el("div");
+                const shsc = hideshow(cframe);
+                vidplayer.playM3U8(srcurl, poster, {autoplay: opts.autoplay}).defer(shsc).adto(cframe);
+                return shsc;
+            }).defer(hsc).adto(content);
         }
     }else if(body.kind === "vreddit_video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);

@@ -106,8 +106,8 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "video",
     source: VideoSource,
-    w: number,
-    h: number,
+    w?: number,
+    h?: number,
     gifv: boolean,
     caption?: string,
     alt?: string,
@@ -156,6 +156,7 @@ export type VideoSource = {
 } | {
     kind: "m3u8",
     url: string,
+    poster?: string,
 };
 export type GalleryItem = {body: Body, thumb: string, w: number | null | undefined, h: number | null | undefined};
 export type ThumbType = "self" | "default" | "image" | "spoiler" | "error" | "nsfw" | "account";

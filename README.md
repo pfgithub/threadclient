@@ -136,6 +136,7 @@ reddit todo:
 -   [x] post report button with rules from `/r/…/about/rules`
 -   [x] fix braille images that show up right on mobile but not desktop
 -   [x] imgur gallery api? `https://api.imgur.com/3/gallery/7Yn3dUp`
+-   [x] rpan support
 -   [ ] make full use of Generic.Page - for threads where you are linked part way into the thread, set up the parent nodes correctly
 -   [ ] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
 -   [ ] figure out what "url_overridden_by_dest" is
@@ -156,6 +157,7 @@ reddit todo:
 -   [ ] posts + post preview (+ /api/v1/:subreddit/post_requirements)
 -   [ ] fix dark flairs being displayed on a dark background
 -   [ ] header images
+-   [ ] support live comment / chat threads (eg used in rpan chat)
 -   [ ] get more information about specific awards by clicking them
 -   [ ] user profile pages, defaulting to the overview tab
 -   [ ] navigation buttons eg homepage link

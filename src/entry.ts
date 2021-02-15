@@ -1,7 +1,7 @@
 import {showAlert} from "./app";
 
 type HotModule = {
-    accept: (filename: string | string[], cb: () => void) => void,
+    accept: ((filename: string | string[], cb: () => void) => void) & ((cb: () => void) => void),
 };
 declare let module: {hot: HotModule | undefined};
 const hot = module.hot;
@@ -12,5 +12,8 @@ if(hot) {
     hot.accept(["./src/clients/base.ts", "./src/clients/reddit.ts", "./src/clients/mastodon.ts"], () => {
         showAlert("Page is out of date, needs reload!");
         // re-transform the input and reload the page or something
+    });
+    hot.accept(() => {
+        showAlert("Page is out of date, needs reload!");
     });
 }
