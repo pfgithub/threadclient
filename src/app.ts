@@ -2217,7 +2217,8 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
     return container;
 }
 
-function updateTitle(hsc: HideShowCleanup<unknown>, client_id: string): {setTitle: (new_title: string) => void} {
+type UpdateTitle = {setTitle: (new_title: string) => void};
+function updateTitle(hsc: HideShowCleanup<unknown>, client_id: string): UpdateTitle {
     let is_visible_v = hsc.visible;
     hsc.on("hide", () => is_visible_v = false);
     hsc.on("show", () => {
@@ -2234,6 +2235,100 @@ function updateTitle(hsc: HideShowCleanup<unknown>, client_id: string): {setTitl
     }};
     res.setTitle("…");
     return res;
+}
+
+function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HTMLDivElement, title: UpdateTitle): HideShowCleanup<undefined> {
+    const hsc = hideshow();
+
+    const listing_copy = JSON.parse(JSON.stringify(listing));
+    // It might get mutated so just in case make a copy. This should be fixed
+    // so the listing can't be mutated and this isn't necessary
+    title.setTitle(listing.title);
+
+    frame.classList.add("display-"+listing.display_style);
+
+    const navbar_area = el("div").adto(frame).clss("navbar-area");
+    for(const navbar_action of listing.navbar) {
+        renderAction(client, navbar_action, navbar_area).defer(hsc);
+        txt(" ").adto(navbar_area);
+    }
+    const saveofflinebtn = linkLikeButton().atxt("Save Offline").adto(navbar_area).onev("click", () => {
+        // save listing in indexed db
+        // (or in the future, save the raw responses from the web so they can be re-transformed if necessary)
+        localStorage.setItem("saved-post", JSON.stringify(listing_copy));
+        saveofflinebtn.disabled = true;
+        saveofflinebtn.textContent = "✓ Saved";
+    }).adto(navbar_area);
+
+    const header_area = el("div").adto(frame).clss("header-area");
+    const content_area = el("div").adto(frame).clss("content-area");
+
+    const toplevel = () => el("div").clss("top-level-wrapper", "object-wrapper");
+
+    if(listing.sidebar) {
+        // on mobile, ideally this would be a link that opens the sidebar in a new history item
+        el("button").adto(frame).clss("sidebar-toggle-mobile").atxt("Toggle Sidebar").onev("click", () => {
+            sidebar_area.classList.toggle("sidebar-visible-mobile");
+        });
+        const sidebar_area = el("div").adto(frame).clss("sidebar-area");
+        for(const sidebar_elem of listing.sidebar) {
+            clientContent(client, sidebar_elem).defer(hsc).adto(toplevel().adto(sidebar_area));
+        }
+    }
+
+    if(listing.body.kind === "listing") {
+        clientContent(client, listing.body.header).defer(hsc).adto(toplevel().adto(header_area));
+
+        const listing_area = el("div").adto(content_area);
+        const addChildren = (children: Generic.UnmountedNode[]) => {
+            for(const child of children) addChild(child);   
+        };
+        const addChild = (child: Generic.UnmountedNode) => {
+            // TODO show parent nodes and stuff
+            if(child.parents.length === 0) {
+                const errn = el("div").clss("error").atxt("unmounted.parents.length === 0");
+                errn.adto(toplevel().adto(listing_area));
+                return;
+            }
+            const toplevel_area = toplevel().adto(listing_area);
+            const last_parent = child.parents[child.parents.length - 1]!;
+            if(last_parent.kind === "load_more") throw new Error("this error will never nope");
+            clientContent(client, last_parent).defer(hsc).adto(toplevel_area);
+        };
+        addChildren(listing.body.items);
+
+        if(listing.body.next) {
+            const lmub = loadMoreUnmountedButton(client, listing.body.next, addChildren, () => lmub.remove());
+            lmub.adto(content_area);
+        }
+    }else if(listing.body.kind === "one") {
+        // TODO: all the parent items go into the same post shadow box thing
+        // then each child goes in a seperate one
+        // ALSO todo: rather than having a top-level-post class,
+        // instead have a "top-level-post-frame" div that wraps top level items
+        for(const parent of listing.body.item.parents) {
+            if(parent.kind === "load_more") {
+                // uuh uuh
+                el("div").clss("error").atxt("todo load more here").adto(header_area);
+                continue;
+            }
+            clientContent(client, parent).defer(hsc).adto(toplevel().adto(header_area));
+        }
+        const addChildren = (children: Generic.Node[]) => {
+            for(const child of children) addChild(child);
+        };
+        const addChild = (child: Generic.Node) => {
+            if(child.kind === "load_more") {
+                const lmbtn = loadMoreButton(client, child, addChildren, () => lmbtn.remove());
+                lmbtn.adto(content_area).clss("top-level-load-more");
+                return;
+            }
+            clientContent(client, child).defer(hsc).adto(toplevel().adto(content_area));
+        };
+        addChildren(listing.body.item.replies);
+    }else assertNever(listing.body);
+
+    return hsc;
 }
 
 function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
@@ -2253,106 +2348,8 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
     (async () => {
         // await new Promise(r => 0);
         const listing = await client.getThread(current_path);
-        title.setTitle(listing.title);
-
-        frame.classList.add("display-"+listing.display_style);
         loader_area.remove();
-
-        const navbar_area = el("div").adto(frame).clss("navbar-area");
-        for(const navbar_action of listing.navbar) {
-            renderAction(client, navbar_action, navbar_area).defer(hsc);
-            txt(" ").adto(navbar_area);
-        }
-
-        const header_area = el("div").adto(frame).clss("header-area");
-        const content_area = el("div").adto(frame).clss("content-area");
-
-        const toplevel = () => el("div").clss("top-level-wrapper", "object-wrapper");
-
-        if(listing.sidebar) {
-            // on mobile, ideally this would be a link that opens the sidebar in a new history item
-            el("button").adto(frame).clss("sidebar-toggle-mobile").atxt("Toggle Sidebar").onev("click", () => {
-                sidebar_area.classList.toggle("sidebar-visible-mobile");
-            });
-            const sidebar_area = el("div").adto(frame).clss("sidebar-area");
-            for(const sidebar_elem of listing.sidebar) {
-                clientContent(client, sidebar_elem).defer(hsc).adto(toplevel().adto(sidebar_area));
-            }
-        }
-
-        if(listing.body.kind === "listing") {
-            clientContent(client, listing.body.header).defer(hsc).adto(toplevel().adto(header_area));
-
-            const listing_area = el("div").adto(content_area);
-            const addChildren = (children: Generic.UnmountedNode[]) => {
-                for(const child of children) addChild(child);   
-            };
-            const addChild = (child: Generic.UnmountedNode) => {
-                // TODO show parent nodes and stuff
-                if(child.parents.length === 0) {
-                    const errn = el("div").clss("error").atxt("unmounted.parents.length === 0");
-                    errn.adto(toplevel().adto(listing_area));
-                    return;
-                }
-                const toplevel_area = toplevel().adto(listing_area);
-                const last_parent = child.parents[child.parents.length - 1]!;
-                if(last_parent.kind === "load_more") throw new Error("this error will never nope");
-                clientContent(client, last_parent).defer(hsc).adto(toplevel_area);
-            };
-            addChildren(listing.body.items);
-
-            if(listing.body.next) {
-                const lmub = loadMoreUnmountedButton(client, listing.body.next, addChildren, () => lmub.remove());
-                lmub.adto(content_area);
-            }
-        }else if(listing.body.kind === "one") {
-            // TODO: all the parent items go into the same post shadow box thing
-            // then each child goes in a seperate one
-            // ALSO todo: rather than having a top-level-post class,
-            // instead have a "top-level-post-frame" div that wraps top level items
-            for(const parent of listing.body.item.parents) {
-                if(parent.kind === "load_more") {
-                    // uuh uuh
-                    el("div").clss("error").atxt("todo load more here").adto(header_area);
-                    continue;
-                }
-                clientContent(client, parent).defer(hsc).adto(toplevel().adto(header_area));
-            }
-            const addChildren = (children: Generic.Node[]) => {
-                for(const child of children) addChild(child);
-            };
-            const addChild = (child: Generic.Node) => {
-                if(child.kind === "load_more") {
-                    const lmbtn = loadMoreButton(client, child, addChildren, () => lmbtn.remove());
-                    lmbtn.adto(content_area).clss("top-level-load-more");
-                    return;
-                }
-                clientContent(client, child).defer(hsc).adto(toplevel().adto(content_area));
-            };
-            addChildren(listing.body.item.replies);
-        }else assertNever(listing.body);
-
-        
-        // clientContent(client, listing.header).defer(hsc).adto(header_area).clss("top-level-post");
-
-        // if(listing.sidebar) {
-        // }
-        
-        // const comments_area = el("div").adto(frame).clss("comments-area");
-
-        // const addChildren = (children: Generic.Node[]) => {
-        //     children.forEach(v => addChild(v));
-        // };
-        // const addChild = (child_listing: Generic.Node) => {
-        //     if(child_listing.kind === "load_more") {
-        //         const lmbtn = loadMoreButton(client, child_listing, addChildren, () => lmbtn.remove());
-        //         lmbtn.adto(comments_area);
-        //         return;
-        //     }
-        //     clientContent(client, child_listing).defer(hsc).adto(comments_area).clss("top-level-post");
-        // };
-        // if(listing.replies) addChildren(listing.replies);
-        // if(listing.replies?.length === 0) txt("There is nothing here").adto(comments_area);
+        renderClientPage(client, listing, frame, title).defer(hsc);
     })().catch(e => {
         console.log(e, e.stack);
         if(loader_area.parentNode) loader_area.remove();
@@ -2601,6 +2598,23 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         return fetchPromiseThen(import("./editors/reddit-richtext"), editor => {
             return editor.richtextEditor({usernames: []});
         });
+    }
+
+    if(path0 === "saved") {
+        return fetchClientThen("reddit", client => {
+            const outer = el("div").clss("client-wrapper");
+            const hsc = hideshow(outer);
+
+            const frame = el("div").adto(outer);
+            frame.classList.add("client-main-frame");
+
+            const title = updateTitle(hsc, client.id);
+            title.setTitle("Loading "+client.id+"…");
+
+            renderClientPage(client, JSON.parse(localStorage.getItem("saved-post") ?? "{}"), outer, title);
+
+            return hsc;
+        })
     }
 
     return fetchClientThen(path0, (client) => {
