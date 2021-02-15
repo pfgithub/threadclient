@@ -228,12 +228,12 @@ export type T2 = {
     },
 };
 
-export type Markdown = string & {__distinct_fakeprop: "markdown"};
-export type HTML = string & {__distinct_fakeprop: "html"};
+export type Markdown = string;// & {__distinct_fakeprop: "markdown"};
+export type HTML = string;// & {__distinct_fakeprop: "html"};
 
 export declare namespace Date {
-    export type Sec = number & {__distinct_fakeprop: "sec"}; // sec since epoch (utc)
-    export type Ms = number & {__distinct_fakeprop: "ms"};  // ms since epoch (utc)
+    export type Sec = number;// & {__distinct_fakeprop: "sec"}; // sec since epoch (utc)
+    export type Ms = number;// & {__distinct_fakeprop: "ms"};  // ms since epoch (utc)
 }
 
 type LoginState<LoggedIn, NotLoggedIn> = {_logged_in: LoggedIn, _not_logged_in: NotLoggedIn};
@@ -443,6 +443,7 @@ export type AnimatedImageMeta = BaseMediaMeta & {
 export type BaseMedia = {
     m: string, // eg image/png or image/gif
     status: "valid",
+    id: string,
 };
 export type ErroredMedia = {
     status: "failed" | "unsupported",
@@ -464,7 +465,6 @@ export type Media = (BaseMedia & ({
     e: "RedditVideo",
     dashUrl: string, // https://v.redd.it/link/:postname/asset/:id/DASHPlaylist.mpd?a=…&v=1&f=sd
     hlsUrl: string, // https://v.redd.it/link/:postname/asset/:id/HLSPlaylist.m3u8?a=…&v=1&f=sd
-    id: string,
     x: number,
     y: number,
     isGif: boolean,
@@ -475,12 +475,15 @@ export type MediaMetadata = {[key: string]: Media};
 
 export type SimplePostOrComment = {
     name: string, // post id
+
+    author: string,
+    author_fullname: `t2_${string}`,
     
     likes: true | false | null,
 
     score: number, // uuh why do inbox entries have score but not score_hidden
 
-    distinguished?: "admin" | "unsupported",
+    distinguished: "admin" | "unsupported" | null,
 
     created_utc: Date.Sec, // there's also created but that's not utc
 };
@@ -498,10 +501,10 @@ export type PostOrComment = SimplePostOrComment & {
     archived?: boolean,
 
     author_flair_type: "text" | "richtext" | "unsupported",
-    author_flair_text: string,
+    author_flair_text: string | null,
     author_flair_richtext?: RichtextFlair,
-    author_flair_background_color: string,
-    author_flair_text_color: "light" | "dark",
+    author_flair_background_color: string | null,
+    author_flair_text_color: "light" | "dark" | null,
 
     media_metadata?: MediaMetadata,
 
@@ -516,6 +519,11 @@ export type PostOrComment = SimplePostOrComment & {
     mod_reports: ModReport[],
     mod_reports_dismissed: ModReport[],
     user_reports: UserReport[],
+
+    // moderator stuff. always null unless you're moderator
+    // maybe do a LoginWrap<{}> for this?
+    approved_at_utc: null,
+    mod_reason_title: null,
 };
 
 export type PostSubmission = PostOrComment & {
@@ -535,9 +543,13 @@ export type PostSubmission = PostOrComment & {
     // I don't see any other field in the api for this. if author == u/[deleted] then check body.
     thumbnail?: string,
 
+    selftext: Markdown | "",
+    selftext_html: HTML | null,
+
     gallery_data?: {items: {
         caption?: string,
         media_id: string, // →media_metadata
+        id: number,
     }[]},
 
     preview?: {
@@ -545,15 +557,13 @@ export type PostSubmission = PostOrComment & {
             id: string,
             source: {url: string, width: number, height: number},
             resolutions: {url: string, width: number, height: number}[],
-            // variants: {?}
+            variants: unknown,
         }[],
         enabled: boolean,
     },
-
-    author: string,
     
     link_flair_type: "text" | "richtext" | "unsupported",
-    link_flair_text: string,
+    link_flair_text: string | null,
     link_flair_richtext: RichtextFlair,
     link_flair_background_color: string,
     link_flair_text_color: "light" | "dark",
@@ -562,7 +572,7 @@ export type PostSubmission = PostOrComment & {
 
     crosspost_parent_list?: PostSubmission[],
 
-    media_embed?: {content: string},
+    media_embed?: {content: string} | {__nothing?: undefined},
 
     domain: string,
 
@@ -596,8 +606,7 @@ export type PostSubmission = PostOrComment & {
 };
 
 export type SimpleComment = {
-    author: string,
-    author_fullname: string,
+    __nothing: undefined,
 };
 
 export type PostComment = PostOrComment & SimpleComment & {
@@ -669,7 +678,7 @@ export type Award = {
     name: string,
     description: string,
 
-    icon_format: "APNG" | "unsupported",
+    icon_format: "PNG" | "APNG" | "unsupported" | null,
     icon_width: number,
     icon_height: number,
     icon_url: string,
@@ -685,12 +694,12 @@ export type Award = {
 
     coin_price: number, // # coins it costs to give this award
     coin_reward: number, // # coins the reciever gets
-    giver_coin_reward: number, // # coins the giver gets
-    penny_donate: number, // ?
-    penny_price: number, // ?
+    giver_coin_reward: number | null, // # coins the giver gets
+    penny_donate: number | null, // ?
+    penny_price: number | null, // ?
 
     subreddit_coin_reward: number, // # coins the subreddit gets
-    subreddit_id?: string,
+    subreddit_id: string | null,
 
     days_of_drip_extension: number, // ??
     days_of_premium: number, // # days premium reciever gets
@@ -699,7 +708,7 @@ export type Award = {
     end_date?: unknown,
 
     award_type: "global" | "unsupported",
-    award_sub_type: "GLOBAL" | "unsupported",
+    award_sub_type: "GLOBAL" | "PREMIUM" | "APPRECIATION" | "unsupported",
     awardings_required_to_grant_benefits?: unknown,
 
     tiers_by_required_awardings?: unknown,
