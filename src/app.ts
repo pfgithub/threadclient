@@ -16,45 +16,6 @@ function assertNever(content: never): never {
     throw new Error("is not never");
 }
 
-function clientLogin(client: ThreadClient, path: string, onComplete: () => void): HideShowCleanup<HTMLDivElement> {
-    const frame = el("div");
-    const hsc = hideshow(frame);
-
-    const renderLink = (href: string) => {
-        uhtml.render(frame, htmlr`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
-    };
-    const clurl = client.loginURL;
-    if(typeof clurl === "string") {
-        renderLink(clurl);
-    }else{
-        const btn = el("button").atxt("Log In").adto(frame).onev("click", () => {
-            btn.textContent = "…";
-            btn.disabled = true;
-            clurl(path).then(res => {
-                renderLink(res);
-            }).catch(e => {
-                btn.textContent = "Retry";
-                frame.atxt("Error:"+e);
-                console.log(e);
-                btn.disabled = false;
-            });
-        });
-    }
-
-    let done = false;
-    const onFocus = () => {
-        if(!done && client.isLoggedIn(path)) {
-            done = true;
-            uhtml.render(frame, htmlr`Logged In!`);
-            onComplete();
-        }
-    };
-    document.addEventListener("focus", onFocus);
-    hsc.on("cleanup", () => document.removeEventListener("focus", onFocus));
-
-    return hsc;
-}
-
 function isModifiedEvent(event: MouseEvent) {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
@@ -1389,6 +1350,53 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         });
 
         return hsc;
+    }else if(action.kind === "login") {
+        const frame = el("span").adto(content_buttons_line);
+        const hsc = hideshow();
+
+        const renderLink = (href: string) => {
+            uhtml.render(frame, htmlr`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
+        };
+        const clurl = action.data;
+        const btn = el("button").atxt("Log In").adto(frame).onev("click", () => {
+            btn.textContent = "…";
+            btn.disabled = true;
+            client.getLoginURL(clurl).then(res => {
+                renderLink(res);
+            }).catch(e => {
+                btn.textContent = "Retry";
+                frame.atxt("Error:"+e);
+                console.log(e);
+                btn.disabled = false;
+            });
+        });
+
+        // let done = false;
+        // const onFocus = () => {
+        //     if(!done && client.isLoggedIn(path)) {
+        //         done = true;
+        //         uhtml.render(frame, htmlr`Logged In!`);
+        //         onComplete();
+        //     }
+        // };
+        // document.addEventListener("focus", onFocus);
+        // hsc.on("cleanup", () => document.removeEventListener("focus", onFocus));
+
+        return hsc;
+    }else if(action.kind === "act") {
+        const frame = el("span").adto(content_buttons_line);
+        const btn = linkLikeButton().atxt(action.text).adto(frame).onev("click", () => {
+            btn.disabled = true;
+            btn.textContent = "…";
+            client.act(action.action).then(() => {
+                btn.remove();
+                txt("✓").adto(frame);
+            }).catch(e => {
+                console.log("got error: "+e);
+                btn.disabled = false;
+                frame.adch(el("span").clss("error").atxt(e.toString()));
+            });
+        });
     }else assertNever(action);
     return hideshow();
 }
@@ -2235,14 +2243,6 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
     const frame = el("div").adto(outer);
     frame.classList.add("client-main-frame");
 
-    if(!client.isLoggedIn(current_path)) {
-        clientLogin(client, current_path, () => {
-            // uh oh! this hsc node has a parent, so when it gets cleaned up it needs to tell its parent it no longer exists
-            // otherwise there is a leak
-            console.log("TODO remove clientLogin");
-            // just removing the node isn't good enough because the hsc still exists
-        }).defer(hsc).adto(el("div").clss("login-button-area").adto(frame));
-    }
     const loader_area = el("div").adto(frame);
     loader_area.classList.add("display-loading");
     loader_area.adch(loadingSpinner());
@@ -2257,6 +2257,12 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
         frame.classList.add("display-"+listing.display_style);
         loader_area.remove();
+
+        const navbar_area = el("div").adto(frame).clss("navbar-area");
+        for(const navbar_action of listing.navbar) {
+            renderAction(client, navbar_action, navbar_area).defer(hsc);
+            txt(" ").adto(navbar_area);
+        }
 
         const header_area = el("div").adto(frame).clss("header-area");
         const content_area = el("div").adto(frame).clss("content-area");

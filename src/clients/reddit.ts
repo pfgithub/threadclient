@@ -45,7 +45,9 @@ type Action =
     | {kind: "vote", query: Reddit.VoteBody}
     | {kind: "delete", fullname: string}
     | {kind: "save", fullname: string, direction: "" | "un"}
-    | {kind: "subscribe", subreddit: string, direction: "sub" | "unsub"};
+    | {kind: "subscribe", subreddit: string, direction: "sub" | "unsub"}
+    | {kind: "log_out"}
+;
 
 function encodeVoteAction(query: Reddit.VoteBody): Generic.Opaque<"act"> {return act_encoder.encode({kind: "vote", query})}
 function encodeDeleteAction(fullname: string): Generic.Opaque<"act"> {return act_encoder.encode({kind: "delete", fullname})}
@@ -696,6 +698,17 @@ function makeSidebar(extra: PageExtra, mode_raw: "both" | "header" | "sidebar"):
     }
     return null;
 }
+function getNavbar(): Generic.Action[] {
+    const res: Generic.Action[] = [];
+    if(isLoggedIn()) res.push(
+        {kind: "act", action: act_encoder.encode({kind: "log_out"}), text: "Log Out"},
+    );
+    else res.push(
+        {kind: "link", url: getLoginURL(), text: "Log In"},
+        {kind: "link", url: "raw!https://www.reddit.com/register", text: "Sign Up"},
+    );
+    return res;
+}
 const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
     const rtitems: Generic.Richtext.Paragraph[] = [];
     const listing_json = listing as unknown as {json: {errors: string[]}};
@@ -720,6 +733,7 @@ const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: Page
     }
     return {
         title: path + " | Error View",
+        navbar: getNavbar(),
         body: {
             kind: "one",
             item: {
@@ -822,6 +836,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
 
         return {
             title: firstchild.kind === "t3" ? firstchild.data.title : "ERR top not t3",
+            navbar: getNavbar(),
             body: {
                 kind: "one",
                 item: {
@@ -839,6 +854,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
     if(listing.kind === "wikipage") {
         return {
             title: path + " | Wiki",
+            navbar: getNavbar(),
             body: {
                 kind: "one",
                 item: {
@@ -862,6 +878,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
     if(listing.kind === "t5") {
         return {
             title: path + " | Sidebar",
+            navbar: getNavbar(),
             body: {
                 kind: "one",
                 item: {parents: [{
@@ -895,6 +912,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
 
     return {
         title: path,
+        navbar: getNavbar(),
         body: {
             kind: "listing",
             header: subredditHeader(extra.subinfo),
@@ -1379,7 +1397,7 @@ const getLoginURL = () => {
         "wikiread"
     ].join(" ");
 
-    const url = `https://www.reddit.com/api/v1/authorize?` +
+    const url = `raw!https://www.reddit.com/api/v1/authorize?` +
         encodeQuery({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
     ;
     return url;
@@ -1392,8 +1410,8 @@ export const client: ThreadClient = {
         ["r/test", () => "/r/test"],
         ["Notifications", () => "/message/inbox"],
     ],
-    isLoggedIn,
-    loginURL: getLoginURL(),
+    // loginURL: getLoginURL(),
+    getLoginURL(arg) {throw new Error("not supported get login url")},
     async getThread(pathraw): Promise<Generic.Page> {
         const [pathrawpath, pathrawquery] = splitURL(pathraw);
         const pathsplit = pathrawpath.split("/");
@@ -1432,6 +1450,7 @@ export const client: ThreadClient = {
             
             return {
                 title: "Error",
+                navbar: getNavbar(),
                 body: {kind: "one", item: {parents: [{
                     kind: "thread",
                     title: {text: "Error"},
@@ -1573,6 +1592,8 @@ export const client: ThreadClient = {
                 },
             });
             console.log(res);
+        }else if(act.kind === "log_out") {
+            localStorage.removeItem("reddit-secret");
         }else assertUnreachable(act);
     },
     previewReply(md: string, data: Generic.Opaque<"reply">): Generic.Thread {

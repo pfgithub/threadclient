@@ -2,6 +2,7 @@
 
 export type Page = {
     title: string,
+    navbar: Action[],
     sidebar?: ContentNode[],
     reply_button?: Action,
     body: {
@@ -331,9 +332,16 @@ export type Action = {
 } | {
     kind: "report",
     data: Opaque<"report">,
+} | {
+    kind: "login",
+    data: Opaque<"login_url">,
+} | {
+    kind: "act",
+    action: Opaque<"act">,
+    text: string,
 };
 
-export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more" | "load_more_unmounted";
+export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more" | "load_more_unmounted" | "login_url";
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 
 // a counter or a button with 2-3 states

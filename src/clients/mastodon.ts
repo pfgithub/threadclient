@@ -108,8 +108,24 @@ declare namespace Mastodon {
     };
 }
 
-const error404 = (msg = "404 not found"): Generic.Page => ({
+function getNavbar(host: string | null): Generic.Action[] {
+    if(host == null) return [];
+    return [
+        isLoggedIn(host) ? {
+            kind: "login",
+            data: login_url_encoder.encode({host}),
+            // text: "Log In to "+host,
+        } : {
+            kind: "link",
+            text: "Log Out",
+            url: "TODO log out",
+        },
+    ];
+}
+
+const error404 = (host: string | null, msg = "404 not found"): Generic.Page => ({
     title: "Error",
+    navbar: getNavbar(host),
     body: {kind: "one", item: {parents: [{
         kind: "thread",
         title: {text: "Error"},
@@ -335,7 +351,7 @@ type TokenResult = {
     token_type: "Bearer",
 };
 const getLoginURL = (host: string, appres: ApplicationResult) => {
-    return "https://"+host+"/oauth/authorize?"+encodeQuery({
+    return "raw!https://"+host+"/oauth/authorize?"+encodeQuery({
         client_id: appres.client_id,
         scope: "read write follow push",
         redirect_uri: redirectURI(host),
@@ -416,18 +432,21 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
     }
     return authv;
 };
+
+type LoginURL = {
+    host: string,
+};
+const login_url_encoder = encoderGenerator<LoginURL, "login_url">("login_url");
 export const client: ThreadClient = {
     id: "mastodon",
     links: () => [],
-    isLoggedIn: (pathraw: string) => {
-        const [, host] = pathraw.split("/");
-        if(host == null) return false;
-        return isLoggedIn(host);
-    },
-    loginURL: async (pathraw: string): Promise<string> => {
-
-        const pathsplit = pathraw.split("/");
-        const [, host] = pathsplit;
+    // isLoggedIn: (pathraw: string) => {
+    //     const [, host] = pathraw.split("/");
+    //     if(host == null) return false;
+    //     return isLoggedIn(host);
+    // },
+    getLoginURL: async (requested: Generic.Opaque<"login_url">): Promise<string> => {
+        const {host} = login_url_encoder.decode(requested);
         if(host == null) throw new Error("can't login without selecting host first");
 
         const preapp = lsitems.app.get(host);
@@ -500,29 +519,30 @@ export const client: ThreadClient = {
         const [beforequery, afterquery_raw] = pathraw.split("?") as [string, string | undefined];
         const afterquery = afterquery_raw ?? "";
         const pathsplit = beforequery.split("/");
-        if(pathsplit.length < 2) return error404();
+        if(pathsplit.length < 2) return error404(null);
         const [, host_raw, ...path] = pathsplit;
         const host = host_raw!;
         
         const auth = await getAuth(host);
         
         const path0 = path.shift()!;
-        if(!path0) return error404();
+        if(!path0) return error404(host);
         if(path0 === "timelines") {
             return await timelineView(host, auth, "/api/v1/"+["timelines", ...path].join("/")+"?"+afterquery, "/"+["timelines", ...path].join("/")+"?"+afterquery, genericHeader());
         }else if(path0 === "statuses") {
             const postid = path.shift();
-            if(postid == null) return error404();
+            if(postid == null) return error404(host);
             const [postinfo, context] = await Promise.all([
                 getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", postid)),
                 getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", postid, "context")),
             ]);
 
-            if('error' in postinfo) return error404("Error! "+postinfo.error);
-            if('error' in context) return error404("Error! "+context.error);
+            if('error' in postinfo) return error404(host, "Error! "+postinfo.error);
+            if('error' in context) return error404(host, "Error! "+context.error);
             
             const res: Generic.Page = {
                 title: "Status",
+                navbar: getNavbar(host),
                 body: {
                     kind: "one",
                     item: {
@@ -540,13 +560,13 @@ export const client: ThreadClient = {
             return res;
         }else if(path0 === "accounts") {
             const acc_id = path.shift();
-            if(acc_id == null) return error404();
+            if(acc_id == null) return error404(host);
             const [account_info, account_relations] = await Promise.all([
                 getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id)),
                 getResult<Mastodon.AccountRelation[]>(auth, mkurl(host, "api/v1/accounts/relationships/?id[]="+acc_id)),
             ]);
             
-            if('error' in account_info) return error404("Error! "+account_info.error);
+            if('error' in account_info) return error404(host, "Error! "+account_info.error);
             if('error' in account_relations) console.log(account_relations);
             
             const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
@@ -580,7 +600,7 @@ export const client: ThreadClient = {
                 raw_value: account_info,
             });
         }
-        return error404();
+        return error404(host);
     },
     async act(action_raw): Promise<void> {
         const action = action_encoder.decode(action_raw);
@@ -649,6 +669,7 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
 
     const res: Generic.Page = {
         title: "Timeline | "+web_path,
+        navbar: getNavbar(host),
         body: {
             kind: "listing",
             header,
