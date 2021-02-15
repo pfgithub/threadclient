@@ -1325,7 +1325,9 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         });
         update();
     }else if(action.kind === "counter") {
-        renderCounterAction(client, action, content_buttons_line, {parens: true});
+        const hsc = hideshow();
+        renderCounterAction(client, action, content_buttons_line, {parens: true}).defer(hsc);
+        return hsc;
     }else if(action.kind === "delete") {
         const resdelwrap = el("span").adto(content_buttons_line);
         const resyeswrap = el("span").adto(content_buttons_line);
@@ -1496,7 +1498,71 @@ function renderReportScreen(client: ThreadClient, report_fetch_info: Generic.Opa
     return hsc;
 }
 
-function renderCounterAction(client: ThreadClient, action: Generic.CounterAction, content_buttons_line: Node, opts: {parens: boolean}) {
+type CounterState = {
+    loading: boolean,
+    pt_count: number | "hidden" | "none",
+    your_vote: "increment" | "decrement" | undefined,
+};
+type GlobalCounter = {
+    state: CounterState,
+    handlers: Set<() => void>,
+    users: number,
+    update_time: number,
+};
+type WatchableCounterState = {
+    state: CounterState,
+    emit: () => void,
+    onupdate: (cb: () => void) => void,
+};
+
+const global_counter_info = new Map<string, GlobalCounter>();
+
+function watchCounterState(counter_id_raw: string | null, updates: {count: number | "hidden" | "none", you: "increment" | "decrement" | undefined, time: number}): HideShowCleanup<WatchableCounterState> {
+    const counter_id = counter_id_raw ?? `${Math.random()}`;
+    const global_state: GlobalCounter = global_counter_info.get(counter_id) ?? {
+        state: {
+            loading: false,
+            pt_count: updates.count,
+            your_vote: updates.you, 
+        },
+        handlers: new Set(),
+        users: 0,
+        update_time: updates.time,
+    };
+    if(!global_counter_info.has(counter_id)) global_counter_info.set(counter_id, global_state);
+    if(global_state.update_time < updates.time) {
+        global_state.state.pt_count = updates.count;
+        global_state.state.your_vote = updates.you;
+    }
+    const res: WatchableCounterState = {
+        state: global_state.state,
+        emit() {
+            global_state.handlers.forEach(handler => handler());
+        },
+        onupdate(cb) {
+            const uniqueCallback = () => {
+                cb();
+                // consider only firing cb when hsc is visible? and if it's hidden, batch it for when it becomes visible again?
+                // probably not an issue currently
+            };
+            global_state.handlers.add(uniqueCallback);
+            hsc.on("cleanup", () => {
+                global_state.handlers.delete(uniqueCallback);
+            });
+        },
+    };
+    const hsc = hideshow(res);
+    global_state.users++;
+    hsc.on("cleanup", () => {
+        global_state.users--;
+        if(global_state.users === 0) global_counter_info.delete(counter_id);
+    });
+    return hsc;
+}
+
+function renderCounterAction(client: ThreadClient, action: Generic.CounterAction, content_buttons_line: Node, opts: {parens: boolean}): HideShowCleanup<{
+    percent_voted_txt: Text, votecount: HTMLSpanElement,
+}> {
     const display_count = action.count_excl_you !== "none";
 
     const wrapper = el("span").clss("counter").adto(content_buttons_line);
@@ -1509,15 +1575,16 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     const percent_voted_txt = action.percent == null ? txt("—% upvoted") : txt(action.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted");
     let decr_button: HTMLButtonElement | undefined;
 
-    const state = {loading: false, pt_count: action.count_excl_you === "hidden" || action.count_excl_you === "none" ? null : action.count_excl_you, your_vote: action.you};
+    const hsc = hideshow({percent_voted_txt, votecount});
+    const {state, emit, onupdate} = watchCounterState(action.unique_id, {count: action.count_excl_you, you: action.you, time: action.time}).defer(hsc);
 
     const getPointsText = () => {
-        if(state.pt_count == null) return ["—", "[score hidden]"];
+        if(state.pt_count === "hidden" || state.pt_count === "none") return ["—", "[score hidden]"];
         const score_mut = state.pt_count + (state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0);
         return [scoreToString(score_mut), score_mut.toLocaleString()] as const;
     };
 
-    const update = () => {
+    onupdate(() => {
         const [pt_text, pt_raw] = getPointsText();
         btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label ?? "ERR", none: action.label}[state.your_vote ?? "none"];
         votecount_txt.nodeValue = opts.parens ? "(" + pt_text + ")" : pt_text;
@@ -1531,8 +1598,8 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
 
         button.setAttribute("aria-pressed", state.your_vote === "increment" ? "true" : "false");
         if(decr_button) decr_button.setAttribute("aria-pressed", state.your_vote === "decrement" ? "true" : "false");
-    };
-    update();
+    });
+    emit();
 
     const doAct = (vote: undefined | "increment" | "decrement") => {
         if('error' in action.actions) {
@@ -1541,17 +1608,17 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         const prev_vote = state.your_vote;
         state.your_vote = vote;
         state.loading = true;
-        update();
+        emit();
         const action_v = action.actions[vote ?? "reset"];
         if(action_v == null) throw new Error("downvote label available but downvote action not provided");
         client.act(action_v).then(() => {
             state.your_vote = vote;
             state.loading = false;
-            update();
+            emit();
         }).catch(e => {
             state.your_vote = prev_vote;
             state.loading = false;
-            update();
+            emit();
             console.log(e);
             alert("Got error: "+e);
         });
@@ -1576,7 +1643,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         }
     });
 
-    return {percent_voted_txt, votecount};
+    return hsc;
 }
 
 const userLink = (client_id: string, href: string, name: string) => {
@@ -1984,7 +2051,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     for(const action of listing.actions) {
         if(action.kind === "counter" && action.special === "reddit-points") {
             frame.clss("spacefiller-redditpoints");
-            const ctr = renderCounterAction(client, action, content_voting_area, {parens: false});
+            const ctr = renderCounterAction(client, action, content_voting_area, {parens: false}).defer(hsc);
             if(listing.layout === "reddit-comment") {
                 content_subminfo_line.insertBefore(txt(" "), reserved_points_area);
                 content_subminfo_line.insertBefore(ctr.votecount, reserved_points_area);

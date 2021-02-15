@@ -171,7 +171,6 @@ function richtextTableHeading(tbh: Reddit.Richtext.TableHeading, opt: RichtextFo
     };
 }
 function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormattingOptions): Generic.Richtext.TableItem {
-    console.log(tbh);
     return {
         children: richtextSpanArray(tbh.c, opt),
     };
@@ -375,6 +374,9 @@ const updateQuery = (path: string, update: {[key: string]: string | undefined}) 
 function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.Action {
     return {
         kind: "counter",
+
+        unique_id: "/subscribe/"+subreddit+"/",
+        time: Date.now(),
 
         label: "Subscribe",
         incremented_label: "Subscribed",
@@ -929,6 +931,10 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
     const vote_data = {id: listing.name, rank: "2"};
     return {
         kind: "counter",
+
+        unique_id: "/vote/"+listing.name+"/",
+        time: Date.now(),
+
         special: "reddit-points",
 
         label: "Vote",
@@ -1018,6 +1024,9 @@ const replyButton = (fullname: string): Generic.Action => {
 const saveButton = (fullname: string, saved: boolean): Generic.Action => {
     return {
         kind: "counter",
+
+        unique_id: `/save/${fullname}/`,
+        time: Date.now(),
         
         label: "Save",
         incremented_label: "Unsave",
@@ -1589,6 +1598,8 @@ export const client: ThreadClient = {
             actions: [{
                 kind: "counter",
                 special: "reddit-points",
+                unique_id: null,
+                time: Date.now(),
 
                 label: "Vote",
                 incremented_label: "Voted",

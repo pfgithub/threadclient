@@ -286,6 +286,8 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             {kind: "counter",
                 label: "Favourite",
                 incremented_label: "Favourited",
+                unique_id: host+"/favourite/"+post.id+"/",
+                time: Date.now(),
 
                 count_excl_you: post.favourites_count + (post.favourited ? -1 : 0),
                 you: post.favourited ? "increment" : undefined,
@@ -559,6 +561,8 @@ export const client: ThreadClient = {
                 },
                 actions: [{
                     kind: "counter",
+                    unique_id: "/follow/"+account_info.id+"/",
+                    time: Date.now(),
                     label: "Follow",
                     incremented_label: "Following",
                     count_excl_you: account_info.followers_count === -1

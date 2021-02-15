@@ -340,6 +340,9 @@ export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol
 export type CounterAction = {
     kind: "counter",
 
+    unique_id: string | null, // identifier that refers to this counter, unique per-client
+    time: number, // when this was found
+
     special?: "reddit-points",
 
     label: ActionLabel,

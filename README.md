@@ -80,6 +80,7 @@ all todo:
 -   [x] catch errors in more places
 -   [x] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
 -   [x] fix comments on mobile (they used to go edge to edge, now they don't for some reason)
+-   [x] watchable counters
 -   [ ] delete hidden video.js players rather than pausing them
 -   [ ] get rid of "hide" and "show" in hsc and instead always delete/recreate elements maybe
 -   [ ] decrease indent width on mobile and make the permalink button more prominent or something for when things get too deep
@@ -88,13 +89,6 @@ all todo:
         on the outside and set pointer-events: none on the content while the content is not revealed. I thought I did this already but maybe something
         with having two seperate implementations caused it.
 -   [ ] the refresh button
--   [ ] watchable counters
-
-    1. all counters should have IDs.
-    2. when a counter is seen, it should register to watch any changes to the counter value of that ID.
-    3. when you count on a counter, it should send a signal to all the counters with the same ID to update.
-    4. when you load a new page with counters, the new values of the counters should take precedence over the old values of the counters.
-
 -   [ ] improve how parent and child nodes and listings are represented:
         reddit lets you link to a comment that might be deep in the thread. mastodon
         has the same. improve how this is represented in Generic data and improve how it is displayed on the page. currently, {header, replies}
@@ -119,6 +113,7 @@ all todo:
 -   [ ] make images a bit smaller on desktop - 95% of viewport height is kind of big
 -   [ ] fix wrong scrolling when going to a comment section and pressing back in firefox
 -   [ ] fix wrong scrolling occasionally when clicking show on post content
+-   [ ] check for leaks by destroying the root hsc and see if any hscs were left undestroyed
 -   [ ] set up hot module replacement to support reloading `clients/reddit.ts` (currently it doesn't because old copies of client objects are stored)
 -   [ ] when a reply window thing is open with entered text, prompt before closing the page. make sure this works for 2+ open reply things even if one is closed
 -   [ ] res-like click and drag image to zoom. and get rid of the click to open in new tab, there's a link right above the image you can click
