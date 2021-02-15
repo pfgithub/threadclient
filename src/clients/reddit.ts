@@ -670,7 +670,7 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
             mobile: subinfo.sub_t5.data.mobile_banner_image || undefined,
         } : undefined,
         icon: subinfo.sub_t5 ? {
-            url: subinfo.sub_t5.data.community_icon,
+            url: subinfo.sub_t5.data.community_icon || subinfo.sub_t5.data.icon_img,
         } : undefined,
         name: {
             display: subinfo.sub_t5?.data.title,
