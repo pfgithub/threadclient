@@ -52,6 +52,13 @@ build (dev): `env NODE_ENV=development yarn webpack serve`
 
 build (once): `yarn webpack`
 
+check things
+
+```
+yarn eslint src
+yarn tsc --noEmit
+```
+
 to log in on a local build, after giving threadreader access to reddit, edit the url from `https://thread.pfg.pw/…` to `http://localhost:…/…`.
 
 ## todo

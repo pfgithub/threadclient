@@ -262,11 +262,13 @@ export const App: React.FC = (): React.ReactElement => {
             <button>Table</button>
         </div>
         <Editable
-            renderElement={renderElement}
+            //eslint-disable-next-line @typescript-eslint/no-explicit-any
+            renderElement={renderElement as any}
             renderLeaf={renderLeaf}
             // todo update newline to isnert a br then a parargraph break if there alreads aflk
             // uh oh! this code block doesn't respond properly to newlines
-            onKeyDown={(event: KeyboardEvent) => {
+            onKeyDown={event_react => {
+                const event = event_react as unknown as KeyboardEvent;
                 if(event.key === "m" && event.ctrlKey) {
                     event.preventDefault();
                     return Transforms.insertNodes(editor, {image_text: "Hi!", type: "error", children: [{text: ""}]});

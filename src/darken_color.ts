@@ -16,12 +16,12 @@ function multiplyMatrices(m1: number[][], m2: number[][]) {
     const result: number[][] = [];
     for (let i = 0, len = m1.length; i < len; i++) {
         result[i] = [];
-        for (let j = 0, len2 = m2[0].length; j < len2; j++) {
+        for (let j = 0, len2 = m2[0]!.length; j < len2; j++) {
             let sum = 0;
-            for (let k = 0, len3 = m1[0].length; k < len3; k++) {
-                sum += m1[i][k] * m2[k][j];
+            for (let k = 0, len3 = m1[0]!.length; k < len3; k++) {
+                sum += m1[i]![k]! * m2[k]![j]!;
             }
-            result[i][j] = sum;
+            result[i]![j] = sum;
         }
     }
     return result;
@@ -57,7 +57,7 @@ export function rgbToHSL({r: r255, g: g255, b: b255, a = 1}: RGBA): HSLA {
 export function hslToRGB({h, s, l, a = 1}: HSLA): RGBA {
     if (s === 0) {
         const [r, b, g] = [l, l, l].map((x) => Math.round(x * 255));
-        return {r, g, b, a};
+        return {r: r!, g: g!, b: b!, a};
     }
 
     const c = (1 - Math.abs(2 * l - 1)) * s;
@@ -72,7 +72,7 @@ export function hslToRGB({h, s, l, a = 1}: HSLA): RGBA {
                             [c, 0, x]
     ).map((n) => Math.round((n + m) * 255));
 
-    return {r, g, b, a};
+    return {r: r!, g: g!, b: b!, a};
 }
 function modifyBlueFgHue(hue: number) {
     return scale(hue, 205, 245, 205, 220);
@@ -150,10 +150,10 @@ function modifyBgHSL({h, s, l, a}: HSLA, pole: HSLA) {
 
     return {h: hx, s, l: lx, a};
 }
-function applyColorMatrix([r, g, b]: number[], matrix: number[][]) {
+function applyColorMatrix([r, g, b]: [number, number, number], matrix: number[][]): [number, number, number] {
     const rgb = [[r / 255], [g / 255], [b / 255], [1], [1]];
     const result = multiplyMatrices(matrix, rgb);
-    return [0, 1, 2].map((i) => clamp(Math.round(result[i][0] * 255), 0, 255));
+    return [0, 1, 2].map((i) => clamp(Math.round(result[i]![0]! * 255), 0, 255)) as [number, number, number];
 }
 export function rgbToString(rgb: RGBA): string {
     const {r, g, b, a} = rgb;

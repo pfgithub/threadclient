@@ -6,6 +6,7 @@
         "module": "commonjs",
         "noImplicitAny": true,
         "noUncheckedIndexedAccess": true,
+        "esModuleInterop": true,
         "jsx": "preserve",
         "lib": [
             "es2019",
