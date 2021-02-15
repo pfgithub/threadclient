@@ -1887,7 +1887,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                 collapsed_button.setAttribute("aria-pressed", "false");
             }
         };
-        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).onev("click", () => {
+        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).adch(el("div").clss("collapse-btn-inner")).onev("click", () => {
             collapsed =! collapsed;
             update();
             const topv = collapsed_button.getBoundingClientRect().top;
@@ -2258,6 +2258,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         localStorage.setItem("saved-post", JSON.stringify(listing_copy));
         saveofflinebtn.disabled = true;
         saveofflinebtn.textContent = "✓ Saved";
+        // set url to /saved/… without reloading
     }).adto(navbar_area);
 
     const header_area = el("div").adto(frame).clss("header-area");

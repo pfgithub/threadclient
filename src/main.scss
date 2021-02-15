@@ -491,40 +491,36 @@ html {
 .post.layout-commentlike.spacefiller-pfp > .collapse-btn {
     top: 60px;
 }
-.post.layout-commentlike > .collapse-btn {
+.collapse-btn {
     all: unset;
     position: absolute;
     left: var(--left-v);
     top: 10px;
     bottom: 10px;
-    background: linear-gradient(
-        to right,
-        transparent 40%,
-        var(--collapse-line-color) 40%,
-        var(--collapse-line-color) 60%,
-        transparent 60%
-    );
     width: 15px;
+    box-sizing: border-box;
     cursor: pointer;
     min-height: 13px;
+    padding-left: 6px;
+    padding-right: 6px;
     &:focus {
-        background: linear-gradient(
-            to right,
-            transparent 40%,
-            var(--collapse-line-color-focus) 40%,
-            var(--collapse-line-color-focus) 60%,
-            transparent 60%
-        );
+        outline: none;
     }
-    &:hover {
-        background: linear-gradient(
-            to right,
-            transparent 40%,
-            var(--collapse-line-color-hover) 40%,
-            var(--collapse-line-color-hover) 60%,
-            transparent 60%
-        );
-    }
+}
+.collapse-btn-inner {
+    background: var(--collapse-line-color);
+    width: 3px;
+    height: 100%;
+    border-radius: 3px;
+}
+.collapse-btn:focus .collapse-btn-inner {
+    background: var(--collapse-line-color-focus);
+}
+.collapse-btn:hover .collapse-btn-inner {
+    background: var(--collapse-line-color-hover);
+}
+.comment-collapsed > .collapse-btn > .collapse-btn-inner {
+    display: none;
 }
 .replies > .comment > .post.layout-commentlike > .collapse-btn {
     bottom: 0;
