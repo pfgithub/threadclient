@@ -35,7 +35,7 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
         is_raw = true;
     }
     if(!href.startsWith("http") && !href.startsWith("/")) {
-        return el("a").clss("error").attr({title: href}).clss("error").onev("click", () => alert(href));
+        return el("a").clss(...linkAppearence, "error").attr({title: href}).clss("error").onev("click", () => alert(href));
     }
     let urlparsed: URL | undefined;
     try {
@@ -46,7 +46,7 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     if(urlparsed && !is_raw && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
         href = "/reddit"+urlparsed.pathname;
     }
-    const res = el("a").attr({href, target: "_blank", rel: "noreferrer noopener"});
+    const res = el("a").clss(...linkAppearence).attr({href, target: "_blank", rel: "noreferrer noopener"});
     if(href.startsWith("/") || opts.onclick) res.onclick = event => {
         if (
             !event.defaultPrevented && // onClick prevented default
@@ -744,7 +744,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
 }
 
 function renderSafeHTML(client: ThreadClient, safe_html: string & {_is_safe: true}, parent_node: Node, class_prefix: string): HideShowCleanup<undefined> {
-    const divel = el("div").adto(parent_node).clss("slightlybigger");
+    const divel = el("div").adto(parent_node).clss("rendered-html");
     const hsc = hideshow();
     divel.innerHTML = safe_html;
     if(class_prefix) for(const node of Array.from(divel.querySelectorAll("*"))) {
@@ -763,7 +763,7 @@ function renderSafeHTML(client: ThreadClient, safe_html: string & {_is_safe: tru
 
         const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode).defer(hsc);
 
-        newbtn.attr({class: alink.getAttribute("class")});
+        newbtn.attr({class: newbtn.getAttribute("class") + " " + alink.getAttribute("class")});
         content.forEach(el => newbtn.appendChild(el));
     }
     for(const spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
@@ -910,7 +910,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
                     : rtp.kind === "list_item"
                     ? "li"
                     : assertNever(rtp)
-            ).adto(container).clss("richtext-render-node");
+            ).clss(rtp.kind === "list" ? rtp.ordered ? "list-decimal" : "list-disc" : "").adto(container).clss("richtext-render-node");
             for(const child of rtp.children) {
                 renderRichtextParagraph(client, child, bquot).defer(hsc);
             }
@@ -1685,8 +1685,8 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         el("img").clss("sub-icon-img").attr({alt: "", src: listing.icon.url}).adto(area);
     }
     const title_area = el("div").clss("subreddit-title-area").adto(area);
-    if(listing.name.display != null) el("h1").atxt(listing.name.display).clss("sub-title").adto(title_area);
-    el("h2").atxt(listing.name.link_name).clss("sub-subreddit").adto(title_area);
+    if(listing.name.display != null) el("h1").atxt(listing.name.display).clss("text-lg").adto(title_area);
+    el("h2").atxt(listing.name.link_name).clss("text-gray-500").adto(title_area);
 
     if(listing.subscribe) {
         const subscrarea = el("div").clss("sub-subscribe-area").adto(area);
@@ -1712,7 +1712,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
 
     const outer_el = el("div").adto(outest_el);
 
-    txt(widget.title).adto(el("div").adto(outer_el).clss("widget-header"));
+    txt(widget.title).adto(el("div").adto(outer_el).clss("widget-header font-bold text-base mb-2 text-gray-500"));
 
     const frame = el("div").clss("widget-content").adto(outer_el);
     
@@ -1725,15 +1725,17 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
 
     const content = widget.widget_content;
     if(content.kind === "list") {
-        const list = el("ul").clss("widget-list").adto(frame);
+        const list = el("ul").clss("widget-list list-disc").adto(frame);
         for(const item of content.items) {
             const ili_wrapper = el("li").adto(list);
             let ili: HTMLElement;
             if(item.click.kind === "body") {
+                ili_wrapper.clss("list-none");
                 const details = el("details").adto(ili_wrapper);
                 ili = el("summary").attr({draggable: "true"}).adto(details);
                 renderBody(client, item.click.body, {autoplay: false}, details).defer(hsc);
             }else{
+                ili_wrapper.clss("ml-4");
                 ili = ili_wrapper;
             }
             if(item.icon != null) {
@@ -1780,7 +1782,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
         linkButton(client.id, content.link_url ?? content.src)
             .adch(el("img")
                 .attr({src: content.src, width: `${content.width}px` as const, height: `${content.height}px` as const})
-                .clss("widget-image-img")
+                .clss("w-full h-auto")
             ).adto(alt_frame)
         ;
     }else assertNever(content);
@@ -1828,7 +1830,7 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode): Hide
     }
 }
 function clientListingWrapperNode(): HTMLDivElement {
-    const frame = el("div").clss("post");
+    const frame = el("div").clss("post text-sm"); // the last in the header array should be text-base
     return frame;
 }
 type AddChildrenFn = (children: Generic.Node[]) => void;
@@ -1854,16 +1856,16 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         preview_area = el("div").adto(frame).clss("post-preview");
         replies_area = el("div").adto(frame).clss("post-replies");
 
-        content_title_line = el("div").adto(content_area).clss("post-content-title");
+        content_title_line = el("div").adto(content_area).clss("post-content-title text-base");
         content_subminfo_line = el("div").adto(content_area).clss("post-content-subminfo");
         content_buttons_line = el("div").adto(content_area).clss("post-content-buttons");
     }else if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
         content_voting_area = el("div").adto(frame).clss("post-voting");
         content_title_line = el("div").adto(frame).clss("post-content-title"); // unused
         thumbnail_loc = el("button").adto(frame).clss("post-thumbnail"); // unused
-        content_subminfo_line = el("div").adto(frame).clss("post-content-subminfo");
+        content_subminfo_line = el("div").adto(frame).clss("post-content-subminfo text-xs");
         preview_area = el("div").adto(frame).clss("post-preview"); // unused
-        content_buttons_line = el("div").adto(frame).clss("post-content-buttons");
+        content_buttons_line = el("div").adto(frame).clss("post-content-buttons text-xs");
         replies_area = el("div").adto(frame).clss("post-replies");
     }else if(listing.layout === "error") {
         content_voting_area = el("div").adto(frame).clss("post-voting");
@@ -2140,8 +2142,10 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     return hsc;
 }
 
+const linkAppearence = ["text-blue-600", "dark:text-blue-500", "underline", "border-none"];
+
 function linkLikeButton() {
-    return el("button").clss("text-blue-600", "underline", "border-none").attr({draggable: "true"});
+    return el("button").clss(...linkAppearence).attr({draggable: "true"});
 }
 
 function loadingSpinner() {

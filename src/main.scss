@@ -195,20 +195,6 @@ a {
         margin-left: 0;
         margin-right: 0;
     }
-    .post-content-title,
-    .widget-header {
-        font-size: small;
-    }
-}
-
-.widget-header {
-    font-weight: bold;
-    opacity: 0.5;
-    margin-bottom: 10px;
-}
-
-.widget-content {
-    font-size: small;
 }
 
 ul.replies {
@@ -251,6 +237,7 @@ ul.replies {
     max-height: var(--max-height);
     width: auto;
     height: auto;
+    display: inline-block;
 }
 .gallery-overview-item {
     all: unset;
@@ -266,7 +253,6 @@ ul.replies {
     border-radius: 50px;
     padding-left: 6px;
     padding-right: 6px;
-    font-size: 12px;
     @media (prefers-color-scheme: dark) {
         background-color: var(--flair-color-dark);
     }
@@ -399,14 +385,9 @@ iframe {
 html {
     font-family: verdana, arial, helvetica, sans-serif;
 }
-.post-content-subminfo,
-.post-content-buttons {
-    font-size: x-small;
-}
 
 .link-like-button {
     all: unset;
-    font-size: x-small;
     cursor: pointer;
     color: var(--link-color);
     text-decoration: underline;
@@ -463,9 +444,6 @@ html {
     }
     &.counted-increment > .counter-increment-btn {
         background-position: 0px -1676px;
-    }
-    & > .counter-count {
-        font-size: small;
     }
     &.counted-increment > .counter-count {
         color: var(--upvote-color);
@@ -589,13 +567,9 @@ html {
 }
 
 .post-body {
-    font-size: small;
     margin-top: 10px;
     .layout-commentlike > .post-preview > & {
         margin-bottom: 10px;
-    }
-    & > .slightlybigger {
-        font-size: 1.0769230769230769em; // ???
     }
 }
 
@@ -698,7 +672,6 @@ body {
 
 .load-more {
     margin-left: 8px;
-    font-size: small;
 }
 
 th,
@@ -875,11 +848,6 @@ table {
     min-width: 0;
 }
 
-input,
-textarea {
-    font-size: 16px;
-}
-
 .alert {
     position: fixed;
     bottom: 0;
@@ -956,10 +924,6 @@ li.richtext-render-node > p:only-child {
 }
 // TODO on mobile hide sidebar widgets behind a menu button
 
-.widget-list {
-    padding-left: 15px;
-}
-
 .widget-list-icon {
     display: inline-block;
     width: 25px;
@@ -974,7 +938,6 @@ li.richtext-render-node > p:only-child {
 
 .report-screen {
     margin: 10px;
-    font-size: small;
 }
 .report-content {
     margin: 10px;
@@ -1002,12 +965,6 @@ summary {
     padding: 0;
     line-height: 0;
     overflow: hidden;
-}
-
-.widget-image-img {
-    max-width: 100%;
-    width: auto;
-    height: auto;
 }
 
 .post.subreddit-banner {
@@ -1051,16 +1008,28 @@ summary {
 .sub-subreddit {
     margin: 0;
 }
-.sub-title {
-    font-size: 1.5em;
-}
-.sub-subreddit {
-    font-size: 1em;
-}
-.sub-subreddit {
-    opacity: 0.5;
-}
 .sub-subscribe-area {
     grid-row: remaining;
     grid-column: icon / end;
+}
+
+.rendered-html {
+    p,
+    ul,
+    ol,
+    pre,
+    blockquote {
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    ul,
+    ol {
+        margin-left: 15px;
+    }
+    li {
+        list-style: circle;
+    }
+    li > p:only-child {
+        margin: 0;
+    }
 }
