@@ -22,6 +22,8 @@ module.exports = {
             'textc': "var(--text-color)",
             'userlink-color-light': "var(--light-color)",
             'userlink-color-dark': "var(--dark-color)",
+            'white': "#FFF",
+            'black': "#000",
         },
     },
     variants: {},

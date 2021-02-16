@@ -2303,9 +2303,9 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     return hsc;
 }
 
-type LinkStyle = "none" | "normal" | "action-button" | "unsafe-action-button" | "safe-action-button" | "load-more" | "code-button" | "previewable" | "userlink";
+type LinkStyle = keyof typeof link_styles_v;
 
-const link_styles_v: {[key in LinkStyle]: string} = {
+const link_styles_v = {
     'none': "border-none",
     'normal': "text-blue-600 dark:text-blue-500 underline border-none",
     'previewable': "text-blue-600 dark:text-blue-500 hover:underline border-none",
@@ -2315,6 +2315,8 @@ const link_styles_v: {[key in LinkStyle]: string} = {
     'code-button': "text-gray-600 dark:text-gray-500 hover:underline border-none",
     'load-more': "text-blue-600 dark:text-blue-500 hover:underline border-none text-base",
     'userlink': "text-userlink-color-light dark:text-userlink-color-dark hover:underline border-none",
+    'pill-empty': "text-sm border-2 border-white text-white hover:text-black hover:bg-white p-1 px-3 rounded-full transition-colors",
+    'pill-filled': "text-sm border-2 border-white bg-white text-black hover:text-white hover:bg-transparent p-1 px-3 rounded-full transition-colors",
 };
 
 const linkAppearence = (display_style: LinkStyle) => [link_styles_v[display_style]];
