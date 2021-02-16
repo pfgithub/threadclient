@@ -2029,7 +2029,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         if(isEmpty(listing.body)) {
             // do nothing
         }else if(listing.display_mode.body === "collapsed") {
-            const open_preview_button = el("button").clss("not-this-button").adto(content_buttons_line);
+            const open_preview_button = el("button").clss("px-1").adto(content_buttons_line);
             const open_preview_text = txt("…").adto(open_preview_button);
 
             let initialized = false;
@@ -2687,13 +2687,15 @@ let navbar: HTMLDivElement; {
     const frame = el("div").clss("navbar").adto(document.body);
     navbar = frame;
 
-    el("button").adto(frame).atxt("←").onev("click", () => history.back());
-    el("button").adto(frame).atxt("→").onev("click", () => history.forward());
+    const navbar_button = ["px-1"];
+
+    el("button").adto(frame).atxt("←").clss(...navbar_button).onev("click", () => history.back());
+    el("button").adto(frame).atxt("→").clss(...navbar_button).onev("click", () => history.forward());
 
     const nav_path = el("input").adto(frame).clss("navbar-path");
 
-    const nav_go = el("button").atxt("⏎").adto(frame);
-    const nav_reload = el("button").atxt("🗘").adto(frame);
+    const nav_go = el("button").clss(...navbar_button).atxt("⏎").adto(frame);
+    const nav_reload = el("button").clss(...navbar_button).atxt("🗘").adto(frame);
 
     const go = () => navigate({path: nav_path.value});
     nav_go.onclick = () => go();
