@@ -1908,6 +1908,8 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
                 renderFlair([item.name.flair]).adto(name_node);
             }else if(item.name.kind === "username") {
                 name_node = txt(item.name.username);
+            }else if(item.name.kind === "image") {
+                name_node = el("img").clss("w-fill h-auto").attr({src: item.name.src, alt: item.name.alt, width: `${item.name.w}px` as const, height: `${item.name.h}px` as const});
             }else assertNever(item.name);
 
             if(item.click.kind === "link") {

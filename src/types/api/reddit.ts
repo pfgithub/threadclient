@@ -197,16 +197,25 @@ export type Widget = {
     description: Markdown,
     description_html: HTML,
 
-    buttons: ({url: string} & ({
+    buttons: ({
         kind: "text",
         text: string,
+        url: string,
 
         color?: string,
         textColor?: string,
         fillColor?: string,
     } | {
+        kind: "image",
+        linkUrl: string,
+        
+        text: string, // alt
+        url: string,
+        width: number,
+        height: number,
+    } | {
         kind: "unsupported", // image but I'm not sure the props
-    }))[],
+    })[],
 } | {
     kind: "unsupported",
 });

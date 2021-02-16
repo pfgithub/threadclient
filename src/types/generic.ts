@@ -266,7 +266,7 @@ export type MenuItem = {
 
 export type WidgetListItem = {
     icon?: string,
-    name: {kind: "text", text: string} | {kind: "username", username: string} | {kind: "flair", flair: Flair},
+    name: {kind: "text", text: string} | {kind: "username", username: string} | {kind: "flair", flair: Flair} | {kind: "image", src: string, w: number, h: number, alt?: string},
     click: {kind: "link", url: string} | {kind: "body", body: Body},
     action?: Action,
 };
@@ -278,6 +278,7 @@ export type Widget = {
     actions_bottom?: Action[],
     widget_content: {
         kind: "list",
+        above_text?: Body,
         items: WidgetListItem[],
     } | {
         kind: "community-details",

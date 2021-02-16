@@ -519,21 +519,25 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         kind: "widget",
         title: data.shortName,
         raw_value: data,
-        widget_content: {kind: "body", body: {kind: "array", body: [
-            {kind: "text", content: data.description, markdown_format: "reddit"},
-            {kind: "richtext", content: [{kind: "list", ordered: false, children: data.buttons.map((button): Generic.Richtext.Paragraph => {
-                // todo real buttons instead of these links
-                // todo support background-color
-                return {kind: "list_item", children: [{kind: "paragraph", children: [
-                    {kind: "link", url: button.url, children: [
-                        button.kind === "text"
-                            ? {kind: "text", text: button.text, styles: {}}
-                            : (expectUnsupported(button.kind), {kind: "text", text: "unsupported "+button.kind, styles: {error: JSON.stringify(button)}})
-                        ,
-                    ]}
-                ]}]};
-            })}]},
-        ]}},
+        widget_content: {
+            kind: "list",
+            above_text: {kind: "text", content: data.description, markdown_format: "reddit"},
+            items: data.buttons.map((button): Generic.WidgetListItem => {
+                if(button.kind === "text") return {
+                    name: {kind: "text", text: button.text},
+                    click: {kind: "link", url: button.url},
+                };
+                if(button.kind === "image") return {
+                    name: {kind: "image", src: button.url, w: button.width, h: button.height, alt: button.text},
+                    click: {kind: "link", url: button.linkUrl},
+                };
+                expectUnsupported(button.kind);
+                return {
+                    name: {kind: "text", text: "TODO "+button.kind},
+                    click: {kind: "body", body: {kind: "none"}},
+                };
+            }),
+        },
     };
     expectUnsupported(data.kind);
     return {
