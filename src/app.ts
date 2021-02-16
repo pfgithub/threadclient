@@ -1,5 +1,6 @@
 import "./_stdlib";
 import "./main.scss";
+import "tailwindcss/tailwind.css";
 
 import  * as uhtml from "uhtml";
 
@@ -494,15 +495,18 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
 function renderFlair(flairs: Generic.Flair[]) {
     const resl = document.createDocumentFragment();
     for(const flair of flairs) {
-        const flairv = el("span").clss("flair");
+        const flairv = el("span").clss("px-2 rounded-full");
         resl.atxt(" ");
-        if(flair.color != null) flairv.styl({"--flair-color": flair.color, "--flair-color-dark": flair.color});
+        if(flair.color != null && flair.color !== "") flairv.clss("bg-flair-light dark:bg-flair-dark").styl({"--flair-color": flair.color, "--flair-color-dark": flair.color});
+        else flairv.clss("bg-gray-300 dark:bg-gray-600");
         if(flair.fg_color != null) flairv.clss("flair-text-"+flair.fg_color);
         for(const flairelem of flair.elems) {
             if(flairelem.type === "text") {
                 flairv.atxt(flairelem.text);
             }else if(flairelem.type === "emoji") {
-                el("img").attr({title: flairelem.name, src: flairelem.url, width: `${flairelem.w}px` as const, height: `${flairelem.h}px` as const}).clss("flair-emoji").adto(flairv);
+                el("img").attr({title: flairelem.name, src: flairelem.url, width: `${flairelem.w}px` as const, height: `${flairelem.h}px` as const})
+                    .clss("inline-block w-4 h-4 align-middle object-contain").adto(flairv)
+                ;
             }else assertNever(flairelem);
         }
         resl.adch(flairv);
@@ -1490,7 +1494,7 @@ function renderReportScreen(client: ThreadClient, report_fetch_info: Generic.Opa
                 frame.innerHTML = "";
                 frame.atxt("Report sent!");
                 console.log("Completed report", sentr);
-                const resdiv = el("div").clss("post").adto(frame);
+                const resdiv = clientListingWrapperNode().adto(frame);
                 resdiv.adch(el("div").atxt(sentr.title));
                 const body_cont = el("div").adto(resdiv);
                 renderBody(client, sentr.body, {autoplay: false}, body_cont).defer(hsc);
@@ -2137,7 +2141,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
 }
 
 function linkLikeButton() {
-    return el("button").clss("link-like-button").attr({draggable: "true"});
+    return el("button").clss("text-blue-600", "underline", "border-none").attr({draggable: "true"});
 }
 
 function loadingSpinner() {
@@ -2331,6 +2335,9 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
 
     return hsc;
 }
+
+const top_level_wrapper: string[] = [];
+const object_wrapper = ["shadow-md m-5 p-3 dark:bg-gray-800 rounded-xl m-5 p-3"];
 
 function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
     const outer = el("div").clss("client-wrapper");
@@ -2612,7 +2619,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             const title = updateTitle(hsc, client.id);
             title.setTitle("Loading "+client.id+"…");
 
-            renderClientPage(client, JSON.parse(localStorage.getItem("saved-post") ?? "{}"), outer, title);
+            renderClientPage(client, JSON.parse(localStorage.getItem("saved-post") ?? "{}"), frame, title);
 
             return hsc;
         })
