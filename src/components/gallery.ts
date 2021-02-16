@@ -7,7 +7,7 @@ import PhotoSwipeUI_Default from "photoswipe/dist/photoswipe-ui-default";
 import "photoswipe/dist/photoswipe.css";
 import "photoswipe/dist/default-skin/default-skin.css";
 
-export function showGallery(images: Generic.GalleryItem[], frame: HTMLDivElement, index: number, getThumbBoundsFn: (index: number) => {x: number, y: number, w: number}): HideShowCleanup<undefined> {
+export function showGallery(images: Generic.GalleryItem[], index: number, getThumbBoundsFn: (index: number) => {x: number, y: number, w: number}, onclose?: () => void): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     const pwspel = el("div").clss("pwsp")
@@ -113,6 +113,7 @@ It's a separate element, as animating opacity is faster than rgba(). -->
 
     gallery.listen("destroy", () => {
         destroy();
+        if(onclose) onclose();
     });
 
     hsc.on("cleanup", () => {
