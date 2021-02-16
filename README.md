@@ -141,8 +141,8 @@ reddit todo:
 -   [x] fix braille images that show up right on mobile but not desktop
 -   [x] imgur gallery api? `https://api.imgur.com/3/gallery/7Yn3dUp`
 -   [x] rpan support
--   [ ] make full use of Generic.Page - for threads where you are linked part way into the thread, set up the parent nodes correctly
--   [ ] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
+-   [x] make full use of Generic.Page - for threads where you are linked part way into the thread, set up the parent nodes correctly
+-   [x] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
 -   [ ] figure out what "url_overridden_by_dest" is
 -   [ ] more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gamw9br/)
 -   [ ] even more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gjq382v/)
