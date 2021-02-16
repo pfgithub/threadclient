@@ -1006,7 +1006,8 @@ summary {
     grid-column: icon / end;
 }
 
-.rendered-html {
+.rendered-html,
+.richtext-container {
     p,
     ul,
     ol,
