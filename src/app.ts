@@ -21,7 +21,7 @@ function isModifiedEvent(event: MouseEvent) {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
 
-function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseEvent) => void, color?: string} = {}) {
+function linkButton(client_id: string, href: string, style: LinkStyle, opts: {onclick?: (e: MouseEvent) => void} = {}) {
     // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
     if(href.startsWith("/") && client_id) {
         href = "/"+client_id+href;
@@ -35,7 +35,7 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
         is_raw = true;
     }
     if(!href.startsWith("http") && !href.startsWith("/")) {
-        return el("a").clss(...linkAppearence(opts.color), "error").attr({title: href}).clss("error").onev("click", () => alert(href));
+        return el("a").clss(...linkAppearence(style), "error").attr({title: href}).clss("error").onev("click", () => alert(href));
     }
     let urlparsed: URL | undefined;
     try {
@@ -46,7 +46,7 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     if(urlparsed && !is_raw && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
         href = "/reddit"+urlparsed.pathname;
     }
-    const res = el("a").clss(...linkAppearence(opts.color)).attr({href, target: "_blank", rel: "noreferrer noopener"});
+    const res = el("a").clss(...linkAppearence(style)).attr({href, target: "_blank", rel: "noreferrer noopener"});
     if(href.startsWith("/") || opts.onclick) res.onclick = event => {
         if (
             !event.defaultPrevented && // onClick prevented default
@@ -209,7 +209,7 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
         if((r as {errorMessage: string}).errorMessage != null) {
             throw new Error("Got error: "+r.errorMessage);
         }
-        resdiv.adch(el("div").adch(linkLikeButton().atxt("code").onev("click", () => console.log(r))));
+        resdiv.adch(el("div").adch(linkLikeButton("code-button").atxt("code").onev("click", () => console.log(r))));
         const error_v = r as {
             logged: boolean,
             message: string,
@@ -865,7 +865,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
 
     const renderLinkPreview = canPreview(client, href, {autoplay: true});
 
-    const newbtn = linkButton(client.id, href, {onclick: renderLinkPreview ? () => togglepreview() : undefined});
+    const newbtn = linkButton(client.id, href, renderLinkPreview ? "previewable" : "normal", {onclick: renderLinkPreview ? () => togglepreview() : undefined});
     parent_node.insertBefore(newbtn, after_node);
 
     const hsc = hideshow({newbtn});
@@ -1122,7 +1122,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         renderText(client, body).defer(hsc).adto(txta);
     }else if(body.kind === "link") {
         // TODO fix this link button thing
-        el("div").adto(content).adch(linkButton(client.id, body.url).atxt(body.url));
+        el("div").adto(content).adch(linkButton(client.id, body.url, "normal").atxt(body.url));
         const renderLinkPreview = canPreview(client, body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
         if(renderLinkPreview) {
             renderLinkPreview().defer(hsc).adto(content);
@@ -1333,7 +1333,7 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
         renderAction(client, action, action_container).defer(hsc);
     }
     action_container.atxt(" ");
-    linkLikeButton().adto(action_container).atxt("Code").onev("click", () => {
+    linkLikeButton("code-button").adto(action_container).atxt("Code").onev("click", () => {
         console.log(profile);
     });
 
@@ -1354,11 +1354,11 @@ const scoreToString = (score: number) => {
 };
 
 function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node): HideShowCleanup<undefined> {
-    if(action.kind === "link") linkButton(client.id, action.url).atxt(action.text).adto(content_buttons_line);
+    if(action.kind === "link") linkButton(client.id, action.url, "action-button").atxt(action.text).adto(content_buttons_line);
     else if(action.kind === "reply") {
         let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
         let reply_state: "none" | {preview?: Generic.Thread} = "none";
-        const reply_btn = linkLikeButton().atxt("Reply").adto(content_buttons_line);
+        const reply_btn = linkLikeButton("action-button").atxt("Reply").adto(content_buttons_line);
 
         const hsc = hideshow();
 
@@ -1460,12 +1460,12 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         const reserrwrap = el("span").adto(content_buttons_line);
         const resloadwrap = el("span").adto(content_buttons_line);
 
-        const delbtn = linkLikeButton().atxt("Delete").adto(resdelwrap);
+        const delbtn = linkLikeButton("action-button").atxt("Delete").adto(resdelwrap);
 
         resyeswrap.atxt("Are you sure? ");
-        const confirmbtn = linkLikeButton().clss("error").atxt("Delete").adto(resyeswrap);
+        const confirmbtn = linkLikeButton("unsafe-action-button").atxt("Delete").adto(resyeswrap);
         resyeswrap.atxt(" / ");
-        const nvmbtn = linkLikeButton().atxt("Cancel").adto(resyeswrap);
+        const nvmbtn = linkLikeButton("safe-action-button").atxt("Cancel").adto(resyeswrap);
 
         resloadwrap.atxt("Deleting…");
 
@@ -1503,7 +1503,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         let report_container: HTMLDivElement | undefined;
         let hsc = hideshow();
 
-        linkLikeButton().atxt("Report").adto(content_buttons_line).onev("click", () => {
+        linkLikeButton("action-button").atxt("Report").adto(content_buttons_line).onev("click", () => {
             if(!report_container) report_container = renderReportScreen(client, action.data).defer(hsc).adto(content_buttons_line);
             else {
                 hsc.cleanup();
@@ -1549,7 +1549,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         return hsc;
     }else if(action.kind === "act") {
         const frame = el("span").adto(content_buttons_line);
-        const btn = linkLikeButton().atxt(action.text).adto(frame).onev("click", () => {
+        const btn = linkLikeButton("action-button").atxt(action.text).adto(frame).onev("click", () => {
             btn.disabled = true;
             btn.textContent = "…";
             client.act(action.action).then(() => {
@@ -1619,7 +1619,7 @@ function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportSc
             });
         } break;
         case "link": {
-            linkButton(client.id, report_item.report.url).atxt(report_item.report.text).adto(frame);
+            linkButton(client.id, report_item.report.url, "normal").atxt(report_item.report.text).adto(frame);
         } break;
         case "more": {
             const childsv = el("div").adto(frame);
@@ -1738,7 +1738,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     const display_count = action.count_excl_you !== "none";
 
     const wrapper = el("span").clss("counter").adto(content_buttons_line);
-    const button = linkLikeButton().adto(wrapper).clss("counter-increment-btn").attr({'aria-label': "Up"});
+    const button = linkLikeButton("action-button").adto(wrapper).clss("counter-increment-btn").attr({'aria-label': "Up"});
     const btn_span = el("span").adto(button);
     const pretxt = txt("").adto(btn_span);
     const btxt = txt("…").adto(btn_span);
@@ -1799,7 +1799,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     if(action.decremented_label != null) {
         pretxt.nodeValue = "⯅ ";
         wrapper.atxt(" ");
-        decr_button = linkLikeButton().adch(el("span").atxt("⯆")).attr({'aria-label': "Down"}).adto(wrapper).onev("click", () => {
+        decr_button = linkLikeButton("action-button").adch(el("span").atxt("⯆")).attr({'aria-label': "Down"}).adto(wrapper).onev("click", () => {
             if(state.your_vote === "decrement") {
                 doAct(undefined);
             }else{
@@ -1820,7 +1820,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
 
 const userLink = (client_id: string, href: string, name: string) => {
     const [author_color, author_color_dark] = getRandomColor(seededRandom(name));
-    return linkButton(client_id, href, {color: "text-userlink-color-light dark:text-userlink-color-dark"})
+    return linkButton(client_id, href, "userlink")
         .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
         .atxt(name)
     ;
@@ -1860,7 +1860,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         }
     }
 
-    linkLikeButton().atxt("Code").adto(frame).onev("click", () => console.log(listing));
+    linkLikeButton("action-button").atxt("Code").adto(frame).onev("click", () => console.log(listing));
 
     return hsc;
 }
@@ -1916,7 +1916,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
                 if(item.name.kind === "username") {
                     userLink(client.id, item.click.url, item.name.username).adto(ili);
                 }else {
-                    linkButton(client.id, item.click.url).adch(name_node).adto(ili);
+                    linkButton(client.id, item.click.url, "normal").adch(name_node).adto(ili);
                 }
             }else{
                 el("span").adch(name_node).adto(ili);
@@ -1940,7 +1940,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
         const alt_frame = el("div");
         outest_el.clss("widget-image");
         outest_el.replaceChild(alt_frame, outer_el);
-        linkButton(client.id, content.link_url ?? content.src)
+        linkButton(client.id, content.link_url ?? content.src, "none")
             .adch(el("img")
                 .attr({src: content.src, width: `${content.width}px` as const, height: `${content.height}px` as const})
                 .clss("w-full h-auto")
@@ -1954,7 +1954,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
             renderAction(client, action, actionstop).defer(hsc);
         }
     }
-    el("div").adto(frame).adch(linkLikeButton().atxt("Code").onev("click", () => console.log(widget)));
+    el("div").adto(frame).adch(linkLikeButton("code-button").atxt("Code").onev("click", () => console.log(widget)));
 
     return hsc;
 } 
@@ -1986,7 +1986,7 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode): Hide
         console.log("Got error", e); 
         frame.innerHTML = "";
         frame.adch(el("pre").adch(el("code").atxt(e.toString() + "\n\n" + e.stack)));
-        frame.adch(linkLikeButton().atxt("Code").onev("click", () => console.log(listing)));
+        frame.adch(linkLikeButton("code-button").atxt("Code").onev("click", () => console.log(listing)));
         return hideshow(frame);
     }
 }
@@ -2097,7 +2097,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         ;
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
-            content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link).atxt(listing.info.in.name));
+            content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link, "normal").atxt(listing.info.in.name));
         }
         if(listing.info.edited !== false) content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
         if(listing.info.pinned) {
@@ -2249,9 +2249,9 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     if(content_voting_area.childNodes.length === 0) content_voting_area.remove();
 
     content_buttons_line.atxt(" ");
-    listing.actions.length === 0 && linkButton(client.id, listing.link).atxt("View").adto(content_buttons_line);
+    listing.actions.length === 0 && linkButton(client.id, listing.link, "action-button").atxt("View").adto(content_buttons_line);
     content_buttons_line.atxt(" ");
-    linkLikeButton().onev("click", e => {
+    linkLikeButton("code-button").onev("click", e => {
         console.log(listing);
     }).atxt("Code").adto(content_buttons_line);
 
@@ -2303,10 +2303,24 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     return hsc;
 }
 
-const linkAppearence = (color = "text-blue-600 dark:text-blue-500") => [color, "underline", "border-none"];
+type LinkStyle = "none" | "normal" | "action-button" | "unsafe-action-button" | "safe-action-button" | "load-more" | "code-button" | "previewable" | "userlink";
 
-function linkLikeButton() {
-    return el("button").clss(...linkAppearence()).attr({draggable: "true"});
+const link_styles_v: {[key in LinkStyle]: string} = {
+    'none': "border-none",
+    'normal': "text-blue-600 dark:text-blue-500 underline border-none",
+    'previewable': "text-blue-600 dark:text-blue-500 hover:underline border-none",
+    'action-button': "text-gray-600 dark:text-gray-500 hover:underline border-none",
+    'safe-action-button': "text-blue-600 dark:text-blue-500 hover:underline border-none",
+    'unsafe-action-button': "text-red-600 dark:text-red-500 hover:underline border-none",
+    'code-button': "text-gray-600 dark:text-gray-500 hover:underline border-none",
+    'load-more': "text-blue-600 dark:text-blue-500 hover:underline border-none text-base",
+    'userlink': "text-userlink-color-light dark:text-userlink-color-dark hover:underline border-none",
+};
+
+const linkAppearence = (display_style: LinkStyle) => [link_styles_v[display_style]];
+
+function linkLikeButton(display_style: LinkStyle) {
+    return el("button").clss(...linkAppearence(display_style)).attr({draggable: "true"});
 }
 
 function loadingSpinner() {
@@ -2318,7 +2332,7 @@ function loadingSpinner() {
 // doesn't matter atm but later.
 function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChildren: (children: Generic.Node[]) => void, removeSelf: () => void) {
     const container = el("div");
-    const makeButton = () => linkButton(client.id, load_more_node.url, {onclick: ev => {
+    const makeButton = () => linkButton(client.id, load_more_node.url, "load-more", {onclick: ev => {
         const loading_txt = el("div").adto(container);
         loading_txt.adch(el("span").atxt("Loading…"));
         loading_txt.adch(loadingSpinner());
@@ -2339,7 +2353,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
     let current_node: ChildNode = makeButton().atxt(load_more_node.count != null ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container).clss("load-more");
 
     container.atxt(" ");
-    linkLikeButton().onev("click", e => {
+    linkLikeButton("code-button").onev("click", e => {
         console.log(load_more_node);
     }).atxt("Code").adto(container);
     return container;
@@ -2351,7 +2365,7 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
     addChildren: (children: Generic.UnmountedNode[]) => void, removeSelf: () => void
 ) {
     const container = el("div");
-    const makeButton = (lmnode: Generic.LoadMoreUnmounted) => linkButton(client.id, lmnode.url, {onclick: ev => {
+    const makeButton = (lmnode: Generic.LoadMoreUnmounted) => linkButton(client.id, lmnode.url, "load-more", {onclick: ev => {
         const loading_txt = el("div").adto(container);
         loading_txt.adch(el("span").atxt("Loading…"));
         loading_txt.adch(loadingSpinner());
@@ -2376,7 +2390,7 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
     const mkbtn = (lmnode: Generic.LoadMoreUnmounted) => {
         current_node = el("div").adch(
             makeButton(lmnode).atxt(lmnode.count != null ? "Load "+lmnode.count+" More…" : "Load More…").adto(container).clss("load-more")
-        ).atxt(" ").adch(linkLikeButton().onev("click", e => {
+        ).atxt(" ").adch(linkLikeButton("code-button").onev("click", e => {
             console.log(lmnode);
         }).atxt("Code")).adto(container);
     };
@@ -2421,7 +2435,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         renderAction(client, navbar_action, navbar_area).defer(hsc);
         txt(" ").adto(navbar_area);
     }
-    const saveofflinebtn = linkLikeButton().atxt("Save Offline").adto(navbar_area).onev("click", () => {
+    const saveofflinebtn = linkLikeButton("action-button").atxt("Save Offline").adto(navbar_area).onev("click", () => {
         // save listing in indexed db
         // (or in the future, save the raw responses from the web so they can be re-transformed if necessary)
         localStorage.setItem("saved-post", JSON.stringify(listing_copy));
@@ -2618,9 +2632,9 @@ function navigate({path, replace}: {path: string, replace?: boolean}) {
 function homePage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
-    linkButton("", "/reddit").atxt("Reddit").adto(res);
+    linkButton("", "/reddit", "normal").atxt("Reddit").adto(res);
     res.atxt(" · ");
-    linkButton("", "/mastodon").atxt("Mastodon").adto(res);
+    linkButton("", "/mastodon", "normal").atxt("Mastodon").adto(res);
     return hsc;
 }
 
