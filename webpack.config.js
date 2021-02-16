@@ -29,6 +29,11 @@ module.exports = {
                 ],
             }},
         }, {
+            test: /\.(gif|svg|png)$/i,
+            use: [
+                "url-loader",
+            ],
+        }, {
             test: /\.css$/i,
             use: [
                 "style-loader",

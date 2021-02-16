@@ -441,8 +441,38 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
 }
 
 function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
+
+    if(images.every(img => img.body.kind === "captioned_image")) {
+        return fetchPromiseThen(import("./components/gallery"), gallery => {
+            const div = el("div");
+            const hsco = hideshow(div);
+            let showing: undefined | (() => void);
+            const boundfn = (index: number) => {
+                const rect = buttons[index]!.getBoundingClientRect();
+                return {x: rect.left, y: rect.top + (window.pageYOffset ?? document.documentElement.scrollTop), w: rect.width};
+            };
+            const buttons = images.map((img, i) => {
+                const btnv = el("button").clss("gallery-overview-item").adto(div).adch(
+                    el("img").clss("preview-image gallery-overview-image").attr({
+                        src: img.thumb,
+                        width: img.w != null ? `${img.w}px` as const : undefined,
+                        height: img.h != null ? `${img.h}px` as const : undefined,
+                    }),
+                ).onev("click", () => {
+                    if(showing) showing();
+                    const hsc = hideshow();
+                    showing = () => hsc.cleanup();
+                    gallery.showGallery(images, div, i, boundfn).defer(hsc);
+                });
+                return btnv;
+            });
+            hsco.on("cleanup", () => {if(showing) showing();});
+            return hsco;
+        });
+    }
     const container = el("div");
     const hsc = hideshow(container);
+
     type State = "overview" | {
         index: number,
     };
