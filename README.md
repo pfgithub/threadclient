@@ -11,6 +11,10 @@ Demo:
 -   ability to preview comments written in markdown mode before posting them
 -   all external links open in a new tab by default so you never have to worry if you should click or ctrl click a link
 -   usernames are different colors to make it easier to notice repeat users (new.reddit has profile pictures for this)
+-   threadreader preview supports these better than reddit in some ways:
+    -   imgur albums
+    -   gfycat gifs
+    -   twitch clips
 
 ## why this instead of new.reddit?
 
