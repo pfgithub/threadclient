@@ -598,13 +598,6 @@ blockquote {
     color: var(--blockquote-text-color);
 }
 
-.user-link {
-    color: var(--light-color);
-    @media (prefers-color-scheme: dark) {
-        color: var(--dark-color);
-    }
-}
-
 body {
     margin-bottom: 200px;
 }

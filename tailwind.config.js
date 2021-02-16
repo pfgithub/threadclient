@@ -20,6 +20,8 @@ module.exports = {
             'body': "var(--body-color)",
             'border': "var(--border-color)",
             'textc': "var(--text-color)",
+            'userlink-color-light': "var(--light-color)",
+            'userlink-color-dark': "var(--dark-color)",
         },
     },
     variants: {},

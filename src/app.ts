@@ -21,7 +21,7 @@ function isModifiedEvent(event: MouseEvent) {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
 
-function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseEvent) => void} = {}) {
+function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseEvent) => void, color?: string} = {}) {
     // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
     if(href.startsWith("/") && client_id) {
         href = "/"+client_id+href;
@@ -35,7 +35,7 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
         is_raw = true;
     }
     if(!href.startsWith("http") && !href.startsWith("/")) {
-        return el("a").clss(...linkAppearence, "error").attr({title: href}).clss("error").onev("click", () => alert(href));
+        return el("a").clss(...linkAppearence(opts.color), "error").attr({title: href}).clss("error").onev("click", () => alert(href));
     }
     let urlparsed: URL | undefined;
     try {
@@ -46,7 +46,7 @@ function linkButton(client_id: string, href: string, opts: {onclick?: (e: MouseE
     if(urlparsed && !is_raw && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
         href = "/reddit"+urlparsed.pathname;
     }
-    const res = el("a").clss(...linkAppearence).attr({href, target: "_blank", rel: "noreferrer noopener"});
+    const res = el("a").clss(...linkAppearence(opts.color)).attr({href, target: "_blank", rel: "noreferrer noopener"});
     if(href.startsWith("/") || opts.onclick) res.onclick = event => {
         if (
             !event.defaultPrevented && // onClick prevented default
@@ -1660,9 +1660,8 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
 
 const userLink = (client_id: string, href: string, name: string) => {
     const [author_color, author_color_dark] = getRandomColor(seededRandom(name));
-    return linkButton(client_id, href)
+    return linkButton(client_id, href, {color: "text-userlink-color-light dark:text-userlink-color-dark"})
         .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
-        .clss("user-link")
         .atxt(name)
     ;
 };
@@ -2142,10 +2141,10 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     return hsc;
 }
 
-const linkAppearence = ["text-blue-600", "dark:text-blue-500", "underline", "border-none"];
+const linkAppearence = (color = "text-blue-600 dark:text-blue-500") => [color, "underline", "border-none"];
 
 function linkLikeButton() {
-    return el("button").clss(...linkAppearence).attr({draggable: "true"});
+    return el("button").clss(...linkAppearence()).attr({draggable: "true"});
 }
 
 function loadingSpinner() {
