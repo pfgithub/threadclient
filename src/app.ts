@@ -1711,7 +1711,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
     const area = el("div").clss("subreddit-banner-content").adto(frame);
 
     if(listing.icon) {
-        el("img").clss("sub-icon-img").attr({alt: "", src: listing.icon.url}).adto(area);
+        el("img").clss("sub-icon-img shadow").attr({alt: "", src: listing.icon.url}).adto(area);
     }
     const title_area = el("div").clss("subreddit-title-area").adto(area);
     if(listing.name.display != null) el("h1").atxt(listing.name.display).clss("text-lg").adto(title_area);
