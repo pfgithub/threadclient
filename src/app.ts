@@ -2339,8 +2339,8 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
     return hsc;
 }
 
-const top_level_wrapper: string[] = [];
-const object_wrapper = ["shadow-md m-5 p-3 dark:bg-gray-800 rounded-xl m-5 p-3"];
+// const top_level_wrapper: string[] = [];
+// const object_wrapper = ["shadow-md m-5 p-3 dark:bg-gray-800 rounded-xl m-5 p-3"];
 
 function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
     const outer = el("div").clss("client-wrapper");
@@ -2625,7 +2625,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             renderClientPage(client, JSON.parse(localStorage.getItem("saved-post") ?? "{}"), frame, title);
 
             return hsc;
-        })
+        });
     }
 
     return fetchClientThen(path0, (client) => {
