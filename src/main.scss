@@ -970,6 +970,10 @@ summary {
     // margin-right: -10px;
     height: 200px;
     background-image: var(--desktop-banner-url);
+    @media only screen and (max-width: 600px) {
+        background-image: var(--mobile-banner-url);
+        background-position: center center;
+    }
     background-position: top center;
     background-size: cover;
     background-repeat: no-repeat;
@@ -977,6 +981,9 @@ summary {
     top: 0;
     left: 0;
     right: 0;
+}
+.drop-shadow {
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
 }
 .subreddit-banner-content {
     position: relative;
