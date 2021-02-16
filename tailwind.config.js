@@ -10,17 +10,16 @@ module.exports = {
     ],
     darkMode: "media",
     theme: {
-        theme: {
-            colors: {
-                'transparent': "transparent",
-                'current': "currentColor",
-                'gray': colors.coolGray,
-                'flair-light': "var(--flair-color)",
-                'flair-dark': "var(--flair-color-dark)",
-                'body': "var(--body-color)",
-                'border': "var(--border-color)",
-                'textc': "var(--text-color)",
-            },
+        colors: {
+            'transparent': "transparent",
+            'current': "currentColor",
+            'gray': colors.coolGray,
+            'blue': colors.blue,
+            'flair-light': "var(--flair-color)",
+            'flair-dark': "var(--flair-color-dark)",
+            'body': "var(--body-color)",
+            'border': "var(--border-color)",
+            'textc': "var(--text-color)",
         },
     },
     variants: {},

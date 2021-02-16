@@ -495,7 +495,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
 function renderFlair(flairs: Generic.Flair[]) {
     const resl = document.createDocumentFragment();
     for(const flair of flairs) {
-        const flairv = el("span").clss("px-2 rounded-full");
+        const flairv = el("span").clss("px-2 rounded-full inline-block");
         resl.atxt(" ");
         if(flair.color != null && flair.color !== "") flairv.clss("bg-flair-light dark:bg-flair-dark").styl({"--flair-color": flair.color, "--flair-color-dark": flair.color});
         else flairv.clss("bg-gray-300 dark:bg-gray-600");
