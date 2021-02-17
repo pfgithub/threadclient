@@ -23,7 +23,7 @@ declare namespace Mastodon {
         type: "video" | "image" | "gifv" | "todo",
 
         url: string,
-        preview_url: string,
+        preview_url?: string,
 
         description?: string,
 
@@ -31,7 +31,7 @@ declare namespace Mastodon {
         text_url: string | null,
         meta?: {
             original: ImageMeta | VideoMeta,
-            small: ImageMeta,
+            small?: ImageMeta,
         },
     };
     type Poll = {
@@ -111,7 +111,7 @@ declare namespace Mastodon {
 function getNavbar(host: string | null): Generic.Action[] {
     if(host == null) return [];
     return [
-        isLoggedIn(host) ? {
+        !isLoggedIn(host) ? {
             kind: "login",
             data: login_url_encoder.encode({host}),
             // text: "Log In to "+host,
@@ -248,7 +248,9 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
         resbody = {kind: "link", url: media.url};
     }
 
-    return {thumb: media.preview_url, w: media.meta?.small.width, h: media.meta?.small.height, body: resbody};
+    return {thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=no+thumb",
+        w: media.meta?.small?.width, h: media.meta?.small?.height, body: resbody
+    };
 };
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], include_parentlink?: boolean, reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {

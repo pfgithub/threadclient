@@ -99,7 +99,7 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
 
     const speaker_icons = ["🔇", "🔈", "🔊"] as const;
     const btnarea = el("div").adto(container).styl({display: "flex"});
-    const mutebtn = el("button").adto(btnarea);
+    const mutebtn = elButton("outlined-button").adto(btnarea);
     const muteicn = txt(speaker_icons[2]).adto(mutebtn);
     const slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
     const upslider = () => slider.value = "" + (audio.volume * 100);
@@ -209,7 +209,7 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
         if((r as {errorMessage: string}).errorMessage != null) {
             throw new Error("Got error: "+r.errorMessage);
         }
-        resdiv.adch(el("div").adch(linkLikeButton("code-button").atxt("code").onev("click", () => console.log(r))));
+        resdiv.adch(el("div").adch(elButton("code-button").atxt("code").onev("click", () => console.log(r))));
         const error_v = r as {
             logged: boolean,
             message: string,
@@ -872,7 +872,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
 
     if(!renderLinkPreview) return hsc;
 
-    const showpreviewbtn = el("button").atxt("…").clss("showpreviewbtn").onev("click", () => togglepreview());
+    const showpreviewbtn = elButton("none").atxt("…").onev("click", () => togglepreview());
 
     let preview_div: undefined | {hsc: HideShowCleanup<unknown>, node: ChildNode} = undefined;
 
@@ -1134,7 +1134,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
     }else if(body.kind === "removed") {
         const removed_v = el("div").adto(content).atxt("Removed by "+body.by+".");
         if(body.fetch_path && client.fetchRemoved) {
-            const fetch_btn = el("button").adto(removed_v).atxt("View");
+            const fetch_btn = elButton("outlined-button").adto(removed_v).atxt("View");
             // so this is a place where it would be helpful to update the entire listing
             // unfortunately, this is not react or uil and that can't be done easily
             // given how stateful listings are
@@ -1174,13 +1174,13 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
         const expires = el("div").adto(pollcontainer).atxt("Expires: ");
         timeAgo(body.close_time).defer(hsc).adto(expires);
         for(const choice of body.choices) {
-            const choicebtn = el("button").adto(el("li").adto(pollcontainer).clss("poll-choice-li")).clss("poll-choice");
+            const choicebtn = elButton("outlined-button").adto(el("li").adto(pollcontainer).clss("poll-choice-li")).clss("poll-choice");
             choicebtn.atxt(choice.name + " ("+(choice.votes === "hidden" ? "hidden" : s(choice.votes, " Votes"))+")");
             choicebtn.onev("click", () => alert("TODO voting on polls"));
         }
         if(body.select_many) {
-            const submitbtn = el("button").adto(content);
-            submitbtn.onclick = () => "TODO vote on polls";
+            const submitbtn = elButton("pill-empty").atxt("Vote").adto(content);
+            submitbtn.onclick = () => alert("TODO vote on polls");
         }
     }else if(body.kind === "captioned_image") {
         zoomableImage(body.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
@@ -1333,7 +1333,7 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
         renderAction(client, action, action_container).defer(hsc);
     }
     action_container.atxt(" ");
-    linkLikeButton("code-button").adto(action_container).atxt("Code").onev("click", () => {
+    elButton("code-button").adto(action_container).atxt("Code").onev("click", () => {
         console.log(profile);
     });
 
@@ -1358,7 +1358,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
     else if(action.kind === "reply") {
         let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
         let reply_state: "none" | {preview?: Generic.Thread} = "none";
-        const reply_btn = linkLikeButton("action-button").atxt("Reply").adto(content_buttons_line);
+        const reply_btn = elButton("action-button").atxt("Reply").adto(content_buttons_line);
 
         const hsc = hideshow();
 
@@ -1376,10 +1376,12 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
             }else{
                 if(!reply_container) {
                     reply_container = el("div").adto(content_buttons_line);
-                    const textarea = el("textarea").adto(el("div").adto(reply_container));
-                    const submit = el("button").adto(reply_container).atxt("Reply");
-                    const preview = el("button").adto(reply_container).atxt("Preview");
-                    const cancel = el("button").adto(reply_container).atxt("Cancel");
+                    const textarea = el("textarea").clss("border my-3 w-full resize-y").adto(el("div").adto(reply_container));
+                    // maybe make this empty if the text input is empty?
+                    const btnline = el("div").clss("flex space-x-1").adto(reply_container);
+                    const submit = elButton("pill-filled").adto(btnline).atxt("Reply");
+                    const preview = elButton("pill-empty").adto(btnline).atxt("Preview");
+                    const cancel = elButton("pill-empty").adto(btnline).atxt("Cancel");
                     preview.onev("click", () => {
                         reply_state = {preview: client.previewReply(textarea.value, action.reply_info)};
                         update();
@@ -1460,12 +1462,12 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         const reserrwrap = el("span").adto(content_buttons_line);
         const resloadwrap = el("span").adto(content_buttons_line);
 
-        const delbtn = linkLikeButton("action-button").atxt("Delete").adto(resdelwrap);
+        const delbtn = elButton("action-button").atxt("Delete").adto(resdelwrap);
 
         resyeswrap.atxt("Are you sure? ");
-        const confirmbtn = linkLikeButton("unsafe-action-button").atxt("Delete").adto(resyeswrap);
+        const confirmbtn = elButton("unsafe-action-button").atxt("Delete").adto(resyeswrap);
         resyeswrap.atxt(" / ");
-        const nvmbtn = linkLikeButton("safe-action-button").atxt("Cancel").adto(resyeswrap);
+        const nvmbtn = elButton("safe-action-button").atxt("Cancel").adto(resyeswrap);
 
         resloadwrap.atxt("Deleting…");
 
@@ -1503,7 +1505,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         let report_container: HTMLDivElement | undefined;
         let hsc = hideshow();
 
-        linkLikeButton("action-button").atxt("Report").adto(content_buttons_line).onev("click", () => {
+        elButton("action-button").atxt("Report").adto(content_buttons_line).onev("click", () => {
             if(!report_container) report_container = renderReportScreen(client, action.data).defer(hsc).adto(content_buttons_line);
             else {
                 hsc.cleanup();
@@ -1518,15 +1520,13 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         const frame = el("span").adto(content_buttons_line);
         const hsc = hideshow();
 
-        const renderLink = (href: string) => {
-            uhtml.render(frame, htmlr`<a href="${href}" rel="noreferrer noopener" target="_blank">Log In</a>`);
-        };
         const clurl = action.data;
-        const btn = el("button").atxt("Log In").adto(frame).onev("click", () => {
+        const btn = elButton("action-button").atxt("Log In").adto(frame).onev("click", () => {
             btn.textContent = "…";
             btn.disabled = true;
             client.getLoginURL(clurl).then(res => {
-                renderLink(res);
+                frame.innerHTML = "";
+                linkButton(client.id, res, "pill-filled").atxt("Log In").adto(frame);
             }).catch(e => {
                 btn.textContent = "Retry";
                 frame.atxt("Error:"+e);
@@ -1549,7 +1549,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         return hsc;
     }else if(action.kind === "act") {
         const frame = el("span").adto(content_buttons_line);
-        const btn = linkLikeButton("action-button").atxt(action.text).adto(frame).onev("click", () => {
+        const btn = elButton("action-button").atxt(action.text).adto(frame).onev("click", () => {
             btn.disabled = true;
             btn.textContent = "…";
             client.act(action.action).then(() => {
@@ -1585,7 +1585,7 @@ function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportSc
                 : undefined
             ;
             let state: "none" | "load" | {error: string} = "none";
-            const btn = el("button").adto(frame);
+            const btn = elButton("pill-filled").adto(frame);
             const btxt = txt("…").adto(btn);
             const errorlist = el("div").adto(frame);
 
@@ -1738,7 +1738,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     const display_count = action.count_excl_you !== "none";
 
     const wrapper = el("span").clss("counter").adto(content_buttons_line);
-    const button = linkLikeButton("action-button").adto(wrapper).clss("counter-increment-btn").attr({'aria-label': "Up"});
+    const button = elButton("action-button").adto(wrapper).clss("counter-increment-btn").attr({'aria-label': "Up"});
     const btn_span = el("span").adto(button);
     const pretxt = txt("").adto(btn_span);
     const btxt = txt("…").adto(btn_span);
@@ -1802,7 +1802,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     if(action.decremented_label != null) {
         pretxt.nodeValue = "⯅ ";
         wrapper.atxt(" ");
-        decr_button = linkLikeButton("action-button").adch(el("span").atxt("⯆")).attr({'aria-label': "Down"}).adto(wrapper).onev("click", () => {
+        decr_button = elButton("action-button").adch(el("span").atxt("⯆")).attr({'aria-label': "Down"}).adto(wrapper).onev("click", () => {
             if(state.your_vote === "decrement") {
                 doAct(undefined);
             }else{
@@ -1863,7 +1863,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         }
     }
 
-    linkLikeButton("action-button").atxt("Code").adto(frame).onev("click", () => console.log(listing));
+    elButton("action-button").atxt("Code").adto(frame).onev("click", () => console.log(listing));
 
     return hsc;
 }
@@ -1957,7 +1957,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
             renderAction(client, action, actionstop).defer(hsc);
         }
     }
-    el("div").adto(frame).adch(linkLikeButton("code-button").atxt("Code").onev("click", () => console.log(widget)));
+    el("div").adto(frame).adch(elButton("code-button").atxt("Code").onev("click", () => console.log(widget)));
 
     return hsc;
 } 
@@ -1989,7 +1989,7 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode): Hide
         console.log("Got error", e); 
         frame.innerHTML = "";
         frame.adch(el("pre").adch(el("code").atxt(e.toString() + "\n\n" + e.stack)));
-        frame.adch(linkLikeButton("code-button").atxt("Code").onev("click", () => console.log(listing)));
+        frame.adch(elButton("code-button").atxt("Code").onev("click", () => console.log(listing)));
         return hideshow(frame);
     }
 }
@@ -2174,7 +2174,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                 cwbox.atxt("Content Warning"+(cws.length === 1 ? "" : "s")+": ");
                 cwbox.adch(renderFlair(cws));
                 cwbox.atxt(" ");
-                el("button").attr({draggable: "true"}).adto(cwbox).atxt("Show Content").onev("click", e => {
+                elButton("pill-filled").adto(cwbox).atxt("Show Content").onev("click", e => {
                     cwbox.remove();
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
                     renderBody(client, body, {...opts}, content).defer(body_hsc);
@@ -2194,7 +2194,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         if(isEmpty(listing.body)) {
             // do nothing
         }else if(listing.display_mode.body === "collapsed") {
-            const open_preview_button = el("button").clss("px-1").adto(content_buttons_line);
+            const open_preview_button = elButton("outlined-button").adto(content_buttons_line);
             const open_preview_text = txt("…").adto(open_preview_button);
 
             let initialized = false;
@@ -2254,7 +2254,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     content_buttons_line.atxt(" ");
     listing.actions.length === 0 && linkButton(client.id, listing.link, "action-button").atxt("View").adto(content_buttons_line);
     content_buttons_line.atxt(" ");
-    linkLikeButton("code-button").onev("click", e => {
+    elButton("code-button").onev("click", e => {
         console.log(listing);
     }).atxt("Code").adto(content_buttons_line);
 
@@ -2309,23 +2309,25 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
 type LinkStyle = keyof typeof link_styles_v;
 
 const link_styles_v = {
-    'none': "border-none",
-    'normal': "text-blue-600 dark:text-blue-500 underline border-none",
-    'previewable': "text-blue-600 dark:text-blue-500 hover:underline border-none",
-    'action-button': "text-gray-600 dark:text-gray-500 hover:underline border-none",
-    'save-button-saved': "text-green-600 dark:text-green-500 hover:underline border-none",
-    'safe-action-button': "text-blue-600 dark:text-blue-500 hover:underline border-none",
-    'unsafe-action-button': "text-red-600 dark:text-red-500 hover:underline border-none",
-    'code-button': "text-gray-600 dark:text-gray-500 hover:underline border-none",
-    'load-more': "text-blue-600 dark:text-blue-500 hover:underline border-none text-base",
-    'userlink': "text-userlink-color-light dark:text-userlink-color-dark hover:underline border-none",
+    'none': "",
+    'normal': "text-blue-600 dark:text-blue-500 underline",
+    'previewable': "text-blue-600 dark:text-blue-500 hover:underline",
+    'action-button': "text-gray-600 dark:text-gray-500 hover:underline",
+    'save-button-saved': "text-green-600 dark:text-green-500 hover:underline",
+    'safe-action-button': "text-blue-600 dark:text-blue-500 hover:underline",
+    'unsafe-action-button': "text-red-600 dark:text-red-500 hover:underline",
+    'code-button': "text-gray-600 dark:text-gray-500 hover:underline",
+    'load-more': "text-blue-600 dark:text-blue-500 hover:underline text-base",
+    'userlink': "text-userlink-color-light dark:text-userlink-color-dark hover:underline",
     'pill-empty': "text-sm border-2 border-white text-white hover:text-black hover:bg-white p-1 px-3 rounded-full transition-colors",
+    'pill-transparent': "text-sm border-2 border-transparent text-white hover:text-black hover:bg-white p-1 px-3 rounded-full transition-colors",
     'pill-filled': "text-sm border-2 border-white bg-white text-black hover:text-white hover:bg-transparent p-1 px-3 rounded-full transition-colors",
+    'outlined-button': "border border-gray-600 dark:border-gray-500 px-2",
 };
 
 const linkAppearence = (display_style: LinkStyle) => [link_styles_v[display_style]];
 
-function linkLikeButton(display_style: LinkStyle) {
+function elButton(display_style: LinkStyle) {
     return el("button").clss(...linkAppearence(display_style)).attr({draggable: "true"});
 }
 
@@ -2359,7 +2361,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
     let current_node: ChildNode = makeButton().atxt(load_more_node.count != null ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container).clss("load-more");
 
     container.atxt(" ");
-    linkLikeButton("code-button").onev("click", e => {
+    elButton("code-button").onev("click", e => {
         console.log(load_more_node);
     }).atxt("Code").adto(container);
     return container;
@@ -2396,7 +2398,7 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
     const mkbtn = (lmnode: Generic.LoadMoreUnmounted) => {
         current_node = el("div").adch(
             makeButton(lmnode).atxt(lmnode.count != null ? "Load "+lmnode.count+" More…" : "Load More…").adto(container).clss("load-more")
-        ).atxt(" ").adch(linkLikeButton("code-button").onev("click", e => {
+        ).atxt(" ").adch(elButton("code-button").onev("click", e => {
             console.log(lmnode);
         }).atxt("Code")).adto(container);
     };
@@ -2441,7 +2443,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         renderAction(client, navbar_action, navbar_area).defer(hsc);
         txt(" ").adto(navbar_area);
     }
-    const saveofflinebtn = linkLikeButton("action-button").atxt("Save Offline").adto(navbar_area).onev("click", () => {
+    const saveofflinebtn = elButton("action-button").atxt("Save Offline").adto(navbar_area).onev("click", () => {
         // save listing in indexed db
         // (or in the future, save the raw responses from the web so they can be re-transformed if necessary)
         localStorage.setItem("saved-post", JSON.stringify(listing_copy));
@@ -2457,7 +2459,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
 
     if(listing.sidebar) {
         // on mobile, ideally this would be a link that opens the sidebar in a new history item
-        el("button").adto(frame).clss("sidebar-toggle-mobile").atxt("Toggle Sidebar").onev("click", () => {
+        elButton("pill-filled").adto(frame).clss("sidebar-toggle-mobile", "my-1").atxt("Toggle Sidebar").onev("click", () => {
             sidebar_area.classList.toggle("sidebar-visible-mobile");
         });
         const sidebar_area = el("div").adto(frame).clss("sidebar-area");
@@ -2869,12 +2871,12 @@ let navbar: HTMLDivElement; {
     const frame = el("div").clss("navbar").adto(document.body);
     navbar = frame;
 
-    const navbar_button = ["px-1"];
+    const navbar_button = ["px-2"];
 
     el("button").adto(frame).atxt("←").clss(...navbar_button).onev("click", () => history.back());
     el("button").adto(frame).atxt("→").clss(...navbar_button).onev("click", () => history.forward());
 
-    const nav_path = el("input").adto(frame).clss("navbar-path");
+    const nav_path = el("input").adto(frame).clss("bg-transparent text-center border border-gray-600 dark:border-gray-500");
 
     const nav_go = el("button").clss(...navbar_button).atxt("⏎").adto(frame);
     const nav_reload = el("button").clss(...navbar_button).atxt("🗘").adto(frame);
@@ -2924,9 +2926,9 @@ const alertarea = el("div").adto(document.body).clss("alert-area");
 export function showAlert(text: string): void {
     const alert = el("div").clss("alert").adto(alertarea);
     el("div").clss("alert-body").adto(alert).atxt(text);
-    el("button").clss("alert-close").atxt("🗙 Close").adto(alert).onev("click", () => alert.remove());
+    elButton("pill-empty").atxt("🗙 Close").adto(alert).onev("click", () => alert.remove());
     alert.atxt(" ");
-    el("button").clss("alert-close").atxt("🗘 Refresh").adto(alert).onev("click", () => location.reload());
+    elButton("pill-empty").atxt("🗘 Refresh").adto(alert).onev("click", () => location.reload());
 }
 
 declare const fakevar: {build: "development" | "production"};

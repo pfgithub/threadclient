@@ -10,9 +10,10 @@ textarea,
 select,
 button,
 textarea {
-    background-color: var(--post-color);
-    border-color: var(--border-color);
-    color: var(--text-color);
+    background-color: transparent;
+    // background-color: var(--post-color);
+    // border-color: var(--border-color);
+    // color: var(--text-color);
 }
 
 html,
@@ -134,7 +135,7 @@ body {
 button,
 input,
 textarea {
-    border: 1px solid var(--collapse-line-color-hover);
+    // border: 1px solid var(--collapse-line-color-hover);
     &:focus {
         outline: 1px dotted var(--outline-color);
     }
@@ -602,14 +603,6 @@ body {
     margin-bottom: 200px;
 }
 
-.showpreviewbtn {
-    all: unset;
-    cursor: pointer;
-    &:focus {
-        outline: 1px dotted var(--outline-color);
-    }
-}
-
 .pfp {
     width: 50px;
     height: 50px;
@@ -834,11 +827,6 @@ table {
     @media only screen and (max-width: 600px) {
         transform: var(--mobile-transform);
     }
-}
-
-.navbar-path {
-    text-align: center;
-    min-width: 0;
 }
 
 .alert {
