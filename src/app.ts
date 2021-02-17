@@ -2927,6 +2927,19 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
     });
 }
 
+// TODO:
+// below item:
+//    const scroll_top = …
+//    style= position:fixed;top:0;left:0;bottom:0;right:0;overflow-y:hidden;
+//    scrollTop = scroll_top;
+// above item:
+//    background-color: rgba(0, 0, 0, 0.5)
+// on render:
+//    if below is fullscreen-view && above is comments-view
+//    - keep
+//    else
+//    - gone below item
+
 let current_history_index = 0;
 function onNavigate(to_index: number, url: URLLike) {
     console.log("Navigating", to_index, url, nav_history);
