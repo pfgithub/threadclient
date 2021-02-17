@@ -234,8 +234,8 @@ ul.replies {
 }
 
 .preview-image {
-    max-width: 100%;
-    max-height: var(--max-height);
+    max-width: min(100%, 800px);
+    max-height: min(90vh, 500px);
     width: auto;
     height: auto;
     display: inline-block;
