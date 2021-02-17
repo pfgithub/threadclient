@@ -2286,6 +2286,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         };
         if(isEmpty(listing.body)) {
             // do nothing
+            preview_area.remove();
         }else if(listing.display_mode.body === "collapsed") {
             const open_preview_button = elButton("outlined-button").adto(content_buttons_line);
             const open_preview_text = txt("…").adto(open_preview_button);
