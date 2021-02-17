@@ -120,6 +120,11 @@ export type Body = BodyText | RichText | {
     gifv: boolean,
     caption?: string,
 } | {
+    kind: "audio",
+    url: string,
+    caption?: string,
+    alt?: string,
+} | {
     kind: "gallery",
     images: GalleryItem[],
 } | {

@@ -174,9 +174,10 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     });
     return hsc;
 }
-function videoPreview(sources: {src: string, type?: string}[], opts: {autoplay: boolean, width?: number, height?: number, gifv: boolean}): HideShowCleanup<Node> {
-    const video = el("video").attr({controls: "",
-        width: opts.width != null ? `${opts.width}px` as const : undefined, height: opts.height != null ? `${opts.height}px` as const : undefined
+function videoPreview(sources: {src: string, type?: string}[], opts: {autoplay: boolean, width?: number, height?: number, gifv: boolean, audio?: boolean, alt?: string}): HideShowCleanup<Node> {
+    const video = el(opts.audio ?? false ? "audio" : "video").attr({controls: "",
+        width: opts.width != null ? `${opts.width}px` as const : undefined, height: opts.height != null ? `${opts.height}px` as const : undefined,
+        alt: opts.alt,
     }).clss("preview-image");
     sources.forEach(source => {
         el("source").attr({src: source.src, type: source.type}).adto(video);
@@ -315,7 +316,10 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
         return gfyLike(url.host, gfylink, {autoplay: opts.autoplay});
     };
     if(path.endsWith(".mp4") || path.endsWith(".webm")) return (): HideShowCleanup<Node> => {
-        return videoPreview([{src: path}], {autoplay: opts.autoplay, gifv: false});
+        return videoPreview([{src: link}], {autoplay: opts.autoplay, gifv: false});
+    };
+    if(path.endsWith(".mp3")) return (): HideShowCleanup<Node> => {
+        return videoPreview([{src: link, type: "audio/mpeg"}], {autoplay: opts.autoplay, gifv: false, audio: true});
     };
     const ytvid = (youtube_video_id: string, search: URLSearchParams) => (): HideShowCleanup<Node> => {
         const container = el("div");
@@ -1191,7 +1195,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
             zoomableImage(body.source.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
             return hsc;
         }else if(body.source.kind === "video") {
-            videoPreview(body.source.sources.map(src => ({src: src.url, type: src.type})), {autoplay: opts.autoplay, width: body.w, height: body.h, gifv: body.gifv})
+            videoPreview(body.source.sources.map(src => ({src: src.url, type: src.type})), {autoplay: opts.autoplay, width: body.w, height: body.h, gifv: body.gifv, alt: body.alt})
                 .defer(hsc)
                 .adto(content)
             ;
@@ -1205,6 +1209,9 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
                 return shsc;
             }).defer(hsc).adto(content);
         }
+    }else if(body.kind === "audio") {
+        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
+        videoPreview([{src: body.url}], {autoplay: opts.autoplay, gifv: false, audio: true, alt: body.alt}).defer(hsc).adto(content);
     }else if(body.kind === "vreddit_video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
         previewVreddit(body.id, {autoplay: false}).defer(hsc).adto(content);

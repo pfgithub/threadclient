@@ -18,22 +18,70 @@ type VideoMeta = { // video | gifv
 
 declare namespace Mastodon {
     type Emoji = never;
+    // https://docs.joinmastodon.org/entities/attachment
     type Media = {
         id: string,
-        type: "video" | "image" | "gifv" | "todo",
 
         url: string,
-        preview_url?: string,
-
-        description?: string,
-
-        preview_remote_url: string | null,
         text_url: string | null,
+        remote_url: string | null,
+        preview_remote_url: string | null, // undocumented but exists
+        description?: string,
+    } & ({
+        type: "image",
+
+        blurhash: string | null, // https://github.com/woltapp/blurhash
+        preview_url: string,
+
         meta?: {
             original: ImageMeta | VideoMeta,
             small?: ImageMeta,
         },
-    };
+    } | {
+        type: "gifv" | "video",
+
+        blurhash: string | null, // https://github.com/woltapp/blurhash
+        preview_url: string,
+
+        meta?: {
+            length: string,
+            duration: number,
+            fps: number,
+            size: string,
+            width: number,
+            height: number,
+            aspect: number,
+            audio_encode?: string, // video only
+            audio_bitrate?: string, // video only
+            audio_channels?: string, // video only
+            original: VideoMeta,
+            small?: ImageMeta,
+        },
+    } | {
+        type: "audio",
+        url: string,
+        // supposedly has a preview url but it's lying
+
+        text_url: string,
+        remote_url: string | null,
+
+        meta?: {
+            length: string,
+            duration: number,
+            audio_encode: string,
+            audio_bitrate: string,
+            audio_channels: "stereo" | "unsupported",
+            original: {
+                duration: number,
+                bitrate: number,
+            },
+        },
+
+    } | {
+        type: "unknown", // the server doesn't support it
+    } | {
+        type: "unsupported",
+    });
     type Poll = {
         id: string,
         expires_at: string,
@@ -237,20 +285,53 @@ const postArrayToReparentedThread = (host: string, root_id: string, posts: Masto
     }
     return root.replies;
 };
+const expectUnsupported = (a: "unsupported") => {/**/};
 const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.GalleryItem => {
-    
-    let resbody: Generic.Body;
-    if(media.type === "image" && media.meta) {
-        resbody = {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height, alt: media.description};
-    } else if((media.type === "video" || media.type === "gifv") && media.meta) {
-        resbody = {kind: "video", source: {kind: "video", sources: [{url: media.url}]}, w: media.meta.original.width, h: media.meta.original.height, gifv: media.type === "gifv"};
-    } else {
-        resbody = {kind: "link", url: media.url};
-    }
-
-    return {thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=no+thumb",
-        w: media.meta?.small?.width, h: media.meta?.small?.height, body: resbody
+    if(media.type === "image") {
+        return {
+            thumb: media.preview_url,
+            w: media.meta?.small?.width,
+            h: media.meta?.small?.height,
+            body: media.meta
+                ? {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height, alt: media.description}
+                : {kind: "link", url: media.url}
+            ,
+        };
+    } else if((media.type === "video" || media.type === "gifv")) {
+        return {
+            // instead of w and h for thumb, just use the ratio
+            // from the original.
+            thumb: media.preview_url,
+            w: media.meta?.small?.width,
+            h: media.meta?.small?.height,
+            body: media.meta
+                ? {kind: "video", source: {kind: "video", sources: [{url: media.url}]}, w: media.meta.original.width, h: media.meta.original.height, gifv: media.type === "gifv"}
+                : {kind: "link", url: media.url}
+            ,
+        };
+    }else if(media.type === "audio") {
+        return {
+            thumb: "https://winaero.com/blog/wp-content/uploads/2017/12/speaker-sound-audio-icon-256-big.png",
+            w: 256,
+            h: 256,
+            body: {kind: "audio", url: media.url, alt: media.description},
+        };
+    }else if(media.type === "unknown") {
+        return {
+            thumb: "https://dummyimage.com/100x100/ff0000/000000&text=unknown",
+            w: 100,
+            h: 100,
+            body: {kind: "link", url: media.url},
+        };
+    } 
+    expectUnsupported(media.type);
+    return {
+        thumb: "https://dummyimage.com/100x100/ff0000/000000&text="+encodeURIComponent(media.type),
+        w: 100,
+        h: 100,
+        body: {kind: "link", url: media.url},
     };
+    
 };
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], include_parentlink?: boolean, reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {
