@@ -1915,7 +1915,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
 }
 
 const userLink = (client_id: string, href: string, name: string) => {
-    const [author_color, author_color_dark] = getRandomColor(seededRandom(name));
+    const [author_color, author_color_dark] = getRandomColor(seededRandom(name.toLowerCase()));
     return linkButton(client_id, href, "userlink")
         .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
         .atxt(name)
