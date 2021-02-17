@@ -25,7 +25,7 @@ export type UnmountedNode = {
 export type BodyText = {
     kind: "text",
     content: string,
-    markdown_format: "reddit" | "reddit_html" | "none" | "mastodon",
+    markdown_format: "reddit" | "reddit_html" | "none",
 };
 export declare namespace Richtext {
     export type Style = {
@@ -81,6 +81,14 @@ export declare namespace Richtext {
     } | {
         kind: "spoiler",
         children: Span[],
+    } | {
+        kind: "emoji",
+        url: string,
+        hover: string,
+    } | {
+        kind: "error",
+        text: string,
+        value: unknown,
     };
     export type TableHeading = {
         align?: "left" | "center" | "right",

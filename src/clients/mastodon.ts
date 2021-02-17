@@ -17,7 +17,13 @@ type VideoMeta = { // video | gifv
 };
 
 declare namespace Mastodon {
-    type Emoji = never;
+    type Emoji = {
+        shortcode: string,
+        static_url: string,
+        url: string,
+        visible_in_picker: boolean,
+        category?: string,
+    };
     // https://docs.joinmastodon.org/entities/attachment
     type Media = {
         id: string,
@@ -129,6 +135,22 @@ declare namespace Mastodon {
         endorsed: boolean,
         note: string,
     };
+    // https://docs.joinmastodon.org/entities/card/
+    type Card = {
+        url: string,
+        title: string,
+        description: string,
+        blurhash: string | null,
+
+        type: "video" | "photo" | "link" | "unsupported",
+
+        image: string | null, // thumbnail
+
+        embed_url: string | "", // {kind: url}
+        html: string | "", // reddit suggested embed
+
+        // more info : author name, provider name, …
+    };
     type Post = {
         id: string,
         created_at: string,
@@ -151,7 +173,7 @@ declare namespace Mastodon {
         mentions: never[],
         tags: never[],
         emojis: Emoji[],
-        card: null,
+        card: null | Card,
         poll: null | Poll,
     };
 }
@@ -319,6 +341,132 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
     };
     
 };
+
+const rt = {
+    p: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "paragraph", children: items}),
+    h1: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "heading", level: 1, children: items}),
+    ul: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
+    ol: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
+    li: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list_item", children: items}),
+    blockquote: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "blockquote", children: items}),
+    txt: (text: string, styles: Generic.Richtext.Style = {}): Generic.Richtext.Span => ({kind: "text", text, styles}),
+    link: (url: string, ...children: Generic.Richtext.Span[]): Generic.Richtext.Span => ({kind: "link", url, children}),
+    pre: (text: string): Generic.Richtext.Paragraph => ({kind: "code_block", text}),
+    error: (text: string, value: unknown): Generic.Richtext.Span => ({kind: "error", text, value}),
+    br: (): Generic.Richtext.Span => ({kind: "br"}),
+};
+
+function childNodesToRichtextParagraphs(host: string, emojis: Map<string, Mastodon.Emoji>, nodes: NodeListOf<ChildNode>): Generic.Richtext.Paragraph[] {
+    const committed: Generic.Richtext.Paragraph[] = [];
+    function commit() {
+        if(uncommitted_spans.length > 0) {
+            committed.push(rt.p(...uncommitted_spans));
+        }
+        uncommitted_spans = [];
+    }
+    let uncommitted_spans: Generic.Richtext.Span[] = [];
+    for(const node of Array.from(nodes)) {
+        const paragraph = contentParagraphToRichtextParagraph(host, emojis, node);
+        if(paragraph) {
+            commit();
+            committed.push(paragraph);
+        }else{
+            uncommitted_spans.push(...contentSpanToRichtextSpan(host, emojis, node, {}));
+        }
+    }
+    commit();
+    return committed;
+}
+function contentParagraphToRichtextParagraph(host: string, emojis: Map<string, Mastodon.Emoji>, node: Node): Generic.Richtext.Paragraph | undefined {
+    if(node instanceof HTMLElement) {
+        if(node.nodeName === "P") {
+            return {kind: "paragraph", children: Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(host, emojis, child, {}))};
+        }
+    }
+    return undefined;
+}
+function contentSpanToRichtextSpan(host: string, emojis: Map<string, Mastodon.Emoji>, node: Node, styles: Generic.Richtext.Style): Generic.Richtext.Span[] {
+    if(node instanceof Text) {
+        const node_value = node.nodeValue ?? "[ENoNodeValue]";
+        const split_by_col = node_value.split(":");
+        const res_segments: Generic.Richtext.Span[] = [];
+        let uncommitted_text: string[] = [];
+        const commit = () => {
+            if(uncommitted_text.length > 0) {
+                res_segments.push(rt.txt(uncommitted_text.join(":"), styles));
+            }
+            uncommitted_text = [];
+        };
+        for(const text of split_by_col) {
+            const emoji_v = emojis.get(text);
+            if(emoji_v) {
+                commit();
+                res_segments.push({kind: "emoji", url: emoji_v.static_url, hover: ":"+text+":"});
+            }else{
+                uncommitted_text.push(text);
+            }
+        }
+        commit();
+        return res_segments;
+    }
+    if(node instanceof HTMLElement) {
+        if(node.nodeName === "A") {
+            const href_v = node.getAttribute("href");
+            // const classes = node.getAttribute("class");
+            return [rt.link(href_v ?? "no href", ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(host, emojis, child, styles)))];
+        }
+        if(node.nodeName === "BR") {
+            return [rt.br()];
+        }
+        if(node.nodeName === "SPAN") {
+            let classes = Array.from(node.classList).filter(clss => {
+                // https://docs.joinmastodon.org/spec/microformats/
+                if(clss.startsWith("h-")) return false;
+                if(clss.startsWith("p-")) return false;
+                if(clss.startsWith("u-")) return false;
+                
+                // these are important - these should create
+                // link objects to /…/… instead of https://…/…
+                if(clss.startsWith("mention")) return false;
+                if(clss.startsWith("hashtag")) return false;
+            });
+            if(classes.includes("invisible")) return [];
+            const res_nodes = Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(host, emojis, child, styles));
+            const eatClass = (class_name: string): boolean => {
+                if(!classes.includes(class_name)) return false;
+                classes = classes.filter(clss => clss !== class_name);
+                return true;
+            };
+            if(eatClass("ellipsis")) {
+                res_nodes.push(rt.txt("…", styles));
+            }
+            eatClass("h-card");
+            if(classes.length !== 0) return [rt.error(classes.map(clss => "."+clss).join(""), node.outerHTML)];
+            return res_nodes;
+            // return rt.link(href_v ?? "no href", ...Array.from(node.childNodes).map(child => contentSpanToRichtextSpan(host, child, styles)));
+        }
+        return [rt.error("<"+node.nodeName+">", {node, html: node.outerHTML})];
+    }
+    return [rt.error("Unsupported Node", node)];
+}
+
+function parseContentHTML(host: string, content: string, emojis: Mastodon.Emoji[]): Generic.Body {
+    // {
+    //     kind: "text",
+    //     content: post.content,
+    //     markdown_format: "mastodon",
+    // }
+    const parsed_v = document.createElement("div");
+    parsed_v.innerHTML = content; // safe, scripts won't execute and this won't be displayed directly on the screen
+    const emojis_by_shortcode = new Map<string, Mastodon.Emoji>();
+    for(const emoji of emojis) {
+        emojis_by_shortcode.set(emoji.shortcode, emoji);
+    }
+    return {
+        kind: "richtext",
+        content: childNodesToRichtextParagraphs(host, emojis_by_shortcode, parsed_v.childNodes),
+    };
+}
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {
         time: new Date(post.created_at).getTime(),
@@ -343,11 +491,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         body: {
             kind: "array",
             body: [
-                {
-                    kind: "text",
-                    content: post.content,
-                    markdown_format: "mastodon",
-                },
+                parseContentHTML(host, post.content, post.emojis),
                 post.media_attachments.length === 0 ? undefined
                 : {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))},
                 post.poll ? {kind: "poll",
@@ -358,7 +502,18 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                     select_many: post.poll.multiple,
                     your_votes: (post.poll.own_votes ?? []).map(ov => ({id: "" + ov})),
                     close_time: new Date(post.poll.expires_at).getTime(),
-                } : undefined
+                } : undefined,
+                post.card ? {kind: "gallery", images: [{
+                    body: post.card.embed_url
+                        ? {kind: "unknown_size_image", url: post.card.embed_url}
+                        : post.card.html
+                        ? {kind: "reddit_suggested_embed", suggested_embed: post.card.html}
+                        : {kind: "link", url: post.card.url}
+                    ,
+                    thumb: post.card.image ?? "https://dummyimage.com/100x100/ff0303/fff&text=error",
+                    w: undefined,
+                    h: undefined,
+                }]} : undefined,
             ],
         },
         display_mode: {body: "visible", comments: "visible"},
@@ -368,6 +523,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         flair: post.sensitive || post.spoiler_text ? [{content_warning: post.sensitive, elems: [{type: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
         actions: [
             {kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")},
+            {kind: "link", url: post.uri, text: "Permalink"},
             {kind: "counter",
                 label: "Favourite",
                 incremented_label: "Favourited",
@@ -639,11 +795,7 @@ export const client: ThreadClient = {
             return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
                 kind: "user-profile",
                 username: account_info.display_name,
-                bio: {kind: "array", body: [{
-                    kind: "text",
-                    content: account_info.note,
-                    markdown_format: "mastodon",
-                }, {
+                bio: {kind: "array", body: [parseContentHTML(host, account_info.note, []), {
                     kind: "richtext",
                     content: [{kind: "table", headings: [
                         {children: [{kind: "text", text: "Key", styles: {}}]},

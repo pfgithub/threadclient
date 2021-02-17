@@ -402,7 +402,7 @@ function getBound(v: HTMLElement) {
 }
 
 function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
-
+    const icon_class = "w-24 h-24 object-contain";
     if(images.every(img => img.body.kind === "captioned_image")) {
         return fetchPromiseThen(import("./components/gallery"), gallery => {
             const div = el("div");
@@ -413,7 +413,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
             };
             const buttons = images.map((img, i) => {
                 const btnv = el("button").clss("gallery-overview-item").adto(div).adch(
-                    el("img").clss("preview-image gallery-overview-image").attr({
+                    el("img").clss(icon_class).attr({
                         src: img.thumb,
                         width: img.w != null ? `${img.w}px` as const : undefined,
                         height: img.h != null ? `${img.h}px` as const : undefined,
@@ -452,7 +452,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
             uhtml.render(container, htmlr`${images.map((image, i) => htmlr`
                 <button class="gallery-overview-item" onclick=${() => {setState({index: i})}}>
                     <img src=${image.thumb} width=${image.w+"px"} height=${image.h+"px"}
-                        class="preview-image gallery-overview-image"
+                        class="${icon_class}"
                     />
                 </button>
             `)}`);
@@ -790,18 +790,6 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
         });
     }else if(body.markdown_format === "none") {
         container.atxt(body.content);
-    }else if(body.markdown_format === "mastodon") {
-        const preel = el("pre").adto(container);
-        el("code").atxt(body.content).adto(preel);
-        getHtmlSaftifier().then(hsr => {
-            preel.remove();
-            const safe_html = hsr.saftify(body.content, "mastodon-");
-            renderSafeHTML(client, safe_html, container, "").defer(hsc);
-        }).catch(e => {
-            preel.remove();
-            console.log(e);
-            renderSafeHTML(client, "Got error! Check console!" as string & {_is_safe: true}, container, "").defer(hsc);
-        });
     }else if(body.markdown_format === "reddit_html") {
         const preel = el("pre").adto(container);
         el("code").atxt(body.content).adto(preel);
@@ -872,6 +860,16 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
                 subspan.style.opacity = "1";
                 spoilerspan.attr({title: ""});
             }, {capture: true});
+        } break;
+        case "error": {
+            elButton("error").atxt(rts.text).onev("click", e => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(rts.value);
+            }).adto(container);
+        } break;
+        case "emoji": {
+            el("img").attr({src: rts.url, title: rts.hover}).clss("w-4 h-4 object-contain inline-block").adto(container);
         } break;
         default: assertNever(rts);
     }
@@ -1071,7 +1069,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
     }else if(body.kind === "twitch_clip") {
         twitchClip(body.slug, {autoplay: opts.autoplay}).defer(hsc).adto(content);
     }else if(body.kind === "reddit_suggested_embed") {
-        redditSuggestedEmbed(body.suggested_embed);
+        redditSuggestedEmbed(body.suggested_embed).defer(hsc).adto(content);
     }else assertNever(body);
 
     return hsc;
@@ -2418,6 +2416,7 @@ const link_styles_v = {
     'pill-transparent': "text-sm border-2 border-transparent text-white hover:text-black hover:bg-white p-1 px-3 rounded-full transition-colors",
     'pill-filled': "text-sm border-2 border-white bg-white text-black hover:text-white hover:bg-transparent p-1 px-3 rounded-full transition-colors",
     'outlined-button': "border border-gray-600 dark:border-gray-500 px-2",
+    'error': "text-red-600 dark:text-red-500 hover:underline",
 };
 
 const linkAppearence = (display_style: LinkStyle) => [link_styles_v[display_style]];

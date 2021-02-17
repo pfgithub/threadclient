@@ -197,6 +197,11 @@ mastodon todo:
 -   [x] user profile fields
 -   [x] (alternative used) update how user profiles work :: have a main page that loads the profile and pins and then a seperate page for loading all the posts and stuff that is embeded with load more
 -   [x] fix that "view parent" thing that looks bad (it looks even worse now but it is represented properly now)
+-   [x] emojis. why did they make emojis some weird text replacement thing instead of … including them in the html that already has to be decoded, or for usernames eg rich text like reddit flairs
+-   [ ] emojis in more places
+-   [ ] blurhashes
+-   [ ] improve card support (eg show title and stuff using a new body type `{kind: "card", thumb: string, title: string, onopen: Body}`)
+-   [ ] support at links and hashtag links without leaving the app
 -   [ ] option to mute user, block user, or block domain on user profiles
 -   [ ] user profile pins (`/?pinned=true`) + make user profiles load on the dev server (express? doesn't like the `@`s in urls)
 -   [ ] language support
@@ -206,7 +211,6 @@ mastodon todo:
 -   [ ] posting I guess
 -   [ ] voting in polls (+ poll ui improvements)
 -   [ ] improved url paths
--   [ ] emojis. why did they make emojis some weird text replacement thing instead of … including them in the html that already has to be decoded, or for usernames eg rich text like reddit flairs
 -   [ ] make the `/mastodon` page not 404
 
 twitter todo:
