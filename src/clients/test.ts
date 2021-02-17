@@ -81,12 +81,15 @@ function listingPage(path: string, header: Generic.Thread, items: Generic.Thread
 type UserThreadOpts = {
     content_warning?: string,
     layout: Generic.Thread["layout"],
+    collapse_body?: true,
+    title?: string,
 };
 function userThread(path: string, body: Generic.Body, opts: UserThreadOpts): Generic.Thread {
     return {
         kind: "thread",
+        title: opts.title != null ? {text: opts.title} : undefined,
         body,
-        display_mode: {body: "visible", comments: "collapsed"},
+        display_mode: {body: opts.collapse_body ?? false ? "collapsed" : "visible", comments: "collapsed"},
         raw_value: sample_preview_links,
         link: path,
         layout: opts.layout,
@@ -132,16 +135,71 @@ export const client: ThreadClient = {
                 rt.p(rt.link(spl.url, rt.txt(spl.url))),
             ],
         }, {content_warning: spl.warn})));
+        if(path === "/body-preview") return listingPage(path, richtextPost(path, []), ((): Generic.Thread[] => {
+            type ITRes = {desc: string, body: Generic.Body};
+            const item = (desc: string, body: Generic.Body) => ({desc, body});
+            const body_kinds: {[key in Generic.Body["kind"]]: ITRes[]} = {
+                text: [
+                    item("text displays", {kind: "text", content: "Hello there! It works.", markdown_format: "none"}),
+                    item("reddit markdown functions", {kind: "text", content: [
+                        "Level 1 heading:", "",
+                        "# Heading level 1", "",
+                        "Level 2 heading:", "",
+                        "## Heading level 2", "",
+                        "Inline styles", "",
+                        "Spoiler: >!spoiler!<", "",
+                        "TODO blockquotes and lists and stuff",
+                    ].join("\n"), markdown_format: "reddit"}),
+                ],
+                richtext: [
+                    item("richtext", {kind: "richtext", content: [
+                        rt.p(rt.txt("TODO richtext demo")),
+                    ]})
+                ],
+                link: [],
+                captioned_image: [],
+                unknown_size_image: [],
+                video: [],
+                vreddit_video: [],
+                gfycat: [],
+                youtube: [],
+                imgur: [],
+                twitch_clip: [],
+                reddit_suggested_embed: [],
+                audio: [],
+                gallery: [],
+                poll: [],
+                none: [],
+                removed: [],
+                crosspost: [],
+                array: [],
+            };
+            return Object.entries(body_kinds).flatMap(([key, items]): ITRes[] => {
+                if(items.length === 0) return [item("ERROR! Missing for "+key, {kind: "none"})];
+                return items;
+            }).map(({desc, body}) => {
+                return userThread(path, body, {title: desc, collapse_body: true, layout: "reddit-post"});
+            });
+        })());
         return bodyPage(path, {
             kind: "richtext",
             content: [
                 ...path === "/" ? [] : [rt.p(rt.txt("404 not found "+path))],
                 rt.h1(rt.txt("Tests:")),
                 rt.ul(...[
+                    "/body-preview",
                     "/link-preview",
                 ].map(v => rt.li(rt.p(
                     rt.link(v, rt.txt(v)),
                 )))),
+                rt.h1(rt.txt("TODO:")),
+                rt.p(rt.txt("Test download pages from clients, for example a real sidebar widget or a real post or a real saved inbox")),
+                rt.p(rt.txt("Test actual pages from clients. For example:")),
+                rt.ul(
+                    rt.li(rt.p(rt.txt("Test that logging in and logging out works"))),
+                    rt.li(rt.p(rt.txt("Test posting actual replies"))),
+                    rt.li(rt.p(rt.txt("Test sending actual reports"))),
+                )
             ],
         });
     },
