@@ -1,4 +1,4 @@
-import { escapeHTML, encodeQuery } from "../util";
+import { encodeQuery } from "../util";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 
@@ -227,41 +227,27 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
         return {error: "Failed to load! "+e.toString()};
     }
 };
-const wrapWithParentLink = (thread: Generic.Thread, host: string, parent_id: string): Generic.Thread => {
-    const parentlink = "/"+host+"/statuses/"+parent_id;
-    return {
-        kind: "thread",
-        body: {
-            kind: "text",
-            content: "<a href=\""+escapeHTML(parentlink)+"\">View Parent</a>",
-            markdown_format: "mastodon",
-        },
-        display_mode: {body: "visible", comments: "visible"},
-        link: parentlink,
-        layout: "reddit-post",
-        default_collapsed: false,
-        actions: [],
-        raw_value: parentlink,
-        replies: [thread],
-    };
-};
-const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Generic.Thread[] => {
-    let nextv: Generic.Thread | undefined;
-    return posts.flatMap((post, i) => {
-        let thread = postToThread(host, post);
-        if(nextv) {
-            if(!thread.replies) thread.replies = [];
-            thread.replies.push(nextv);
-            nextv = undefined;
-        }
+const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Generic.UnmountedNode[] => {
+    let nextv: Generic.Node[] = [];
+    return posts.flatMap((post, i): Generic.UnmountedNode[] => {
+        const thread = postToThread(host, post);
         if(post.in_reply_to_id != null) {
             if(posts[i + 1]?.id === post.in_reply_to_id) {
-                nextv = thread;
+                nextv.push(thread);
                 return [];
             }
-            thread = wrapWithParentLink(thread, host, post.in_reply_to_id);
+            // parent link:
+            // /:host/statuses/:parent_id
+            nextv.unshift({
+                kind: "load_more",
+                url: "/"+host+"/statuses/"+post.in_reply_to_id,
+                raw_value: post,
+                load_more: load_more_encoder.encode({kind: "context", host, parent_id: post.in_reply_to_id}),
+            });
         }
-        return [thread];
+        const thispv = nextv;
+        nextv = [];
+        return [{parents: [...thispv, thread], replies: []}];
     });
 };
 const postArrayToReparentedThread = (host: string, root_id: string, posts: Mastodon.Post[]): Generic.Node[] => {
@@ -333,7 +319,7 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
     };
     
 };
-const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], include_parentlink?: boolean, reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
+const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {
         time: new Date(post.created_at).getTime(),
         edited: false,
@@ -352,7 +338,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
     if(post.reblog) {
         return postToThread(host, post.reblog, {...opts, reblogged_by: info});
     }
-    let res: Generic.Thread = {
+    const res: Generic.Thread = {
         kind: "thread",
         body: {
             kind: "array",
@@ -401,9 +387,6 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         raw_value: post,
         replies: opts.replies,
     };
-    if((opts.include_parentlink ?? false) && post.in_reply_to_id != null) {
-        res = wrapWithParentLink(res, host, post.in_reply_to_id);
-    }
     return res;
 };
 const splitURL = (path: string): [string, URLSearchParams] => {
@@ -755,7 +738,7 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
         body: {
             kind: "listing",
             header,
-            items: postArrayToReparentedTimeline(host, posts).map(post => ({parents: [post], replies: []})),
+            items: postArrayToReparentedTimeline(host, posts),
             next: next,
         },
         display_style: "comments-view",
@@ -768,3 +751,10 @@ type LoadMoreUnmountedData = {
     tl_info: {host: string, api_path: string, web_path: string},
 };
 const load_more_unmounted_encoder = encoderGenerator<LoadMoreUnmountedData, "load_more_unmounted">("load_more_unmounted");
+
+type LoadMoreData = {
+    kind: "context",
+    host: string,
+    parent_id: string,
+};
+const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
