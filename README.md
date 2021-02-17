@@ -85,6 +85,11 @@ all todo:
 -   [x] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
 -   [x] fix comments on mobile (they used to go edge to edge, now they don't for some reason)
 -   [x] watchable counters
+-   [x] improve how parent and child nodes and listings are represented:
+        reddit lets you link to a comment that might be deep in the thread. mastodon
+        has the same. improve how this is represented in Generic data and improve how it is displayed on the page. currently, {header, replies}
+        is how posts exist. instead, change so the top level can have either a listing or a single thread. listings are single_thread[].
+        single_thread has {parents: thing[]} which might have a load more on top and {replies: thing[]}
 -   [ ] add a settings page where you can enable/disabled `Code` buttons and other developer tools. (hide them by default)
 -   [ ] support hovering on eg user or subreddit links to see a small info card
 -   [ ] delete hidden video.js players rather than pausing them
@@ -95,11 +100,6 @@ all todo:
         on the outside and set pointer-events: none on the content while the content is not revealed. I thought I did this already but maybe something
         with having two seperate implementations caused it.
 -   [ ] the refresh button
--   [ ] improve how parent and child nodes and listings are represented:
-        reddit lets you link to a comment that might be deep in the thread. mastodon
-        has the same. improve how this is represented in Generic data and improve how it is displayed on the page. currently, {header, replies}
-        is how posts exist. instead, change so the top level can have either a listing or a single thread. listings are single_thread[].
-        single_thread has {parents: thing[]} which might have a load more on top and {replies: thing[]}
 -   [ ] support open in new tab on added to homescreen version of page
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] twitter tweet preview support (`https://cdn.syndication.twimg.com/tweet?id=`:id`&lang=en`)
@@ -194,17 +194,17 @@ mastodon todo:
 -   [x] post action buttons like favourite and stuff
 -   [x] see if is reblog/boost
 -   [x] image alt text (+ hover text) rather than visible caption
+-   [x] user profile fields
+-   [x] (alternative used) update how user profiles work :: have a main page that loads the profile and pins and then a seperate page for loading all the posts and stuff that is embeded with load more
+-   [x] fix that "view parent" thing that looks bad (it looks even worse now but it is represented properly now)
 -   [ ] option to mute user, block user, or block domain on user profiles
--   [ ] user profile fields
 -   [ ] user profile pins (`/?pinned=true`) + make user profiles load on the dev server (express? doesn't like the `@`s in urls)
--   [ ] update how user profiles work :: have a main page that loads the profile and pins and then a seperate page for loading all the posts and stuff that is embeded with load more
 -   [ ] language support
 -   [ ] user profiles including follow and block buttons and stuff
 -   [ ] navigating to specific users by `@`
 -   [ ] sites that don't have public access to `/api/v1/accounts` but do have public access to `/@user` accept:json
 -   [ ] posting I guess
 -   [ ] voting in polls (+ poll ui improvements)
--   [ ] fix that "view parent" thing that looks bad
 -   [ ] improved url paths
 -   [ ] emojis. why did they make emojis some weird text replacement thing instead of … including them in the html that already has to be decoded, or for usernames eg rich text like reddit flairs
 -   [ ] make the `/mastodon` page not 404
