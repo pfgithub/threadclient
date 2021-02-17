@@ -2604,15 +2604,16 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         // then each child goes in a seperate one
         // ALSO todo: rather than having a top-level-post class,
         // instead have a "top-level-post-frame" div that wraps top level items
+        const parent_area = toplevel().adto(header_area);
         for(const parent of listing.body.item.parents) {
             if(parent.kind === "load_more") {
                 // uuh uuh
-                const lmdiv = toplevel().adto(header_area);
+                const lmdiv = parent_area;
                 linkButton(client.id, parent.url, "load-more").atxt("Load More").adto(lmdiv);
                 lmdiv.adch(txt(" ")).adch(el("span").clss("error text-sm").atxt("TODO load more here"));
                 continue;
             }
-            clientContent(client, parent).defer(hsc).adto(toplevel().adto(header_area));
+            clientContent(client, parent).defer(hsc).adto(parent_area);
         }
         const addChildren = (children: Generic.Node[]) => {
             for(const child of children) addChild(child);
