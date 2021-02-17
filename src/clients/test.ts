@@ -169,9 +169,17 @@ export const client: ThreadClient = {
                 audio: [],
                 gallery: [],
                 poll: [],
-                none: [],
+                none: [
+                    item("no content, hode/show button should not appear, no extra padding should appear", {kind: "none"}),
+                ],
                 removed: [],
-                crosspost: [],
+                crosspost: [
+                    item("inner post should appear with title and body, width should be as small as possible", {
+                        kind: "crosspost", source: userThread(path, {kind: "richtext", content: [rt.p(rt.txt("Crossposted Body"))]
+                    }, {
+                        title: "Crossposted Source", layout: "reddit-post"})
+                    })
+                ],
                 array: [],
             };
             return Object.entries(body_kinds).flatMap(([key, items]): ITRes[] => {
