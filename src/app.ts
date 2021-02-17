@@ -2583,9 +2583,15 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                 return;
             }
             const toplevel_area = toplevel().adto(listing_area);
-            const last_parent = child.parents[child.parents.length - 1]!;
-            if(last_parent.kind === "load_more") throw new Error("this error will never nope");
-            clientContent(client, last_parent).defer(hsc).adto(toplevel_area);
+            for(const parent of child.parents) {
+                if(parent.kind === "load_more") {
+                    const lmdiv = el("div").adto(toplevel_area);
+                    linkButton(client.id, parent.url, "load-more").atxt("Load More").adto(lmdiv);
+                    lmdiv.adch(txt(" ")).adch(el("span").clss("error text-sm").atxt("TODO load more here"));
+                }else{
+                    clientContent(client, parent).defer(hsc).adto(toplevel_area);
+                }
+            }
         };
         addChildren(listing.body.items);
 
@@ -2601,7 +2607,9 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         for(const parent of listing.body.item.parents) {
             if(parent.kind === "load_more") {
                 // uuh uuh
-                el("div").clss("error").atxt("todo load more here").adto(header_area);
+                const lmdiv = toplevel().adto(header_area);
+                linkButton(client.id, parent.url, "load-more").atxt("Load More").adto(lmdiv);
+                lmdiv.adch(txt(" ")).adch(el("span").clss("error text-sm").atxt("TODO load more here"));
                 continue;
             }
             clientContent(client, parent).defer(hsc).adto(toplevel().adto(header_area));

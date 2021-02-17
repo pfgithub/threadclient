@@ -782,10 +782,9 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
         const sort_v = path_sort ?? default_sort ?? "confidence";
         const children_root = listing[1].data.children;
         const header_children: Generic.Node[] = [];
-        if(children_root[0] && children_root[0].kind === "t1" && children_root[0].data.parent_id !== link_fullname) {
-            header_children.push({kind: "load_more", load_more: load_more_encoder.encode({
-                kind: "context",
-            }), url: "TODO context url", raw_value: children_root[0]});
+        const root0 = children_root[0];
+        if(root0 && root0.kind === "t1" && root0.data.parent_id !== link_fullname) {
+            header_children.push(loadMoreContextNode(root0.data.subreddit, (link_fullname ?? "").replace("t3_", ""), root0.data.parent_id.replace("t1_", "")));
         }
         let replies = children_root.map(child => threadFromListing(child, {link_fullname}, {permalink: updateQuery(path, {sort: sort_v}), sort: sort_v}));
 
@@ -815,7 +814,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
         let found_reply: Generic.Node | undefined;
         while(root_reply) {
             const val_id = getIdFromReply(root_reply);
-            if(val_id != null && path.includes("/"+val_id)) {
+            if(val_id != null && (path.includes("/"+val_id) || path.includes("="+val_id))) {
                 // found
                 found_reply = root_reply;
                 break;
@@ -929,7 +928,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
         body: {
             kind: "listing",
             header: subredditHeader(extra.subinfo),
-            items: listing.data.children.map(child => ({parents: [threadFromListing(child, undefined, {permalink: path, sort: "unsupported"})], replies: []})),
+            items: listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: path, sort: "unsupported"})),
             next,
         },
         ...makeSidebar(extra, "sidebar"),
@@ -955,6 +954,9 @@ type LoadMoreData = {
     permalink: string,
 } | {
     kind: "context",
+    subreddit: string,
+    link_id: string,
+    parent_id: string,
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Generic.Action => {
@@ -983,11 +985,11 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
         },
     };
 };
-const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
-    try {
-        const res = threadFromListingMayError(listing_raw, options, parent_permalink);
-        if(listing_raw.kind === "t1" && 'link_title' in listing_raw.data) {
-            return {
+const topLevelThreadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.UnmountedNode => {
+    const res = threadFromListingMayError(listing_raw, options, parent_permalink);
+    if(listing_raw.kind === "t1" && 'link_title' in listing_raw.data) {
+        return {
+            parents: [{
                 kind: "thread",
                 title: {text: listing_raw.data.link_title},
                 info: {
@@ -1003,16 +1005,37 @@ const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, p
                     },
                     pinned: false,
                 },
-                body: listing_raw.data.parent_id === listing_raw.data.link_id ? {kind: "none"} : {kind: "text", content: "…", markdown_format: "none"},
+                body: {kind: "link", url: listing_raw.data.link_permalink},
                 display_mode: {body: "visible", comments: "collapsed"},
                 link: listing_raw.data.link_permalink,
                 layout: "reddit-post",
                 default_collapsed: false,
                 actions: [{kind: "link", url: listing_raw.data.link_permalink, text: "Permalink"}],
                 raw_value: listing_raw,
-                replies: [res],
-            };
-        }
+                replies: [],
+            }, ...listing_raw.data.parent_id === listing_raw.data.link_id
+                ? []
+                : [loadMoreContextNode(listing_raw.data.subreddit, listing_raw.data.link_id.replace("t3_", ""), listing_raw.data.parent_id.replace("t1_", ""))],
+            res],
+            replies: [],
+        };
+    }
+    return {
+        parents: [res],
+        replies: [],
+    };
+};
+function loadMoreContextNode(subreddit: string, link_id: string, parent_id: string): Generic.LoadMore {
+    return {
+        kind: "load_more",
+        load_more: load_more_encoder.encode({kind: "context", subreddit: subreddit, link_id, parent_id}),
+        url: "/r/"+subreddit+"/comments/" + link_id + "?comment="+parent_id.replace("t1_", "")+"&context=8",
+        raw_value: [subreddit, link_id, parent_id],
+    };
+}
+const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
+    try {
+        const res = threadFromListingMayError(listing_raw, options, parent_permalink);
         return res;
     }catch(e) {
         console.log(e);
@@ -1860,6 +1883,8 @@ export const client: ThreadClient = {
             console.log("Error", translated_resp);
             throw new Error("todo support load more returning other body ("+translated_resp.body.kind+")");
         }else if(act.kind === "context") {
+            // TODO /r/:subreddit/comments/:link_id?comment=:parent_id&context=8
+            // then split them out and return an array
             throw new Error("TODO load more context");
         }else assertNever(act);
     },
