@@ -639,11 +639,24 @@ export const client: ThreadClient = {
             return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
                 kind: "user-profile",
                 username: account_info.display_name,
-                bio: {
+                bio: {kind: "array", body: [{
                     kind: "text",
                     content: account_info.note,
                     markdown_format: "mastodon",
-                },
+                }, {
+                    kind: "richtext",
+                    content: [{kind: "table", headings: [
+                        {children: [{kind: "text", text: "Key", styles: {}}]},
+                        {children: [{kind: "text", text: "Value", styles: {}}]},
+                        {children: [{kind: "text", text: "V", styles: {}}]},
+                    ], children: account_info.fields.map((field): Generic.Richtext.TableItem[] => {
+                        return [
+                            {children: [{kind: "text", text: field.name, styles: {}}]},
+                            {children: [{kind: "text", text: field.value, styles: {}}]},
+                            {children: [{kind: "text", text: field.verified_at != null ? "✓" : "✗", styles: {}}]},
+                        ];
+                    })}],
+                }]},
                 actions: [{
                     kind: "counter",
                     unique_id: "/follow/"+account_info.id+"/",
