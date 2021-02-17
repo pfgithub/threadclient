@@ -22,17 +22,17 @@ const sample_preview_links: {
     {expected_result: "video + sound", url: "https://www.reddit.com/link/lge4tn/video/rpnqs2bktig61/player"},
     {expected_result: "video (silent)", url: "https://gfycat.com/GrayPeriodicArabianwildcat"},
     {expected_result: "video + sound", url: "https://gfycat.com/orneryimpartialbubblefish"},
-    {expected_result: "video + sound", url: "https://\x72\x65\x64gifs.com/watch/rigidlankyosprey", warn: "NSFW"},
     // TODO ….mp4
     {expected_result: "video + sound", url: "http://dl5.webmfiles.org/big-buck-bunny_trailer.webm"},
     {expected_result: "audio", url: "https://mastodon.lol/system/media_attachments/files/105/744/125/873/361/514/original/4ecb82b471e4e067.mp3"},
     {expected_result: "youtube video", url: "https://www.youtube.com/watch?v=JM-NqFX2jU8"},
     {expected_result: "youtube video", url: "https://youtu.be/JM-NqFX2jU8"},
-    // TODO youtube video (starts at timestamp)
+    {expected_result: "youtube video, starts 30sec in", url: "https://youtube.com/watch?v=JM-NqFX2jU8&t=30"},
+    {expected_result: "youtube video, starts 30sec in", url: "https://youtu.be/JM-NqFX2jU8?t=30"},
     // TODO youtube video (start and end timestamp)
-    {expected_result: "single image", url: "https://imgur.com/gallery/HFoOCeg", warn: "thread.pfg.pw"},
-    {expected_result: "image gallery (fullscreenable)", url: "https://imgur.com/gallery/clWTb", warn: "thread.pfg.pw"},
-    {expected_result: "image gallery (fullscreenable)", url: "https://www.imgur.com/a/HJ80Ds9", warn: "thread.pfg.pw"},
+    {expected_result: "(prod. only) single image", url: "https://imgur.com/gallery/HFoOCeg"},
+    {expected_result: "(prod. only) image gallery (fullscreenable)", url: "https://imgur.com/gallery/clWTb"},
+    {expected_result: "(prod. only) image gallery (fullscreenable)", url: "https://www.imgur.com/a/HJ80Ds9"},
     {expected_result: "video + sound", url: "https://clips.twitch.tv/GlamorousTacitRaccoonWutFace-oMcWnMP8C5xMZhxD"},
     
     // TODO test error conditions eg : twitch clip with invalid slug
