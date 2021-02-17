@@ -85,6 +85,7 @@ all todo:
 -   [x] fix load more buttons that are threaded or something like `post |> comment |> load 2 more` those 2 should appear under comment
 -   [x] fix comments on mobile (they used to go edge to edge, now they don't for some reason)
 -   [x] watchable counters
+-   [ ] add a settings page where you can enable/disabled `Code` buttons and other developer tools. (hide them by default)
 -   [ ] delete hidden video.js players rather than pausing them
 -   [ ] get rid of "hide" and "show" in hsc and instead always delete/recreate elements maybe
 -   [ ] decrease indent width on mobile and make the permalink button more prominent or something for when things get too deep
