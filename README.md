@@ -86,6 +86,7 @@ all todo:
 -   [x] fix comments on mobile (they used to go edge to edge, now they don't for some reason)
 -   [x] watchable counters
 -   [ ] add a settings page where you can enable/disabled `Code` buttons and other developer tools. (hide them by default)
+-   [ ] support hovering on eg user or subreddit links to see a small info card
 -   [ ] delete hidden video.js players rather than pausing them
 -   [ ] get rid of "hide" and "show" in hsc and instead always delete/recreate elements maybe
 -   [ ] decrease indent width on mobile and make the permalink button more prominent or something for when things get too deep

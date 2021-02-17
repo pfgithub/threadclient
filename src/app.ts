@@ -840,10 +840,16 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             mainel.adto(container);
         } break;
         case "link": {
-            const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
-            if(rts.title != null) newbtn.title = rts.title;
-            for(const child of rts.children) {
-                renderRichtextSpan(client, child, newbtn).defer(hsc);
+            if(rts.is_user_link != null && rts.children.length === 1 && rts.children[0]?.kind === "text") {
+                const nodev = userLink(client.id, rts.url, rts.children[0].text).adto(container);
+                nodev.insertBefore(txt(rts.is_user_link), nodev.childNodes[nodev.childNodes.length - 1] ?? null);
+            }else{
+                const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
+                if(rts.title != null) newbtn.title = rts.title;
+                if(rts.is_user_link != null) txt(rts.is_user_link).adto(newbtn);
+                for(const child of rts.children) {
+                    renderRichtextSpan(client, child, newbtn).defer(hsc);
+                }
             }
         } break;
         case "br": {

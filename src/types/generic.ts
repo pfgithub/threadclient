@@ -72,6 +72,7 @@ export declare namespace Richtext {
         styles: Style,
     } | {
         kind: "link",
+        is_user_link?: string,
         url: string,
         title?: string,
         children: Span[],
