@@ -200,6 +200,7 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
     const loader = loadingSpinner().adto(resdiv);
     
     fetch("https://api."+gfy_host+"/v1/gfycats/"+gfy_link).then(r => r.json()).then(r => {
+        console.log("gfylike response:", r);
         loader.remove();
         type GfyContentUrl = {
             url: string,
@@ -227,6 +228,11 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
                     // thumbnails
                     poster: GfyContentUrl,
                     mobilePoster: GfyContentUrl,
+
+                    // gifs
+                    max1mbGif?: GfyContentUrl,
+                    max2mbGif?: GfyContentUrl,
+                    max5mbGif?: GfyContentUrl,
                     
                     // videos
                     mp4?: GfyContentUrl,
@@ -239,19 +245,40 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
                 title?: string,
                 width: number,
                 height: number,
+
+                mobileUrl?: string,
+                webmUrl?: string,
+                webpUrl?: string,
+                mp4Url?: string,
             },
         };
         if(gfy_item.title != null) resdiv.adch(el("div").atxt("Title: " + gfy_item.title));
         if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
 
-        videoPreview([
-            ...gfy_item.content_urls.mobile ? [{src: gfy_item.content_urls.mobile.url}] : [],
+        const sources = [
+            ...gfy_item.mp4Url != null ? [{src: gfy_item.mp4Url, type: "video/mp4"}] : [],
+            ...gfy_item.webmUrl != null ? [{src: gfy_item.webmUrl, type: "video/webm"}] : [],
             ...gfy_item.content_urls.webm ? [{src: gfy_item.content_urls.webm.url}] : [],
             ...gfy_item.content_urls.mp4 ? [
                 {src: gfy_item.content_urls.mp4.url},
                 {src: gfy_item.content_urls.mp4.url.replace(".mp4", "-mobile.mp4")}, // hack
             ] : [],
-        ], {autoplay: opts.autoplay, width: gfy_item.width, height: gfy_item.height, gifv: false}).defer(hsc).adto(resdiv);
+            ...gfy_item.content_urls.mobile ? [{src: gfy_item.content_urls.mobile.url}] : [],
+            ...gfy_item.mobileUrl != null ? [{src: gfy_item.mobileUrl}] : [],
+        ];
+        if(sources.length > 0) {
+            videoPreview(sources, {autoplay: opts.autoplay, width: gfy_item.width, height: gfy_item.height, gifv: false}).defer(hsc).adto(resdiv);
+        }else{
+            const urls = gfy_item.content_urls;
+            const url = urls.max5mbGif ?? urls.max2mbGif ?? urls.max1mbGif; // ?? webp url
+
+            if(url) {
+                el("img").attr({src: url.url, width: `${url.width}px` as const, height: `${url.height}px` as const}).clss("preview-image").adto(resdiv);
+            }else {
+                console.log(gfy_item);
+                el("div").clss("error").atxt("Error bad image uh oh").adto(resdiv);
+            }
+        }
     }).catch(e => {
         console.log(e);
         if(loader.parentNode) loader.remove();
@@ -344,14 +371,16 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
         // information about galleries is distributed with posts
         // do nothing I guess
     }
-    if(url && (url.host === "www.imgur.com" || url.host === "imgur.com") && url.pathname.startsWith("/gallery/")) {
-        const galleryid = url.pathname.replace("/gallery/", "");
-        if(!galleryid.includes("/")) return (): HideShowCleanup<Node> => {
+    if(url && (url.host === "www.imgur.com" || url.host === "imgur.com")) {
+        const splitv = url.pathname.split("/");
+        const galleryid = splitv[2]!;
+        const isv = splitv[1] === "gallery" ? "gallery" : splitv[1] === "a" ? "album" : undefined;
+        if(isv !== undefined && splitv.length === 3) return (): HideShowCleanup<Node> => {
             const resdiv = el("div");
             const hsc = hideshow(resdiv);
             const loader = loadingSpinner().adto(resdiv);
 
-            fetch("https://api.imgur.com/3/gallery/"+galleryid).then(r => r.json()).then(r => {
+            fetch("https://api.imgur.com/3/"+isv+"/"+galleryid).then(r => r.json()).then(r => {
                 const typed = r as ({
                     success: false,
                     status: number,
@@ -362,7 +391,8 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
                     success: true,
                     status: number,
                     data: {
-                        title: string,
+                        title: string | null,
+                        description: string | null,
                         layout: "blog" | "unknown",
                         images_count: number,
                         images: {
@@ -1531,7 +1561,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         const btn = elButton("action-button").atxt("Log In").adto(frame).onev("click", () => {
             btn.textContent = "…";
             btn.disabled = true;
-            client.getLoginURL(clurl).then(res => {
+            client.getLoginURL!(clurl).then(res => {
                 frame.innerHTML = "";
                 linkButton(client.id, res, "pill-filled").atxt("Log In").adto(frame);
             }).catch(e => {
@@ -2578,7 +2608,7 @@ function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchP
     (async () => {
         uhtml.render(frame, uhtml.html`<div>Logging In…</div>`);
         try {
-            await client.login(path, query);
+            await client.login!(path, query);
         }catch(e) {
             console.log(e);
             // TODO if this is the only open history item, don't target _blank
@@ -2612,6 +2642,7 @@ const client_cache: {[key: string]: ThreadClient} = {};
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     reddit: () => import("./clients/reddit").then(client => client.client),
     mastodon: () =>  import("./clients/mastodon").then(client => client.client),
+    test: () =>  import("./clients/test").then(client => client.client),
 };
 const getClient = async (name: string) => {
     const clientInitializer = client_initializers[name];

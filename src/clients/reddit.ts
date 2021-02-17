@@ -1415,13 +1415,7 @@ const getLoginURL = () => {
 
 export const client: ThreadClient = {
     id: "reddit",
-    links: () => [
-        ["Home", () => "/"],
-        ["r/test", () => "/r/test"],
-        ["Notifications", () => "/message/inbox"],
-    ],
     // loginURL: getLoginURL(),
-    getLoginURL(arg) {throw new Error("not supported get login url")},
     async getThread(pathraw): Promise<Generic.Page> {
         const [pathrawpath, pathrawquery] = splitURL(pathraw);
         const pathsplit = pathrawpath.split("/");

@@ -522,7 +522,6 @@ type LoginURL = {
 const login_url_encoder = encoderGenerator<LoginURL, "login_url">("login_url");
 export const client: ThreadClient = {
     id: "mastodon",
-    links: () => [],
     // isLoggedIn: (pathraw: string) => {
     //     const [, host] = pathraw.split("/");
     //     if(host == null) return false;
