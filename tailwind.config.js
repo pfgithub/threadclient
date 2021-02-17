@@ -15,6 +15,8 @@ module.exports = {
             'current': "currentColor",
             'gray': colors.coolGray,
             'blue': colors.blue,
+            'green': colors.emerald,
+            'red': colors.red,
             'flair-light': "var(--flair-color)",
             'flair-dark': "var(--flair-color-dark)",
             'body': "var(--body-color)",

@@ -383,6 +383,9 @@ function createSubscribeAction(subreddit: string, subscribers: number, you_subbe
         label: "Subscribe",
         incremented_label: "Subscribed",
 
+        style: "pill-filled",
+        incremented_style: "pill-empty",
+
         count_excl_you: you_subbed ? subscribers - 1 : subscribers,
         you: you_subbed ? "increment" : undefined,
 
@@ -1052,6 +1055,9 @@ const saveButton = (fullname: string, saved: boolean): Generic.Action => {
         
         label: "Save",
         incremented_label: "Unsave",
+
+        style: "action-button",
+        incremented_style: "save-button-saved",
 
         count_excl_you: "none",
         you: saved ? "increment" : undefined,

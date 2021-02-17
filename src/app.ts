@@ -2,7 +2,7 @@ import "./_stdlib";
 import "./main.scss";
 import "tailwindcss/tailwind.css";
 
-import  * as uhtml from "uhtml";
+import * as uhtml from "uhtml";
 
 import * as Generic from "./types/generic";
 import {ThreadClient} from "./clients/base";
@@ -1768,6 +1768,9 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         button.disabled = state.loading;
         if(decr_button) decr_button.disabled = state.loading;
 
+        button.setAttribute("class", "counter-increment-btn " + link_styles_v[state.your_vote === "increment" ? (action.incremented_style ?? "action-button") : (action.style ?? "action-button")]);
+        if(decr_button) decr_button.setAttribute("class", "counter-decrement-btn " + link_styles_v[state.your_vote === "decrement" ? (action.decremented_style ?? "action-button") : (action.style ?? "action-button")]);
+
         button.setAttribute("aria-pressed", state.your_vote === "increment" ? "true" : "false");
         if(decr_button) decr_button.setAttribute("aria-pressed", state.your_vote === "decrement" ? "true" : "false");
     });
@@ -2310,6 +2313,7 @@ const link_styles_v = {
     'normal': "text-blue-600 dark:text-blue-500 underline border-none",
     'previewable': "text-blue-600 dark:text-blue-500 hover:underline border-none",
     'action-button': "text-gray-600 dark:text-gray-500 hover:underline border-none",
+    'save-button-saved': "text-green-600 dark:text-green-500 hover:underline border-none",
     'safe-action-button': "text-blue-600 dark:text-blue-500 hover:underline border-none",
     'unsafe-action-button': "text-red-600 dark:text-red-500 hover:underline border-none",
     'code-button': "text-gray-600 dark:text-gray-500 hover:underline border-none",

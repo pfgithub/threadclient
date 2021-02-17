@@ -358,6 +358,10 @@ export type CounterAction = {
     incremented_label: ActionLabel,
     decremented_label?: ActionLabel,
 
+    style?: ButtonStyle,
+    incremented_style?: ButtonStyle,
+    decremented_style?: ButtonStyle,
+
     count_excl_you: number | "hidden" | "none",
     you: "increment" | "decrement" | undefined,
 
@@ -369,6 +373,8 @@ export type CounterAction = {
 
     percent?: number,
 };
+
+type ButtonStyle = "action-button" | "save-button-saved" | "pill-empty" | "pill-filled";
 
 export type ReportFlow = ReportScreen[];
 export type ReportScreen = {
