@@ -43,7 +43,7 @@ const sample_preview_links: {
 
 function bodyPage(path: string, body: Generic.Body): Generic.Page {
     return {
-        title: path + " | Test",
+        title: path,
         navbar: [],
         body: {
             kind: "one",
@@ -65,30 +65,83 @@ function bodyPage(path: string, body: Generic.Body): Generic.Page {
     };
 }
 
+function listingPage(path: string, header: Generic.Thread, items: Generic.Thread[]): Generic.Page {
+    return {
+        title: path,
+        navbar: [],
+        body: {
+            kind: "listing",
+            header: header,
+            items: items.map(item => ({parents: [item], replies: []})),
+        },
+        display_style: "comments-view",
+    };
+}
+
+type UserThreadOpts = {
+    content_warning?: string,
+    layout: Generic.Thread["layout"],
+};
+function userThread(path: string, body: Generic.Body, opts: UserThreadOpts): Generic.Thread {
+    return {
+        kind: "thread",
+        body,
+        display_mode: {body: "visible", comments: "collapsed"},
+        raw_value: sample_preview_links,
+        link: path,
+        layout: opts.layout,
+        actions: [],
+        default_collapsed: false,
+        flair: opts.content_warning != null ? [{elems: [{type: "text", text: opts.content_warning}], content_warning: true}] : [],
+    };
+}
+
+function richtextPost(path: string, richtext: Generic.Richtext.Paragraph[]): Generic.Thread {
+    return userThread(path, {kind: "richtext", content: richtext}, {layout: "reddit-post"});
+}
+
+function collapsibleComment(path: string, body: Generic.Body, opts: {content_warning?: string}): Generic.Thread {
+    return userThread(path, body, {...opts, layout: "reddit-comment"});
+}
+
+const rt = {
+    p: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "paragraph", children: items}),
+    h1: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "heading", level: 1, children: items}),
+    ul: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
+    ol: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
+    li: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list_item", children: items}),
+    txt: (text: string): Generic.Richtext.Span => ({kind: "text", text, styles: {}}),
+    link: (url: string, ...children: Generic.Richtext.Span[]): Generic.Richtext.Span => ({kind: "link", url, children}),
+};
+
 export const client: ThreadClient = {
     id: "test",
     async getThread(path): Promise<Generic.Page> {
-        if(path === "/link-preview") return bodyPage(path, {
-            // TODO put each of these in a seperate collapsable comment
-            // to test that hideshow works correctly
+        if(path === "/link-preview") return listingPage(path, richtextPost(path, [
+            rt.h1(rt.txt("Testing Link Preview")),
+            rt.p(rt.txt("Check each link and make sure:")),
+            rt.ul(
+                rt.li(rt.p(rt.txt("It appears as described"))),
+                rt.li(rt.p(rt.txt("When collapsing or uncollapsing the comment, it functions as expected"))),
+                rt.li(rt.p(rt.txt("When closing the preview, it functions as expected"))),
+            ),
+        ]), sample_preview_links.map(spl => collapsibleComment(path, {
             kind: "richtext",
-            content: [{kind: "list", ordered: false, children: sample_preview_links.map((spl): Generic.Richtext.Paragraph => {
-                const link_node: Generic.Richtext.Span = {kind: "link", url: spl.url, children: [{kind: "text", text: spl.expected_result, styles: {}}]};
-                return {kind: "list_item", children: [{kind: "paragraph", children: 
-                    spl.warn != null ? [{kind: "text", text: spl.warn+": ", styles: {}}, {kind: "spoiler", children: [link_node]}] : [link_node],
-                }]};
-            })}],
-        });
+            content: [
+                rt.p(rt.txt(spl.expected_result)),
+                rt.p(rt.link(spl.url, rt.txt(spl.url))),
+            ],
+        }, {content_warning: spl.warn})));
         return bodyPage(path, {
             kind: "richtext",
             content: [
-                {kind: "paragraph", children: [{kind: "text", styles: {}, text: "404 not found "+path}]},
-                {kind: "heading", level: 1, children: [{kind: "text", styles: {}, text: "Tests:"}]},
-                {kind: "list", ordered: false, children: [
+                ...path === "/" ? [] : [rt.p(rt.txt("404 not found "+path))],
+                rt.h1(rt.txt("Tests:")),
+                rt.ul(...[
                     "/link-preview",
-                ].map((v): Generic.Richtext.Paragraph => ({kind: "list_item", children: [{kind: "paragraph", children: [
-                    {kind: "link", url: v, children: [{kind: "text", text: v, styles: {}}]}
-                ]}]}))},
+                ].map(v => rt.li(rt.p(
+                    rt.link(v, rt.txt(v)),
+                )))),
             ],
         });
     },

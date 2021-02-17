@@ -2520,7 +2520,6 @@ function updateTitle(hsc: HideShowCleanup<unknown>, client_id: string): UpdateTi
 function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HTMLDivElement, title: UpdateTitle): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
-    const listing_copy = JSON.parse(JSON.stringify(listing));
     // It might get mutated so just in case make a copy. This should be fixed
     // so the listing can't be mutated and this isn't necessary
     title.setTitle(listing.title);
@@ -2532,14 +2531,20 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         renderAction(client, navbar_action, navbar_area).defer(hsc);
         txt(" ").adto(navbar_area);
     }
-    const saveofflinebtn = elButton("action-button").atxt("Save Offline").adto(navbar_area).onev("click", () => {
-        // save listing in indexed db
-        // (or in the future, save the raw responses from the web so they can be re-transformed if necessary)
-        localStorage.setItem("saved-post", JSON.stringify(listing_copy));
-        saveofflinebtn.disabled = true;
-        saveofflinebtn.textContent = "✓ Saved";
-        // set url to /saved/… without reloading
-    }).adto(navbar_area);
+    // TODO save the raw page responses. listings are not meant to be copied, they can have symbols
+    // and might in the future have functions and stuff
+    //
+    // How to make this change:
+    // make client.getThread return an Opaque<ThreadData> that you pass back to client to get the listing 
+    //
+    // const saveofflinebtn = elButton("action-button").atxt("Save Offline").adto(navbar_area).onev("click", () => {
+    //     // save listing in indexed db
+    //     // (or in the future, save the raw responses from the web so they can be re-transformed if necessary)
+    //     localStorage.setItem("saved-post", JSON.stringify(listing_copy));
+    //     saveofflinebtn.disabled = true;
+    //     saveofflinebtn.textContent = "✓ Saved";
+    //     // set url to /saved/… without reloading
+    // }).adto(navbar_area);
 
     const header_area = el("div").adto(frame).clss("header-area");
     const content_area = el("div").adto(frame).clss("content-area");
