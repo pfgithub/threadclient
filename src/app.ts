@@ -1386,11 +1386,11 @@ function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string})
             const hsc = hideshow(); // it deletes itself so who cares :: the answer is if you try to go back after opening this it doesn't work
             component.showGallery([{
                 thumb: url,
-                w: res.width,
-                h: res.height,
+                w: res.naturalWidth,
+                h: res.naturalHeight,
                 body: {kind: "captioned_image",
-                    w: res.width,
-                    h: res.height,
+                    w: res.naturalWidth,
+                    h: res.naturalHeight,
                     url,
                 },
             }], 0, () => {
