@@ -69,6 +69,8 @@ export const client: ThreadClient = {
     id: "test",
     async getThread(path): Promise<Generic.Page> {
         if(path === "/link-preview") return bodyPage(path, {
+            // TODO put each of these in a seperate collapsable comment
+            // to test that hideshow works correctly
             kind: "richtext",
             content: [{kind: "list", ordered: false, children: sample_preview_links.map((spl): Generic.Richtext.Paragraph => {
                 const link_node: Generic.Richtext.Span = {kind: "link", url: spl.url, children: [{kind: "text", text: spl.expected_result, styles: {}}]};

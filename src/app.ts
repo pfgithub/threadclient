@@ -288,9 +288,8 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
     return hsc;
 }
 
-// what instead of actually previewing the link, this returned a body? pretty resonable idea tbh, just make sure not to allow
-// infinite loops where this returns a link body
-function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
+
+function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?: string}): undefined | Generic.Body {
     let url_mut: URL | undefined;
     try { 
         url_mut = new URL(link);
@@ -300,305 +299,99 @@ function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean
     const url = url_mut;
     const path = url?.pathname ?? link;
     const is_mp4_link_masking_as_gif = url ? path.endsWith(".gif") && url.searchParams.get("format") === "mp4" : false;
-    if(is_mp4_link_masking_as_gif) return (): HideShowCleanup<Node> => {
-        return videoPreview([{src: link, type: "video/mp4"}], {autoplay: opts.autoplay, gifv: true});
-    };
+    if(is_mp4_link_masking_as_gif) return {kind: "video", gifv: true, source: {kind: "video", sources: [{url: link, type: "video/mp4"}]}};
     if((url?.hostname ?? "") === "i.redd.it"
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
         || path.endsWith(".webp")|| (url?.hostname ?? "") === "pbs.twimg.com"
-    ) return (): HideShowCleanup<Node> => {
-        const resn = zoomableImage(link, {});
-        return hideshow(resn);
+    ) return {kind: "unknown_size_image", url: link};
+    if(path.endsWith(".gifv")) {
+        return {kind: "video", gifv: true, source: {kind: "video", sources: [
+            {url: link.replace(".gifv", ".webm"), type: "video/webm"},
+            {url: link.replace(".gifv", ".mp4"), type: "video/mp4"},
+        ]}};
+    }
+    if(link.startsWith("https://v.redd.it/")) return {
+        kind: "vreddit_video",
+        id: link.replace("https://v.redd.it/", ""),
+        gifv: false,
     };
-    if(path.endsWith(".gifv")) return (): HideShowCleanup<Node> => {
-        const video = el("video").attr({controls: ""}).clss("preview-image");
-        el("source").attr({src: link.replace(".gifv", ".webm"), type: "video/webm"}).adto(video);
-        el("source").attr({src: link.replace(".gifv", ".mp4"), type: "video/mp4"}).adto(video);
-        video.loop = true;
-        const hsc = hideshow(video);
-        let playing_before_hide = false;
-        if(opts.autoplay) void video.play();
-        hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
-        hsc.on("show", () => {if(playing_before_hide) void video.play();});
-        return hsc;
-    };
-    if(link.startsWith("https://v.redd.it/")) return (): HideShowCleanup<Node> => {
-        return previewVreddit(link.replace("https://v.redd.it/", ""), {autoplay: opts.autoplay});
-    };
-    if(link.startsWith("https://reddit.com/link/")) {
+    if(url && (url.host === "reddit.com" || url.host.endsWith(".reddit.com") && url.pathname.startsWith("/link"))) {
         const pathsplit = path.split("/");
         pathsplit.shift();
         // /link/:postname/video/:videoid/player
-        if(pathsplit[0] === "link" && pathsplit[2] === "video" && pathsplit[4] === "player") return (): HideShowCleanup<Node> => {
-            return previewVreddit(pathsplit[3] ?? "", {autoplay: opts.autoplay});
+        if(pathsplit[0] === "link" && pathsplit[2] === "video" && pathsplit[4] === "player") return {
+            kind: "vreddit_video",
+            id: pathsplit[3] ?? "",
+            gifv: false,
         };
     }
-    if(url && url.host === "gfycat.com" && url.pathname.split("/").length === 2) return (): HideShowCleanup<Node> => {
-        const gfylink = url.pathname.replace("/", "").split("-")[0]!.toLowerCase();
-        return gfyLike("gfycat.com", gfylink, {autoplay: opts.autoplay});
+    if(url && (url.host === "gfycat.com" || url.host.endsWith(".gfycat.com")) && url.pathname.split("/").length === 2) return {
+        kind: "gfycat",
+        id: url.pathname.replace("/", "").split("-")[0]!.toLowerCase(),
+        host: "gfycat.com",
     };
-    if(url && url.host === "\x72\x65\x64gifs.com" && url.pathname.split("/").length === 3 && url.pathname.startsWith("/watch/")) return (): HideShowCleanup<Node> => {
+    if(url && (url.host === "\x72\x65\x64gifs.com" || url.host.endsWith(".\x72\x65\x64gifs.com")) && url.pathname.split("/").length === 3 && url.pathname.startsWith("/watch/")) {
         const gfylink = url.pathname.replace("/watch/", "").split("-")[0]!.toLowerCase();
-        return gfyLike(url.host, gfylink, {autoplay: opts.autoplay});
-    };
-    if(path.endsWith(".mp4") || path.endsWith(".webm")) return (): HideShowCleanup<Node> => {
-        return videoPreview([{src: link}], {autoplay: opts.autoplay, gifv: false});
-    };
-    if(path.endsWith(".mp3")) return (): HideShowCleanup<Node> => {
-        return videoPreview([{src: link, type: "audio/mpeg"}], {autoplay: opts.autoplay, gifv: false, audio: true});
-    };
-    const ytvid = (youtube_video_id: string, search: URLSearchParams) => (): HideShowCleanup<Node> => {
-        const container = el("div");
-        const embedv = embedYoutubeVideo(youtube_video_id, opts, search);
-        embedv.node.adto(container);
-        const hsc = hideshow(container);
-        // maybe just delete embedv and recreate it instead
-        // or do like a timeout like if >10s, delete idk
-        hsc.on("hide", () => embedv.onhide?.());
-        hsc.on("show", () => embedv.onshow?.());
-        return hsc;
-    };
+        return {
+            kind: "gfycat",
+            id: gfylink,
+            host: "\x72\x65\x64gifs.com",
+        };
+    }
+    if(path.endsWith(".mp4") || path.endsWith(".webm")) {
+        return {kind: "video", gifv: false, source: {kind: "video", sources: [
+            {url: link},
+        ]}};
+    }
+    if(path.endsWith(".mp3")) {
+        return {kind: "audio", url: link};
+    }
     if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
         const ytvid_id = url.searchParams.get("v");
-        if(ytvid_id != null) return ytvid(ytvid_id, url.searchParams);
+        if(ytvid_id != null) return {kind: "youtube", id: ytvid_id, search: url.searchParams.toString()};
     }
     if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
         const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
-        return ytvid(youtube_video_id, url.searchParams);
-    }
-    if(link.startsWith("https://www.reddit.com/gallery/")) {
-        // information about galleries is distributed with posts
-        // do nothing I guess
+        return {kind: "youtube", id: youtube_video_id, search: url.searchParams.toString()};
     }
     if(url && (url.host === "www.imgur.com" || url.host === "imgur.com")) {
         const splitv = url.pathname.split("/");
         const galleryid = splitv[2]!;
         const isv = splitv[1] === "gallery" ? "gallery" : splitv[1] === "a" ? "album" : undefined;
-        if(isv !== undefined && splitv.length === 3) return (): HideShowCleanup<Node> => {
-            const resdiv = el("div");
-            const hsc = hideshow(resdiv);
-            const loader = loadingSpinner().adto(resdiv);
-
-            fetch("https://api.imgur.com/3/"+isv+"/"+galleryid).then(r => r.json()).then(r => {
-                const typed = r as ({
-                    success: false,
-                    status: number,
-                    data: {
-                        error: string,
-                    },
-                } | {
-                    success: true,
-                    status: number,
-                    data: {
-                        title: string | null,
-                        description: string | null,
-                        layout: "blog" | "unknown",
-                        images_count: number,
-                        images: {
-                            id: string,
-                            description: string,
-                            link: string, // img src
-                            width: number,
-                            height: number,
-                        }[],
-                    },
-                });
-                console.log("imgur result", typed);
-                if(typed.success) {
-                    const gallery: Generic.Body = {
-                        kind: "gallery",
-                        images: typed.data.images.map(image => {
-                            const res: Generic.GalleryItem = {
-                                thumb: image.link,
-                                w: image.width,
-                                h: image.height,
-                                body: {
-                                    kind: "captioned_image",
-                                    caption: image.description,
-                                    url: image.link,
-                                    w: image.width,
-                                    h: image.height,
-                                },
-                            };
-                            return res;
-                        }),
-                    };
-                    renderBody(client, gallery, {autoplay: false}, el("div").adto(resdiv)).defer(hsc);
-                    loader.remove();
-                }else{
-                    if(loader.parentNode) loader.remove();
-                    resdiv.adch(el("div").clss("error").atxt("Error loading imgur: "+typed.data.error));
-                }
-            }).catch(e => {
-                console.log(e);
-                resdiv.adch(el("div").clss("error").atxt("Error loading imgur : "+e.toString()));
-            });
-
-            return hsc;
-        };
+        if(isv !== undefined && splitv.length === 3) {
+            return {
+                kind: "imgur",
+                imgur_id: galleryid,
+                imgur_kind: isv,
+            };
+        }
     }
     if(url && url.host === "clips.twitch.tv" && url.pathname.split("/").length === 2) {
         const clipid = url.pathname.split("/")[1];
-        return (): HideShowCleanup<Node> => {
-            const frame = el("div");
-            const hsc = hideshow(frame);
-
-            const loading = loadingSpinner().adto(frame);
-
-            function gqlRequest(operation: string, hash: string, variables: unknown) {
-                return {
-                    extensions: {persistedQuery: {sha256Hash: hash, version: 1}},
-                    operationName: operation,
-                    variables,
-                };
-            }
-
-            fetch("https://gql.twitch.tv/gql", {
-                method: "POST",
-                headers: {
-                    'Content-Type': "application/json",
-                    'Accept': "application/json",
-                    'Client-Id': "kimne78kx3ncx6brgo4mv6wki5h1ko",
-                },
-                body: JSON.stringify([
-                    gqlRequest("VideoAccessToken_Clip",
-                        "36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11",
-                        {slug: clipid}
-                    ),
-                    gqlRequest("ClipsChatCard",
-                        "94c1c7d97d860722a5b7ef3c3b3de3783b37fc32d69bcccc8ea0cda372cf1f01",
-                        {slug: clipid}
-                    ),
-                    gqlRequest("ClipsBroadcasterInfo", // 9
-                        "ce258d9536360736605b42db697b3636e750fdb14ff0a7da8c7225bdc2c07e8a",
-                        {slug: clipid}
-                    ),
-                    gqlRequest("ClipsTitle", // 12
-                        "f6cca7f2fdfbfc2cecea0c88452500dae569191e58a265f97711f8f2a838f5b4",
-                        {slug: clipid}
-                    ),
-                    gqlRequest("ClipsCurator", // 13
-                        "769e99d9ac3f68e53c63dd902807cc9fbea63dace36c81643d776bcb120902e2",
-                        {slug: clipid}
-                    ),
-                    gqlRequest("ClipsFullVideoButton", // 14
-                        "d519a5a70419d97a3523be18fe6be81eeb93429e0a41c3baa9441fc3b1dffebf",
-                        {slug: clipid}
-                    ),
-                ]),
-            }).then(r => r.json()).then(res_untyped => {
-                loading.remove();
-                console.log(res_untyped);
-                const [video, chat_card, broadcaster_info, title, curator, full_video_btn] = res_untyped as [
-                    // wow lots of redundant data
-                    video: {data: {clip: {
-                        id: string,
-                        playbackAccessToken: {
-                            signature: string,
-                            value: string, // JSON {authorization: {forbidden: false, reason: ""}, clip_url: "", device_id: null, expires: number, user_id: "", version: 2}
-                        },
-                        videoQualities: {
-                            frameRate: number,
-                            quality: "360" | "480" | "720" | "unsupported",
-                            sourceURL: string,
-                        }[],
-                    }}},
-                    chat_card: {data: {clip: {
-                        id: string,
-                        videoOffsetSeconds: number,
-                        createdAt: string,
-                        curator: {id: string, login: string},
-                        video: {id: string, login: string},
-                    }}},
-                    broadcaster_info: {data: {clip: {
-                        id: string,
-                        game: {name: string, displayName: string},
-                        broadcaster: {
-                            id: string,
-                            profileImageURL: string,
-                            displayName: string,
-                            login: string,
-                            stream: null,
-                        },
-                    }}},
-                    title: {data: {clip: {
-                        id: string,
-                        title: string,
-                    }}},
-                    curator: {data: {clip: {
-                        id: string,
-                        curator: {id: string, displayName: string, login: string},
-                    }}},
-                    full_video_btn: {data: {clip: {
-                        id: string,
-                        videoOffsetSeconds: number,
-                        durationSeconds: number,
-                        title: string,
-                        broadcaster: {id: string, login: string},
-                        video: {id: string, broadcastType: "ARCHIVE" | "unsupported"},
-                        game: {id: string, displayName: string},
-                    }}},
-                ];
-                el("h1").clss("text-xl font-bold text-gray-500").adto(frame).atxt(title.data.clip.title);
-                videoPreview(video.data.clip.videoQualities.map(quality => {
-                    return {src: quality.sourceURL};
-                }), {autoplay: opts.autoplay, gifv: false}).defer(hsc).adto(frame);
-
-                () => [chat_card, broadcaster_info, curator, full_video_btn]; 
-
-                // TODO ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
-                // variables:
-                // - slug,
-                // - videoOffsetSeconds,
-                // → something that gives a cursor
-                // then
-                // ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
-                // variables:
-                // - slug,
-                // - cursor,
-                // → the chat messages
-            }).catch(e => {
-                console.log(e);
-                try {loading.remove()}catch(er){()=>er}
-                el("div").clss("error").adto(frame).atxt(e.toString());
-            });
-
-            return hsc;
+        if(clipid != null) return {
+            kind: "twitch_clip",
+            slug: clipid,
         };
     }
-    if(opts.suggested_embed != null) return (): HideShowCleanup<Node> => {
-        // TODO: render a body with markdown type unsafe-html that supports iframes
-        try {
-            // const parser = new DOMParser();
-            // const doc = parser.parseFromString(opts.suggested_embed, "text/html");
-            // const iframe = doc.childNodes[0].childNodes[1].childNodes[0];
-            const template_el = el("template");
-            template_el.innerHTML = opts.suggested_embed!;
-            const iframe_unsafe = template_el.content.childNodes[0];
-            if(!iframe_unsafe) throw new Error("missing iframe");
-            if(!(iframe_unsafe instanceof HTMLIFrameElement)) throw new Error("iframe was not first child");
+    if(opts.suggested_embed != null) return {
+        kind: "reddit_suggested_embed",
+        suggested_embed: opts.suggested_embed,
+    };
+    return undefined;
+}
 
-            console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
-
-            const parent_node = el("div").clss("resizable-iframe").styl({width: iframe_unsafe.width+"px", height: iframe_unsafe.height+"px"});
-            let iframe: HTMLIFrameElement | undefined;
-            const initFrame = () => {
-                if(!iframe) iframe = el("iframe").attr({src: iframe_unsafe.src, allow: iframe_unsafe.allow, allowfullsreen: ""}).adto(parent_node);
-            };
-            initFrame();
-
-            const hsc = hideshow(parent_node);
-            hsc.on("hide", () => {if(iframe) {iframe.remove(); iframe = undefined}});
-            hsc.on("show", () => initFrame());
-            return hsc;
-        }catch(e) {
-            console.log(e);
-            const frame = el("div");
-            frame.adch(el("p").atxt("Error adding suggestedembed: "+e.toString()).clss("error"));
-            frame.adch(el("pre").adch(el("code").atxt(opts.suggested_embed!)));
-            return hideshow(frame);
-        }
+// what instead of actually previewing the link, this returned a body? pretty resonable idea tbh, just make sure not to allow
+// infinite loops where this returns a link body
+function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
+    const preview_body = previewLink(client, link, {suggested_embed: opts.suggested_embed});
+    if(preview_body) return (): HideShowCleanup<Node> => {
+        // render body
+        // TODO prevent infinite loops
+        const node = el("div");
+        const hsc = hideshow(node);
+        renderBody(client, preview_body, {autoplay: opts.autoplay}, node).defer(hsc);
+        return hsc;
     };
     return undefined;
 }
@@ -1149,6 +942,16 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
 }
 
 const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}, content: ChildNode): HideShowCleanup<undefined> => {
+    try {
+        return renderBodyMayError(client, body, opts, content);
+    }catch(e) {
+        console.log(e);
+        el("div").clss("error").adto(content).atxt("Got error: "+e.toString());
+        el("code").adto(el("pre").adto(content)).atxt(e.stack);
+        return hideshow();
+    }
+};
+const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}, content: ChildNode): HideShowCleanup<undefined> => {
     const hsc = hideshow();
 
     if(body.kind === "text") {
@@ -1162,7 +965,7 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
             renderLinkPreview().defer(hsc).adto(content);
         }
     }else if(body.kind === "none") {
-        content.remove();
+        // content.remove();
     }else if(body.kind === "gallery") {
         renderImageGallery(client, body.images).defer(hsc).adto(content);
     }else if(body.kind === "removed") {
@@ -1251,10 +1054,259 @@ const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: b
             const atma = el("div").adto(content);
             renderBody(client, v, {autoplay: false}, atma).defer(hsc);
         }
+    }else if(body.kind === "unknown_size_image") {
+        zoomableImage(body.url, {}).adto(el("div").adto(content));
+    }else if(body.kind === "gfycat") {
+        gfyLike(body.host, body.id, {autoplay: opts.autoplay}).defer(hsc).adto(content);
+    }else if(body.kind === "imgur") {
+        imgurImage(client, body.imgur_kind, body.imgur_id).defer(hsc).adto(content);
+    }else if(body.kind === "youtube") {
+        youtubeVideo(body.id, body.search, {autoplay: opts.autoplay}).defer(hsc).adto(content);
+    }else if(body.kind === "twitch_clip") {
+        twitchClip(body.slug, {autoplay: opts.autoplay}).defer(hsc).adto(content);
+    }else if(body.kind === "reddit_suggested_embed") {
+        redditSuggestedEmbed(body.suggested_embed);
     }else assertNever(body);
 
     return hsc;
 };
+
+function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
+    // TODO?: render a body with markdown type unsafe-html that supports iframes
+    try {
+        // const parser = new DOMParser();
+        // const doc = parser.parseFromString(opts.suggested_embed, "text/html");
+        // const iframe = doc.childNodes[0].childNodes[1].childNodes[0];
+        const template_el = el("template");
+        template_el.innerHTML = suggested_embed;
+        const iframe_unsafe = template_el.content.childNodes[0];
+        if(!iframe_unsafe) throw new Error("missing iframe");
+        if(!(iframe_unsafe instanceof HTMLIFrameElement)) throw new Error("iframe was not first child");
+
+        console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
+
+        const parent_node = el("div").clss("resizable-iframe").styl({width: iframe_unsafe.width+"px", height: iframe_unsafe.height+"px"});
+        let iframe: HTMLIFrameElement | undefined;
+        const initFrame = () => {
+            if(!iframe) iframe = el("iframe").attr({src: iframe_unsafe.src, allow: iframe_unsafe.allow, allowfullsreen: ""}).adto(parent_node);
+        };
+        initFrame();
+
+        const hsc = hideshow(parent_node);
+        hsc.on("hide", () => {if(iframe) {iframe.remove(); iframe = undefined}});
+        hsc.on("show", () => initFrame());
+        return hsc;
+    }catch(e) {
+        console.log(e);
+        const frame = el("div");
+        frame.adch(el("p").atxt("Error adding suggestedembed: "+e.toString()).clss("error"));
+        frame.adch(el("pre").adch(el("code").atxt(suggested_embed)));
+        return hideshow(frame);
+    }
+}
+
+function twitchClip(clipid: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
+    const frame = el("div");
+    const hsc = hideshow(frame);
+
+    const loading = loadingSpinner().adto(frame);
+
+    function gqlRequest(operation: string, hash: string, variables: unknown) {
+        return {
+            extensions: {persistedQuery: {sha256Hash: hash, version: 1}},
+            operationName: operation,
+            variables,
+        };
+    }
+
+    fetch("https://gql.twitch.tv/gql", {
+        method: "POST",
+        headers: {
+            'Content-Type': "application/json",
+            'Accept': "application/json",
+            'Client-Id': "kimne78kx3ncx6brgo4mv6wki5h1ko",
+        },
+        body: JSON.stringify([
+            gqlRequest("VideoAccessToken_Clip",
+                "36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11",
+                {slug: clipid}
+            ),
+            gqlRequest("ClipsChatCard",
+                "94c1c7d97d860722a5b7ef3c3b3de3783b37fc32d69bcccc8ea0cda372cf1f01",
+                {slug: clipid}
+            ),
+            gqlRequest("ClipsBroadcasterInfo", // 9
+                "ce258d9536360736605b42db697b3636e750fdb14ff0a7da8c7225bdc2c07e8a",
+                {slug: clipid}
+            ),
+            gqlRequest("ClipsTitle", // 12
+                "f6cca7f2fdfbfc2cecea0c88452500dae569191e58a265f97711f8f2a838f5b4",
+                {slug: clipid}
+            ),
+            gqlRequest("ClipsCurator", // 13
+                "769e99d9ac3f68e53c63dd902807cc9fbea63dace36c81643d776bcb120902e2",
+                {slug: clipid}
+            ),
+            gqlRequest("ClipsFullVideoButton", // 14
+                "d519a5a70419d97a3523be18fe6be81eeb93429e0a41c3baa9441fc3b1dffebf",
+                {slug: clipid}
+            ),
+        ]),
+    }).then(r => r.json()).then(res_untyped => {
+        loading.remove();
+        console.log(res_untyped);
+        const [video, chat_card, broadcaster_info, title, curator, full_video_btn] = res_untyped as [
+            // wow lots of redundant data
+            video: {data: {clip: {
+                id: string,
+                playbackAccessToken: {
+                    signature: string,
+                    value: string, // JSON {authorization: {forbidden: false, reason: ""}, clip_url: "", device_id: null, expires: number, user_id: "", version: 2}
+                },
+                videoQualities: {
+                    frameRate: number,
+                    quality: "360" | "480" | "720" | "unsupported",
+                    sourceURL: string,
+                }[],
+            }}},
+            chat_card: {data: {clip: {
+                id: string,
+                videoOffsetSeconds: number,
+                createdAt: string,
+                curator: {id: string, login: string},
+                video: {id: string, login: string},
+            }}},
+            broadcaster_info: {data: {clip: {
+                id: string,
+                game: {name: string, displayName: string},
+                broadcaster: {
+                    id: string,
+                    profileImageURL: string,
+                    displayName: string,
+                    login: string,
+                    stream: null,
+                },
+            }}},
+            title: {data: {clip: {
+                id: string,
+                title: string,
+            }}},
+            curator: {data: {clip: {
+                id: string,
+                curator: {id: string, displayName: string, login: string},
+            }}},
+            full_video_btn: {data: {clip: {
+                id: string,
+                videoOffsetSeconds: number,
+                durationSeconds: number,
+                title: string,
+                broadcaster: {id: string, login: string},
+                video: {id: string, broadcastType: "ARCHIVE" | "unsupported"},
+                game: {id: string, displayName: string},
+            }}},
+        ];
+        el("h1").clss("text-xl font-bold text-gray-500").adto(frame).atxt(title.data.clip.title);
+        videoPreview(video.data.clip.videoQualities.map(quality => {
+            return {src: quality.sourceURL};
+        }), {autoplay: opts.autoplay, gifv: false}).defer(hsc).adto(frame);
+
+        () => [chat_card, broadcaster_info, curator, full_video_btn]; 
+
+        // TODO ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
+        // variables:
+        // - slug,
+        // - videoOffsetSeconds,
+        // → something that gives a cursor
+        // then
+        // ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
+        // variables:
+        // - slug,
+        // - cursor,
+        // → the chat messages
+    }).catch(e => {
+        console.log(e);
+        try {loading.remove()}catch(er){()=>er}
+        el("div").clss("error").adto(frame).atxt(e.toString());
+    });
+
+    return hsc;
+}
+
+function youtubeVideo(youtube_video_id: string, search_str: string, opts: {autoplay: boolean}) {
+    const search = new URLSearchParams(search_str);
+    const container = el("div");
+    const embedv = embedYoutubeVideo(youtube_video_id, {autoplay: opts.autoplay}, search);
+    embedv.node.adto(container);
+    const hsc = hideshow(container);
+    // maybe just delete embedv and recreate it instead
+    // or do like a timeout like if >10s, delete idk
+    hsc.on("hide", () => embedv.onhide?.());
+    hsc.on("show", () => embedv.onshow?.());
+    return hsc;
+}
+
+function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: string): HideShowCleanup<Node> {
+    const resdiv = el("div");
+    const hsc = hideshow(resdiv);
+    const loader = loadingSpinner().adto(resdiv);
+
+    fetch("https://api.imgur.com/3/"+isv+"/"+galleryid).then(r => r.json()).then(r => {
+        const typed = r as ({
+            success: false,
+            status: number,
+            data: {
+                error: string,
+            },
+        } | {
+            success: true,
+            status: number,
+            data: {
+                title: string | null,
+                description: string | null,
+                layout: "blog" | "unknown",
+                images_count: number,
+                images: {
+                    id: string,
+                    description: string,
+                    link: string, // img src
+                    width: number,
+                    height: number,
+                }[],
+            },
+        });
+        console.log("imgur result", typed);
+        if(typed.success) {
+            const gallery: Generic.Body = {
+                kind: "gallery",
+                images: typed.data.images.map(image => {
+                    const res: Generic.GalleryItem = {
+                        thumb: image.link,
+                        w: image.width,
+                        h: image.height,
+                        body: {
+                            kind: "captioned_image",
+                            caption: image.description,
+                            url: image.link,
+                            w: image.width,
+                            h: image.height,
+                        },
+                    };
+                    return res;
+                }),
+            };
+            renderBody(client, gallery, {autoplay: false}, el("div").adto(resdiv)).defer(hsc);
+            loader.remove();
+        }else{
+            if(loader.parentNode) loader.remove();
+            resdiv.adch(el("div").clss("error").atxt("Error loading imgur: "+typed.data.error));
+        }
+    }).catch(e => {
+        console.log(e);
+        resdiv.adch(el("div").clss("error").atxt("Error loading imgur : "+e.toString()));
+    });
+
+    return hsc;
+}
 
 function getButton(e: PointerEvent) {
     // ??? what is this why is it weird
@@ -1331,7 +1383,7 @@ function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string})
     frame.onclick = () => {
         frame.disabled = true;
         import("./components/gallery").then(component => {
-            const hsc = hideshow(); // it deletes itself so who cares
+            const hsc = hideshow(); // it deletes itself so who cares :: the answer is if you try to go back after opening this it doesn't work
             component.showGallery([{
                 thumb: url,
                 w: res.width,

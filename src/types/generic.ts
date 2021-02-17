@@ -105,6 +105,9 @@ export type Body = BodyText | RichText | {
     w: number,
     h: number,
 } | {
+    kind: "unknown_size_image",
+    url: string,
+} | {
     kind: "video",
     source: VideoSource,
     w?: number,
@@ -115,10 +118,28 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "vreddit_video",
     id: string,
-    w: number,
-    h: number,
+    w?: number,
+    h?: number,
     gifv: boolean,
     caption?: string,
+} | {
+    kind: "gfycat",
+    id: string,
+    host: string,
+} | {
+    kind: "youtube",
+    id: string,
+    search: string,
+} | {
+    kind: "imgur",
+    imgur_id: string,
+    imgur_kind: "album" | "gallery",
+} | {
+    kind: "twitch_clip",
+    slug: string,
+} | {
+    kind: "reddit_suggested_embed",
+    suggested_embed: string,
 } | {
     kind: "audio",
     url: string,
