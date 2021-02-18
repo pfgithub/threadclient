@@ -660,7 +660,7 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
 
         if(menu.showWiki) {
             res_menu.push(
-                {text: "Wiki", action: {kind: "link", url: "/r/"+subinfo.subreddit+"/wiki"}, selected: false}, // true if the path looks like /wiki
+                {text: "Wiki", action: {kind: "link", url: "/r/"+subinfo.subreddit+"/wiki/index"}, selected: false}, // true if the path looks like /wiki
             );
         }
 
