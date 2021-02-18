@@ -179,7 +179,7 @@ declare namespace Mastodon {
 }
 
 function getNavbar(host: string | null): Generic.Action[] {
-    if(host == null) return [];
+    if(host == null || host === "") return [];
     return [
         !isLoggedIn(host) ? {
             kind: "login",
@@ -345,6 +345,7 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
 const rt = {
     p: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "paragraph", children: items}),
     h1: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "heading", level: 1, children: items}),
+    h2: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "heading", level: 2, children: items}),
     ul: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
     ol: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
     li: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list_item", children: items}),
@@ -736,13 +737,59 @@ export const client: ThreadClient = {
         console.log(resv);
     },
 
-    getThread: async (pathraw) => {
+    getThread: async (pathraw): Promise<Generic.Page> => {
         const [beforequery, afterquery_raw] = pathraw.split("?") as [string, string | undefined];
         const afterquery = afterquery_raw ?? "";
         const pathsplit = beforequery.split("/");
-        if(pathsplit.length < 2) return error404(null);
-        const [, host_raw, ...path] = pathsplit;
-        const host = host_raw!;
+        pathsplit.shift();
+
+        const [host, ...path] = pathsplit as [string, ...string[]];
+
+        if(host === "") {
+            return {
+                title: "Choose Instance",
+                navbar: getNavbar(null),
+                body: {
+                    kind: "one",
+                    item: {
+                        parents: [{
+                            kind: "thread",
+                            body: {
+                                kind: "richtext",
+                                content: [
+                                    rt.h1(rt.txt("Mastodon")),
+                                    rt.h2(rt.txt("Select an instance")),
+                                    rt.p(
+                                        rt.txt("In the url bar above, go to "),
+                                        rt.txt("/mastodon/", {code: true}),
+                                        rt.txt("your.instance"),
+                                        rt.txt("/timelines/public", {code: true}),
+                                    ),
+                                    rt.p(rt.txt("Examples:")),
+                                    rt.ul(...[
+                                        "/mastodon.social/timelines/public",
+                                        "/koyu.space/timelines/public",
+                                        "/mas.to/timelines/public",
+                                        "/democracy.town/timelines/public",
+                                    ].map(url => rt.li(rt.p(rt.link(url, rt.txt(url)))))),
+                                    rt.p(rt.txt("Find instances:")),
+                                    rt.p(rt.link("https://joinmastodon.org", rt.txt("joinmastodon.org"))),
+                                    rt.blockquote(rt.p(rt.txt("Note that some instances may require logging in before you can view anything"))),
+                                ],
+                            },
+                            display_mode: {body: "visible", comments: "collapsed"},
+                            raw_value: null,
+                            link: "/",
+                            layout: "reddit-post",
+                            actions: [],
+                            default_collapsed: false,
+                        }],
+                        replies: [],
+                    },
+                },
+                display_style: "comments-view",
+            };
+        }
         
         const auth = await getAuth(host);
         
@@ -761,7 +808,7 @@ export const client: ThreadClient = {
             if('error' in postinfo) return error404(host, "Error! "+postinfo.error);
             if('error' in context) return error404(host, "Error! "+context.error);
             
-            const res: Generic.Page = {
+            return {
                 title: "Status",
                 navbar: getNavbar(host),
                 body: {
@@ -778,7 +825,6 @@ export const client: ThreadClient = {
                 },
                 display_style: "comments-view",
             };
-            return res;
         }else if(path0 === "accounts") {
             const acc_id = path.shift();
             if(acc_id == null) return error404(host);

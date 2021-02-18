@@ -2825,9 +2825,30 @@ function navigate({path, replace}: {path: string, replace?: boolean}) {
 function homePage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
+
+    res.innerHTML = `<div class="flex justify-center flex-row">
+      <div class="w-full max-w-prose bg-white p-10 shadow rounded-xl">
+        <h1 class="text-5xl font-black">ThreadReader</h1>
+        <h2 class="text-base font-light text-gray-800 dark:text-gray-500">A client for Reddit and Mastodon</h2>
+        <div class="mt-10"></div>
+        <p>Try for <span id="reddit"></span></p>
+        <p>Try for <span id="mastodon"></span></p>
+      </div>
+    </div>`;
+    res.querySelector("#reddit")!.appendChild(linkButton("", "/reddit", "normal").atxt("Reddit").adto(res));
+    res.querySelector("#mastodon")!.appendChild(linkButton("", "/mastodon", "normal").atxt("Mastodon").adto(res));
+
+    return hsc;
+}
+
+function pwaStartPage(): HideShowCleanup<HTMLDivElement> {
+    const res = el("div");
+    const hsc = hideshow(res);
+
     linkButton("", "/reddit", "normal").atxt("Reddit").adto(res);
     res.atxt(" · ");
     linkButton("", "/mastodon", "normal").atxt("Mastodon").adto(res);
+
     return hsc;
 }
 
@@ -2964,8 +2985,11 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 
     console.log(path);
 
-    if(path0 == null || path0 === "pwa_start") {
+    if(path0 == null) {
         return homePage();
+    }
+    if(path0 === "pwa_start") {
+        return pwaStartPage();
     }
 
     if(path0 === "login"){
