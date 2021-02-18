@@ -180,6 +180,7 @@ function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormatti
 function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     if(format.length === 0) {
         const is_braille = [...text].every(char => {
+            if(char === "v" || char === "V") return true;
             const codepoint = char.codePointAt(0)!;
             if(codepoint >= 0x2800 && codepoint <= 0x28FF) return true;
             if(codepoint === 32) return true;
