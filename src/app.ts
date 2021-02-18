@@ -1257,6 +1257,7 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
     fetch("https://api.imgur.com/3/"+isv+"/"+galleryid, {
         headers: {
             'Authorization': "Client-ID 6ccf617dc7a8830",
+            'Accept': "application/json",
         },
     }).then(r => r.json()).then(r => {
         const typed = r as ({
@@ -1305,11 +1306,11 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
             renderBody(client, gallery, {autoplay: false}, el("div").adto(resdiv)).defer(hsc);
             loader.remove();
         }else{
-            if(loader.parentNode) loader.remove();
             resdiv.adch(el("div").clss("error").atxt("Error loading imgur: "+typed.data.error));
         }
     }).catch(e => {
         console.log(e);
+        if(loader.parentNode) loader.remove();
         resdiv.adch(el("div").clss("error").atxt("Error loading imgur : "+e.toString()));
     });
 
