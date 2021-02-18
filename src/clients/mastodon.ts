@@ -80,23 +80,24 @@ const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Ge
     let nextv: Generic.Node[] = [];
     return posts.flatMap((post, i): Generic.UnmountedNode[] => {
         const thread = postToThread(host, post);
+        let loadmore_v: Generic.Node[] = [];
         if(post.in_reply_to_id != null) {
             if(posts[i + 1]?.id === post.in_reply_to_id) {
-                nextv.push(thread);
+                nextv.unshift(thread);
                 return [];
             }
             // parent link:
             // /:host/statuses/:parent_id
-            nextv.unshift({
+            loadmore_v = [{
                 kind: "load_more",
                 url: "/"+host+"/statuses/"+post.in_reply_to_id,
                 raw_value: post,
                 load_more: load_more_encoder.encode({kind: "context", host, parent_id: post.in_reply_to_id}),
-            });
+            }];
         }
         const thispv = nextv;
         nextv = [];
-        return [{parents: [...thispv, thread], replies: []}];
+        return [{parents: [...loadmore_v, thread, ...thispv], replies: []}];
     });
 };
 const postArrayToReparentedThread = (host: string, root_id: string, posts: Mastodon.Post[]): Generic.Node[] => {
