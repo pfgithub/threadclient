@@ -525,6 +525,30 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
     return authv;
 };
 
+function bodyPage(host: string, title: string, body: Generic.Body): Generic.Page {
+    return {
+        title,
+        navbar: getNavbar(null),
+        body: {
+            kind: "one",
+            item: {
+                parents: [{
+                    kind: "thread",
+                    body,
+                    display_mode: {body: "visible", comments: "collapsed"},
+                    raw_value: null,
+                    link: "/",
+                    layout: "reddit-post",
+                    actions: [],
+                    default_collapsed: false,
+                }],
+                replies: [],
+            },
+        },
+        display_style: "comments-view",
+    };
+}
+
 type LoginURL = {
     host: string,
 };
@@ -615,57 +639,55 @@ export const client: ThreadClient = {
         const [host, ...path] = pathsplit as [string, ...string[]];
 
         if(host === "") {
-            return {
-                title: "Choose Instance",
-                navbar: getNavbar(null),
-                body: {
-                    kind: "one",
-                    item: {
-                        parents: [{
-                            kind: "thread",
-                            body: {
-                                kind: "richtext",
-                                content: [
-                                    rt.h1(rt.txt("Mastodon")),
-                                    rt.h2(rt.txt("Select an instance")),
-                                    rt.p(
-                                        rt.txt("In the url bar above, go to "),
-                                        rt.txt("/mastodon/", {code: true}),
-                                        rt.txt("your.instance"),
-                                        rt.txt("/timelines/public", {code: true}),
-                                    ),
-                                    rt.p(rt.txt("Examples:")),
-                                    rt.ul(...[
-                                        "/mastodon.social/timelines/public",
-                                        "/koyu.space/timelines/public",
-                                        "/mas.to/timelines/public",
-                                        "/democracy.town/timelines/public",
-                                    ].map(url => rt.li(rt.p(rt.link(url, rt.txt("/mastodon"+url)))))),
-                                    rt.p(rt.txt("Find instances:")),
-                                    rt.p(rt.link("https://joinmastodon.org", rt.txt("joinmastodon.org"))),
-                                    rt.blockquote(rt.p(rt.txt("Note that some instances may require logging in before you can view anything"))),
-                                ],
-                            },
-                            display_mode: {body: "visible", comments: "collapsed"},
-                            raw_value: null,
-                            link: "/",
-                            layout: "reddit-post",
-                            actions: [],
-                            default_collapsed: false,
-                        }],
-                        replies: [],
-                    },
-                },
-                display_style: "comments-view",
-            };
+            return bodyPage(host, "Choose Instance", {
+                kind: "richtext",
+                content: [
+                    rt.h1(rt.txt("Mastodon")),
+                    rt.h2(rt.txt("Select an instance")),
+                    rt.p(
+                        rt.txt("In the url bar above, go to "),
+                        rt.txt("/mastodon/", {code: true}),
+                        rt.txt("your.instance"),
+                    ),
+                    rt.p(rt.txt("Examples:")),
+                    rt.ul(...[
+                        "/mastodon.social",
+                        "/koyu.space",
+                        "/mas.to",
+                        "/democracy.town",
+                    ].map(url => rt.li(rt.p(rt.link(url, rt.txt("/mastodon"+url)))))),
+                    rt.p(rt.txt("Find instances:")),
+                    rt.p(rt.link("https://joinmastodon.org", rt.txt("joinmastodon.org"))),
+                ],
+            });
         }
         
         const auth = await getAuth(host);
         
         const path0 = path.shift()!;
-        if(!path0) return error404(host);
+        if(!path0) {
+            return bodyPage(host, "Links | "+host, {
+                kind: "richtext",
+                content: [
+                    rt.h1(rt.txt(host)),
+                    rt.ul(...([
+                        ["/"+host+"/timelines/public", "Federated Timeline"],
+                        ["/"+host+"/timelines/local", "Local Timeline"],
+                    ] as const).map(([url, text]) => rt.li(rt.p(rt.link(url, rt.txt(text)))))),
+                ],
+            });
+        }
         if(path0 === "timelines") {
-            return await timelineView(host, auth, "/api/v1/"+["timelines", ...path].join("/")+"?"+afterquery, "/"+["timelines", ...path].join("/")+"?"+afterquery, genericHeader());
+            const tmname = path.shift();
+            
+            if(tmname === "public"){
+                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+afterquery, "/"+["timelines", tmname, ...path].join("/")+"?"+afterquery, genericHeader());
+            }else if(tmname === "local"){
+                const parsed_query = new URLSearchParams(afterquery);
+                parsed_query.set("local", "true");
+                const parsed_res = parsed_query.toString();
+                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+parsed_res, "/"+["timelines", tmname, ...path].join("/")+"?"+afterquery, genericHeader());
+            }
         }else if(path0 === "statuses") {
             const postid = path.shift();
             if(postid == null) return error404(host);
