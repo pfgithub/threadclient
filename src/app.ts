@@ -1,5 +1,6 @@
 import "./_stdlib";
 import "./main.scss";
+import "./typography.pcss";
 import "tailwindcss/tailwind.css";
 
 import * as uhtml from "uhtml";
@@ -734,7 +735,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
 }
 
 function renderSafeHTML(client: ThreadClient, safe_html: string & {_is_safe: true}, parent_node: Node, class_prefix: string): HideShowCleanup<undefined> {
-    const divel = el("div").adto(parent_node).clss("rendered-html");
+    const divel = el("div").adto(parent_node).clss("prose");
     const hsc = hideshow();
     divel.innerHTML = safe_html;
     if(class_prefix) for(const node of Array.from(divel.querySelectorAll("*"))) {
@@ -758,13 +759,16 @@ function renderSafeHTML(client: ThreadClient, safe_html: string & {_is_safe: tru
     }
     for(const spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
         const children = Array.from(spoilerspan.childNodes);
-        const subspan = el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
+        el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
         spoilerspan.attr({title: "Click to reveal spoiler"});
-        subspan.style.opacity = "0";
-        spoilerspan.onev("click", () => {
-            subspan.style.opacity = "1";
+        spoilerspan.clss("md-spoiler-unrevealed");
+        spoilerspan.addEventListener("click", (e) => {
+            if(!spoilerspan.classList.contains("md-spoiler-unrevealed")) return;
+            e.preventDefault();
+            e.stopPropagation();
+            spoilerspan.classList.remove("md-spoiler-unrevealed");
             spoilerspan.attr({title: ""});
-        });
+        }, {capture: true});
     }
     for(const image of Array.from(divel.querySelectorAll("img"))) {
         image.clss("preview-image");
@@ -849,15 +853,14 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             for(const child of rts.children) {
                 renderRichtextSpan(client, child, subspan).defer(hsc);
             }
+
             spoilerspan.attr({title: "Click to reveal spoiler"});
-            subspan.style.opacity = "0";
-            let open = false;
-            spoilerspan.onev("click", (e) => {
-                if(open) return;
-                open = true;
+            spoilerspan.clss("md-spoiler-unrevealed");
+            spoilerspan.addEventListener("click", (e) => {
+                if(!spoilerspan.classList.contains("md-spoiler-unrevealed")) return;
                 e.preventDefault();
                 e.stopPropagation();
-                subspan.style.opacity = "1";
+                spoilerspan.classList.remove("md-spoiler-unrevealed");
                 spoilerspan.attr({title: ""});
             }, {capture: true});
         } break;
@@ -1006,7 +1009,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         const parentel = el("div").styl({"max-width": "max-content"}).clss("object-wrapper").adto(content);
         clientContent(client, body.source).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
-        const txta = el("div").adto(content).clss("richtext-container");
+        const txta = el("div").adto(content).clss("prose whitespace-pre-wrap");
         for(const pargrph of body.content) {
             renderRichtextParagraph(client, pargrph, txta).defer(hsc);
         }

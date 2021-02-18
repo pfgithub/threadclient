@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-body text-textc">
+<html lang="en" class="bg-body text-textc dark">
 
 <head>
     <meta charset="UTF-8">
@@ -10,6 +10,15 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/images/threadreader.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/images/threadreader.png">
+    <script>
+        const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+        console.log("dark mode: ", scheme.matches);
+        document.documentElement.classList.toggle("dark", scheme.matches);
+        scheme.addEventListener("change", e => {
+            console.log("color scheme change", e.matches);
+            document.documentElement.classList.toggle("dark", e.matches);
+        });
+    </script>
 </head>
 
 <body>

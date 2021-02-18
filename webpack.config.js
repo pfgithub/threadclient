@@ -34,7 +34,7 @@ module.exports = {
                 "url-loader",
             ],
         }, {
-            test: /\.css$/i,
+            test: /\.p?css$/i,
             use: [
                 "style-loader",
                 {loader: "css-loader", options: {importLoaders: 1}},

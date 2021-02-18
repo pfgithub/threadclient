@@ -1,0 +1,66 @@
+.prose h1 {
+    @apply text-3xl text-gray-900 font-black my-3;
+}
+.prose h2 {
+    @apply text-2xl text-gray-900 font-bold my-3;
+}
+.prose h3 {
+    @apply text-xl text-gray-900 font-semibold my-3;
+}
+.prose h4 {
+    @apply text-lg text-gray-900 font-medium my-3;
+}
+.prose h5 {
+    @apply text-base text-gray-600 font-normal my-3;
+}
+.prose h6 {
+    @apply text-sm text-gray-600 font-normal my-3 underline;
+}
+.prose p {
+    @apply my-3;
+}
+
+.prose blockquote {
+    @apply border-l-2 border-gray-600 text-gray-600 pl-3 my-3;
+}
+
+.prose pre {
+    @apply bg-gray-200 p-2 rounded;
+}
+
+.prose code {
+    @apply bg-gray-200 p-1 rounded text-gray-800;
+}
+.prose pre code {
+    @apply bg-transparent p-0 rounded-none;
+}
+
+.prose ul {
+    @apply list-disc pl-4;
+}
+.prose ol {
+    @apply list-decimal pl-4;
+}
+
+.prose hr {
+    @apply border-gray-200;
+}
+
+/* maybe these should be done in js instead of here */
+.prose .md-spoiler-text {
+    @apply rounded;
+    background-color: var(--spoiler-color);
+}
+.prose .md-spoiler-text.md-spoiler-unrevealed {
+    @apply cursor-pointer;
+}
+.prose .md-spoiler-text:hover {
+    background-color: var(--spoiler-color-hover);
+}
+.prose .md-spoiler-content {
+    @apply rounded transition-opacity opacity-100;
+    background-color: var(--spoiler-color-revealed);
+}
+.prose .md-spoiler-text.md-spoiler-unrevealed > .md-spoiler-content {
+    @apply opacity-0;
+}

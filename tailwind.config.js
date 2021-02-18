@@ -5,7 +5,7 @@ module.exports = {
         "./src/**/*",
         "./static/**/*.html",
     ],
-    darkMode: "media",
+    darkMode: "class",
     theme: {
         colors: {
             'transparent': "transparent",
@@ -25,6 +25,7 @@ module.exports = {
             'black': "#000",
         },
     },
-    variants: {},
-    plugins: [],
+    plugins: [
+        require("nightwind"),
+    ],
 };
