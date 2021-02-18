@@ -36,6 +36,7 @@ const sample_preview_links: {
     {expected_result: "video + sound", url: "https://clips.twitch.tv/GlamorousTacitRaccoonWutFace-oMcWnMP8C5xMZhxD"},
     
     // TODO test error conditions eg : twitch clip with invalid slug
+    {expected_result: "error : invalid gfycat gif", url: "https://gfycat.com/QqqqqqqqQqqqqqqQqqq"},
     {expected_result: "error : invalid imgur gallery", url: "https://imgur.com/gallery/qqqq"},
     {expected_result: "error : invalid imgur id", url: "https://www.imgur.com/a/QQQQQq"},
     {expected_result: "error : invalid twitch slug", url: "https://clips.twitch.tv/QqqqqqqqqQqqqqQqqqqqqQqqQqqq-qQqQqQQQQQqQQqqQ"},

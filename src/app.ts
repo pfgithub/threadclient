@@ -209,17 +209,18 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
             width: number,
             height: number,
         };
-        if((r as {errorMessage: string}).errorMessage != null) {
-            throw new Error("Got error: "+r.errorMessage);
-        }
         resdiv.adch(el("div").adch(elButton("code-button").atxt("code").onev("click", () => console.log(r))));
         const error_v = r as {
-            logged: boolean,
+            logged?: boolean,
             message: string,
-            reported: boolean,
+            errorMessage: {code: string, description: string} | string,
+            reported?: boolean,
         };
-        if('message' in error_v) {
-            el("div").clss("error").adto(resdiv).atxt("Error: "+error_v.message + " ; logged="+error_v.logged+" ; reported="+error_v.reported);
+        if('message' in error_v || 'errorMessage' in error_v) {
+            el("div").clss("error").adto(resdiv).atxt("Error: "
+                +(error_v.message ?? (typeof error_v.errorMessage === "string" ? error_v.errorMessage : error_v.errorMessage.description))
+                + ('logged' in error_v ? " ; logged="+error_v.logged : "")+('reported' in error_v ? " ; reported="+error_v.reported : "")
+            );
             return;
         }
         const {gfyItem: gfy_item} = r as {
