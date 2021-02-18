@@ -2421,9 +2421,9 @@ const link_styles_v = {
     'code-button': "text-gray-600 dark:text-gray-500 hover:underline",
     'load-more': "text-blue-600 dark:text-blue-500 hover:underline text-base",
     'userlink': "text-userlink-color-light dark:text-userlink-color-dark hover:underline",
-    'pill-empty': "text-sm border-2 border-white text-white hover:text-black hover:bg-white p-1 px-3 rounded-full transition-colors",
-    'pill-transparent': "text-sm border-2 border-transparent text-white hover:text-black hover:bg-white p-1 px-3 rounded-full transition-colors",
-    'pill-filled': "text-sm border-2 border-white bg-white text-black hover:text-white hover:bg-transparent p-1 px-3 rounded-full transition-colors",
+    'pill-empty': "text-sm border-2 border-black text-black hover:text-white hover:bg-black p-1 px-3 rounded-full transition-colors",
+    'pill-transparent': "text-sm border-2 border-transparent text-black hover:text-white hover:bg-black p-1 px-3 rounded-full transition-colors",
+    'pill-filled': "text-sm border-2 border-black bg-black text-white hover:text-black hover:bg-transparent p-1 px-3 rounded-full transition-colors",
     'outlined-button': "border border-gray-600 dark:border-gray-500 px-2",
     'error': "text-red-600 dark:text-red-500 hover:underline",
 };
