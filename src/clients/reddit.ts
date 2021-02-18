@@ -1367,7 +1367,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             actions: [options.show_post_reply_button ?? false ? replyButton(listing.name) : {
                 kind: "link",
                 url: listing.permalink,
-                text: listing.num_comments + " comment"+(listing.num_comments === 1 ? "" : "s"),
+                text: listing.num_comments.toLocaleString() + " comment"+(listing.num_comments === 1 ? "" : "s"),
             }, {
                 kind: "link",
                 url: "/domain/"+listing.domain,
