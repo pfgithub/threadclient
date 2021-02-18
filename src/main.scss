@@ -249,29 +249,6 @@ ul.replies {
     }
 }
 
-.flair {
-    background-color: var(--flair-color);
-    border-radius: 50px;
-    padding-left: 6px;
-    padding-right: 6px;
-    @media (prefers-color-scheme: dark) {
-        background-color: var(--flair-color-dark);
-    }
-    &.flair-text-light {
-        color: white;
-    }
-    &.flair-text-dark {
-        color: black;
-    }
-}
-
-.flair-emoji {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-    vertical-align: middle;
-}
-
 button:disabled {
     opacity: 0.5;
 }
