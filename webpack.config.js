@@ -77,5 +77,6 @@ module.exports = {
         port: 3004,
         historyApiFallback: true,
         hot: true,
+        disableHostCheck: true, // it's open source, who cares 
     },
 };

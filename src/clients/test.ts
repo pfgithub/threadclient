@@ -30,9 +30,9 @@ const sample_preview_links: {
     {expected_result: "youtube video, starts 30sec in", url: "https://youtube.com/watch?v=JM-NqFX2jU8&t=30"},
     {expected_result: "youtube video, starts 30sec in", url: "https://youtu.be/JM-NqFX2jU8?t=30"},
     // TODO youtube video (start and end timestamp)
-    {expected_result: "(prod. only) single image", url: "https://imgur.com/gallery/HFoOCeg"},
-    {expected_result: "(prod. only) image gallery (fullscreenable)", url: "https://imgur.com/gallery/clWTb"},
-    {expected_result: "(prod. only) image gallery (fullscreenable)", url: "https://www.imgur.com/a/HJ80Ds9"},
+    {expected_result: "(!localhost) single image", url: "https://imgur.com/gallery/HFoOCeg"},
+    {expected_result: "(!localhost) image gallery (fullscreenable)", url: "https://imgur.com/gallery/clWTb"},
+    {expected_result: "(!localhost) image gallery (fullscreenable)", url: "https://www.imgur.com/a/HJ80Ds9"},
     {expected_result: "video + sound", url: "https://clips.twitch.tv/GlamorousTacitRaccoonWutFace-oMcWnMP8C5xMZhxD"},
     
     // TODO test error conditions eg : twitch clip with invalid slug

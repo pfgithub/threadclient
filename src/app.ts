@@ -1254,7 +1254,11 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
     const hsc = hideshow(resdiv);
     const loader = loadingSpinner().adto(resdiv);
 
-    fetch("https://api.imgur.com/3/"+isv+"/"+galleryid).then(r => r.json()).then(r => {
+    fetch("https://api.imgur.com/3/"+isv+"/"+galleryid, {
+        headers: {
+            'Authorization': "Client-ID 6ccf617dc7a8830",
+        },
+    }).then(r => r.json()).then(r => {
         const typed = r as ({
             success: false,
             status: number,
@@ -1282,7 +1286,7 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
         if(typed.success) {
             const gallery: Generic.Body = {
                 kind: "gallery",
-                images: typed.data.images.map(image => {
+                images: ('images' in typed.data ? typed.data.images : [typed.data]).map(image => {
                     const res: Generic.GalleryItem = {
                         thumb: image.link,
                         w: image.width,
