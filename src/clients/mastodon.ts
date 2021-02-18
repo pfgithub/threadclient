@@ -276,10 +276,12 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
                 }
                 const mention_data = meta.mentions.get(href_v);
                 if(mention_data) {
-                    return noClasses(rt.link(
-                        "/"+meta.host+"/accounts/"+mention_data.id,
-                        rt.txt("@"+mention_data.acct, styles),
-                    ));
+                    return noClasses({
+                        kind: "link",
+                        url: "/"+meta.host+"/accounts/"+mention_data.id,
+                        is_user_link: mention_data.username,
+                        children: [rt.txt("@"+mention_data.acct, styles)],
+                    });
                 }
             }
 
@@ -340,6 +342,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         edited: false,
         author: {
             name: post.account.display_name + " (@"+post.account.acct+")",
+            color_hash: post.account.username,
             link: "/"+host+"/accounts/"+post.account.id+"/@"+post.account.acct,
             flair: post.account.bot ? [{elems: [{type: "text", text: "bot"}], content_warning: false}] : [],
             pfp: {

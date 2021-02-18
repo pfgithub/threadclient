@@ -234,7 +234,10 @@ export type Info = {
     time: false | number,
     edited: false | number,
     author: {
-        name: string, link: string, flair?: Flair[],
+        name: string,
+        color_hash: string,
+        link: string,
+        flair?: Flair[],
         pfp?: {
             url: string,
             hover: string,

@@ -216,16 +216,11 @@ function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange
 function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     switch(rtd.e) {
         case "text": return richtextFormattedText(rtd.t, rtd.f ?? [], opt);
-        case "r/": return [{
+        case "r/": case "u/": return [{
             kind: "link",
             url: "/"+rtd.e+rtd.t,
+            is_user_link: rtd.e === "u/" ? rtd.t : undefined,
             children: [{kind: "text", text: (rtd.l ? "/" : "") + rtd.e + rtd.t, styles: {}}],
-        }];
-        case "u/": return [{
-            kind: "link",
-            is_user_link: rtd.l ? "/u/" : "u/",
-            url: "/"+rtd.e+rtd.t,
-            children: [{kind: "text", text: rtd.t, styles: {}}],
         }];
         case "link": return [{
             kind: "link",
@@ -1000,6 +995,7 @@ const topLevelThreadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts
                         link: "/"+listing_raw.data.subreddit_name_prefixed,
                     },
                     author: {
+                        color_hash: listing_raw.data.link_author,
                         name: listing_raw.data.link_author,
                         link: "/u/"+listing_raw.data.link_author,
                     },
@@ -1149,6 +1145,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 time: listing.created_utc * 1000,
                 edited: listing.edited === false ? false : listing.edited * 1000,
                 author: {
+                    color_hash: listing.author,
                     name: listing.author,
                     link: "/u/"+listing.author,
                     flair: [
@@ -1355,6 +1352,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 edited: listing.edited === false ? false : listing.edited * 1000,
                 author: {
                     name: listing.author,
+                    color_hash: listing.author,
                     link: "/u/"+listing.author,
                     flair: flairToGenericFlair(listing.author_flair_type, listing.author_flair_text, listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
                 },
@@ -1643,7 +1641,8 @@ export const client: ThreadClient = {
                 time: Date.now(),
                 edited: false,
                 author: {
-                    name: "u/TODO You",
+                    name: "TODO You",
+                    color_hash: "TODO You",
                     link: "/u/TODO You",
                     // flair: …
                 },

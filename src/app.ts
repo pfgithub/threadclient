@@ -833,13 +833,15 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             mainel.adto(container);
         } break;
         case "link": {
-            if(rts.is_user_link != null && rts.children.length === 1 && rts.children[0]?.kind === "text") {
-                const nodev = userLink(client.id, rts.url, rts.children[0].text).adto(container);
-                nodev.insertBefore(txt(rts.is_user_link), nodev.childNodes[nodev.childNodes.length - 1] ?? null);
+            if(rts.is_user_link != null) {
+                const nodev = userLink(client.id, rts.url, rts.is_user_link).adto(container);
+                if(rts.title != null) nodev.title = rts.title;
+                for(const child of rts.children) {
+                    renderRichtextSpan(client, child, nodev).defer(hsc);
+                }
             }else{
                 const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
                 if(rts.title != null) newbtn.title = rts.title;
-                if(rts.is_user_link != null) txt(rts.is_user_link).adto(newbtn);
                 for(const child of rts.children) {
                     renderRichtextSpan(client, child, newbtn).defer(hsc);
                 }
@@ -1928,7 +1930,6 @@ const userLink = (client_id: string, href: string, name: string) => {
     const [author_color, author_color_dark] = getRandomColor(seededRandom(name.toLowerCase()));
     return linkButton(client_id, href, "userlink")
         .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
-        .atxt(name)
     ;
 };
 
@@ -2082,7 +2083,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
 
             if(item.click.kind === "link") {
                 if(item.name.kind === "username") {
-                    userLink(client.id, item.click.url, item.name.username).adto(ili);
+                    userLink(client.id, item.click.url, item.name.username).atxt(item.name.username).adto(ili);
                 }else {
                     linkButton(client.id, item.click.url, "normal").adch(name_node).adto(ili);
                 }
@@ -2263,7 +2264,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }
         content_subminfo_line
             .atxt("by ")
-            .adch(userLink(client.id, listing.info.author.link, listing.info.author.name))
+            .adch(userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name))
         ;
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
@@ -2274,7 +2275,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             content_subminfo_line.atxt(", ").adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
-        content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.name));
+        content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.layout === "mastodon-post" && listing.info.author.pfp) {
             frame.clss("spacefiller-pfp");
@@ -2298,7 +2299,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }
         if(listing.info.reblogged_by) {
             content_subminfo_line.atxt(" ← Boosted by ")
-                .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.name))
+                .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.color_hash).atxt(listing.info.reblogged_by.author.name))
             ;
             if(listing.info.reblogged_by.time !== false) {
                 content_subminfo_line.atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc));
