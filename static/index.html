@@ -16,8 +16,21 @@
         document.documentElement.classList.toggle("dark", scheme.matches);
         scheme.addEventListener("change", e => {
             console.log("color scheme change", e.matches);
-            document.documentElement.classList.toggle("dark", e.matches);
+            updateColorScheme();
         });
+        function updateColorScheme() {
+            const lsitem = localStorage.getItem("color-scheme");
+            let resv = undefined;
+            if(lsitem === "light") {
+                resv = false;
+            }else if(lsitem === "dark") {
+                resv = true;
+            }else {
+                const match_res = window.matchMedia("(prefers-color-scheme: dark)");
+                resv = match_res.matches;
+            }
+            document.documentElement.classList.toggle("dark", resv);
+        }
     </script>
 </head>
 

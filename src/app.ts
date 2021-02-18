@@ -2835,13 +2835,38 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
         <p>Try for <span id="reddit"></span></p>
         <p>Try for <span id="mastodon"></span></p>
         <div class="mt-10"></div>
-        <p class="text-gray-800 dark:text-gray-500">Threadreader is open source on <span id="github"></span> and licensed under the <span id="license"></span>.</p>
+        <p class="text-gray-800 dark:text-gray-500"><span id="settings"></span> · <span id="github"></span> · <span id="license"></span> · <span id="privacy"></span></p>
+        <div class="mt-2"></div>
       </div>
     </div>`;
     res.querySelector("#reddit")!.appendChild(linkButton("", "/reddit", "normal").atxt("Reddit").adto(res));
     res.querySelector("#mastodon")!.appendChild(linkButton("", "/mastodon", "normal").atxt("Mastodon").adto(res));
-    res.querySelector("#github")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient", "previewable").atxt("Github").adto(res));
-    res.querySelector("#license")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient/blob/main/LICENSE", "previewable").atxt("License").adto(res));
+    res.querySelector("#settings")!.appendChild(linkButton("", "/settings", "action-button").atxt("Settings").adto(res));
+    res.querySelector("#github")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient", "action-button").atxt("Github").adto(res));
+    res.querySelector("#license")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient/blob/main/LICENSE", "action-button").atxt("License").adto(res));
+    res.querySelector("#privacy")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient/blob/main/privacy.md", "action-button").atxt("Privacy").adto(res));
+
+    return hsc;
+}
+
+declare function updateColorScheme(): void;
+
+function settingsPage(): HideShowCleanup<HTMLDivElement> {
+    const res = el("div");
+    const hsc = hideshow(res);
+
+    elButton("pill-empty").atxt("Light Mode").adto(res).onev("click", () => {
+        localStorage.setItem("color-scheme", "light");
+        updateColorScheme();
+    });
+    elButton("pill-empty").atxt("Dark Mode").adto(res).onev("click", () => {
+        localStorage.setItem("color-scheme", "dark");
+        updateColorScheme();
+    });
+    elButton("pill-empty").atxt("System Default").adto(res).onev("click", () => {
+        localStorage.removeItem("color-scheme");
+        updateColorScheme();
+    });
 
     return hsc;
 }
@@ -2853,6 +2878,10 @@ function pwaStartPage(): HideShowCleanup<HTMLDivElement> {
     linkButton("", "/reddit", "normal").atxt("Reddit").adto(res);
     res.atxt(" · ");
     linkButton("", "/mastodon", "normal").atxt("Mastodon").adto(res);
+    res.atxt(" · ");
+    linkButton("", "/settings", "normal").atxt("Settings").adto(res);
+    res.atxt(" · ");
+    linkButton("", "/", "normal").atxt("Home").adto(res);
 
     return hsc;
 }
@@ -2995,6 +3024,9 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
     }
     if(path0 === "pwa_start") {
         return pwaStartPage();
+    }
+    if(path0 === "settings") {
+        return settingsPage();
     }
 
     if(path0 === "login"){
