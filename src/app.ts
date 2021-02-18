@@ -1958,10 +1958,72 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         renderAction(client, listing.subscribe, subscrarea).defer(hsc);
     }
 
+    // TODO extract this out so menus can be used for eg listing sort options
     if(listing.menu) {
-        const menu_area = el("div").clss("subreddit-menu").adto(frame);
+        const menu_area = el("div").clss("my-3").adto(frame);
+        const renderSubmenu = (items: Generic.MenuItem[]): HTMLElement => {
+            const smdiv = el("div");
+            for(const item of items) {
+                if(item.action.kind === "link") {
+                    linkButton(client.id, item.action.url, "none").clss("text-gray-400 hover:text-gray-900").adto(smdiv).atxt(item.text);
+                }else if(item.action.kind === "menu") {
+                    elButton("none").adto(smdiv).atxt(item.text + " " + "▸").onev("click", e => {
+                        e.preventDefault();
+                        alert("TODO submenus");
+                    }).adto(smdiv);
+                }else assertNever(item.action);
+            }
+            return smdiv;
+        };
         for(const item of listing.menu) {
-            el("span").clss("menu-item").atxt(item.text).adto(menu_area);
+            const classv = [
+                "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
+                item.selected ? "border-gray-900" : "border-transparent text-gray-400 hover:text-gray-900"
+            ];
+            if(item.action.kind === "menu") {
+                const arrowv = txt("…");
+                let open = false;
+                let submenu_v: HTMLElement | undefined;
+                const subitems = item.action.children;
+                
+                const update = () => {
+                    btnel.classList.toggle("text-gray-900", open);
+                    btnel.classList.toggle("text-gray-400", !open);
+                    arrowv.nodeValue = open ? "▴" : "▾";
+                    if(open) {
+                        if(!submenu_v) submenu_v = renderSubmenu(subitems).clss(
+                            "absolute top-full left-0 z-index flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
+                        ).adto(itcontainer);
+                    }else{
+                        if(submenu_v) {submenu_v.remove(); submenu_v = undefined}
+                    }
+                };
+                const itcontainer = el("span").adto(menu_area).clss("relative");
+                const documentEventListener = (e: MouseEvent) => {
+                    if(open) {
+                        console.log("Got event: ", e.target);
+                        let parentv: HTMLElement | null = e.target as HTMLElement | null;
+                        while(parentv) {
+                            if(parentv === itcontainer) return;
+                            parentv = parentv.parentElement;
+                        }
+                        open = false;
+                        update();
+                    }
+                };
+                document.addEventListener("click", documentEventListener, {capture: true});
+                hsc.on("cleanup", () => document.removeEventListener("click", documentEventListener, {capture: true}));
+                const btnel = elButton("none").clss(...classv).atxt(item.text).atxt(" ").adch(arrowv).adto(itcontainer).onev("click", e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    open =! open;
+                    update();
+                });
+                update();
+            }else if(item.action.kind === "link") {
+                linkButton(client.id, item.action.url, "none").clss(...classv).atxt(item.text).adto(menu_area);
+            }else assertNever(item.action);
             txt(" ").adto(menu_area);
         }
     }
@@ -2040,11 +2102,15 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
     }else if(content.kind === "iframe") {
         const alt_frame = el("div");
         outest_el.replaceChild(alt_frame, outer_el);
-        outest_el.clss("widget-iframe");
-        el("iframe").adto(alt_frame).attr({height: content.height as unknown as `${number}px`, srcdoc: content.srcdoc});
+        outest_el.clss("widget-fullscreen-content");
+        const iframe = el("iframe").adto(alt_frame).styl({width: "312px"}).attr({width: "312px", height: content.height as unknown as `${number}px`, srcdoc: content.srcdoc});
+        iframe.onload = () => {
+            if(!iframe.contentWindow) return console.log("no content window");
+            iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 20) + "px";
+        };
     }else if(content.kind === "image") {
         const alt_frame = el("div");
-        outest_el.clss("widget-image");
+        outest_el.clss("widget-fullscreen-content");
         outest_el.replaceChild(alt_frame, outer_el);
         const imgel = elImg(content.src, {w: content.width, h: content.height}).clss("w-full h-auto");
         if(content.link_url != null) linkButton(client.id, content.link_url, "none")
