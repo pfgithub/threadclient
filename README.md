@@ -91,7 +91,6 @@ all todo:
         is how posts exist. instead, change so the top level can have either a listing or a single thread. listings are single_thread[].
         single_thread has {parents: thing[]} which might have a load more on top and {replies: thing[]}
 -   [ ] oembed (eg for youtube and other sites)
--   [ ] go back to using embeds for imgur (imgur seems to now be erroring with "authentication required" for all api requests)
 -   [ ] add a settings page where you can enable/disabled `Code` buttons and other developer tools. (hide them by default)
 -   [ ] support hovering on eg user or subreddit links to see a small info card
 -   [ ] delete hidden video.js players rather than pausing them
