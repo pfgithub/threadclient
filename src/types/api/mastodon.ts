@@ -144,6 +144,12 @@ export type Card = {
 
     // more info : author name, provider name, …
 };
+export type Mention = {
+    acct: string, // username@instan.ce
+    id: string,
+    url: string, // external link
+    username: string,
+};
 export type Post = {
     id: string,
     created_at: string,
@@ -163,7 +169,7 @@ export type Post = {
     reblog?: Post,
     account: Account,
     media_attachments: Media[],
-    mentions: never[],
+    mentions: Mention[],
     tags: never[],
     emojis: Emoji[],
     card: null | Card,

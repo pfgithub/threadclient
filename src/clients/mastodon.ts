@@ -184,7 +184,13 @@ const rt = {
     br: (): Generic.Richtext.Span => ({kind: "br"}),
 };
 
-function childNodesToRichtextParagraphs(host: string, emojis: Map<string, Mastodon.Emoji>, nodes: NodeListOf<ChildNode>): Generic.Richtext.Paragraph[] {
+type GenMeta = {
+    host: string,
+    emojis: Map<string, Mastodon.Emoji>,
+    mentions: Map<string, Mastodon.Mention>,
+};
+
+function childNodesToRichtextParagraphs(meta: GenMeta, nodes: NodeListOf<ChildNode>): Generic.Richtext.Paragraph[] {
     const committed: Generic.Richtext.Paragraph[] = [];
     function commit() {
         if(uncommitted_spans.length > 0) {
@@ -194,26 +200,26 @@ function childNodesToRichtextParagraphs(host: string, emojis: Map<string, Mastod
     }
     let uncommitted_spans: Generic.Richtext.Span[] = [];
     for(const node of Array.from(nodes)) {
-        const paragraph = contentParagraphToRichtextParagraph(host, emojis, node);
+        const paragraph = contentParagraphToRichtextParagraph(meta, node);
         if(paragraph) {
             commit();
             committed.push(paragraph);
         }else{
-            uncommitted_spans.push(...contentSpanToRichtextSpan(host, emojis, node, {}));
+            uncommitted_spans.push(...contentSpanToRichtextSpan(meta, node, {}));
         }
     }
     commit();
     return committed;
 }
-function contentParagraphToRichtextParagraph(host: string, emojis: Map<string, Mastodon.Emoji>, node: Node): Generic.Richtext.Paragraph | undefined {
+function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic.Richtext.Paragraph | undefined {
     if(node instanceof HTMLElement) {
         if(node.nodeName === "P") {
-            return {kind: "paragraph", children: Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(host, emojis, child, {}))};
+            return {kind: "paragraph", children: Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, {}))};
         }
     }
     return undefined;
 }
-function contentSpanToRichtextSpan(host: string, emojis: Map<string, Mastodon.Emoji>, node: Node, styles: Generic.Richtext.Style): Generic.Richtext.Span[] {
+function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Richtext.Style): Generic.Richtext.Span[] {
     if(node instanceof Text) {
         const node_value = node.nodeValue ?? "[ENoNodeValue]";
         const split_by_col = node_value.split(":");
@@ -226,7 +232,7 @@ function contentSpanToRichtextSpan(host: string, emojis: Map<string, Mastodon.Em
             uncommitted_text = [];
         };
         for(const text of split_by_col) {
-            const emoji_v = emojis.get(text);
+            const emoji_v = meta.emojis.get(text);
             if(emoji_v) {
                 commit();
                 res_segments.push({kind: "emoji", url: emoji_v.static_url, hover: ":"+text+":"});
@@ -238,39 +244,63 @@ function contentSpanToRichtextSpan(host: string, emojis: Map<string, Mastodon.Em
         return res_segments;
     }
     if(node instanceof HTMLElement) {
+        let classes = Array.from(node.classList).filter(clss => {
+            // https://docs.joinmastodon.org/spec/microformats/
+            if(clss.startsWith("h-")) return false;
+            if(clss.startsWith("p-")) return false;
+            if(clss.startsWith("u-")) return false;
+            return true;
+        });
+        const eatClass = (class_name: string): boolean => {
+            if(!classes.includes(class_name)) return false;
+            classes = classes.filter(clss => clss !== class_name);
+            return true;
+        };
+        const noClasses = (...value: Generic.Richtext.Span[]): Generic.Richtext.Span[] => {
+            if(classes.length !== 0) return [rt.error(classes.map(clss => "."+clss).join(""), node.outerHTML)];
+            return value;
+        };
+
         if(node.nodeName === "A") {
-            const href_v = node.getAttribute("href");
-            // const classes = node.getAttribute("class");
-            return [rt.link(href_v ?? "no href", ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(host, emojis, child, styles)))];
+            const href_v = node.getAttribute("href") ?? "no href";
+
+            if(!href_v.startsWith("http://") && !href_v.startsWith("https://")) {
+                return noClasses(rt.error("Bad link", href_v));
+            }
+
+            if(eatClass("mention")) {
+                if(eatClass("hashtag")) {
+                    return noClasses(rt.link("/"+meta.host+"/hashtag/TODO",
+                        ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
+                    ));
+                }
+                const mention_data = meta.mentions.get(href_v);
+                if(mention_data) {
+                    return noClasses(rt.link(
+                        "/"+meta.host+"/accounts/"+mention_data.id,
+                        rt.txt("@"+mention_data.acct, styles),
+                    ));
+                }
+            }
+
+            return noClasses(rt.link(href_v,
+                ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
+            ));
         }
         if(node.nodeName === "BR") {
-            return [rt.br()];
+            return noClasses(rt.br());
         }
         if(node.nodeName === "SPAN") {
-            let classes = Array.from(node.classList).filter(clss => {
-                // https://docs.joinmastodon.org/spec/microformats/
-                if(clss.startsWith("h-")) return false;
-                if(clss.startsWith("p-")) return false;
-                if(clss.startsWith("u-")) return false;
-                
-                // these are important - these should create
-                // link objects to /…/… instead of https://…/…
-                if(clss.startsWith("mention")) return false;
-                if(clss.startsWith("hashtag")) return false;
-            });
+            const res_nodes = Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles));
+
             if(classes.includes("invisible")) return [];
-            const res_nodes = Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(host, emojis, child, styles));
-            const eatClass = (class_name: string): boolean => {
-                if(!classes.includes(class_name)) return false;
-                classes = classes.filter(clss => clss !== class_name);
-                return true;
-            };
+
             if(eatClass("ellipsis")) {
                 res_nodes.push(rt.txt("…", styles));
             }
             eatClass("h-card");
-            if(classes.length !== 0) return [rt.error(classes.map(clss => "."+clss).join(""), node.outerHTML)];
-            return res_nodes;
+
+            return noClasses(...res_nodes);
             // return rt.link(href_v ?? "no href", ...Array.from(node.childNodes).map(child => contentSpanToRichtextSpan(host, child, styles)));
         }
         return [rt.error("<"+node.nodeName+">", {node, html: node.outerHTML})];
@@ -278,7 +308,7 @@ function contentSpanToRichtextSpan(host: string, emojis: Map<string, Mastodon.Em
     return [rt.error("Unsupported Node", node)];
 }
 
-function parseContentHTML(host: string, content: string, emojis: Mastodon.Emoji[]): Generic.Body {
+function parseContentHTML(host: string, content: string, meta: {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]}): Generic.Body {
     // {
     //     kind: "text",
     //     content: post.content,
@@ -287,12 +317,21 @@ function parseContentHTML(host: string, content: string, emojis: Mastodon.Emoji[
     const parsed_v = document.createElement("div");
     parsed_v.innerHTML = content; // safe, scripts won't execute and this won't be displayed directly on the screen
     const emojis_by_shortcode = new Map<string, Mastodon.Emoji>();
-    for(const emoji of emojis) {
+    for(const emoji of meta.emojis) {
         emojis_by_shortcode.set(emoji.shortcode, emoji);
     }
+    const mentions_by_url = new Map<string, Mastodon.Mention>();
+    for(const mention of meta.mentions) {
+        mentions_by_url.set(mention.url, mention);
+    }
+    const gen_meta: GenMeta = {
+        host,
+        emojis: emojis_by_shortcode,
+        mentions: mentions_by_url,
+    };
     return {
         kind: "richtext",
-        content: childNodesToRichtextParagraphs(host, emojis_by_shortcode, parsed_v.childNodes),
+        content: childNodesToRichtextParagraphs(gen_meta, parsed_v.childNodes),
     };
 }
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
@@ -319,7 +358,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         body: {
             kind: "array",
             body: [
-                parseContentHTML(host, post.content, post.emojis),
+                parseContentHTML(host, post.content, {emojis: post.emojis, mentions: post.mentions}),
                 post.media_attachments.length === 0 ? undefined
                 : {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))},
                 post.poll ? {kind: "poll",
@@ -668,7 +707,7 @@ export const client: ThreadClient = {
             return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
                 kind: "user-profile",
                 username: account_info.display_name,
-                bio: {kind: "array", body: [parseContentHTML(host, account_info.note, []), {
+                bio: {kind: "array", body: [parseContentHTML(host, account_info.note, {emojis: [], mentions: []}), {
                     kind: "richtext",
                     content: [{kind: "table", headings: [
                         {children: [{kind: "text", text: "Key", styles: {}}]},
