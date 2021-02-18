@@ -2752,6 +2752,7 @@ function navigate({path, replace}: {path: string, replace?: boolean}) {
     }
 }
 
+// a custom redirect can be made for "/" for SEO reasons that has html in it already
 function homePage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
