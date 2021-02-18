@@ -2835,13 +2835,13 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
         <p>Try for <span id="reddit"></span></p>
         <p>Try for <span id="mastodon"></span></p>
         <div class="mt-10"></div>
-        <p>Threadreader is open source on <span id="github"></span> and licensed under the <span id="license"></span>.</p>
+        <p class="text-gray-800 dark:text-gray-500">Threadreader is open source on <span id="github"></span> and licensed under the <span id="license"></span>.</p>
       </div>
     </div>`;
     res.querySelector("#reddit")!.appendChild(linkButton("", "/reddit", "normal").atxt("Reddit").adto(res));
     res.querySelector("#mastodon")!.appendChild(linkButton("", "/mastodon", "normal").atxt("Mastodon").adto(res));
-    res.querySelector("#github")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient", "normal").atxt("Github").adto(res));
-    res.querySelector("#license")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient/blob/main/LICENSE", "normal").atxt("License").adto(res));
+    res.querySelector("#github")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient", "previewable").atxt("Github").adto(res));
+    res.querySelector("#license")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient/blob/main/LICENSE", "previewable").atxt("License").adto(res));
 
     return hsc;
 }
