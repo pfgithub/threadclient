@@ -771,7 +771,7 @@ export const client: ThreadClient = {
                                         "/koyu.space/timelines/public",
                                         "/mas.to/timelines/public",
                                         "/democracy.town/timelines/public",
-                                    ].map(url => rt.li(rt.p(rt.link(url, rt.txt(url)))))),
+                                    ].map(url => rt.li(rt.p(rt.link(url, rt.txt("/mastodon"+url)))))),
                                     rt.p(rt.txt("Find instances:")),
                                     rt.p(rt.link("https://joinmastodon.org", rt.txt("joinmastodon.org"))),
                                     rt.blockquote(rt.p(rt.txt("Note that some instances may require logging in before you can view anything"))),

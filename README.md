@@ -1,7 +1,7 @@
 Demo:
 
 -   Reddit: https://thread.pfg.pw/reddit
--   Mastodon (wip) `https://thread.pfg.pw/mastodon/`your.instance`/timelines/public`
+-   Mastodon: https://thread.pfg.pw/mastodon
 
 ## new features reddit doesn't have
 
