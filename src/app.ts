@@ -2206,7 +2206,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }
         if(listing.info.edited !== false) content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
         if(listing.info.pinned) {
-            content_subminfo_line.atxt(", Pinned");
+            content_subminfo_line.atxt(", ").adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
         content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.name));
@@ -2229,7 +2229,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
         }
         if(listing.info.pinned) {
-            content_subminfo_line.atxt(", Pinned");
+            content_subminfo_line.atxt(", ").adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
         }
         if(listing.info.reblogged_by) {
             content_subminfo_line.atxt(" ← Boosted by ")
