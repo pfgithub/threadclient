@@ -1371,54 +1371,55 @@ export function startDragWatcher(
     });
 }
 
-// TODO
-// ideally:
-// click to fullscreen the image and have like a neat view where
-// - mobile: zoom/pan with gestures
-// - desktop: zoom/pan with mouse/scroll
-// and then when the image isn't fullscreened, make it possible to like make it smaller or something
-function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLElement {
-    const frame = el("button");
-    const res = el("img").clss("preview-image", "image-loading")
+function zoomableFrame(img: HTMLImageElement): HTMLElement {
+    const frame = el("button").adch(img);
+
+    frame.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        frame.disabled = true;
+        import("./components/gallery").then(component => {
+            const hsc = hideshow(); // it deletes itself so who cares :: the answer is if you try to go back after opening this it doesn't work
+            component.showGallery([{
+                thumb: img.src,
+                w: img.naturalWidth,
+                h: img.naturalHeight,
+                body: {kind: "captioned_image",
+                    w: img.naturalWidth,
+                    h: img.naturalHeight,
+                    url: img.src,
+                },
+            }], 0, () => {
+                return getBound(img);
+            }, () => {
+                frame.disabled = false;
+            }).defer(hsc);
+        }).catch(err => {
+            console.log(err);
+            frame.disabled = false;
+            alert(err.toString());
+        });
+    };
+
+    return frame;
+}
+
+function elImg(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLImageElement {
+    const res = el("img").clss("image-loading")
         .attr({
             src: url,
             width: opt.w != null ? `${opt.w}px` as const : undefined,
             height: opt.h != null ? `${opt.h}px` as const : undefined,
             alt: opt.alt, title: opt.alt
         })
-        .adto(frame)
     ;
-    res.styl({"transform": "scale(100%)", "transform-origin": "top left"});
     res.onload = () => res.classList.remove("image-loading");
     res.onerror = () => res.classList.remove("image-loading");
+    return res;
+}
 
-    // onclick : open gallery
-    frame.onclick = () => {
-        frame.disabled = true;
-        import("./components/gallery").then(component => {
-            const hsc = hideshow(); // it deletes itself so who cares :: the answer is if you try to go back after opening this it doesn't work
-            component.showGallery([{
-                thumb: url,
-                w: res.naturalWidth,
-                h: res.naturalHeight,
-                body: {kind: "captioned_image",
-                    w: res.naturalWidth,
-                    h: res.naturalHeight,
-                    url,
-                },
-            }], 0, () => {
-                return getBound(res);
-            }, () => {
-                frame.disabled = false;
-            }).defer(hsc);
-        }).catch(e => {
-            console.log(e);
-            frame.disabled = false;
-            alert(e.toString());
-        });
-    };
-
-    return frame;
+function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLElement {
+    return zoomableFrame(elImg(url, opt).clss("preview-image"));
 }
 
 function userProfileListing(client: ThreadClient, profile: Generic.Profile, frame: HTMLDivElement): HideShowCleanup<undefined> {
@@ -2045,12 +2046,10 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
         const alt_frame = el("div");
         outest_el.clss("widget-image");
         outest_el.replaceChild(alt_frame, outer_el);
-        linkButton(client.id, content.link_url ?? content.src, "none")
-            .adch(el("img")
-                .attr({src: content.src, width: `${content.width}px` as const, height: `${content.height}px` as const})
-                .clss("w-full h-auto")
-            ).adto(alt_frame)
-        ;
+        const imgel = elImg(content.src, {w: content.width, h: content.height}).clss("w-full h-auto");
+        if(content.link_url != null) linkButton(client.id, content.link_url, "none")
+            .adch(imgel).adto(alt_frame);
+        else zoomableFrame(imgel).adto(alt_frame);
     }else assertNever(content);
 
     if(widget.actions_bottom) {
