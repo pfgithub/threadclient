@@ -174,11 +174,13 @@ export const client: ThreadClient = {
                 ],
                 removed: [],
                 crosspost: [
-                    item("inner post should appear with title and body, width should be as small as possible", {
-                        kind: "crosspost", source: userThread(path, {kind: "richtext", content: [rt.p(rt.txt("Crossposted Body"))]
-                    }, {
-                        title: "Crossposted Source", layout: "reddit-post"})
-                    })
+                    item("inner post should appear with title and body, width should be as small as possible",
+                        {
+                            kind: "crosspost", source: userThread(path, {kind: "richtext", content: [rt.p(rt.txt("Crossposted Body"))]
+                            }, {
+                                title: "Crossposted Source", layout: "reddit-post"})
+                        }
+                    )
                 ],
                 array: [],
             };
