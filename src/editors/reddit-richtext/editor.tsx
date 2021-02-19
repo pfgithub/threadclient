@@ -41,8 +41,8 @@ const Spoiler: React.FC = (props): React.ReactElement => {
     const selected = useSelected();
     const focused = useFocused();
     const revealed = selected && focused;
-    return <span className={"bg-spoiler-color hover:bg-spoiler-color-hover rounded"}>
-        <span className={"bg-spoiler-color-revealed transition-opacity rounded " + (revealed ? "opacity-100" : "opacity-0")}>{props.children}</span>
+    return <span className={"md-spoiler-text"}>
+        <span className={"md-spoiler-content"} style={{opacity: revealed ? "1" : "0"}}>{props.children}</span>
     </span>;
 };
 

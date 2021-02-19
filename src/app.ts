@@ -1,7 +1,7 @@
 import "./_stdlib";
 import "./main.scss";
-import "./typography.pcss";
 import "tailwindcss/tailwind.css";
+import "./typography.pcss";
 
 import * as uhtml from "uhtml";
 

@@ -74,18 +74,13 @@
 
 /* maybe these should be done in js instead of here */
 .prose .md-spoiler-text {
-    @apply rounded;
-    background-color: var(--spoiler-color);
+    @apply rounded bg-spoiler-color hover:bg-spoiler-color-hover;
 }
 .prose .md-spoiler-text.md-spoiler-unrevealed {
     @apply cursor-pointer;
 }
-.prose .md-spoiler-text:hover {
-    background-color: var(--spoiler-color-hover);
-}
 .prose .md-spoiler-content {
-    @apply rounded transition-opacity opacity-100;
-    background-color: var(--spoiler-color-revealed);
+    @apply rounded transition-opacity opacity-100 bg-spoiler-color-revealed;
 }
 .prose .md-spoiler-text.md-spoiler-unrevealed > .md-spoiler-content {
     @apply opacity-0;
