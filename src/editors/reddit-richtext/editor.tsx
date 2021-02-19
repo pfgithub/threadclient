@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Node as UntypedNode, createEditor, Editor, Transforms, Text, Path } from "slate";
-import { Slate, Editable, withReact, useSelected, useFocused } from "slate-react";
+import { Slate, Editable, withReact, useSelected, useFocused, useSlate } from "slate-react";
 import {withHistory} from "slate-history";
 
 const { useCallback, useMemo, useState } = React;
@@ -29,12 +29,22 @@ const ImageElement = (props: RProps<ErrorSpan>): React.ReactElement => {
     return <span {...props.attributes}><span draggable="true" className={"bg-red-100 rounded p-1 font-mono "+(selected && focused ? "outline-default " : "")}>{props.element.image_text}</span>{props.children}</span>;
 };
 
+function isMarkActive(editor: Editor, format: FormatType) {
+    const marks = Editor.marks(editor);
+    return marks ? marks[format] === true : false;
+}
+
 type FormatType = "bold" | "italic" | "strike" | "inline_code" | "sup";
 function updateFormat(editor: Editor, new_fmt: FormatType) {
-    const [match] = Editor.nodes(editor, {
-        match: n => Text.isText(n) && !!(n[new_fmt] as boolean),
-    });
-    Transforms.setNodes(editor, {[new_fmt]: !match}, {match: n => Text.isText(n), split: true});
+    if(isMarkActive(editor, new_fmt)) {
+        Editor.removeMark(editor, new_fmt);
+    }else{
+        Editor.addMark(editor, new_fmt, true);
+    }
+    // const [match] = Editor.nodes(editor, {
+    //     match: n => Text.isText(n) && !!(n[new_fmt] as boolean),
+    // });
+    // Transforms.setNodes(editor, {[new_fmt]: !match}, {match: n => Text.isText(n), split: true});
 }
 
 const Spoiler: React.FC = (props): React.ReactElement => {
@@ -47,7 +57,8 @@ const Spoiler: React.FC = (props): React.ReactElement => {
 };
 
 const FormatButton = (props: {editor: Editor, format: FormatType, class?: string, children?: React.ReactNode}): React.ReactElement => {
-    return <button className={props.class} onMouseDown={e => {
+    const editor = useSlate();
+    return <button className={"py-1 w-8 h-8 rounded-md " + props.class+(isMarkActive(editor, props.format) ? " bg-gray-200" : " hover:bg-gray-100")} onMouseDown={e => {
         e.preventDefault();
         e.stopPropagation();
         updateFormat(props.editor, props.format);
@@ -231,7 +242,7 @@ export const App: React.FC = (): React.ReactElement => {
         const leaf = props.leaf;
 
         if(leaf.inline_code ?? false) {
-            outer_elem = <code className="rt-inline-code">{outer_elem}</code>;
+            outer_elem = <code>{outer_elem}</code>;
         }else{
             if(leaf.bold ?? false) outer_elem = <b>{outer_elem}</b>;
             if(leaf.italic ?? false) outer_elem = <i>{outer_elem}</i>;
@@ -249,12 +260,12 @@ export const App: React.FC = (): React.ReactElement => {
     >
         <div>
             <div className="flex flex-row-1">
-                <FormatButton editor={editor} format="bold" class="font-black py-1 w-8 h-8 hover:bg-gray-100 rounded-md">B</FormatButton>
-                <FormatButton editor={editor} format="italic" class="italic py-1 w-8 h-8 hover:bg-gray-100 rounded-md font-serif">I</FormatButton>
-                <button className="py-1 w-8 h-8 hover:bg-gray-100 rounded-md">🔗</button>
-                <FormatButton editor={editor} format="strike" class="line-through py-1 w-8 h-8 hover:bg-gray-100 rounded-md whitespace-pre"> S </FormatButton>
-                <FormatButton editor={editor} format="inline_code" class="py-1 w-8 h-8 hover:bg-gray-100 rounded-md font-mono">`C`</FormatButton>
-                <FormatButton editor={editor} format="sup" class="py-1 w-8 h-8 hover:bg-gray-100 rounded-md"><sup>sup</sup></FormatButton>
+                <FormatButton editor={editor} format="bold" class="font-black">B</FormatButton>
+                <FormatButton editor={editor} format="italic" class="italic font-serif">I</FormatButton>
+                <button className="py-1 w-8 h-8 hover:bg-gray-100">🔗</button>
+                <FormatButton editor={editor} format="strike" class="line-through whitespace-pre"> S </FormatButton>
+                <FormatButton editor={editor} format="inline_code" class="font-mono">`C`</FormatButton>
+                <FormatButton editor={editor} format="sup"><sup>sup</sup></FormatButton>
                 <button className="py-1 w-8 h-8 hover:bg-gray-100 rounded-md font-mono">{">!"}</button>
             </div>
             <div className="flex flex-row-1">
