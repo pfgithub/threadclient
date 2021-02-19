@@ -2829,16 +2829,18 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
     const hsc = hideshow(res);
 
     res.innerHTML = `<div class="flex justify-center flex-row">
-      <div class="w-full max-w-prose bg-white p-10 shadow rounded-xl">
-        <h1 class="text-5xl font-black">ThreadReader</h1>
-        <h2 class="text-base font-light text-gray-800 dark:text-gray-500">A client for Reddit and Mastodon</h2>
-        <div class="mt-10"></div>
-        <p>Try for <span id="reddit"></span></p>
-        <p>Try for <span id="mastodon"></span></p>
-        <div class="mt-10"></div>
-        <p class="text-gray-800 dark:text-gray-500"><span id="settings"></span> · <span id="github"></span> · <span id="license"></span> · <span id="privacy"></span></p>
-        <div class="mt-2"></div>
-      </div>
+        <div class="w-full max-w-prose">
+            <div class="bg-white p-5 sm:m-5 sm:p-10 shadow sm:rounded-xl">
+                <h1 class="text-3xl sm:text-5xl font-black">ThreadReader</h1>
+                <h2 class="text-base font-light text-gray-800 dark:text-gray-500">A client for Reddit and Mastodon</h2>
+                <div class="mt-10"></div>
+                <p>Try for <span id="reddit"></span></p>
+                <p>Try for <span id="mastodon"></span></p>
+                <div class="mt-10"></div>
+                <p class="text-gray-800 dark:text-gray-500"><span id="settings"></span> · <span id="github"></span> · <span id="license"></span> · <span id="privacy"></span></p>
+                <div class="mt-2"></div>
+            </div>
+        </div>
     </div>`;
     res.querySelector("#reddit")!.appendChild(linkButton("", "/reddit", "normal").atxt("Reddit").adto(res));
     res.querySelector("#mastodon")!.appendChild(linkButton("", "/mastodon", "normal").atxt("Mastodon").adto(res));
