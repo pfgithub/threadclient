@@ -271,8 +271,10 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
 
             if(eatClass("hashtag")) {
                 eatClass("mention");
-                return noClasses(rt.link("/"+meta.host+"/hashtag/TODO",
-                    ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
+                const content = Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles));
+                if(content.length !== 2 || content[1]?.kind !== "text") return [rt.error("bad hashtag", content)];
+                return noClasses(rt.link("/"+meta.host+"/timelines/tag/"+content[1].text,
+                    ...content,
                 ));
             }
             if(eatClass("mention")) {
@@ -688,12 +690,16 @@ export const client: ThreadClient = {
             const tmname = path.shift();
             
             if(tmname === "public"){
-                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+afterquery, "/"+["timelines", tmname, ...path].join("/")+"?"+afterquery, genericHeader());
+                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+afterquery, pathraw, genericHeader());
             }else if(tmname === "local"){
                 const parsed_query = new URLSearchParams(afterquery);
                 parsed_query.set("local", "true");
                 const parsed_res = parsed_query.toString();
-                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+parsed_res, "/"+["timelines", tmname, ...path].join("/")+"?"+afterquery, genericHeader());
+                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+parsed_res, pathraw, genericHeader());
+            }else if(tmname === "tag") {
+                const tmtag = path.shift();
+                if(tmtag == null || tmtag === "") return error404(host, "404 not found, missing tag");
+                return await timelineView(host, auth, "/api/v1/timelines/tag/"+tmtag, pathraw, genericHeader());
             }
         }else if(path0 === "statuses") {
             const postid = path.shift();
