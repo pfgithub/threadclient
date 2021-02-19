@@ -1095,7 +1095,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             .adto(el("div").adto(link_preview_box))
         ;
         if(body.thumb != null) {
-            thumb_box.adch(el("img").clss("w-full h-full").attr({src: body.thumb}));
+            thumb_box.adch(el("img").clss(body.click_enabled ? "w-full h-full" : "").attr({src: body.thumb}));
         }else{
             thumb_box.adch(el("div").atxt("🔗"));
         }
