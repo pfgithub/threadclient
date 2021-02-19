@@ -269,12 +269,13 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
                 return noClasses(rt.error("Bad link", href_v));
             }
 
+            if(eatClass("hashtag")) {
+                eatClass("mention");
+                return noClasses(rt.link("/"+meta.host+"/hashtag/TODO",
+                    ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
+                ));
+            }
             if(eatClass("mention")) {
-                if(eatClass("hashtag")) {
-                    return noClasses(rt.link("/"+meta.host+"/hashtag/TODO",
-                        ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
-                    ));
-                }
                 const mention_data = meta.mentions.get(href_v);
                 if(mention_data) {
                     return noClasses({
