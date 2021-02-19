@@ -42,7 +42,7 @@
             }
             window.onColorSchemeChange = (callback) => {
                 on_cs_change.push(callback);
-                return () => on_cs_change = on_cs_change.filter(cb => cb !== callback);
+                return () => on_cs_change = on_cs_change.splice(on_cs_change.indexOf(callback), 1);
             }
             window.setColorScheme = (new_scheme) => {
                 if(new_scheme === "light" || new_scheme === "dark") {
