@@ -26,7 +26,7 @@ const BlockquoteElement = (props: RProps<BlockquoteElement>): React.ReactElement
 const ImageElement = (props: RProps<ErrorSpan>): React.ReactElement => {
     const selected = useSelected();
     const focused = useFocused();
-    return <span {...props.attributes}><span draggable="true" className={"rt-error "+(selected && focused ? "rt-focus " : "")}>{props.element.image_text}</span>{props.children}</span>;
+    return <span {...props.attributes}><span draggable="true" className={"bg-red-100 rounded p-1 font-mono "+(selected && focused ? "outline-default " : "")}>{props.element.image_text}</span>{props.children}</span>;
 };
 
 type FormatType = "bold" | "italic" | "strike" | "inline_code" | "sup";
@@ -40,7 +40,10 @@ function updateFormat(editor: Editor, new_fmt: FormatType) {
 const Spoiler: React.FC = (props): React.ReactElement => {
     const selected = useSelected();
     const focused = useFocused();
-    return <span className={"rt-spoiler "+(selected && focused ? "rt-spoiler-reveal " : "")}><span className="rt-spoiler-content">{props.children}</span></span>;
+    const revealed = selected && focused;
+    return <span className={"bg-spoiler-color hover:bg-spoiler-color-hover rounded"}>
+        <span className={"bg-spoiler-color-revealed transition-opacity rounded " + (revealed ? "opacity-100" : "opacity-0")}>{props.children}</span>
+    </span>;
 };
 
 const FormatButton = (props: {editor: Editor, format: FormatType, children?: React.ReactNode}): React.ReactElement => {
@@ -207,7 +210,7 @@ export const App: React.FC = (): React.ReactElement => {
         {type: "paragraph", children: [{text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"}]},
         {type: "blockquote", children: [{type: "paragraph", children: [{text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"}]}]},
         {type: "paragraph", children: [{text: "Here is a spoiler: "}, {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]}]},
-        {type: "code", children: [{text: "Here is a spoiler: "}]},
+        {type: "code", children: [{text: "Here is a spoiler: >!Star wars dies in infinity war!<"}]},
         {type: "paragraph", children: [{text: "Here is a spoiler: "}, {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]}]},
     ]);
 
@@ -261,32 +264,34 @@ export const App: React.FC = (): React.ReactElement => {
             <div className="rt-button-sep" />
             <button>Table</button>
         </div>
-        <Editable
-            //eslint-disable-next-line @typescript-eslint/no-explicit-any
-            renderElement={renderElement as any}
-            renderLeaf={renderLeaf}
-            // todo update newline to isnert a br then a parargraph break if there alreads aflk
-            // uh oh! this code block doesn't respond properly to newlines
-            onKeyDown={event_react => {
-                const event = event_react as unknown as KeyboardEvent;
-                if(event.key === "m" && event.ctrlKey) {
-                    event.preventDefault();
-                    return Transforms.insertNodes(editor, {image_text: "Hi!", type: "error", children: [{text: ""}]});
-                }
-                if(event.key === "`" && event.ctrlKey) {
-                    event.preventDefault();
+        <div className="prose">
+            <Editable
+                //eslint-disable-next-line @typescript-eslint/no-explicit-any
+                renderElement={renderElement as any}
+                renderLeaf={renderLeaf}
+                // todo update newline to isnert a br then a parargraph break if there alreads aflk
+                // uh oh! this code block doesn't respond properly to newlines
+                onKeyDown={event_react => {
+                    const event = event_react as unknown as KeyboardEvent;
+                    if(event.key === "m" && event.ctrlKey) {
+                        event.preventDefault();
+                        return Transforms.insertNodes(editor, {image_text: "Hi!", type: "error", children: [{text: ""}]});
+                    }
+                    if(event.key === "`" && event.ctrlKey) {
+                        event.preventDefault();
 
-                    const [match] = Editor.nodes(editor, {
-                        match: n => n.type === "code",
-                    });
-                    Transforms.setNodes(editor, {type: match ? "paragraph" : "code"}, {match: n => Editor.isBlock(editor, n)});
-                }
-                if(event.key === "b" && event.ctrlKey) {
-                    event.preventDefault();
-                    updateFormat(editor, "bold");
-                }
-            }}
-        />
+                        const [match] = Editor.nodes(editor, {
+                            match: n => n.type === "code",
+                        });
+                        Transforms.setNodes(editor, {type: match ? "paragraph" : "code"}, {match: n => Editor.isBlock(editor, n)});
+                    }
+                    if(event.key === "b" && event.ctrlKey) {
+                        event.preventDefault();
+                        updateFormat(editor, "bold");
+                    }
+                }}
+            />
+        </div>
     </Slate>;
 };
 

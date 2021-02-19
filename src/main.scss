@@ -955,3 +955,7 @@ summary {
     -webkit-line-clamp: 1; /* number of lines to show */
     -webkit-box-orient: vertical;
 }
+
+.outline-default {
+    outline: 1px dotted var(--outline-color);
+}

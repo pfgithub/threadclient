@@ -11,6 +11,8 @@ module.exports = {
     darkMode: "class",
     theme: {
         colors: {
+            // TODO move these css variables into the tailwind config and get rid
+            // of the css variables
             'transparent': "transparent",
             'current': "currentColor",
             'gray': colors.coolGray,
@@ -26,6 +28,9 @@ module.exports = {
             'textc': "var(--text-color)",
             'userlink-color-light': "var(--light-color)",
             'userlink-color-dark': "var(--dark-color)",
+            'spoiler-color': "var(--spoiler-color)",
+            'spoiler-color-hover': "var(--spoiler-color-hover)",
+            'spoiler-color-revealed': "var(--spoiler-color-revealed)",
             'white': "#FFF",
             'black': "#000",
         },

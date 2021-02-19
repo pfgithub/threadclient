@@ -1,4 +1,3 @@
-import "./reddit-richtext.scss";
 import { hideshow, HideShowCleanup } from "../app";
 
 import * as dom from "react-dom";
