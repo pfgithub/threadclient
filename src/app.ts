@@ -404,29 +404,34 @@ function getBound(v: HTMLElement) {
 }
 
 function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
-    const icon_class = "w-24 h-24 object-contain";
     if(images.every(img => img.body.kind === "captioned_image")) {
         return fetchPromiseThen(import("./components/gallery"), gallery => {
             const div = el("div");
             const hsco = hideshow(div);
             let showing: undefined | (() => void);
             const boundfn = (index: number) => {
-                return getBound(buttons[index]!);
+                const boundi = buttons[index]!;
+                buttons.forEach(button => button.style.opacity = "1");
+                boundi.style.opacity = "0";
+                return getBound(boundi);
             };
             const buttons = images.map((img, i) => {
-                const btnv = el("button").clss("gallery-overview-item").adto(div).adch(
-                    el("img").clss(icon_class).attr({
-                        src: img.thumb,
-                        width: img.w != null ? `${img.w}px` as const : undefined,
-                        height: img.h != null ? `${img.h}px` as const : undefined,
-                    }),
+                const imgv = el("img").attr({
+                    src: img.thumb,
+                    width: img.w != null ? `${img.w}px` as const : undefined,
+                    height: img.h != null ? `${img.h}px` as const : undefined,
+                });
+                const btnv = el("button").clss("m-1 w-24 h-24 flex items-center justify-center inline-block").adto(el("div").clss("inline-block").adto(div)).adch(
+                    imgv,
                 ).onev("click", () => {
                     if(showing) showing();
                     const hsc = hideshow();
                     showing = () => hsc.cleanup();
-                    gallery.showGallery(images, i, boundfn).defer(hsc);
+                    gallery.showGallery(images, i, boundfn, () => {
+                        buttons.forEach(button => button.style.opacity = "1");
+                    }).defer(hsc);
                 });
-                return btnv;
+                return imgv;
             });
             hsco.on("cleanup", () => {if(showing) showing();});
             return hsco;
@@ -452,9 +457,9 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         if(prevnode) prevnode.innerHTML = "";
         if(state === "overview") {
             uhtml.render(container, htmlr`${images.map((image, i) => htmlr`
-                <button class="gallery-overview-item" onclick=${() => {setState({index: i})}}>
+                <button class="m-1 inline-block" onclick=${() => {setState({index: i})}}>
                     <img src=${image.thumb} width=${image.w+"px"} height=${image.h+"px"}
-                        class="${icon_class}"
+                        class="w-24 h-24 object-contain"
                     />
                 </button>
             `)}`);

@@ -238,14 +238,6 @@ ul.replies {
     height: auto;
     display: inline-block;
 }
-.gallery-overview-item {
-    all: unset;
-    cursor: pointer;
-    margin: 5px;
-    &:focus {
-        outline: 1px dotted var(--outline-color);
-    }
-}
 
 button:disabled {
     opacity: 0.5;
