@@ -6,7 +6,7 @@ import {main} from "./reddit-richtext/editor";
 
 type Env = {usernames: string[]};
 export function richtextEditor(env: Env): HideShowCleanup<HTMLDivElement> {
-    const outer_frame = el("div");
+    const outer_frame = el("div").clss("p-3");
     const hsc = hideshow(outer_frame);
 
     const frame = outer_frame;

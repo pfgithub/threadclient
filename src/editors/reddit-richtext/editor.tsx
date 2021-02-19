@@ -46,8 +46,8 @@ const Spoiler: React.FC = (props): React.ReactElement => {
     </span>;
 };
 
-const FormatButton = (props: {editor: Editor, format: FormatType, children?: React.ReactNode}): React.ReactElement => {
-    return <button onMouseDown={e => {
+const FormatButton = (props: {editor: Editor, format: FormatType, class?: string, children?: React.ReactNode}): React.ReactElement => {
+    return <button className={props.class} onMouseDown={e => {
         e.preventDefault();
         e.stopPropagation();
         updateFormat(props.editor, props.format);
@@ -247,22 +247,26 @@ export const App: React.FC = (): React.ReactElement => {
         value={value}
         onChange={new_value => setValue(new_value as Node[])}
     >
-        <div className="rt-buttons">
-            <FormatButton editor={editor} format="bold">Bold</FormatButton>
-            <FormatButton editor={editor} format="italic">Italic</FormatButton>
-            <button>Link</button>
-            <FormatButton editor={editor} format="strike">Strike</FormatButton>
-            <FormatButton editor={editor} format="inline_code">Inline Code</FormatButton>
-            <FormatButton editor={editor} format="sup">Superscript</FormatButton>
-            <button>Spoiler</button>
-            <div className="rt-button-sep" />
-            <button>Heading lv</button>
-            <button>Bulleted List</button>
-            <button>Numbered List</button>
-            <button>Blockquote</button>
-            <button>Block Code</button>
-            <div className="rt-button-sep" />
-            <button>Table</button>
+        <div>
+            <div className="flex flex-row-1">
+                <FormatButton editor={editor} format="bold" class="font-black py-1 w-8 h-8 hover:bg-gray-100 rounded-md">B</FormatButton>
+                <FormatButton editor={editor} format="italic" class="italic py-1 w-8 h-8 hover:bg-gray-100 rounded-md font-serif">I</FormatButton>
+                <button className="py-1 w-8 h-8 hover:bg-gray-100 rounded-md">🔗</button>
+                <FormatButton editor={editor} format="strike" class="line-through py-1 w-8 h-8 hover:bg-gray-100 rounded-md whitespace-pre"> S </FormatButton>
+                <FormatButton editor={editor} format="inline_code" class="py-1 w-8 h-8 hover:bg-gray-100 rounded-md font-mono">`C`</FormatButton>
+                <FormatButton editor={editor} format="sup" class="py-1 w-8 h-8 hover:bg-gray-100 rounded-md"><sup>sup</sup></FormatButton>
+                <button className="py-1 w-8 h-8 hover:bg-gray-100 rounded-md font-mono">{">!"}</button>
+            </div>
+            <div className="flex flex-row-1">
+                <button>Heading lv</button>
+                <button title="bulletted list">•</button>
+                <button title="numbered list">1.</button>
+                <button>Blockquote</button>
+                <button>Block Code</button>
+            </div>
+            <div className="flex flex-row-1">
+                <button title="Table" className="p-1 w-8 h-8 hover:bg-gray-100 rounded-md inline-block"><span className="border border-black w-full h-full block">T</span></button>
+            </div>
         </div>
         <div className="prose">
             <Editable
