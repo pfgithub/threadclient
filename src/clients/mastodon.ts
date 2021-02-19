@@ -374,17 +374,22 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                     your_votes: (post.poll.own_votes ?? []).map(ov => ({id: "" + ov})),
                     close_time: new Date(post.poll.expires_at).getTime(),
                 } : undefined,
-                post.card ? {kind: "gallery", images: [{
-                    body: post.card.embed_url
-                        ? {kind: "unknown_size_image", url: post.card.embed_url}
-                        : post.card.html
-                        ? {kind: "reddit_suggested_embed", suggested_embed: post.card.html}
-                        : {kind: "link", url: post.card.url}
-                    ,
-                    thumb: post.card.image ?? "https://dummyimage.com/100x100/ff0303/fff&text=error",
-                    w: undefined,
-                    h: undefined,
-                }]} : undefined,
+                post.card ? {
+                    kind: "link-preview",
+                    thumb: post.card.image ?? undefined,
+                    click: post.card.embed_url ? {
+                        kind: "unknown_size_image",
+                        url: post.card.embed_url,
+                    } : {
+                        kind: "link",
+                        url: post.card.url,
+                        embed_html: post.card.html || undefined,
+                    },
+                    click_enabled: !!(post.card.embed_url || post.card.html || false),
+                    title: post.card.title,
+                    description: post.card.description,
+                    url: post.card.url,
+                } : undefined,
             ],
         },
         display_mode: {body: "visible", comments: "visible"},

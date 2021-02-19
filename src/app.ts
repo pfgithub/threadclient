@@ -1076,6 +1076,44 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         twitchClip(body.slug, {autoplay: opts.autoplay}).defer(hsc).adto(content);
     }else if(body.kind === "reddit_suggested_embed") {
         redditSuggestedEmbed(body.suggested_embed).defer(hsc).adto(content);
+    }else if(body.kind === "link-preview") {
+        // maybe outline with body background and no shadow?
+        let button_box: HTMLElement;
+        if(body.click_enabled) {
+            button_box = el("div").clss("bg-body rounded-lg block").adto(content);
+        }else{
+            button_box = linkButton(client.id, body.url, "none", {onclick: body.click_enabled ? () => {
+                button_box.remove();
+                renderBody(client, body.click, {autoplay: true}, content).defer(hsc);
+            } : undefined}).clss("bg-body rounded-lg hover:shadow-md hover:bg-gray-100 block").adto(content);
+        }
+        const link_preview_box = el("article").clss("flex", body.click_enabled ? "flex-col" : "flex-row").adto(button_box);
+        const thumb_box = el("div").clss(
+            body.click_enabled ? "w-full h-auto min-h-10 relative" : "w-24 h-full flex items-center justify-center bg-gray-100",
+            "rounded-lg overflow-hidden",
+        )
+            .adto(el("div").adto(link_preview_box))
+        ;
+        if(body.thumb != null) {
+            thumb_box.adch(el("img").clss("w-full h-full").attr({src: body.thumb}));
+        }else{
+            thumb_box.adch(el("div").atxt("🔗"));
+        }
+        if(body.click_enabled) {
+            const choicearea = el("div").adto(thumb_box);
+            choicearea.clss("flex items-center justify-center absolute top-0 left-0 bottom-0 right-0");
+            const choicebox = el("div").clss("rounded-lg bg-gray-200 p-2 flex shadow-md gap-3").adto(choicearea);
+            el("button").clss("hover:underline").adto(choicebox).atxt("Play").onev("click", () => {
+                thumb_box.innerHTML = "";
+                renderBody(client, body.click, {autoplay: true}, thumb_box).defer(hsc);
+            });
+            choicebox.atxt(" ");
+            linkButton(client.id, body.url, "none").clss("hover:underline").atxt("Open").adto(choicebox);
+        }
+        const meta_box = el("div").clss("flex flex-col p-3 text-sm").adto(link_preview_box);
+        meta_box.adch(el("h1").clss("max-1-line font-black").atxt(body.title));
+        meta_box.adch(el("p").clss("max-2-lines").atxt(body.description));
+        meta_box.adch(el("div").clss("max-1-line font-light").atxt(body.url));
     }else assertNever(body);
 
     return hsc;

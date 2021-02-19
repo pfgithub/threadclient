@@ -179,6 +179,14 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "array",
     body: (Body | undefined)[],
+} | {
+    kind: "link-preview",
+    thumb?: string, // thumbnail url
+    click: Body,
+    title: string,
+    description: string,
+    url: string,
+    click_enabled: boolean,
 };
 export type VideoSource = {
     kind: "video",
