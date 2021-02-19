@@ -420,7 +420,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
                     src: img.thumb,
                     width: img.w != null ? `${img.w}px` as const : undefined,
                     height: img.h != null ? `${img.h}px` as const : undefined,
-                });
+                }).clss("w-auto h-auto max-w-full max-h-full");
                 const btnv = el("button").clss("m-1 w-24 h-24 flex items-center justify-center inline-block").adto(el("div").clss("inline-block").adto(div)).adch(
                     imgv,
                 ).onev("click", () => {
