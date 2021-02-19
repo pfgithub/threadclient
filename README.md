@@ -93,8 +93,6 @@ all todo:
 -   [ ] oembed (eg for youtube and other sites)
 -   [ ] add a settings page where you can enable/disabled `Code` buttons and other developer tools. (hide them by default)
 -   [ ] support hovering on eg user or subreddit links to see a small info card
--   [ ] delete hidden video.js players rather than pausing them
--   [ ] get rid of "hide" and "show" in hsc and instead always delete/recreate elements maybe
 -   [ ] decrease indent width on mobile and make the permalink button more prominent or something for when things get too deep
 -   [ ] update `@typescript-eslint/restrict-plus-operands` to add an option to allow string + number as long as string is on the left side
 -   [ ] fix spoilers :: 1: only have one spoiler implementation instead of two. 2: use a css class rather than .style.opacity. 3: set the cursor to pointer

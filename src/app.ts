@@ -421,7 +421,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
                     width: img.w != null ? `${img.w}px` as const : undefined,
                     height: img.h != null ? `${img.h}px` as const : undefined,
                 }).clss("w-auto h-auto max-w-full max-h-full");
-                const btnv = el("button").clss("m-1 w-24 h-24 flex items-center justify-center inline-block").adto(el("div").clss("inline-block").adto(div)).adch(
+                el("button").clss("m-1 w-24 h-24 flex items-center justify-center inline-block").adto(el("div").clss("inline-block").adto(div)).adch(
                     imgv,
                 ).onev("click", () => {
                     if(showing) showing();
@@ -2360,7 +2360,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     }
 
     {
-        const content = el("div");
+        const body_container = el("div");
 
         if(listing.thumbnail) {
             if(listing.thumbnail.kind === "image") {
@@ -2375,10 +2375,8 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             }else assertNever(listing.thumbnail);
         }
 
-        const body_hsc = hideshow();
-        hsc.addChild(body_hsc);
-
-        const initContent = (body: Generic.Body, opts: {autoplay: boolean}) => {
+        const initContent = (body: Generic.Body, opts: {autoplay: boolean}, content: HTMLElement): HideShowCleanup<undefined> => {
+            const body_hsc = hideshow();
             if(content_warnings.length) {
                 const cws = content_warnings;
                 content_warnings = [];
@@ -2391,9 +2389,10 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
                     renderBody(client, body, {...opts}, content).defer(body_hsc);
                 });
-                return;
+                return body_hsc;
             }
             renderBody(client, body, {...opts}, content).defer(body_hsc);
+            return body_hsc;
         };
         
         const isEmpty = (body: Generic.Body): boolean => {
@@ -2410,18 +2409,24 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             const open_preview_button = elButton("outlined-button").adto(content_buttons_line);
             const open_preview_text = txt("…").adto(open_preview_button);
 
-            let initialized = false;
+            let body_v: undefined | {node: HTMLElement, hsc: HideShowCleanup<unknown>};
+            hsc.on("cleanup", () => {if(body_v) body_v.hsc.cleanup();});
+            hsc.on("hide", () => {if(body_v) body_v.hsc.setVisible(false);});
+            hsc.on("show", () => {if(body_v) body_v.hsc.setVisible(true);});
+
             let state = listing.display_mode.body_default === "open";
             const autoplay = !state;
             const update = () => {
-                if(state && !initialized) {
-                    initialized = true;
-                    initContent(listing.body, {autoplay});
+                if(state && !body_v) {
+                    const node = el("div").adto(body_container);
+                    body_v = {node, hsc: initContent(listing.body, {autoplay}, node)};
+                }else if(!state && body_v) {
+                    body_v.hsc.cleanup();
+                    body_v.node.remove();
+                    body_v = undefined;
                 }
                 open_preview_text.nodeValue = state ? "Hide" : "Show";
 
-                content.style.display = state ? "" : "none";
-                body_hsc.setVisible(state);
             };
             update();
             open_preview_button.onev("click", () => {
@@ -2433,10 +2438,10 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                 update();
             });
         }else{
-            initContent(listing.body, {autoplay: false});
+            initContent(listing.body, {autoplay: false}, body_container).defer(hsc);
         }
-        content.clss("post-body");
-        content.adto(preview_area);
+        body_container.clss("post-body");
+        body_container.adto(preview_area);
     }
 
     for(const action of listing.actions) {
