@@ -1966,7 +1966,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
             const smdiv = el("div");
             for(const item of items) {
                 if(item.action.kind === "link") {
-                    linkButton(client.id, item.action.url, "none").clss("text-gray-400 hover:text-gray-900").adto(smdiv).atxt(item.text);
+                    linkButton(client.id, item.action.url, "none").clss("text-gray-500 dark:text-gray-600 hover:text-gray-900").adto(smdiv).atxt(item.text);
                 }else if(item.action.kind === "menu") {
                     elButton("none").adto(smdiv).atxt(item.text + " " + "▸").onev("click", e => {
                         e.preventDefault();
@@ -1979,7 +1979,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         for(const item of listing.menu) {
             const classv = [
                 "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
-                item.selected ? "border-gray-900" : "border-transparent text-gray-400 hover:text-gray-900"
+                item.selected ? "border-gray-900" : "border-transparent text-gray-500 dark:text-gray-600 hover:text-gray-900"
             ];
             if(item.action.kind === "menu") {
                 const arrowv = txt("…");
@@ -1989,7 +1989,8 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
                 
                 const update = () => {
                     btnel.classList.toggle("text-gray-900", open);
-                    btnel.classList.toggle("text-gray-400", !open);
+                    btnel.classList.toggle("text-gray-500", !open);
+                    btnel.classList.toggle("text-gray-600", !open);
                     arrowv.nodeValue = open ? "▴" : "▾";
                     if(open) {
                         if(!submenu_v) submenu_v = renderSubmenu(subitems).clss(
@@ -2849,24 +2850,60 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
     return hsc;
 }
 
-declare function updateColorScheme(): void;
+type SchemeInfo = [scheme: "light" | "dark" | "system", system: boolean];
+declare function getColorScheme(): SchemeInfo;
+declare function onColorSchemeChange(cb: (...info: SchemeInfo) => void): () => void;
+declare function setColorScheme(ncs: "light" | "dark" | "system"): void;
 
 function settingsPage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
 
-    elButton("pill-empty").atxt("Light Mode").adto(res).onev("click", () => {
-        localStorage.setItem("color-scheme", "light");
-        updateColorScheme();
+    const colorschemearea = el("div").clss("p-4").adto(res);
+    colorschemearea.adch(el("h1").atxt("Color Scheme").clss("text-2xl font-black"));
+    const lightbtn = el("button").atxt("Light Mode").adto(colorschemearea).onev("click", () => {
+        setColorScheme("light");
     });
-    elButton("pill-empty").atxt("Dark Mode").adto(res).onev("click", () => {
-        localStorage.setItem("color-scheme", "dark");
-        updateColorScheme();
+    const darkbtn = el("button").atxt("Dark Mode").adto(colorschemearea).onev("click", () => {
+        setColorScheme("dark");
     });
-    elButton("pill-empty").atxt("System Default").adto(res).onev("click", () => {
-        localStorage.removeItem("color-scheme");
-        updateColorScheme();
+    const systembtn = el("button").atxt("System Default ").adto(colorschemearea).onev("click", () => {
+        setColorScheme("system");
     });
+    const systemtext = txt("(…)");
+    systembtn.adch(systemtext);
+
+    const btnstyle = (active: boolean): string => {
+        return [
+            "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
+            active ? "border-gray-900" : "border-transparent text-gray-500 dark:text-gray-600 hover:text-gray-900"
+        ].join(" ");
+    };
+
+    const onupdate = ([scheme, system]: SchemeInfo) => {
+        systemtext.nodeValue = system ? "(Dark)" : "(Light)";
+
+        lightbtn.setAttribute("class", btnstyle(scheme === "light"));
+        darkbtn.setAttribute("class", btnstyle(scheme === "dark"));
+        systembtn.setAttribute("class", btnstyle(scheme === "system"));
+    };
+    onupdate(getColorScheme());
+    const removeOnchange = onColorSchemeChange((cschm, csys) => {
+        onupdate([cschm, csys]);
+    });
+    hsc.on("cleanup", () => removeOnchange());
+
+    const demoitm = el("div").adto(colorschemearea);
+    demoitm.innerHTML = `
+        <div class="w-max max-w-full">
+            <div class="object-wrapper">
+                <div class="prose">
+                    <h1>Theme</h1>
+                    <p>theme</p>
+                </div>
+            </div>
+        </div>
+    `;
 
     return hsc;
 }
