@@ -358,14 +358,14 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
     if(path.endsWith(".mp3")) {
         return {kind: "audio", url: link};
     }
-    if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
-        const ytvid_id = url.searchParams.get("v");
-        if(ytvid_id != null) return {kind: "youtube", id: ytvid_id, search: url.searchParams.toString()};
-    }
-    if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
-        const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
-        return {kind: "youtube", id: youtube_video_id, search: url.searchParams.toString()};
-    }
+    // if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
+    //     const ytvid_id = url.searchParams.get("v");
+    //     if(ytvid_id != null) return {kind: "youtube", id: ytvid_id, search: url.searchParams.toString()};
+    // }
+    // if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
+    //     const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
+    //     return {kind: "youtube", id: youtube_video_id, search: url.searchParams.toString()};
+    // }
     if(url && (url.host === "www.imgur.com" || url.host === "imgur.com")) {
         const splitv = url.pathname.split("/");
         const galleryid = splitv[2]!;
@@ -385,7 +385,11 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
             slug: clipid,
         };
     }
-    if(url && url.host === "soundcloud.com") return {
+    if(url && (url.host === "youtube.com" || url.host.endsWith(".youtube.com" || url.host === "youtu.be"))) return {
+        kind: "oembed",
+        url: "https://youtube.com/oembed?url="+encodeURIComponent(link),
+    };
+    if(url && (url.host === "soundcloud.com" || url.host.endsWith(".soundcloud.com"))) return {
         kind: "oembed",
         url: "https://soundcloud.com/oembed?format=json&url="+encodeURIComponent(link),
     };
@@ -1134,7 +1138,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         meta_box.adch(el("p").clss("max-2-lines").atxt(body.description));
         meta_box.adch(el("div").clss("max-1-line font-light").atxt(body.url));
     }else if(body.kind === "oembed") {
-        fetchPromiseThen(fetch(body.url).then(r => r.json()), resp => {
+        fetchPromiseThen(fetch(body.url, {headers: {'Accept': "application/json"}}).then(r => r.json()), resp => {
             console.log("oembed resp", resp);
             const outerel = el("div");
             const ihsc = hideshow(outerel);
