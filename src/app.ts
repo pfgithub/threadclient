@@ -45,7 +45,7 @@ function linkButton(client_id: string, href: string, style: LinkStyle, opts: {on
         urlparsed = undefined;
     }
     if(urlparsed && !is_raw && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
-        href = "/reddit"+urlparsed.pathname;
+        href = "/reddit"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
     }
     const res = el("a").clss(...linkAppearence(style)).attr({href, target: "_blank", rel: "noreferrer noopener"});
     if(href.startsWith("/") || opts.onclick) res.onclick = event => {
