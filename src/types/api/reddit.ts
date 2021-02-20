@@ -23,6 +23,38 @@ export type WikiPage = {
     },
 };
 
+export type InboxMsg = {
+    kind: "t1" | "t4",
+    data: {
+        first_message: null,
+        first_message_name: null,
+        subreddit: string | null,
+        likes: true | false | null,
+        replies: "",
+        author_fullname: string,
+        id: string,
+        subject: string,
+        associated_awarding_id: null | string, // for "your comment has been given the … award" messages
+        score: number,
+        author: string,
+        num_comments: number | null,
+        parent_id: string | null,
+        subreddit_name_prefixd: string | null,
+        new: boolean,
+        body: Markdown,
+        dest: string, // your username unprefixed | probably a subreddit name idk
+        was_comment: boolean,
+        body_html: HTML,
+        name: string, // t1_:id | t3_:id
+        // created: unusable
+        created_utc: Date.Sec,
+        context: string | "", // link to context | empty string
+        distinguished: null | "gold-auto" | "unsupported",
+    },
+} | {
+    kind: "unsupported",
+};
+
 export declare namespace FlairBits {
     export type Richtext = RichtextFlair | null;
     export type Type = "text" | "richtext" | "unsupported";
@@ -516,7 +548,7 @@ export type Media = (BaseMedia & ({
 })) | ErroredMedia;
 export type MediaMetadata = {[key: string]: Media};
 
-export type SimplePostOrComment = {
+export type PostOrComment = {
     name: string, // post id
 
     author: string,
@@ -529,9 +561,7 @@ export type SimplePostOrComment = {
     distinguished: "admin" | "unsupported" | null,
 
     created_utc: Date.Sec, // there's also created but that's not utc
-};
 
-export type PostOrComment = SimplePostOrComment & {
     permalink: string,
 
     all_awardings: Award[],
@@ -651,11 +681,7 @@ export type PostSubmission = PostOrComment & {
     },
 };
 
-export type SimpleComment = {
-    __nothing: undefined,
-};
-
-export type PostComment = PostOrComment & SimpleComment & {
+export type PostComment = PostOrComment & {
     replies?: Listing,
     parent_id: string,
 
@@ -679,17 +705,6 @@ export type PostComment = PostOrComment & SimpleComment & {
 } | {
     __nothing?: undefined,
 });
-
-export type InboxT1 = SimplePostOrComment & SimpleComment & {
-    num_comments: number,
-    new: boolean, // has been seen or not
-    type: "comment_reply" | "unsupported",
-    header: string,
-    was_comment: boolean,
-    context: string, // like permalink but ?context=3 also there is no permalink
-
-    link_title: string,
-};
 
 export type PostMore = {
     count: number,

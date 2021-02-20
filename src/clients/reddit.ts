@@ -1014,7 +1014,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                 | {v: SortTimed, t: SortTime},
             is_user_page: boolean, // /u/…/hot. user subreddit pages must have /hot /new /random otherwise they will display the normal user page
         };
-        let menu_kind_mut: SubredditMenu | {
+        let page_mut: SubredditMenu | {
             kind: "user",
             base: string[],
             current: {
@@ -1033,8 +1033,26 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                 tab: "upvoted" | "downvoted" | "hidden" | "saved",
             },
         } | {
+            kind: "inbox",
+            current: {
+                tab: "compose",
+                // uh oh compose is not a json listing (it's a 404) so this parsing
+                // needs to happen above pageFromListingA
+                to?: string,
+            } | {
+                tab: "inbox",
+                // selfreply is "post replies". comments is "comment replies"
+                inbox_tab: "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions",
+            } | {
+                tab: "sent",
+            } | {
+                tab: "unknown",
+            },
+        } | {
             kind: "unknown",
         };
+
+        const inbox_tabs = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
 
         const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
         const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
@@ -1054,7 +1072,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
             const path2 = pathsplit[2];
 
             if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "subreddit",
                     base,
                     current_sort: {v: path2},
@@ -1062,28 +1080,28 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                 };
             }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
                 const time_t = path_query.get("t") ?? "all";
-                menu_kind_mut = {
+                page_mut = {
                     kind: "subreddit",
                     base,
                     current_sort: {v: path2, t: time_t as "unsupported"},
                     is_user_page: false,
                 };
             }else if(path2 == null) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "subreddit",
                     base,
                     current_sort: {v: "hot"},
                     is_user_page: false,
                 };
             }else{
-                menu_kind_mut = {kind: "unknown"};
+                page_mut = {kind: "unknown"};
             }
         }else if(pathsplit[0] === "user" && typeof pathsplit[1] === "string") {
             const path2 = pathsplit[2];
             const base = ["u", pathsplit[1]];
 
             if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "subreddit",
                     base,
                     current_sort: {v: path2},
@@ -1091,14 +1109,14 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                 };
             }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
                 const time_t = path_query.get("t") ?? "all";
-                menu_kind_mut = {
+                page_mut = {
                     kind: "subreddit",
                     base,
                     current_sort: {v: path2, t: time_t as "unsupported"},
                     is_user_page: false,
                 };
             }else if(path2 == null) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "user",
                     base,
                     current: {tab: "overview", sort: {
@@ -1107,7 +1125,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     }},
                 };
             }else if(guardIncludes(user_sorted_tabs, path2) && pathsplit.length === 3) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "user",
                     base,
                     current: {tab: path2, sort: {
@@ -1116,25 +1134,51 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     }},
                 };
             }else if(guardIncludes(user_sortless_tabs, path2) && pathsplit.length === 3) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "user",
                     base,
                     current: {tab: path2},
                 };
             }else if(path2 === "gilded" && (pathsplit.length === 3 || pathsplit.length === 4)) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "user",
                     base,
                     current: {tab: "gilded", mode: (pathsplit[3] ?? "received") as "unsupported"},
                 };
             }else{
-                menu_kind_mut = {kind: "unknown"};
+                page_mut = {kind: "unknown"};
+            }
+        }else if(pathsplit[0] === "message") {
+            if(guardIncludes(inbox_tabs, pathsplit[1]) && pathsplit.length === 2) {
+                page_mut = {
+                    kind: "inbox",
+                    current: {
+                        tab: "inbox",
+                        inbox_tab: pathsplit[1],
+                    },
+                };
+            }else if(pathsplit[1] === "compose" && pathsplit.length === 2) {
+                page_mut = {
+                    kind: "inbox",
+                    current: {
+                        tab: "compose",  
+                    },
+                };
+            }else if(pathsplit[1] === "sent" && pathsplit.length === 2) {
+                page_mut = {
+                    kind: "inbox",
+                    current: {
+                        tab: "sent",
+                    },
+                };
+            }else{
+                page_mut = {kind: "inbox", current: {tab: "unknown"}};
             }
         }else{
             const path0 = pathsplit[0];
             const base: string[] = [];
             if(guardIncludes(normal_sorts, path0) && pathsplit.length === 1) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "subreddit",
                     base,
                     current_sort: {v: path0},
@@ -1142,99 +1186,122 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                 };
             }else if(guardIncludes(timed_sorts, path0) && pathsplit.length === 1) {
                 const time_t = path_query.get("t") ?? "all";
-                menu_kind_mut = {
+                page_mut = {
                     kind: "subreddit",
                     base,
                     current_sort: {v: path0, t: time_t as "unsupported"},
                     is_user_page: false,
                 };
             }else if(path0 == null) {
-                menu_kind_mut = {
+                page_mut = {
                     kind: "subreddit",
                     base,
                     current_sort: {v: "hot"},
                     is_user_page: false,
                 };
             }else{
-                menu_kind_mut = {kind: "unknown"};
+                page_mut = {kind: "unknown"};
             }
         }
         // note, normally on user pages show these tabs:
         // overview /, comments /comments, submitted /submitted, gilded /gilded, upvoted /upvoted, downvoted /downvoted, hidden /hidden, saved /saved
         // when viewing a user subreddit (eg /u/…/hot), show subreddit tabs instead
 
-        const menu_kind = menu_kind_mut;
+        const page = page_mut;
 
         return {
             title: path,
             navbar: getNavbar(),
             body: {
                 kind: "listing",
-                menu: menu_kind.kind === "subreddit" ? [{
-                    selected: menu_kind.current_sort.v === "hot",
+                menu: page.kind === "subreddit" ? [{
+                    selected: page.current_sort.v === "hot",
                     text: "Hot",
-                    action: {kind: "link", url: "/"+[...menu_kind.base, ...menu_kind.is_user_page ? ["hot"] : []].join("/")},
+                    action: {kind: "link", url: "/"+[...page.base, ...page.is_user_page ? ["hot"] : []].join("/")},
                 }, {
-                    selected: menu_kind.current_sort.v === "new",
+                    selected: page.current_sort.v === "new",
                     text: "New",
-                    action: {kind: "link", url: "/"+[...menu_kind.base, "new"].join("/")},
+                    action: {kind: "link", url: "/"+[...page.base, "new"].join("/")},
                 }, {
-                    selected: menu_kind.current_sort.v === "rising",
+                    selected: page.current_sort.v === "rising",
                     text: "Rising",
-                    action: {kind: "link", url: "/"+[...menu_kind.base, "rising"].join("/")},
+                    action: {kind: "link", url: "/"+[...page.base, "rising"].join("/")},
                 }, ...[["top", "Top"] as const, ["controversial", "Controversial"] as const].map(([url, text]): Generic.MenuItem => ({
-                    selected: menu_kind.current_sort.v === url,
-                    text: menu_kind.current_sort.v === url ? (text + " ("+menu_kind.current_sort.t+")") : text,
+                    selected: page.current_sort.v === url,
+                    text: page.current_sort.v === url ? (text + " ("+page.current_sort.t+")") : text,
                     action: {kind: "menu", children: ([
                         ["hour", "Hour"], ["day", "Day"], ["week", "Week"], ["month", "Month"], ["year", "Year"], ["all", "All Time"]
                     ] as const).map(([time, time_text]): Generic.MenuItem => ({
                         text: time_text,
-                        selected: menu_kind.current_sort.v === url && menu_kind.current_sort.t === time,
-                        action: {kind: "link", url: "/"+[...menu_kind.base, url].join("/")+"?t="+time},
+                        selected: page.current_sort.v === url && page.current_sort.t === time,
+                        action: {kind: "link", url: "/"+[...page.base, url].join("/")+"?t="+time},
                     }))},
-                }))] : menu_kind.kind === "user" ? [...user_sorted_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
+                }))] : page.kind === "user" ? [...user_sorted_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
                     // huh this needs two menus
-                    selected: menu_kind.current.tab === tab,
+                    selected: page.current.tab === tab,
                     text: tabname,
                     action: {kind: "show-line-two", children: [
                         {
-                            selected: menu_kind.current.tab === tab && menu_kind.current.sort.sort === "hot",
+                            selected: page.current.tab === tab && page.current.sort.sort === "hot",
                             text: "Hot",
-                            action: {kind: "link", url: updateQuery("/"+[...menu_kind.base, tab].join("/"), {sort: "hot"})},
+                            action: {kind: "link", url: updateQuery("/"+[...page.base, tab].join("/"), {sort: "hot"})},
                         },
                         {
-                            selected: menu_kind.current.tab === tab && menu_kind.current.sort.sort === "new",
+                            selected: page.current.tab === tab && page.current.sort.sort === "new",
                             text: "New",
-                            action: {kind: "link", url: updateQuery("/"+[...menu_kind.base, tab].join("/"), {sort: "new"})},
+                            action: {kind: "link", url: updateQuery("/"+[...page.base, tab].join("/"), {sort: "new"})},
                         },
                         {
-                            selected: menu_kind.current.tab === tab && menu_kind.current.sort.sort === "rising",
+                            selected: page.current.tab === tab && page.current.sort.sort === "rising",
                             text: "Rising",
-                            action: {kind: "link", url: updateQuery("/"+[...menu_kind.base, tab].join("/"), {sort: "rising"})},
+                            action: {kind: "link", url: updateQuery("/"+[...page.base, tab].join("/"), {sort: "rising"})},
                         },
                     ]}
                     // action: {kind: "link", url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
                 })), {
-                    selected: menu_kind.current.tab === "gilded",
+                    selected: page.current.tab === "gilded",
                     text: "Gilded",
                     action: {kind: "show-line-two", children: [{
-                        selected: menu_kind.current.tab === "gilded" && menu_kind.current.mode === "received",
+                        selected: page.current.tab === "gilded" && page.current.mode === "received",
                         text: "Received",
-                        action: {kind: "link", url: "/"+[...menu_kind.base, "gilded"].join("/")}
+                        action: {kind: "link", url: "/"+[...page.base, "gilded"].join("/")}
                     }, {
-                        selected: menu_kind.current.tab === "gilded" && menu_kind.current.mode === "given",
+                        selected: page.current.tab === "gilded" && page.current.mode === "given",
                         text: "Given",
-                        action: {kind: "link", url: "/"+[...menu_kind.base, "gilded", "given"].join("/")}
+                        action: {kind: "link", url: "/"+[...page.base, "gilded", "given"].join("/")}
                     }]},
                 }, ...user_sortless_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
-                    selected: menu_kind.current.tab === tab,
+                    selected: page.current.tab === tab,
                     text: tabname,
-                    action: {kind: "link", url: "/"+[...menu_kind.base, tabname].join("/")},
-                }))] : menu_kind.kind === "unknown" ? [
+                    action: {kind: "link", url: "/"+[...page.base, tabname].join("/")},
+                }))]: page.kind === "inbox" ? [{
+                    selected: page.current.tab === "compose",
+                    text: "Compose",
+                    action: {kind: "link", url: "/message/compose"},
+                }, {
+                    selected: page.current.tab === "inbox",
+                    text: "Inbox",
+                    action: {kind: "show-line-two", children: ([
+                        ["inbox", "All"], ["unread", "Unread"], ["messages", "Messages"],
+                        ["comments", "Comment Replies"], ["selfreply", "Post Replies"],
+                        ["mentions", "Username Mentions"],
+                    ] as const).map(([url, name]): Generic.MenuItem => ({
+                        text: name,
+                        selected: page.current.tab === "inbox" && page.current.inbox_tab === url,
+                        action: {kind: "link", url: "/message/"+url}
+                    }))},
+                }, {
+                    selected: page.current.tab === "sent",
+                    text: "Sent",
+                    action: {kind: "link", url: "/message/sent"},
+                }] : page.kind === "unknown" ? [
                     {text: "Error!", selected: false, action: {kind: "link", url: path}},
-                ] : assertNever(menu_kind),
+                ] : assertNever(page),
                 header: subredditHeader(extra.subinfo),
-                items: listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: path, sort: "unsupported"})),
+                items: page.kind === "inbox"
+                    ? listing.data.children.map(child => topLevelThreadFromInboxMsg(child as unknown as Reddit.InboxMsg))
+                    : listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: path, sort: "unsupported"}))
+                ,
                 next,
             },
             ...makeSidebar(extra, "sidebar"),
@@ -1272,7 +1339,14 @@ type LoadMoreData = {
     parent_id: string,
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
-const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Generic.Action => {
+const getPointsOn = (listing: {
+    name: string,
+    score_hidden?: boolean,
+    score: number,
+    likes: true | false | null,
+    upvote_ratio?: number,
+    archived?: boolean,
+}): Generic.Action => {
     // not sure what rank is for
     const vote_data = {id: listing.name, rank: "2"};
     return {
@@ -1287,7 +1361,7 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
         incremented_label: "Voted",
         decremented_label: "Voted",
 
-        count_excl_you: listing.score_hidden ? "hidden" : listing.score + (listing.likes === true ? -1 : listing.likes === false ? 1 : 0),
+        count_excl_you: listing.score_hidden ?? false ? "hidden" : listing.score + (listing.likes === true ? -1 : listing.likes === false ? 1 : 0),
         you: listing.likes === true ? "increment" : listing.likes === false ? "decrement" : undefined,
 
         percent: listing.upvote_ratio,
@@ -1298,6 +1372,69 @@ const getPointsOn = (listing: Reddit.PostComment | Reddit.PostSubmission): Gener
         },
     };
 };
+
+const topLevelThreadFromInboxMsg = (inbox_msg: Reddit.InboxMsg): Generic.UnmountedNode => {
+    if(inbox_msg.kind === "t1" || inbox_msg.kind === "t4") {
+        const msg = inbox_msg.data;
+        return {
+            parents: [{
+                // I need a new layout kind "info-line" that's for a really short info line like this
+                kind: "thread",
+                title: {text: msg.subject},
+                body: {kind: "none"},
+                display_mode: {body: "visible", comments: "collapsed"},
+                link: "no",
+                layout: "reddit-post",
+                default_collapsed: false,
+                actions: [],
+                raw_value: inbox_msg,
+                
+                // :: if parent id starts with t1_ && is t1 msg
+                // add a load more button in to get the parent
+            }, {
+                kind: "thread",
+                info: {
+                    time: msg.created_utc * 1000,
+                    edited: false,
+                    author: {
+                        name: "u/"+msg.author,
+                        color_hash: msg.author,
+                        link: "/u/"+msg.author,
+                    },
+                    pinned: false,
+                },
+                body: {kind: "text", content: msg.body, markdown_format: "reddit"},
+                display_mode: {body: "visible", comments: "collapsed"},
+                link: msg.context,
+                layout: "reddit-comment",
+                default_collapsed: false,
+                actions: [
+                    ...inbox_msg.kind === "t1" ? [getPointsOn(msg)] : [],
+                    ...msg.context ? [{kind: "link", url: msg.context, text: "Context"} as const] : [],
+                    ...inbox_msg.kind === "t4" ? [{kind: "link", url: "/message/messages/"+msg.id, text: "Permalink"} as const] : [],
+                    // TODO Full Comments (:num_comments)
+                    // TODO mark unread
+                ],
+                raw_value: inbox_msg,
+            }],
+            replies: [],
+        };
+    }
+    return {
+        parents: [{
+            kind: "thread",
+            body: {kind: "richtext", content: [rt.p(rt.error("Unsupported "+inbox_msg.kind, inbox_msg))]},
+            display_mode: {body: "visible", comments: "collapsed"},
+            layout: "error",
+            default_collapsed: false,
+            actions: [],
+            raw_value: inbox_msg,
+            link: "no",
+        }],
+        replies: [],
+    };
+};
+
 const topLevelThreadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.UnmountedNode => {
     const res = threadFromListingMayError(listing_raw, options, parent_permalink);
     if(listing_raw.kind === "t1" && 'link_title' in listing_raw.data) {
