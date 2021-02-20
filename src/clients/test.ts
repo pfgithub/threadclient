@@ -35,6 +35,7 @@ const sample_preview_links: {
     {expected_result: "(!localhost) image gallery (fullscreenable)", url: "https://www.imgur.com/a/HJ80Ds9"},
     {expected_result: "video + sound", url: "https://clips.twitch.tv/GlamorousTacitRaccoonWutFace-oMcWnMP8C5xMZhxD"},
     {expected_result: "soundcloud", url: "https://soundcloud.com/dylanbradyyyyyy/blink-180-prod-dylan-brady-elly-golterman"},
+    {expected_result: "tiktok", url: "https://www.tiktok.com/@scout2015/video/6718335390845095173"},
     
     // TODO test error conditions eg : twitch clip with invalid slug
     {expected_result: "error : invalid gfycat gif", url: "https://gfycat.com/QqqqqqqqQqqqqqqQqqq"},

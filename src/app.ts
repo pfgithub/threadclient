@@ -385,13 +385,17 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
             slug: clipid,
         };
     }
-    if(url && (url.host === "youtube.com" || url.host.endsWith(".youtube.com" || url.host === "youtu.be"))) return {
+    if(url && (url.host === "youtube.com" || url.host.endsWith(".youtube.com") || url.host === "youtu.be")) return {
         kind: "oembed",
         url: "https://youtube.com/oembed?url="+encodeURIComponent(link),
     };
     if(url && (url.host === "soundcloud.com" || url.host.endsWith(".soundcloud.com"))) return {
         kind: "oembed",
         url: "https://soundcloud.com/oembed?format=json&url="+encodeURIComponent(link),
+    };
+    if(url && (url.host === "tiktok.com" || url.host.endsWith(".tiktok.com"))) return {
+        kind: "oembed",
+        url: "https://www.tiktok.com/oembed?url="+encodeURIComponent(link),
     };
     if(opts.suggested_embed != null) return {
         kind: "reddit_suggested_embed",
@@ -1160,14 +1164,15 @@ function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
         template_el.innerHTML = suggested_embed;
         const iframe_unsafe = template_el.content.childNodes[0];
         if(!iframe_unsafe) throw new Error("missing iframe");
-        if(!(iframe_unsafe instanceof HTMLIFrameElement)) throw new Error("iframe was not first child");
+        const iframe_attrs = iframe_unsafe instanceof HTMLIFrameElement
+            ? {src: iframe_unsafe.src, allow: iframe_unsafe.allow, allowfullsreen: ""}
+            : {srcdoc: suggested_embed}
+        ;
 
-        console.log(iframe_unsafe, iframe_unsafe.width, iframe_unsafe.height);
-
-        const parent_node = el("div").clss("resizable-iframe").styl({width: iframe_unsafe.width+"px", height: iframe_unsafe.height+"px"});
+        const parent_node = el("div").clss("resizable-iframe");
         let iframe: HTMLIFrameElement | undefined;
         const initFrame = () => {
-            if(!iframe) iframe = el("iframe").attr({src: iframe_unsafe.src, allow: iframe_unsafe.allow, allowfullsreen: ""}).adto(parent_node);
+            if(!iframe) iframe = el("iframe").attr(iframe_attrs).adto(parent_node);
         };
         initFrame();
 
