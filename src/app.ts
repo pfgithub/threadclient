@@ -2086,10 +2086,6 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
             let open = false;
             let submenu_v: HTMLElement | undefined;
             const subitems = item.action.children;
-
-            watchNode([selected_item], 0, () => {
-                btnel.setAttribute("class", menuButtonStyle(item === selected_item.value));
-            }).defer(hsc);
             
             const update = () => {
                 arrowv.nodeValue = open ? "▴" : "▾";
@@ -2123,6 +2119,11 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
                 open =! open;
                 update();
             });
+
+            watchNode([selected_item], 0, () => {
+                btnel.setAttribute("class", menuButtonStyle(item === selected_item.value));
+            }).defer(hsc);
+            
             update();
         }else if(item.action.kind === "link") {
             const lbtn = linkButton(client.id, item.action.url, "none").atxt(item.text).adto(menu_this_line);
@@ -2828,6 +2829,34 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                 }else{
                     clientContent(client, parent).defer(hsc).adto(toplevel_area);
                 }
+            }
+            if(child.replies.length > 0) {
+                let replies: HideShowCleanup<HTMLElement> | undefined;
+                const srplybtn = elButton("previewable").adto(toplevel_area).atxt("Replies ▸").onev("click", () => {
+                    if(replies) {
+                        replies.cleanup();
+                        replies.associated_data.remove();
+                        replies = undefined;
+                        srplybtn.textContent = "Replies ▸";
+                    }else{
+                        srplybtn.textContent = "Replies ▾";
+                        const rdiv = el("div").adto(toplevel_area);
+                        const rhsc = hideshow(rdiv);
+                        replies = rhsc;
+                        const addChildrenReplies = (children: Generic.Node[]) => {
+                            for(const child_replies of children) addChildReplies(child_replies);
+                        };
+                        const addChildReplies = (child_replies: Generic.Node) => {
+                            if(child_replies.kind === "load_more") {
+                                const lmbtn = loadMoreButton(client, child_replies, addChildrenReplies, () => lmbtn.remove());
+                                lmbtn.adto(rdiv);
+                                return;
+                            }
+                            clientContent(client, child_replies).defer(rhsc).adto(rdiv);
+                        };
+                        addChildrenReplies(child.replies);
+                    }
+                });
             }
         };
         addChildren(listing.body.items);

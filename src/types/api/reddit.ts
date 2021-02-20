@@ -30,7 +30,6 @@ export type InboxMsg = {
         first_message_name: null,
         subreddit: string | null,
         likes: true | false | null,
-        replies: "",
         author_fullname: string,
         id: string,
         subject: string,
@@ -50,6 +49,14 @@ export type InboxMsg = {
         created_utc: Date.Sec,
         context: string | "", // link to context | empty string
         distinguished: null | "gold-auto" | "unsupported",
+        replies: "" | {
+            kind: "Listing",
+            data: {
+                after: null,
+                before: null,
+                children: InboxMsg[],
+            },
+        },
     },
 } | {
     kind: "unsupported",

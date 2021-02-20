@@ -1203,11 +1203,12 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                 page_mut = {kind: "unknown"};
             }
         }
-        // note, normally on user pages show these tabs:
-        // overview /, comments /comments, submitted /submitted, gilded /gilded, upvoted /upvoted, downvoted /downvoted, hidden /hidden, saved /saved
-        // when viewing a user subreddit (eg /u/…/hot), show subreddit tabs instead
 
         const page = page_mut;
+
+        // TODO for /message/messages/…, a "one" should be returned rather than a "listing"
+        // - parents: starting message..permalinked message
+        // - replies: permalinked message + 1..
 
         return {
             title: path,
@@ -1373,6 +1374,48 @@ const getPointsOn = (listing: {
     };
 };
 
+function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
+    if(inbox_msg.kind === "t1" || inbox_msg.kind === "t4") {
+        const msg = inbox_msg.data;
+        return {
+            kind: "thread",
+            info: {
+                time: msg.created_utc * 1000,
+                edited: false,
+                author: {
+                    name: "u/"+msg.author,
+                    color_hash: msg.author,
+                    link: "/u/"+msg.author,
+                },
+                pinned: false,
+            },
+            body: {kind: "text", content: msg.body, markdown_format: "reddit"},
+            display_mode: {body: "visible", comments: "collapsed"},
+            link: msg.context,
+            layout: "reddit-comment",
+            default_collapsed: false,
+            actions: [
+                ...inbox_msg.kind === "t1" ? [getPointsOn(msg)] : [],
+                ...msg.context ? [{kind: "link", url: msg.context, text: "Context"} as const] : [],
+                ...inbox_msg.kind === "t4" ? [{kind: "link", url: "/message/messages/"+msg.id, text: "Permalink"} as const] : [],
+                // TODO Full Comments (:num_comments)
+                // TODO mark unread
+            ],
+            raw_value: inbox_msg,
+        };
+    }
+    return {
+        kind: "thread",
+        body: {kind: "richtext", content: [rt.p(rt.error("Unsupported "+inbox_msg.kind, inbox_msg))]},
+        display_mode: {body: "visible", comments: "collapsed"},
+        layout: "error",
+        default_collapsed: false,
+        actions: [],
+        raw_value: inbox_msg,
+        link: "no",
+    };
+}
+
 const topLevelThreadFromInboxMsg = (inbox_msg: Reddit.InboxMsg): Generic.UnmountedNode => {
     if(inbox_msg.kind === "t1" || inbox_msg.kind === "t4") {
         const msg = inbox_msg.data;
@@ -1391,33 +1434,11 @@ const topLevelThreadFromInboxMsg = (inbox_msg: Reddit.InboxMsg): Generic.Unmount
                 
                 // :: if parent id starts with t1_ && is t1 msg
                 // add a load more button in to get the parent
-            }, {
-                kind: "thread",
-                info: {
-                    time: msg.created_utc * 1000,
-                    edited: false,
-                    author: {
-                        name: "u/"+msg.author,
-                        color_hash: msg.author,
-                        link: "/u/"+msg.author,
-                    },
-                    pinned: false,
-                },
-                body: {kind: "text", content: msg.body, markdown_format: "reddit"},
-                display_mode: {body: "visible", comments: "collapsed"},
-                link: msg.context,
-                layout: "reddit-comment",
-                default_collapsed: false,
-                actions: [
-                    ...inbox_msg.kind === "t1" ? [getPointsOn(msg)] : [],
-                    ...msg.context ? [{kind: "link", url: msg.context, text: "Context"} as const] : [],
-                    ...inbox_msg.kind === "t4" ? [{kind: "link", url: "/message/messages/"+msg.id, text: "Permalink"} as const] : [],
-                    // TODO Full Comments (:num_comments)
-                    // TODO mark unread
-                ],
-                raw_value: inbox_msg,
-            }],
-            replies: [],
+            }, threadFromInboxMsg(inbox_msg)],
+            replies: typeof msg.replies === "object"
+                ? msg.replies.data.children.map(child => threadFromInboxMsg(child))
+                : []
+            ,
         };
     }
     return {
