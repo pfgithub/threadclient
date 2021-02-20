@@ -925,13 +925,15 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     parents: [{kind: "thread",
                         body: {kind: "richtext", content: [
                             rt.h1(rt.txt("User List")),
-                            rt.ul(...listing.data.children.map(child => rt.li(rt.p(
-                                rt.link("/u/"+child.name, {is_user_link: child.name}, rt.txt("u/"+child.name)),
-                                ...flairToGenericFlair({
-                                    type: "text", text: child.author_flair_text, text_color: null,
-                                    background_color: "", richtext: null, // weird these are missing here
-                                }).flatMap(flair => [rt.txt(" "), rt.flair(flair)]),
-                            )))),
+                            rt.table([
+                                rt.th("left", rt.txt("Username")),
+                                rt.th("left", rt.txt("Added")),
+                                rt.th("left", rt.txt("Perms")),
+                            ], ...listing.data.children.map(child => [
+                                rt.td(rt.link("/u/"+child.name, {is_user_link: child.name}, rt.txt("u/"+child.name))),
+                                rt.td(rt.timeAgo(child.date * 1000)),
+                                rt.td(...child.mod_permissions.flatMap((modperm, i) => [...i !== 0 ? [rt.txt(", ")] : [], rt.txt(modperm)])),
+                            ])),
                         ]},
                         display_mode: {body: "visible", comments: "visible"},
                         raw_value: listing,

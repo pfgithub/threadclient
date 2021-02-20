@@ -88,6 +88,9 @@ export declare namespace Richtext {
         kind: "flair",
         flair: Flair,
     } | {
+        kind: "time-ago",
+        start: number,
+    } | {
         kind: "error",
         text: string,
         value: unknown,
@@ -475,4 +478,8 @@ export const rt = {
     error: (text: string, value: unknown): Richtext.Span => ({kind: "error", text, value}),
     br: (): Richtext.Span => ({kind: "br"}),
     flair: (flair: Flair): Richtext.Span => ({kind: "flair", flair}),
+    table: (headings: Richtext.TableHeading[], ...rows: Richtext.TableItem[][]): Richtext.Paragraph => ({kind: "table", headings, children: rows}),
+    th: (align: "left" | "center" | "right", ...content: Richtext.Span[]): Richtext.TableHeading => ({align, children: content}),
+    td: (...content: Richtext.Span[]): Richtext.TableItem => ({children: content}),
+    timeAgo: (time: number): Richtext.Span => ({kind: "time-ago", start: time}),
 };

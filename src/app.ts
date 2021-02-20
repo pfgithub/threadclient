@@ -880,6 +880,9 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
         case "flair": {
             renderFlair([rts.flair]).adto(container);
         } break;
+        case "time-ago": {
+            timeAgo(rts.start).defer(hsc).adto(container);
+        } break;
         default: assertNever(rts);
     }
 

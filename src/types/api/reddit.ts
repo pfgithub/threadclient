@@ -38,7 +38,7 @@ export type UserList = {
             name: string,
             author_flair_text: string,
             author_flair_css_class: null,
-            date: number,
+            date: Date.Sec,
             rel_id: string,
             id: string,
             mod_permissions: ModPerm[],
