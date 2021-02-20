@@ -1985,9 +1985,61 @@ const userLink = (client_id: string, href: string, name: string) => {
     ;
 };
 
+export type Watchable<T> = {
+    value: T,
+    watch: (update: () => void) => HideShowCleanup<undefined>,
+};
+export function watchable<T>(initial: T): Watchable<T> {
+    let c_val = initial;
+    const watchers: (() => void)[] = [];
+    return {
+        get value() {
+            return c_val;
+        },
+        set value(nv: T) {
+            c_val = nv;
+            watchers.forEach(w => w());
+        },
+        watch(update: () => void): HideShowCleanup<undefined> {
+            const hsc = hideshow();
+            const wcb = () => {update()};
+            watchers.push(wcb);
+            hsc.on("cleanup", () => watchers.splice(watchers.indexOf(wcb), 1));
+            return hsc;
+        },
+    };
+}
+
+// state x = 25;
+// const y = x / 5;
+// →
+// const x = watchable(25);
+// const y = watchWith([x], () => x / 5).defer(hsc);
+export function watchWith<T>(dependencies: Watchable<unknown>[], value: () => T): HideShowCleanup<Watchable<T>> {
+    const nwable = watchable(value());
+    const hsc = hideshow(nwable);
+
+    for(const dependnc of dependencies) {
+        dependnc.watch(() => nwable.value = value()).defer(hsc);
+    }
+
+    return hsc;
+}
+export function watchNode<Node>(dependencies: Watchable<unknown>[], node: Node, update: (node: Node) => void): HideShowCleanup<Node> {
+    const hsc = hideshow(node);
+
+    for(const dependnc of dependencies) {
+        dependnc.watch(() => update(node)).defer(hsc);
+    }
+    update(node);
+
+    return hsc;
+}
+
 function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<HTMLElement> {
     const menu_area = el("div");
     const hsc = hideshow(menu_area);
+    const menu_this_line = el("div").adto(menu_area);
     const renderSubmenu = (items: Generic.MenuItem[]): HTMLElement => {
         const smdiv = el("div");
         for(const item of items) {
@@ -1998,10 +2050,32 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
                     e.preventDefault();
                     alert("TODO submenus");
                 }).adto(smdiv);
+            }else if(item.action.kind === "show-line-two") {
+                elButton("none").adto(smdiv).atxt(item.text).onev("click", e => {
+                    e.preventDefault();
+                    alert("TODO submenu show-line-two");
+                }).adto(smdiv);
             }else assertNever(item.action);
         }
         return smdiv;
     };
+
+    let menu_l2: HideShowCleanup<HTMLElement> | undefined;
+
+    hsc.on("cleanup", () => {
+        if(menu_l2) {menu_l2.cleanup(); menu_l2 = undefined}
+    });
+
+
+    const selected_item = watchable(menu.find(it => it.selected));
+
+    selected_item.watch(() => {
+        if(menu_l2) {
+            menu_l2.cleanup();
+            menu_l2.associated_data.remove();
+            menu_l2 = undefined;
+        }
+    });
     for(const item of menu) {
         // const classv = [
         //     "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
@@ -2012,9 +2086,12 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
             let open = false;
             let submenu_v: HTMLElement | undefined;
             const subitems = item.action.children;
+
+            watchNode([selected_item], 0, () => {
+                btnel.setAttribute("class", menuButtonStyle(item === selected_item.value));
+            }).defer(hsc);
             
             const update = () => {
-                btnel.setAttribute("class", menuButtonStyle(item.selected || open));
                 arrowv.nodeValue = open ? "▴" : "▾";
                 if(open) {
                     if(!submenu_v) submenu_v = renderSubmenu(subitems).clss(
@@ -2024,7 +2101,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
                     if(submenu_v) {submenu_v.remove(); submenu_v = undefined}
                 }
             };
-            const itcontainer = el("span").adto(menu_area).clss("relative");
+            const itcontainer = el("span").adto(menu_this_line).clss("relative");
             const documentEventListener = (e: MouseEvent) => {
                 if(open) {
                     console.log("Got event: ", e.target);
@@ -2048,9 +2125,28 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
             });
             update();
         }else if(item.action.kind === "link") {
-            linkButton(client.id, item.action.url, "none").clss(menuButtonStyle(item.selected)).atxt(item.text).adto(menu_area);
+            const lbtn = linkButton(client.id, item.action.url, "none").atxt(item.text).adto(menu_this_line);
+
+            watchNode([selected_item], 0, () => {
+                lbtn.setAttribute("class", menuButtonStyle(item === selected_item.value));
+            }).defer(hsc);
+        }else if(item.action.kind === "show-line-two") {
+            const action = item.action;
+            const l2btn = elButton("none").atxt(item.text).adto(menu_this_line);
+            watchNode([selected_item], 0, () => {
+                l2btn.setAttribute("class", menuButtonStyle(item === selected_item.value));
+
+                if(item === selected_item.value) {
+                    if(menu_l2) throw new Error("already existing menu_l2");
+                    menu_l2 = renderMenu(client, action.children);
+                    menu_l2.associated_data.clss("mt-2").adto(menu_area);
+                }
+            }).defer(hsc);
+            l2btn.onev("click", () => {
+                selected_item.value = item;
+            });
         }else assertNever(item.action);
-        txt(" ").adto(menu_area);
+        txt(" ").adto(menu_this_line);
     }
     return hsc;
 }

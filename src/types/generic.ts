@@ -310,15 +310,18 @@ export type RedditHeader = {
     raw_value: unknown,
 };
 
-export type Menu = TopLevelMenuItem[];
-export type TopLevelMenuItem = MenuItem & {selected: boolean};
+export type Menu = MenuItem[];
 export type MenuItem = {
     text: string,
+    selected: boolean,
     action: {
         kind: "link",
         url: string,
     } | {
         kind: "menu",
+        children: MenuItem[],
+    } | {
+        kind: "show-line-two",
         children: MenuItem[],
     },
 };

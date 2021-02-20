@@ -648,7 +648,7 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     // subreddit icon, name, link
     // subscribe button
 
-    const res_menu: Generic.TopLevelMenuItem[] = [
+    const res_menu: Generic.MenuItem[] = [
         {text: "Posts", action: {kind: "link", url: "/r/"+subinfo.subreddit}, selected: true}
     ];
 
@@ -673,9 +673,11 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
         const redditMenuToMenu = (data_item: Reddit.TopLevelMenuItem): Generic.MenuItem => {
             if('children' in data_item) return {
                 text: data_item.text,
+                selected: false,
                 action: {kind: "menu", children: data_item.children.map(redditMenuToMenu)},
             }; else if('url' in data_item) return {
                 text: data_item.text,
+                selected: false,
                 action: {kind: "link", url: data_item.url}
             };
             assertNever(data_item); // expectNever could be better
@@ -876,7 +878,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     ] : ([
                         ["confidence", "Best"], ["top", "Top"], ["new", "New"], ["controversial", "Controversial"],
                         ["old", "Old"], ["random", "Random"], ["qa", "Q&A"], ["live", "Live"],
-                    ] as const).map(([sortname, sorttext]): Generic.TopLevelMenuItem => ({
+                    ] as const).map(([sortname, sorttext]): Generic.MenuItem => ({
                         selected: sort_v === sortname,
                         text: sorttext,
                         action: {kind: "link", url: updateQuery(path, {sort: sortname === "confidence" ? undefined : sortname})},
@@ -1036,8 +1038,11 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
 
         const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
         const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
-        const user_all_tabs = [
+        const user_sorted_tabs_named = [
             ["overview", "Overview"], ["comments", "Comments"], ["submitted", "Submitted"],
+            // ["gilded", "Gilded"],
+        ] as const;
+        const user_sortless_tabs_named = [
             ["upvoted", "Upvoted"], ["downvoted", "Downvoted"], ["hidden", "Hidden"],
             ["saved", "Saved"],
         ] as const;
@@ -1177,20 +1182,55 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     selected: menu_kind.current_sort.v === "rising",
                     text: "Rising",
                     action: {kind: "link", url: "/"+[...menu_kind.base, "rising"].join("/")},
-                }, ...[["top", "Top"] as const, ["controversial", "Controversial"] as const].map(([url, text]): Generic.TopLevelMenuItem => ({
+                }, ...[["top", "Top"] as const, ["controversial", "Controversial"] as const].map(([url, text]): Generic.MenuItem => ({
                     selected: menu_kind.current_sort.v === url,
                     text: menu_kind.current_sort.v === url ? (text + " ("+menu_kind.current_sort.t+")") : text,
                     action: {kind: "menu", children: ([
                         ["hour", "Hour"], ["day", "Day"], ["week", "Week"], ["month", "Month"], ["year", "Year"], ["all", "All Time"]
-                    ] as const).map(([time, time_text]) => ({
-                        text: time_text, action: {kind: "link", url: "/"+[...menu_kind.base, url].join("/")+"?t="+time},
+                    ] as const).map(([time, time_text]): Generic.MenuItem => ({
+                        text: time_text,
+                        selected: menu_kind.current_sort.v === url && menu_kind.current_sort.t === time,
+                        action: {kind: "link", url: "/"+[...menu_kind.base, url].join("/")+"?t="+time},
                     }))},
-                }))] : menu_kind.kind === "user" ? user_all_tabs.map(([tab, tabname]) => ({
+                }))] : menu_kind.kind === "user" ? [...user_sorted_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
                     // huh this needs two menus
                     selected: menu_kind.current.tab === tab,
                     text: tabname,
-                    action: {kind: "link", url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
-                })) : menu_kind.kind === "unknown" ? [
+                    action: {kind: "show-line-two", children: [
+                        {
+                            selected: menu_kind.current.tab === tab && menu_kind.current.sort.sort === "hot",
+                            text: "Hot",
+                            action: {kind: "link", url: updateQuery("/"+[...menu_kind.base, tab].join("/"), {sort: "hot"})},
+                        },
+                        {
+                            selected: menu_kind.current.tab === tab && menu_kind.current.sort.sort === "new",
+                            text: "New",
+                            action: {kind: "link", url: updateQuery("/"+[...menu_kind.base, tab].join("/"), {sort: "new"})},
+                        },
+                        {
+                            selected: menu_kind.current.tab === tab && menu_kind.current.sort.sort === "rising",
+                            text: "Rising",
+                            action: {kind: "link", url: updateQuery("/"+[...menu_kind.base, tab].join("/"), {sort: "rising"})},
+                        },
+                    ]}
+                    // action: {kind: "link", url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
+                })), {
+                    selected: menu_kind.current.tab === "gilded",
+                    text: "Gilded",
+                    action: {kind: "show-line-two", children: [{
+                        selected: menu_kind.current.tab === "gilded" && menu_kind.current.mode === "received",
+                        text: "Received",
+                        action: {kind: "link", url: "/"+[...menu_kind.base, "gilded"].join("/")}
+                    }, {
+                        selected: menu_kind.current.tab === "gilded" && menu_kind.current.mode === "given",
+                        text: "Given",
+                        action: {kind: "link", url: "/"+[...menu_kind.base, "gilded", "given"].join("/")}
+                    }]},
+                }, ...user_sortless_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
+                    selected: menu_kind.current.tab === tab,
+                    text: tabname,
+                    action: {kind: "link", url: "/"+[...menu_kind.base, tabname].join("/")},
+                }))] : menu_kind.kind === "unknown" ? [
                     {text: "Error!", selected: false, action: {kind: "link", url: path}},
                 ] : assertNever(menu_kind),
                 header: subredditHeader(extra.subinfo),
