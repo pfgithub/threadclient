@@ -497,7 +497,6 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         },
     }; else if(data.kind === "post-flair") return {
         kind: "widget",
-        // /r/…/?f=flair_name:"…"
         title: data.shortName,
         raw_value: data,
         widget_content: {kind: "list", items: data.order.map((id) => {
@@ -506,7 +505,7 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
             if(flairv.length !== 1) throw new Error("bad flair");
             return {
                 name: {kind: "flair", flair: flairv[0]!},
-                click: {kind: "link", url: "/r/"+subreddit+"/?f=flair_name:\""+encodeURIComponent(val.text)+"\""}
+                click: {kind: "link", url: "/r/"+subreddit+"/search?q=flair:\""+encodeURIComponent(val.text)+"\"&restrict_sr=1"}
             }; // TODO make flairs a component that can be in richtext and make this return a body component rather than a special thing
         })}
     }; else if(data.kind === "custom") return {
