@@ -2,6 +2,7 @@ import { encodeQuery } from "../util";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 import * as Mastodon from "../types/api/mastodon";
+import { rt } from "../types/generic";
 
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
@@ -170,21 +171,6 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
     
 };
 
-const rt = {
-    p: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "paragraph", children: items}),
-    h1: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "heading", level: 1, children: items}),
-    h2: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "heading", level: 2, children: items}),
-    ul: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
-    ol: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
-    li: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list_item", children: items}),
-    blockquote: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "blockquote", children: items}),
-    txt: (text: string, styles: Generic.Richtext.Style = {}): Generic.Richtext.Span => ({kind: "text", text, styles}),
-    link: (url: string, ...children: Generic.Richtext.Span[]): Generic.Richtext.Span => ({kind: "link", url, children}),
-    pre: (text: string): Generic.Richtext.Paragraph => ({kind: "code_block", text}),
-    error: (text: string, value: unknown): Generic.Richtext.Span => ({kind: "error", text, value}),
-    br: (): Generic.Richtext.Span => ({kind: "br"}),
-};
-
 type GenMeta = {
     host: string,
     emojis: Map<string, Mastodon.Emoji>,
@@ -273,7 +259,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
                 eatClass("mention");
                 const content = Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles));
                 if(content.length !== 2 || content[1]?.kind !== "text") return [rt.error("bad hashtag", content)];
-                return noClasses(rt.link("/"+meta.host+"/timelines/tag/"+content[1].text,
+                return noClasses(rt.link("/"+meta.host+"/timelines/tag/"+content[1].text, {},
                     ...content,
                 ));
             }
@@ -289,7 +275,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
                 }
             }
 
-            return noClasses(rt.link(href_v,
+            return noClasses(rt.link(href_v, {},
                 ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
             ));
         }
@@ -378,7 +364,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                     close_time: new Date(post.poll.expires_at).getTime(),
                 } : undefined,
                 post.card ? {
-                    kind: "link-preview",
+                    kind: "link_preview",
                     thumb: post.card.image ?? undefined,
                     click: post.card.embed_url ? {
                         kind: "unknown_size_image",
@@ -664,9 +650,9 @@ export const client: ThreadClient = {
                         "/koyu.space",
                         "/mas.to",
                         "/democracy.town",
-                    ].map(url => rt.li(rt.p(rt.link(url, rt.txt("/mastodon"+url)))))),
+                    ].map(url => rt.li(rt.p(rt.link(url, {}, rt.txt("/mastodon"+url)))))),
                     rt.p(rt.txt("Find instances:")),
-                    rt.p(rt.link("https://joinmastodon.org", rt.txt("joinmastodon.org"))),
+                    rt.p(rt.link("https://joinmastodon.org", {}, rt.txt("joinmastodon.org"))),
                 ],
             });
         }
@@ -682,7 +668,7 @@ export const client: ThreadClient = {
                     rt.ul(...([
                         ["/"+host+"/timelines/public", "Federated Timeline"],
                         ["/"+host+"/timelines/local", "Local Timeline"],
-                    ] as const).map(([url, text]) => rt.li(rt.p(rt.link(url, rt.txt(text)))))),
+                    ] as const).map(([url, text]) => rt.li(rt.p(rt.link(url, {}, rt.txt(text)))))),
                 ],
             });
         }

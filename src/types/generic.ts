@@ -71,13 +71,11 @@ export declare namespace Richtext {
         kind: "text",
         text: string,
         styles: Style,
-    } | {
+    } | ({
         kind: "link",
-        is_user_link?: string,
         url: string,
-        title?: string,
         children: Span[],
-    } | {
+    } & LinkOpts) | {
         kind: "br",
     } | {
         kind: "spoiler",
@@ -86,6 +84,9 @@ export declare namespace Richtext {
         kind: "emoji",
         url: string,
         hover: string,
+    } | {
+        kind: "flair",
+        flair: Flair,
     } | {
         kind: "error",
         text: string,
@@ -98,6 +99,12 @@ export declare namespace Richtext {
     export type TableItem = {
         children: Span[],
     };
+    export type LinkOpts = {
+        is_user_link?: string,
+        title?: string,
+        style?: LinkStyle,
+    };
+    export type LinkStyle = "link" | "pill-empty";
 }
 export type RichText = {
     kind: "richtext",
@@ -181,7 +188,7 @@ export type Body = BodyText | RichText | {
     kind: "array",
     body: (Body | undefined)[],
 } | {
-    kind: "link-preview",
+    kind: "link_preview",
     thumb?: string, // thumbnail url
     click: Body,
     title: string,
@@ -450,4 +457,22 @@ export type ReportAction = {
 export type SentReport = {
     title: string,
     body: Body,
+};
+
+
+
+export const rt = {
+    p: (...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "paragraph", children: items}),
+    h1: (...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "heading", level: 1, children: items}),
+    h2: (...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "heading", level: 2, children: items}),
+    ul: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
+    ol: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
+    li: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list_item", children: items}),
+    blockquote: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "blockquote", children: items}),
+    txt: (text: string, styles: Richtext.Style = {}): Richtext.Span => ({kind: "text", text, styles}),
+    link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => ({kind: "link", url, children, ...opts}),
+    pre: (text: string): Richtext.Paragraph => ({kind: "code_block", text}),
+    error: (text: string, value: unknown): Richtext.Span => ({kind: "error", text, value}),
+    br: (): Richtext.Span => ({kind: "br"}),
+    flair: (flair: Flair): Richtext.Span => ({kind: "flair", flair}),
 };

@@ -2,16 +2,23 @@ import * as Reddit from "../types/api/reddit";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 import { encodeQuery, encodeURL } from "../util";
+import { rt } from "../types/generic";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
 
-function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: string | null,
-    text_color: "light" | "dark" | null, background_color: string | null, flair: Reddit.RichtextFlair | undefined,
+function flairToGenericFlair(
+    opts: {
+        type: Reddit.FlairBits.Type,
+        text: Reddit.FlairBits.Text,
+        text_color: Reddit.FlairBits.TextColor,
+        background_color: Reddit.FlairBits.BackgroundColor,
+        richtext: Reddit.FlairBits.Richtext,
+    },
 ): Generic.Flair[] {
-    if(type == null) return []; // deleted comments
-    if(type === "text" && (text == null || text === "")) return [];
-    const elems: Generic.RichTextItem[] = type === "richtext" ? (flair ?? []).map(v => {
+    if(opts.type == null) return []; // deleted comments
+    if(opts.type === "text" && (opts.text == null || opts.text === "")) return [];
+    const elems: Generic.RichTextItem[] = opts.type === "richtext" ? (opts.richtext ?? []).map(v => {
         if(v.e === "text") {
             return {type: "text", text: v.t};
         }else if(v.e === "emoji") {
@@ -19,11 +26,11 @@ function flairToGenericFlair(type: "text" | "richtext" | "unsupported", text: st
         }
         expectUnsupported(v.e);
         return {type: "text", text: "#TODO("+v.e+")"};
-    }) : type === "text" ? [{type: "text", text: text!}] : [{type: "text", text: "TODO: "+type}];
+    }) : opts.type === "text" ? [{type: "text", text: opts.text!}] : [{type: "text", text: "TODO: "+opts.type}];
     const flair_text = elems.map(v => v.type === "text" ? v.text : "").join("");
     return [{
-        color: background_color ?? undefined,
-        fg_color: text_color === "light" ? "light" : "dark",
+        color: opts.background_color ?? undefined,
+        fg_color: opts.text_color === "light" ? "light" : "dark",
         elems,
         content_warning: flair_text.toLowerCase().startsWith("cw:") || flair_text.toLowerCase().startsWith("tw:")
     }];
@@ -410,28 +417,29 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
         };
     }
 };
+
 const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string): Generic.ContentNode => {
     if(data.kind === "moderators") return {
         kind: "widget",
         title: "Moderators",
         raw_value: data,
         widget_content: {
-            kind: "list",
-            items: data.mods.map(moderator => ({
-                name: {kind: "username", username: moderator.name},
-                click: {kind: "link", url: "/u/"+moderator.name},
-            })),
+            kind: "body",
+            body: {
+                kind: "richtext",
+                content: [
+                    rt.p(rt.link("/message/compose?to=/r/"+subreddit, {style: "pill-empty"}, rt.txt("Message the mods"))),
+                    rt.ul(...data.mods.map(mod => rt.li(rt.p(
+                        rt.link("/u/"+mod.name, {is_user_link: mod.name}, rt.txt("u/"+mod.name)),
+                        ...flairToGenericFlair({
+                            type: mod.authorFlairType, text: mod.authorFlairText, text_color: mod.authorFlairTextColor,
+                            background_color: mod.authorFlairBackgroundColor, richtext: mod.authorFlairRichText,
+                        }).flatMap(flair => [rt.txt(" "), rt.flair(flair)]),
+                    )))),
+                    rt.p(rt.link("/r/"+subreddit+"/about/moderators", {}, rt.txt("View All Moderators"))),
+                ],
+            },
         },
-        actions_top: [{
-            kind: "link",
-            url: "/message/compose?to="+subreddit,
-            text: "Message the mods",
-        }],
-        actions_bottom: [{
-            kind: "link",
-            url: "/r/"+subreddit+"/about/moderators",
-            text: "View All Moderators",
-        }],
     }; else if(data.kind === "community-list") return {
         kind: "widget",
         title: data.shortName,
@@ -501,11 +509,14 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         raw_value: data,
         widget_content: {kind: "list", items: data.order.map((id) => {
             const val = data.templates[id]!;
-            const flairv = flairToGenericFlair(val.type, val.text, val.textColor, val.backgroundColor, val.richtext);
+            const flairv = flairToGenericFlair({
+                type: val.type, text: val.text, text_color: val.textColor,
+                background_color: val.backgroundColor, richtext: val.richtext,
+            });
             if(flairv.length !== 1) throw new Error("bad flair");
             return {
                 name: {kind: "flair", flair: flairv[0]!},
-                click: {kind: "link", url: "/r/"+subreddit+"/search?q=flair:\""+encodeURIComponent(val.text)+"\"&restrict_sr=1"}
+                click: {kind: "link", url: "/r/"+subreddit+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1"}
             }; // TODO make flairs a component that can be in richtext and make this return a body component rather than a special thing
         })}
     }; else if(data.kind === "custom") return {
@@ -904,31 +915,63 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
             display_style: "comments-view",
         };
     }
-    if(!('data' in listing) || listing.kind !== "Listing") {
-        return pathFromListingRaw(path, listing, extra);
+    if(listing.kind === "UserList") {
+        return {
+            title: path,
+            navbar: getNavbar(),
+            body: {
+                kind: "one",
+                item: {
+                    parents: [{kind: "thread",
+                        body: {kind: "richtext", content: [
+                            rt.h1(rt.txt("User List")),
+                            rt.ul(...listing.data.children.map(child => rt.li(rt.p(
+                                rt.link("/u/"+child.name, {is_user_link: child.name}, rt.txt("u/"+child.name)),
+                                ...flairToGenericFlair({
+                                    type: "text", text: child.author_flair_text, text_color: null,
+                                    background_color: "", richtext: null, // weird these are missing here
+                                }).flatMap(flair => [rt.txt(" "), rt.flair(flair)]),
+                            )))),
+                        ]},
+                        display_mode: {body: "visible", comments: "visible"},
+                        raw_value: listing,
+                        layout: "reddit-post",
+                        link: path,
+                        actions: [],
+                        default_collapsed: false,
+                    }],
+                    replies: [],
+                },
+            },
+            ...makeSidebar(extra, "sidebar"),
+            display_style: "comments-view",
+        };
     }
-    
-    if(listing.data.before != null){
-        // TODO
-    }
-    let next: Generic.LoadMoreUnmounted | undefined;
-    if(listing.data.after != null) {
-        const next_path = updateQuery(path, {before: undefined, after: listing.data.after});
-        next = {kind: "load_more_unmounted", load_more_unmounted: load_more_unmounted_encoder.encode({kind: "listing", url: next_path}), url: next_path, count: undefined, raw_value: listing};
-    }
+    if(listing.kind === "Listing") {
+        if(listing.data.before != null){
+            // TODO
+        }
+        let next: Generic.LoadMoreUnmounted | undefined;
+        if(listing.data.after != null) {
+            const next_path = updateQuery(path, {before: undefined, after: listing.data.after});
+            next = {kind: "load_more_unmounted", load_more_unmounted: load_more_unmounted_encoder.encode({kind: "listing", url: next_path}), url: next_path, count: undefined, raw_value: listing};
+        }
 
-    return {
-        title: path,
-        navbar: getNavbar(),
-        body: {
-            kind: "listing",
-            header: subredditHeader(extra.subinfo),
-            items: listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: path, sort: "unsupported"})),
-            next,
-        },
-        ...makeSidebar(extra, "sidebar"),
-        display_style: "fullscreen-view",
-    };
+        return {
+            title: path,
+            navbar: getNavbar(),
+            body: {
+                kind: "listing",
+                header: subredditHeader(extra.subinfo),
+                items: listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: path, sort: "unsupported"})),
+                next,
+            },
+            ...makeSidebar(extra, "sidebar"),
+            display_style: "fullscreen-view",
+        };
+    }
+    expectUnsupported(listing.kind);
+    return pathFromListingRaw(path, listing, extra);
 };
 
 type LoadMoreUnmountedData = {
@@ -1149,10 +1192,12 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     name: listing.author,
                     link: "/u/"+listing.author,
                     flair: [
-                        ...flairToGenericFlair(listing.author_flair_type, listing.author_flair_text,
-                            listing.author_flair_text_color, listing.author_flair_background_color,
-                            listing.author_flair_richtext
-                        ),
+                        ...flairToGenericFlair({
+                            type: listing.author_flair_type, text: listing.author_flair_text,
+                            text_color: listing.author_flair_text_color,
+                            background_color: listing.author_flair_background_color,
+                            richtext: listing.author_flair_richtext,
+                        }),
                         ...awardingsToFlair(listing.all_awardings ?? []),
                     ],
                 },
@@ -1308,9 +1353,12 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 text: listing.title,
             },
             flair: [
-                ...flairToGenericFlair(listing.link_flair_type, listing.link_flair_text, listing.link_flair_text_color,
-                    listing.link_flair_background_color, listing.link_flair_richtext
-                ),
+                ...flairToGenericFlair({
+                    type: listing.link_flair_type, text: listing.link_flair_text,
+                    text_color: listing.link_flair_text_color,
+                    background_color: listing.link_flair_background_color,
+                    richtext: listing.link_flair_richtext,
+                }),
                 ...extra_flairs,
                 ...awardingsToFlair(listing.all_awardings ?? []),
             ],
@@ -1354,7 +1402,12 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     name: listing.author,
                     color_hash: listing.author,
                     link: "/u/"+listing.author,
-                    flair: flairToGenericFlair(listing.author_flair_type, listing.author_flair_text, listing.author_flair_text_color, listing.author_flair_background_color, listing.author_flair_richtext),
+                    flair: flairToGenericFlair({
+                        type: listing.author_flair_type, text: listing.author_flair_text,
+                        text_color: listing.author_flair_text_color,
+                        background_color: listing.author_flair_background_color,
+                        richtext: listing.author_flair_richtext,
+                    }),
                 },
                 in: {
                     link: "/"+listing.subreddit_name_prefixed,

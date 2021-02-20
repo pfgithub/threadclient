@@ -5,7 +5,9 @@ export type AccessToken =
     | {error: false, access_token: string, refresh_token: string, expires_in: number, scope: string}
 ;
 
-export type AnyResult = Page | Listing | WikiPage | T5;
+export type AnyResult = Page | Listing | WikiPage | UserList | T5 | UnsupportedResult;
+
+export type UnsupportedResult = {kind: "unsupported"};
 
 export type WikiPage = {
     kind: "wikipage",
@@ -20,6 +22,30 @@ export type WikiPage = {
         revision_id: string,
     },
 };
+
+export declare namespace FlairBits {
+    export type Richtext = RichtextFlair | null;
+    export type Type = "text" | "richtext" | "unsupported";
+    export type Text = string | null;
+    export type TextColor = "light" | "dark" | null;
+    export type BackgroundColor = string | null;
+}
+
+export type UserList = {
+    kind: "UserList", // very consistent naming capitalization here. t1…t5 wikipage Listing UserList
+    data: {
+        children: {
+            name: string,
+            author_flair_text: string,
+            author_flair_css_class: null,
+            date: number,
+            rel_id: string,
+            id: string,
+            mod_permissions: ModPerm[],
+        }[],
+    },
+};
+type ModPerm = "all" | "wiki" | "mail" | "posts" | "flair" | "access" | "unsupported";
 
 // almost the same as the rules in the rules widget but different capitalization
 export type Rule = {
@@ -107,7 +133,14 @@ export type Widget = {
     },
 } & ({
     kind: "moderators",
-    mods: {name: string}[], // TODO flairs
+    mods: {
+        name: string,
+        authorFlairType: FlairBits.Type,
+        authorFlairTextColor: FlairBits.TextColor,
+        authorFlairText: FlairBits.Text,
+        authorFlairRichText: FlairBits.Richtext,
+        authorFlairBackgroundColor: FlairBits.BackgroundColor,
+    }[],
     totalMods: number,
 } | {
     kind: "id-card",
@@ -168,12 +201,12 @@ export type Widget = {
     shortName: string,
     order: string[], // keys into the templates map
     templates: {[key: string]: {
-        backgroundColor: string,
         templateId: typeof key,
-        textColor: "light" | "dark",
-        text: string,
-        richtext?: RichtextFlair,
-        type: "text" | "richtext" | "unsupported",
+        backgroundColor: FlairBits.BackgroundColor,
+        textColor: FlairBits.TextColor,
+        text: FlairBits.Text,
+        richtext: FlairBits.Richtext,
+        type: FlairBits.Type,
     }},
 } | {
     kind: "custom",
@@ -510,11 +543,11 @@ export type PostOrComment = SimplePostOrComment & {
 
     archived?: boolean,
 
-    author_flair_type: "text" | "richtext" | "unsupported",
-    author_flair_text: string | null,
-    author_flair_richtext?: RichtextFlair,
-    author_flair_background_color: string | null,
-    author_flair_text_color: "light" | "dark" | null,
+    author_flair_type: FlairBits.Type,
+    author_flair_text: FlairBits.Text,
+    author_flair_richtext: FlairBits.Richtext,
+    author_flair_background_color: FlairBits.BackgroundColor,
+    author_flair_text_color: FlairBits.TextColor,
 
     media_metadata?: MediaMetadata,
 
@@ -572,11 +605,11 @@ export type PostSubmission = PostOrComment & {
         enabled: boolean,
     },
     
-    link_flair_type: "text" | "richtext" | "unsupported",
-    link_flair_text: string | null,
-    link_flair_richtext: RichtextFlair,
-    link_flair_background_color: string,
-    link_flair_text_color: "light" | "dark",
+    link_flair_type: FlairBits.Type,
+    link_flair_text: FlairBits.Text,
+    link_flair_richtext: FlairBits.Richtext,
+    link_flair_background_color: FlairBits.BackgroundColor,
+    link_flair_text_color: FlairBits.TextColor,
 
     num_comments: number,
 

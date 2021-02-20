@@ -1,4 +1,5 @@
 import * as Generic from "../types/generic";
+import { rt } from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 
 () => encoderGenerator;
@@ -108,16 +109,6 @@ function collapsibleComment(path: string, body: Generic.Body, opts: {content_war
     return userThread(path, body, {...opts, layout: "reddit-comment"});
 }
 
-const rt = {
-    p: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "paragraph", children: items}),
-    h1: (...items: Generic.Richtext.Span[]): Generic.Richtext.Paragraph => ({kind: "heading", level: 1, children: items}),
-    ul: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
-    ol: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
-    li: (...items: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph => ({kind: "list_item", children: items}),
-    txt: (text: string): Generic.Richtext.Span => ({kind: "text", text, styles: {}}),
-    link: (url: string, ...children: Generic.Richtext.Span[]): Generic.Richtext.Span => ({kind: "link", url, children}),
-};
-
 export const client: ThreadClient = {
     id: "test",
     async getThread(path): Promise<Generic.Page> {
@@ -133,7 +124,7 @@ export const client: ThreadClient = {
             kind: "richtext",
             content: [
                 rt.p(rt.txt(spl.expected_result)),
-                rt.p(rt.link(spl.url, rt.txt(spl.url))),
+                rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
             ],
         }, {content_warning: spl.warn})));
         if(path === "/body-preview") return listingPage(path, richtextPost(path, []), ((): Generic.Thread[] => {
@@ -184,6 +175,7 @@ export const client: ThreadClient = {
                     )
                 ],
                 array: [],
+                link_preview: [],
             };
             return Object.entries(body_kinds).flatMap(([key, items]): ITRes[] => {
                 if(items.length === 0) return [item("ERROR! Missing for "+key, {kind: "none"})];
@@ -201,7 +193,7 @@ export const client: ThreadClient = {
                     "/body-preview",
                     "/link-preview",
                 ].map(v => rt.li(rt.p(
-                    rt.link(v, rt.txt(v)),
+                    rt.link(v, {}, rt.txt(v)),
                 )))),
                 rt.h1(rt.txt("TODO:")),
                 rt.p(rt.txt("Test download pages from clients, for example a real sidebar widget or a real post or a real saved inbox")),

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Node as UntypedNode, createEditor, Editor, Transforms, Text, Path } from "slate";
+import { Node as UntypedNode, createEditor, Editor, Transforms, Path } from "slate";
 import { Slate, Editable, withReact, useSelected, useFocused, useSlate } from "slate-react";
 import {withHistory} from "slate-history";
 

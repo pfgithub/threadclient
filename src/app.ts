@@ -832,18 +832,19 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             mainel.adto(container);
         } break;
         case "link": {
+            let reslink: HTMLElement;
             if(rts.is_user_link != null) {
-                const nodev = userLink(client.id, rts.url, rts.is_user_link).adto(container);
-                if(rts.title != null) nodev.title = rts.title;
-                for(const child of rts.children) {
-                    renderRichtextSpan(client, child, nodev).defer(hsc);
-                }
-            }else{
+                reslink = userLink(client.id, rts.url, rts.is_user_link).adto(container);
+            }else if((rts.style ?? "link") === "link"){
                 const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
-                if(rts.title != null) newbtn.title = rts.title;
-                for(const child of rts.children) {
-                    renderRichtextSpan(client, child, newbtn).defer(hsc);
-                }
+                reslink = newbtn;
+            }else{
+                const mappings: {[key in Generic.Richtext.LinkStyle]: LinkStyle} = {'link': "normal", 'pill-empty': "pill-empty"};
+                reslink = linkButton(client.id, rts.url, mappings[rts.style ?? "link"]).adto(container);
+            }
+            if(rts.title != null) reslink.title = rts.title;
+            for(const child of rts.children) {
+                renderRichtextSpan(client, child, reslink).defer(hsc);
             }
         } break;
         case "br": {
@@ -875,6 +876,9 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
         } break;
         case "emoji": {
             el("img").attr({src: rts.url, title: rts.hover}).clss("w-4 h-4 object-contain inline-block").adto(container);
+        } break;
+        case "flair": {
+            renderFlair([rts.flair]).adto(container);
         } break;
         default: assertNever(rts);
     }
@@ -1075,7 +1079,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         twitchClip(body.slug, {autoplay: opts.autoplay}).defer(hsc).adto(content);
     }else if(body.kind === "reddit_suggested_embed") {
         redditSuggestedEmbed(body.suggested_embed).defer(hsc).adto(content);
-    }else if(body.kind === "link-preview") {
+    }else if(body.kind === "link_preview") {
         // maybe outline with body background and no shadow?
         let button_box: HTMLElement;
         if(body.click_enabled) {
