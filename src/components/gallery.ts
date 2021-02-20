@@ -101,6 +101,12 @@ It's a separate element, as animating opacity is faster than rgba(). -->
             {id: "download", label: "Download image", url: "{{raw_image_url}}", download: true},
         ],
         loop: false,
+        maxSpreadZoom: 4,
+
+        addCaptionHTMLFn(item, caption_el, is_fake) {
+            caption_el.children[0]!.textContent = item.title ?? "";
+            return true;
+        },
     };
     const gallery = new PhotoSwipe(pwspel, PhotoSwipeUI_Default, items, options);
     gallery.init();
