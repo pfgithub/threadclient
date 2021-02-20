@@ -159,6 +159,9 @@ export type Body = BodyText | RichText | {
     kind: "twitch_clip",
     slug: string,
 } | {
+    kind: "oembed",
+    url: string,
+} | {
     kind: "reddit_suggested_embed",
     suggested_embed: string,
 } | {

@@ -3,6 +3,7 @@ import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 import * as Mastodon from "../types/api/mastodon";
 import { rt } from "../types/generic";
+import { oembed } from "./oembed";
 
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
@@ -363,22 +364,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
                     your_votes: (post.poll.own_votes ?? []).map(ov => ({id: "" + ov})),
                     close_time: new Date(post.poll.expires_at).getTime(),
                 } : undefined,
-                post.card ? {
-                    kind: "link_preview",
-                    thumb: post.card.image ?? undefined,
-                    click: post.card.embed_url ? {
-                        kind: "unknown_size_image",
-                        url: post.card.embed_url,
-                    } : {
-                        kind: "link",
-                        url: post.card.url,
-                        embed_html: post.card.html || undefined,
-                    },
-                    click_enabled: !!(post.card.embed_url || post.card.html || false),
-                    title: post.card.title,
-                    description: post.card.description,
-                    url: post.card.url,
-                } : undefined,
+                post.card ? oembed(post.card) : undefined,
             ],
         },
         display_mode: {body: "visible", comments: "visible"},

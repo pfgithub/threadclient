@@ -1,3 +1,5 @@
+import { OEmbed } from "src/clients/oembed";
+
 export type ImageMeta = {
     width: number,
     height: number,
@@ -128,22 +130,6 @@ export type AccountRelation = {
     endorsed: boolean,
     note: string,
 };
-// https://docs.joinmastodon.org/entities/card/
-export type Card = {
-    url: string,
-    title: string,
-    description: string,
-    blurhash: string | null,
-
-    type: "video" | "photo" | "link" | "unsupported",
-
-    image: string | null, // thumbnail
-
-    embed_url: string | "", // {kind: url}
-    html: string | "", // reddit suggested embed
-
-    // more info : author name, provider name, …
-};
 export type Mention = {
     acct: string, // username@instan.ce
     id: string,
@@ -172,6 +158,6 @@ export type Post = {
     mentions: Mention[],
     tags: never[],
     emojis: Emoji[],
-    card: null | Card,
+    card: null | OEmbed,
     poll: null | Poll,
 };

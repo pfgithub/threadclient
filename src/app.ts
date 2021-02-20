@@ -10,6 +10,7 @@ import {ThreadClient} from "./clients/base";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 
 import {escapeHTML} from "./util";
+import { OEmbed, oembed } from "./clients/oembed";
 
 export const htmlr = uhtml.html;
 
@@ -384,6 +385,10 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
             slug: clipid,
         };
     }
+    if(url && url.host === "soundcloud.com") return {
+        kind: "oembed",
+        url: "https://soundcloud.com/oembed?format=json&url="+encodeURIComponent(link),
+    };
     if(opts.suggested_embed != null) return {
         kind: "reddit_suggested_embed",
         suggested_embed: opts.suggested_embed,
@@ -1128,6 +1133,14 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         meta_box.adch(el("h1").clss("max-1-line font-black").atxt(body.title));
         meta_box.adch(el("p").clss("max-2-lines").atxt(body.description));
         meta_box.adch(el("div").clss("max-1-line font-light").atxt(body.url));
+    }else if(body.kind === "oembed") {
+        fetchPromiseThen(fetch(body.url).then(r => r.json()), resp => {
+            console.log("oembed resp", resp);
+            const outerel = el("div");
+            const ihsc = hideshow(outerel);
+            renderBody(client, oembed(resp as OEmbed), {autoplay: false}, outerel);
+            return ihsc;
+        }).defer(hsc).adto(content);
     }else assertNever(body);
 
     return hsc;
@@ -2123,7 +2136,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
             watchNode([selected_item], 0, () => {
                 btnel.setAttribute("class", menuButtonStyle(item === selected_item.value));
             }).defer(hsc);
-            
+
             update();
         }else if(item.action.kind === "link") {
             const lbtn = linkButton(client.id, item.action.url, "none").atxt(item.text).adto(menu_this_line);
