@@ -20,6 +20,7 @@ export type Page = {
 export type UnmountedNode = {
     // [...Node[], ContentNode] // requires a newer version of typescript
     parents: Node[], // might contain load_more. the last item in parents is this_node.
+    sort?: Menu,
     replies: Node[],
 };
 export type BodyText = {
@@ -294,10 +295,11 @@ export type RedditHeader = {
         link_name: string,
     },
     subscribe?: Action,
-    menu?: TopLevelMenuItem[],
+    menu?: Menu,
     raw_value: unknown,
 };
 
+export type Menu = TopLevelMenuItem[];
 export type TopLevelMenuItem = MenuItem & {selected: boolean};
 export type MenuItem = {
     text: string,
