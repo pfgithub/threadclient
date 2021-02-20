@@ -30,17 +30,18 @@ const sample_preview_links: {
     {expected_result: "youtube video", url: "https://youtu.be/JM-NqFX2jU8"},
     {expected_result: "youtube video, starts 30sec in", url: "https://youtube.com/watch?v=JM-NqFX2jU8&t=30"},
     {expected_result: "youtube video, starts 30sec in", url: "https://youtu.be/JM-NqFX2jU8?t=30"},
-    // TODO youtube video (start and end timestamp)
     {expected_result: "(!localhost) single image", url: "https://imgur.com/gallery/HFoOCeg"},
     {expected_result: "(!localhost) image gallery (fullscreenable)", url: "https://imgur.com/gallery/clWTb"},
     {expected_result: "(!localhost) image gallery (fullscreenable)", url: "https://www.imgur.com/a/HJ80Ds9"},
     {expected_result: "video + sound", url: "https://clips.twitch.tv/GlamorousTacitRaccoonWutFace-oMcWnMP8C5xMZhxD"},
+    {expected_result: "soundcloud", url: "https://soundcloud.com/dylanbradyyyyyy/blink-180-prod-dylan-brady-elly-golterman"},
     
     // TODO test error conditions eg : twitch clip with invalid slug
     {expected_result: "error : invalid gfycat gif", url: "https://gfycat.com/QqqqqqqqQqqqqqqQqqq"},
     {expected_result: "error : invalid imgur gallery", url: "https://imgur.com/gallery/qqqq"},
     {expected_result: "error : invalid imgur id", url: "https://www.imgur.com/a/QQQQQq"},
     {expected_result: "error : invalid twitch slug", url: "https://clips.twitch.tv/QqqqqqqqqQqqqqQqqqqqqQqqQqqq-qQqQqQQQQQqQQqqQ"},
+    {expected_result: "error : unpreviwewable soundcloud url", url: "https://developers.soundcloud.com/docs/oembed#introduction"},
 ];
 
 function bodyPage(path: string, body: Generic.Body): Generic.Page {
@@ -176,6 +177,7 @@ export const client: ThreadClient = {
                 ],
                 array: [],
                 link_preview: [],
+                oembed: [],
             };
             return Object.entries(body_kinds).flatMap(([key, items]): ITRes[] => {
                 if(items.length === 0) return [item("ERROR! Missing for "+key, {kind: "none"})];
