@@ -15,6 +15,9 @@ Demo:
     -   imgur albums
     -   gfycat gifs
     -   twitch clips
+-   threadreader displays braille images correctly even if the author of the post formatted them incorrectly
+    (what you see on [old.reddit](https://i.imgur.com/7ZVrqUz.png), [new.reddit](https://i.imgur.com/gFT0dHG.png),
+    [threadreader](https://i.imgur.com/Hxix93m.png))
 
 ## why this instead of new.reddit?
 

@@ -537,16 +537,10 @@ function timeAgoText(start_ms: number): [string, number] {
         return [s(hours, " hours")+" ago", step - (ms - hours * step)];
     }
     step *= next_step;
-    next_step = 7;
+    next_step = 30;
     if(ms < next_step * step) {
         const days = ms / step |0;
         return [s(days, " days")+" ago", step - (ms - days * step)];
-    }
-    step *= next_step;
-    next_step = 3;
-    if(ms < next_step * step) {
-        const weeks = ms / step |0;
-        return [s(weeks, " weeks")+" ago", step - (ms - weeks * step)];
     }
     return [new Date(start_ms).toISOString(), -1];
 }
