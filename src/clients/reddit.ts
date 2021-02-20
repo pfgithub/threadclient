@@ -1008,7 +1008,11 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
 
         const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
         const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
-        const user_all_tabs = [...user_sorted_tabs, "gilded", ...user_sortless_tabs] as const;
+        const user_all_tabs = [
+            ["overview", "Overview"], ["comments", "Comments"], ["submitted", "Submitted"],
+            ["upvoted", "Upvoted"], ["downvoted", "Downvoted"], ["hidden", "Hidden"],
+            ["saved", "Saved"],
+        ] as const;
 
         // note that different tabs should be shown on a user page rather than showing standard
         // subreddit sort buttons. TODO.
@@ -1041,7 +1045,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
             }else{
                 menu_kind_mut = {kind: "unknown"};
             }
-        }else if(pathsplit[0] === "u" && typeof pathsplit[1] === "string") {
+        }else if(pathsplit[0] === "user" && typeof pathsplit[1] === "string") {
             const path2 = pathsplit[2];
             const base = ["u", pathsplit[1]];
 
@@ -1153,10 +1157,10 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     ] as const).map(([time, time_text]) => ({
                         text: time_text, action: {kind: "link", url: "/"+[...menu_kind.base, url].join("/")+"?t="+time},
                     }))},
-                }))] : menu_kind.kind === "user" ? user_all_tabs.map(tab => ({
+                }))] : menu_kind.kind === "user" ? user_all_tabs.map(([tab, tabname]) => ({
                     // huh this needs two menus
                     selected: menu_kind.current.tab === tab,
-                    text: "Overview",
+                    text: tabname,
                     action: {kind: "link", url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
                 })) : menu_kind.kind === "unknown" ? [
                     {text: "Error!", selected: false, action: {kind: "link", url: path}},
