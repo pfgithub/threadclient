@@ -93,6 +93,9 @@ all todo:
         has the same. improve how this is represented in Generic data and improve how it is displayed on the page. currently, {header, replies}
         is how posts exist. instead, change so the top level can have either a listing or a single thread. listings are single_thread[].
         single_thread has {parents: thing[]} which might have a load more on top and {replies: thing[]}
+-   [x] choose how to sort comments
+-   [ ] make it possible for sorting menus to not reload the entire page on click (eg add an option to menu actions no_reload: true that tells
+        the renderer to clear the content area, load, and refill it without clearing any of the frame and without pushing a new history item)
 -   [ ] oembed (eg for youtube and other sites)
 -   [ ] add a settings page where you can enable/disabled `Code` buttons and other developer tools. (hide them by default)
 -   [ ] support hovering on eg user or subreddit links to see a small info card
@@ -111,7 +114,6 @@ all todo:
 -   [ ] websockets eg : reddit live threads and : mastodon timeline streaming
 -   [ ] multiple accounts (eg a url thing like /1/reddit or something idk)
 -   [ ] simplify css to have less `>` selectors and more classes added by js
--   [ ] choose how to sort comments
 -   [ ] fix youtube embeds causing horizontal scrolling on mobile
 -   [ ] improve appearence of very indented comments on mobile
 -   [ ] make the buttons more seperate on mobile - possibly remove all links except for a … link and an upvote link and make the whole post a link like apollo

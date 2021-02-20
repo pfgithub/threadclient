@@ -774,10 +774,10 @@ const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: Page
     };
 };
 export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
-    const [, path_query] = splitURL(path);
-    const path_sort = path_query.get("sort") as Reddit.Sort | null;
+    const [path_path, path_query] = splitURL(path);
     if(extra.display_mode === "raw") return pathFromListingRaw(path, listing, extra);
     if(Array.isArray(listing)) {
+        const path_sort = path_query.get("sort") as Reddit.Sort | null;
         let link_fullname: string | undefined;
         let default_sort: Reddit.Sort | null | undefined = null;
         const firstchild = listing[0].data.children[0]!;
@@ -786,6 +786,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
             default_sort = firstchild.data.suggested_sort;
         }
         const sort_v = path_sort ?? default_sort ?? "confidence";
+        
         const children_root = listing[1].data.children;
         const header_children: Generic.Node[] = [];
         const root0 = children_root[0];
@@ -862,6 +863,14 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                         threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, {permalink: path, sort: "unsupported"}),
                         ...header_children,
                     ],
+                    menu: ([
+                        ["confidence", "Best"], ["top", "Top"], ["new", "New"], ["controversial", "Controversial"],
+                        ["old", "Old"], ["random", "Random"], ["qa", "Q&A"], ["live", "Live"],
+                    ] as const).map(([sortname, sorttext]): Generic.TopLevelMenuItem => ({
+                        selected: sort_v === sortname,
+                        text: sorttext,
+                        action: {kind: "link", url: updateQuery(path, {sort: sortname === "confidence" ? undefined : sortname})},
+                    })),
                     replies,
                 },
             },
@@ -959,11 +968,199 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
             next = {kind: "load_more_unmounted", load_more_unmounted: load_more_unmounted_encoder.encode({kind: "listing", url: next_path}), url: next_path, count: undefined, raw_value: listing};
         }
 
+        const pathsplit = path_path.split("/").filter(q => q);
+        
+        const normal_sorts = ["hot", "new", "rising"] as const;
+        const timed_sorts = ["top", "controversial"] as const;
+
+        type SortTimeless = "hot" | "new" | "rising";
+        type SortTimed = "top" | "controversial";
+        type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
+        type SubredditMenu = {
+            kind: "subreddit",
+            base: string[],
+            current_sort:
+                | {v: SortTimeless}
+                | {v: SortTimed, t: SortTime},
+            is_user_page: boolean, // /u/…/hot. user subreddit pages must have /hot /new /random otherwise they will display the normal user page
+        };
+        let menu_kind_mut: SubredditMenu | {
+            kind: "user",
+            base: string[],
+            current: {
+                tab: "overview" | "comments" | "submitted",
+                sort: {sort: SortTimeless | SortTimeless | "unsupported", t: SortTime},
+                // overview defaults ?sort=new
+                // comments defaults ?sort=new
+                // submitted defaults ?sort=hot
+            } | {
+                tab: "gilded",
+                mode: "received" | "given" | "unsupported",
+                // /gilded/ : received
+                // /gilded/reveived
+                // /gilded/given
+            } | {
+                tab: "upvoted" | "downvoted" | "hidden" | "saved",
+            },
+        } | {
+            kind: "unknown",
+        };
+
+        const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
+        const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
+        const user_all_tabs = [...user_sorted_tabs, "gilded", ...user_sortless_tabs] as const;
+
+        // note that different tabs should be shown on a user page rather than showing standard
+        // subreddit sort buttons. TODO.
+        if(pathsplit[0] === "r" && typeof pathsplit[1] === "string") {
+            const base = ["r", pathsplit[1]];
+            const path2 = pathsplit[2];
+
+            if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
+                menu_kind_mut = {
+                    kind: "subreddit",
+                    base,
+                    current_sort: {v: path2},
+                    is_user_page: false, 
+                };
+            }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
+                const time_t = path_query.get("t") ?? "all";
+                menu_kind_mut = {
+                    kind: "subreddit",
+                    base,
+                    current_sort: {v: path2, t: time_t as "unsupported"},
+                    is_user_page: false,
+                };
+            }else if(path2 == null) {
+                menu_kind_mut = {
+                    kind: "subreddit",
+                    base,
+                    current_sort: {v: "hot"},
+                    is_user_page: false,
+                };
+            }else{
+                menu_kind_mut = {kind: "unknown"};
+            }
+        }else if(pathsplit[0] === "u" && typeof pathsplit[1] === "string") {
+            const path2 = pathsplit[2];
+            const base = ["u", pathsplit[1]];
+
+            if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
+                menu_kind_mut = {
+                    kind: "subreddit",
+                    base,
+                    current_sort: {v: path2},
+                    is_user_page: false, 
+                };
+            }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
+                const time_t = path_query.get("t") ?? "all";
+                menu_kind_mut = {
+                    kind: "subreddit",
+                    base,
+                    current_sort: {v: path2, t: time_t as "unsupported"},
+                    is_user_page: false,
+                };
+            }else if(path2 == null) {
+                menu_kind_mut = {
+                    kind: "user",
+                    base,
+                    current: {tab: "overview", sort: {
+                        sort: (path_query.get("sort") ?? "new") as "unsupported",
+                        t: (path_query.get("t") ?? "all") as "unsupported",
+                    }},
+                };
+            }else if(guardIncludes(user_sorted_tabs, path2) && pathsplit.length === 3) {
+                menu_kind_mut = {
+                    kind: "user",
+                    base,
+                    current: {tab: path2, sort: {
+                        sort: (path_query.get("sort") ?? (path2 === "submitted" ? "hot" : "new")) as "unsupported",
+                        t: (path_query.get("t") ?? "all") as "unsupported",
+                    }},
+                };
+            }else if(guardIncludes(user_sortless_tabs, path2) && pathsplit.length === 3) {
+                menu_kind_mut = {
+                    kind: "user",
+                    base,
+                    current: {tab: path2},
+                };
+            }else if(path2 === "gilded" && (pathsplit.length === 3 || pathsplit.length === 4)) {
+                menu_kind_mut = {
+                    kind: "user",
+                    base,
+                    current: {tab: "gilded", mode: (pathsplit[3] ?? "received") as "unsupported"},
+                };
+            }else{
+                menu_kind_mut = {kind: "unknown"};
+            }
+        }else{
+            const path0 = pathsplit[0];
+            const base: string[] = [];
+            if(guardIncludes(normal_sorts, path0) && pathsplit.length === 1) {
+                menu_kind_mut = {
+                    kind: "subreddit",
+                    base,
+                    current_sort: {v: path0},
+                    is_user_page: false, 
+                };
+            }else if(guardIncludes(timed_sorts, path0) && pathsplit.length === 1) {
+                const time_t = path_query.get("t") ?? "all";
+                menu_kind_mut = {
+                    kind: "subreddit",
+                    base,
+                    current_sort: {v: path0, t: time_t as "unsupported"},
+                    is_user_page: false,
+                };
+            }else if(path0 == null) {
+                menu_kind_mut = {
+                    kind: "subreddit",
+                    base,
+                    current_sort: {v: "hot"},
+                    is_user_page: false,
+                };
+            }else{
+                menu_kind_mut = {kind: "unknown"};
+            }
+        }
+        // note, normally on user pages show these tabs:
+        // overview /, comments /comments, submitted /submitted, gilded /gilded, upvoted /upvoted, downvoted /downvoted, hidden /hidden, saved /saved
+        // when viewing a user subreddit (eg /u/…/hot), show subreddit tabs instead
+
+        const menu_kind = menu_kind_mut;
+
         return {
             title: path,
             navbar: getNavbar(),
             body: {
                 kind: "listing",
+                menu: menu_kind.kind === "subreddit" ? [{
+                    selected: menu_kind.current_sort.v === "hot",
+                    text: "Hot",
+                    action: {kind: "link", url: "/"+[...menu_kind.base, ...menu_kind.is_user_page ? ["hot"] : []].join("/")},
+                }, {
+                    selected: menu_kind.current_sort.v === "new",
+                    text: "New",
+                    action: {kind: "link", url: "/"+[...menu_kind.base, "new"].join("/")},
+                }, {
+                    selected: menu_kind.current_sort.v === "rising",
+                    text: "Rising",
+                    action: {kind: "link", url: "/"+[...menu_kind.base, "rising"].join("/")},
+                }, ...[["top", "Top"] as const, ["controversial", "Controversial"] as const].map(([url, text]): Generic.TopLevelMenuItem => ({
+                    selected: menu_kind.current_sort.v === url,
+                    text: menu_kind.current_sort.v === url ? (text + " ("+menu_kind.current_sort.t+")") : text,
+                    action: {kind: "menu", children: ([
+                        ["hour", "Hour"], ["day", "Day"], ["week", "Week"], ["month", "Month"], ["year", "Year"], ["all", "All Time"]
+                    ] as const).map(([time, time_text]) => ({
+                        text: time_text, action: {kind: "link", url: "/"+[...menu_kind.base, url].join("/")+"?t="+time},
+                    }))},
+                }))] : menu_kind.kind === "user" ? user_all_tabs.map(tab => ({
+                    // huh this needs two menus
+                    selected: menu_kind.current.tab === tab,
+                    text: "Overview",
+                    action: {kind: "link", url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
+                })) : menu_kind.kind === "unknown" ? [
+                    {text: "Error!", selected: false, action: {kind: "link", url: path}},
+                ] : assertNever(menu_kind),
                 header: subredditHeader(extra.subinfo),
                 items: listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: path, sort: "unsupported"})),
                 next,
@@ -975,6 +1172,10 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
     expectUnsupported(listing.kind);
     return pathFromListingRaw(path, listing, extra);
 };
+
+function guardIncludes<Array extends ReadonlyArray<unknown>>(array: Array, search_item: unknown): search_item is Array[number] {
+    return array.includes(search_item as unknown as Array[number]);
+}
 
 type LoadMoreUnmountedData = {
     kind: "listing",

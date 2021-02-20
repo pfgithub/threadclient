@@ -77,6 +77,14 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, 
         yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
     }};
 }
+
+const menuButtonStyle = (active: boolean): string => {
+    return [
+        "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
+        active ? "border-gray-900" : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900"
+    ].join(" ");
+};
+
 function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
     const container = el("div");
     const link = "https://v.redd.it/"+id;
@@ -1977,6 +1985,76 @@ const userLink = (client_id: string, href: string, name: string) => {
     ;
 };
 
+function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<HTMLElement> {
+    const menu_area = el("div");
+    const hsc = hideshow(menu_area);
+    const renderSubmenu = (items: Generic.MenuItem[]): HTMLElement => {
+        const smdiv = el("div");
+        for(const item of items) {
+            if(item.action.kind === "link") {
+                linkButton(client.id, item.action.url, "none").clss("text-gray-600 dark:text-gray-400 hover:text-gray-900").adto(smdiv).atxt(item.text);
+            }else if(item.action.kind === "menu") {
+                elButton("none").adto(smdiv).atxt(item.text + " " + "▸").onev("click", e => {
+                    e.preventDefault();
+                    alert("TODO submenus");
+                }).adto(smdiv);
+            }else assertNever(item.action);
+        }
+        return smdiv;
+    };
+    for(const item of menu) {
+        // const classv = [
+        //     "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
+        //     item.selected ? "border-gray-900" : "border-transparent text-gray-500 dark:text-gray-600 hover:text-gray-900"
+        // ];
+        if(item.action.kind === "menu") {
+            const arrowv = txt("…");
+            let open = false;
+            let submenu_v: HTMLElement | undefined;
+            const subitems = item.action.children;
+            
+            const update = () => {
+                btnel.setAttribute("class", menuButtonStyle(item.selected || open));
+                arrowv.nodeValue = open ? "▴" : "▾";
+                if(open) {
+                    if(!submenu_v) submenu_v = renderSubmenu(subitems).clss(
+                        "absolute top-full left-0 z-index flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
+                    ).adto(itcontainer);
+                }else{
+                    if(submenu_v) {submenu_v.remove(); submenu_v = undefined}
+                }
+            };
+            const itcontainer = el("span").adto(menu_area).clss("relative");
+            const documentEventListener = (e: MouseEvent) => {
+                if(open) {
+                    console.log("Got event: ", e.target);
+                    let parentv: HTMLElement | null = e.target as HTMLElement | null;
+                    while(parentv) {
+                        if(parentv === itcontainer) return;
+                        parentv = parentv.parentElement;
+                    }
+                    open = false;
+                    update();
+                }
+            };
+            document.addEventListener("click", documentEventListener, {capture: true});
+            hsc.on("cleanup", () => document.removeEventListener("click", documentEventListener, {capture: true}));
+            const btnel = elButton("none").atxt(item.text).atxt(" ").adch(arrowv).adto(itcontainer).onev("click", e => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                open =! open;
+                update();
+            });
+            update();
+        }else if(item.action.kind === "link") {
+            linkButton(client.id, item.action.url, "none").clss(menuButtonStyle(item.selected)).atxt(item.text).adto(menu_area);
+        }else assertNever(item.action);
+        txt(" ").adto(menu_area);
+    }
+    return hsc;
+}
+
 function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
@@ -2005,73 +2083,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
 
     // TODO extract this out so menus can be used for eg listing sort options
     if(listing.menu) {
-        const menu_area = el("div").clss("my-3").adto(frame);
-        const renderSubmenu = (items: Generic.MenuItem[]): HTMLElement => {
-            const smdiv = el("div");
-            for(const item of items) {
-                if(item.action.kind === "link") {
-                    linkButton(client.id, item.action.url, "none").clss("text-gray-500 dark:text-gray-600 hover:text-gray-900").adto(smdiv).atxt(item.text);
-                }else if(item.action.kind === "menu") {
-                    elButton("none").adto(smdiv).atxt(item.text + " " + "▸").onev("click", e => {
-                        e.preventDefault();
-                        alert("TODO submenus");
-                    }).adto(smdiv);
-                }else assertNever(item.action);
-            }
-            return smdiv;
-        };
-        for(const item of listing.menu) {
-            const classv = [
-                "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
-                item.selected ? "border-gray-900" : "border-transparent text-gray-500 dark:text-gray-600 hover:text-gray-900"
-            ];
-            if(item.action.kind === "menu") {
-                const arrowv = txt("…");
-                let open = false;
-                let submenu_v: HTMLElement | undefined;
-                const subitems = item.action.children;
-                
-                const update = () => {
-                    btnel.classList.toggle("text-gray-900", open);
-                    btnel.classList.toggle("text-gray-500", !open);
-                    btnel.classList.toggle("text-gray-600", !open);
-                    arrowv.nodeValue = open ? "▴" : "▾";
-                    if(open) {
-                        if(!submenu_v) submenu_v = renderSubmenu(subitems).clss(
-                            "absolute top-full left-0 z-index flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
-                        ).adto(itcontainer);
-                    }else{
-                        if(submenu_v) {submenu_v.remove(); submenu_v = undefined}
-                    }
-                };
-                const itcontainer = el("span").adto(menu_area).clss("relative");
-                const documentEventListener = (e: MouseEvent) => {
-                    if(open) {
-                        console.log("Got event: ", e.target);
-                        let parentv: HTMLElement | null = e.target as HTMLElement | null;
-                        while(parentv) {
-                            if(parentv === itcontainer) return;
-                            parentv = parentv.parentElement;
-                        }
-                        open = false;
-                        update();
-                    }
-                };
-                document.addEventListener("click", documentEventListener, {capture: true});
-                hsc.on("cleanup", () => document.removeEventListener("click", documentEventListener, {capture: true}));
-                const btnel = elButton("none").clss(...classv).atxt(item.text).atxt(" ").adch(arrowv).adto(itcontainer).onev("click", e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    open =! open;
-                    update();
-                });
-                update();
-            }else if(item.action.kind === "link") {
-                linkButton(client.id, item.action.url, "none").clss(...classv).atxt(item.text).adto(menu_area);
-            }else assertNever(item.action);
-            txt(" ").adto(menu_area);
-        }
+        renderMenu(client, listing.menu).defer(hsc).adto(el("div").clss("my-3").adto(frame));
     }
 
     elButton("action-button").atxt("Code").adto(frame).onev("click", () => console.log(listing));
@@ -2696,6 +2708,10 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
     if(listing.body.kind === "listing") {
         clientContent(client, listing.body.header).defer(hsc).adto(toplevel().adto(header_area));
 
+        if(listing.body.menu) {
+            renderMenu(client, listing.body.menu).defer(hsc).adto(toplevel().adto(content_area));
+        }
+
         const listing_area = el("div").adto(content_area);
         const addChildren = (children: Generic.UnmountedNode[]) => {
             for(const child of children) addChild(child);   
@@ -2739,6 +2755,9 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                 continue;
             }
             clientContent(client, parent).defer(hsc).adto(parent_area);
+        }
+        if(listing.body.item.menu) {
+            renderMenu(client, listing.body.item.menu).defer(hsc).adto(toplevel().adto(content_area));
         }
         const addChildren = (children: Generic.Node[]) => {
             for(const child of children) addChild(child);
@@ -2927,19 +2946,12 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
     const systemtext = txt("(…)");
     systembtn.adch(systemtext);
 
-    const btnstyle = (active: boolean): string => {
-        return [
-            "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
-            active ? "border-gray-900" : "border-transparent text-gray-500 dark:text-gray-600 hover:text-gray-900"
-        ].join(" ");
-    };
-
     const onupdate = ([scheme, system]: SchemeInfo) => {
         systemtext.nodeValue = system ? "(Dark)" : "(Light)";
 
-        lightbtn.setAttribute("class", btnstyle(scheme === "light"));
-        darkbtn.setAttribute("class", btnstyle(scheme === "dark"));
-        systembtn.setAttribute("class", btnstyle(scheme === "system"));
+        lightbtn.setAttribute("class", menuButtonStyle(scheme === "light"));
+        darkbtn.setAttribute("class", menuButtonStyle(scheme === "dark"));
+        systembtn.setAttribute("class", menuButtonStyle(scheme === "system"));
     };
     onupdate(getColorScheme());
     const removeOnchange = onColorSchemeChange((cschm, csys) => {

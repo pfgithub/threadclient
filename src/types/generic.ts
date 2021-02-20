@@ -8,6 +8,7 @@ export type Page = {
     body: {
         kind: "listing",
         header: ContentNode,
+        menu?: Menu,
         previous?: LoadMore,
         items: UnmountedNode[],
         next?: LoadMoreUnmounted,
@@ -20,7 +21,7 @@ export type Page = {
 export type UnmountedNode = {
     // [...Node[], ContentNode] // requires a newer version of typescript
     parents: Node[], // might contain load_more. the last item in parents is this_node.
-    sort?: Menu,
+    menu?: Menu,
     replies: Node[],
 };
 export type BodyText = {
