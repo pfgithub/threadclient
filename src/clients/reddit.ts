@@ -780,10 +780,14 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
         const path_sort = path_query.get("sort") as Reddit.Sort | null;
         let link_fullname: string | undefined;
         let default_sort: Reddit.Sort | null | undefined = null;
+        let is_contest_mode = false;
+        let can_mod_post = false;
         const firstchild = listing[0].data.children[0]!;
         if(firstchild.kind === "t3") {
             link_fullname = firstchild.data.name;
             default_sort = firstchild.data.suggested_sort;
+            is_contest_mode = firstchild.data.contest_mode;
+            can_mod_post = firstchild.data.can_mod_post;
         }
         const sort_v = path_sort ?? default_sort ?? "confidence";
         
@@ -863,7 +867,13 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                         threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, {permalink: path, sort: "unsupported"}),
                         ...header_children,
                     ],
-                    menu: ([
+                    menu: (is_contest_mode && !can_mod_post) ? [
+                        {
+                            selected: true,
+                            text: "Random",
+                            action: {kind: "link", url: updateQuery(path, {sort: "random"})}
+                        }
+                    ] : ([
                         ["confidence", "Best"], ["top", "Top"], ["new", "New"], ["controversial", "Controversial"],
                         ["old", "Old"], ["random", "Random"], ["qa", "Q&A"], ["live", "Live"],
                     ] as const).map(([sortname, sorttext]): Generic.TopLevelMenuItem => ({
@@ -871,7 +881,25 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                         text: sorttext,
                         action: {kind: "link", url: updateQuery(path, {sort: sortname === "confidence" ? undefined : sortname})},
                     })),
-                    replies,
+                    replies: [...is_contest_mode ? [((): Generic.Thread => ({
+                        kind: "thread",
+                        body: {
+                            kind: "richtext",
+                            content: [
+                                rt.p(rt.txt("This thread is in contest mode.")),
+                                rt.p(rt.txt(can_mod_post
+                                    ? "As a mod, you can sort comments however you wish. Regular users have randomized sorting and cannot see scores."
+                                    : "Sorting is randomized and scores are hidden."
+                                )),
+                            ],
+                        },
+                        display_mode: {body: "visible", comments: "collapsed"},
+                        raw_value: is_contest_mode,
+                        link: "no",
+                        actions: [],
+                        default_collapsed: false,
+                        layout: "reddit-post",
+                    }))()] : [], ...replies],
                 },
             },
             ...makeSidebar(extra, "both"),

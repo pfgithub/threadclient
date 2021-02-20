@@ -617,6 +617,9 @@ export type PostSubmission = PostOrComment & {
 
     media_embed?: {content?: string},
 
+    can_mod_post: boolean,
+    contest_mode: boolean,
+
     domain: string,
 
     poll_data?: {
