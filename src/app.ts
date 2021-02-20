@@ -1146,7 +1146,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             console.log("oembed resp", resp);
             const outerel = el("div");
             const ihsc = hideshow(outerel);
-            renderBody(client, oembed(resp as OEmbed), {autoplay: false}, outerel);
+            renderBody(client, oembed(resp as OEmbed), {autoplay: false}, outerel).defer(hsc);
             return ihsc;
         }).defer(hsc).adto(content);
     }else assertNever(body);
