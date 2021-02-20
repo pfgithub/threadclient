@@ -2745,6 +2745,9 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
             clientContent(client, child).defer(hsc).adto(toplevel().adto(content_area));
         };
         addChildren(listing.body.item.replies);
+        if(listing.body.item.replies.length === 0) {
+            el("div").atxt("*There are no replies*").adto(content_area);
+        }
     }else assertNever(listing.body);
 
     return hsc;
