@@ -94,6 +94,7 @@ all todo:
         is how posts exist. instead, change so the top level can have either a listing or a single thread. listings are single_thread[].
         single_thread has {parents: thing[]} which might have a load more on top and {replies: thing[]}
 -   [x] choose how to sort comments
+-   [ ] add a wikipedia client `https://en.wikipedia.org/w/rest.php/v1/page/…`, `{headers: {'Accept': "application/json; charset=UTF-8", 'Origin': location.origin}}`
 -   [ ] make it possible for sorting menus to not reload the entire page on click (eg add an option to menu actions no_reload: true that tells
         the renderer to clear the content area, load, and refill it without clearing any of the frame and without pushing a new history item)
 -   [ ] oembed (eg for youtube and other sites)
