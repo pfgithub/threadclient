@@ -1456,6 +1456,7 @@ function zoomableFrame(img: HTMLImageElement): HTMLElement {
         frame.disabled = true;
         import("./components/gallery").then(component => {
             const hsc = hideshow(); // it deletes itself so who cares :: the answer is if you try to go back after opening this it doesn't work
+            frame.style.opacity = "0";
             component.showGallery([{
                 thumb: img.src,
                 w: img.naturalWidth,
@@ -1469,6 +1470,7 @@ function zoomableFrame(img: HTMLImageElement): HTMLElement {
                 return getBound(img);
             }, () => {
                 frame.disabled = false;
+                frame.style.opacity = "1";
             }).defer(hsc);
         }).catch(err => {
             console.log(err);
