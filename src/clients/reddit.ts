@@ -654,7 +654,9 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     ];
 
     wdgs: if(subinfo.widgets) {
-        if(subinfo.widgets?.layout.topbar.order.length !== 1) {
+        const order_len = subinfo.widgets?.layout.topbar.order.length;
+        if(order_len === 0) break wdgs;
+        if(order_len !== 1) {
             res_menu.push({text: "ERROR Topbar Order", action: {kind: "link", url: "error"}, selected: false});
             break wdgs;
         }
