@@ -186,15 +186,18 @@ function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormatti
 }
 function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     if(format.length === 0) {
+        let braille_character_count = 0;
         const is_braille = [...text].every(char => {
             if(!char.trim()) return true;
             if(char === "v" || char === "V") return true;
             const codepoint = char.codePointAt(0)!;
-            if(codepoint >= 0x2800 && codepoint <= 0x28FF) return true;
+            if(codepoint >= 0x2800 && codepoint <= 0x28FF) {
+                braille_character_count++;
+            }
             if(codepoint === 12644) return true; // TODO allow all forms of invisible characters
             return false;
         });
-        if(is_braille) {
+        if(is_braille && braille_character_count > 10) {
             // // not necessary with white-space: pre
             // const braille_blocks = text.split(" ");
             // const len = braille_blocks.length - 1;
