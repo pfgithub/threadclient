@@ -782,7 +782,7 @@ const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: Page
     };
 };
 export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
-    const [path_path, path_query] = splitURL(path);
+    const [, path_query] = splitURL(path);
     if(extra.display_mode === "raw") return pathFromListingRaw(path, listing, extra);
     if(Array.isArray(listing)) {
         const path_sort = path_query.get("sort") as Reddit.Sort | null;
@@ -1003,18 +1003,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
             const next_path = updateQuery(path, {before: undefined, after: listing.data.after});
             next = {kind: "load_more_unmounted", load_more_unmounted: load_more_unmounted_encoder.encode({kind: "listing", url: next_path}), url: next_path, count: undefined, raw_value: listing};
         }
-
-        const pathsplit = path_path.split("/").filter(q => q);
         
-        const normal_sorts = ["hot", "new", "rising"] as const;
-        const timed_sorts = ["top", "controversial"] as const;
-
-        let page_mut: ParsedPath;
-
-        const inbox_tabs = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
-
-        const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
-        const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
         const user_sorted_tabs_named = [
             ["overview", "Overview"], ["comments", "Comments"], ["submitted", "Submitted"],
             // ["gilded", "Gilded"],
@@ -1024,146 +1013,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
             ["saved", "Saved"],
         ] as const;
 
-        // note that different tabs should be shown on a user page rather than showing standard
-        // subreddit sort buttons. TODO.
-        if(pathsplit[0] === "r" && typeof pathsplit[1] === "string") {
-            const base = ["r", pathsplit[1]];
-            const path2 = pathsplit[2];
-
-            if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
-                page_mut = {
-                    kind: "subreddit",
-                    base,
-                    current_sort: {v: path2},
-                    is_user_page: false, 
-                };
-            }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
-                const time_t = path_query.get("t") ?? "all";
-                page_mut = {
-                    kind: "subreddit",
-                    base,
-                    current_sort: {v: path2, t: time_t as "unsupported"},
-                    is_user_page: false,
-                };
-            }else if(path2 == null) {
-                page_mut = {
-                    kind: "subreddit",
-                    base,
-                    current_sort: {v: "hot"},
-                    is_user_page: false,
-                };
-            }else{
-                page_mut = {kind: "unknown"};
-            }
-        }else if(pathsplit[0] === "user" && typeof pathsplit[1] === "string") {
-            const path2 = pathsplit[2];
-            const base = ["u", pathsplit[1]];
-
-            if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
-                page_mut = {
-                    kind: "subreddit",
-                    base,
-                    current_sort: {v: path2},
-                    is_user_page: false, 
-                };
-            }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
-                const time_t = path_query.get("t") ?? "all";
-                page_mut = {
-                    kind: "subreddit",
-                    base,
-                    current_sort: {v: path2, t: time_t as "unsupported"},
-                    is_user_page: false,
-                };
-            }else if(path2 == null) {
-                page_mut = {
-                    kind: "user",
-                    base,
-                    current: {tab: "overview", sort: {
-                        sort: (path_query.get("sort") ?? "new") as "unsupported",
-                        t: (path_query.get("t") ?? "all") as "unsupported",
-                    }},
-                };
-            }else if(guardIncludes(user_sorted_tabs, path2) && pathsplit.length === 3) {
-                page_mut = {
-                    kind: "user",
-                    base,
-                    current: {tab: path2, sort: {
-                        sort: (path_query.get("sort") ?? (path2 === "submitted" ? "hot" : "new")) as "unsupported",
-                        t: (path_query.get("t") ?? "all") as "unsupported",
-                    }},
-                };
-            }else if(guardIncludes(user_sortless_tabs, path2) && pathsplit.length === 3) {
-                page_mut = {
-                    kind: "user",
-                    base,
-                    current: {tab: path2},
-                };
-            }else if(path2 === "gilded" && (pathsplit.length === 3 || pathsplit.length === 4)) {
-                page_mut = {
-                    kind: "user",
-                    base,
-                    current: {tab: "gilded", mode: (pathsplit[3] ?? "received") as "unsupported"},
-                };
-            }else{
-                page_mut = {kind: "unknown"};
-            }
-        }else if(pathsplit[0] === "message") {
-            if(guardIncludes(inbox_tabs, pathsplit[1]) && pathsplit.length === 2) {
-                page_mut = {
-                    kind: "inbox",
-                    current: {
-                        tab: "inbox",
-                        inbox_tab: pathsplit[1],
-                    },
-                };
-            }else if(pathsplit[1] === "compose" && pathsplit.length === 2) {
-                page_mut = {
-                    kind: "inbox",
-                    current: {
-                        tab: "compose",  
-                    },
-                };
-            }else if(pathsplit[1] === "sent" && pathsplit.length === 2) {
-                page_mut = {
-                    kind: "inbox",
-                    current: {
-                        tab: "sent",
-                    },
-                };
-            }else{
-                page_mut = {kind: "inbox", current: {tab: "unknown"}};
-            }
-        }else{
-            const path0 = pathsplit[0];
-            const base: string[] = [];
-            if(guardIncludes(normal_sorts, path0) && pathsplit.length === 1) {
-                page_mut = {
-                    kind: "subreddit",
-                    base,
-                    current_sort: {v: path0},
-                    is_user_page: false, 
-                };
-            }else if(guardIncludes(timed_sorts, path0) && pathsplit.length === 1) {
-                const time_t = path_query.get("t") ?? "all";
-                page_mut = {
-                    kind: "subreddit",
-                    base,
-                    current_sort: {v: path0, t: time_t as "unsupported"},
-                    is_user_page: false,
-                };
-            }else if(path0 == null) {
-                page_mut = {
-                    kind: "subreddit",
-                    base,
-                    current_sort: {v: "hot"},
-                    is_user_page: false,
-                };
-            }else{
-                page_mut = {kind: "unknown"};
-            }
-        }
-
-        const page = page_mut;
+        const page = parsePath(path);
 
         // TODO for /message/messages/…, a "one" should be returned rather than a "listing"
         // - parents: starting message..permalinked message
@@ -1321,189 +1171,155 @@ type ParsedPath = {
     kind: "unknown",
 };
 
-type PathAutoAnytextBit<OutName extends string> =
-    {kind: "anytext", outname: OutName, default_value?: string}
-;
-type PathAutoOneOfBit<OutName extends string, Choices extends readonly string[], DefaultValue extends string | undefined> =
-    {kind: "oneof", outname: OutName, choices: Choices, default_value: DefaultValue}
-;
+function parsePath(path: string): ParsedPath {
+    const [path_path, path_query] = splitURL(path);
 
-type PathAutoQueryParamBit<Bit extends PathAutoBit> =
-    {kind: "query", query_param: string, bit: Bit}
-;
+    const pathsplit = path_path.split("/").filter(q => q);
+        
+    const normal_sorts = ["hot", "new", "rising"] as const;
+    const timed_sorts = ["top", "controversial"] as const;
 
-type PathAutoTypeBit<OutName extends string, OutValue> =
-    {kind: "type", outname: OutName, value: OutValue}
-;
+    const inbox_tabs = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
 
-type PathAutoBit =
-    | string
-    | PathAutoAnytextBit<string>
-    | PathAutoOneOfBit<string, readonly string[], string | undefined>
-;
-type PathAutoBitTopLevel =
-    | PathAutoBit
-    | PathAutoQueryParamBit<PathAutoBit>
-    | PathAutoTypeBit<string, unknown>
-;
+    const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
+    const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
 
-const pa = {
-    anytext<OutName extends string>(outname: OutName, default_value?: string): PathAutoAnytextBit<OutName> {
-        return {kind: "anytext", outname, default_value};
-    },
-    oneof<OutName extends string, Choices extends readonly string[], DefaultValue extends string | undefined>(
-        outname: OutName, choices: Choices, default_value: DefaultValue,
-    ): PathAutoOneOfBit<OutName, Choices, DefaultValue> {
-        return {kind: "oneof", outname, choices, default_value};
-    },
-    query<Bit extends PathAutoBit>(query_param: string, eq: "=", bit: Bit): PathAutoQueryParamBit<Bit> {
-        return {kind: "query", query_param, bit};
-    },
-    type<OutName extends string, OutValue>(outname: OutName, value: OutValue): PathAutoTypeBit<OutName, OutValue> {
-        return {kind: "type", outname, value};
+    // TODO rewrite this so each section uses array.shift() on a copy of the array
+    // and every return statement checks the length of the path before returning
+    if(pathsplit[0] === "r" && typeof pathsplit[1] === "string") {
+        const base = ["r", pathsplit[1]];
+        const path2 = pathsplit[2];
+
+        if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
+            return {
+                kind: "subreddit",
+                base,
+                current_sort: {v: path2},
+                is_user_page: false, 
+            };
+        }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
+            const time_t = path_query.get("t") ?? "all";
+            return {
+                kind: "subreddit",
+                base,
+                current_sort: {v: path2, t: time_t as "unsupported"},
+                is_user_page: false,
+            };
+        }else if(path2 == null) {
+            return {
+                kind: "subreddit",
+                base,
+                current_sort: {v: "hot"},
+                is_user_page: false,
+            };
+        }
+        return {kind: "unknown"};
+    }else if(pathsplit[0] === "user" && typeof pathsplit[1] === "string") {
+        const path2 = pathsplit[2];
+        const base = ["u", pathsplit[1]];
+
+        if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
+            return {
+                kind: "subreddit",
+                base,
+                current_sort: {v: path2},
+                is_user_page: false, 
+            };
+        }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
+            const time_t = path_query.get("t") ?? "all";
+            return {
+                kind: "subreddit",
+                base,
+                current_sort: {v: path2, t: time_t as "unsupported"},
+                is_user_page: false,
+            };
+        }else if(path2 == null) {
+            return {
+                kind: "user",
+                base,
+                current: {tab: "overview", sort: {
+                    sort: (path_query.get("sort") ?? "new") as "unsupported",
+                    t: (path_query.get("t") ?? "all") as "unsupported",
+                }},
+            };
+        }else if(guardIncludes(user_sorted_tabs, path2) && pathsplit.length === 3) {
+            return {
+                kind: "user",
+                base,
+                current: {tab: path2, sort: {
+                    sort: (path_query.get("sort") ?? (path2 === "submitted" ? "hot" : "new")) as "unsupported",
+                    t: (path_query.get("t") ?? "all") as "unsupported",
+                }},
+            };
+        }else if(guardIncludes(user_sortless_tabs, path2) && pathsplit.length === 3) {
+            return {
+                kind: "user",
+                base,
+                current: {tab: path2},
+            };
+        }else if(path2 === "gilded" && (pathsplit.length === 3 || pathsplit.length === 4)) {
+            return {
+                kind: "user",
+                base,
+                current: {tab: "gilded", mode: (pathsplit[3] ?? "received") as "unsupported"},
+            };
+        }
+        return {kind: "unknown"};
+        
+    }else if(pathsplit[0] === "message") {
+        if(guardIncludes(inbox_tabs, pathsplit[1]) && pathsplit.length === 2) {
+            return {
+                kind: "inbox",
+                current: {
+                    tab: "inbox",
+                    inbox_tab: pathsplit[1],
+                },
+            };
+        }else if(pathsplit[1] === "compose" && pathsplit.length === 2) {
+            return {
+                kind: "inbox",
+                current: {
+                    tab: "compose",  
+                },
+            };
+        }else if(pathsplit[1] === "sent" && pathsplit.length === 2) {
+            return {
+                kind: "inbox",
+                current: {
+                    tab: "sent",
+                },
+            };
+        }
+        return {kind: "inbox", current: {tab: "unknown"}};
+        
     }
-};
-
-// type SortTimeless = "hot" | "new" | "rising";
-// type SortTimed = "top" | "controversial";
-// type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
-
-const sorts = {
-    timeless: ["hot", "new", "rising"],
-    timed: ["top", "controversial"],
-
-    range: ["hour", "day", "week", "month", "year", "all", "unsupported"],
-
-    user_sorted_tabs: ["overview", "comments", "submitted"],
-    user_sortless_tabs: ["upvoted", "downvoted", "hidden", "saved"],
-} as const;
-
-// type ResultType = {
-//     kind: "sub-like",
-//     subreddit: string,
-//     sort: (typeof sorts)["timeless"][number],
-// } | {
-//     kind: "sub-like",
-//     subreddit: string,
-//     sort: (typeof sorts)["timed"][number],
-//     time: (typeof sorts)["range"][number],
-// } | {
-//     kind: "unsupported",
-// };
-
-
-// path`/r/${pa.anytext("subreddit")}/${pa.oneof("sort", sorts.timeless, "hot")}`
-const pathauto = constructPathAuto(
-    // subreddit like:
-
-    // /r/:subreddit/:sorts.timeless|hot
-    ["r", pa.anytext("subreddit"), pa.oneof("sort", sorts.timeless, "hot"), /**/ pa.type("kind", "sub-like"), pa.type("is_user", false)],
-    // /r/:subreddit/:sorts.timed?t=:sorts.range|all
-    ["r", pa.anytext("subreddit"), pa.oneof("sort", sorts.timed, undefined), pa.query("t", "=", pa.oneof("time", sorts.range, "all")), /**/ pa.type("kind", "sub-like"), pa.type("is_user", false)],
-    // /u/:subreddit/:sorts.timeless
-    ["user", pa.anytext("subreddit"), pa.oneof("sort", sorts.timeless, undefined), /**/ pa.type("kind", "subreddit"), pa.type("is_user", true)],
-    // /u/:subreddit/:sorts.timed?t=:sorts.range|all
-    ["user", pa.anytext("subreddit"), pa.oneof("sort", sorts.timed, undefined), pa.query("t", "=", pa.oneof("time", sorts.range, "all")), /**/ pa.type("kind", "subreddit"), pa.type("is_user", true)],
-    // /:sorts.timeless|hot
-    [pa.oneof("sort", sorts.timeless, "hot"), /**/ pa.type("kind", "sub-like"), pa.type("is_user", false)],
-    // /:sorts.timed?t=:sorts.range|all
-    [pa.oneof("sort", sorts.timed, undefined), pa.query("t", "=", pa.oneof("time", sorts.range, "all")), /**/ pa.type("kind", "sub-like"), pa.type("is_user", false)],
-
-    // user like:
-    ["user", pa.anytext("user"), pa.oneof("tab", sorts.user_sorted_tabs, "overview"), pa.query("sort", "=", pa.oneof("sort", [...sorts.timeless, ...sorts.timed], "new")), pa.query("t", "=", pa.oneof("time", sorts.range, "all")), /**/ pa.type("kind", "user")],
-    ["user", pa.anytext("user"), "gilded", /**/ pa.type("kind", "user"), pa.type("tab", "gilded")],
-    ["user", pa.anytext("user"), pa.oneof("tab", sorts.user_sortless_tabs, "overview"), /**/ pa.type("kind", "user")],
-);
-
-for(const item of ["/r/hi", "/r/hi/top?t=all", "/r/hi/top", "/r/hi/new", "/top?t=all", "/new"]) {
-    console.log("@@@@@", item, pathauto(item));
-}
-
-type UnionToIntersection<T> = (T extends unknown ? ((x: T) => 0) : never) extends ((x: infer R) => 0) ? R : never;
-
-type PathBitToType<Bit extends PathAutoBit> = Bit extends PathAutoAnytextBit<infer OutName>
-    ? {[key in OutName]: string}
-    : Bit extends PathAutoOneOfBit<infer OutName, infer Choices, infer DefaultValue>
-    ? {[key in OutName]: Choices[number] | DefaultValue}
-    : Bit extends string
-    ? {__nothing?: undefined}
-    : {__error: true}
-;
-
-type TLPathBitToType<TLBit extends PathAutoBitTopLevel> =
-    TLBit extends PathAutoQueryParamBit<infer U>
-    ? PathBitToType<U>
-    : TLBit extends PathAutoTypeBit<infer T, infer U>
-    ? {[key in T]: U}
-    : TLBit extends PathAutoBit
-    ? PathBitToType<TLBit>
-    : {__error: true}
-;
-
-type OnePathAutoSection<TLBits extends readonly PathAutoBitTopLevel[]> = UnionToIntersection<TLPathBitToType<TLBits[number]>>;
-
-type OnePathAutoSectionAny<TLBits> = TLBits extends PathAutoBitTopLevel[] ? OnePathAutoSection<TLBits> : false;
-
-type PathAutoResultType<TLBitsA extends readonly (readonly PathAutoBitTopLevel[])[]> = {[key in keyof TLBitsA]: OnePathAutoSectionAny<TLBitsA[key]>}[number];
-
-function bitmatcher(section: string | null | undefined, bit: PathAutoBit, out: {[key: string]: unknown}): "pass" | "fail" {
-    if(typeof bit === "string") {
-        return section === bit ? "pass" : "fail";
-    }else if(bit.kind === "anytext") {
-        if(section == null) {
-            if(bit.default_value == null) return "fail";
-            out[bit.outname] = bit.default_value;
-            return "pass";
-        }
-        out[bit.outname] = section;
-        return "pass";
-    }else if(bit.kind === "oneof") {
-        if(bit.choices.includes(section as string)) {
-            out[bit.outname] = section;
-            return "pass";
-        }
-        if(section == null && bit.default_value != null) {
-            out[bit.outname] = bit.default_value;
-            return "pass";
-        }
-        return "fail";
+    const path0 = pathsplit[0];
+    const base: string[] = [];
+    if(guardIncludes(normal_sorts, path0) && pathsplit.length === 1) {
+        return {
+            kind: "subreddit",
+            base,
+            current_sort: {v: path0},
+            is_user_page: false, 
+        };
+    }else if(guardIncludes(timed_sorts, path0) && pathsplit.length === 1) {
+        const time_t = path_query.get("t") ?? "all";
+        return {
+            kind: "subreddit",
+            base,
+            current_sort: {v: path0, t: time_t as "unsupported"},
+            is_user_page: false,
+        };
+    }else if(path0 == null) {
+        return {
+            kind: "subreddit",
+            base,
+            current_sort: {v: "hot"},
+            is_user_page: false,
+        };
     }
-    assertNever(bit);
+    return {kind: "unknown"};
 }
-
-function constructPathAuto<TLBitsA extends readonly (readonly PathAutoBitTopLevel[])[]>(...tlbits: TLBitsA): (path: string) => (PathAutoResultType<TLBitsA> | undefined) {
-    return (path): PathAutoResultType<TLBitsA> | undefined => {
-        const [pathtext, pathquery] = splitURL(path);
-        const pathsplitbase = pathtext.split("/").filter(v => v);
-
-        fail: for(const tlmatchset of tlbits) {
-            const pathsplit = [...pathsplitbase];
-            const outv: {[key: string]: unknown} = {};
-            for(const tlmatcher of tlmatchset) {
-                let passres: "pass" | "fail";
-                if(typeof tlmatcher === "string") {
-                    const pathbit = pathsplit.shift();
-                    passres = bitmatcher(pathbit, tlmatcher, outv);
-                }else if(tlmatcher.kind === "query") {
-                    const qarg = pathquery.get(tlmatcher.query_param);
-                    passres = bitmatcher(qarg, tlmatcher.bit, outv);
-                }else if(tlmatcher.kind === "type") {
-                    passres = "pass";
-                    outv[tlmatcher.outname] = tlmatcher.value;
-                }else passres = bitmatcher(pathsplit.shift(), tlmatcher, outv);
-                if(passres === "fail") continue fail;
-            }
-            if(pathsplit.length !== 0) continue fail;
-            return outv as PathAutoResultType<TLBitsA>;
-        }
-
-        return undefined;
-    };
-}
-
-// function parsePath(path: string): ParsedPath {
-//     //
-// }
 
 function guardIncludes<Array extends ReadonlyArray<unknown>>(array: Array, search_item: unknown): search_item is Array[number] {
     return array.includes(search_item as unknown as Array[number]);
