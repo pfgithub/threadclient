@@ -1036,7 +1036,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         const existing_body_v = el("div").adto(content);
         renderBody(client, body.body, {autoplay: opts.autoplay}, existing_body_v).defer(hsc);
     }else if(body.kind === "crosspost") {
-        const parentel = el("div").styl({"max-width": "max-content"}).clss("object-wrapper").adto(content);
+        const parentel = el("div").styl({"max-width": "max-content"}).clss("border").adto(content);
         clientContent(client, body.source).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
         const txta = el("div").adto(content).clss("prose whitespace-pre-wrap");
@@ -2781,6 +2781,8 @@ function updateTitle(hsc: HideShowCleanup<unknown>, client_id: string): UpdateTi
     return res;
 }
 
+const makeTopLevelWrapper = () => el("div").clss("top-level-wrapper", "object-wrapper", "bg-postcolor-100");
+
 function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HTMLDivElement, title: UpdateTitle): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
@@ -2813,8 +2815,6 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
     const header_area = el("div").adto(frame).clss("header-area");
     const content_area = el("div").adto(frame).clss("content-area");
 
-    const toplevel = () => el("div").clss("top-level-wrapper", "object-wrapper");
-
     if(listing.sidebar) {
         // on mobile, ideally this would be a link that opens the sidebar in a new history item
         elButton("pill-filled").adto(frame).clss("sidebar-toggle-mobile", "my-1").atxt("Toggle Sidebar").onev("click", () => {
@@ -2822,15 +2822,15 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         });
         const sidebar_area = el("div").adto(frame).clss("sidebar-area");
         for(const sidebar_elem of listing.sidebar) {
-            clientContent(client, sidebar_elem).defer(hsc).adto(toplevel().adto(sidebar_area));
+            clientContent(client, sidebar_elem).defer(hsc).adto(makeTopLevelWrapper().adto(sidebar_area));
         }
     }
 
     if(listing.body.kind === "listing") {
-        clientContent(client, listing.body.header).defer(hsc).adto(toplevel().adto(header_area));
+        clientContent(client, listing.body.header).defer(hsc).adto(makeTopLevelWrapper().adto(header_area));
 
         if(listing.body.menu) {
-            renderMenu(client, listing.body.menu).defer(hsc).adto(toplevel().adto(content_area));
+            renderMenu(client, listing.body.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
         }
 
         const listing_area = el("div").adto(content_area);
@@ -2841,10 +2841,10 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
             // TODO show parent nodes and stuff
             if(child.parents.length === 0) {
                 const errn = el("div").clss("error").atxt("unmounted.parents.length === 0");
-                errn.adto(toplevel().adto(listing_area));
+                errn.adto(makeTopLevelWrapper().adto(listing_area));
                 return;
             }
-            const toplevel_area = toplevel().adto(listing_area);
+            const toplevel_area = makeTopLevelWrapper().adto(listing_area);
             for(const parent of child.parents) {
                 if(parent.kind === "load_more") {
                     const lmdiv = el("div").adto(toplevel_area);
@@ -2894,7 +2894,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         // then each child goes in a seperate one
         // ALSO todo: rather than having a top-level-post class,
         // instead have a "top-level-post-frame" div that wraps top level items
-        const parent_area = toplevel().adto(header_area);
+        const parent_area = makeTopLevelWrapper().adto(header_area);
         for(const parent of listing.body.item.parents) {
             if(parent.kind === "load_more") {
                 // uuh uuh
@@ -2906,7 +2906,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
             clientContent(client, parent).defer(hsc).adto(parent_area);
         }
         if(listing.body.item.menu) {
-            renderMenu(client, listing.body.item.menu).defer(hsc).adto(toplevel().adto(content_area));
+            renderMenu(client, listing.body.item.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
         }
         const addChildren = (children: Generic.Node[]) => {
             for(const child of children) addChild(child);
@@ -2917,7 +2917,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                 lmbtn.adto(content_area).clss("top-level-load-more");
                 return;
             }
-            clientContent(client, child).defer(hsc).adto(toplevel().adto(content_area));
+            clientContent(client, child).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
         };
         addChildren(listing.body.item.replies);
         if(listing.body.item.replies.length === 0) {
@@ -3109,16 +3109,14 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
     hsc.on("cleanup", () => removeOnchange());
 
     const demoitm = el("div").adto(colorschemearea);
-    demoitm.innerHTML = `
-        <div class="w-max max-w-full">
-            <div class="object-wrapper">
-                <div class="prose">
-                    <h1>Theme</h1>
-                    <p>theme</p>
-                </div>
-            </div>
-        </div>
-    `;
+    el("div").clss("w-max max-w-full").adto(demoitm).adch(
+        makeTopLevelWrapper().adch(
+            el("div").clss("prose").adch(
+                el("h1").atxt("Theme"),
+                el("p").atxt("theme"),
+            ),
+        ),
+    );
 
     return hsc;
 }
@@ -3379,7 +3377,7 @@ function onNavigate(to_index: number, url: URLLike) {
 
 export const bodytop = el("div").adto(document.body);
 let navbar: HTMLDivElement; {
-    const frame = el("div").clss("navbar").adto(document.body);
+    const frame = el("div").clss("navbar", "bg-postcolor-100").adto(document.body);
     navbar = frame;
 
     const navbar_button = ["px-2"];

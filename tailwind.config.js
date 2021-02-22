@@ -33,6 +33,8 @@ module.exports = {
             'spoiler-color-revealed': "var(--spoiler-color-revealed)",
             'white': "#FFF",
             'black': "#000",
+            // nightwind doesn't work properly with dahes in names for some reason
+            'postcolor': {100: "#FFF", 800: "#181a1b"}, // TODO add more colors here :: spoiler-color spoiler-color-hover spoiler-color-revealed + those collapse btn colors
         },
     },
     plugins: [
