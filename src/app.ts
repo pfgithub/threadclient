@@ -2663,7 +2663,7 @@ const link_styles_v = {
     'none': "",
     'normal': "text-blue-600 dark:text-blue-500 underline",
     'previewable': "text-blue-600 dark:text-blue-500 hover:underline",
-    'action-button': "text-gray-600 dark:text-gray-500 hover:underline",
+    'action-button': "p-1 rounded hover:bg-gray-200",
     'save-button-saved': "text-green-600 dark:text-green-500 hover:underline",
     'safe-action-button': "text-blue-600 dark:text-blue-500 hover:underline",
     'unsafe-action-button': "text-red-600 dark:text-red-500 hover:underline",
