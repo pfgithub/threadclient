@@ -200,17 +200,6 @@ ul.replies {
         list-style: none;
         padding-left: 0;
         margin-top: 10px;
-        &.threaded {
-            position: relative;
-            &:before {
-                content: "⤷";
-                position: absolute;
-                left: -15px;
-                top: 4px;
-                background-color: var(--post-color);
-                pointer-events: none;
-            }
-        }
         &.comment {
             margin: 0;
         }

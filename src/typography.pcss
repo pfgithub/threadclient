@@ -81,3 +81,13 @@
 .prose .md-spoiler-text.md-spoiler-unrevealed > .md-spoiler-content {
     @apply opacity-0;
 }
+
+/*not typography (todo move into a different file)*/
+.threaded:before {
+    content: "⤷";
+    position: absolute;
+    left: -15px;
+    top: 4px;
+    @apply bg-postcolor-100;
+    pointer-events: none;
+}

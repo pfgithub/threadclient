@@ -2627,7 +2627,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     };
     const addChild = (child_listing: Generic.Node) => {
         const reply_node = el("li").adto(children_node);
-        if(added_comments_are_threaded) reply_node.clss("threaded");
+        if(added_comments_are_threaded) reply_node.clss("relative threaded");
         if(child_listing.kind === "load_more") {
             loadMoreButton(client, child_listing, addChildren, () => reply_node.remove()).adto(reply_node);
             return;
