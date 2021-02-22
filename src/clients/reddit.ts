@@ -193,6 +193,7 @@ function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange
             const codepoint = char.codePointAt(0)!;
             if(codepoint >= 0x2800 && codepoint <= 0x28FF) {
                 braille_character_count++;
+                return true;
             }
             if(codepoint === 12644) return true; // TODO allow all forms of invisible characters
             return false;
