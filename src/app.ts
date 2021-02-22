@@ -37,7 +37,7 @@ function linkButton(client_id: string, href: string, style: LinkStyle, opts: {on
         is_raw = true;
     }
     if(!href.startsWith("http") && !href.startsWith("/")) {
-        return el("a").clss(...linkAppearence(style), "error").attr({title: href}).clss("error").onev("click", () => alert(href));
+        return el("a").clss(...linkAppearence(style), "error").attr({title: href}).clss("error").onev("click", (e) => {e.stopPropagation(); alert(href)});
     }
     let urlparsed: URL | undefined;
     try {
@@ -50,13 +50,13 @@ function linkButton(client_id: string, href: string, style: LinkStyle, opts: {on
     }
     const res = el("a").clss(...linkAppearence(style)).attr({href, target: "_blank", rel: "noreferrer noopener"});
     if(href.startsWith("/") || opts.onclick) res.onclick = event => {
+        event.stopPropagation();
         if (
             !event.defaultPrevented && // onClick prevented default
             event.button === 0 && // ignore everything but left clicks
             !isModifiedEvent(event) // ignore clicks with modifier keys
         ) {
             event.preventDefault();
-            event.stopPropagation();
             if(opts.onclick) return opts.onclick(event);
             navigate({path: href});
         }
@@ -218,7 +218,7 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
             width: number,
             height: number,
         };
-        resdiv.adch(el("div").adch(elButton("code-button").atxt("code").onev("click", () => console.log(r))));
+        resdiv.adch(el("div").adch(elButton("code-button").atxt("code").onev("click", (e) => {e.stopPropagation(); console.log(r)})));
         const error_v = r as {
             logged?: boolean,
             message: string,
@@ -444,7 +444,8 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
                 }).clss("w-auto h-auto max-w-full max-h-full");
                 el("button").clss("m-1 w-24 h-24 flex items-center justify-center inline-block").adto(el("div").clss("inline-block").adto(div)).adch(
                     imgv,
-                ).onev("click", () => {
+                ).onev("click", (e) => {
+                    e.stopPropagation();
                     if(showing) showing();
                     const hsc = hideshow();
                     showing = () => hsc.cleanup();
@@ -721,7 +722,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
 
     if(!renderLinkPreview) return hsc;
 
-    const showpreviewbtn = elButton("none").atxt("…").onev("click", () => togglepreview());
+    const showpreviewbtn = elButton("none").atxt("…").onev("click", (e) => {e.stopPropagation(); togglepreview()});
 
     let preview_div: undefined | {hsc: HideShowCleanup<unknown>, node: ChildNode} = undefined;
 
@@ -1013,7 +1014,8 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             // unfortunately, this is not react or uil and that can't be done easily
             // given how stateful listings are
             // for now, just update the body.
-            fetch_btn.onev("click", async () => {
+            fetch_btn.onev("click", async (e) => {
+                e.stopPropagation();
                 let new_body: Generic.Body;
                 let errored = false;
                 fetch_btn.textContent = "…";
@@ -1021,10 +1023,10 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
                 if(!client.fetchRemoved) throw new Error("client provided a removal fetch path but has no fetchRemoved");
                 try {
                     new_body = await client.fetchRemoved(body.fetch_path!);
-                }catch(e) {
+                }catch(error) {
                     errored = true;
-                    console.log(e);
-                    new_body = {kind: "text", content: "Error! "+e.toString(), markdown_format: "none"};
+                    console.log(error);
+                    new_body = {kind: "text", content: "Error! "+error.toString(), markdown_format: "none"};
                 }
                 console.log("Got new body:", new_body);
                 fetch_btn.textContent = errored ? "Retry" : "Loaded";
@@ -1037,7 +1039,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         renderBody(client, body.body, {autoplay: opts.autoplay}, existing_body_v).defer(hsc);
     }else if(body.kind === "crosspost") {
         const parentel = el("div").styl({"max-width": "max-content"}).clss("border").adto(content);
-        clientContent(client, body.source).defer(hsc).adto(parentel);
+        clientContent(client, body.source, {clickable: true}).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
         const txta = el("div").adto(content).clss("prose whitespace-pre-wrap");
         for(const pargrph of body.content) {
@@ -1050,7 +1052,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         for(const choice of body.choices) {
             const choicebtn = elButton("outlined-button").adto(el("li").adto(pollcontainer).clss("poll-choice-li")).clss("poll-choice");
             choicebtn.atxt(choice.name + " ("+(choice.votes === "hidden" ? "hidden" : s(choice.votes, " Votes"))+")");
-            choicebtn.onev("click", () => alert("TODO voting on polls"));
+            choicebtn.onev("click", (e) => {e.stopPropagation(); alert("TODO voting on polls")});
         }
         if(body.select_many) {
             const submitbtn = elButton("pill-empty").atxt("Vote").adto(content);
@@ -1130,7 +1132,8 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             const choicearea = el("div").adto(thumb_box);
             choicearea.clss("flex items-center justify-center absolute top-0 left-0 bottom-0 right-0");
             const choicebox = el("div").clss("rounded-lg bg-gray-200 p-2 flex shadow-md gap-3").adto(choicearea);
-            el("button").clss("hover:underline").adto(choicebox).atxt("Play").onev("click", () => {
+            el("button").clss("hover:underline").adto(choicebox).atxt("Play").onev("click", e => {
+                e.stopPropagation();
                 thumb_box.innerHTML = "";
                 renderBody(client, body.click, {autoplay: true}, thumb_box).defer(hsc);
             });
@@ -1514,7 +1517,8 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
         renderAction(client, action, action_container).defer(hsc);
     }
     action_container.atxt(" ");
-    elButton("code-button").adto(action_container).atxt("Code").onev("click", () => {
+    elButton("code-button").adto(action_container).atxt("Code").onev("click", (e) => {
+        e.stopPropagation();
         console.log(profile);
     });
 
@@ -1563,7 +1567,8 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                     const submit = elButton("pill-filled").adto(btnline).atxt("Reply");
                     const preview = elButton("pill-empty").adto(btnline).atxt("Preview");
                     const cancel = elButton("pill-empty").adto(btnline).atxt("Cancel");
-                    preview.onev("click", () => {
+                    preview.onev("click", (e) => {
+                        e.stopPropagation();
                         reply_state = {preview: client.previewReply(textarea.value, action.reply_info)};
                         update();
                     });
@@ -1572,14 +1577,16 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                         reply_state = {preview: client.previewReply(textarea.value, action.reply_info)};
                         update();
                     });
-                    cancel.onev("click", () => {
+                    cancel.onev("click", (e) => {
+                        e.stopPropagation();
                         const deleteres = textarea.value ? confirm("delete?") : true;
                         if(deleteres) {
                             reply_state = "none";
                             update();
                         }
                     });
-                    submit.onev("click", () => {
+                    submit.onev("click", (e) => {
+                        e.stopPropagation();
                         submit.disabled = true;
                         submit.textContent = "…";
                         console.log("SUBMITTING");
@@ -1591,12 +1598,12 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                                 console.log("got back load more item. todo display it.");
                                 return;
                             }
-                            clientContent(client, r).defer(hsc).adto(el("div").adto(content_buttons_line));
-                        }).catch(e => {
-                            const error = e as Error;
+                            clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
+                        }).catch(err => {
+                            const error = err as Error;
                             submit.disabled = false;
                             submit.textContent = "Reply";
-                            console.log("Got error", e);
+                            console.log("Got error", err);
                             const displayv = el("div").adto(content_buttons_line).clss("error").styl({'white-space': "pre-wrap"});
                             displayv.atxt(error.toString()+"\n\n"+error.stack);
                         });
@@ -1614,7 +1621,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                     // hacky for now. reply buttons should need a special override
                     // rather than being bundled with the rest of stuff in renderAction
                     const containerel = el("div").adto(content_buttons_line);
-                    const listing_el = clientContent(client, reply_state.preview);
+                    const listing_el = clientContent(client, reply_state.preview, {clickable: false});
                     listing_el.associated_data.adto(containerel);
                     prev_preview = {
                         preview: reply_state.preview,
@@ -1627,7 +1634,8 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
             }
         };
 
-        reply_btn.onev("click", () => {
+        reply_btn.onev("click", (e) => {
+            e.stopPropagation();
             if(reply_state === "none") reply_state = {};
             update();
         });
@@ -1667,26 +1675,30 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         };
         setv("none");
 
-        delbtn.onev("click", () => {
+        delbtn.onev("click", (e) => {
+            e.stopPropagation();
             setv("confirm");
         });
-        confirmbtn.onev("click", () => {
+        confirmbtn.onev("click", (e) => {
+            e.stopPropagation();
             setv("load");
             client.act(action.data).then(r => {
                 setv("deleted");
-            }).catch(e => {
-                console.log("Got error:", e);
-                setv({error: e.toString()});
+            }).catch(err => {
+                console.log("Got error:", err);
+                setv({error: err.toString()});
             });
         });
-        nvmbtn.onev("click", () => {
+        nvmbtn.onev("click", (e) => {
+            e.stopPropagation();
             setv("none");
         });
     }else if(action.kind === "report") {
         let report_container: HTMLDivElement | undefined;
         let hsc = hideshow();
 
-        elButton("action-button").atxt("Report").adto(content_buttons_line).onev("click", () => {
+        elButton("action-button").atxt("Report").adto(content_buttons_line).onev("click", (e) => {
+            e.stopPropagation();
             if(!report_container) report_container = renderReportScreen(client, action.data).defer(hsc).adto(content_buttons_line);
             else {
                 hsc.cleanup();
@@ -1702,16 +1714,17 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         const hsc = hideshow();
 
         const clurl = action.data;
-        const btn = elButton("action-button").atxt("Log In").adto(frame).onev("click", () => {
+        const btn = elButton("action-button").atxt("Log In").adto(frame).onev("click", (e) => {
+            e.stopPropagation();
             btn.textContent = "…";
             btn.disabled = true;
             client.getLoginURL!(clurl).then(res => {
                 frame.innerHTML = "";
                 linkButton(client.id, res, "pill-filled").atxt("Log In").adto(frame);
-            }).catch(e => {
+            }).catch(err => {
                 btn.textContent = "Retry";
-                frame.atxt("Error:"+e);
-                console.log(e);
+                frame.atxt("Error:"+err);
+                console.log(err);
                 btn.disabled = false;
             });
         });
@@ -1730,16 +1743,17 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         return hsc;
     }else if(action.kind === "act") {
         const frame = el("span").adto(content_buttons_line);
-        const btn = elButton("action-button").atxt(action.text).adto(frame).onev("click", () => {
+        const btn = elButton("action-button").atxt(action.text).adto(frame).onev("click", (e) => {
+            e.stopPropagation();
             btn.disabled = true;
             btn.textContent = "…";
             client.act(action.action).then(() => {
                 btn.remove();
                 txt("✓").adto(frame);
-            }).catch(e => {
-                console.log("got error: "+e);
+            }).catch(err => {
+                console.log("got error: "+err);
                 btn.disabled = false;
-                frame.adch(el("span").clss("error").atxt(e.toString()));
+                frame.adch(el("span").clss("error").atxt(err.toString()));
             });
         });
     }else assertNever(action);
@@ -1787,14 +1801,15 @@ function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportSc
 
             const report_data = report_item.report.data;
 
-            btn.onev("click", () => {
+            btn.onev("click", (e) => {
+                e.stopPropagation();
                 state = "load";
                 update();
                 client.sendReport!(report_data, textarea?.value).then(res => {
                     onreported(res);
-                }).catch(e => {
-                    console.log(e);
-                    state = {error: e.toString()};
+                }).catch(err => {
+                    console.log(err);
+                    state = {error: err.toString()};
                     update();
                 });
             });
@@ -1983,7 +1998,8 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     if(action.decremented_label != null) {
         pretxt.nodeValue = "⯅ ";
         wrapper.atxt(" ");
-        decr_button = elButton("action-button").adch(el("span").atxt("⯆")).attr({'aria-label': "Down"}).adto(wrapper).onev("click", () => {
+        decr_button = elButton("action-button").adch(el("span").atxt("⯆")).attr({'aria-label': "Down"}).adto(wrapper).onev("click", (e) => {
+            e.stopPropagation();
             if(state.your_vote === "decrement") {
                 doAct(undefined);
             }else{
@@ -1992,6 +2008,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         }).clss("counter-decrement-btn");
     }
     button.onev("click", e => {
+        e.stopPropagation();
         if(state.your_vote === "increment") {
             doAct(undefined);
         }else{
@@ -2071,11 +2088,13 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
                 linkButton(client.id, item.action.url, "none").clss("text-gray-600 dark:text-gray-400 hover:text-gray-900").adto(smdiv).atxt(item.text);
             }else if(item.action.kind === "menu") {
                 elButton("none").adto(smdiv).atxt(item.text + " " + "▸").onev("click", e => {
+                    e.stopPropagation();
                     e.preventDefault();
                     alert("TODO submenus");
                 }).adto(smdiv);
             }else if(item.action.kind === "show-line-two") {
                 elButton("none").adto(smdiv).atxt(item.text).onev("click", e => {
+                    e.stopPropagation();
                     e.preventDefault();
                     alert("TODO submenu show-line-two");
                 }).adto(smdiv);
@@ -2167,7 +2186,8 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
                     menu_l2.associated_data.clss("mt-2").adto(menu_area);
                 }
             }).defer(hsc);
-            l2btn.onev("click", () => {
+            l2btn.onev("click", e => {
+                e.stopPropagation();
                 selected_item.value = item;
             });
         }else assertNever(item.action);
@@ -2207,7 +2227,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         renderMenu(client, listing.menu).defer(hsc).adto(el("div").clss("my-3").adto(frame));
     }
 
-    elButton("action-button").atxt("Code").adto(frame).onev("click", () => console.log(listing));
+    elButton("action-button").atxt("Code").adto(frame).onev("click", (e) => {e.stopPropagation(); console.log(listing)});
 
     return hsc;
 }
@@ -2303,12 +2323,15 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
             renderAction(client, action, actionstop).defer(hsc);
         }
     }
-    el("div").adto(frame).adch(elButton("code-button").atxt("Code").onev("click", () => console.log(widget)));
+    el("div").adto(frame).adch(elButton("code-button").atxt("Code").onev("click", (e) => {e.stopPropagation(); console.log(widget)}));
 
     return hsc;
 } 
 
-function clientContent(client: ThreadClient, listing: Generic.ContentNode): HideShowCleanup<Node> {
+type ClientContentOpts = {
+    clickable: boolean,
+};
+function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts: ClientContentOpts): HideShowCleanup<Node> {
     // console.log(listing);
     
     const frame = clientListingWrapperNode();
@@ -2328,14 +2351,14 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode): Hide
             return hsc;
         }
 
-        clientListing(client, listing, frame).defer(hsc);
+        clientListing(client, listing, frame, opts).defer(hsc);
         return hsc;
     }catch(e) {
         hsc.cleanup();
         console.log("Got error", e); 
         frame.innerHTML = "";
         frame.adch(el("pre").adch(el("code").atxt(e.toString() + "\n\n" + e.stack)));
-        frame.adch(elButton("code-button").atxt("Code").onev("click", () => console.log(listing)));
+        frame.adch(elButton("code-button").atxt("Code").onev("click", (err) => {err.stopPropagation(); console.log(listing)}));
         return hideshow(frame);
     }
 }
@@ -2344,7 +2367,7 @@ function clientListingWrapperNode(): HTMLDivElement {
     return frame;
 }
 type AddChildrenFn = (children: Generic.Node[]) => void;
-function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTMLDivElement): HideShowCleanup<{addChildren: AddChildrenFn}> {
+function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTMLElement, opts: ClientContentOpts): HideShowCleanup<{addChildren: AddChildrenFn}> {
     let content_voting_area: HTMLDivElement;
     let thumbnail_loc: HTMLButtonElement;
     let preview_area: HTMLDivElement;
@@ -2353,6 +2376,20 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     let content_title_line: HTMLDivElement;
     let content_subminfo_line: HTMLDivElement;
     let content_buttons_line: HTMLDivElement;
+
+    if(opts.clickable && listing.link.startsWith("/")) {
+        // frame = linkButton(client.id, listing.link, "none").clss("hover:bg-gray-200").adto(frame);
+        frame.clss("hover-outline").attr({tabindex: "0"}).onev("click", (e) => {
+            e.stopPropagation();
+            console.log("target:", e.target);
+            let target_parent = e.target as Node | null;
+            while(target_parent && target_parent !== frame) {
+                if(target_parent instanceof HTMLElement && (target_parent.nodeName === "A" || target_parent.nodeName === "BUTTON")) return;
+                target_parent = target_parent.parentNode;
+            }
+            navigate({path: "/"+client.id+listing.link});
+        });
+    }
 
     const result_v: {addChildren: AddChildrenFn} = {
         addChildren: undefined as unknown as AddChildrenFn,
@@ -2403,7 +2440,8 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                 collapsed_button.setAttribute("aria-pressed", "false");
             }
         };
-        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).adch(el("div").clss("collapse-btn-inner")).onev("click", () => {
+        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).adch(el("div").clss("collapse-btn-inner")).onev("click", (e) => {
+            e.stopPropagation();
             collapsed =! collapsed;
             update();
             const topv = collapsed_button.getBoundingClientRect().top;
@@ -2424,8 +2462,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         content_title_line.atxt(" ");
     }
     if(listing.title) {
-        content_title_line.atxt(listing.title.text);
-        // for(listing.title.flair) |flair| // uuh
+        content_title_line.adch(linkButton(client.id, listing.link, "none").clss("hover:underline").atxt(listing.title.text));
     }
     if(listing.flair) {
         content_title_line.atxt(" ");
@@ -2507,7 +2544,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             }else assertNever(listing.thumbnail);
         }
 
-        const initContent = (body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLElement> => {
+        const initContent = (body: Generic.Body, bodyopts: {autoplay: boolean}): HideShowCleanup<HTMLElement> => {
             const body_container = el("div").clss("post-body");
 
             const body_hsc = hideshow(body_container);
@@ -2520,13 +2557,14 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                 cwbox.adch(renderFlair(cws));
                 cwbox.atxt(" ");
                 elButton("pill-filled").adto(cwbox).atxt("Show Content").onev("click", e => {
+                    e.stopPropagation();
                     cwbox.remove();
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
-                    renderBody(client, body, {...opts}, body_container).defer(body_hsc);
+                    renderBody(client, body, {...bodyopts}, body_container).defer(body_hsc);
                 });
                 return body_hsc;
             }
-            renderBody(client, body, {...opts}, body_container).defer(body_hsc);
+            renderBody(client, body, {...bodyopts}, body_container).defer(body_hsc);
             return body_hsc;
         };
         
@@ -2564,11 +2602,13 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
 
             };
             update();
-            open_preview_button.onev("click", () => {
+            open_preview_button.onev("click", (e) => {
+                e.stopPropagation();
                 state =! state;
                 update();
             });
-            thumbnail_loc.onev("click", () => {
+            thumbnail_loc.onev("click", (e) => {
+                e.stopPropagation();
                 state =! state;
                 update();
             });
@@ -2606,6 +2646,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     listing.actions.length === 0 && linkButton(client.id, listing.link, "action-button").atxt("View").adto(content_buttons_line);
     content_buttons_line.atxt(" ");
     elButton("code-button").onev("click", e => {
+        e.stopPropagation();
         console.log(listing);
     }).atxt("Code").adto(content_buttons_line);
 
@@ -2639,7 +2680,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }
         reply_node.clss("comment");
         const reply_frame = clientListingWrapperNode();
-        lastElemAddChildren = clientListing(client, child_listing, reply_frame).defer(hsc).addChildren;
+        lastElemAddChildren = clientListing(client, child_listing, reply_frame, {clickable: opts.clickable}).defer(hsc).addChildren;
         reply_frame.adto(reply_node);
 
         if(futureadd) addChild(futureadd);
@@ -2714,6 +2755,7 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
 
     container.atxt(" ");
     elButton("code-button").onev("click", e => {
+        e.stopPropagation();
         console.log(load_more_node);
     }).atxt("Code").adto(container);
     return container;
@@ -2751,6 +2793,7 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
         current_node = el("div").adch(
             makeButton(lmnode).atxt(lmnode.count != null ? "Load "+lmnode.count+" More…" : "Load More…").adto(container).clss("load-more")
         ).atxt(" ").adch(elButton("code-button").onev("click", e => {
+            e.stopPropagation();
             console.log(lmnode);
         }).atxt("Code")).adto(container);
     };
@@ -2816,17 +2859,18 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
 
     if(listing.sidebar) {
         // on mobile, ideally this would be a link that opens the sidebar in a new history item
-        elButton("pill-filled").adto(frame).clss("sidebar-toggle-mobile", "my-1").atxt("Toggle Sidebar").onev("click", () => {
+        elButton("pill-filled").adto(frame).clss("sidebar-toggle-mobile", "my-1").atxt("Toggle Sidebar").onev("click", e => {
+            e.stopPropagation();
             sidebar_area.classList.toggle("sidebar-visible-mobile");
         });
         const sidebar_area = el("div").adto(frame).clss("sidebar-area");
         for(const sidebar_elem of listing.sidebar) {
-            clientContent(client, sidebar_elem).defer(hsc).adto(makeTopLevelWrapper().adto(sidebar_area));
+            clientContent(client, sidebar_elem, {clickable: false}).defer(hsc).adto(makeTopLevelWrapper().adto(sidebar_area));
         }
     }
 
     if(listing.body.kind === "listing") {
-        clientContent(client, listing.body.header).defer(hsc).adto(makeTopLevelWrapper().adto(header_area));
+        clientContent(client, listing.body.header, {clickable: false}).defer(hsc).adto(makeTopLevelWrapper().adto(header_area));
 
         if(listing.body.menu) {
             renderMenu(client, listing.body.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
@@ -2850,12 +2894,13 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                     linkButton(client.id, parent.url, "load-more").atxt("Load More").adto(lmdiv);
                     lmdiv.adch(txt(" ")).adch(el("span").clss("error text-sm").atxt("TODO load more here"));
                 }else{
-                    clientContent(client, parent).defer(hsc).adto(toplevel_area);
+                    clientContent(client, parent, {clickable: true}).defer(hsc).adto(toplevel_area);
                 }
             }
             if(child.replies.length > 0) {
                 let replies: HideShowCleanup<HTMLElement> | undefined;
-                const srplybtn = elButton("previewable").adto(toplevel_area).atxt("Replies ▸").onev("click", () => {
+                const srplybtn = elButton("previewable").adto(toplevel_area).atxt("Replies ▸").onev("click", e => {
+                    e.stopPropagation();
                     if(replies) {
                         replies.cleanup();
                         replies.associated_data.remove();
@@ -2875,7 +2920,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                                 lmbtn.adto(rdiv);
                                 return;
                             }
-                            clientContent(client, child_replies).defer(rhsc).adto(rdiv);
+                            clientContent(client, child_replies, {clickable: false}).defer(rhsc).adto(rdiv);
                         };
                         addChildrenReplies(child.replies);
                     }
@@ -2902,7 +2947,8 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                 lmdiv.adch(txt(" ")).adch(el("span").clss("error text-sm").atxt("TODO load more here"));
                 continue;
             }
-            clientContent(client, parent).defer(hsc).adto(parent_area);
+            const is_last = parent === listing.body.item.parents[listing.body.item.parents.length - 1];
+            clientContent(client, parent, {clickable: !is_last}).defer(hsc).adto(parent_area);
         }
         if(listing.body.item.menu) {
             renderMenu(client, listing.body.item.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
@@ -2916,7 +2962,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                 lmbtn.adto(content_area).clss("top-level-load-more");
                 return;
             }
-            clientContent(client, child).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
+            clientContent(client, child, {clickable: false}).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
         };
         addChildren(listing.body.item.replies);
         if(listing.body.item.replies.length === 0) {
@@ -3082,13 +3128,16 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
 
     const colorschemearea = el("div").clss("p-4").adto(res);
     colorschemearea.adch(el("h1").atxt("Color Scheme").clss("text-2xl font-black"));
-    const lightbtn = el("button").atxt("Light Mode").adto(colorschemearea).onev("click", () => {
+    const lightbtn = el("button").atxt("Light Mode").adto(colorschemearea).onev("click", e => {
+        e.stopPropagation();
         setColorScheme("light");
     });
-    const darkbtn = el("button").atxt("Dark Mode").adto(colorschemearea).onev("click", () => {
+    const darkbtn = el("button").atxt("Dark Mode").adto(colorschemearea).onev("click", e => {
+        e.stopPropagation();
         setColorScheme("dark");
     });
-    const systembtn = el("button").atxt("System Default ").adto(colorschemearea).onev("click", () => {
+    const systembtn = el("button").atxt("System Default ").adto(colorschemearea).onev("click", e => {
+        e.stopPropagation();
         setColorScheme("system");
     });
     const systemtext = txt("(…)");
@@ -3381,8 +3430,8 @@ let navbar: HTMLDivElement; {
 
     const navbar_button = ["px-2"];
 
-    el("button").adto(frame).atxt("←").clss(...navbar_button).onev("click", () => history.back());
-    el("button").adto(frame).atxt("→").clss(...navbar_button).onev("click", () => history.forward());
+    el("button").adto(frame).atxt("←").clss(...navbar_button).onev("click", e => {e.stopPropagation(); history.back()});
+    el("button").adto(frame).atxt("→").clss(...navbar_button).onev("click", e => {e.stopPropagation(); history.forward()});
 
     const nav_path = el("input").adto(frame).clss("bg-transparent text-center border border-gray-600 dark:border-gray-500");
 
@@ -3434,9 +3483,9 @@ const alertarea = el("div").adto(document.body).clss("alert-area");
 export function showAlert(text: string): void {
     const alert = el("div").clss("alert").adto(alertarea);
     el("div").clss("alert-body").adto(alert).atxt(text);
-    elButton("pill-empty").atxt("🗙 Close").adto(alert).onev("click", () => alert.remove());
+    elButton("pill-empty").atxt("🗙 Close").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
     alert.atxt(" ");
-    elButton("pill-empty").atxt("🗘 Refresh").adto(alert).onev("click", () => location.reload());
+    elButton("pill-empty").atxt("🗘 Refresh").adto(alert).onev("click", (e) => {e.stopPropagation(); location.reload()});
 }
 
 declare const fakevar: {build: "development" | "production"};
