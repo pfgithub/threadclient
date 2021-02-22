@@ -1008,55 +1008,8 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
         
         const normal_sorts = ["hot", "new", "rising"] as const;
         const timed_sorts = ["top", "controversial"] as const;
-
-        type SortTimeless = "hot" | "new" | "rising";
-        type SortTimed = "top" | "controversial";
-        type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
-        type SubredditMenu = {
-            kind: "subreddit",
-            base: string[],
-            current_sort:
-                | {v: SortTimeless}
-                | {v: SortTimed, t: SortTime},
-            is_user_page: boolean, // /u/…/hot. user subreddit pages must have /hot /new /random otherwise they will display the normal user page
-        };
-        let page_mut: SubredditMenu | {
-            kind: "user",
-            base: string[],
-            current: {
-                tab: "overview" | "comments" | "submitted",
-                sort: {sort: SortTimeless | SortTimeless | "unsupported", t: SortTime},
-                // overview defaults ?sort=new
-                // comments defaults ?sort=new
-                // submitted defaults ?sort=hot
-            } | {
-                tab: "gilded",
-                mode: "received" | "given" | "unsupported",
-                // /gilded/ : received
-                // /gilded/reveived
-                // /gilded/given
-            } | {
-                tab: "upvoted" | "downvoted" | "hidden" | "saved",
-            },
-        } | {
-            kind: "inbox",
-            current: {
-                tab: "compose",
-                // uh oh compose is not a json listing (it's a 404) so this parsing
-                // needs to happen above pageFromListingA
-                to?: string,
-            } | {
-                tab: "inbox",
-                // selfreply is "post replies". comments is "comment replies"
-                inbox_tab: "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions",
-            } | {
-                tab: "sent",
-            } | {
-                tab: "unknown",
-            },
-        } | {
-            kind: "unknown",
-        };
+        
+        let page_mut: ParsedPath;
 
         const inbox_tabs = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
 
@@ -1318,6 +1271,165 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
     expectUnsupported(listing.kind);
     return pathFromListingRaw(path, listing, extra);
 };
+
+type SortTimeless = "hot" | "new" | "rising";
+type SortTimed = "top" | "controversial";
+type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
+
+type ParsedPath = {
+    kind: "subreddit",
+    base: string[],
+    current_sort:
+        | {v: SortTimeless}
+        | {v: SortTimed, t: SortTime},
+    is_user_page: boolean, // /u/…/hot. user subreddit pages must have /hot /new /random otherwise they will display the normal user page
+} | {
+    kind: "user",
+    base: string[],
+    current: {
+        tab: "overview" | "comments" | "submitted",
+        sort: {sort: SortTimeless | SortTimeless | "unsupported", t: SortTime},
+        // overview defaults ?sort=new
+        // comments defaults ?sort=new
+        // submitted defaults ?sort=hot
+    } | {
+        tab: "gilded",
+        mode: "received" | "given" | "unsupported",
+        // /gilded/ : received
+        // /gilded/reveived
+        // /gilded/given
+    } | {
+        tab: "upvoted" | "downvoted" | "hidden" | "saved",
+    },
+} | {
+    kind: "inbox",
+    current: {
+        tab: "compose",
+        // uh oh compose is not a json listing (it's a 404) so this parsing
+        // needs to happen above pageFromListingA
+        to?: string,
+    } | {
+        tab: "inbox",
+        // selfreply is "post replies". comments is "comment replies"
+        inbox_tab: "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions",
+    } | {
+        tab: "sent",
+    } | {
+        tab: "unknown",
+    },
+} | {
+    kind: "unknown",
+};
+
+type PathAutoAnytextBit<OutName extends string> =
+    {kind: "anytext", outname: OutName, default_value?: string}
+;
+type PathAutoOneOfBit<OutName extends string, Choices extends readonly string[], DefaultValue extends string | undefined> =
+    {kind: "oneof", outname: OutName, choices: Choices, default_value: DefaultValue}
+;
+
+type PathAutoQueryParamBit<Bit extends PathAutoBit> =
+    {kind: "query", query_param: string, bit: Bit}
+;
+
+type PathAutoTypeBit<OutName extends string, OutValue extends string> =
+    {kind: "type", outname: OutName, value: OutValue}
+;
+
+type PathAutoBit =
+    | string
+    | PathAutoAnytextBit<string>
+    | PathAutoOneOfBit<string, readonly string[], string | undefined>
+;
+type PathAutoBitTopLevel =
+    | PathAutoBit
+    | PathAutoQueryParamBit<PathAutoBit>
+    | PathAutoTypeBit<string, string>
+;
+
+const pa = {
+    anytext<OutName extends string>(outname: OutName, default_value?: string): PathAutoAnytextBit<OutName> {
+        return {kind: "anytext", outname, default_value};
+    },
+    oneof<OutName extends string, Choices extends readonly string[], DefaultValue extends string | undefined>(
+        outname: OutName, choices: Choices, default_value: DefaultValue,
+    ): PathAutoOneOfBit<OutName, Choices, DefaultValue> {
+        return {kind: "oneof", outname, choices, default_value};
+    },
+    query<Bit extends PathAutoBit>(query_param: string, eq: "=", bit: Bit): PathAutoQueryParamBit<Bit> {
+        return {kind: "query", query_param, bit};
+    },
+    type<OutName extends string, OutValue extends string>(outname: OutName, value: OutValue): PathAutoTypeBit<OutName, OutValue> {
+        return {kind: "type", outname, value};
+    }
+};
+
+// type SortTimeless = "hot" | "new" | "rising";
+// type SortTimed = "top" | "controversial";
+// type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
+
+const sorts = {
+    timeless: ["hot", "new", "rising"],
+    timed: ["top", "controversial"],
+
+    range: ["hour", "day", "week", "month", "year", "all", "unsupported"],
+} as const;
+
+type ResultType = {
+    kind: "sub-like",
+    subreddit: string,
+    sort: (typeof sorts)["timeless"][number],
+} | {
+    kind: "sub-like",
+    subreddit: string,
+    sort: (typeof sorts)["timed"][number],
+    time: (typeof sorts)["range"][number],
+};
+
+const pathauto = constructPathAuto(
+    [pa.type("kind", "sub-like"), "r", pa.anytext("subreddit"), pa.oneof("sort", sorts.timeless, "hot")],
+    [pa.type("kind", "sub-like"), "r", pa.anytext("subreddit"), pa.oneof("sort", sorts.timed, "hot"), pa.query("t", "=", pa.oneof("time", sorts.range, "all"))],
+);
+const pa2: ResultType = pathauto("/test");
+
+() => pa2;
+
+type UnionToIntersection<T> = (T extends unknown ? ((x: T) => 0) : never) extends ((x: infer R) => 0) ? R : never;
+
+type PathBitToType<Bit extends PathAutoBit> = Bit extends PathAutoAnytextBit<infer OutName>
+    ? {[key in OutName]: string}
+    : Bit extends PathAutoOneOfBit<infer OutName, infer Choices, infer DefaultValue>
+    ? {[key in OutName]: Choices[number] | DefaultValue}
+    : Bit extends string
+    ? {__nothing?: undefined}
+    : {__error: true}
+;
+
+type TLPathBitToType<TLBit extends PathAutoBitTopLevel> =
+    TLBit extends PathAutoQueryParamBit<infer U>
+    ? PathBitToType<U>
+    : TLBit extends PathAutoTypeBit<infer T, infer U>
+    ? {[key in T]: U}
+    : TLBit extends PathAutoBit
+    ? PathBitToType<TLBit>
+    : {__error: true}
+;
+
+type OnePathAutoSection<TLBits extends readonly PathAutoBitTopLevel[]> = UnionToIntersection<TLPathBitToType<TLBits[number]>>;
+
+type OnePathAutoSectionAny<TLBits> = TLBits extends PathAutoBitTopLevel[] ? OnePathAutoSection<TLBits> : false;
+
+type PathAutoResultType<TLBitsA extends readonly (readonly PathAutoBitTopLevel[])[]> = {[key in keyof TLBitsA]: OnePathAutoSectionAny<TLBitsA[key]>}[number];
+
+function constructPathAuto<TLBitsA extends readonly (readonly PathAutoBitTopLevel[])[]>(...tlbits: TLBitsA): (path: string) => PathAutoResultType<TLBitsA> {
+    return (path) => {
+        return 0 as unknown as PathAutoResultType<TLBitsA>;
+    };
+}
+
+// function parsePath(path: string): ParsedPath {
+//     //
+// }
 
 function guardIncludes<Array extends ReadonlyArray<unknown>>(array: Array, search_item: unknown): search_item is Array[number] {
     return array.includes(search_item as unknown as Array[number]);
