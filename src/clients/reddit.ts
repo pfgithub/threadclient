@@ -1008,7 +1008,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
         
         const normal_sorts = ["hot", "new", "rising"] as const;
         const timed_sorts = ["top", "controversial"] as const;
-        
+
         let page_mut: ParsedPath;
 
         const inbox_tabs = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
@@ -1332,7 +1332,7 @@ type PathAutoQueryParamBit<Bit extends PathAutoBit> =
     {kind: "query", query_param: string, bit: Bit}
 ;
 
-type PathAutoTypeBit<OutName extends string, OutValue extends string> =
+type PathAutoTypeBit<OutName extends string, OutValue> =
     {kind: "type", outname: OutName, value: OutValue}
 ;
 
@@ -1344,7 +1344,7 @@ type PathAutoBit =
 type PathAutoBitTopLevel =
     | PathAutoBit
     | PathAutoQueryParamBit<PathAutoBit>
-    | PathAutoTypeBit<string, string>
+    | PathAutoTypeBit<string, unknown>
 ;
 
 const pa = {
@@ -1359,7 +1359,7 @@ const pa = {
     query<Bit extends PathAutoBit>(query_param: string, eq: "=", bit: Bit): PathAutoQueryParamBit<Bit> {
         return {kind: "query", query_param, bit};
     },
-    type<OutName extends string, OutValue extends string>(outname: OutName, value: OutValue): PathAutoTypeBit<OutName, OutValue> {
+    type<OutName extends string, OutValue>(outname: OutName, value: OutValue): PathAutoTypeBit<OutName, OutValue> {
         return {kind: "type", outname, value};
     }
 };
@@ -1373,26 +1373,51 @@ const sorts = {
     timed: ["top", "controversial"],
 
     range: ["hour", "day", "week", "month", "year", "all", "unsupported"],
+
+    user_sorted_tabs: ["overview", "comments", "submitted"],
+    user_sortless_tabs: ["upvoted", "downvoted", "hidden", "saved"],
 } as const;
 
-type ResultType = {
-    kind: "sub-like",
-    subreddit: string,
-    sort: (typeof sorts)["timeless"][number],
-} | {
-    kind: "sub-like",
-    subreddit: string,
-    sort: (typeof sorts)["timed"][number],
-    time: (typeof sorts)["range"][number],
-};
+// type ResultType = {
+//     kind: "sub-like",
+//     subreddit: string,
+//     sort: (typeof sorts)["timeless"][number],
+// } | {
+//     kind: "sub-like",
+//     subreddit: string,
+//     sort: (typeof sorts)["timed"][number],
+//     time: (typeof sorts)["range"][number],
+// } | {
+//     kind: "unsupported",
+// };
 
+
+// path`/r/${pa.anytext("subreddit")}/${pa.oneof("sort", sorts.timeless, "hot")}`
 const pathauto = constructPathAuto(
-    [pa.type("kind", "sub-like"), "r", pa.anytext("subreddit"), pa.oneof("sort", sorts.timeless, "hot")],
-    [pa.type("kind", "sub-like"), "r", pa.anytext("subreddit"), pa.oneof("sort", sorts.timed, "hot"), pa.query("t", "=", pa.oneof("time", sorts.range, "all"))],
-);
-const pa2: ResultType = pathauto("/test");
+    // subreddit like:
 
-() => pa2;
+    // /r/:subreddit/:sorts.timeless|hot
+    ["r", pa.anytext("subreddit"), pa.oneof("sort", sorts.timeless, "hot"), /**/ pa.type("kind", "sub-like"), pa.type("is_user", false)],
+    // /r/:subreddit/:sorts.timed?t=:sorts.range|all
+    ["r", pa.anytext("subreddit"), pa.oneof("sort", sorts.timed, undefined), pa.query("t", "=", pa.oneof("time", sorts.range, "all")), /**/ pa.type("kind", "sub-like"), pa.type("is_user", false)],
+    // /u/:subreddit/:sorts.timeless
+    ["user", pa.anytext("subreddit"), pa.oneof("sort", sorts.timeless, undefined), /**/ pa.type("kind", "subreddit"), pa.type("is_user", true)],
+    // /u/:subreddit/:sorts.timed?t=:sorts.range|all
+    ["user", pa.anytext("subreddit"), pa.oneof("sort", sorts.timed, undefined), pa.query("t", "=", pa.oneof("time", sorts.range, "all")), /**/ pa.type("kind", "subreddit"), pa.type("is_user", true)],
+    // /:sorts.timeless|hot
+    [pa.oneof("sort", sorts.timeless, "hot"), /**/ pa.type("kind", "sub-like"), pa.type("is_user", false)],
+    // /:sorts.timed?t=:sorts.range|all
+    [pa.oneof("sort", sorts.timed, undefined), pa.query("t", "=", pa.oneof("time", sorts.range, "all")), /**/ pa.type("kind", "sub-like"), pa.type("is_user", false)],
+
+    // user like:
+    ["user", pa.anytext("user"), pa.oneof("tab", sorts.user_sorted_tabs, "overview"), pa.query("sort", "=", pa.oneof("sort", [...sorts.timeless, ...sorts.timed], "new")), pa.query("t", "=", pa.oneof("time", sorts.range, "all")), /**/ pa.type("kind", "user")],
+    ["user", pa.anytext("user"), "gilded", /**/ pa.type("kind", "user"), pa.type("tab", "gilded")],
+    ["user", pa.anytext("user"), pa.oneof("tab", sorts.user_sortless_tabs, "overview"), /**/ pa.type("kind", "user")],
+);
+
+for(const item of ["/r/hi", "/r/hi/top?t=all", "/r/hi/top", "/r/hi/new", "/top?t=all", "/new"]) {
+    console.log("@@@@@", item, pathauto(item));
+}
 
 type UnionToIntersection<T> = (T extends unknown ? ((x: T) => 0) : never) extends ((x: infer R) => 0) ? R : never;
 
@@ -1421,9 +1446,58 @@ type OnePathAutoSectionAny<TLBits> = TLBits extends PathAutoBitTopLevel[] ? OneP
 
 type PathAutoResultType<TLBitsA extends readonly (readonly PathAutoBitTopLevel[])[]> = {[key in keyof TLBitsA]: OnePathAutoSectionAny<TLBitsA[key]>}[number];
 
-function constructPathAuto<TLBitsA extends readonly (readonly PathAutoBitTopLevel[])[]>(...tlbits: TLBitsA): (path: string) => PathAutoResultType<TLBitsA> {
-    return (path) => {
-        return 0 as unknown as PathAutoResultType<TLBitsA>;
+function bitmatcher(section: string | null | undefined, bit: PathAutoBit, out: {[key: string]: unknown}): "pass" | "fail" {
+    if(typeof bit === "string") {
+        return section === bit ? "pass" : "fail";
+    }else if(bit.kind === "anytext") {
+        if(section == null) {
+            if(bit.default_value == null) return "fail";
+            out[bit.outname] = bit.default_value;
+            return "pass";
+        }
+        out[bit.outname] = section;
+        return "pass";
+    }else if(bit.kind === "oneof") {
+        if(bit.choices.includes(section as string)) {
+            out[bit.outname] = section;
+            return "pass";
+        }
+        if(section == null && bit.default_value != null) {
+            out[bit.outname] = bit.default_value;
+            return "pass";
+        }
+        return "fail";
+    }
+    assertNever(bit);
+}
+
+function constructPathAuto<TLBitsA extends readonly (readonly PathAutoBitTopLevel[])[]>(...tlbits: TLBitsA): (path: string) => (PathAutoResultType<TLBitsA> | undefined) {
+    return (path): PathAutoResultType<TLBitsA> | undefined => {
+        const [pathtext, pathquery] = splitURL(path);
+        const pathsplitbase = pathtext.split("/").filter(v => v);
+
+        fail: for(const tlmatchset of tlbits) {
+            const pathsplit = [...pathsplitbase];
+            const outv: {[key: string]: unknown} = {};
+            for(const tlmatcher of tlmatchset) {
+                let passres: "pass" | "fail";
+                if(typeof tlmatcher === "string") {
+                    const pathbit = pathsplit.shift();
+                    passres = bitmatcher(pathbit, tlmatcher, outv);
+                }else if(tlmatcher.kind === "query") {
+                    const qarg = pathquery.get(tlmatcher.query_param);
+                    passres = bitmatcher(qarg, tlmatcher.bit, outv);
+                }else if(tlmatcher.kind === "type") {
+                    passres = "pass";
+                    outv[tlmatcher.outname] = tlmatcher.value;
+                }else passres = bitmatcher(pathsplit.shift(), tlmatcher, outv);
+                if(passres === "fail") continue fail;
+            }
+            if(pathsplit.length !== 0) continue fail;
+            return outv as PathAutoResultType<TLBitsA>;
+        }
+
+        return undefined;
     };
 }
 
