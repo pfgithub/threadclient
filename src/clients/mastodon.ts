@@ -2,7 +2,7 @@ import { encodeQuery } from "../util";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 import * as Mastodon from "../types/api/mastodon";
-import { rt } from "../types/generic";
+import { mnu, rt } from "../types/generic";
 import { oembed } from "./oembed";
 
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
@@ -660,19 +660,28 @@ export const client: ThreadClient = {
         }
         if(path0 === "timelines") {
             const tmname = path.shift();
+
+            const timelines_navbar: Generic.Menu = [
+                mnu.link("Home", "/"+host+"/timelines/home", tmname === "home"),
+                mnu.link("Local", "/"+host+"/timelines/local", tmname === "local"),
+                mnu.link("Federated", "/"+host+"/timelines/public", tmname === "public"),
+            ];
             
             if(tmname === "public"){
-                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+afterquery, pathraw, genericHeader());
+                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+afterquery, pathraw, genericHeader(), timelines_navbar);
             }else if(tmname === "local"){
                 const parsed_query = new URLSearchParams(afterquery);
                 parsed_query.set("local", "true");
                 const parsed_res = parsed_query.toString();
-                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+parsed_res, pathraw, genericHeader());
+                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+parsed_res, pathraw, genericHeader(), timelines_navbar);
             }else if(tmname === "tag") {
                 const tmtag = path.shift();
                 if(tmtag == null || tmtag === "") return error404(host, "404 not found, missing tag");
-                return await timelineView(host, auth, "/api/v1/timelines/tag/"+tmtag, pathraw, genericHeader());
+                return await timelineView(host, auth, "/api/v1/timelines/tag/"+tmtag, pathraw, genericHeader(), timelines_navbar);
+            }else if(tmname === "home") {
+                return await timelineView(host, auth, "/api/v1/timelines/home", pathraw, genericHeader(), timelines_navbar);
             }
+            return error404(host, "404 not found, bad timeline");
         }else if(path0 === "statuses") {
             const postid = path.shift();
             if(postid == null) return error404(host);
@@ -750,7 +759,7 @@ export const client: ThreadClient = {
                 }],
                 link: "/"+host+"/accounts/"+acc_id,
                 raw_value: account_info,
-            });
+            }, []);
         }
         return error404(host);
     },
@@ -775,7 +784,7 @@ export const client: ThreadClient = {
     async loadMoreUnmounted(action) {
         const act = load_more_unmounted_encoder.decode(action);
         const auth = await getAuth(act.tl_info.host);
-        const timeline_view = await timelineView(act.tl_info.host, auth, act.tl_info.api_path, act.tl_info.web_path, genericHeader());
+        const timeline_view = await timelineView(act.tl_info.host, auth, act.tl_info.api_path, act.tl_info.web_path, genericHeader(), []);
         if(timeline_view.body.kind === "listing") {
             return {children: timeline_view.body.items, next: timeline_view.body.next};
         }
@@ -799,7 +808,7 @@ function assertUnreachable(value: never): never {
     throw new Error("Expected unreachable: "+value);
 }
 
-async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode): Promise<Generic.Page> {
+async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode, navbar: Generic.Menu): Promise<Generic.Page> {
     const thisurl = mkurl(host, api_path);
     const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
 
@@ -825,6 +834,7 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
         body: {
             kind: "listing",
             header,
+            menu: navbar,
             items: postArrayToReparentedTimeline(host, posts),
             next: next,
         },

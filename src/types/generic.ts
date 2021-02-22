@@ -490,3 +490,7 @@ export const rt = {
     td: (...content: Richtext.Span[]): Richtext.TableItem => ({children: content}),
     timeAgo: (time: number): Richtext.Span => ({kind: "time-ago", start: time}),
 };
+
+export const mnu = {
+    link: (text: string, url: string, selected: boolean): MenuItem => ({selected, action: {kind: "link", url}, text}),
+};
