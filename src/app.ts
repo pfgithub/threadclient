@@ -1038,7 +1038,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         const existing_body_v = el("div").adto(content);
         renderBody(client, body.body, {autoplay: opts.autoplay}, existing_body_v).defer(hsc);
     }else if(body.kind === "crosspost") {
-        const parentel = el("div").styl({"max-width": "max-content"}).clss("border").adto(content);
+        const parentel = el("div").styl({"max-width": "max-content"}).clss("bg-body rounded-xl").adto(content);
         clientContent(client, body.source, {clickable: true}).defer(hsc).adto(parentel);
     }else if(body.kind === "richtext") {
         const txta = el("div").adto(content).clss("prose whitespace-pre-wrap");
