@@ -1663,11 +1663,12 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         const listing = listing_raw.data;
         // if((listing as any).preview) console.log((listing as any).preview);
 
-        let is_deleted: undefined | "author" | "moderator" | "anti_evil_ops" | "error";
+        let is_deleted: undefined | "author" | "moderator" | "anti_evil_ops"  | "automod_filtered" | "error";
         if(listing.removed_by_category != null) {
             if(listing.removed_by_category === "moderator") is_deleted = "moderator";
             else if(listing.removed_by_category === "deleted") is_deleted = "author";
             else if(listing.removed_by_category === "anti_evil_ops") is_deleted = "anti_evil_ops";
+            else if(listing.removed_by_category === "automod_filtered") is_deleted = "automod_filtered"; // This post is awaiting approval
             else{expectUnsupported(listing.removed_by_category); is_deleted = "error"}
         }
         const post_id_no_pfx = listing.name.substring(3);

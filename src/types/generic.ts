@@ -185,7 +185,7 @@ export type Body = BodyText | RichText | {
     kind: "none",
 } | {
     kind: "removed",
-    by: "author" | "moderator" | "anti_evil_ops" | "error",
+    by: "author" | "moderator" | "anti_evil_ops" | "automod_filtered" | "error",
     fetch_path?: Opaque<"fetch_removed_path">,
     body: Body,
 } | {
