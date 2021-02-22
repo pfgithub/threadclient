@@ -2494,8 +2494,6 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     }
 
     {
-        const body_container = el("div");
-
         if(listing.thumbnail) {
             if(listing.thumbnail.kind === "image") {
                 thumbnail_loc.adch(el("img").attr({src: listing.thumbnail.url, alt: ""}));
@@ -2509,23 +2507,26 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             }else assertNever(listing.thumbnail);
         }
 
-        const initContent = (body: Generic.Body, opts: {autoplay: boolean}, content: HTMLElement): HideShowCleanup<undefined> => {
-            const body_hsc = hideshow();
+        const initContent = (body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLElement> => {
+            const body_container = el("div").clss("post-body");
+
+            const body_hsc = hideshow(body_container);
+
             if(content_warnings.length) {
                 const cws = content_warnings;
                 content_warnings = [];
-                const cwbox = el("div").adto(content);
+                const cwbox = el("div").adto(body_container);
                 cwbox.atxt("Content Warning"+(cws.length === 1 ? "" : "s")+": ");
                 cwbox.adch(renderFlair(cws));
                 cwbox.atxt(" ");
                 elButton("pill-filled").adto(cwbox).atxt("Show Content").onev("click", e => {
                     cwbox.remove();
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
-                    renderBody(client, body, {...opts}, content).defer(body_hsc);
+                    renderBody(client, body, {...opts}, body_container).defer(body_hsc);
                 });
                 return body_hsc;
             }
-            renderBody(client, body, {...opts}, content).defer(body_hsc);
+            renderBody(client, body, {...opts}, body_container).defer(body_hsc);
             return body_hsc;
         };
         
@@ -2543,20 +2544,20 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             const open_preview_button = elButton("outlined-button").adto(content_buttons_line);
             const open_preview_text = txt("…").adto(open_preview_button);
 
-            let body_v: undefined | {node: HTMLElement, hsc: HideShowCleanup<unknown>};
-            hsc.on("cleanup", () => {if(body_v) body_v.hsc.cleanup();});
-            hsc.on("hide", () => {if(body_v) body_v.hsc.setVisible(false);});
-            hsc.on("show", () => {if(body_v) body_v.hsc.setVisible(true);});
+            let body_v: undefined | HideShowCleanup<HTMLElement>;
+            hsc.on("cleanup", () => {if(body_v) body_v.cleanup();});
+            hsc.on("hide", () => {if(body_v) body_v.setVisible(false);});
+            hsc.on("show", () => {if(body_v) body_v.setVisible(true);});
 
             let state = listing.display_mode.body_default === "open";
             const autoplay = !state;
             const update = () => {
                 if(state && !body_v) {
-                    const node = el("div").adto(body_container);
-                    body_v = {node, hsc: initContent(listing.body, {autoplay}, node)};
+                    body_v = initContent(listing.body, {autoplay});
+                    body_v.associated_data.adto(preview_area);
                 }else if(!state && body_v) {
-                    body_v.hsc.cleanup();
-                    body_v.node.remove();
+                    body_v.cleanup();
+                    body_v.associated_data.remove();
                     body_v = undefined;
                 }
                 open_preview_text.nodeValue = state ? "Hide" : "Show";
@@ -2572,10 +2573,8 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                 update();
             });
         }else{
-            initContent(listing.body, {autoplay: false}, body_container).defer(hsc);
+            initContent(listing.body, {autoplay: false}).defer(hsc).adto(preview_area);
         }
-        body_container.clss("post-body");
-        body_container.adto(preview_area);
     }
 
     for(const action of listing.actions) {
