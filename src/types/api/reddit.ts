@@ -286,11 +286,38 @@ export type Widget = {
         width: number,
         height: number,
     } | {
-        kind: "unsupported", // image but I'm not sure the props
+        kind: "unsupported",
     })[],
+} | {
+    kind: "calendar",
+    shortName: string,
+    requiresSync: boolean, // not sure what this is, maybe used for the reddit backend?
+    data: CalendarItem[],
 } | {
     kind: "unsupported",
 });
+
+export type CalendarItem = {
+    allDay: boolean,
+    
+    startTime: Date.Sec,
+    endTime: Date.Sec,
+    
+    location: Markdown,
+    locationHtml: HTML,
+
+    description: Markdown,
+    descriptionHtml: HTML,
+
+    title: Markdown,
+    titleHtml: HTML,
+
+    // display:
+    //   title
+    //   startTime
+    //   location
+    //   description
+};
 
 export type ApiWidgets = {
     items: {[key: string]: Widget},

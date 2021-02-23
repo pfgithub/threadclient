@@ -112,7 +112,7 @@ export declare namespace Richtext {
 }
 export type RichText = {
     kind: "richtext",
-    content: Richtext.Paragraph[],
+    content: readonly Richtext.Paragraph[],
 };
 export type Body = BodyText | RichText | {
     kind: "link",
@@ -489,6 +489,7 @@ export const rt = {
     th: (align: "left" | "center" | "right", ...content: Richtext.Span[]): Richtext.TableHeading => ({align, children: content}),
     td: (...content: Richtext.Span[]): Richtext.TableItem => ({children: content}),
     timeAgo: (time: number): Richtext.Span => ({kind: "time-ago", start: time}),
+    hr: (): Richtext.Paragraph => ({kind: "horizontal_line"}),
 };
 
 export const mnu = {

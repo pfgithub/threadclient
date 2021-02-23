@@ -499,7 +499,7 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
             click: {kind: "body", body: {kind: "text", content: rule.description, markdown_format: "reddit"}},
         }))},
     }; else if(data.kind === "image") return {
-        kind: "widget",
+        kind: "widget", // TODO seperate fullscreen_widget or not
         title: data.shortName,
         raw_value: data,
         widget_content: {kind: "image",
@@ -558,6 +558,22 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
                 };
             }),
         },
+    }; else if(data.kind === "calendar") return {
+        kind: "widget",
+        title: data.shortName,
+        raw_value: data,
+        widget_content: {kind: "body", body: {
+            kind: "array",
+            body: data.data.flatMap((item, i): Generic.Body[] => {
+                return [
+                    ...i !== 0 ? [{kind: "richtext", content: [rt.hr()]}] as const : [],
+                    {kind: "text", content: item.title, markdown_format: "reddit"},
+                    {kind: "richtext", content: [rt.p(rt.timeAgo(item.startTime * 1000))]},
+                    {kind: "text", content: item.location, markdown_format: "reddit"},
+                    {kind: "text", content: item.description, markdown_format: "reddit"},
+                ];
+            }),
+        }},
     };
     expectUnsupported(data.kind);
     return {
