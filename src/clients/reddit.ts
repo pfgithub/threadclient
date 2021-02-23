@@ -2239,10 +2239,20 @@ export const client: ThreadClient = {
             await redditRequest<Reddit.T5>("/r/"+data.subreddit+"/about", {method: "GET", cache: true}),
         ]);
 
+        const kind = data.fullname.startsWith("t1_") ? "comment" : data.fullname.startsWith("t3_") ? "link" : "unsupported";
+
         const result: Generic.ReportScreen[] = [];
 
         const sub_rules_out: Generic.ReportScreen[] = [];
         for(const sub_rule of sub_rules.rules) {
+            if(sub_rule.kind === "link") {
+                if(kind !== "link") continue;
+            }else if(sub_rule.kind === "comment") {
+                if(kind !== "comment") continue;
+            }else if(sub_rule.kind === "all") {
+                // ✓
+            }else expectUnsupported(sub_rule.kind);
+
             sub_rules_out.push({
                 title: sub_rule.violation_reason,
                 description: {kind: "text", content: sub_rule.description, markdown_format: "reddit"},
