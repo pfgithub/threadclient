@@ -69,6 +69,7 @@ module.exports = {
         ...(dev ? [] : [new WorkboxPlugin.GenerateSW({
             clientsClaim: true,
             skipWaiting: true,
+            navigateFallback: "/index.html",
         })]),
     ],
     devServer: {
