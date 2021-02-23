@@ -1,4 +1,4 @@
-import { encodeQuery } from "../util";
+import { assertNever, encodeQuery, router } from "../util";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 import * as Mastodon from "../types/api/mastodon";
@@ -334,7 +334,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         author: {
             name: post.account.display_name + " (@"+post.account.acct+")",
             color_hash: post.account.username,
-            link: "/"+host+"/accounts/"+post.account.id+"/@"+post.account.acct,
+            link: "/"+host+"/accounts/"+post.account.id,
             flair: post.account.bot ? [{elems: [{type: "text", text: "bot"}], content_warning: false}] : [],
             pfp: {
                 url: post.account.avatar_static,
@@ -530,6 +530,96 @@ function bodyPage(host: string, title: string, body: Generic.Body): Generic.Page
     };
 }
 
+type ParseResult = {
+    kind: "timeline",
+    tmname: "home" | "public" | "local" | "tag",
+    api_path: string,
+    host: string,
+} | {
+    kind: "status",
+    status: string,
+    host: string,
+} | {
+    kind: "account",
+    account: string,
+    host: string,
+    api_url: string,
+} | {
+    kind: "404",
+    reason: string,
+    host: string,
+} | {
+    kind: "instance-selector",
+} | {
+    kind: "instance-home",
+    host: string,
+};
+
+const url_parser = router<ParseResult>();
+
+url_parser.with([{host: "any"}] as const, urlr => {
+    urlr.route([] as const, opts => ({
+        kind: "instance-home",
+        host: opts.host,
+    }));
+    urlr.with(["timelines"] as const, urlr => {
+        urlr.route(["home"] as const, opts => ({
+            kind: "timeline",
+            tmname: "home",
+            api_path: "/api/v1/timelines/home?"+encodeQuery(opts.query),
+            host: opts.host,
+        }));
+        urlr.route(["public", "local"] as const, opts => ({
+            kind: "timeline",
+            tmname: "local",
+            api_path: "/api/v1/timelines/public?"+encodeQuery({...opts.query, local: "true"}),
+            host: opts.host,
+        }));
+        urlr.route(["public"] as const, opts => ({
+            kind: "timeline",
+            tmname: "public",
+            api_path: "/api/v1/timelines/public?"+encodeQuery({...opts.query, local: "false"}),
+            host: opts.host,
+        }));
+        urlr.route(["local"] as const, opts => ({
+            kind: "timeline",
+            tmname: "local",
+            api_path: "/api/v1/timelines/public?"+encodeQuery({...opts.query, local: "true"}),
+            host: opts.host,
+        }));
+        urlr.route(["tag", {hashtag: "any"}] as const, opts => ({
+            kind: "timeline",
+            tmname: "tag",
+            api_path: "/api/v1/timelines/tag/"+opts.hashtag+"?"+encodeQuery(opts.query),
+            host: opts.host,
+        }));
+        urlr.catchall(opts => ({
+            kind: "404",
+            reason: "Unsupported timeline",
+            host: opts.host,
+        }));
+    });
+    urlr.route(["statuses", {statusid: "any"}] as const, opts => ({
+        kind: "status",
+        status: opts.statusid,
+        host: opts.host,
+    }));
+    urlr.route(["accounts", {accountid: "any"}] as const, opts => ({
+        kind: "account",
+        account: opts.accountid,
+        host: opts.host,
+        api_url: "/api/v1/accounts/"+opts.accountid+"/statuses?"+encodeQuery({...opts.query}),
+    }));
+    urlr.catchall(opts => ({
+        kind: "404",
+        reason: "Not Found",
+        host: opts.host,
+    }));
+});
+url_parser.catchall(() => ({
+    kind: "instance-selector"
+}));
+
 type LoginURL = {
     host: string,
 };
@@ -612,15 +702,16 @@ export const client: ThreadClient = {
     },
 
     getThread: async (pathraw): Promise<Generic.Page> => {
-        const [beforequery, afterquery_raw] = pathraw.split("?") as [string, string | undefined];
-        const afterquery = afterquery_raw ?? "";
-        const pathsplit = beforequery.split("/");
-        pathsplit.shift();
+        const parsed = url_parser.parse(pathraw) ?? {kind: "404", reason: "This should never happen"};
 
-        const [host, ...path] = pathsplit as [string, ...string[]];
-
-        if(host === "") {
-            return bodyPage(host, "Choose Instance", {
+        if(parsed.kind === "instance-selector") {
+            // TODO https://api.joinmastodon.org/categories
+            // /servers?category=…
+            // /languages?category=…
+            // use a route above the any route /join/…
+            // also at the top of the res page put a thing where you can enter your own instance to join it
+            // also load the joinmastodon api using a loadmore autoload: true rather than during load
+            return bodyPage("", "Choose Instance", {
                 kind: "richtext",
                 content: [
                     rt.h1(rt.txt("Mastodon")),
@@ -641,12 +732,14 @@ export const client: ThreadClient = {
                     rt.p(rt.link("https://joinmastodon.org", {}, rt.txt("joinmastodon.org"))),
                 ],
             });
+        }else if(parsed.kind === "404") {
+            return error404("", parsed.reason);
         }
         
+        const host = parsed.host;
         const auth = await getAuth(host);
-        
-        const path0 = path.shift()!;
-        if(!path0) {
+
+        if(parsed.kind === "instance-home") {
             return bodyPage(host, "Links | "+host, {
                 kind: "richtext",
                 content: [
@@ -657,37 +750,17 @@ export const client: ThreadClient = {
                     ] as const).map(([url, text]) => rt.li(rt.p(rt.link(url, {}, rt.txt(text)))))),
                 ],
             });
-        }
-        if(path0 === "timelines") {
-            const tmname = path.shift();
-
+        }else if(parsed.kind === "timeline") {
             const timelines_navbar: Generic.Menu = [
-                mnu.link("Home", "/"+host+"/timelines/home", tmname === "home"),
-                mnu.link("Local", "/"+host+"/timelines/local", tmname === "local"),
-                mnu.link("Federated", "/"+host+"/timelines/public", tmname === "public"),
+                mnu.link("Home", "/"+host+"/timelines/home", parsed.tmname === "home"),
+                mnu.link("Local", "/"+host+"/timelines/local", parsed.tmname === "local"),
+                mnu.link("Federated", "/"+host+"/timelines/public", parsed.tmname === "public"),
             ];
-            
-            if(tmname === "public"){
-                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+afterquery, pathraw, genericHeader(), timelines_navbar);
-            }else if(tmname === "local"){
-                const parsed_query = new URLSearchParams(afterquery);
-                parsed_query.set("local", "true");
-                const parsed_res = parsed_query.toString();
-                return await timelineView(host, auth, "/api/v1/timelines/public"+"?"+parsed_res, pathraw, genericHeader(), timelines_navbar);
-            }else if(tmname === "tag") {
-                const tmtag = path.shift();
-                if(tmtag == null || tmtag === "") return error404(host, "404 not found, missing tag");
-                return await timelineView(host, auth, "/api/v1/timelines/tag/"+tmtag, pathraw, genericHeader(), timelines_navbar);
-            }else if(tmname === "home") {
-                return await timelineView(host, auth, "/api/v1/timelines/home", pathraw, genericHeader(), timelines_navbar);
-            }
-            return error404(host, "404 not found, bad timeline");
-        }else if(path0 === "statuses") {
-            const postid = path.shift();
-            if(postid == null) return error404(host);
+            return await timelineView(host, auth, parsed.api_path, pathraw, genericHeader(), timelines_navbar);
+        }else if(parsed.kind === "status") {
             const [postinfo, context] = await Promise.all([
-                getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", postid)),
-                getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", postid, "context")),
+                getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", parsed.status)),
+                getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", parsed.status, "context")),
             ]);
 
             if('error' in postinfo) return error404(host, "Error! "+postinfo.error);
@@ -710,9 +783,9 @@ export const client: ThreadClient = {
                 },
                 display_style: "comments-view",
             };
-        }else if(path0 === "accounts") {
-            const acc_id = path.shift();
-            if(acc_id == null) return error404(host);
+        }else if(parsed.kind === "account") {
+            const acc_id = parsed.account;
+
             const [account_info, account_relations] = await Promise.all([
                 getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id)),
                 getResult<Mastodon.AccountRelation[]>(auth, mkurl(host, "api/v1/accounts/relationships/?id[]="+acc_id)),
@@ -723,7 +796,7 @@ export const client: ThreadClient = {
             
             const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
 
-            return await timelineView(host, auth, "/api/v1/accounts/"+acc_id+"/statuses?"+afterquery, "/accounts/"+acc_id+"?"+afterquery, {
+            return await timelineView(host, auth, parsed.api_url, pathraw, {
                 kind: "user-profile",
                 username: account_info.display_name,
                 bio: {kind: "array", body: [parseContentHTML(host, account_info.note, {emojis: [], mentions: []}), {
@@ -761,7 +834,7 @@ export const client: ThreadClient = {
                 raw_value: account_info,
             }, []);
         }
-        return error404(host);
+        assertNever(parsed);
     },
     async act(action_raw): Promise<void> {
         const action = action_encoder.decode(action_raw);

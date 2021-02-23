@@ -38,7 +38,7 @@ export function escapeHTML(unsafe_html: string): string {
 
 export const safehtml = templateGenerator((v: string) => escapeHTML(v));
 
-function assertNever(content: never): never {
+export function assertNever(content: never): never {
     console.log("not never:", content);
     throw new Error("Expected never");
 }
