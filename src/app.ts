@@ -1148,6 +1148,40 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             renderBody(client, oembed(resp as OEmbed), {autoplay: false}, outerel).defer(hsc);
             return ihsc;
         }).defer(hsc).adto(content);
+    }else if(body.kind === "mastodon_instance_selector") {
+        const heading = el("h1").clss("text-base font-light").styl({'max-width': "6rem"}).adto(content);
+        heading.innerHTML = `
+            <svg alt="Mastodon" class="preview-image" viewbox="0 0 713.35878 175.8678" style="fill: currentColor;">
+                <use href="/images/mastodon/Logotype (Full).svg#base" width="713.35878" height="175.8678" />
+            </svg>
+        `;
+        el("h2").atxt("Select your instance").clss("text-2xl font-black py-1").adto(content);
+
+        const selxarea = el("div").adto(content).clss("py-1");
+        const label = el("label").atxt("Instance Name: ").adto(selxarea);
+        selxarea.atxt(" ");
+        const go = () => {
+            navigate({path: "/"+client.id+"/"+(inputel.value.replaceAll("/", "-"))});
+        };
+        const inputel = el("input").clss("border rounded-md p-1").attr({placeholder: "instance.site"}).adto(label).onev("keypress", e => {
+            if(e.key === "Enter") go();
+        }).onev("input", () => {
+            updatebtn();
+        });
+        const updatebtn = () => {
+            const value = inputel.value;
+            if(!value.trim()) btnel.disabled = true;
+            else if(value.indexOf("/") > -1) btnel.disabled = true;
+            else btnel.disabled = false;
+            btnel.attr({class: link_styles_v[btnel.disabled ? "pill-empty" : "pill-filled"]});
+        };
+        const btnel = el("button").atxt("Go →").adto(selxarea).onev("click", e => {e.stopPropagation(); go()});
+        updatebtn();
+
+        el("p").atxt("Not on mastodon? Join at ").clss("py-2")
+            .adch(linkButton(client.id, "https://joinmastodon.org", "normal").atxt("joinmastodon.org")).adto(content)
+        ;
+        el("p").atxt("Note that some instances may require logging in before they let you view timelines.").clss("py-2").adto(content);
     }else assertNever(body);
 
     return hsc;
@@ -2385,6 +2419,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                     || target_parent.nodeName === "BUTTON"
                     || target_parent.nodeName === "VIDEO"
                     || target_parent.nodeName === "AUDIO"
+                    || target_parent.nodeName === "INPUT"
                 )) return;
                 target_parent = target_parent.parentNode;
             }

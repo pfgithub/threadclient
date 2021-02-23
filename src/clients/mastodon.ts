@@ -705,32 +705,8 @@ export const client: ThreadClient = {
         const parsed = url_parser.parse(pathraw) ?? {kind: "404", reason: "This should never happen"};
 
         if(parsed.kind === "instance-selector") {
-            // TODO https://api.joinmastodon.org/categories
-            // /servers?category=…
-            // /languages?category=…
-            // use a route above the any route /join/…
-            // also at the top of the res page put a thing where you can enter your own instance to join it
-            // also load the joinmastodon api using a loadmore autoload: true rather than during load
             return bodyPage("", "Choose Instance", {
-                kind: "richtext",
-                content: [
-                    rt.h1(rt.txt("Mastodon")),
-                    rt.h2(rt.txt("Select an instance")),
-                    rt.p(
-                        rt.txt("In the url bar above, go to "),
-                        rt.txt("/mastodon/", {code: true}),
-                        rt.txt("your.instance"),
-                    ),
-                    rt.p(rt.txt("Examples:")),
-                    rt.ul(...[
-                        "/mastodon.social",
-                        "/koyu.space",
-                        "/mas.to",
-                        "/democracy.town",
-                    ].map(url => rt.li(rt.p(rt.link(url, {}, rt.txt("/mastodon"+url)))))),
-                    rt.p(rt.txt("Find instances:")),
-                    rt.p(rt.link("https://joinmastodon.org", {}, rt.txt("joinmastodon.org"))),
-                ],
+                kind: "mastodon_instance_selector",
             });
         }else if(parsed.kind === "404") {
             return error404("", parsed.reason);

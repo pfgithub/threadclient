@@ -202,6 +202,8 @@ export type Body = BodyText | RichText | {
     description: string,
     url: string,
     click_enabled: boolean,
+} | {
+    kind: "mastodon_instance_selector",
 };
 export type VideoSource = {
     kind: "video",

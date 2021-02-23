@@ -179,6 +179,7 @@ export const client: ThreadClient = {
                 array: [],
                 link_preview: [],
                 oembed: [],
+                mastodon_instance_selector: [item("mastodon instance selector", {kind: "mastodon_instance_selector"})],
             };
             return Object.entries(body_kinds).flatMap(([key, items]): ITRes[] => {
                 if(items.length === 0) return [item("ERROR! Missing for "+key, {kind: "none"})];
