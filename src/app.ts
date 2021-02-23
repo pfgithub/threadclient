@@ -2380,7 +2380,12 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             console.log("target:", e.target);
             let target_parent = e.target as Node | null;
             while(target_parent && target_parent !== frame) {
-                if(target_parent instanceof HTMLElement && (target_parent.nodeName === "A" || target_parent.nodeName === "BUTTON")) return;
+                if(target_parent instanceof HTMLElement && (false
+                    || target_parent.nodeName === "A"
+                    || target_parent.nodeName === "BUTTON"
+                    || target_parent.nodeName === "VIDEO"
+                    || target_parent.nodeName === "AUDIO"
+                )) return;
                 target_parent = target_parent.parentNode;
             }
             navigate({path: "/"+client.id+listing.link});
