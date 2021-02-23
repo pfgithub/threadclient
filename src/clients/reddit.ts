@@ -1,7 +1,7 @@
 import * as Reddit from "../types/api/reddit";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
-import { encodeQuery, encodeURL } from "../util";
+import { encodeQuery, encodeURL, router } from "../util";
 import { rt } from "../types/generic";
 
 const client_id = "biw1k0YZmDUrjg";
@@ -1090,11 +1090,11 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     selected: page.current.tab === "gilded",
                     text: "Gilded",
                     action: {kind: "show-line-two", children: [{
-                        selected: page.current.tab === "gilded" && page.current.mode === "received",
+                        selected: page.current.tab === "gilded" && page.current.by === "received",
                         text: "Received",
                         action: {kind: "link", url: "/"+[...page.base, "gilded"].join("/")}
                     }, {
-                        selected: page.current.tab === "gilded" && page.current.mode === "given",
+                        selected: page.current.tab === "gilded" && page.current.by === "given",
                         text: "Given",
                         action: {kind: "link", url: "/"+[...page.base, "gilded", "given"].join("/")}
                     }]},
@@ -1148,29 +1148,27 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
     ]);
 };
 
-type SortTimeless = "hot" | "new" | "rising";
-type SortTimed = "top" | "controversial";
+type SortMode = "hot" | "new" | "rising" | "top" | "controversial";
 type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
 
 type ParsedPath = {
     kind: "subreddit",
     base: string[],
     current_sort:
-        | {v: SortTimeless}
-        | {v: SortTimed, t: SortTime},
+        | {v: SortMode, t: SortTime},
     is_user_page: boolean, // /u/…/hot. user subreddit pages must have /hot /new /random otherwise they will display the normal user page
 } | {
     kind: "user",
     base: string[],
     current: {
         tab: "overview" | "comments" | "submitted",
-        sort: {sort: SortTimeless | SortTimeless | "unsupported", t: SortTime},
+        sort: {sort: SortMode | "unsupported", t: SortTime},
         // overview defaults ?sort=new
         // comments defaults ?sort=new
         // submitted defaults ?sort=hot
     } | {
         tab: "gilded",
-        mode: "received" | "given" | "unsupported",
+        by: "received" | "given",
         // /gilded/ : received
         // /gilded/reveived
         // /gilded/given
@@ -1197,158 +1195,187 @@ type ParsedPath = {
     kind: "unknown",
 };
 
+const path_router = router<ParsedPath>();
+
+const sort_modes = ["hot", "new", "rising", "top", "controversial"] as const;
+
+const inbox_tabs = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
+
+const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
+const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
+
+// note: all routes on reddit:
+// (how to generate this
+// - find RouterComponent in the react components list
+// - right click, store as global variable
+// $copy(
+//   $reactTemp1
+//     .map(route => ({path: Array.isArray(route.props.path) ? route.props.path : [route.props.path], exact: !!route.props.exact}))
+//     .map(itm => (itm.exact ? "" : "inexact | ") + itm.path.join(" · "))
+//     .join("\n")
+//   ,
+// )
+// how to test routes without reloading:
+// {
+//   const teststate = (state) => {
+//     history.pushState({}, "Hi", state);
+//     history.pushState({}, "Hi", state);
+//     history.back(); 
+//   }
+//   teststate("/route")
+// }
+
+
+// /acknowledgements
+// /appeal · /appeals
+// /avatar
+// /user/me/avatar · /u/me/avatar · /user/:profileName/avatar
+// /coins
+// /coins/mobile
+// /user/me · /user/me/:rest(.*)
+// /r/u_:profileName · /r/u_:profileName/:rest(.*) · /u/:profileName · /u/:profileName/:rest(.*) // → REDIRECT /user/…
+// /user/:profileName/submitted · /user/:profileName/submitted/:rest(.*)
+// /:routePrefix(r)/:subredditName/collection/:collectionId/:partialPostId/:partialCommentId · /:routePrefix(r)/:subredditName/collection/:collectionId/:partialPostId
+//  · /:routePrefix(r)/:subredditName/collection/:collectionId
+// /:routePrefix(user)/:subredditName/collection/:collectionId/:partialPostId/:partialCommentId · /:routePrefix(user)/:subredditName/collection/:collectionId/:partialPostId
+//  · /:routePrefix(user)/:subredditName/collection/:collectionId
+// /:routePrefix(r)/:subredditName/comments/:partialPostId/:urlSafePostTitle/:partialCommentId · /:routePrefix(r)/:subredditName/comments/:partialPostId/:urlSafePostTitle?
+//  · /comments/:partialPostId/:urlSafePostTitle/:partialCommentId · /comments/:partialPostId/:urlSafePostTitle?
+// /:routePrefix(r)/:subredditName/duplicates/:partialPostId/:urlSafePostTitle? · /:routePrefix(user)/:subredditName/duplicates/:partialPostId/:urlSafePostTitle?
+//  · /duplicates/:partialPostId/:urlSafePostTitle?
+// /:routePrefix(user)/:subredditName/comments/:partialPostId/:urlSafePostTitle/:partialCommentId · /:routePrefix(user)/:subredditName/comments/:partialPostId/:urlSafePostTitle?
+// /verification/:verificationToken
+// /
+// /:sort(best|hot|new|rising|controversial|top|gilded|awarded)?
+// /label/subreddits
+// /premium
+// /framedGild/:thingId
+// /framedModal/:type
+// /submit · /r/:subredditName/submit · /user/:profileName/submit
+// /user/:profileName/draft/:draftId
+// /original/submit
+// /original/:categoryName/:sort([a-z]+)?
+// /explore · /explore/:categoryName
+// /community-points/ · /vault/ · /web/community-points/ // → community points vault setup page
+// /web/special-membership/:subredditName · /web/membership/:subredditName
+// /vault/burn // → no idea, it requires some query parameters
+// /me/m/:multiredditName · /user/:username/m/:multiredditName · /me/m/:multiredditName/:sort(best)? · /me/m/:multiredditName/:sort(hot)? · /me/m/:multiredditName/:sort(new)?
+//  · /me/m/:multiredditName/:sort(rising)? · /me/m/:multiredditName/:sort(controversial)? · /me/m/:multiredditName/:sort(top)? · /me/m/:multiredditName/:sort(gilded)?
+//  · /me/m/:multiredditName/:sort(awarded)? · /user/:username/m/:multiredditName/:sort(best)? · /user/:username/m/:multiredditName/:sort(hot)?
+//  · /user/:username/m/:multiredditName/:sort(new)? · /user/:username/m/:multiredditName/:sort(rising)? · /user/:username/m/:multiredditName/:sort(controversial)?
+//  · /user/:username/m/:multiredditName/:sort(top)? · /user/:username/m/:multiredditName/:sort(gilded)? · /user/:username/m/:multiredditName/:sort(awarded)?
+// /r/mod/about/:pageName(edited|modqueue|reports|spam|unmoderated)?
+// /r/mod/:sort(best)? · /r/mod/:sort(hot)? · /r/mod/:sort(new)? · /r/mod/:sort(rising)? · /r/mod/:sort(controversial)? · /r/mod/:sort(top)? · /r/mod/:sort(gilded)?
+//  · /r/mod/:sort(awarded)? · /me/f/mod/:sort(best)? · /me/f/mod/:sort(hot)? · /me/f/mod/:sort(new)? · /me/f/mod/:sort(rising)? · /me/f/mod/:sort(controversial)? · /me/f/mod/:sort(top)?
+//  · /me/f/mod/:sort(gilded)? · /me/f/mod/:sort(awarded)?
+// /message/:pageName(inbox|unread|messages|comments|selfreply|mentions|compose|sent|moderator) · /message/messages/:messageId
+// /user/:profileName/comments
+// /user/:profileName/about/edit/moderation
+// /user/:profileName
+// /user/:profileName/posts
+// /user/:profileName/snoo
+// /user/:profileName/:listingType(downvoted|hidden|saved|upvoted|gilded|given) · /user/:profileName/gilded/:listingType(given)
+// /rpan/r/:subredditName/:partialPostId? · /rpan/:partialPostId?
+// /settings/:page(account|messaging|profile|privacy|notifications|feed|gold|payments|premium|creator|special)?
+// /settings/data-request
+//inexact | /prefs/:page(deactivate|blocked)? // redirect → /settings/
+//inexact | /user/:username/about/edit · /user/:username/about/edit/privacy // redirect → /settings/profile
+// /search · /r/:subredditName/search · /me/m/:multiredditName/search · /user/:username/m/:multiredditName/search
+// /wiki/ · /r/:subredditName/wiki/ · /r/:subredditName/w/:wikiPageName* · /w/:wikiPageName* · /r/:subredditName/wiki/:wikiSubRoute(settings)/:wikiPageName+
+// /r/:subredditName/wiki/:wikiSubRoute(revisions) · /r/:subredditName/wiki/:wikiSubRoute(edit|create|revisions)/:wikiPageName+ · /r/:subredditName/wiki/:wikiPageName+ · /wiki/:wikiPageName+
+// /t/:topicSlug
+// /r/:subredditName · /r/:subredditName/:sort(best)? · /r/:subredditName/:sort(hot)? · /r/:subredditName/:sort(new)? · /r/:subredditName/:sort(rising)?
+//  · /r/:subredditName/:sort(controversial)? · /r/:subredditName/:sort(top)? · /r/:subredditName/:sort(gilded)? · /r/:subredditName/:sort(awarded)?
+// /subreddits/create
+// /subreddits/leaderboard · /subreddits/leaderboard/:categoryName/
+// /r/:subredditName/about · /r/:subredditName/about/:pageName(awards|muted|badges|banned|chat|settings|contributors|emojis|emotes|eventposts|moderators|rules
+//  |removal|modqueue|reports|spam|unmoderated|edited|postflair|log|flair|edit|userflair|wiki|wikicontributors|wikibanned|traffic|scheduledposts|broadcasting|content)
+//  · /user/:profileName/about/:pageName(awards) · /r/:subredditName/about/:pageName(wiki)/:wikiSubRoute(revisions|wikibanned|wikicontributors)
+//  · /r/:subredditName/about/:pageName(wiki)/:wikiSubRoute(edit|create|settings|revisions)/:wikiPageName+ · /r/:subredditName/about/:pageName(wiki)/:wikiPageName*
+// /report
+//# unused (redirects to /)
+// /original
+// /notifications/
+
+// this router should maybe actually send the network requests too
+// + make some catchall routes for unsupported things
+// but then eg /raw/… would be equivalent to ?tr_display=raw and not have the subreddit sidebar stuff
+
+// /r/:subreddit
+path_router.with(["r", {subreddit: "any"}] as const, urlr => {
+    // …/:?sort   ?t=:time
+    urlr.route([{sort: [...sort_modes, null]}] as const, opts => ({
+        kind: "subreddit",
+        base: ["r", opts.subreddit],
+        current_sort: {v: opts.sort ?? "hot", t: opts.query.t ?? "all"},
+        is_user_page: false,
+    }));
+    urlr.catchall(opts => ({
+        kind: "unknown",
+    }));
+});
+path_router.with([{ignored: ["user", "u"]}, {username: "any"}] as const, urlr => {
+    urlr.route([{sort: sort_modes}] as const, opts => ({
+        kind: "subreddit",
+        base: ["u", opts.username],
+        current_sort: {v: opts.sort, t: opts.query["t"] ?? "all"},
+        is_user_page: true,
+    }));
+    urlr.route([{tab: [...user_sorted_tabs, null]}] as const, opts => ({
+        kind: "user",
+        base: ["u", opts.username],
+        current: {tab: opts.tab ?? "overview", sort: {
+            sort: opts.query.sort ?? (opts.tab === "submitted" ? "hot" : "new"),
+            t: opts.query.t ?? "all",
+        }},
+    }));
+    urlr.route(["gilded", {by: ["received", "given", null]}] as const, opts => ({
+        kind: "user",
+        base: ["u", opts.username],
+        current: {tab: "gilded", by: opts.by ?? "received"},
+    }));
+    urlr.route([{tab: user_sortless_tabs}], opts => ({
+        kind: "user",
+        base: ["u", opts.username],
+        current: {tab: opts.tab},
+    }));
+    urlr.catchall(opts => ({
+        kind: "unknown",
+    }));
+});
+path_router.with(["message"] as const, urlr => {
+    urlr.route([{tab: inbox_tabs}] as const, opts => ({
+        kind: "inbox",
+        current: {
+            tab: "inbox",
+            inbox_tab: opts.tab,
+        },
+    }));
+    urlr.route(["compose"] as const, opts => ({
+        kind: "inbox",
+        current: {
+            tab: "compose",
+        },
+    }));
+    urlr.route(["sent"] as const, opts => ({
+        kind: "inbox",
+        current: {
+            tab: "sent",
+        }
+    }));
+    urlr.catchall(opts => ({
+        kind: "unknown",
+    }));
+});
+path_router.route([{sort: [...sort_modes, null]}] as const, opts => ({
+    kind: "subreddit",
+    base: [],
+    current_sort: {v: opts.sort ?? "hot", t: opts.query.time ?? "all"},
+    is_user_page: false,
+}));
+
 function parsePath(path: string): ParsedPath {
-    const [path_path, path_query] = splitURL(path);
-
-    const pathsplit = path_path.split("/").filter(q => q);
-        
-    const normal_sorts = ["hot", "new", "rising"] as const;
-    const timed_sorts = ["top", "controversial"] as const;
-
-    const inbox_tabs = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
-
-    const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
-    const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
-
-    // TODO rewrite this so each section uses array.shift() on a copy of the array
-    // and every return statement checks the length of the path before returning
-    if(pathsplit[0] === "r" && typeof pathsplit[1] === "string") {
-        const base = ["r", pathsplit[1]];
-        const path2 = pathsplit[2];
-
-        if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
-            return {
-                kind: "subreddit",
-                base,
-                current_sort: {v: path2},
-                is_user_page: false, 
-            };
-        }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
-            const time_t = path_query.get("t") ?? "all";
-            return {
-                kind: "subreddit",
-                base,
-                current_sort: {v: path2, t: time_t as "unsupported"},
-                is_user_page: false,
-            };
-        }else if(path2 == null) {
-            return {
-                kind: "subreddit",
-                base,
-                current_sort: {v: "hot"},
-                is_user_page: false,
-            };
-        }
-        return {kind: "unknown"};
-    }else if(pathsplit[0] === "user" && typeof pathsplit[1] === "string") {
-        const path2 = pathsplit[2];
-        const base = ["u", pathsplit[1]];
-
-        if(guardIncludes(normal_sorts, path2) && pathsplit.length === 3) {
-            return {
-                kind: "subreddit",
-                base,
-                current_sort: {v: path2},
-                is_user_page: false, 
-            };
-        }else if(guardIncludes(timed_sorts, path2) && pathsplit.length === 3) {
-            const time_t = path_query.get("t") ?? "all";
-            return {
-                kind: "subreddit",
-                base,
-                current_sort: {v: path2, t: time_t as "unsupported"},
-                is_user_page: false,
-            };
-        }else if(path2 == null) {
-            return {
-                kind: "user",
-                base,
-                current: {tab: "overview", sort: {
-                    sort: (path_query.get("sort") ?? "new") as "unsupported",
-                    t: (path_query.get("t") ?? "all") as "unsupported",
-                }},
-            };
-        }else if(guardIncludes(user_sorted_tabs, path2) && pathsplit.length === 3) {
-            return {
-                kind: "user",
-                base,
-                current: {tab: path2, sort: {
-                    sort: (path_query.get("sort") ?? (path2 === "submitted" ? "hot" : "new")) as "unsupported",
-                    t: (path_query.get("t") ?? "all") as "unsupported",
-                }},
-            };
-        }else if(guardIncludes(user_sortless_tabs, path2) && pathsplit.length === 3) {
-            return {
-                kind: "user",
-                base,
-                current: {tab: path2},
-            };
-        }else if(path2 === "gilded" && (pathsplit.length === 3 || pathsplit.length === 4)) {
-            return {
-                kind: "user",
-                base,
-                current: {tab: "gilded", mode: (pathsplit[3] ?? "received") as "unsupported"},
-            };
-        }
-        return {kind: "unknown"};
-        
-    }else if(pathsplit[0] === "message") {
-        if(guardIncludes(inbox_tabs, pathsplit[1]) && pathsplit.length === 2) {
-            return {
-                kind: "inbox",
-                current: {
-                    tab: "inbox",
-                    inbox_tab: pathsplit[1],
-                },
-            };
-        }else if(pathsplit[1] === "compose" && pathsplit.length === 2) {
-            return {
-                kind: "inbox",
-                current: {
-                    tab: "compose",  
-                },
-            };
-        }else if(pathsplit[1] === "sent" && pathsplit.length === 2) {
-            return {
-                kind: "inbox",
-                current: {
-                    tab: "sent",
-                },
-            };
-        }
-        return {kind: "inbox", current: {tab: "unknown"}};
-        
-    }
-    const path0 = pathsplit[0];
-    const base: string[] = [];
-    if(guardIncludes(normal_sorts, path0) && pathsplit.length === 1) {
-        return {
-            kind: "subreddit",
-            base,
-            current_sort: {v: path0},
-            is_user_page: false, 
-        };
-    }else if(guardIncludes(timed_sorts, path0) && pathsplit.length === 1) {
-        const time_t = path_query.get("t") ?? "all";
-        return {
-            kind: "subreddit",
-            base,
-            current_sort: {v: path0, t: time_t as "unsupported"},
-            is_user_page: false,
-        };
-    }else if(path0 == null) {
-        return {
-            kind: "subreddit",
-            base,
-            current_sort: {v: "hot"},
-            is_user_page: false,
-        };
-    }
-    return {kind: "unknown"};
-}
-
-function guardIncludes<Array extends ReadonlyArray<unknown>>(array: Array, search_item: unknown): search_item is Array[number] {
-    return array.includes(search_item as unknown as Array[number]);
+    return path_router.parse(path) ?? {kind: "unknown"};
 }
 
 type LoadMoreUnmountedData = {

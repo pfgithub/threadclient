@@ -23,7 +23,7 @@ module.exports = {
         "no-constant-condition": ["warn", {checkLoops: false}],
 
         // stricter linting rules:
-        "@typescript-eslint/no-shadow": "warn",
+        "@typescript-eslint/no-shadow": ["warn", {allow: ["urlr"]}],
         "eqeqeq": ["warn", "always", {null: "never"}],
 
         // style rules:
