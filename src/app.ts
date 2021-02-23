@@ -1826,7 +1826,7 @@ function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportSc
 }
 
 function renderReportScreen(client: ThreadClient, report_fetch_info: Generic.Opaque<"report">): HideShowCleanup<HTMLDivElement> {
-    const frame = el("div").clss("report-screen");
+    const frame = el("div").clss("report-screen text-sm");
     const hsc = hideshow(frame);
 
     if(!client.fetchReportScreen) {
