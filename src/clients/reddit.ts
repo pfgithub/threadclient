@@ -1215,6 +1215,10 @@ const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
 //     .join("\n")
 //   ,
 // )
+// TODO when implementing routes do something to say what path was implemented
+//   eg implementRoute("/appeal", "/appeals")
+// in order to make it easier to update when new routes come out
+//
 // how to test routes without reloading:
 // {
 //   const teststate = (state) => {
