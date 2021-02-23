@@ -753,7 +753,7 @@ function getNavbar(): Generic.Action[] {
     );
     return res;
 }
-const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
+const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: PageExtra, warning?: Generic.Richtext.Paragraph[]): Generic.Page => {
     const rtitems: Generic.Richtext.Paragraph[] = [];
     const listing_json = listing as unknown as {json: {errors: string[]}};
     if(typeof listing_json === "object" && 'json' in listing_json && typeof listing_json.json === "object"
@@ -775,6 +775,7 @@ const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: Page
             });
         }
     }
+    if(warning) rtitems.push(...warning);
     return {
         title: path + " | Error View",
         navbar: getNavbar(),
@@ -1136,7 +1137,15 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
         };
     }
     expectUnsupported(listing.kind);
-    return pathFromListingRaw(path, listing, extra);
+    return pathFromListingRaw(path, listing, extra, [
+        rt.h1(rt.txt("This url is not supported yet")),
+        rt.p(
+            rt.txt("Submit an issue "),
+            rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
+            rt.txt(" if you would like to see this supported. Mention the url: "),
+            rt.txt(path, {code: true})
+        ),
+    ]);
 };
 
 type SortTimeless = "hot" | "new" | "rising";
