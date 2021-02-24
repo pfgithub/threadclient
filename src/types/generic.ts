@@ -16,7 +16,7 @@ export type Page = {
         kind: "one",
         item: UnmountedNode,
     },
-    display_style: string,
+    display_style: "comments-view" | "fullscreen-view",
 };
 export type UnmountedNode = {
     // [...Node[], ContentNode] // requires a newer version of typescript

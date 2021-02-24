@@ -22,9 +22,10 @@ export const templateGenerator = <InType>(helper: (str: InType) => string) => {
 };
 export const encodeURL = templateGenerator<string>(str => encodeURIComponent(str));
 
-export const encodeQuery = (items: {[key: string]: string}): string => {
+export const encodeQuery = (items: {[key: string]: string | null}): string => {
     let res = "";
     for(const [key, value] of Object.entries(items)) {
+        if(value == null) continue;
         if(res) res += "&";
         res += encodeURL`${key}=${value}`;
     }

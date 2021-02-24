@@ -624,10 +624,9 @@ function oldSidebarWidget(t5: Reddit.T5, subreddit: string, {collapsed}: {collap
     //     },
     // };
 }
-function sidebarFromWidgets(subinfo: SubInfo, mode_raw: "both" | "header" | "sidebar"): Generic.ContentNode[] {
+function sidebarFromWidgets(subinfo: SubInfo): Generic.ContentNode[] {
     const widgets = subinfo.widgets;
 
-    const mode: {header: boolean, sidebar: boolean} = {header: mode_raw === "header" || mode_raw === "both", sidebar: mode_raw === "sidebar" || mode_raw === "both"};
     const getItem = (id: string): Reddit.Widget => {
         const resv = widgets!.items[id];
         if(!resv) throw new Error("bad widget "+id);
@@ -638,12 +637,12 @@ function sidebarFromWidgets(subinfo: SubInfo, mode_raw: "both" | "header" | "sid
     
     // TODO moderator widget
     return [
-        // ...mode.header && widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
-        // ...mode.sidebar && widgets ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
-        ...mode.sidebar && subinfo.sub_t5 ? [customIDCardWidget(subinfo.sub_t5, subinfo.subreddit)] : [],
-        ...mode.sidebar && subinfo.sub_t5 ? [oldSidebarWidget(subinfo.sub_t5, subinfo.subreddit, {collapsed: widgets ? true : false})] : [],
-        ...mode.sidebar && widgets ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
-        ...mode.sidebar && widgets ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
+        // ...widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
+        // ...widgets ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
+        ...subinfo.sub_t5 ? [customIDCardWidget(subinfo.sub_t5, subinfo.subreddit)] : [],
+        ...subinfo.sub_t5 ? [oldSidebarWidget(subinfo.sub_t5, subinfo.subreddit, {collapsed: widgets ? true : false})] : [],
+        ...widgets ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
+        ...widgets ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
     ];
 }
 
@@ -733,16 +732,9 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
 
 type SubInfo = {
     subreddit: string,
-    widgets?: Reddit.ApiWidgets,
-    sub_t5?: Reddit.T5,
+    widgets: Reddit.ApiWidgets | null,
+    sub_t5: Reddit.T5 | null,
 };
-type PageExtra = {subinfo?: SubInfo, display_mode?: "rendered" | "raw"};
-function makeSidebar(extra: PageExtra, mode_raw: "both" | "header" | "sidebar"): {sidebar: Generic.ContentNode[]} | null {
-    if(extra.subinfo) {
-        return {sidebar: sidebarFromWidgets(extra.subinfo, mode_raw)};
-    }
-    return null;
-}
 function getNavbar(): Generic.Action[] {
     const res: Generic.Action[] = [];
     if(isLoggedIn()) res.push(
@@ -754,7 +746,7 @@ function getNavbar(): Generic.Action[] {
     );
     return res;
 }
-const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: PageExtra, warning?: Generic.Richtext.Paragraph[]): Generic.Page => {
+const pathFromListingRaw = (path: string, listing: unknown, opts: {warning?: Generic.Richtext.Paragraph[], sidebar: Generic.ContentNode[] | null}): Generic.Page => {
     const rtitems: Generic.Richtext.Paragraph[] = [];
     const listing_json = listing as unknown as {json: {errors: string[]}};
     if(typeof listing_json === "object" && 'json' in listing_json && typeof listing_json.json === "object"
@@ -776,9 +768,9 @@ const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: Page
             });
         }
     }
-    if(warning) rtitems.push(...warning);
+    if(opts.warning) rtitems.push(...opts.warning);
     return {
-        title: path + " | Error View",
+        title: "Error View",
         navbar: getNavbar(),
         body: {
             kind: "one",
@@ -796,93 +788,139 @@ const pathFromListingRaw = (path: string, listing: Reddit.AnyResult, extra: Page
                 replies: [],
             },
         },
-        ...makeSidebar(extra, "both"),
+        sidebar: opts.sidebar ?? undefined,
         display_style: "comments-view",
     };
 };
-export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: PageExtra): Generic.Page => {
-    const [, path_query] = splitURL(path);
-    if(extra.display_mode === "raw") return pathFromListingRaw(path, listing, extra);
+
+// TODO pass in menu rather than generating it here
+export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, listing: Reddit.AnyResult, opts: {header?: Generic.ContentNode, sidebar: Generic.ContentNode[] | null}): Generic.Page => {
+    const page = parsed_path_in;
     if(Array.isArray(listing)) {
-        const path_sort = path_query.get("sort") as Reddit.Sort | null;
-        let link_fullname: string | undefined;
-        let default_sort: Reddit.Sort | null | undefined = null;
-        let is_contest_mode = false;
-        let can_mod_post = false;
-        const firstchild = listing[0].data.children[0]!;
-        if(firstchild.kind === "t3") {
-            link_fullname = firstchild.data.name;
-            default_sort = firstchild.data.suggested_sort;
-            is_contest_mode = firstchild.data.contest_mode;
-            can_mod_post = firstchild.data.can_mod_post;
+        if(listing[0].data.children.length !== 1) {
+            return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: [
+                rt.h1(rt.txt("This url is not supported yet")),
+                rt.p(
+                    rt.txt("Submit an issue "),
+                    rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
+                    rt.txt(" if you would like to see this supported. Mention the url: "),
+                    rt.txt(pathraw, {code: true})
+                ),
+            ]});
         }
-        const sort_v = path_sort ?? default_sort ?? "confidence";
-        
+        const firstchild = listing[0].data.children[0]!;
+        if(firstchild.kind !== "t3") {
+            return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: [
+                rt.h1(rt.txt("This url is not supported yet")),
+                rt.p(
+                    rt.txt("Submit an issue "),
+                    rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
+                    rt.txt(" if you would like to see this supported. Mention the url: "),
+                    rt.txt(pathraw, {code: true})
+                ),
+            ]});
+        }
+
+        const link_fullname = firstchild.data.name;
+        const default_sort: Reddit.Sort = firstchild.data.suggested_sort ?? "confidence";
+        const is_contest_mode = firstchild.data.contest_mode;
+        const can_mod_post = firstchild.data.can_mod_post;
+        const permalink: string = firstchild.data.permalink;
+
         const children_root = listing[1].data.children;
         const header_children: Generic.Node[] = [];
         const root0 = children_root[0];
         if(root0 && root0.kind === "t1" && root0.data.parent_id !== link_fullname) {
             header_children.push(loadMoreContextNode(root0.data.subreddit, (link_fullname ?? "").replace("t3_", ""), root0.data.parent_id.replace("t1_", "")));
         }
-        let replies = children_root.map(child => threadFromListing(child, {link_fullname}, {permalink: updateQuery(path, {sort: sort_v}), sort: sort_v}));
+        let replies = children_root.map(child => threadFromListing(child, {link_fullname}, {permalink: permalink, sort: default_sort}));
 
-        // a mess of code:
-        // - search for the comment that should be highlighted (for /r/…/comments/…/…/:commentid urls)
-        // - unwrap the parent comments and that comment into header_children
-        // - update children to contain the replies below that comment
-        const getRootReply = (nodes: Generic.Node[]): Generic.Thread | undefined => {
-            if(nodes.length !== 1) return undefined;
-            const node0 = nodes[0]!;
-            if(node0.kind !== "thread") return undefined;
-            return node0;
-        };
-        const getIdFromReply = (node: Generic.Thread): string | undefined => {
-            // hack
-            const raw_val = node.raw_value as {data: {name: string | null} | null} | null;
-            if(typeof raw_val === "object" && raw_val && 'data' in raw_val && typeof raw_val.data === "object"
-                && raw_val.data && 'name' in raw_val.data && typeof raw_val.data.name === "string"
-            ) {
-                const name = raw_val.data.name;
-                if(name.startsWith("t1_")) return name.replace("t1_", "");
+        if(page.kind === "comments" && page.focus_comment != null) {
+            // a mess of code:
+            // - search for the comment that should be highlighted (for /r/…/comments/…/…/:commentid urls)
+            // - unwrap the parent comments and that comment into header_children
+            // - update children to contain the replies below that comment
+            const getRootReply = (nodes: Generic.Node[]): Generic.Thread | undefined => {
+                if(nodes.length !== 1) return undefined;
+                const node0 = nodes[0]!;
+                if(node0.kind !== "thread") return undefined;
+                return node0;
+            };
+            const getIdFromReply = (node: Generic.Thread): string | undefined => {
+                // hack
+                const raw_val = node.raw_value as {data: {name: string | null} | null} | null;
+                if(typeof raw_val === "object" && raw_val && 'data' in raw_val && typeof raw_val.data === "object"
+                    && raw_val.data && 'name' in raw_val.data && typeof raw_val.data.name === "string"
+                ) {
+                    const name = raw_val.data.name;
+                    if(name.startsWith("t1_")) return name.replace("t1_", "");
+                    return undefined;
+                }
                 return undefined;
+            };
+            let root_reply: Generic.Node | undefined = getRootReply(replies);
+            let found_reply: Generic.Node | undefined;
+            while(root_reply) {
+                const val_id = getIdFromReply(root_reply);
+                if(val_id === page.focus_comment) {
+                    // found
+                    found_reply = root_reply;
+                    break;
+                }
+                root_reply = getRootReply(root_reply.replies ?? []);
             }
-            return undefined;
-        };
-        let root_reply: Generic.Node | undefined = getRootReply(replies);
-        let found_reply: Generic.Node | undefined;
-        while(root_reply) {
-            const val_id = getIdFromReply(root_reply);
-            if(val_id != null && (path.includes("/"+val_id) || path.includes("="+val_id))) {
-                // found
-                found_reply = root_reply;
-                break;
+            if(found_reply) {
+                root_reply = getRootReply(replies);
+                while(root_reply && root_reply !== found_reply) {
+                    header_children.push(root_reply);
+                    const children = root_reply.replies;
+                    root_reply.replies = undefined;
+                    root_reply = getRootReply(children ?? []);
+                }
+                if(root_reply) {
+                    header_children.push(root_reply);
+                    const children = root_reply.replies;
+                    root_reply.replies = undefined;
+                    replies = children ?? [];
+                }else{
+                    replies = [];
+                }
             }
-            root_reply = getRootReply(root_reply.replies ?? []);
         }
-        if(found_reply) {
-            root_reply = getRootReply(replies);
-            while(root_reply && root_reply !== found_reply) {
-                header_children.push(root_reply);
-                const children = root_reply.replies;
-                root_reply.replies = undefined;
-                root_reply = getRootReply(children ?? []);
-            }
-            if(root_reply) {
-                header_children.push(root_reply);
-                const children = root_reply.replies;
-                root_reply.replies = undefined;
-                replies = children ?? [];
-            }else{
-                replies = [];
-            }
+        if(listing[1].data.after != null) {
+            replies.push({kind: "load_more", url: "TODO", load_more: load_more_encoder.encode({kind: "duplicates", lmurl: "todo"}), raw_value: listing[1]});
         }
 
-        // search down and see if in one-reply comments if a comment with path.includes(comment.id) exists
-        // if it does, start reparenting :
-        // header_children.push(threadFromListing(parent))
-        // children_root = parent.children[0]
-        // children_root_permalink = …
-        // parent.children = nope
+        let menu: Generic.Menu;
+        if(page.kind === "comments") {
+            if(is_contest_mode && !can_mod_post) {
+                menu = [{
+                    selected: true,
+                    text: "Random",
+                    action: {kind: "link", url: updateQuery(permalink, {sort: "random"})}
+                }];
+            }else{
+                menu = ([
+                    ["confidence", "Best"], ["top", "Top"], ["new", "New"], ["controversial", "Controversial"],
+                    ["old", "Old"], ["random", "Random"], ["qa", "Q&A"], ["live", "Live"],
+                ] as const).map(([sortname, sorttext]): Generic.MenuItem => ({
+                    selected: (page.sort_override ?? default_sort) === sortname,
+                    text: sorttext,
+                    action: {kind: "link", url: updateQuery(permalink, {sort_override: sortname})},
+                }));
+            }
+        }else if(page.kind === "duplicates") {
+            menu = ([
+                ["num_comments", "Comments"],
+                ["new", "New"],
+            ] as const).map(([sortname, sorttext]): Generic.MenuItem => ({
+                selected: page.sort === sortname,
+                text: sorttext,
+                action: {kind: "link", url: updateQuery(permalink.replace("/comments", "/duplicates"), {sort: sortname})},
+            }));
+        }else{
+            menu = [{selected: false, text: "error "+page.kind, action: {kind: "link", url: "error"}}];
+        }
 
         return {
             title: firstchild.kind === "t3" ? firstchild.data.title : "ERR top not t3",
@@ -891,23 +929,10 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                 kind: "one",
                 item: {
                     parents: [
-                        threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, {permalink: path, sort: "unsupported"}),
+                        threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, {permalink, sort: "unsupported"}),
                         ...header_children,
                     ],
-                    menu: (is_contest_mode && !can_mod_post) ? [
-                        {
-                            selected: true,
-                            text: "Random",
-                            action: {kind: "link", url: updateQuery(path, {sort: "random"})}
-                        }
-                    ] : ([
-                        ["confidence", "Best"], ["top", "Top"], ["new", "New"], ["controversial", "Controversial"],
-                        ["old", "Old"], ["random", "Random"], ["qa", "Q&A"], ["live", "Live"],
-                    ] as const).map(([sortname, sorttext]): Generic.MenuItem => ({
-                        selected: sort_v === sortname,
-                        text: sorttext,
-                        action: {kind: "link", url: updateQuery(path, {sort: sortname === "confidence" ? undefined : sortname})},
-                    })),
+                    menu,
                     replies: [...is_contest_mode ? [((): Generic.Thread => ({
                         kind: "thread",
                         body: {
@@ -929,13 +954,13 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     }))()] : [], ...replies],
                 },
             },
-            ...makeSidebar(extra, "both"),
+            sidebar: opts.sidebar ?? undefined,
             display_style: "comments-view",
         };
     }
     if(listing.kind === "wikipage") {
         return {
-            title: path + " | Wiki",
+            title: pathraw + " | Wiki",
             navbar: getNavbar(),
             body: {
                 kind: "one",
@@ -945,7 +970,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                         raw_value: listing,
                         body: {kind: "text", markdown_format: "reddit_html", content: listing.data.content_html},
                         display_mode: {body: "visible", comments: "visible"},
-                        link: path,
+                        link: pathraw,
                         layout: "error",
                         actions: [],
                         default_collapsed: false,
@@ -953,13 +978,13 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     replies: [],
                 },
             },
-            ...makeSidebar(extra, "both"),
+            sidebar: opts.sidebar ?? undefined,
             display_style: "comments-view",
         };
     }
     if(listing.kind === "t5") {
         return {
-            title: path + " | Sidebar",
+            title: pathraw + " | Sidebar",
             navbar: getNavbar(),
             body: {
                 kind: "one",
@@ -968,20 +993,20 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     raw_value: listing,
                     body: {kind: "text", markdown_format: "reddit", content: listing.data.description},
                     display_mode: {body: "visible", comments: "visible"},
-                    link: path,
+                    link: pathraw,
                     layout: "reddit-post",
                     title: {text: "old.reddit sidebar"},
                     actions: [],
                     default_collapsed: false,
                 }], replies: []},
             },
-            ...makeSidebar(extra, "both"),
+            sidebar: opts.sidebar ?? undefined,
             display_style: "comments-view",
         };
     }
     if(listing.kind === "UserList") {
         return {
-            title: path,
+            title: pathraw,
             navbar: getNavbar(),
             body: {
                 kind: "one",
@@ -1002,14 +1027,14 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                         display_mode: {body: "visible", comments: "visible"},
                         raw_value: listing,
                         layout: "reddit-post",
-                        link: path,
+                        link: pathraw,
                         actions: [],
                         default_collapsed: false,
                     }],
                     replies: [],
                 },
             },
-            ...makeSidebar(extra, "sidebar"),
+            sidebar: opts.sidebar ?? undefined,
             display_style: "comments-view",
         };
     }
@@ -1019,7 +1044,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
         }
         let next: Generic.LoadMoreUnmounted | undefined;
         if(listing.data.after != null) {
-            const next_path = updateQuery(path, {before: undefined, after: listing.data.after});
+            const next_path = updateQuery(pathraw, {before: undefined, after: listing.data.after});
             next = {kind: "load_more_unmounted", load_more_unmounted: load_more_unmounted_encoder.encode({kind: "listing", url: next_path}), url: next_path, count: undefined, raw_value: listing};
         }
         
@@ -1032,14 +1057,12 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
             ["saved", "Saved"],
         ] as const;
 
-        const page = parsePath(path);
-
         // TODO for /message/messages/…, a "one" should be returned rather than a "listing"
         // - parents: starting message..permalinked message
         // - replies: permalinked message + 1..
 
         return {
-            title: path,
+            title: pathraw,
             navbar: getNavbar(),
             body: {
                 kind: "listing",
@@ -1103,7 +1126,7 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     selected: page.current.tab === tab,
                     text: tabname,
                     action: {kind: "link", url: "/"+[...page.base, tabname].join("/")},
-                }))]: page.kind === "inbox" ? [{
+                }))] : page.kind === "inbox" ? [{
                     selected: page.current.tab === "compose",
                     text: "Compose",
                     action: {kind: "link", url: "/message/compose"},
@@ -1123,32 +1146,40 @@ export const pageFromListing = (path: string, listing: Reddit.AnyResult, extra: 
                     selected: page.current.tab === "sent",
                     text: "Sent",
                     action: {kind: "link", url: "/message/sent"},
-                }] : page.kind === "unknown" ? [
-                    {text: "Error!", selected: false, action: {kind: "link", url: path}},
-                ] : [
-                    {text: "Error! "+page.kind, selected: false, action: {kind: "link", url: path}},
+                }] : [
+                    {text: "Error! "+page.kind, selected: false, action: {kind: "link", url: pathraw}},
                 ],
-                header: subredditHeader(extra.subinfo),
+                header: opts.header ?? {
+                    kind: "thread",
+                    title: {text: "Listing"},
+                    body: {kind: "text", content: "Listing", markdown_format: "none"},
+                    display_mode: {body: "collapsed", comments: "collapsed"},
+                    link: "TODO no link",
+                    layout: "error",
+                    actions: [],
+                    default_collapsed: false,
+                    raw_value: page,
+                },
                 items: page.kind === "inbox"
                     ? listing.data.children.map(child => topLevelThreadFromInboxMsg(child as unknown as Reddit.InboxMsg))
-                    : listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: path, sort: "unsupported"}))
+                    : listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: pathraw, sort: "unsupported"}))
                 ,
                 next,
             },
-            ...makeSidebar(extra, "sidebar"),
+            sidebar: opts.sidebar ?? undefined,
             display_style: "fullscreen-view",
         };
     }
     expectUnsupported(listing.kind);
-    return pathFromListingRaw(path, listing, extra, [
+    return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: [
         rt.h1(rt.txt("This url is not supported yet")),
         rt.p(
             rt.txt("Submit an issue "),
             rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
             rt.txt(" if you would like to see this supported. Mention the url: "),
-            rt.txt(path, {code: true})
+            rt.txt(pathraw, {code: true}),
         ),
-    ]);
+    ]});
 };
 
 type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded";
@@ -1157,25 +1188,30 @@ type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupporte
 type ParsedPath = {
     kind: "subreddit",
     sub: SubrInfo,
-    current_sort:
-        | {v: SortMode, t: SortTime},
+    current_sort: {v: SortMode, t: SortTime},
     is_user_page: boolean, // /u/…/hot. user subreddit pages must have /hot /new /random otherwise they will display the normal user page
+
+    before: string | null, // fullname
+    after: string | null,
 } | {
     kind: "user",
     base: string[],
     current: {
+        kind: "sorted-tab",
         tab: "overview" | "comments" | "submitted",
         sort: {sort: SortMode | "unsupported", t: SortTime},
         // overview defaults ?sort=new
         // comments defaults ?sort=new
         // submitted defaults ?sort=hot
     } | {
+        kind: "gild-tab",
         tab: "gilded",
-        by: "received" | "given",
+        by: "received" | "given" | "unsupported",
         // /gilded/ : received
         // /gilded/reveived
         // /gilded/given
     } | {
+        kind: "unsorted-tab",
         tab: "upvoted" | "downvoted" | "hidden" | "saved",
     },
 } | {
@@ -1203,30 +1239,34 @@ type ParsedPath = {
 } | {
     kind: "todo",
     msg: string,
-    out: string,
+    path: string,
 } | {
     kind: "redirect",
     to: string,
 } | {
-    kind: "submit_post",
-    sub: SubrInfo,
-} | {
     kind: "raw",
-    path: string[],
+    path: string,
 } | {
     kind: "duplicates",
     sub: SubrInfo, // if this is 'home', the page must be fetched before the subreddit is known.
     post_id_unprefixed: string,
-    // /duplicates/:post_id_unprefixed.json
-    // new.reddit's api has an option to fetch with sidebar widgets but the public api doesn't have that unfortunately
+    after: string | null,
+    before: string | null,
+    sort: "num_comments" | "new" | "unsupported",
+    crossposts_only: boolean,
 } | {
     kind: "comments",
     sub: SubrInfo, // if this is 'home', the page must be fetched before the subreddit is known
     post_id_unprefixed: string,
     focus_comment: string | null, // unprefixed id | null
     // /comments/:post_id_unprefixed.json?comment=:focus_comment
+    sort_override: "confidence" | "top" | "new" | "controversial" | "old" | "random" | "qa" | "live" | "unsupported" | null,
+    context: string | null,
 } | {
-    kind: "unknown",
+    kind: "wiki",
+    sub: SubrInfo,
+    path: string[],
+    query: {[key: string]: string},
 };
 
 type SubrInfo = {
@@ -1246,13 +1286,6 @@ type SubrInfo = {
 };
 
 const path_router = util.router<ParsedPath>();
-
-const sort_modes = ["hot", "new", "rising", "top", "controversial"] as const;
-
-const inbox_tabs = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
-
-const user_sorted_tabs = ["overview", "comments", "submitted"] as const;
-const user_sortless_tabs = ["upvoted", "downvoted", "hidden", "saved"] as const;
 
 // note: all routes on reddit:
 // (how to generate this
@@ -1326,12 +1359,12 @@ const all_routes = new Set([
     "/r/:subredditName/about/:pageName(wiki)/:wikiSubRoute(edit|create|settings|revisions)/:wikiPageName+",
     "/r/:subredditName/about/:pageName(wiki)/:wikiPageName*","/report"
 ]);
-const linkout = (opts: util.BaseParentOpts): ParsedPath => ({kind: "link_out", out: "https://www.reddit.com/"+opts.path+"?"+encodeQuery(opts.query)});
-const todo = (todo_msg: string) => (opts: util.BaseParentOpts): ParsedPath => ({kind: "todo", out: "https://www.reddit.com/"+opts.path+"?"+encodeQuery(opts.query), msg: todo_msg});
+const linkout = (opts: util.BaseParentOpts): ParsedPath => ({kind: "link_out", out: "https://www.reddit.com"+opts.path+"?"+encodeQuery(opts.query)});
+const todo = (todo_msg: string) => (opts: util.BaseParentOpts): ParsedPath => ({kind: "todo", path: opts.path+"?"+encodeQuery(opts.query), msg: todo_msg});
 
 path_router.route(["raw", {path: "rest"}] as const, opts => ({
     kind: "raw",
-    path: opts.path,
+    path: "/" + opts.path.join("/") + "?"+encodeQuery(opts.query),
 }));
 
 // TODO
@@ -1408,10 +1441,7 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
     if(kind === "home") marked_routes.push("/submit");
     if(kind === "subreddit") marked_routes.push("/r/:subredditName/submit");
     if(kind === "user") marked_routes.push("/user/:profileName/submit");
-    urlr.route(["submit"] as const, opts => ({
-        kind: "submit_post",
-        sub: getSub(opts),
-    }));
+    urlr.route(["submit"] as const, todo("submit post"));
 
     const base_sort_methods = ["best", "hot", "new", "rising", "controversial", "top", "gilded", "awarded"] as const;
     if(kind === "home") marked_routes.push("/", "/:sort("+base_sort_methods.join("|")+")?");
@@ -1421,7 +1451,10 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
         kind: "subreddit",
         sub: getSub(opts),
         is_user_page: false,
-        current_sort: {v: opts.sort ?? "hot", t: opts.query.t ?? "all"}
+        current_sort: {v: opts.sort ?? "hot", t: opts.query.t ?? "all"},
+
+        before: opts.query.before ?? null,
+        after: opts.query.after ?? null,
     }));
 
     if(kind !== "home") {
@@ -1442,7 +1475,11 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
         kind: "duplicates",
         sub: getSub(opts),
         post_id_unprefixed: opts.post_id_unprefixed,
-        // • api path: /duplicates/:post_id_unprefixed/.json
+
+        after: opts.query.after ?? null,
+        before: opts.query.before ?? null,
+        crossposts_only: (opts.query.crossposts_only as string | null) === "true",
+        sort: opts.query.sort ?? "num_comments",
     }));
 
     marked_routes.push(rpfx+"/comments/:partialPostId/:urlSafePostTitle?");
@@ -1451,14 +1488,18 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
         sub: getSub(opts),
         post_id_unprefixed: opts.post_id_unprefixed,
         focus_comment: opts.query.comment ?? null,
+        sort_override: opts.query.sort ?? null,
+        context: opts.query.context ?? null,
     }));
-
+    
     marked_routes.push(rpfx+"/comments/:partialPostId/:urlSafePostTitle/:partialCommentId");
     urlr.route(["comments", {post_id_unprefixed: "any"}, {url_safe_post_title: "any"}, {partial_comment_id: "any"}] as const, opts => ({
         kind: "comments",
         sub: getSub(opts),
         post_id_unprefixed: opts.post_id_unprefixed,
         focus_comment: opts.partial_comment_id,
+        sort_override: opts.query.sort ?? null,
+        context: opts.query.context ?? null,
     }));
 }
 
@@ -1479,7 +1520,7 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
     urlr.route([{tab: ["overview", "comments", "submitted", null]}] as const, opts => ({
         kind: "user",
         base: ["u", opts.user],
-        current: {tab: opts.tab ?? "overview", sort: {
+        current: {kind: "sorted-tab", tab: opts.tab ?? "overview", sort: {
             sort: opts.query.sort ?? (opts.tab === "submitted" ? "hot" : "new"),
             t: opts.query.t ?? "all",
         }},
@@ -1497,17 +1538,17 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
     urlr.route([{tab: sortless_tabs}], opts => ({
         kind: "user",
         base: ["u", opts.user],
-        current: {tab: opts.tab},
+        current: {kind: "unsorted-tab", tab: opts.tab},
     }));
     urlr.route(["gilded", {by: ["received", "given", null]}] as const, opts => ({
         kind: "user",
         base: ["u", opts.user],
-        current: {tab: "gilded", by: opts.by ?? "received"},
+        current: {kind: "gild-tab", tab: "gilded", by: opts.by ?? opts.query.show ?? "received"},
     }));
     urlr.route(["given"] as const, opts => ({
         kind: "user",
         base: ["u", opts.user],
-        current: {tab: "gilded", by: "given"},
+        current: {kind: "gild-tab", tab: "gilded", by: "given"},
     }));
 
     marked_routes.push("/user/:profileName/snoo");
@@ -1523,8 +1564,35 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
     userOrSubredditOrHome(urlr, "user");
 });
 path_router.with(["r", {subreddit: "any"}] as const, urlr => {
+    // TODO wikis
+    marked_routes.push(
+        "/r/:subredditName/wiki/:wikiSubRoute(revisions)", "/r/:subredditName/wiki/:wikiSubRoute(settings)/:wikiPageName+",
+        "/r/:subredditName/wiki/:wikiSubRoute(edit|create|revisions)/:wikiPageName+", "/r/:subredditName/wiki/",
+        "/r/:subredditName/w/:wikiPageName*", "/r/:subredditName/wiki/:wikiPageName+",
+    );
+    urlr.with([{w_wiki: ["w", "wiki"]}] as const, urlr => {
+        // TODO support hash links
+        urlr.route([{wiki_path: "rest"}] as const, opts => ({
+            kind: "wiki",
+            sub: {kind: "subreddit", base: ["r", opts.subreddit], subreddit: opts.subreddit},
+            path: opts.wiki_path,
+            query: opts.query,
+        }));
+
+    });
+
     userOrSubredditOrHome(urlr, "subreddit");
 });
+
+// /wiki/
+// /w/:wikiPageName*
+// /wiki/:wikiPageName+
+path_router.route([{w_wiki: ["w", "wiki"]}, {wiki_path: "rest"}] as const, opts => ({
+    kind: "wiki",
+    sub: {kind: "homepage", base: []},
+    path: opts.wiki_path,
+    query: opts.query,
+}));
 
 path_router.with(["message"] as const, urlr => {
     const message_pages = ["inbox", "unread", "messages", "comments", "selfreply", "mentions"] as const;
@@ -1546,11 +1614,11 @@ path_router.with(["message"] as const, urlr => {
         kind: "inbox",
         current: {tab: "mod"},
     }));
-    marked_routes.push("/message/messages/:messageId")
+    marked_routes.push("/message/messages/:messageId");
     urlr.route(["messages", {message_id: "any"}] as const, opts => ({
         kind: "inbox",
         current: {tab: "message", msgid: opts.message_id},
-    }))
+    }));
 });
 
 userOrSubredditOrHome(path_router, "home");
@@ -1568,8 +1636,6 @@ path_router.catchall(todo("not supported"));
 //inexact | /prefs/:page(deactivate|blocked)? // redirect → /settings/
 //inexact | /user/:username/about/edit · /user/:username/about/edit/privacy // redirect → /settings/profile
 // /search · /r/:subredditName/search · /me/m/:multiredditName/search · /user/:username/m/:multiredditName/search
-// /wiki/ · /r/:subredditName/wiki/ · /r/:subredditName/w/:wikiPageName* · /w/:wikiPageName* · /r/:subredditName/wiki/:wikiSubRoute(settings)/:wikiPageName+
-// /r/:subredditName/wiki/:wikiSubRoute(revisions) · /r/:subredditName/wiki/:wikiSubRoute(edit|create|revisions)/:wikiPageName+ · /r/:subredditName/wiki/:wikiPageName+ · /wiki/:wikiPageName+
 // /t/:topicSlug
 // /subreddits/create
 // /subreddits/leaderboard · /subreddits/leaderboard/:categoryName/
@@ -1683,10 +1749,6 @@ if(router_diagnostics.length > 0) {
     }
 }
 
-function parsePath(path: string): ParsedPath {
-    return path_router.parse(path) ?? {kind: "unknown"};
-}
-
 type LoadMoreUnmountedData = {
     kind: "listing",
     url: string,
@@ -1703,11 +1765,20 @@ type LoadMoreData = {
 } | {
     kind: "parent_permalink",
     permalink: string,
+    // TODO change this
+    // kind: "parent",
+    // comment_fullname?: string,
+    // link_fullname: string,
 } | {
     kind: "context",
     subreddit: string,
     link_id: string,
     parent_id: string,
+} | {
+    kind: "duplicates",
+    lmurl: string,
+    // TODO change this
+    // all the query params + after: string
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 const getPointsOn = (listing: {
@@ -2297,40 +2368,178 @@ const getLoginURL = () => {
     return url;
 };
 
+async function fetchSubInfo(sub: SubrInfo): Promise<{sidebar: Generic.ContentNode[] | null, header?: Generic.ContentNode}> {
+    if(sub.kind === "homepage") return {sidebar: null};
+    if(sub.kind === "userpage") return {sidebar: null};
+    if(sub.kind === "mod") return {sidebar: null};
+    if(sub.kind === "subreddit") {
+        const [widgets, about] = await Promise.all([
+            redditRequest<Reddit.ApiWidgets | undefined>("/r/"+sub.subreddit+"/api/widgets", {method: "GET", onerror: e => undefined, cache: true}),
+            redditRequest<Reddit.T5 | undefined>("/r/"+sub.subreddit+"/about", {method: "GET", onerror: e => undefined, cache: true}),
+        ]);
+        const subinfo: SubInfo = {subreddit: sub.subreddit, sub_t5: about ?? null, widgets: widgets ?? null};
+        return {
+            sidebar: sidebarFromWidgets(subinfo),
+            header: subredditHeader(subinfo),
+        };
+    }
+    assertNever(sub);
+}
+
 export const client: ThreadClient = {
     id: "reddit",
     // loginURL: getLoginURL(),
     async getThread(pathraw): Promise<Generic.Page> {
-        const [pathrawpath, pathrawquery] = splitURL(pathraw);
-        const pathsplit = pathrawpath.split("/");
-        if(pathsplit[1] === "u") pathsplit[1] = "user";
-        if(pathsplit[1] === "r" && pathsplit[3] === "about" && pathsplit[4] === "sidebar") pathsplit.pop();
-        const display_raw_json = pathrawquery.get("tr_display") === "raw";
-
-        const is_subreddit: string | undefined = pathsplit[1] === "r" ? pathsplit[2] ?? undefined : undefined;
-
-        const path = pathsplit.join("/") + "?" + pathrawquery.toString();
-
         try {
-            const [listing, widgets, sub_t5] = await Promise.all([
-                redditRequest<Reddit.AnyResult>(path, {
-                    method: "GET",
-                }),
-                is_subreddit != null
-                    ? redditRequest<Reddit.ApiWidgets | undefined>("/r/"+is_subreddit+"/api/widgets", {method: "GET", onerror: e => undefined, cache: true})
-                    : undefined
-                ,
-                is_subreddit != null
-                    ? redditRequest<Reddit.T5 | undefined>("/r/"+is_subreddit+"/about", {method: "GET", onerror: e => undefined, cache: true})
-                    : undefined
-                ,
-            ]);
+            let parsed = path_router.parse(pathraw)!;
 
-            return pageFromListing(path, listing, {...is_subreddit != null ? {subinfo: {
-                widgets,
-                subreddit: is_subreddit,
-                sub_t5,
-            }} : null, display_mode: display_raw_json ? "raw" : "rendered"});
+            for(let i = 0; parsed.kind === "redirect" && i < 100; i++) {
+                pathraw = parsed.to;
+                parsed = path_router.parse(pathraw)!;
+            }
+
+            console.log("PARSED URL:", parsed);
+
+            if(parsed.kind === "comments") {
+                // ?comment=… ?context=… ?depth=… ?limit=… ?showedits=true ?showmedia=true ?showmore=true ?showtitle=true ?sort=confidence|top|new|controversial|old|random|qa|live
+                // ?sr_detail=… // passes the subreddit about page with the result
+                const link = "/comments/"+parsed.post_id_unprefixed+"?"+encodeQuery({
+                    sort: parsed.sort_override, comment: parsed.focus_comment, context: parsed.context,
+                });
+                const [page, subinfo] = await Promise.all([
+                    redditRequest<Reddit.Page>(link, {method: "GET"}),
+                    fetchSubInfo(parsed.sub),
+                ]);
+
+                return pageFromListing(pathraw, parsed, page, {...subinfo});
+            }else if(parsed.kind === "duplicates") {
+                // ?sort=num_comments|new
+                // ?before=
+                const link = "/duplicates/"+parsed.post_id_unprefixed+"?"+encodeQuery({
+                    after: parsed.after, before: parsed.before, sort: parsed.sort, crossposts_only: "" + parsed.crossposts_only,
+                });
+                const [duplicates, subinfo] = await Promise.all([
+                    redditRequest<Reddit.Page>(link, {method: "GET"}),
+                    fetchSubInfo(parsed.sub),
+                ]);
+
+                return pageFromListing(pathraw, parsed, duplicates, {...subinfo});
+            }else if(parsed.kind === "subreddit") {
+                const link = "/"+[...parsed.sub.base, parsed.current_sort.v].join("/")+"?"+encodeQuery({t: parsed.current_sort.t, before: parsed.before, after: parsed.after});
+                const [listing, subinfo] = await Promise.all([
+                    redditRequest<Reddit.Listing>(link, {method: "GET"}),
+                    fetchSubInfo(parsed.sub),
+                ]);
+
+                return pageFromListing(pathraw, parsed, listing, {...subinfo});
+            }else if(parsed.kind === "wiki") {
+                const link = "/"+[...parsed.sub.base, "wiki", ...parsed.path].join("/") + "?" + encodeQuery(parsed.query);
+                const [result, subinfo] = await Promise.all([
+                    redditRequest<Reddit.AnyResult>(link, {method: "GET"}),
+                    fetchSubInfo(parsed.sub),
+                ]);
+                
+                return pageFromListing(pathraw, parsed, result, {...subinfo});
+            }else if(parsed.kind === "user") {
+                const link = pathraw;
+                const result = await redditRequest<Reddit.AnyResult>(link, {method: "GET"});
+
+                return pageFromListing(pathraw, parsed, result, {sidebar: null});
+            }else if(parsed.kind === "inbox") {
+                // TODO
+                if(parsed.current.tab === "compose") {
+                    // TODO
+                }else if(parsed.current.tab === "mod") {
+                    // TODO
+                }else if(parsed.current.tab === "message") {
+                    // TODO
+                }else if(parsed.current.tab === "inbox") {
+                    const link = "/message/"+parsed.current.inbox_tab;
+                    const result = await redditRequest<Reddit.AnyResult>(link, {method: "GET"});
+
+                    return pageFromListing(pathraw, parsed, result, {sidebar: null});
+                }else if(parsed.current.tab === "sent") {
+                    // TODO
+                }else assertNever(parsed.current);
+            }else if(parsed.kind === "link_out") {
+                return {
+                    title: "LinkOut",
+                    navbar: getNavbar(),
+                    body: {kind: "one", item: {parents: [{kind: "thread",
+                        body: {kind: "richtext", content: [
+                            rt.h1(rt.link(parsed.out, {}, rt.txt("View on reddit.com"))),
+                            rt.p(rt.txt("Threadreader does not support this URL")),
+                        ]},
+                        display_mode: {comments: "visible", body: "visible"},
+                        link: pathraw,
+                        raw_value: parsed,
+                        layout: "reddit-post",
+                        actions: [],
+                        default_collapsed: false,
+                    }], replies: []}},
+                    display_style: "comments-view",
+                };
+            }else if(parsed.kind === "todo") {
+                const resj = await redditRequest<Reddit.AnyResult>(parsed.path, {method: "GET", onerror: (error) => ({
+                    kind: "unsupported",
+                    extra: {
+                        title: error.message,
+                        stack: error.stack,
+                        console: error,
+                    },
+                })});
+
+                return pageFromListing(pathraw, parsed, resj, {sidebar: [{
+                    kind: "widget",
+                    title: "TODO",
+                    widget_content: {kind: "body", body: {kind: "richtext", content: [
+                        rt.p(rt.txt("This page "), rt.txt(pathraw, {code: true}), rt.txt(" is not supported (yet)")),
+                        rt.p(rt.txt(parsed.msg)),
+                    ]}},
+                    raw_value: parsed,
+                }]});
+            }else if(parsed.kind === "raw") {
+                const resj = await redditRequest<unknown>(parsed.path, {method: "GET"});
+                return pathFromListingRaw(pathraw, resj, {sidebar: [{
+                    kind: "widget",
+                    title: "Raw",
+                    widget_content: {kind: "body", body: {kind: "richtext", content: [
+                        rt.p(rt.txt("This is a raw page.")),
+                        rt.p(rt.link(parsed.path, {}, rt.txt("View Rendered"))),
+                    ]}},
+                    raw_value: parsed,
+                }]});
+            }else if(parsed.kind === "redirect") {
+                return {
+                    title: "LinkOut",
+                    navbar: getNavbar(),
+                    body: {kind: "one", item: {parents: [{kind: "thread",
+                        body: {kind: "richtext", content: [
+                            rt.h1(rt.txt("Error! Redirect Loop")),
+                            rt.p(rt.txt("Threadreader tried to redirect over 100 times.")),
+                            rt.p(rt.txt("Path: "), rt.txt(pathraw, {code: true}), rt.error("Code", parsed)),
+                        ]},
+                        display_mode: {comments: "visible", body: "visible"},
+                        link: pathraw,
+                        raw_value: parsed,
+                        layout: "reddit-post",
+                        actions: [],
+                        default_collapsed: false,
+                    }], replies: []}},
+                    display_style: "comments-view",
+                };
+            }else assertNever(parsed);
+
+            return pathFromListingRaw(pathraw, parsed, {sidebar: [{
+                kind: "widget",
+                title: "TODO",
+                widget_content: {kind: "body", body: {kind: "richtext", content: [
+                    rt.p(rt.txt("This page "), rt.txt(pathraw, {code: true}), rt.txt(" is not supported (yet)")),
+                    rt.p(rt.txt(parsed.kind)),
+                ]}},
+                raw_value: parsed,
+            }]});
+
         }catch(err_raw) {
             const e = err_raw as Error;
             console.log(e);
@@ -2345,7 +2554,7 @@ export const client: ThreadClient = {
                     body: {
                         kind: "text",
                         content: `Error ${e.toString()}`+ (is_networkerror
-                            ? `. If using Firefox, try disabling 'Enhanced Tracker Protection' ${""
+                            ? `. If you're using Firefox, try disabling 'Enhanced Tracker Protection' ${""
                             } for this site. Enhanced tracker protection indiscriminately blocks all ${""
                             } requests to social media sites, including Reddit.`
                             : `.`
@@ -2356,7 +2565,7 @@ export const client: ThreadClient = {
                         body: "visible",
                         comments: "collapsed",
                     },
-                    link: path,
+                    link: pathraw,
                     layout: "error",
                     actions: [],
                     default_collapsed: false,
@@ -2738,11 +2947,12 @@ export const client: ThreadClient = {
 
             return res_value;
         }else if(act.kind === "parent_permalink") {
-            // TODO: request to skip the parent post
             const resp = await redditRequest<Reddit.Page>(act.permalink, {
                 method: "GET",
             });
-            const translated_resp = pageFromListing(act.permalink, resp, {});
+            const parsed_link = path_router.parse(act.permalink)!;
+            if(parsed_link.kind !== "comments") throw new Error("bad link to parent_permalink: "+parsed_link.kind);
+            const translated_resp = pageFromListing(act.permalink, parsed_link, resp, {sidebar: null});
             if(translated_resp.body.kind === "one") {
                 return translated_resp.body.item.replies;
             }
@@ -2752,15 +2962,19 @@ export const client: ThreadClient = {
             // TODO /r/:subreddit/comments/:link_id?comment=:parent_id&context=8
             // then split them out and return an array
             throw new Error("TODO load more context");
+        }else if(act.kind === "duplicates") {
+            // TODO /duplicates/…/…
+            throw new Error("TODO load more duplicates");
         }else assertNever(act);
     },
     async loadMoreUnmounted(action: Generic.Opaque<"load_more_unmounted">): Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}> {
         const act = load_more_unmounted_encoder.decode(action);
         if(act.kind === "listing") {
-            const resp = await redditRequest<Reddit.Page>(act.url, {
+            const resp = await redditRequest<Reddit.Listing>(act.url, {
                 method: "GET",
             });
-            const translated_resp = pageFromListing(act.url, resp, {});
+            const parsed_url = path_router.parse(act.url)!;
+            const translated_resp = pageFromListing(act.url, parsed_url, resp, {sidebar: null});
             if(translated_resp.body.kind === "listing") {
                 return {children: translated_resp.body.items, next: translated_resp.body.next};
             }
@@ -2858,6 +3072,7 @@ type RequestOpts<ResponseType> = (
 // : if you click the refresh button at the top of the page, clear caches maybe
 const request_cache = new Map<string, unknown>();
 async function redditRequest<ResponseType>(path: string, opts: RequestOpts<ResponseType>): Promise<ResponseType> {
+    // TODO if error because token needs refreshing, refresh the token and try again
     try {
         const full_url = pathURL(path);
         const fetchopts: RequestInit = {

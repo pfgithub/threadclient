@@ -7,7 +7,7 @@ export type AccessToken =
 
 export type AnyResult = Page | Listing | WikiPage | UserList | T5 | UnsupportedResult;
 
-export type UnsupportedResult = {kind: "unsupported"};
+export type UnsupportedResult = {kind: "unsupported", extra: unknown};
 
 export type WikiPage = {
     kind: "wikipage",
