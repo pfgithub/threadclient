@@ -2420,6 +2420,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                     || target_parent.nodeName === "VIDEO"
                     || target_parent.nodeName === "AUDIO"
                     || target_parent.nodeName === "INPUT"
+                    || target_parent.nodeName === "IFRAME"
                 )) return;
                 target_parent = target_parent.parentNode;
             }
