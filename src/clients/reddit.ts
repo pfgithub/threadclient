@@ -289,11 +289,11 @@ const isLoggedIn = (): boolean => {
     return true;
 };
 
-const baseURL = () => {
-    const base = isLoggedIn() ? "oauth.reddit.com" : "www.reddit.com";
+const baseURL = (oauth: boolean) => {
+    const base = oauth ? "oauth.reddit.com" : "www.reddit.com";
     return "https://"+base;
 };
-const pathURL = (path: string) => {
+const pathURL = (oauth: boolean, path: string) => {
     const [pathname, query] = splitURL(path);
     if(!pathname.startsWith("/")) {
         throw new Error("path didn't start with `/` : `"+path+"`");
@@ -302,7 +302,7 @@ const pathURL = (path: string) => {
     query.set("rtj", "yes"); // undefined | "yes" | "only" but it turns out in listings eg /r/subreddit.json rtj=only cuts off after like 10 paragraphs but rtj=yes doesn't weird
     query.set("emotes_as_images", "true"); // enables sending {t: "gif"} span elements in richtext rather than sending a link
     query.set("gilding_detail", "1"); // not sure what this does but new.reddit sends it in an oauth.reddit.com request so it sounds good
-    return baseURL()+pathname+".json?"+query.toString();
+    return baseURL(oauth )+pathname+".json?"+query.toString();
 };
 
 // ok so the idea::
@@ -318,9 +318,80 @@ const pathURL = (path: string) => {
 // and then also the client viewer thing can update the parent post if eg you load the comments
 // ok part 2:: there are different types of posts
 
-const getAccessToken = async () => {
+let running_get_access_token: ((res: string | null) => void)[] = [];
+
+const getAccessToken = () => {
+    return new Promise(r => {
+        running_get_access_token.push(r);
+        if(running_get_access_token.length === 1) getAccessTokenInternal().then(res => {
+            running_get_access_token.forEach(v => v(res));
+            running_get_access_token = [];
+        }).catch(e => {
+            console.log("Get access token error", e);
+            
+            running_get_access_token.forEach(v => v(null));
+            running_get_access_token = [];
+        });
+    });
+};
+
+function generateDeviceID(): string {
+    return [...crypto.getRandomValues(new Uint8Array(25))].map(v => v.toString(16).padStart(2, "0")).join("");
+}
+
+const getAccessTokenInternal = async () => {
+
     const data = localStorage.getItem("reddit-secret");
-    if(data === "" || data == null) return null;
+    if(data === "" || data == null) {
+        const app_data = localStorage.getItem("reddit-app-data");
+
+        let device_id: string;
+
+        if(app_data != null) {
+            const parsed = JSON.parse(app_data) as {
+                access_token: string,
+                expires: number,
+                scope: string,
+                device_id: string,
+            };
+            if(parsed.expires < Date.now()) {
+                device_id = parsed.device_id;
+            }else return parsed.access_token;
+        }else{
+            device_id = generateDeviceID();
+        }
+        
+
+        const v: Reddit.AccessToken = await fetch("https://www.reddit.com/api/v1/access_token", {
+            method: "POST", mode: "cors", credentials: "omit",
+            headers: {
+                'Authorization': "Basic "+btoa(client_id+":"),
+                'Content-Type': "application/x-www-form-urlencoded",
+            },
+            body: encodeQuery({grant_type: "https://oauth.reddit.com/grants/installed_client", device_id, redirect_uri}),
+        }).then(r => r.json());
+
+        if(v.error) {
+            console.log(v);
+            throw new Error("error: "+JSON.stringify(v));
+        }
+
+        const res_data: {
+            access_token: string,
+            expires: number,
+            scope: string,
+            device_id: string,
+        } = {
+            access_token: v.access_token,
+            expires: Date.now() + (v.expires_in * 1000),
+            scope: v.scope,
+            device_id,
+        };
+
+        localStorage.setItem("reddit-app-data", JSON.stringify(res_data));
+
+        return res_data.access_token;
+    }
     const json = JSON.parse(data) as {
         access_token: string,
         expires: number,
@@ -3074,11 +3145,12 @@ const request_cache = new Map<string, unknown>();
 async function redditRequest<ResponseType>(path: string, opts: RequestOpts<ResponseType>): Promise<ResponseType> {
     // TODO if error because token needs refreshing, refresh the token and try again
     try {
-        const full_url = pathURL(path);
+        const authorization = await getAuthorization();
+        const full_url = pathURL(!!authorization, path);
         const fetchopts: RequestInit = {
             method: opts.method, mode: "cors", credentials: "omit",
             headers: {
-                ...isLoggedIn() ? {'Authorization': await getAuthorization()} : {},
+                ...authorization ? {'Authorization': authorization} : {},
                 ...opts.method === "POST" ? {'Content-Type': {json: "application/json", urlencoded: "application/x-www-form-urlencoded"}[opts.mode]} : {},
             },
             ...opts.method === "POST" ? {

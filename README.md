@@ -35,7 +35,7 @@ Demo:
     -   the "3 discussions in other communities" feature (wip in threadreader) ([userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this in old.reddit)
     -   the ability to collapse a comment from anywhere in a comment (I have a [userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this)
     -   richtext comments (wip in threadreader)
-    -   sidebar widgets (only supported when logged in in threadreader due to reddit api restrictions)
+    -   sidebar widgets
     -   removal reasons (TODO in threadreader)
     -   adding flairs to posts before posting and submission guidelines (TODO in threadreader)
 -   old.reddit takes a while to go back/forwards in the browser, so you have to use tabs instead
