@@ -112,7 +112,7 @@ function checkMatch<ParentOpts extends BaseParentOpts, Bits extends readonly Rou
                 res_opts[outname] = path.splice(0);
             }else if(bitv === "optional") {
                 res_opts[outname] = path.shift() ?? null;
-            }else if(Array.isArray(bitv)) {
+            }else if(Array.isArray(bitv) || 'forEach' in bitv) { // not sure why tsc doesn't handle the array.isArray guard properly. it works in the language server
                 const matchv = path.shift() ?? null;
                 if(!bitv.includes(matchv)) return null;
                 res_opts[outname] = matchv;
