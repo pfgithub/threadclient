@@ -53,6 +53,12 @@ type BitTypeToValType<BitType extends RouteBitType> = BitType extends "any"
     ? string
     : BitType extends readonly (string | null)[]
     ? BitType[number]
+    : BitType extends {kind: "starts-with", text: string}
+    ? string
+    : BitType extends "rest"
+    ? string[]
+    : BitType extends "optional"
+    ? string | null
     : never
 ;
 
@@ -65,10 +71,10 @@ type BitToOpts<Bit extends RouteBit> = Bit extends string
 ;
 type BitsToOpts<Bits extends readonly RouteBit[]> = UnionToIntersection<BitToOpts<Bits[number]>>;
 
-type RouteBitType = "any" | readonly (string | null)[];
+type RouteBitType = "any" | readonly (string | null)[] | {kind: "starts-with", text: string} | "rest" | "optional";
 type RouteBit = string | {[key: string]: RouteBitType};
 
-type BaseParentOpts = {query: {[key: string]: "unsupported"}};
+export type BaseParentOpts = {query: {[key: string]: "unsupported"}, path: string};
 
 type CleanTooltip<T> = T extends Record<string, unknown> ? { [k in keyof T] : T[k] } : "ERROR BAD TYPE"; // hack to clean up hover text
 
@@ -101,11 +107,20 @@ function checkMatch<ParentOpts extends BaseParentOpts, Bits extends readonly Rou
                 const matchv = path.shift();
                 if(matchv == null) return null;
                 res_opts[outname] = matchv;
+            }else if(bitv === "rest") {
+                res_opts[outname] = path.splice(0);
+            }else if(bitv === "optional") {
+                res_opts[outname] = path.shift() ?? null;
             }else if(Array.isArray(bitv)) {
                 const matchv = path.shift() ?? null;
                 if(!bitv.includes(matchv)) return null;
                 res_opts[outname] = matchv;
-            }else assertNever(bitv);
+            }else if(bitv.kind === "starts-with") {
+                const matchv = path.shift();
+                if(matchv == null) return null;
+                if(!matchv.startsWith(bitv.text)) return null;
+                res_opts[outname] = matchv.replace(bitv.text, "");
+            }// TODO add this back once there is another {kind: …} // else assertNever(bitv);
         }
     }
     if(cfg.assert_end && path.length !== 0) return null;
@@ -152,6 +167,7 @@ function routerBased<ParentOpts extends BaseParentOpts, Out>(is_root: boolean): 
 
             const base_opts: BaseParentOpts = {
                 query: Object.fromEntries(url.searchParams) as {[key: string]: "unsupported"},
+                path: url.pathname,
             };
             return res.parseSub(base_opts as ParentOpts, pathsplit);
         },
