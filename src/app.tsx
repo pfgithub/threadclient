@@ -12,6 +12,11 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {escapeHTML} from "./util";
 import { OEmbed, oembed } from "./clients/oembed";
 
+import * as Preact from "preact";
+import {useEffect, useMemo, useState} from "preact/hooks";
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const React = Preact; // for <…></…>
+
 export const htmlr = uhtml.html;
 
 function assertNever(content: never): never {
@@ -537,8 +542,8 @@ function s(number: number, text: string) {
 
 // TODO replace this with a proper thing that can calculate actual "months ago" values
 // returns [time_string, time_until_update]
-function timeAgoText(start_ms: number): [string, number] {
-    const ms = Date.now() - start_ms;
+function timeAgoText(start_ms: number, now: number): [string, number] {
+    const ms = now - start_ms;
     if(ms < 0) return ["in the future "+new Date(start_ms).toISOString(), -ms];
     if(ms < 60 * 1000) return ["just now", 60 * 1000 - ms];
 
@@ -563,23 +568,37 @@ function timeAgoText(start_ms: number): [string, number] {
     return [new Date(start_ms).toISOString(), -1];
 }
 
-// NOTE that this leaks memory as it holds onto nodes forever and updates them even
-// when they are not being displayed. This can be fixed by uil in the future.
+function TimeAgo(attrs: {start: number}): JSX.Element {
+    const date_text = useMemo(() => "" + new Date(attrs.start), [attrs.start]);
+
+    const [current_time, setCurrentTime] = useState(Date.now());
+
+    const [time_ago_text, next_update_ms, updated] = useMemo(() => {
+        return [...timeAgoText(attrs.start, current_time), Symbol()];
+    }, [attrs.start, current_time]);
+
+    useEffect(() => {
+        if(next_update_ms < 0) return;
+        
+        const timeout = setTimeout(() => {
+            setCurrentTime(Date.now());
+        }, next_update_ms);
+
+        return () => clearTimeout(timeout);
+    }, [updated]);
+
+    return <span title={date_text}>{time_ago_text}</span>;
+}
+
 function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
-    const span = el("span").attr({title: "" + new Date(start_ms)});
-    const hsc = hideshow(span);
-    const tanode = txt("…").adto(span);
-    let timeout: number | undefined;
-    const update = () => {
-        timeout = undefined;
-        const [newtext, wait_time] = timeAgoText(start_ms);
-        tanode.nodeValue = newtext;
-        if(wait_time >= 0) timeout = setTimeout(() => update(), wait_time + 100);
-    };
-    update();
-    hsc.on("cleanup", () => {
-        if(timeout !== undefined) clearTimeout(timeout);
-    });
+    const component = <TimeAgo start={start_ms} />;
+
+    // preact ⬄ vanilla js boundary
+    const wrapper = el("span");
+    const hsc = hideshow(wrapper);
+    Preact.render(component, wrapper);
+    hsc.on("cleanup", () => Preact.render(null, wrapper));
+
     return hsc;
 }
 
@@ -2422,6 +2441,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                     || target_parent.nodeName === "VIDEO"
                     || target_parent.nodeName === "AUDIO"
                     || target_parent.nodeName === "INPUT"
+                    || target_parent.nodeName === "TEXTAREA"
                     || target_parent.nodeName === "IFRAME"
                 )) return;
                 target_parent = target_parent.parentNode;
