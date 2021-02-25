@@ -1000,7 +1000,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                 kind: "one",
                 item: {
                     parents: [
-                        threadFromListing(firstchild, {force_expand: "open", show_post_reply_button: true}, {permalink, sort: "unsupported"}),
+                        threadFromListing(firstchild, {force_expand: header_children.length > 0 ? "closed" : "open", show_post_reply_button: true}, {permalink, sort: "unsupported"}),
                         ...header_children,
                     ],
                     menu,
