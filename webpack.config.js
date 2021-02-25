@@ -6,7 +6,14 @@ const webpack = require("webpack");
 const dev = process.env.NODE_ENV === "development";
 
 module.exports = {
-    entry: "./src/entry.ts",
+    entry: {
+        bundle: "./src/entry.ts",
+        darkmode: "./src/darkmode.js",
+    },
+    output: {
+        path: path.resolve(__dirname, "dist"),
+        filename: "[name].js",
+    },
     mode: dev ? "development" : "production",
     ...(dev ? {devtool: "eval-cheap-module-source-map"} : {}),
     module: {
@@ -52,10 +59,6 @@ module.exports = {
     },
     resolve: {
         extensions: [".tsx", ".ts", ".js"],
-    },
-    output: {
-        path: path.resolve(__dirname, "dist"),
-        filename: "bundle.js",
     },
     plugins: [
         new webpack.DefinePlugin({
