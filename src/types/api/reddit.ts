@@ -62,6 +62,51 @@ export type InboxMsg = {
     kind: "unsupported",
 };
 
+// /r/…/api/user_flair_v2
+// /r/…/api/link_flair_v2
+export type FlairTemplate = {
+    allowable_content: "all",
+    text: FlairBits.Text,
+    text_color: FlairBits.TextColor,
+    mod_only: boolean, // true are not shown to non-mods
+    background_color: "#dadada",
+    id: string,
+    css_class: string,
+    max_emojis: number,
+    richtext: FlairBits.Richtext,
+    text_editable: boolean, // when text_editable is true, you are allowed to put up to max_emojis emojis also
+    override_css: false,
+    type: FlairBits.Type,
+};
+// /api/v1/:sub/emojis/all
+export type SREmojis = {
+    snoomojis: {[key: string]: Emoji},
+    [key: string]: {[key: string]: Emoji}, // key: `t5_${string}`
+};
+export type Emoji = {
+    url: string,
+    user_flair_allowed: boolean,
+    post_flair_allowed: boolean,
+    mod_flair_only: boolean, // hopefully filtered out automatically
+    created_by: `t2_${string}`, // id of user who created it. note that there is no api request you can use to get usernames from user ids.
+};
+// /api/selectflair
+// - api_type=json
+// - return_rtjson=all
+// - flair_template_id=template_id
+// - name: "your_username"
+// - text: "text:emoji_name:"
+// note new.reddit uses 'content-type': "application/json; charset=UTF-8" but still posts urlencoded data. weird.
+// →
+// {json: {errors: []}} and also probably the richtext content
+
+// ALSO at the same time post
+// /r/…/api/setflairenabled
+// - api_type=json
+// - flair_enabled: true
+// →
+// {json: {errors: []}} and also probably the richtext content
+
 export declare namespace FlairBits {
     export type Richtext = RichtextFlair | null;
     export type Type = "text" | "richtext" | "unsupported";

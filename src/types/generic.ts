@@ -407,10 +407,24 @@ export type Action = {
     kind: "act",
     action: Opaque<"act">,
     text: string,
+} | {
+    kind: "flair",
+    flair_list: Opaque<"flair_list">, // → FlairList
+    current: Flair | null,
 };
 
-export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more" | "load_more_unmounted" | "login_url";
+export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more" | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis";
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
+
+export type FlairList = {
+    flair: Flair,
+    editable: boolean,
+    emojis: Opaque<"flair_emojis">, // → FlairEmoji[]
+}[];
+export type FlairEmoji = {
+    url: string,
+    name: string,
+};
 
 // a counter or a button with 2-3 states
 export type CounterAction = {

@@ -1786,6 +1786,8 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                 frame.adch(el("span").clss("error").atxt(err.toString()));
             });
         });
+    }else if(action.kind === "flair") {
+        // TODO
     }else assertNever(action);
     return hideshow();
 }
