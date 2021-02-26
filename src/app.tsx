@@ -487,10 +487,10 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         const selimg = images[index]!;
         const ref: {current?: HTMLDivElement} = {};
         uhtml.render(container, htmlr`
-            <button onclick=${() => setState({index: index - 1})} disabled=${index <= 0 ? "" : undefined}>Prev</button>
+            <button class="${link_styles_v["outlined-button"]}" onclick=${() => setState({index: index - 1})} disabled=${index <= 0 ? "" : undefined}>Prev</button>
             ${index + 1}/${images.length}
-            <button onclick=${() => setState({index: index + 1})} disabled=${index >= images.length - 1 ? "" : undefined}>Next</button>
-            <button onclick=${() => setState("overview")}>Gallery</button>
+            <button class="${link_styles_v["outlined-button"]}" onclick=${() => setState({index: index + 1})} disabled=${index >= images.length - 1 ? "" : undefined}>Next</button>
+            <button class="${link_styles_v["outlined-button"]}" onclick=${() => setState("overview")}>Gallery</button>
             <div ref=${ref}></div>
         `);
         if(!ref.current) throw new Error("!ref.current");
