@@ -2159,24 +2159,32 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
             let open = false;
             let submenu_v: HTMLElement | undefined;
             const subitems = item.action.children;
+
+            hsc.on("hide", () => {open = false; update()});
             
             const update = () => {
                 arrowv.nodeValue = open ? "▴" : "▾";
+                btnel.attr({'aria-expanded': open ? "true" : "false"});
                 if(open) {
-                    if(!submenu_v) submenu_v = renderSubmenu(subitems).clss(
-                        "absolute top-full left-0 z-index flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
-                    ).adto(itcontainer);
+                    if(!submenu_v) {
+                        submenu_v = renderSubmenu(subitems).clss(
+                            "absolute z-index flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
+                        ).adto(document.body);
+                        const bbox = itcontainer.getBoundingClientRect();
+                        submenu_v.styl({left: bbox.left+"px", top: (bbox.bottom + (window.pageYOffset ?? document.documentElement.scrollTop))+"px"});
+                    }
                 }else{
                     if(submenu_v) {submenu_v.remove(); submenu_v = undefined}
                 }
             };
-            const itcontainer = el("span").adto(menu_this_line).clss("relative");
+            const itcontainer = el("span").adto(menu_this_line);
             const documentEventListener = (e: MouseEvent) => {
                 if(open) {
                     console.log("Got event: ", e.target);
                     let parentv: HTMLElement | null = e.target as HTMLElement | null;
                     while(parentv) {
                         if(parentv === itcontainer) return;
+                        if(submenu_v && parentv === submenu_v) return;
                         parentv = parentv.parentElement;
                     }
                     open = false;
@@ -2185,7 +2193,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
             };
             document.addEventListener("click", documentEventListener, {capture: true});
             hsc.on("cleanup", () => document.removeEventListener("click", documentEventListener, {capture: true}));
-            const btnel = elButton("none").atxt(item.text).atxt(" ").adch(arrowv).adto(itcontainer).onev("click", e => {
+            const btnel = elButton("none").attr({'aria-haspopup': "true"}).atxt(item.text).atxt(" ").adch(arrowv).adto(itcontainer).onev("click", e => {
                 e.preventDefault();
                 e.stopPropagation();
                 
