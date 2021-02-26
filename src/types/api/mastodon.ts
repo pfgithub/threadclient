@@ -23,16 +23,16 @@ export type Emoji = {
 export type Media = {
     id: string,
 
+    blurhash: string | null, // https://github.com/woltapp/blurhash
+    
     url: string,
     text_url: string | null,
     remote_url: string | null,
+    preview_url: string | null,
     preview_remote_url: string | null, // undocumented but exists
     description?: string,
 } & ({
     type: "image",
-
-    blurhash: string | null, // https://github.com/woltapp/blurhash
-    preview_url: string,
 
     meta?: {
         original: ImageMeta | VideoMeta,
@@ -40,9 +40,6 @@ export type Media = {
     },
 } | {
     type: "gifv" | "video",
-
-    blurhash: string | null, // https://github.com/woltapp/blurhash
-    preview_url: string,
 
     meta?: {
         length: string,
