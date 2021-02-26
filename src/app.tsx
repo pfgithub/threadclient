@@ -12,11 +12,6 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {escapeHTML} from "./util";
 import { OEmbed, oembed } from "./clients/oembed";
 
-import * as Preact from "preact";
-import {useEffect, useMemo, useState} from "preact/hooks";
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const React = Preact; // for <…></…>
-
 export const htmlr = uhtml.html;
 
 function assertNever(content: never): never {
@@ -568,37 +563,22 @@ function timeAgoText(start_ms: number, now: number): [string, number] {
     return [new Date(start_ms).toISOString(), -1];
 }
 
-function TimeAgo(attrs: {start: number}): JSX.Element {
-    const date_text = useMemo(() => "" + new Date(attrs.start), [attrs.start]);
-
-    const [current_time, setCurrentTime] = useState(Date.now());
-
-    const [time_ago_text, next_update_ms, updated] = useMemo(() => {
-        return [...timeAgoText(attrs.start, current_time), Symbol()];
-    }, [attrs.start, current_time]);
-
-    useEffect(() => {
-        if(next_update_ms < 0) return;
-        
-        const timeout = setTimeout(() => {
-            setCurrentTime(Date.now());
-        }, next_update_ms);
-
-        return () => clearTimeout(timeout);
-    }, [updated]);
-
-    return <span title={date_text}>{time_ago_text}</span>;
-}
-
-function preactBoundary<T extends HTMLElement>(component: Preact.ComponentChild, container: T): HideShowCleanup<T> {
-    const hsc = hideshow(container);
-    Preact.render(component, container);
-    hsc.on("cleanup", () => Preact.render(null, container));
-    return hsc;
-}
-
 function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
-    return preactBoundary(<TimeAgo start={start_ms} />, el("span"));
+    const span = el("span").attr({title: "" + new Date(start_ms)});
+    const hsc = hideshow(span);
+    const tanode = txt("…").adto(span);
+    let timeout: number | undefined;
+    const update = () => {
+        timeout = undefined;
+        const [newtext, wait_time] = timeAgoText(start_ms, Date.now());
+        tanode.nodeValue = newtext;
+        if(wait_time >= 0) timeout = setTimeout(() => update(), wait_time + 100);
+    };
+    update();
+    hsc.on("cleanup", () => {
+        if(timeout !== undefined) clearTimeout(timeout);
+    });
+    return hsc;
 }
 
 type RedditMarkdownRenderer = {
