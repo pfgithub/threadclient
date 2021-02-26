@@ -378,7 +378,91 @@ export type ApiWidgets = {
 export type T2 = {
     kind: "t2",
     data: {
-        todo: true,
+        is_employee: boolean,
+        is_friend: boolean,
+        subreddit: T5Data,
+        snoovatar_size: null,
+        awardee_karma: number,
+        id: string,
+        gilded_last_month: unknown, // {}
+        verified: boolean,
+        is_gold: boolean,
+        is_mod: boolean,
+        awarder_karma: number,
+        has_verified_email: boolean,
+        icon_img: string | "", // idk what this looks like for people with no icon
+        hide_from_robots: boolean,
+        link_karma: number,
+        pref_show_snoovatar: boolean,
+        total_karma: number,
+        accept_chats: boolean,
+        name: string,
+        created_utc: number,
+        snoovatar_img: "",
+        comment_karma: number,
+        has_subscribed: boolean,
+        accept_pms: boolean,
+    } & ({__is_the_logged_in_user: false} | LoggedInT2Data),
+};
+
+// info only available for the logged in user
+export type LoggedInT2Data = {
+    features: {
+        // likely this is information about features where rollout is in progress and this doesn't matter to threadreader
+        mod_service_mute_writes: boolean,
+        promoted_trend_blanks: boolean,
+        show_amp_link: boolean,
+        report_service_handles_report_writes_to_db_for_helpdesk_reports: boolean,
+        report_service_handles_self_harm_reports: boolean,
+        report_service_handles_report_writes_to_db_for_modmail_reports: boolean,
+        chat: boolean,
+        reports_double_write_to_report_service_for_spam: boolean,
+        is_email_permission_required: boolean,
+        reports_double_write_to_report_service_for_modmail_reports: boolean,
+        mod_awards: boolean,
+        report_service_handles_report_writes_to_db_for_sendbird_chats: boolean,
+        econ_wallet_service: boolean,
+        mweb_xpromo_revamp_v2: {
+            owner: string,
+            variant: string,
+            experiment_id: number,
+        },
+        webhook_config: boolean,
+        awards_on_streams: boolean,
+        report_service_handles_accept_report: boolean,
+        mweb_xpromo_modal_listing_click_daily_dismissible_ios: boolean,
+        reports_double_write_to_report_service_for_som: boolean,
+        live_orangereds: boolean,
+        reports_double_write_to_report_service_for_users: boolean,
+        modlog_copyright_removal: boolean,
+        report_service_handles_report_writes_to_db_for_users: boolean,
+        show_nps_survey: boolean,
+        do_not_track: boolean,
+        report_service_handles_report_writes_to_db: boolean,
+        reports_double_write_to_report_service_for_helpdesk_reports: boolean,
+        report_service_handles_report_writes_to_db_for_spam: boolean,
+        reports_double_write_to_report_service_for_sendbird_chats: boolean,
+        mod_service_mute_reads: boolean,
+        mweb_xpromo_interstitial_comments_ios: boolean,
+        chat_subreddit: boolean,
+        noreferrer_to_noopener: boolean,
+        chat_user_settings: boolean,
+        premium_subscriptions_table: boolean,
+        reports_double_write_to_report_service: boolean,
+        mweb_xpromo_interstitial_comments_android: boolean,
+        report_service_handles_report_writes_to_db_for_awards: boolean,
+        reports_double_write_to_report_service_for_awards: boolean,
+        mweb_xpromo_revamp_v3: {
+            "owner": string,
+            "variant": string,
+            "experiment_id": number,
+        },
+        chat_group_rollout: boolean,
+        resized_styles_images: boolean,
+        spez_modal: boolean,
+        mweb_xpromo_modal_listing_click_daily_dismissible_android: boolean,
+        expensive_coins_package: boolean,
+        report_service_handles_report_writes_to_db_for_som: boolean,
     },
 };
 
@@ -395,171 +479,173 @@ type LoginWrap<T extends {[key: string]: LoginState<unknown, unknown>}> =
     {[key in keyof T]: T[key]["_logged_in"]} | {[key in keyof T]: T[key]["_not_logged_in"]}
 ;
 
-export type SubredditType = "public" | "private" | "restricted" | "gold_restricted" | "archived" | "unsupported";
+export type SubredditType = "public" | "private" | "restricted" | "gold_restricted" | "archived" | "user" | "unsupported";
 
 // outdated documentation: https://github.com/reddit-archive/reddit/wiki/JSON
 // more here: https://github.com/Pyprohly/reddit-api-doc-notes/blob/master/docs/api-reference/subreddit.rst
 // oh my this is a mess
 export type T5 = {
     kind: "t5",
-    data: {
-        // basic info
-        id: string,
-        name: `t5_${string}`, // fullname
-        display_name: string, // :subreddit
-        display_name_prefixed: string, // r/:subreddit 
-    } & {
-        // information displayed on the sidebar
-        subscribers: number,
-
-        title: string,
-
-        public_description: Markdown,
-        public_description_html: HTML,
-
-        description: Markdown,
-        description_html: HTML, // old.reddit sidebar text
-
-        header_title: string,
-        header_size: null | [w: number, h: number],
-        header_img: null | string,
-
-        subreddit_type: SubredditType,
-        user_is_contributor: boolean | null, // note, only contributers can create posts in restricted subs
-
-        key_color: string,
-
-        created: Date.Sec,
-        created_utc: Date.Sec,
-
-        user_is_subscriber: boolean | null,
-
-        community_icon: "" | string,
-        banner_background_image: "" | string,
-        banner_img?: "" | string,
-        mobile_banner_image: "" | string,
-        banner_size: null | [w: number, h: number],
-    } & {
-        // information required for when creating posts
-        submit_text: Markdown,
-        submit_text_html: HTML,
-        original_content_tag_enabled: boolean,
-
-        allow_polls: boolean,
-        allow_galleries: boolean,
-        allow_videogifs: boolean,
-        allow_videos: boolean,
-        allow_images: boolean,
-
-        can_assign_link_flair: boolean,
-
-        is_crosspostable_subreddit: boolean,
-
-        allow_chat_post_creation: boolean,
-    } & {
-        // information required when reporting posts
-        free_form_reports: boolean,
-        // most information is in /about/report, not sure why this one bit is here
-    } & {
-        // flair assignment info
-        can_assign_user_flair: boolean,
-
-        user_flair_background_color: null,
-        user_flair_position: "right" | "unsupported",
-        user_flair_type: "text" | "unsupported",
-    } & LoginWrap<{
-        // information about the signed in user
-        user_is_banned: LoginState<boolean, null>,
-        user_is_moderator: LoginState<boolean, null>,
-
-        user_is_muted: LoginState<boolean, null>,
-        user_flair_richtext: LoginState<never[], never[]>,
-        user_has_favorited: LoginState<boolean, null>,
-        user_flair_template_id: LoginState<null, null>,
-        notification_level: LoginState<"low" | "unsupported", null>,
-        user_sr_flair_enabled: LoginState<boolean, null>,
-        user_sr_theme_enabled: LoginState<boolean, null>,
-        user_flair_text: LoginState<null, null>,
-        user_flair_text_color: LoginState<null, null>,
-        user_flair_css_class: LoginState<null, null>,
-    }> & {
-        // uncategorized stuff
-        emojis_enabled: boolean,
-        spoilers_enabled: boolean,
-
-        lang: "en" | "unsupported",
-        whitelist_status: "some_ads" | "unsupported",
-        url: string, // eg /r/…/
-
-        over18: boolean,
-
-        restrict_commenting: boolean,
-
-        is_chat_post_feature_enabled: boolean,
-        submit_link_label: "",
-
-        restrict_posting: boolean,
-        allow_predictions_tournament: boolean,
-
-        icon_size: [number, number],
-        icon_img: string, // url
-
-        all_original_content: boolean,
-
-        link_flair_enabled: boolean,
-
-        banner_background_color: "",
-        show_media: boolean,
-
-        allow_discovery: boolean,
-
-        suggested_comment_sort: null,
-
-        primary_color: "",
-
-        active_user_count: number,
-        accounts_active_is_fuzzed: boolean,
-
-        submit_text_label: "",
-        link_flair_position: "left" | "right" | "unsupported",
-
-        disable_contributer_requests: boolean,
-
-        user_flair_enabled_in_sr: boolean,
-
-        public_traffic: boolean,
-
-        collapse_deleted_comments: boolean,
-
-        emojis_custom_size: null,
-
-        wls: number,
-
-        show_media_preview: boolean,
-        submission_type: "any" | "unsupported",
-        
-        quarrentine: boolean,
-        hide_ads: boolean,
-        prediction_leaderboard_entry_type: "IN_FEED" | "unsupported",
-        advertiser_category: "",
-
-        videostream_links_count: number,
-
-        comment_score_hide_mins: number,
-
-        allow_predictions: boolean, // allow gambling polls
-        wiki_enabled: null,
-
-        user_can_flair_in_sr: true | null,
-    } & {
-        // experiments with 100% enrollment
-        is_enrolled_in_new_modmail: null,
-    } & Depricated<{
-        // depricated in favor of different props
-        has_menu_widget: boolean,
-        accounts_active: number, // active_user_count
-    }>,
+    data: T5Data,
 };
+
+type T5Data = { // T5_Data? pascal_underscore case?
+    // basic info
+    id: string,
+    name: `t5_${string}`, // fullname
+    display_name: string, // :subreddit
+    display_name_prefixed: string, // r/:subreddit 
+} & {
+    // information displayed on the sidebar
+    subscribers: number,
+
+    title: string,
+
+    public_description: Markdown,
+    public_description_html: HTML,
+
+    description: Markdown,
+    description_html: HTML, // old.reddit sidebar text
+
+    header_title: string,
+    header_size: null | [w: number, h: number],
+    header_img: null | string,
+
+    subreddit_type: SubredditType,
+    user_is_contributor: boolean | null, // note, only contributers can create posts in restricted subs
+
+    key_color: string,
+
+    created: Date.Sec,
+    created_utc: Date.Sec,
+
+    user_is_subscriber: boolean | null,
+
+    community_icon: "" | string,
+    banner_background_image: "" | string,
+    banner_img?: "" | string,
+    mobile_banner_image: "" | string,
+    banner_size: null | [w: number, h: number],
+} & {
+    // information required for when creating posts
+    submit_text: Markdown,
+    submit_text_html: HTML,
+    original_content_tag_enabled: boolean,
+
+    allow_polls: boolean,
+    allow_galleries: boolean,
+    allow_videogifs: boolean,
+    allow_videos: boolean,
+    allow_images: boolean,
+
+    can_assign_link_flair: boolean,
+
+    is_crosspostable_subreddit: boolean,
+
+    allow_chat_post_creation: boolean,
+} & {
+    // information required when reporting posts
+    free_form_reports: boolean,
+    // most information is in /about/report, not sure why this one bit is here
+} & {
+    // flair assignment info
+    can_assign_user_flair: boolean,
+
+    user_flair_background_color: null,
+    user_flair_position: "right" | "unsupported",
+    user_flair_type: "text" | "unsupported",
+} & LoginWrap<{
+    // information about the signed in user
+    user_is_banned: LoginState<boolean, null>,
+    user_is_moderator: LoginState<boolean, null>,
+
+    user_is_muted: LoginState<boolean, null>,
+    user_flair_richtext: LoginState<never[], never[]>,
+    user_has_favorited: LoginState<boolean, null>,
+    user_flair_template_id: LoginState<null, null>,
+    notification_level: LoginState<"low" | "unsupported", null>,
+    user_sr_flair_enabled: LoginState<boolean, null>,
+    user_sr_theme_enabled: LoginState<boolean, null>,
+    user_flair_text: LoginState<null, null>,
+    user_flair_text_color: LoginState<null, null>,
+    user_flair_css_class: LoginState<null, null>,
+}> & {
+    // uncategorized stuff
+    emojis_enabled: boolean,
+    spoilers_enabled: boolean,
+
+    lang: "en" | "unsupported",
+    whitelist_status: "some_ads" | "unsupported",
+    url: string, // eg /r/…/
+
+    over18: boolean,
+
+    restrict_commenting: boolean,
+
+    is_chat_post_feature_enabled: boolean,
+    submit_link_label: "",
+
+    restrict_posting: boolean,
+    allow_predictions_tournament: boolean,
+
+    icon_size: [number, number],
+    icon_img: string, // url
+
+    all_original_content: boolean,
+
+    link_flair_enabled: boolean,
+
+    banner_background_color: "",
+    show_media: boolean,
+
+    allow_discovery: boolean,
+
+    suggested_comment_sort: null,
+
+    primary_color: "",
+
+    active_user_count: number,
+    accounts_active_is_fuzzed: boolean,
+
+    submit_text_label: "",
+    link_flair_position: "left" | "right" | "unsupported",
+
+    disable_contributer_requests: boolean,
+
+    user_flair_enabled_in_sr: boolean,
+
+    public_traffic: boolean,
+
+    collapse_deleted_comments: boolean,
+
+    emojis_custom_size: null,
+
+    wls: number,
+
+    show_media_preview: boolean,
+    submission_type: "any" | "unsupported",
+    
+    quarrentine: boolean,
+    hide_ads: boolean,
+    prediction_leaderboard_entry_type: "IN_FEED" | "unsupported",
+    advertiser_category: "",
+
+    videostream_links_count: number,
+
+    comment_score_hide_mins: number,
+
+    allow_predictions: boolean, // allow gambling polls
+    wiki_enabled: null,
+
+    user_can_flair_in_sr: true | null,
+} & {
+    // experiments with 100% enrollment
+    is_enrolled_in_new_modmail: null,
+} & Depricated<{
+    // depricated in favor of different props
+    has_menu_widget: boolean,
+    accounts_active: number, // active_user_count
+}>;
 
 type Depricated<T> = T;
 

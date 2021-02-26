@@ -2267,9 +2267,16 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
     if(listing.name.display != null) el("h1").atxt(listing.name.display).clss("text-lg").adto(title_area);
     el("h2").atxt(listing.name.link_name).clss("text-gray-500").adto(title_area);
 
+    const rest = el("div").clss("sub-subscribe-area").adto(area);
+
     if(listing.subscribe) {
-        const subscrarea = el("div").clss("sub-subscribe-area").adto(area);
-        renderAction(client, listing.subscribe, subscrarea).defer(hsc);
+        const subscr = el("div").adto(rest);
+        renderAction(client, listing.subscribe, rest).defer(hsc);
+    }
+
+    if(listing.body) {
+        const bodyarea = el("div").adto(rest);
+        renderBody(client, listing.body, {autoplay: false}, bodyarea).defer(hsc);
     }
 
     // TODO extract this out so menus can be used for eg listing sort options

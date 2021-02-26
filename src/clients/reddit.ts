@@ -707,7 +707,7 @@ function sidebarFromWidgets(subinfo: SubInfo): Generic.ContentNode[] {
     const wrap = (data: Reddit.Widget): Generic.ContentNode => sidebarWidgetToGenericWidget(data, subinfo.subreddit);
     
     // TODO moderator widget
-    return [
+    const res: Generic.ContentNode[] = [
         // ...widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
         // ...widgets ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
         ...subinfo.sub_t5 ? [customIDCardWidget(subinfo.sub_t5, subinfo.subreddit)] : [],
@@ -715,6 +715,17 @@ function sidebarFromWidgets(subinfo: SubInfo): Generic.ContentNode[] {
         ...widgets ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
         ...widgets ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
     ];
+    if(res.length === 0) {
+        res.push({
+            kind: "widget",
+            title: "Error",
+            widget_content: {kind: "body", body: {kind: "richtext", content: [
+                rt.p(rt.txt("Failed to fetch sidebar for this page :(")),
+            ]}},
+            raw_value: subinfo,
+        });
+    }
+    return res;
 }
 
 const nullish = (v: "" | null | undefined | string): v is string => {
@@ -787,16 +798,17 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
         banner: subinfo.sub_t5 && (subinfo.sub_t5.data.banner_background_image || nullish(subinfo.sub_t5.data.banner_img)) ? {
             desktop: subinfo.sub_t5.data.banner_background_image || subinfo.sub_t5.data.banner_img || "never",
             mobile: subinfo.sub_t5.data.mobile_banner_image || undefined,
-        } : undefined,
+        } : null,
         icon: subinfo.sub_t5 ? {
             url: subinfo.sub_t5.data.community_icon || subinfo.sub_t5.data.icon_img,
-        } : undefined,
+        } : null,
         name: {
             display: subinfo.sub_t5?.data.title,
             link_name: subinfo.sub_t5 ? subinfo.sub_t5.data.display_name_prefixed : "r/"+subinfo.subreddit,
         },
+        body: null,
         subscribe: subinfo.sub_t5 ? createSubscribeAction(subinfo.subreddit, subinfo.sub_t5.data.subscribers, subinfo.sub_t5.data.user_is_subscriber ?? false) : undefined,
-        menu: res_menu.length === 1 ? undefined : res_menu,
+        menu: res_menu.length === 1 ? null : res_menu,
         raw_value: subinfo,
     };
 }
@@ -1167,17 +1179,17 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                         {
                             selected: page.current.tab === tab && page.current.sort.sort === "hot",
                             text: "Hot",
-                            action: {kind: "link", url: updateQuery("/"+[...page.base, tab].join("/"), {sort: "hot"})},
+                            action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "hot"})},
                         },
                         {
                             selected: page.current.tab === tab && page.current.sort.sort === "new",
                             text: "New",
-                            action: {kind: "link", url: updateQuery("/"+[...page.base, tab].join("/"), {sort: "new"})},
+                            action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "new"})},
                         },
                         {
                             selected: page.current.tab === tab && page.current.sort.sort === "rising",
                             text: "Rising",
-                            action: {kind: "link", url: updateQuery("/"+[...page.base, tab].join("/"), {sort: "rising"})},
+                            action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "rising"})},
                         },
                     ]}
                     // action: {kind: "link", url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
@@ -1187,16 +1199,16 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                     action: {kind: "show-line-two", children: [{
                         selected: page.current.tab === "gilded" && page.current.by === "received",
                         text: "Received",
-                        action: {kind: "link", url: "/"+[...page.base, "gilded"].join("/")}
+                        action: {kind: "link", url: "/"+["u", page.username, "gilded"].join("/")}
                     }, {
                         selected: page.current.tab === "gilded" && page.current.by === "given",
                         text: "Given",
-                        action: {kind: "link", url: "/"+[...page.base, "gilded", "given"].join("/")}
+                        action: {kind: "link", url: "/"+["u", page.username, "gilded", "given"].join("/")}
                     }]},
                 }, ...user_sortless_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
                     selected: page.current.tab === tab,
                     text: tabname,
-                    action: {kind: "link", url: "/"+[...page.base, tabname].join("/")},
+                    action: {kind: "link", url: "/"+["u", page.username, tabname].join("/")},
                 }))] : page.kind === "inbox" ? [{
                     selected: page.current.tab === "compose",
                     text: "Compose",
@@ -1266,7 +1278,7 @@ type ParsedPath = {
     after: string | null,
 } | {
     kind: "user",
-    base: string[],
+    username: string,
     current: {
         kind: "sorted-tab",
         tab: "overview" | "comments" | "submitted",
@@ -1590,7 +1602,7 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
     );
     urlr.route([{tab: ["overview", "comments", "submitted", null]}] as const, opts => ({
         kind: "user",
-        base: ["u", opts.user],
+        username: opts.user,
         current: {kind: "sorted-tab", tab: opts.tab ?? "overview", sort: {
             sort: opts.query.sort ?? (opts.tab === "submitted" ? "hot" : "new"),
             t: opts.query.t ?? "all",
@@ -1608,17 +1620,17 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
     marked_routes.push("/user/:profileName/gilded/:listingType(given)");
     urlr.route([{tab: sortless_tabs}], opts => ({
         kind: "user",
-        base: ["u", opts.user],
+        username: opts.user,
         current: {kind: "unsorted-tab", tab: opts.tab},
     }));
     urlr.route(["gilded", {by: ["received", "given", null]}] as const, opts => ({
         kind: "user",
-        base: ["u", opts.user],
+        username: opts.user,
         current: {kind: "gild-tab", tab: "gilded", by: opts.by ?? opts.query.show ?? "received"},
     }));
     urlr.route(["given"] as const, opts => ({
         kind: "user",
-        base: ["u", opts.user],
+        username: opts.user,
         current: {kind: "gild-tab", tab: "gilded", by: "given"},
     }));
 
@@ -2457,6 +2469,67 @@ async function fetchSubInfo(sub: SubrInfo): Promise<{sidebar: Generic.ContentNod
     assertNever(sub);
 }
 
+function generateUserSidebar(user: Reddit.T2 | undefined): Generic.ContentNode[] {
+    if(!user) {
+        return [{
+            kind: "widget",
+            title: "TODO",
+            widget_content: {kind: "body", body: {kind: "richtext", content: [
+                rt.p(rt.txt("Failed to fetch user info for this user :(")),
+            ]}},
+            raw_value: user,
+        }];
+    }
+    return [{
+        kind: "reddit-header",
+        banner: {
+            desktop: user.data.subreddit.banner_img ?? "no-banner"
+        },
+        icon: {
+            url: user.data.icon_img || user.data.snoovatar_img || "no-icon",
+        },
+        name: {
+            display: user.data.name,
+            link_name: "u/"+user.data.name,
+        },
+        menu: null,
+        raw_value: user,
+        body: {
+            kind: "text",
+            content: user.data.subreddit.public_description,
+            markdown_format: "reddit",
+        },
+        subscribe: {
+            kind: "counter",
+
+            unique_id: "/follow/"+user.data.name+"/",
+            time: Date.now(),
+
+            label: "Follow",
+            incremented_label: "Following",
+
+            style: "pill-filled",
+            incremented_style: "pill-empty",
+
+            count_excl_you: user.data.is_friend ? user.data.subreddit.subscribers - 1 : user.data.subreddit.subscribers,
+            you: user.data.is_friend ? "increment" : undefined,
+
+            actions: {
+                error: "TODO implement add friend",
+            },
+        },
+    }, {
+        kind: "widget",
+        title: "About",
+        widget_content: {kind: "body", body: {kind: "richtext", content: [
+            rt.h1(rt.link("/u/"+user.data.name, {is_user_link: user.data.name}, rt.txt(user.data.name))),
+            rt.p(rt.txt(user.data.link_karma + " post karma")),
+            rt.p(rt.txt(user.data.comment_karma + " comment karma")),
+        ]}},
+        raw_value: user,
+    }];
+}
+
 export const client: ThreadClient = {
     id: "reddit",
     // loginURL: getLoginURL(),
@@ -2513,9 +2586,13 @@ export const client: ThreadClient = {
                 return pageFromListing(pathraw, parsed, result, {...subinfo});
             }else if(parsed.kind === "user") {
                 const link = pathraw;
-                const result = await redditRequest<Reddit.AnyResult>(link, {method: "GET"});
+                const [result, userabout] = await Promise.all([
+                    redditRequest<Reddit.AnyResult>(link, {method: "GET"}),
+                    redditRequest<Reddit.T2 | undefined>("/user/"+parsed.username+"/about", {method: "GET", onerror: e => undefined, cache: true}),
+                    // trophies? /api/v1/user/…/trophies
+                ]);
 
-                return pageFromListing(pathraw, parsed, result, {sidebar: null});
+                return pageFromListing(pathraw, parsed, result, {sidebar: generateUserSidebar(userabout)});
             }else if(parsed.kind === "inbox") {
                 // TODO
                 if(parsed.current.tab === "compose") {

@@ -299,19 +299,20 @@ export type Profile = {
 };
 export type RedditHeader = {
     kind: "reddit-header",
-    banner?: {
+    banner: {
         desktop: string,
         mobile?: string,
-    },
-    icon?: {
+    } | null,
+    icon: {
         url: string,
-    },
+    } | null,
     name: {
         display?: string,
         link_name: string,
     },
+    body: Body | null,
     subscribe?: Action,
-    menu?: Menu,
+    menu: Menu | null,
     raw_value: unknown,
 };
 
