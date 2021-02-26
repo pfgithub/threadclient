@@ -2251,7 +2251,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
 
     if(listing.subscribe) {
         const subscr = el("div").adto(rest);
-        renderAction(client, listing.subscribe, rest).defer(hsc);
+        renderAction(client, listing.subscribe, subscr).defer(hsc);
     }
 
     if(listing.body) {
