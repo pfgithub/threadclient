@@ -590,16 +590,15 @@ function TimeAgo(attrs: {start: number}): JSX.Element {
     return <span title={date_text}>{time_ago_text}</span>;
 }
 
-function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
-    const component = <TimeAgo start={start_ms} />;
-
-    // preact ⬄ vanilla js boundary
-    const wrapper = el("span");
-    const hsc = hideshow(wrapper);
-    Preact.render(component, wrapper);
-    hsc.on("cleanup", () => Preact.render(null, wrapper));
-
+function preactBoundary<T extends HTMLElement>(component: Preact.ComponentChild, container: T): HideShowCleanup<T> {
+    const hsc = hideshow(container);
+    Preact.render(component, container);
+    hsc.on("cleanup", () => Preact.render(null, container));
     return hsc;
+}
+
+function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
+    return preactBoundary(<TimeAgo start={start_ms} />, el("span"));
 }
 
 type RedditMarkdownRenderer = {
