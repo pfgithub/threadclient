@@ -1186,11 +1186,17 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                             text: "New",
                             action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "new"})},
                         },
-                        {
-                            selected: page.current.tab === tab && page.current.sort.sort === "rising",
-                            text: "Rising",
-                            action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "rising"})},
-                        },
+                        ...[["top", "Top"] as const, ["controversial", "Controversial"] as const].map(([url, text]): Generic.MenuItem => ({
+                            selected: page.current.tab === tab && page.current.sort.sort === url,
+                            text: page.current.tab === tab && page.current.sort.sort === url ? (text + " ("+page.current.sort.t+")") : text,
+                            action: {kind: "menu", children: ([
+                                ["hour", "Hour"], ["day", "Day"], ["week", "Week"], ["month", "Month"], ["year", "Year"], ["all", "All Time"]
+                            ] as const).map(([time, time_text]): Generic.MenuItem => ({
+                                text: time_text,
+                                selected: page.current.tab === tab && page.current.sort.sort === url && page.current.sort.t === time,
+                                action: {kind: "link", url: updateQuery("/"+["u", page.username].join("/"), {sort: url, t: time})},
+                            }))},
+                        }))
                     ]}
                     // action: {kind: "link", url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
                 })), {
