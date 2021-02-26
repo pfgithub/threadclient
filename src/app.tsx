@@ -2437,6 +2437,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                     || target_parent.nodeName === "INPUT"
                     || target_parent.nodeName === "TEXTAREA"
                     || target_parent.nodeName === "IFRAME"
+                    || target_parent.classList.contains("resizable-iframe")
                 )) return;
                 target_parent = target_parent.parentNode;
             }
