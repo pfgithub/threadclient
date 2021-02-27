@@ -46,7 +46,7 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
         if(awarding.count > 1) resitems.push({type: "text", text: "×" + awarding.count});
     }
     if(resitems.length === 0) return [];
-    return [{elems: resitems, content_warning: false, system: true}];
+    return [{elems: resitems, content_warning: false, system: ""}];
 }
 
 type Action =
@@ -2197,10 +2197,30 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         }
         const post_id_no_pfx = listing.name.substring(3);
 
-        const extra_flairs: Generic.Flair[] = [];
-        if(listing.spoiler) extra_flairs.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
-        if(listing.over_18) extra_flairs.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
-        if(listing.is_original_content) extra_flairs.push({elems: [{type: "text", text: "OC"}], content_warning: false});
+        const flairs: Generic.Flair[] = [];
+        flairs.push(
+            ...flairToGenericFlair({
+                type: listing.link_flair_type, text: listing.link_flair_text,
+                text_color: listing.link_flair_text_color,
+                background_color: listing.link_flair_background_color,
+                richtext: listing.link_flair_richtext,
+            })
+        );
+        if(listing.spoiler) flairs.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
+        if(listing.over_18) flairs.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
+        if(listing.is_original_content) flairs.push({elems: [{type: "text", text: "OC"}], content_warning: false});
+        flairs.push(...awardingsToFlair(listing.all_awardings ?? []));
+
+        if(listing.approved === true) {
+            flairs.push({
+                elems: [{type: "text", text: "✓ Approved"}],
+                content_warning: false,
+                system: "text-green-500",
+            });
+        }
+        if(listing.mod_reports.length + listing.user_reports.length > 0) {
+            //
+        }
 
         const body_content: Generic.Body = listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
             ? {kind: "crosspost", source:
@@ -2316,16 +2336,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             title: {
                 text: listing.title,
             },
-            flair: [
-                ...flairToGenericFlair({
-                    type: listing.link_flair_type, text: listing.link_flair_text,
-                    text_color: listing.link_flair_text_color,
-                    background_color: listing.link_flair_background_color,
-                    richtext: listing.link_flair_richtext,
-                }),
-                ...extra_flairs,
-                ...awardingsToFlair(listing.all_awardings ?? []),
-            ],
+            flair: flairs,
             body: is_deleted != null
                 ? {kind: "removed", by: is_deleted,
                     fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx}),

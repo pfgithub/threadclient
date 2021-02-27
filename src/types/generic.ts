@@ -383,9 +383,9 @@ export type RichTextItem = {
 export type Flair = {
     color?: string,
     fg_color?: "light" | "dark",
-    elems: RichTextItem[],
+    elems: RichTextItem[], // TODO → Richtext.Span[]
     content_warning: boolean,
-    system?: boolean,
+    system?: string, // tailwind css color class
 };
 export type ActionLabel = string;
 export type Action = {

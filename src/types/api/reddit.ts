@@ -754,6 +754,8 @@ export type PostOrComment = {
     subreddit_id: string, // fullname
     subreddit_type: SubredditType,
 
+    approved?: boolean,
+
     mod_reports: ModReport[],
     mod_reports_dismissed: ModReport[],
     user_reports: UserReport[],
