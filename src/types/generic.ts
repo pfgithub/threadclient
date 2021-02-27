@@ -254,7 +254,27 @@ export type Thread = {
     default_collapsed: boolean,
 
     flair?: Flair[],
+
+    moderator?: RedditModState,
 };
+
+type Report = {
+    content: Richtext.Span[], // 1: … | u/mod_username: …
+};
+
+type RedditModState = {
+    // report content
+    reports: Report[], // reddit ….mod_reports ….user_reports
+
+    // the number of new reports since the last approval
+    unseen_reports: number, // reddit .num_reports
+
+    mod_actions: Action[], // reddit: spam | remove<fetch removal reasons> | [a/re/un]approve | ignore reports
+
+    // approved posts may need re-approval if they get new reports
+    approved: boolean, // TODO counter index
+};
+
 export type Info = {
     time: false | number,
     edited: false | number,
