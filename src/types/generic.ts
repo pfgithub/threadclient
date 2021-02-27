@@ -385,6 +385,7 @@ export type Flair = {
     fg_color?: "light" | "dark",
     elems: RichTextItem[],
     content_warning: boolean,
+    system?: boolean,
 };
 export type ActionLabel = string;
 export type Action = {

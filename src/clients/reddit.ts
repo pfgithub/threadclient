@@ -46,7 +46,7 @@ function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
         if(awarding.count > 1) resitems.push({type: "text", text: "×" + awarding.count});
     }
     if(resitems.length === 0) return [];
-    return [{elems: resitems, content_warning: false, color: "transparent"}];
+    return [{elems: resitems, content_warning: false, system: true}];
 }
 
 type Action =
