@@ -4,7 +4,6 @@ export type Page = {
     title: string,
     navbar: Action[],
     sidebar?: ContentNode[],
-    reply_button?: Action,
     body: {
         kind: "listing",
         header: ContentNode,
