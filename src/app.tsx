@@ -510,7 +510,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
 function renderFlair(flairs: Generic.Flair[]) {
     const resl = document.createDocumentFragment();
     for(const flair of flairs) {
-        const flairv = el("span").clss("rounded-full inline-block", (flair.system != null ? "" : "px-2"));
+        const flairv = el("span").clss("rounded-full", (flair.system != null ? "" : "px-2"));
         resl.atxt(" ");
         if(flair.system != null) {
             flairv.clss(flair.system);
