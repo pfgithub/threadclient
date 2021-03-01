@@ -367,10 +367,10 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
         return {kind: "youtube", id: youtube_video_id, search: url.searchParams.toString()};
     }
     if(url && (url.host === "www.imgur.com" || url.host === "imgur.com")) {
-        const splitv = url.pathname.split("/");
-        const galleryid = splitv[2]!;
-        const isv = splitv[1] === "gallery" ? "gallery" : splitv[1] === "a" ? "album" : undefined;
-        if(isv !== undefined && splitv.length === 3) {
+        const splitv = url.pathname.split("/").filter(q => q);
+        const galleryid = splitv[1]!;
+        const isv = splitv[0] === "gallery" ? "gallery" : splitv[0] === "a" ? "album" : undefined;
+        if(isv !== undefined && splitv.length === 2) {
             return {
                 kind: "imgur",
                 imgur_id: galleryid,
@@ -378,8 +378,8 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
             };
         }
     }
-    if(url && url.host === "clips.twitch.tv" && url.pathname.split("/").length === 2) {
-        const clipid = url.pathname.split("/")[1];
+    if(url && url.host === "clips.twitch.tv" && url.pathname.split("/").filter(q => q).length === 1) {
+        const clipid = url.pathname.split("/").filter(q => q)[0];
         if(clipid != null) return {
             kind: "twitch_clip",
             slug: clipid,
