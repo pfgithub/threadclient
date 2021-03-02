@@ -1194,7 +1194,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                             ] as const).map(([time, time_text]): Generic.MenuItem => ({
                                 text: time_text,
                                 selected: page.current.tab === tab && page.current.sort.sort === url && page.current.sort.t === time,
-                                action: {kind: "link", url: updateQuery("/"+["u", page.username].join("/"), {sort: url, t: time})},
+                                action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: url, t: time})},
                             }))},
                         }))
                     ]}
