@@ -2547,17 +2547,23 @@ function generateUserSidebar(user: Reddit.T2 | undefined): Generic.ContentNode[]
     }];
 }
 
+function parseLink(path: string) {
+    let parsed = path_router.parse(path)!;
+
+    for(let i = 0; parsed.kind === "redirect" && i < 100; i++) {
+        path = parsed.to;
+        parsed = path_router.parse(path)!;
+    }
+    
+    return [parsed, path] as const;
+}
+
 export const client: ThreadClient = {
     id: "reddit",
     // loginURL: getLoginURL(),
-    async getThread(pathraw): Promise<Generic.Page> {
+    async getThread(pathraw_in): Promise<Generic.Page> {
         try {
-            let parsed = path_router.parse(pathraw)!;
-
-            for(let i = 0; parsed.kind === "redirect" && i < 100; i++) {
-                pathraw = parsed.to;
-                parsed = path_router.parse(pathraw)!;
-            }
+            const [parsed, pathraw] = parseLink(pathraw_in);
 
             console.log("PARSED URL:", parsed);
 
@@ -2730,7 +2736,7 @@ export const client: ThreadClient = {
                         body: "visible",
                         comments: "collapsed",
                     },
-                    link: pathraw,
+                    link: pathraw_in,
                     layout: "error",
                     actions: [],
                     default_collapsed: false,
@@ -3115,9 +3121,9 @@ export const client: ThreadClient = {
             const resp = await redditRequest<Reddit.Page>(act.permalink, {
                 method: "GET",
             });
-            const parsed_link = path_router.parse(act.permalink)!;
+            const [parsed_link, pathraw] = parseLink(act.permalink)!;
             if(parsed_link.kind !== "comments") throw new Error("bad link to parent_permalink: "+parsed_link.kind);
-            const translated_resp = pageFromListing(act.permalink, parsed_link, resp, {sidebar: null});
+            const translated_resp = pageFromListing(pathraw, parsed_link, resp, {sidebar: null});
             if(translated_resp.body.kind === "one") {
                 return translated_resp.body.item.replies;
             }
@@ -3138,8 +3144,8 @@ export const client: ThreadClient = {
             const resp = await redditRequest<Reddit.Listing>(act.url, {
                 method: "GET",
             });
-            const parsed_url = path_router.parse(act.url)!;
-            const translated_resp = pageFromListing(act.url, parsed_url, resp, {sidebar: null});
+            const [parsed_url, pathraw] = parseLink(act.url)!;
+            const translated_resp = pageFromListing(pathraw, parsed_url, resp, {sidebar: null});
             if(translated_resp.body.kind === "listing") {
                 return {children: translated_resp.body.items, next: translated_resp.body.next};
             }
