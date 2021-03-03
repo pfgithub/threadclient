@@ -713,6 +713,8 @@ export type Media = (BaseMedia & ({
 })) | ErroredMedia;
 export type MediaMetadata = {[key: string]: Media};
 
+export type UserDistinguished = "admin" | "moderator" | "unsupported";
+
 export type PostOrComment = {
     name: string, // post id
 
@@ -723,7 +725,7 @@ export type PostOrComment = {
 
     score: number, // uuh why do inbox entries have score but not score_hidden
 
-    distinguished: "admin" | "unsupported" | null,
+    distinguished: UserDistinguished | null,
 
     created_utc: Date.Sec, // there's also created but that's not utc
 

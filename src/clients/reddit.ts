@@ -8,14 +8,15 @@ import { rt } from "../types/generic";
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
 
+type FlairBits = {
+    type: Reddit.FlairBits.Type,
+    text: Reddit.FlairBits.Text,
+    text_color: Reddit.FlairBits.TextColor,
+    background_color: Reddit.FlairBits.BackgroundColor,
+    richtext: Reddit.FlairBits.Richtext,
+};
 function flairToGenericFlair(
-    opts: {
-        type: Reddit.FlairBits.Type,
-        text: Reddit.FlairBits.Text,
-        text_color: Reddit.FlairBits.TextColor,
-        background_color: Reddit.FlairBits.BackgroundColor,
-        richtext: Reddit.FlairBits.Richtext,
-    },
+    opts: FlairBits,
 ): Generic.Flair[] {
     if(opts.type == null) return []; // deleted comments
     if(opts.type === "text" && (opts.text == null || opts.text === "")) return [];
@@ -2094,6 +2095,59 @@ const saveButton = (fullname: string, saved: boolean): Generic.Action => {
     };
 };
 
+function authorFromInfo(opts: {
+    author: string,
+    flair_bits: FlairBits,
+    additional_flairs?: Generic.Flair[],
+    distinguished: Reddit.UserDistinguished | null,
+    is_submitter: boolean,
+}): Generic.Info["author"] {
+    const system_colors: {[key in Reddit.UserDistinguished]: string} = {
+        admin: "text-red-500",
+        moderator: "text-green-500",
+        unsupported: "text-red-500",
+    };
+    return {
+        color_hash: opts.author,
+        name: opts.author,
+        link: "/u/"+opts.author,
+        flair: [
+            ...flairToGenericFlair(opts.flair_bits),
+            ...opts.is_submitter ? as<Generic.Flair[]>([{
+                elems: [{
+                    type: "text",
+                    text: "«OP»",
+                }],
+                content_warning: false,
+                system: "text-blue-500",
+            }]) : [],
+            ...opts.distinguished != null ? as<Generic.Flair[]>([{
+                elems: [{
+                    type: "text",
+                    text: "«"+opts.distinguished+"»",
+                }],
+                content_warning: false,
+                system: system_colors[opts.distinguished] ?? system_colors.unsupported,
+            }]) : [],
+            ...opts.additional_flairs ?? [],
+        ]
+    };
+}
+function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.PostComment, additional_flairs?: Generic.Flair[]): Generic.Info["author"] {
+    return authorFromInfo({
+        author: listing.author,
+        flair_bits: {
+            type: listing.author_flair_type, text: listing.author_flair_text,
+            text_color: listing.author_flair_text_color,
+            background_color: listing.author_flair_background_color,
+            richtext: listing.author_flair_richtext,
+        },
+        additional_flairs: awardingsToFlair(listing.all_awardings ?? []),
+        distinguished: listing.distinguished,
+        is_submitter: 'is_submitter' in listing ? (listing.is_submitter ?? false) : false,
+    });
+}
+
 const fetch_path = encoderGenerator<{path: string}, "fetch_removed_path">("fetch_removed_path");
 
 type SortedPermalink = {
@@ -2145,20 +2199,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             info: {
                 time: listing.created_utc * 1000,
                 edited: listing.edited === false ? false : listing.edited * 1000,
-                author: {
-                    color_hash: listing.author,
-                    name: listing.author,
-                    link: "/u/"+listing.author,
-                    flair: [
-                        ...flairToGenericFlair({
-                            type: listing.author_flair_type, text: listing.author_flair_text,
-                            text_color: listing.author_flair_text_color,
-                            background_color: listing.author_flair_background_color,
-                            richtext: listing.author_flair_richtext,
-                        }),
-                        ...awardingsToFlair(listing.all_awardings ?? []),
-                    ],
-                },
+                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 pinned: listing.stickied,
             },
             actions: [
@@ -2368,17 +2409,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             info: {
                 time: listing.created_utc * 1000,
                 edited: listing.edited === false ? false : listing.edited * 1000,
-                author: {
-                    name: listing.author,
-                    color_hash: listing.author,
-                    link: "/u/"+listing.author,
-                    flair: flairToGenericFlair({
-                        type: listing.author_flair_type, text: listing.author_flair_text,
-                        text_color: listing.author_flair_text_color,
-                        background_color: listing.author_flair_background_color,
-                        richtext: listing.author_flair_richtext,
-                    }),
-                },
+                author: authorFromPostOrComment(listing, []),
                 in: {
                     link: "/"+listing.subreddit_name_prefixed,
                     name: listing.subreddit_name_prefixed,

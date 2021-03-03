@@ -172,6 +172,7 @@ reddit todo:
 -   [x] rpan support
 -   [x] make full use of Generic.Page - for threads where you are linked part way into the thread, set up the parent nodes correctly
 -   [x] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
+-   [x] support op, mod distinguished, and admin distinguished comments and posts
 -   [ ] support contest mode
 -   [ ] figure out what "url_overridden_by_dest" is
 -   [ ] more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gamw9br/)
@@ -203,8 +204,7 @@ reddit todo:
         function and removes it after the jsonp request is completed. note that this doesn't work for requests that require authentication so maybe don't do it.
 -   [ ] code block automatic syntax highlighting (using hljs automatic or something)
 -   [ ] when revealing a crosspost with the same content warnings as the parent post, don't require accepting twice
--   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button
--   [ ] support op, mod distinguished, and admin distinguished comments and posts
+-   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button (this is even easier now - the load mores can be consolidated)
 -   [ ] option to disable default collapsed comments (eg due to crowd control or downvoting)
 -   [ ] preview subreddit links like sneakpeakbot does and also hide sneakpeakbot replies unless they have comments (may require slight restructuring | just fetch the reddit client yeah ok)
 -   [ ] what if sneakpeakbot replies got embedded into the comment itself hmm - as a crosspost thing but collapsed by default
