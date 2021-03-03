@@ -110,8 +110,7 @@ all todo:
         is how posts exist. instead, change so the top level can have either a listing or a single thread. listings are single_thread[].
         single_thread has {parents: thing[]} which might have a load more on top and {replies: thing[]}
 -   [x] choose how to sort comments
--   [ ] expand bitly links (for example, the links in the `r/iama` new sidebar calendar widget) - nvm bitly's api requires the requester knows a secret which is not possible
--   [ ] add a wikipedia client `https://en.wikipedia.org/w/rest.php/v1/page/…`, `{headers: {'Accept': "application/json; charset=UTF-8", 'Origin': location.origin}}`
+-   [ ] instead of a ".prose" class, use shadow dom so bodies can be embedded within prose without prose styles leaking
 -   [ ] make it possible for sorting menus to not reload the entire page on click (eg add an option to menu actions no_reload: true that tells
         the renderer to clear the content area, load, and refill it without clearing any of the frame and without pushing a new history item)
 -   [ ] oembed (eg for youtube and other sites)
@@ -123,6 +122,8 @@ all todo:
         on the outside and set pointer-events: none on the content while the content is not revealed. I thought I did this already but maybe something
         with having two seperate implementations caused it.
 -   [ ] the refresh button
+-   [ ] expand bitly links (for example, the links in the `r/iama` new sidebar calendar widget) - nvm bitly's api requires the requester knows a secret which is not possible
+-   [ ] add a wikipedia client `https://en.wikipedia.org/w/rest.php/v1/page/…`, `{headers: {'Accept': "application/json; charset=UTF-8", 'Origin': location.origin}}`
 -   [ ] support open in new tab on added to homescreen version of page
 -   [ ] avoid keeping iframes in dom when they are not visible
 -   [ ] twitter tweet preview support (`https://cdn.syndication.twimg.com/tweet?id=`:id`&lang=en`)

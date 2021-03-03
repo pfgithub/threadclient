@@ -1276,7 +1276,7 @@ function twitchClip(clipid: string, opts: {autoplay: boolean}): HideShowCleanup<
         console.log(res_untyped);
         const [video, chat_card, broadcaster_info, title, curator, full_video_btn] = res_untyped as [
             // wow lots of redundant data
-            video: {data: {clip: {
+            video: {data: {clip: null | {
                 id: string,
                 playbackAccessToken: {
                     signature: string,
@@ -1324,6 +1324,10 @@ function twitchClip(clipid: string, opts: {autoplay: boolean}): HideShowCleanup<
                 game: {id: string, displayName: string},
             }}},
         ];
+        if(!video.data.clip) {
+            el("div").clss("text-xl font-bold text-red-500").adto(frame).atxt("404 clip not found. It might be deleted or otherwise no longer available.");
+            return;
+        }
         el("h1").clss("text-xl font-bold text-gray-500").adto(frame).atxt(title.data.clip.title);
         videoPreview(video.data.clip.videoQualities.map(quality => {
             return {src: quality.sourceURL};
