@@ -2529,7 +2529,7 @@ function generateUserSidebar(user: Reddit.T2 | undefined): Generic.ContentNode[]
             desktop: user.data.subreddit.banner_img ?? "no-banner"
         },
         icon: {
-            url: user.data.icon_img || user.data.snoovatar_img || "no-icon",
+            url: user.data.snoovatar_img || user.data.icon_img || "no-icon",
         },
         name: {
             display: user.data.name,
