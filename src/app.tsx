@@ -2168,7 +2168,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
             let submenu_v: HTMLElement | undefined;
             const subitems = item.action.children;
 
-            hsc.on("hide", () => {open = false; update()});
+            hsc.on("hide", () => {console.log("open menu was asked to be hidden"); open = false; update()});
             
             const update = () => {
                 arrowv.nodeValue = open ? "▴" : "▾";
@@ -2176,7 +2176,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
                 if(open) {
                     if(!submenu_v) {
                         submenu_v = renderSubmenu(subitems).clss(
-                            "absolute z-index flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
+                            "absolute z-10 flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
                         ).adto(document.body);
                         const bbox = itcontainer.getBoundingClientRect();
                         submenu_v.styl({left: bbox.left+"px", top: (bbox.bottom + (window.pageYOffset ?? document.documentElement.scrollTop))+"px"});
@@ -2229,6 +2229,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
                 if(item === selected_item.value) {
                     if(menu_l2) throw new Error("already existing menu_l2");
                     menu_l2 = renderMenu(client, action.children);
+                    menu_l2.defer(hsc);
                     menu_l2.associated_data.clss("mt-2").adto(menu_area);
                 }
             }).defer(hsc);
