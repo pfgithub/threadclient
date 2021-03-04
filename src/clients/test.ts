@@ -44,6 +44,7 @@ const sample_preview_links: {
     {expected_result: "error : invalid imgur id", url: "https://www.imgur.com/a/QQQQQq"},
     {expected_result: "error : invalid twitch slug", url: "https://clips.twitch.tv/QqqqqqqqqQqqqqQqqqqqqQqqQqqq-qQqQqQQQQQqQQqqQ"},
     {expected_result: "error : unpreviwewable soundcloud url", url: "https://developers.soundcloud.com/docs/oembed#introduction"},
+    {expected_result: "error : empty oembed", url: "https://www.tiktok.com/@scout2015"},
 ];
 
 function bodyPage(path: string, body: Generic.Body): Generic.Page {

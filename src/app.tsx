@@ -720,7 +720,7 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
 
     if(!renderLinkPreview) return hsc;
 
-    const showpreviewbtn = elButton("none").atxt("…").onev("click", (e) => {e.stopPropagation(); togglepreview()});
+    const showpreviewbtn = elButton("none").clss("text-blue-500").atxt("…").onev("click", (e) => {e.stopPropagation(); togglepreview()});
 
     let preview_div: undefined | {hsc: HideShowCleanup<unknown>, node: ChildNode} = undefined;
 
@@ -730,11 +730,11 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
     };
 
     const hidepreview = () => {
-        showpreviewbtn.textContent = "⏵";
+        showpreviewbtn.textContent = "▸";
         if(preview_div) {preview_div.hsc.cleanup(); preview_div.node.remove(); preview_div = undefined}
     };
     const showpreview = () => {
-        showpreviewbtn.textContent = "⏷";
+        showpreviewbtn.textContent = "▾";
         const preview_container = el("div");
         parent_node.insertBefore(preview_container, after_node);
         const lprvw = renderLinkPreview();

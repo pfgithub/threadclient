@@ -1,6 +1,18 @@
 import * as Generic from "../types/generic";
+const rt = Generic.rt;
 
+// TODO return {error: …} | {body: …}
+// then let the main thing display a link if error was returned
 export function oembed(card: OEmbed): Generic.Body {
+    if('status_msg' in card) {
+        return {
+            kind: "richtext",
+            content: [
+                rt.p(rt.error("Could not preview oembed", card)),
+                // TODO add a link here
+            ],
+        };
+    }
     return card.url != null ? {
         kind: "link_preview",
         thumb: card.image ?? undefined,
@@ -39,4 +51,6 @@ export type OEmbed = {
     html: string | "", // reddit suggested embed
 
     // more info : author name, provider name, …
+} | {
+    status_msg: string,
 };
