@@ -2132,6 +2132,7 @@ function authorFromInfo(opts: {
     additional_flairs?: Generic.Flair[],
     distinguished: Reddit.UserDistinguished | null,
     is_submitter: boolean,
+    author_cakeday: boolean | undefined,
 }): Generic.Info["author"] {
     const system_colors: {[key in Reddit.UserDistinguished]: string} = {
         admin: "text-red-500",
@@ -2151,6 +2152,14 @@ function authorFromInfo(opts: {
                 }],
                 content_warning: false,
                 system: "text-blue-500",
+            }]) : [],
+            ...opts.author_cakeday ?? false ? as<Generic.Flair[]>([{
+                elems: [{
+                    type: "text",
+                    text: "«🍰»",
+                }],
+                content_warning: false,
+                system: "text-gray-500",
             }]) : [],
             ...opts.distinguished != null ? as<Generic.Flair[]>([{
                 elems: [{
@@ -2173,9 +2182,10 @@ function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.PostCom
             background_color: listing.author_flair_background_color,
             richtext: listing.author_flair_richtext,
         },
-        additional_flairs: awardingsToFlair(listing.all_awardings ?? []),
+        additional_flairs: additional_flairs,
         distinguished: listing.distinguished,
         is_submitter: 'is_submitter' in listing ? (listing.is_submitter ?? false) : false,
+        author_cakeday: listing.author_cakeday,
     });
 }
 

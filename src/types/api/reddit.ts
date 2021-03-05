@@ -720,6 +720,7 @@ export type PostOrComment = {
 
     author: string,
     author_fullname: `t2_${string}`,
+    author_cakeday?: boolean,
     
     likes: true | false | null,
 
