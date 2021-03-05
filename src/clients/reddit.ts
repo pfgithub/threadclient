@@ -1150,6 +1150,10 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                     text: "Hot",
                     action: {kind: "link", url: "/"+[...page.sub.base, ...page.is_user_page ? ["hot"] : []].join("/")},
                 }, {
+                    selected: page.current_sort.v === "best",
+                    text: "Best",
+                    action: {kind: "link", url: "/"+[...page.sub.base, ...page.is_user_page ? ["best"] : []].join("/")},
+                }, {
                     selected: page.current_sort.v === "new",
                     text: "New",
                     action: {kind: "link", url: "/"+[...page.sub.base, "new"].join("/")},
