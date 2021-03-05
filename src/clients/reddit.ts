@@ -1305,7 +1305,9 @@ type ParsedPath = {
         tab: "compose",
         // uh oh compose is not a json listing (it's a 404) so this parsing
         // needs to happen above pageFromListingA
-        to?: string,
+        to: string | undefined,
+        subject: string | undefined,
+        message: string | undefined,
     } | {
         tab: "inbox",
         // selfreply is "post replies". comments is "comment replies"
@@ -1689,7 +1691,12 @@ path_router.with(["message"] as const, urlr => {
     // "compose", "sent"
     urlr.route(["compose"] as const, opts => ({
         kind: "inbox",
-        current: {tab: "compose", to: opts.query.to},
+        current: {
+            tab: "compose",
+            to: opts.query.to,
+            subject: opts.query.subject,
+            message: opts.query.message,
+        },
     }));
     urlr.route(["sent"] as const, opts => ({
         kind: "inbox",
