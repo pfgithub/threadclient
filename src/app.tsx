@@ -366,6 +366,12 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
         const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
         return {kind: "youtube", id: youtube_video_id, search: url.searchParams.toString()};
     }
+    if(url && (url.host === "vocaroo.com" || url.host === "www.vocaroo.com")) {
+        const splitv = url.pathname.split("/").filter(q => q);
+        if(splitv.length === 1 && splitv[0] != null && splitv[0] !== "") {
+            return {kind: "audio", url: "https://media.vocaroo.com/mp3/"+splitv[0]};
+        }        
+    }
     if(url && (url.host === "www.imgur.com" || url.host === "imgur.com")) {
         const splitv = url.pathname.split("/").filter(q => q);
         const galleryid = splitv[1]!;
