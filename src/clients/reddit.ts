@@ -2733,6 +2733,7 @@ export const client: ThreadClient = {
                 widget_content: {kind: "body", body: {kind: "richtext", content: [
                     rt.p(rt.txt("This page "), rt.txt(pathraw, {code: true}), rt.txt(" is not supported (yet)")),
                     rt.p(rt.txt(parsed.kind)),
+                    rt.p(rt.txt("View it on "), rt.link("raw!https://reddit.com"+pathraw, {}, rt.txt("reddit.com")), rt.txt(".")),
                 ]}},
                 raw_value: parsed,
             }]});
