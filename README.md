@@ -237,7 +237,11 @@ mastodon todo:
 -   [ ] improved url paths
 -   [ ] make the `/mastodon` page not 404
 
-twitter todo:
+twitter/tumblr todo:
 
--   [ ] set up the proxy server
--   [ ] try a request
+> twitter and tumblr both use OAuth 1.0a which requires having a server to proxy requests and requires that the sender of the requests knows the application secret.
+>
+> because of this, neither of them support cors, and even if they did, couldn't be used in threadreader directly.
+
+-   [ ] create an oauth 1.0a proxy server
+-   [ ] try some requests
