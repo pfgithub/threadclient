@@ -1172,7 +1172,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                 }, {
                     selected: page.current_sort.v === "best",
                     text: "Best",
-                    action: {kind: "link", url: "/"+[...page.sub.base, ...page.is_user_page ? ["best"] : []].join("/")},
+                    action: {kind: "link", url: "/"+[...page.sub.base, "best"].join("/")},
                 }, {
                     selected: page.current_sort.v === "new",
                     text: "New",
