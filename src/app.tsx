@@ -372,6 +372,19 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
             return {kind: "audio", url: "https://media.vocaroo.com/mp3/"+splitv[0]};
         }        
     }
+    if(url && (url.host === "giphy.com" || url.host === "www.giphy.com")) {
+        const splitv = url.pathname.split("/").filter(q => q);
+        if(splitv.length === 3 && splitv[0] === "gifs" && splitv[2] === "fullscreen") {
+            const giphy_id_bits = splitv[1]!.split("-");
+            const giphy_id = giphy_id_bits[giphy_id_bits.length - 1];
+            return {kind: "video", source: {
+                kind: "video",
+                sources: [
+                    {url: "https://media4.giphy.com/media/"+giphy_id+"/giphy.mp4", type: "video/mp4"},
+                ],
+            }, gifv: true};
+        }        
+    }
     if(url && (url.host === "www.imgur.com" || url.host === "imgur.com")) {
         const splitv = url.pathname.split("/").filter(q => q);
         const galleryid = splitv[1]!;
