@@ -186,25 +186,45 @@ function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormatti
         children: richtextSpanArray(tbh.c, opt),
     };
 }
+function isBraille(codepoint: number): boolean {
+    return codepoint >= 0x2800 && codepoint <= 0x28FF;
+}
 function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     if(format.length === 0) {
         let braille_character_count = 0;
+        let text_len_excl_zwsp = 0;
         [...text].forEach(char => {
             const codepoint = char.codePointAt(0)!;
-            if(codepoint >= 0x2800 && codepoint <= 0x28FF) {
+            if(codepoint !== 0x200E && codepoint !== 0x20) {
+                text_len_excl_zwsp += 1;
+            }
+            if(isBraille(codepoint)) {
                 braille_character_count++;
             }
         });
-        if(braille_character_count > (text.length * 0.9)) {
-            // // not necessary with white-space: pre
-            // const braille_blocks = text.split(" ");
-            // const len = braille_blocks.length - 1;
-            // return braille_blocks.flatMap((bblk, i) => {
-            //     const segment: Generic.Richtext.Span = {kind: "text", text: bblk, styles: {}};
-            //     if(i == len) return [segment];
-            //     return [segment, {kind: "br"}]
-            // });
-            return [{kind: "text", text: text.split(" ").filter(v => v.trim().length > 3).join("\n"), styles: {}}];
+
+        // at least 10 braille characters & braille characters make up 90% of the textual characters in the text span
+        if(braille_character_count > text_len_excl_zwsp * 0.9 && braille_character_count > 10) {
+            const res_lines: string[] = [];
+            let last_line: string[] = [];
+            for(const lsection of text.split(" ")) {
+                const section = [...lsection];
+                const line_braille_count = section.filter(item => isBraille(item.codePointAt(0)!));
+                if(line_braille_count.length > 5) {
+                    if(res_lines.length > 0) {
+                        if(last_line.length > 0) res_lines[res_lines.length - 1] += " " + last_line.join(" ");
+                        last_line = [];
+                        res_lines.push(lsection);
+                    }else{
+                        res_lines.push([...last_line, lsection].join(" "));
+                        last_line = [];
+                    }
+                }else{
+                    last_line.push(lsection);
+                }
+            }
+            res_lines.push(...last_line);
+            return [{kind: "text", text: res_lines.join("\n"), styles: {}}];
         }
         return [{kind: "text", text: text, styles: {}}];
     }
