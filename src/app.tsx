@@ -967,6 +967,9 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             el("pre").adch(el("code").atxt(rtp.text)).adto(container);
         } break;
         case "body": {
+            // TODO
+            // 1: render this in a shadow dom with normal styles
+            // 2: padding
             renderBody(client, rtp.body, {autoplay: false}, container).defer(hsc);
         } break;
         case "table": {
