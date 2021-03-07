@@ -71,7 +71,7 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, 
         src: "https://www.youtube.com/embed/"
             +youtube_video_id+"?version=3&enablejsapi=1&playerapiid=ytplayer"
             +(opts.autoplay ? "&autoplay=1" : "")
-            +(start_code != null ? "&start="+start_code : "")
+            +(start_code != null ? "&start="+start_code.replace("s", "") : "")
         ,
     });
     return {node: el("div").clss("resizable-iframe").styl({width: "640px", height: "360px"}).adch(yt_player), onhide: () => {
