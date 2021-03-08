@@ -1,5 +1,16 @@
 // types that clients return
 
+export type ContentFrame = {
+    // clients should provide a method to bundle requests. requestAll([above, content, below])
+    // the recommended request order returns the best order and grouping to perform the needed requests
+    // eg do a request for [above, content, below] followed by [sidebar, header]
+    recommended_request_order: InfoRequest[][],
+};
+export type InfoRequest = keyof InfoRequestMap;
+export type InfoRequestMap = {
+    body: Page,
+};
+
 export type Page = {
     title: string,
     navbar: Action[],

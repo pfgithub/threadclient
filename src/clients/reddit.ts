@@ -55,6 +55,7 @@ type Action =
     | {kind: "delete", fullname: string}
     | {kind: "save", fullname: string, direction: "" | "un"}
     | {kind: "subscribe", subreddit: string, direction: "sub" | "unsub"}
+    | {kind: "mark_read", fullname: string, direction: "" | "un"}
     | {kind: "log_out"}
 ;
 
@@ -309,16 +310,17 @@ const baseURL = (oauth: boolean) => {
     const base = oauth ? "oauth.reddit.com" : "www.reddit.com";
     return "https://"+base;
 };
-const pathURL = (oauth: boolean, path: string) => {
+const pathURL = (oauth: boolean, path: string, opts: {override?: boolean}) => {
     const [pathname, query] = splitURL(path);
     if(!pathname.startsWith("/")) {
         throw new Error("path didn't start with `/` : `"+path+"`");
     }
+    if(opts.override ?? false) return baseURL(oauth) + pathname + query.toString();
     query.set("raw_json", "1");
     query.set("rtj", "yes"); // undefined | "yes" | "only" but it turns out in listings eg /r/subreddit.json rtj=only cuts off after like 10 paragraphs but rtj=yes doesn't weird
     query.set("emotes_as_images", "true"); // enables sending {t: "gif"} span elements in richtext rather than sending a link
     query.set("gilding_detail", "1"); // not sure what this does but new.reddit sends it in an oauth.reddit.com request so it sounds good
-    return baseURL(oauth )+pathname+".json?"+query.toString();
+    return baseURL(oauth) + pathname + ".json?"+query.toString();
 };
 
 // ok so the idea::
@@ -1955,6 +1957,19 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
                 ...inbox_msg.kind === "t1" ? [getPointsOn(msg)] : [],
                 ...msg.context ? [{kind: "link", url: msg.context, text: "Context"} as const] : [],
                 ...inbox_msg.kind === "t4" ? [{kind: "link", url: "/message/messages/"+msg.id, text: "Permalink"} as const] : [],
+                {
+                    kind: "counter",
+                    count_excl_you: "none",
+                    you: msg.new ? "increment" : undefined,
+                    unique_id: "/unread/"+msg.name+"/",
+                    time: Date.now(),
+                    label: "Mark Unread",
+                    incremented_label: "🠶 New",
+                    actions: {
+                        increment: act_encoder.encode({kind: "mark_read", direction: "un", fullname: msg.name}),
+                        reset: act_encoder.encode({kind: "mark_read", direction: "", fullname: msg.name}),
+                    },
+                },
                 // TODO Full Comments (:num_comments)
                 // TODO mark unread
             ],
@@ -1976,6 +1991,10 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
 const topLevelThreadFromInboxMsg = (inbox_msg: Reddit.InboxMsg): Generic.UnmountedNode => {
     if(inbox_msg.kind === "t1" || inbox_msg.kind === "t4") {
         const msg = inbox_msg.data;
+        // TODO display the link title
+        // t1:
+        // - msg.link_title
+        // and then also put the load more thing
         return {
             parents: [{
                 // I need a new layout kind "info-line" that's for a really short info line like this
@@ -2928,6 +2947,17 @@ export const client: ThreadClient = {
                 },
             });
             console.log(res);
+        }else if(act.kind === "mark_read") {
+            type DeleteResult = {error: number, message: string};
+            const res = await redditRequest<DeleteResult>("/api/"+act.direction+"read_message/", {
+                method: "POST",
+                mode: "urlencoded",
+                body: {
+                    id: act.fullname,
+                },
+                override: true,
+            });
+            console.log(res);
         }else if(act.kind === "log_out") {
             localStorage.removeItem("reddit-secret");
         }else assertUnreachable(act);
@@ -3305,6 +3335,7 @@ type RequestOpts<ResponseType> = (
     onerror?: (e: Error) => ResponseType,
     onstatus?: (status: number, res: ResponseType) => ResponseType,
     cache?: boolean,
+    override?: boolean,
 };
 // note: TODO reset caches on a few occasions
 // : if you send any requests to edit the subreddit about text or anything like that, clear all caches containing /r/:subname/ or ending with /r/:subname
@@ -3314,7 +3345,7 @@ async function redditRequest<ResponseType>(path: string, opts: RequestOpts<Respo
     // TODO if error because token needs refreshing, refresh the token and try again
     try {
         const authorization = await getAuthorization();
-        const full_url = pathURL(!!authorization, path);
+        const full_url = pathURL(!!authorization, path, {override: opts.override});
         const fetchopts: RequestInit = {
             method: opts.method, mode: "cors", credentials: "omit",
             headers: {
