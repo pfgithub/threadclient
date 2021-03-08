@@ -2303,7 +2303,11 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         renderMenu(client, listing.menu).defer(hsc).adto(el("div").clss("my-3").adto(frame));
     }
 
-    elButton("action-button").atxt("Code").adto(frame).onev("click", (e) => {e.stopPropagation(); console.log(listing)});
+    const final_actions_area = el("div").adto(frame);
+    if(listing.more_actions) for(const act of listing.more_actions) {
+        renderAction(client, act, final_actions_area).defer(hsc);
+    }
+    elButton("action-button").atxt("Code").adto(final_actions_area).onev("click", (e) => {e.stopPropagation(); console.log(listing)});
 
     return hsc;
 }

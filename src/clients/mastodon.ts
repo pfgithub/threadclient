@@ -782,9 +782,18 @@ export const client: ThreadClient = {
             const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
 
             return await timelineView(host, auth, parsed.api_url, pathraw, {
-                kind: "user-profile",
-                username: account_info.display_name,
-                bio: {
+                kind: "reddit-header",
+                banner: {
+                    desktop: account_info.header_static ?? account_info.header ?? "none",
+                },
+                icon: {
+                    url: account_info.avatar_static ?? account_info.avatar ?? "none",
+                },
+                name: {
+                    display: account_info.display_name,
+                    link_name: account_info.acct,
+                },
+                body: {
                     kind: "richtext",
                     content: [...parseContentHTML(host, account_info.note, {emojis: [], mentions: []}), {kind: "table", headings: [
                         {children: [{kind: "text", text: "Key", styles: {}}]},
@@ -798,7 +807,7 @@ export const client: ThreadClient = {
                         ];
                     })}],
                 },
-                actions: [{
+                subscribe: {
                     kind: "counter",
                     unique_id: "/follow/"+account_info.id+"/",
                     time: Date.now(),
@@ -809,17 +818,21 @@ export const client: ThreadClient = {
                         : account_info.followers_count + (relation?.following ?? false ? -1 : 0)
                     ,
                     you: relation?.following ?? false ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
+                    style: "pill-filled",
+                    incremented_style: "pill-empty",
 
                     actions: {
                         increment: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: ""}),
                         reset: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: "un"}),
                     },
-                }, {
+                },
+                more_actions: [{
                     kind: "link",
                     url: account_info.url,
                     text: "Permalink",
                 }],
-                link: "/"+host+"/accounts/"+acc_id,
+                menu: null, // … Posts | … Following | … Followers
+                // link: "/"+host+"/accounts/"+acc_id,
                 raw_value: account_info,
             }, []);
         }

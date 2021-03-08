@@ -342,6 +342,7 @@ export type RedditHeader = {
     },
     body: Body | null,
     subscribe?: Action,
+    more_actions?: Action[],
     menu: Menu | null,
     raw_value: unknown,
 };
