@@ -263,8 +263,9 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
             if(eatClass("hashtag")) {
                 eatClass("mention");
                 const content = Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles));
-                if(content.length !== 2 || content[1]?.kind !== "text") return [rt.error("bad hashtag", content)];
-                return noClasses(rt.link("/"+meta.host+"/timelines/tag/"+content[1].text, {},
+                const flat_content = node.textContent;
+                if(flat_content == null || !flat_content.startsWith("#")) return [rt.error("bad hashtag", [content, node])];
+                return noClasses(rt.link("/"+meta.host+"/timelines/tag/"+encodeURIComponent(flat_content), {},
                     ...content,
                 ));
             }
