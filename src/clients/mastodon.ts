@@ -206,10 +206,13 @@ function childNodesToRichtextParagraphs(meta: GenMeta, nodes: NodeListOf<ChildNo
 function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic.Richtext.Paragraph | undefined {
     if(node instanceof HTMLElement) {
         if(node.nodeName === "P") {
-            return {kind: "paragraph", children: Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, {}))};
+            return {kind: "paragraph", children: contentSpansToRichtextSpans(meta, node.childNodes)};
         }
     }
     return undefined;
+}
+function contentSpansToRichtextSpans(meta: GenMeta, node: NodeListOf<ChildNode>): Generic.Richtext.Span[] {
+    return Array.from(node).flatMap(child => contentSpanToRichtextSpan(meta, child, {}));
 }
 function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Richtext.Style): Generic.Richtext.Span[] {
     if(node instanceof Text) {
@@ -306,12 +309,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
     return [rt.error("Unsupported Node", node)];
 }
 
-function parseContentHTML(host: string, content: string, meta: {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]}): Generic.Body {
-    // {
-    //     kind: "text",
-    //     content: post.content,
-    //     markdown_format: "mastodon",
-    // }
+function setupGenMeta(host: string, content: string, meta: {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]}): [GenMeta, NodeListOf<ChildNode>] {
     const parsed_v = document.createElement("div");
     parsed_v.innerHTML = content; // safe, scripts won't execute and this won't be displayed directly on the screen
     const emojis_by_shortcode = new Map<string, Mastodon.Emoji>();
@@ -327,10 +325,16 @@ function parseContentHTML(host: string, content: string, meta: {emojis: Mastodon
         emojis: emojis_by_shortcode,
         mentions: mentions_by_url,
     };
-    return {
-        kind: "richtext",
-        content: childNodesToRichtextParagraphs(gen_meta, parsed_v.childNodes),
-    };
+    return [gen_meta, parsed_v.childNodes];
+}
+
+function parseContentHTML(host: string, content: string, meta: {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]}): Generic.Richtext.Paragraph[] {
+    return childNodesToRichtextParagraphs(...setupGenMeta(host, content, meta));
+}
+
+function parseContentSpanHTML(host: string, content: string, meta: {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]}): Generic.Richtext.Span[] {
+    const [genmeta, children] = setupGenMeta(host, content, meta);
+    return contentSpansToRichtextSpans(genmeta, children);
 }
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {
@@ -357,7 +361,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         body: {
             kind: "array",
             body: [
-                parseContentHTML(host, post.content, {emojis: post.emojis, mentions: post.mentions}),
+                {kind: "richtext", content: parseContentHTML(host, post.content, {emojis: post.emojis, mentions: post.mentions})},
                 post.media_attachments.length === 0 ? undefined
                 : {kind: "gallery", images: post.media_attachments.map(ma => mediaToGalleryItem(host, ma))},
                 post.poll ? {kind: "poll",
@@ -780,20 +784,20 @@ export const client: ThreadClient = {
             return await timelineView(host, auth, parsed.api_url, pathraw, {
                 kind: "user-profile",
                 username: account_info.display_name,
-                bio: {kind: "array", body: [parseContentHTML(host, account_info.note, {emojis: [], mentions: []}), {
+                bio: {
                     kind: "richtext",
-                    content: [{kind: "table", headings: [
+                    content: [...parseContentHTML(host, account_info.note, {emojis: [], mentions: []}), {kind: "table", headings: [
                         {children: [{kind: "text", text: "Key", styles: {}}]},
                         {children: [{kind: "text", text: "Value", styles: {}}]},
                         {children: [{kind: "text", text: "V", styles: {}}]},
                     ], children: account_info.fields.map((field): Generic.Richtext.TableItem[] => {
                         return [
                             {children: [{kind: "text", text: field.name, styles: {}}]},
-                            {children: [{kind: "text", text: field.value, styles: {}}]},
+                            {children: parseContentSpanHTML(host, field.value, {emojis: [], mentions: []})},
                             {children: [{kind: "text", text: field.verified_at != null ? "✓" : "✗", styles: {}}]},
                         ];
                     })}],
-                }]},
+                },
                 actions: [{
                     kind: "counter",
                     unique_id: "/follow/"+account_info.id+"/",
@@ -810,6 +814,10 @@ export const client: ThreadClient = {
                         increment: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: ""}),
                         reset: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: "un"}),
                     },
+                }, {
+                    kind: "link",
+                    url: account_info.url,
+                    text: "Permalink",
                 }],
                 link: "/"+host+"/accounts/"+acc_id,
                 raw_value: account_info,
