@@ -1027,7 +1027,11 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
     }else if(body.kind === "gallery") {
         renderImageGallery(client, body.images).defer(hsc).adto(content);
     }else if(body.kind === "removed") {
-        const removed_v = el("div").adto(content).atxt("Removed by "+body.by+".");
+        const removed_v = el("div").clss("border p-2").adto(content);
+        {
+            el("div").clss("font-bold").adto(removed_v).atxt(body.removal_message.title);
+            el("div").adto(removed_v).atxt(body.removal_message.body);
+        }
         if(body.fetch_path && client.fetchRemoved) {
             const fetch_btn = elButton("outlined-button").adto(removed_v).atxt("View");
             // so this is a place where it would be helpful to update the entire listing
@@ -1052,7 +1056,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
                 fetch_btn.textContent = errored ? "Retry" : "Loaded";
                 fetch_btn.disabled = false;
                 if(!errored) removed_v.remove();
-                renderBody(client, new_body, {autoplay: true}, content).defer(hsc);
+                renderBody(client, new_body, {autoplay: true}, removed_v).defer(hsc);
             });
         }
         const existing_body_v = el("div").adto(content);

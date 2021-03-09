@@ -2223,6 +2223,59 @@ function sortWrap(parent: SortedPermalink, next: string): SortedPermalink {
     };
 }
 
+const removal_reasons: {[key in Reddit.RemovedByCategory]: (raw_name: string, subreddit_prefixed: string) => Generic.RemovalMessage} = {
+    anti_evil_ops: () => ({
+        short: "Anti-Evil Operations",
+        title: "Removed by Reddit's Anti-Evil Operations",
+        body: "For violations of reddit's Content Policy: https://reddit.com/help/contentpolicy",
+    }),
+    community_ops: () => ({
+        short: "Community Operations",
+        title: "Sorry, this post was removed by Reddit's Community team.",
+        body: "It's rare, but Reddit's Community Team will occasionally remove posts from feeds to keep communities safe and civil.",
+    }),
+    legal_operations: () => ({
+        short: "Legal Operations",
+        title: "This post was removed for legal reasons",
+        body: "«TODO fill this»",
+    }),
+    copyright_takedown: () => ({
+        short: "Copyright Takedown",
+        title: "Removed for Copyright Infringement",
+        body: "«TODO fill this»",
+    }),
+    reddit: () => ({
+        short: "Spam Filters",
+        title: "Removed by Reddit's Spam Filters",
+        body: "«TODO fill this»",
+    }),
+    author: () => ({
+        short: "Author",
+        title: "Removed by the author",
+        body: "The author of this post decided to remove it.",
+    }),
+    deleted: () => ({
+        short: "Author",
+        title: "Deleted by the author",
+        body: "The author of this post decided to delete it.",
+    }),
+    moderator: (unused, subreddit_prefixed) => ({
+        short: "Moderators",
+        title: "Removed by moderators of "+subreddit_prefixed,
+        body: "Moderators of "+subreddit_prefixed+" decided to remove this post, likely due to a violation of the subreddit rules.",
+    }),
+    automod_filtered: () => ({
+        short: "Filtered by AutoModerator",
+        title: "This post was filtered by AutoModerator",
+        body: "«TODO fill this»",
+    }),
+    unsupported: (raw_name) => ({
+        short: raw_name,
+        title: "This post was removed for «"+raw_name+"»",
+        body: "ThreadReader does not know what that means.",
+    }),
+};
+
 const as = <T>(a: T): T => a;
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
@@ -2231,12 +2284,12 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         // Comment
         const listing = listing_raw.data;
 
-        let is_deleted: undefined | "author" | "moderator";
+        let is_deleted: Generic.RemovalMessage | undefined;
         if(listing.author === "[deleted]") {
             if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
-                is_deleted = "author";
+                is_deleted = removal_reasons.deleted("deleted", listing.subreddit_name_prefixed);
             }else if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[removed]"}], e: "par"}]})) {
-                is_deleted = "moderator";
+                is_deleted = removal_reasons.moderator("moderator", listing.subreddit_name_prefixed);
             }
         }
         const post_id_no_pfx = listing.name.substring(3);
@@ -2248,7 +2301,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         const result: Generic.Node = {
             kind: "thread",
             body: is_deleted != null
-                ? {kind: "removed", by: is_deleted,
+                ? {kind: "removed", removal_message: is_deleted,
                     fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx}),
                     body: body_content,
                 } : body_content,
@@ -2283,14 +2336,10 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         const listing = listing_raw.data;
         // if((listing as any).preview) console.log((listing as any).preview);
 
-        let is_deleted: undefined | "author" | "moderator" | "anti_evil_ops"  | "automod_filtered" | "error";
-        if(listing.removed_by_category != null) {
-            if(listing.removed_by_category === "moderator") is_deleted = "moderator";
-            else if(listing.removed_by_category === "deleted") is_deleted = "author";
-            else if(listing.removed_by_category === "anti_evil_ops") is_deleted = "anti_evil_ops";
-            else if(listing.removed_by_category === "automod_filtered") is_deleted = "automod_filtered"; // This post is awaiting approval
-            else{expectUnsupported(listing.removed_by_category); is_deleted = "error"}
-        }
+        const is_deleted: undefined | Generic.RemovalMessage = listing.removed_by_category != null
+            ? (removal_reasons[listing.removed_by_category] ?? removal_reasons.unsupported)(listing.removed_by_category, listing.subreddit_name_prefixed)
+            : undefined
+        ;
         const post_id_no_pfx = listing.name.substring(3);
 
         const flairs: Generic.Flair[] = [];
@@ -2434,7 +2483,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
             },
             flair: flairs,
             body: is_deleted != null
-                ? {kind: "removed", by: is_deleted,
+                ? {kind: "removed", removal_message: is_deleted,
                     fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx}),
                     body: body_content,
                 }

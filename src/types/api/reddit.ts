@@ -841,7 +841,8 @@ export type PostSubmission = PostOrComment & {
     // this is only available on posts
     // the new.reddit desktopapi gets a "deletedBy" property on both posts and comments
     // but unfortunately on the public api you have to check the comment body to determine if it is deleted
-    removed_by_category: "moderator" | "deleted" | "anti_evil_ops" | "automod_filtered" | "unsupported" | null,
+    // https://thread.pfg.pw/reddit/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/gjpjyw3/?context=3&sort=confidence
+    removed_by_category: null | RemovedByCategory,
 
     suggested_sort?: Sort | null,
 
@@ -850,6 +851,31 @@ export type PostSubmission = PostOrComment & {
         scrubber_media_url: string, // https://watch.redd.it/hls/…/thumbnail.jpg // not sure why this would be a jpg file
     },
 };
+
+export type RemovedByCategory =
+    // This post was removed by Reddit's Anti-Evil Operations
+    // For violating the https://thread.pfg.pw/reddit/help/contentpolicy content policy
+    | "anti_evil_ops"
+    // Sorry, this post was removed by Reddit's Community team.
+    // It's rare, but Reddit's Community Team will occasionally remove posts from feeds to keep communities safe and civil.
+    | "community_ops"
+    // This post was removed for legal reasons
+    | "legal_operations"
+    // Removed for copyright infringement.
+    | "copyright_takedown"
+    // Spam filter
+    | "reddit"
+    // Removed by the post author (?)
+    | "author"
+    // Deleted by the post author
+    | "deleted"
+    // Removed by a moderator of r/subreddit
+    | "moderator"
+    // Filtered by automoderator
+    | "automod_filtered"
+    // other
+    | "unsupported"
+;
 
 export type PostComment = PostOrComment & {
     replies?: Listing,

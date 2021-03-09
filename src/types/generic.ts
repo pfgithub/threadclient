@@ -195,7 +195,7 @@ export type Body = BodyText | RichText | {
     kind: "none",
 } | {
     kind: "removed",
-    by: "author" | "moderator" | "anti_evil_ops" | "automod_filtered" | "error",
+    removal_message: RemovalMessage,
     fetch_path?: Opaque<"fetch_removed_path">,
     body: Body,
 } | {
@@ -214,6 +214,11 @@ export type Body = BodyText | RichText | {
     click_enabled: boolean,
 } | {
     kind: "mastodon_instance_selector",
+};
+export type RemovalMessage = {
+    short: string,
+    title: string,
+    body: string,
 };
 export type VideoSource = {
     kind: "video",
