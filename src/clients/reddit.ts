@@ -2246,8 +2246,8 @@ const removal_reasons: {[key in Reddit.RemovedByCategory]: (raw_name: string, su
     }),
     reddit: () => ({
         short: "Spam Filters",
-        title: "Removed by Reddit's Spam Filters",
-        body: "«TODO fill this»",
+        title: "Sorry, this post was removed by Reddit's spam filters.",
+        body: "Reddit's automated bots frequently filter posts it thinks might be spam.",
     }),
     author: () => ({
         short: "Author",
