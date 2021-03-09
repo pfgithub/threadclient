@@ -2525,7 +2525,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 },
                 pinned: listing.stickied,
             },
-            actions: [options.show_post_reply_button ?? false ? replyButton(listing.name) : {
+            actions: [...options.show_post_reply_button ?? false ? [replyButton(listing.name)] : [], {
                 kind: "link",
                 url: listing.permalink,
                 text: listing.num_comments.toLocaleString() + " comment"+(listing.num_comments === 1 ? "" : "s"),
