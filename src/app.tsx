@@ -1055,7 +1055,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
                 console.log("Got new body:", new_body);
                 fetch_btn.textContent = errored ? "Retry" : "Loaded";
                 fetch_btn.disabled = false;
-                if(!errored) removed_v.remove();
+                if(!errored) fetch_btn.remove();
                 renderBody(client, new_body, {autoplay: true}, removed_v).defer(hsc);
             });
         }
