@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadReader</title>
+    <style>
+        html {
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+        #content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+        .native {
+            background-color: #aaa;
+            padding: 2px;
+            cursor: pointer;
+        }
+        .error {
+            color: red;
+        }
+        img {
+            width: 500px;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div id="content"></div>
+    <script src="/special/preloaded_sample.js"></script>
+    <script src="/special/serenityos.js"></script>
+</body>
+<!--
+    Bugs:
+    - `(...a) => a` 1: syntax errors 2: completely crashes the js thing 3: completely crashes the os if you mess around a bit more
+    - something here crashed:
+        el("code").adto(el("pre")).adto(content); (it doesn't seem to like <pre><code>…</code></pre>)
+    - clicking the first item does the wrong thing:
+        function doSomething() {
+            const div = el("div");
+            div.textContent = "1";
+            if(true) {
+                const a = 0;
+                div.addEventListener("mouseup", () => {div.textContent = "2";});
+            }
+            return div;
+        };
+        doSomething().adto(content); doSomething().adto(content);
+    Notes:
+    - preloaded generated with
+        copy(JSON.stringify(temp0, (k, v) => {
+            if(k === "raw_value") return undefined;
+            if(typeof v === "object" && 'encoding_symbol' in v) return undefined;
+            return v;
+        }));
+-->
+</html>

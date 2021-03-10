@@ -2932,6 +2932,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
         renderAction(client, navbar_action, navbar_area).defer(hsc);
         txt(" ").adto(navbar_area);
     }
+    elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(listing));
     // TODO save the raw page responses. listings are not meant to be copied, they can have symbols
     // and might in the future have functions and stuff
     //
