@@ -18,6 +18,7 @@ Demo:
 -   threadreader displays braille images correctly even if the author of the post formatted them incorrectly
     (what you see on [old.reddit](https://i.imgur.com/7ZVrqUz.png), [new.reddit](https://i.imgur.com/gFT0dHG.png),
     [threadreader](https://i.imgur.com/Hxix93m.png))
+-   ability to easily view comment markdown ([screenshot](https://i.imgur.com/zwGtAkV.png))
 
 ## why this instead of new.reddit?
 
@@ -32,7 +33,7 @@ Demo:
 ## why this instead of old.reddit?
 
 -   old.reddit is missing many features including
-    -   the "3 discussions in other communities" feature (wip in threadreader) ([userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this in old.reddit)
+    -   the "3 discussions in other communities" feature (partial support in threadreader) ([userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this in old.reddit)
     -   the ability to collapse a comment from anywhere in a comment (I have a [userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this)
     -   richtext comments (wip in threadreader)
     -   sidebar widgets
