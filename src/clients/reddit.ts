@@ -2277,6 +2277,12 @@ const removal_reasons: {[key in Reddit.RemovedByCategory]: (raw_name: string, su
     }),
 };
 
+function getCodeButton(markdown: string): Generic.Action {
+    return {kind: "code", body: {kind: "richtext", content: [
+        rt.pre(markdown),
+    ]}};
+}
+
 const as = <T>(a: T): T => a;
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
@@ -2325,7 +2331,8 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 deleteButton(listing.name),
                 saveButton(listing.name, listing.saved),
                 reportButton(listing.name, listing.subreddit),
-                getPointsOn(listing)
+                getPointsOn(listing),
+                getCodeButton(listing.body),
             ],
             default_collapsed: listing.collapsed,
         };

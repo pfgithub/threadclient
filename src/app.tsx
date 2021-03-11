@@ -423,14 +423,7 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
 // infinite loops where this returns a link body
 function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
     const preview_body = previewLink(client, link, {suggested_embed: opts.suggested_embed});
-    if(preview_body) return (): HideShowCleanup<Node> => {
-        // render body
-        // TODO prevent infinite loops
-        const node = el("div");
-        const hsc = hideshow(node);
-        renderBody(client, preview_body, {autoplay: opts.autoplay}, node).defer(hsc);
-        return hsc;
-    };
+    if(preview_body) return (): HideShowCleanup<Node> => renderBody(client, preview_body, {autoplay: opts.autoplay});
     return undefined;
 }
 
@@ -486,12 +479,10 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         update();
     };
 
-    let prevbody: HideShowCleanup<undefined> | undefined;
-    let prevnode: HTMLDivElement | undefined;
+    let prevbodyhsc: HideShowCleanup<HTMLElement> | undefined;
 
     const update = () => {
-        if(prevbody) {prevbody.cleanup(); prevbody = undefined}
-        if(prevnode) prevnode.innerHTML = "";
+        if(prevbodyhsc) {prevbodyhsc.cleanup(); prevbodyhsc.associated_data.remove(); prevbodyhsc = undefined}
         if(state === "overview") {
             uhtml.render(container, htmlr`${images.map((image, i) => htmlr`
                 <button class="m-1 inline-block" onclick=${() => {setState({index: i})}}>
@@ -513,13 +504,18 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
             <div ref=${ref}></div>
         `);
         if(!ref.current) throw new Error("!ref.current");
-        prevbody = renderBody(client, selimg.body, {autoplay: true}, ref.current);
-        prevnode = ref.current;
-        // TODO display a loading indicator while the image loads
+        prevbodyhsc = renderBody(client, selimg.body, {autoplay: true});
+        prevbodyhsc.associated_data.adto(ref.current);
     };
 
     hsc.on("cleanup", () => {
-        if(prevbody) prevbody.cleanup();
+        if(prevbodyhsc) prevbodyhsc.cleanup();
+    });
+    hsc.on("hide", () => {
+        prevbodyhsc?.setVisible(false);
+    });
+    hsc.on("show", () => {
+        prevbodyhsc?.setVisible(false);
     });
 
     setState(state);
@@ -970,7 +966,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             // TODO
             // 1: render this in a shadow dom with normal styles
             // 2: padding
-            renderBody(client, rtp.body, {autoplay: false}, container).defer(hsc);
+            renderBody(client, rtp.body, {autoplay: false}).defer(hsc).adto(container);
         } break;
         case "table": {
             const tablel = el("table").adto(container);
@@ -999,18 +995,20 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
     return hsc;
 }
 
-const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}, content: ChildNode): HideShowCleanup<undefined> => {
+const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {
     try {
-        return renderBodyMayError(client, body, opts, content);
+        return renderBodyMayError(client, body, opts);
     }catch(e) {
         console.log(e);
+        const content = el("div");
         el("div").clss("error").adto(content).atxt("Got error: "+e.toString());
         el("code").adto(el("pre").adto(content)).atxt(e.stack);
-        return hideshow();
+        return hideshow(content);
     }
 };
-const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}, content: ChildNode): HideShowCleanup<undefined> => {
-    const hsc = hideshow();
+const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {
+    const content = el("div");
+    const hsc = hideshow(content);
 
     if(body.kind === "text") {
         const txta = el("div").adto(content);
@@ -1056,11 +1054,10 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
                 fetch_btn.textContent = errored ? "Retry" : "Loaded";
                 fetch_btn.disabled = false;
                 if(!errored) fetch_btn.remove();
-                renderBody(client, new_body, {autoplay: true}, removed_v).defer(hsc);
+                renderBody(client, new_body, {autoplay: true}).defer(hsc).adto(removed_v);
             });
         }
-        const existing_body_v = el("div").adto(content);
-        renderBody(client, body.body, {autoplay: opts.autoplay}, existing_body_v).defer(hsc);
+        renderBody(client, body.body, {autoplay: opts.autoplay}).defer(hsc).adto(content);
     }else if(body.kind === "crosspost") {
         const parentel = el("div").clss("bg-body rounded-xl max-w-xl").adto(content);
         clientContent(client, body.source, {clickable: true}).defer(hsc).clss("crosspost-post").adto(parentel);
@@ -1114,8 +1111,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
     }else if(body.kind === "array") {
         for(const v of body.body) {
             if(!v) continue;
-            const atma = el("div").adto(content);
-            renderBody(client, v, {autoplay: false}, atma).defer(hsc);
+            renderBody(client, v, {autoplay: false}).defer(hsc).adto(content);
         }
     }else if(body.kind === "unknown_size_image") {
         zoomableImage(body.url, {}).adto(el("div").adto(content));
@@ -1137,7 +1133,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         }else{
             button_box = linkButton(client.id, body.url, "none", {onclick: body.click_enabled ? () => {
                 button_box.remove();
-                renderBody(client, body.click, {autoplay: true}, content).defer(hsc);
+                renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(content);
             } : undefined}).clss("bg-body rounded-lg hover:shadow-md hover:bg-gray-100 block").adto(content);
         }
         const link_preview_box = el("article").clss("flex", body.click_enabled ? "flex-col" : "flex-row").adto(button_box);
@@ -1159,7 +1155,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             el("button").clss("hover:underline").adto(choicebox).atxt("Play").onev("click", e => {
                 e.stopPropagation();
                 thumb_box.innerHTML = "";
-                renderBody(client, body.click, {autoplay: true}, thumb_box).defer(hsc);
+                renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(thumb_box);
             });
             choicebox.atxt(" ");
             linkButton(client.id, body.url, "none").clss("hover:underline").atxt("Open").adto(choicebox);
@@ -1173,7 +1169,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             console.log("oembed resp", resp);
             const outerel = el("div");
             const ihsc = hideshow(outerel);
-            renderBody(client, oembed(resp as OEmbed), {autoplay: false}, outerel).defer(hsc);
+            renderBody(client, oembed(resp as OEmbed), {autoplay: false}).defer(hsc).adto(outerel);
             return ihsc;
         }).defer(hsc).adto(content);
     }else if(body.kind === "mastodon_instance_selector") {
@@ -1448,7 +1444,7 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
                     return res;
                 }),
             };
-            renderBody(client, gallery, {autoplay: false}, el("div").adto(resdiv)).defer(hsc);
+            renderBody(client, gallery, {autoplay: false}).defer(hsc).adto(resdiv);
             loader.remove();
         }else{
             resdiv.adch(el("div").clss("error").atxt("Error loading imgur: "+typed.data.error));
@@ -1569,14 +1565,13 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
     const hsc = hideshow();
 
     {
-        const bodyel = el("div").adto(frame);
-        renderBody(client, profile.bio, {autoplay: false}, bodyel);
+        renderBody(client, profile.bio, {autoplay: false}).defer(hsc).adto(frame);
     }
 
     const action_container = el("div").adto(frame);
     for(const action of profile.actions) {
         action_container.atxt(" ");
-        renderAction(client, action, action_container).defer(hsc);
+        renderAction(client, action, action_container, {value_for_code_btn: profile}).defer(hsc);
     }
     action_container.atxt(" ");
     elButton("code-button").adto(action_container).atxt("Code").onev("click", (e) => {
@@ -1600,7 +1595,10 @@ const scoreToString = (score: number) => {
     return (score / 1_000_000 |0) + "m";
 };
 
-function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node): HideShowCleanup<undefined> {
+type RenderActionOpts = {
+    value_for_code_btn: unknown,
+};
+function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node, opts: RenderActionOpts): HideShowCleanup<undefined> {
     if(action.kind === "link") linkButton(client.id, action.url, "action-button").atxt(action.text).adto(content_buttons_line);
     else if(action.kind === "reply") {
         let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
@@ -1756,16 +1754,20 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
             setv("none");
         });
     }else if(action.kind === "report") {
-        let report_container: HTMLDivElement | undefined;
-        let hsc = hideshow();
+        const hsc = hideshow();
+        let report_container: HideShowCleanup<HTMLElement> | undefined;
 
-        elButton("action-button").atxt("Report").adto(content_buttons_line).onev("click", (e) => {
+        const btn = elButton("action-button").atxt("Report").adto(content_buttons_line).onev("click", (e) => {
             e.stopPropagation();
-            if(!report_container) report_container = renderReportScreen(client, action.data).defer(hsc).adto(content_buttons_line);
-            else {
-                hsc.cleanup();
-                hsc = hideshow();
-                report_container.remove();
+            if(!report_container) {
+                btn.setAttribute("class", link_styles_v["action-button-active"]); // also set aria-something idk
+                report_container = renderReportScreen(client, action.data);
+                report_container.associated_data.adto(content_buttons_line);
+            } else {
+                btn.setAttribute("class", link_styles_v["action-button"]);
+                const content = report_container.associated_data;
+                report_container.cleanup();
+                content.remove();
                 report_container = undefined;
             }
         });
@@ -1820,6 +1822,26 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
         });
     }else if(action.kind === "flair") {
         // TODO
+    }else if(action.kind === "code") {
+        const hsc = hideshow();
+        let report_container: HideShowCleanup<HTMLElement> | undefined;
+
+        const btn = elButton("action-button").atxt("Code").adto(content_buttons_line).onev("click", (e) => {
+            e.stopPropagation();
+            if(!report_container) {
+                btn.setAttribute("class", link_styles_v["action-button-active"]); // also set aria-something idk
+                report_container = renderBody(client, action.body, {autoplay: true});
+                report_container.associated_data.adto(content_buttons_line);
+            } else {
+                btn.setAttribute("class", link_styles_v["action-button"]);
+                const content = report_container.associated_data;
+                report_container.cleanup();
+                content.remove();
+                report_container = undefined;
+            }
+        });
+
+        return hsc;
     }else assertNever(action);
     return hideshow();
 }
@@ -1833,8 +1855,7 @@ function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportSc
     const frame = el("div").clss("report-content").adto(outer_v);
 
     if(report_item.description) {
-        const body_cont = el("div").adto(frame);
-        renderBody(client, report_item.description, {autoplay: false}, body_cont).defer(hsc);
+        renderBody(client, report_item.description, {autoplay: false}).defer(hsc).adto(frame);
     }
 
     switch(report_item.report.kind) {
@@ -1916,8 +1937,7 @@ function renderReportScreen(client: ThreadClient, report_fetch_info: Generic.Opa
                 console.log("Completed report", sentr);
                 const resdiv = clientListingWrapperNode().adto(frame);
                 resdiv.adch(el("div").atxt(sentr.title));
-                const body_cont = el("div").adto(resdiv);
-                renderBody(client, sentr.body, {autoplay: false}, body_cont).defer(hsc);
+                renderBody(client, sentr.body, {autoplay: false}).defer(hsc).adto(resdiv);
                 console.log(resdiv, frame, frame.childNodes);
             }).defer(report_item_hsc).adto(frame);
         }
@@ -2294,12 +2314,11 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
 
     if(listing.subscribe) {
         const subscr = el("div").adto(rest);
-        renderAction(client, listing.subscribe, subscr).defer(hsc);
+        renderAction(client, listing.subscribe, subscr, {value_for_code_btn: listing}).defer(hsc);
     }
 
     if(listing.body) {
-        const bodyarea = el("div").adto(rest);
-        renderBody(client, listing.body, {autoplay: false}, bodyarea).defer(hsc);
+        renderBody(client, listing.body, {autoplay: false}).defer(hsc).adto(rest);
     }
 
     // TODO extract this out so menus can be used for eg listing sort options
@@ -2309,7 +2328,7 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
 
     const final_actions_area = el("div").adto(frame);
     if(listing.more_actions) for(const act of listing.more_actions) {
-        renderAction(client, act, final_actions_area).defer(hsc);
+        renderAction(client, act, final_actions_area, {value_for_code_btn: listing}).defer(hsc);
     }
     elButton("action-button").atxt("Code").adto(final_actions_area).onev("click", (e) => {e.stopPropagation(); console.log(listing)});
 
@@ -2329,7 +2348,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
     if(widget.actions_top) {
         const actionstop = el("div").clss("widget-actions-top").adto(frame);
         for(const action of widget.actions_top) {
-            renderAction(client, action, actionstop).defer(hsc);
+            renderAction(client, action, actionstop, {value_for_code_btn: widget}).defer(hsc);
         }
     }
 
@@ -2343,7 +2362,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
                 ili_wrapper.clss("list-none");
                 const details = el("details").adto(ili_wrapper);
                 ili = el("summary").attr({draggable: "true"}).adto(details);
-                renderBody(client, item.click.body, {autoplay: false}, details).defer(hsc);
+                renderBody(client, item.click.body, {autoplay: false}).defer(hsc).adto(details);
             }else{
                 ili_wrapper.clss("ml-4");
                 ili = ili_wrapper;
@@ -2374,14 +2393,13 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
             }
             if(item.action) {
                 const actionv = el("span").adto(ili).atxt(" ");
-                renderAction(client, item.action, actionv).defer(hsc);
+                renderAction(client, item.action, actionv, {value_for_code_btn: item}).defer(hsc);
             }
         }
     }else if(content.kind === "community-details") {
         el("p").atxt(content.description).adto(frame);
     }else if(content.kind === "body") {
-        const container = el("div").adto(frame);
-        renderBody(client, content.body, {autoplay: false}, container).defer(hsc);
+        renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(frame);
     }else if(content.kind === "iframe") {
         const alt_frame = el("div");
         outest_el.replaceChild(alt_frame, outer_el);
@@ -2404,7 +2422,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
     if(widget.actions_bottom) {
         const actionstop = el("div").clss("widget-actions-bottom").adto(frame);
         for(const action of widget.actions_bottom) {
-            renderAction(client, action, actionstop).defer(hsc);
+            renderAction(client, action, actionstop, {value_for_code_btn: widget}).defer(hsc);
         }
     }
     el("div").adto(frame).adch(elButton("code-button").atxt("Code").onev("click", (e) => {e.stopPropagation(); console.log(widget)}));
@@ -2653,11 +2671,11 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                     e.stopPropagation();
                     cwbox.remove();
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
-                    renderBody(client, body, {...bodyopts}, body_container).defer(body_hsc);
+                    renderBody(client, body, {...bodyopts}).defer(body_hsc).adto(body_container);
                 });
                 return body_hsc;
             }
-            renderBody(client, body, {...bodyopts}, body_container).defer(body_hsc);
+            renderBody(client, body, {...bodyopts}).defer(body_hsc).adto(body_container);
             return body_hsc;
         };
         
@@ -2710,6 +2728,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }
     }
 
+    let has_code_button = false;
     for(const action of listing.actions) {
         if(action.kind === "counter" && action.special === "reddit-points") {
             frame.clss("spacefiller-redditpoints");
@@ -2725,23 +2744,28 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                 content_voting_area.clss("desktop-only");
                 content_buttons_line.atxt(" ");
                 const cbl_render_area = el("div").clss("mobile-only").adto(content_buttons_line);
-                renderAction(client, action, cbl_render_area).defer(hsc);
+                renderAction(client, action, cbl_render_area, {value_for_code_btn: listing}).defer(hsc);
             }
         }else {
+            if(action.kind === "code") has_code_button = true;
             content_buttons_line.atxt(" ");
-            renderAction(client, action, content_buttons_line).defer(hsc);
+            renderAction(client, action, content_buttons_line, {value_for_code_btn: listing}).defer(hsc);
         }
     }
 
     if(content_voting_area.childNodes.length === 0) content_voting_area.remove();
 
-    content_buttons_line.atxt(" ");
-    listing.actions.length === 0 && linkButton(client.id, listing.link, "action-button").atxt("View").adto(content_buttons_line);
-    content_buttons_line.atxt(" ");
-    elButton("code-button").onev("click", e => {
-        e.stopPropagation();
-        console.log(listing);
-    }).atxt("Code").adto(content_buttons_line);
+    if(listing.actions.length === 0) {
+        content_buttons_line.atxt(" ");
+        linkButton(client.id, listing.link, "action-button").atxt("View").adto(content_buttons_line);
+    }
+    if(!has_code_button) {
+        content_buttons_line.atxt(" ");
+        elButton("code-button").onev("click", e => {
+            e.stopPropagation();
+            console.log(listing);
+        }).atxt("Code").adto(content_buttons_line);
+    }
 
     const children_node = el("ul").clss("replies").adto(replies_area);
 
@@ -2798,6 +2822,7 @@ const link_styles_v = {
     'normal': "text-blue-600 dark:text-blue-500 underline",
     'previewable': "text-blue-600 dark:text-blue-500 hover:underline",
     'action-button': "p-1 rounded hover:bg-gray-200",
+    'action-button-active': "p-1 rounded bg-gray-200 hover:bg-gray-300",
     'save-button-saved': "text-green-600 dark:text-green-500 hover:underline",
     'safe-action-button': "text-blue-600 dark:text-blue-500 hover:underline",
     'unsafe-action-button': "text-red-600 dark:text-red-500 hover:underline",
@@ -2929,7 +2954,7 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
 
     const navbar_area = el("div").adto(frame).clss("navbar-area");
     for(const navbar_action of listing.navbar) {
-        renderAction(client, navbar_action, navbar_area).defer(hsc);
+        renderAction(client, navbar_action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
         txt(" ").adto(navbar_area);
     }
     elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(listing));
@@ -3351,6 +3376,7 @@ export function hideshow<T>(a_any?: T): HideShowCleanup<T> {
         cleanup() {
             exists = false;
             children.forEach(child => child.cleanup());
+            // TODO remove references to this in parent (so .defer can be used with temporary hsc things)
             emit("cleanup");
         },
         emit,

@@ -886,6 +886,8 @@ export type PostComment = PostOrComment & {
     is_submitter: boolean, // is OP of post
 
     rtjson: Richtext.Document,
+    body: string,
+    body_html: string,
 
     stickied: boolean,
 

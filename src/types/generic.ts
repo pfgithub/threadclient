@@ -449,6 +449,9 @@ export type Action = {
     kind: "flair",
     flair_list: Opaque<"flair_list">, // → FlairList
     current: Flair | null,
+} | {
+    kind: "code",
+    body: Body,
 };
 
 export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more" | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis";
