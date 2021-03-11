@@ -1828,6 +1828,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
 
         const btn = elButton("action-button").atxt("Code").adto(content_buttons_line).onev("click", (e) => {
             e.stopPropagation();
+            console.log(opts.value_for_code_btn);
             if(!report_container) {
                 btn.setAttribute("class", link_styles_v["action-button-active"]); // also set aria-something idk
                 report_container = renderBody(client, action.body, {autoplay: true});
