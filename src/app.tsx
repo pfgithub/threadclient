@@ -878,6 +878,9 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
                 reslink = linkButton(client.id, rts.url, mappings[rts.style ?? "link"]).adto(container);
             }
             if(rts.title != null) reslink.title = rts.title;
+            if(rts.children.every(child => child.kind === "text" && child.text === "")) {
+                el("span").atxt("«no text»").adto(reslink);
+            }
             for(const child of rts.children) {
                 renderRichtextSpan(client, child, reslink).defer(hsc);
             }
