@@ -309,7 +309,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
     return [rt.error("Unsupported Node", node)];
 }
 
-function setupGenMeta(host: string, content: string, meta: {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]}): [GenMeta, NodeListOf<ChildNode>] {
+function setupGenMeta(host: string, content: string, meta: ParseContentMeta): [GenMeta, NodeListOf<ChildNode>] {
     const parsed_v = document.createElement("div");
     parsed_v.innerHTML = content; // safe, scripts won't execute and this won't be displayed directly on the screen
     const emojis_by_shortcode = new Map<string, Mastodon.Emoji>();
@@ -328,11 +328,12 @@ function setupGenMeta(host: string, content: string, meta: {emojis: Mastodon.Emo
     return [gen_meta, parsed_v.childNodes];
 }
 
-function parseContentHTML(host: string, content: string, meta: {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]}): Generic.Richtext.Paragraph[] {
+type ParseContentMeta = {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]};
+function parseContentHTML(host: string, content: string, meta: ParseContentMeta): Generic.Richtext.Paragraph[] {
     return childNodesToRichtextParagraphs(...setupGenMeta(host, content, meta));
 }
 
-function parseContentSpanHTML(host: string, content: string, meta: {emojis: Mastodon.Emoji[], mentions: Mastodon.Mention[]}): Generic.Richtext.Span[] {
+function parseContentSpanHTML(host: string, content: string, meta: ParseContentMeta): Generic.Richtext.Span[] {
     const [genmeta, children] = setupGenMeta(host, content, meta);
     return contentSpansToRichtextSpans(genmeta, children);
 }
@@ -781,6 +782,11 @@ export const client: ThreadClient = {
             
             const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
 
+            const pcmeta: ParseContentMeta = {
+                emojis: account_info.emojis ?? [],
+                mentions: account_info.mentions ?? [],
+            };
+
             return await timelineView(host, auth, parsed.api_url, pathraw, {
                 kind: "bio",
                 banner: {
@@ -795,14 +801,14 @@ export const client: ThreadClient = {
                 },
                 body: {
                     kind: "richtext",
-                    content: [...parseContentHTML(host, account_info.note, {emojis: [], mentions: []}), {kind: "table", headings: [
+                    content: [...parseContentHTML(host, account_info.note, pcmeta), {kind: "table", headings: [
                         {children: [{kind: "text", text: "Key", styles: {}}]},
                         {children: [{kind: "text", text: "Value", styles: {}}]},
                         {children: [{kind: "text", text: "V", styles: {}}]},
                     ], children: account_info.fields.map((field): Generic.Richtext.TableItem[] => {
                         return [
                             {children: [{kind: "text", text: field.name, styles: {}}]},
-                            {children: parseContentSpanHTML(host, field.value, {emojis: [], mentions: []})},
+                            {children: parseContentSpanHTML(host, field.value, pcmeta)},
                             {children: [{kind: "text", text: field.verified_at != null ? "✓" : "✗", styles: {}}]},
                         ];
                     })}],

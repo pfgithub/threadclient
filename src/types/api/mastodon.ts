@@ -113,6 +113,10 @@ export type Account = {
 
     avatar: string,
     avatar_static: string,
+
+    mentions?: Mention[],
+    emojis?: Emoji[],
+    tags?: Tag[],
 };
 export type AccountRelation = {
     id: string,
@@ -153,8 +157,9 @@ export type Post = {
     account: Account,
     media_attachments: Media[],
     mentions: Mention[],
-    tags: never[],
+    tags: Tag[],
     emojis: Emoji[],
     card: null | OEmbed,
     poll: null | Poll,
 };
+export type Tag = {name: string, url: string}; // this isn't very useful
