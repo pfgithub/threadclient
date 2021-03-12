@@ -151,7 +151,6 @@ a {
     padding: 10px;
     box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
     border-radius: 10px;
-    overflow: hidden;
     & > .post {
         padding-top: 0;
         margin-left: -10px;
@@ -870,6 +869,8 @@ summary {
 .post.subreddit-banner {
     padding-left: 10px;
     position: relative;
+    overflow: hidden;
+    border-radius: 10px;
 }
 .h-150px {
     height: 150px;
