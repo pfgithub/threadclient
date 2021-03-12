@@ -107,40 +107,42 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     el("source").attr({src: link+"/HLSPlaylist.m3u8", type: "application/x-mpegURL"}).adto(video);
     // cross-origin request blocked, can't use this unless the browser happens to support it
 
-    const speaker_icons = ["🔇", "🔈", "🔊"] as const;
-    const btnarea = el("div").adto(container).styl({display: "flex"});
-    const mutebtn = elButton("outlined-button").adto(btnarea);
-    const muteicn = txt(speaker_icons[2]).adto(mutebtn);
-    const slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
-    const upslider = () => slider.value = "" + (audio.volume * 100);
-    let mute_backv: undefined | number;
-    const upbtn = () => {
-        if(mute_backv === undefined) {
-            if(audio.volume < 0.2) {
-                muteicn.nodeValue = speaker_icons[1];
-            }else {
-                muteicn.nodeValue = speaker_icons[2];
+    audio.onloadedmetadata = () => {
+        const speaker_icons = ["🔇", "🔈", "🔊"] as const;
+        const btnarea = el("div").adto(container).styl({display: "flex"});
+        const mutebtn = elButton("outlined-button").adto(btnarea);
+        const muteicn = txt(speaker_icons[2]).adto(mutebtn);
+        const slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
+        const upslider = () => slider.value = "" + (audio.volume * 100);
+        let mute_backv: undefined | number;
+        const upbtn = () => {
+            if(mute_backv === undefined) {
+                if(audio.volume < 0.2) {
+                    muteicn.nodeValue = speaker_icons[1];
+                }else {
+                    muteicn.nodeValue = speaker_icons[2];
+                }
+            }else{
+                muteicn.nodeValue = speaker_icons[0];
             }
-        }else{
-            muteicn.nodeValue = speaker_icons[0];
-        }
-    };
-    upslider();
-    slider.oninput = () => {
-        audio.volume = (+slider.value) / 100;
-        mute_backv = undefined;
-        upbtn();
-    };
-    mutebtn.onclick = () => {
-        if(mute_backv === undefined) {
-            mute_backv = audio.volume;
-            audio.volume = 0;
-        }else{
-            audio.volume = mute_backv;
-            mute_backv = undefined;
-        }
+        };
         upslider();
-        upbtn();
+        slider.oninput = () => {
+            audio.volume = (+slider.value) / 100;
+            mute_backv = undefined;
+            upbtn();
+        };
+        mutebtn.onclick = () => {
+            if(mute_backv === undefined) {
+                mute_backv = audio.volume;
+                audio.volume = 0;
+            }else{
+                audio.volume = mute_backv;
+                mute_backv = undefined;
+            }
+            upslider();
+            upbtn();
+        };
     };
 
     // TODO:
