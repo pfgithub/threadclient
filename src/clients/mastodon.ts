@@ -338,6 +338,23 @@ function parseContentSpanHTML(host: string, content: string, meta: ParseContentM
     return contentSpansToRichtextSpans(genmeta, children);
 }
 const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
+    try {
+        return postToThreadCanError(host, post, opts);
+    } catch(e) {
+        return {
+            kind: "thread",
+            title: {text: "Error!"},
+            body: {kind: "richtext", content: [rt.p(rt.error("Error "+e.toString(), e))]},
+            display_mode: {body: "visible", comments: "collapsed"},
+            link: "ERROR",
+            layout: "reddit-post",
+            default_collapsed: false,
+            actions: [],
+            raw_value: [host, post, opts],
+        };
+    }
+}
+const postToThreadCanError = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {
         time: new Date(post.created_at).getTime(),
         edited: false,
