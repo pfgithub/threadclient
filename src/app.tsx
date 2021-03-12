@@ -2293,7 +2293,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
     return hsc;
 }
 
-function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame: HTMLDivElement): HideShowCleanup<undefined> {
+function bioRender(client: ThreadClient, listing: Generic.RedditHeader, frame: HTMLDivElement): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     frame.clss("subreddit-banner");
@@ -2453,17 +2453,19 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts:
             userProfileListing(client, listing, frame).defer(hsc);
             return hsc;
         }
-        if(listing.kind === "reddit-header") {
-            redditHeader(client, listing, frame).defer(hsc);
+        if(listing.kind === "bio") {
+            bioRender(client, listing, frame).defer(hsc);
             return hsc;
         }
         if(listing.kind === "widget") {
             widgetRender(client, listing, frame).defer(hsc);
             return hsc;
         }
-
-        clientListing(client, listing, frame, opts).defer(hsc);
-        return hsc;
+        if(listing.kind === "thread") {
+            clientListing(client, listing, frame, opts).defer(hsc);
+            return hsc;
+        }
+        assertNever(listing);
     }catch(e) {
         hsc.cleanup();
         console.log("Got error", e); 

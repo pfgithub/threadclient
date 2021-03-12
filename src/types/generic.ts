@@ -333,7 +333,7 @@ export type Profile = {
     actions: Action[],
 };
 export type RedditHeader = {
-    kind: "reddit-header",
+    kind: "bio",
     banner: {
         desktop: string,
         mobile?: string,

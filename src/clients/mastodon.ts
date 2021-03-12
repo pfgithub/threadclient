@@ -782,7 +782,7 @@ export const client: ThreadClient = {
             const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
 
             return await timelineView(host, auth, parsed.api_url, pathraw, {
-                kind: "reddit-header",
+                kind: "bio",
                 banner: {
                     desktop: account_info.header_static ?? account_info.header ?? "none",
                 },

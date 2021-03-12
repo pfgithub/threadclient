@@ -811,7 +811,7 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     }
 
     return {
-        kind: "reddit-header",
+        kind: "bio",
         // huh, r/askreddit does not have banner_background_image but it does have a banner positionedimage in structuredstyles
         // I can't get structuredstyles so I can't use that image
         ...subinfo.sub_t5 ? bannerAndIcon(subinfo.sub_t5.data) : {banner: null, icon: null},
@@ -2651,7 +2651,7 @@ function generateUserSidebar(user: Reddit.T2 | undefined): Generic.ContentNode[]
         }];
     }
     return [{
-        kind: "reddit-header",
+        kind: "bio",
         ...bannerAndIcon(user.data.subreddit),
         name: {
             display: user.data.name,
