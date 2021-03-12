@@ -35,8 +35,9 @@ export type Media = {
     type: "image",
 
     meta?: {
-        original: ImageMeta | VideoMeta,
+        original?: ImageMeta | VideoMeta,
         small?: ImageMeta,
+        focus?: {x: number, y: number}, // where the image should focus
     },
 } | {
     type: "gifv" | "video",
@@ -52,7 +53,7 @@ export type Media = {
         audio_encode?: string, // video only
         audio_bitrate?: string, // video only
         audio_channels?: string, // video only
-        original: VideoMeta,
+        original?: VideoMeta,
         small?: ImageMeta,
     },
 } | {

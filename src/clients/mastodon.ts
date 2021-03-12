@@ -131,7 +131,7 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
             w: media.meta?.small?.width,
             h: media.meta?.small?.height,
             body: media.meta
-                ? {kind: "captioned_image", url: media.url, w: media.meta.original.width, h: media.meta.original.height, alt: media.description}
+                ? {kind: "captioned_image", url: media.url, w: media.meta.original?.width ?? null, h: media.meta.original?.height ?? null, alt: media.description}
                 : {kind: "link", url: media.url}
             ,
         };
@@ -143,7 +143,7 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
             w: media.meta?.small?.width,
             h: media.meta?.small?.height,
             body: media.meta
-                ? {kind: "video", source: {kind: "video", sources: [{url: media.url}]}, w: media.meta.original.width, h: media.meta.original.height, gifv: media.type === "gifv"}
+                ? {kind: "video", source: {kind: "video", sources: [{url: media.url}]}, w: media.meta.original?.width, h: media.meta.original?.height, gifv: media.type === "gifv"}
                 : {kind: "link", url: media.url}
             ,
         };
@@ -346,7 +346,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             title: {text: "Error!"},
             body: {kind: "richtext", content: [rt.p(rt.error("Error "+e.toString(), e))]},
             display_mode: {body: "visible", comments: "collapsed"},
-            link: "ERROR",
+            link: "/"+host+"/statuses/"+post.id,
             layout: "reddit-post",
             default_collapsed: false,
             actions: [],

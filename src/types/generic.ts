@@ -133,8 +133,8 @@ export type Body = BodyText | RichText | {
     url: string,
     caption?: string,
     alt?: string,
-    w: number,
-    h: number,
+    w: number | null,
+    h: number | null,
 } | {
     kind: "unknown_size_image",
     url: string,

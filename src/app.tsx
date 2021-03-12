@@ -1083,7 +1083,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             submitbtn.onclick = () => alert("TODO vote on polls");
         }
     }else if(body.kind === "captioned_image") {
-        zoomableImage(body.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
+        zoomableImage(body.url, {w: body.w ?? undefined, h: body.h ?? undefined, alt: body.alt}).adto(el("div").adto(content));
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
