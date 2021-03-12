@@ -2299,10 +2299,13 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
     frame.clss("subreddit-banner");
 
     if(listing.banner) {
-        el("div").clss("sub-banner-img").attr({alt: ""}).styl({
-            '--desktop-banner-url': "url("+encodeURI(listing.banner.desktop)+")",
-            '--mobile-banner-url': "url("+encodeURI(listing.banner.mobile ?? listing.banner.desktop)+")",
-        }).adto(frame);
+        const zoomframe = zoomableFrame(
+            el("img").clss("w-full min-h-200px object-cover object-center sm:object-top").attr({src: listing.banner.desktop})
+        ).clss("absolute top-0 left-0 right-0 w-full").adto(frame);
+        zoomframe.adch(el("div").clss("absolute top-150px left-0 right-0 bottom-0 header-gradient"));
+        // <div style="position: absolute;top: 150px;left: 0;right: 0;
+        //      background: linear-gradient(to bottom, rgb(24, 26, 27, 0), rgb(24, 26, 27, 0.9) 50px, rgb(24, 26, 27));height: 242px;"></div>
+        el("div").clss("h-150px").adto(frame);
     }
 
     const area = el("div").clss("subreddit-banner-content").adto(frame);
@@ -2325,12 +2328,14 @@ function redditHeader(client: ThreadClient, listing: Generic.RedditHeader, frame
         renderBody(client, listing.body, {autoplay: false}).defer(hsc).adto(rest);
     }
 
+    const post_frame = el("div").clss("relative").adto(frame);
+
     // TODO extract this out so menus can be used for eg listing sort options
     if(listing.menu) {
-        renderMenu(client, listing.menu).defer(hsc).adto(el("div").clss("my-3").adto(frame));
+        renderMenu(client, listing.menu).defer(hsc).adto(el("div").clss("my-3").adto(post_frame));
     }
 
-    const final_actions_area = el("div").adto(frame);
+    const final_actions_area = el("div").adto(post_frame);
     if(listing.more_actions) for(const act of listing.more_actions) {
         renderAction(client, act, final_actions_area, {value_for_code_btn: listing}).defer(hsc);
     }

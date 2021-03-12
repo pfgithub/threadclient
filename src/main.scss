@@ -151,6 +151,7 @@ a {
     padding: 10px;
     box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
     border-radius: 10px;
+    overflow: hidden;
     & > .post {
         padding-top: 0;
         margin-left: -10px;
@@ -870,25 +871,31 @@ summary {
     padding-left: 10px;
     position: relative;
 }
-.sub-banner-img {
-    // margin-left: -10px;
-    // margin-top: -10px;
-    // margin-right: -10px;
-    height: 200px;
-    background-image: var(--desktop-banner-url);
-    @media only screen and (max-width: 600px) {
-        background-image: var(--mobile-banner-url);
-        background-position: center center;
+.h-150px {
+    height: 150px;
+}
+.top-150px {
+    top: 150px;
+}
+.min-h-200px {
+    min-height: 200px;
+}
+.header-gradient {
+    background: linear-gradient(
+        to bottom,
+        rgb(214, 221, 228, 0),
+        rgba(102, 108, 110, 0.9) min(50px, 50%),
+        rgb(214, 221, 228)
+    );
+    .dark & {
+        background: linear-gradient(
+            to bottom,
+            rgb(24, 26, 27, 0),
+            rgb(24, 26, 27, 0.9) min(50px, 90%),
+            rgb(24, 26, 27)
+        );
     }
-    background-position: top center;
-    background-size: cover;
-    background-repeat: no-repeat;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
+    // TODO use tailwind for this because it has opacity helpers
 }
 .drop-shadow {
     filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
@@ -896,7 +903,7 @@ summary {
 .subreddit-banner-content {
     position: relative;
     display: grid;
-    grid-template-rows: [start] 150px [icon_top] 50px [title_top] max-content [spacer] 10px [remaining] max-content;
+    grid-template-rows: [icon_top] 50px [title_top] max-content [spacer] 10px [remaining] max-content;
     grid-template-columns: [icon] 100px [spacer] 10px [titles] 1fr [end];
 }
 .sub-icon-img {
