@@ -489,7 +489,7 @@ export type T5 = {
     data: T5Data,
 };
 
-type T5Data = { // T5_Data? pascal_underscore case?
+export type T5Data = { // T5_Data? pascal_underscore case?
     // basic info
     id: string,
     name: `t5_${string}`, // fullname

@@ -814,13 +814,7 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
         kind: "reddit-header",
         // huh, r/askreddit does not have banner_background_image but it does have a banner positionedimage in structuredstyles
         // I can't get structuredstyles so I can't use that image
-        banner: subinfo.sub_t5 && (subinfo.sub_t5.data.banner_background_image || nullish(subinfo.sub_t5.data.banner_img)) ? {
-            desktop: subinfo.sub_t5.data.banner_background_image || subinfo.sub_t5.data.banner_img || "never",
-            mobile: subinfo.sub_t5.data.mobile_banner_image || undefined,
-        } : null,
-        icon: subinfo.sub_t5 ? {
-            url: subinfo.sub_t5.data.community_icon || subinfo.sub_t5.data.icon_img,
-        } : null,
+        ...subinfo.sub_t5 ? bannerAndIcon(subinfo.sub_t5.data) : {banner: null, icon: null},
         name: {
             display: subinfo.sub_t5?.data.title,
             link_name: subinfo.sub_t5 ? subinfo.sub_t5.data.display_name_prefixed : "r/"+subinfo.subreddit,
@@ -2629,6 +2623,22 @@ async function fetchSubInfo(sub: SubrInfo): Promise<{sidebar: Generic.ContentNod
     assertNever(sub);
 }
 
+function bannerAndIcon(sub: Reddit.T5Data): {
+    banner: {desktop: string} | null,
+    icon: {url: string} | null,
+} {
+    const banner = sub.banner_background_image || sub.banner_img || "";
+    const icon = sub.community_icon || sub.icon_img || "";
+    return {
+        banner: banner ? {
+            desktop: banner,
+        } : null,
+        icon: icon ? {
+            url: icon,
+        } : null,
+    };
+}
+
 function generateUserSidebar(user: Reddit.T2 | undefined): Generic.ContentNode[] {
     if(!user) {
         return [{
@@ -2642,12 +2652,7 @@ function generateUserSidebar(user: Reddit.T2 | undefined): Generic.ContentNode[]
     }
     return [{
         kind: "reddit-header",
-        banner: {
-            desktop: user.data.subreddit.banner_img ?? "no-banner"
-        },
-        icon: {
-            url: user.data.snoovatar_img || user.data.icon_img || "no-icon",
-        },
+        ...bannerAndIcon(user.data.subreddit),
         name: {
             display: user.data.name,
             link_name: "u/"+user.data.name,
