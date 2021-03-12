@@ -1151,7 +1151,9 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
                 thumb_box.adch(el("img").clss(body.click_enabled ? "w-full h-full" : "").attr({src: body.thumb}));
             }else{
                 el("div")
-                    .styl({'background-image': `url(${JSON.stringify(body.thumb)})`, 'background-size': "cover", 'background-position': "center"})
+                    .styl({'background-image': `url(${JSON.stringify(body.thumb)})`, 'background-size': "contain",
+                        'background-position': "center", 'background-repeat': "no-repeat"
+                    })
                     .clss("w-full h-full")
                     .adto(thumb_box)
                 ;
