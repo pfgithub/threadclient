@@ -2308,7 +2308,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 } : body_content,
             display_mode: {body: "visible", comments: "visible"},
             raw_value: listing_raw,
-            link: listing.permalink,
+            link: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
             layout: "reddit-comment",
             info: {
                 time: listing.created_utc * 1000,
