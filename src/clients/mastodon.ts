@@ -563,11 +563,23 @@ type ParseResult = {
 } | {
     kind: "instance-home",
     host: string,
+} | {
+    kind: "raw",
+    path: string,
+    host: string,
+} | {
+    kind: "notifications",
+    host: string,
 };
 
 const url_parser = router<ParseResult>();
 
 url_parser.with([{host: "any"}] as const, urlr => {
+    urlr.route(["raw", {path: "rest"}] as const, opts => ({
+        kind: "raw",
+        path: "/" + opts.path.join("/") + "?"+encodeQuery(opts.query),
+        host: opts.host,
+    }));
     urlr.route([] as const, opts => ({
         kind: "instance-home",
         host: opts.host,
@@ -619,6 +631,10 @@ url_parser.with([{host: "any"}] as const, urlr => {
         account: opts.accountid,
         host: opts.host,
         api_url: "/api/v1/accounts/"+opts.accountid+"/statuses?"+encodeQuery({...opts.query}),
+    }));
+    urlr.route(["notifications"], opts => ({
+        kind: "notifications",
+        host: opts.host,
     }));
     urlr.catchall(opts => ({
         kind: "404",
@@ -741,6 +757,7 @@ export const client: ThreadClient = {
                 mnu.link("Home", "/"+host+"/timelines/home", parsed.tmname === "home"),
                 mnu.link("Local", "/"+host+"/timelines/local", parsed.tmname === "local"),
                 mnu.link("Federated", "/"+host+"/timelines/public", parsed.tmname === "public"),
+                mnu.link("Notifications", "/"+host+"/notifications", false),
             ];
             return await timelineView(host, auth, parsed.api_path, pathraw, genericHeader(), timelines_navbar);
         }else if(parsed.kind === "status") {
@@ -841,6 +858,75 @@ export const client: ThreadClient = {
                 // link: "/"+host+"/accounts/"+acc_id,
                 raw_value: account_info,
             }, []);
+        }else if(parsed.kind === "notifications") {
+            const notifications = await getResult<Mastodon.Notification[]>(auth, mkurl(host, "api/v1/notifications"));
+            if('error' in notifications) return error404("error: "+notifications.error);
+            const notification_types = {
+                follow: "Someone followed you",
+                follow_request: "Someone requested to follow you",
+                mention: "Someone mentioned you in a status",
+                reblog: "Someone reblogged your status",
+                favourite: "Someone favourited your status",
+                poll: "A poll you interacted with has ended",
+                status: "Smomeone you have notifications on for posted a status",
+                unsupported: "Unsupported notification type. Error.",
+            } as const;
+            return {
+                title: "Notifications",
+                navbar: getNavbar(host),
+                body: {
+                    kind: "listing",
+                    header: genericHeader(),
+                    menu: undefined,
+                    items: notifications.map((notif): Generic.UnmountedNode => {
+                        return {parents: [{
+                            kind: "thread",
+                            title: {text: notification_types[notif.type] ?? notification_types.unsupported},
+                            body: {kind: "none"},
+                            display_mode: {body: "visible", comments: "collapsed"},
+                            link: "/"+host+"/notifications/"+notif.id,
+                            layout: "reddit-post",
+                            default_collapsed: false,
+                            actions: [],
+                            raw_value: notif,
+                        }, ...notif.status ? [postToThread(host, notif.status)] : []], replies: []};
+                    }),
+                    next: undefined,
+                },
+                display_style: "comments-view",
+            };
+        }else if(parsed.kind === "raw") {
+            const result = await getResult<unknown>(auth, "https://"+host+parsed.path);
+            return {
+                title: "Error View",
+                navbar: getNavbar(host),
+                body: {
+                    kind: "one",
+                    item: {
+                        parents: [{
+                            kind: "thread",
+                            raw_value: result,
+                            body: {kind: "richtext", content: [{kind: "code_block", text: JSON.stringify(result, null, "\t")}]},
+                            display_mode: {body: "visible", comments: "visible"},
+                            link: parsed.path,
+                            layout: "error",
+                            actions: [],
+                            default_collapsed: false,
+                        }],
+                        replies: [],
+                    },
+                },
+                sidebar: [{
+                    kind: "widget",
+                    title: "Raw",
+                    widget_content: {kind: "body", body: {kind: "richtext", content: [
+                        rt.p(rt.txt("This is a raw page.")),
+                        rt.p(rt.link(parsed.path, {}, rt.txt("View Rendered"))),
+                    ]}},
+                    raw_value: parsed,
+                }],
+                display_style: "comments-view",
+            };
         }
         assertNever(parsed);
     },

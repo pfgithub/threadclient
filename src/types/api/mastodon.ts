@@ -163,3 +163,12 @@ export type Post = {
     poll: null | Poll,
 };
 export type Tag = {name: string, url: string}; // this isn't very useful
+
+export type Notification = {
+    id: string,
+    // https://docs.joinmastodon.org/entities/notification/
+    type: "follow" | "follow_request" | "mention" | "reblog" | "favourite" | "poll" | "status" | "unsupported",
+    created_at: string,
+    account: Account,
+    status?: Post,
+};
