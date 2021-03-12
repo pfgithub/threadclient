@@ -15,7 +15,7 @@ export function oembed(card: OEmbed): Generic.Body {
     }
     return card.url != null ? {
         kind: "link_preview",
-        thumb: card.image ?? undefined,
+        thumb: card.embed_url ?? card.image ?? undefined,
         click: card.embed_url ? {
             kind: "unknown_size_image",
             url: card.embed_url,
