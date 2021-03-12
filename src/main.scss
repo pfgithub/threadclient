@@ -884,9 +884,9 @@ summary {
 .header-gradient {
     background: linear-gradient(
         to bottom,
-        rgb(214, 221, 228, 0),
-        rgba(102, 108, 110, 0.9) min(50px, 50%),
-        rgb(214, 221, 228)
+        rgb(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.9) min(50px, 50%),
+        rgb(255, 255, 255)
     );
     .dark & {
         background: linear-gradient(
