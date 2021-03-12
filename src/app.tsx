@@ -1150,7 +1150,11 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             if(body.click_enabled) {
                 thumb_box.adch(el("img").clss(body.click_enabled ? "w-full h-full" : "").attr({src: body.thumb}));
             }else{
-                el("div").styl({'background-image': `url(${JSON.stringify(body.thumb)})`, 'background-size': "cover"}).clss("w-full h-full").adto(thumb_box);
+                el("div")
+                    .styl({'background-image': `url(${JSON.stringify(body.thumb)})`, 'background-size': "cover", 'background-position': "center"})
+                    .clss("w-full h-full")
+                    .adto(thumb_box)
+                ;
             }
         }else{
             thumb_box.adch(el("div").atxt("🔗"));
