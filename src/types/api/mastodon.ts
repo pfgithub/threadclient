@@ -98,6 +98,7 @@ export type Account = {
     display_name: string,
     url: string,
     bot: boolean,
+    locked: boolean,
 
     followers_count: number,
     following_count: number,

@@ -834,7 +834,7 @@ export const client: ThreadClient = {
                     kind: "counter",
                     unique_id: "/follow/"+account_info.id+"/",
                     time: Date.now(),
-                    label: "Follow",
+                    label: account_info.locked ? "Request Follow" : "Follow",
                     incremented_label: "Following",
                     count_excl_you: account_info.followers_count === -1
                         ? "hidden"
@@ -934,8 +934,10 @@ export const client: ThreadClient = {
         const action = action_encoder.decode(action_raw);
         if(action.kind === "favourite") {
             await performBasicPostAction(action.host, "api/v1/statuses/"+action.status+"/"+action.direction+"favourite");
+            // this returns a result, TODO use it
         }else if(action.kind === "follow") {
             await performBasicPostAction(action.host, "api/v1/accounts/"+action.account_id+"/"+action.direction+"follow");
+            // this returns a result, TODO use it
         }else assertUnreachable(action);
     },
     previewReply(reply_text: string, reply_info): Generic.Thread {
