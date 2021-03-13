@@ -5,7 +5,6 @@ Demo:
 
 ## new features reddit doesn't have
 
--   gifs in comments are collapsed by default
 -   "threaded replies" to decrease indentation ([some examples in this thread](https://thread.pfg.pw/reddit/r/woooosh/comments/lcd26e/these_people_always_misunderstand_everything/))
 -   ability to preview links in comments like RES adds
 -   ability to preview comments written in markdown mode before posting them
