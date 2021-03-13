@@ -2595,7 +2595,11 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         content_title_line.atxt(" ");
     }
     if(listing.title) {
-        content_title_line.adch(linkButton(client.id, listing.link, "none").clss("hover:underline").atxt(listing.title.text));
+        if(opts.clickable) {
+            content_title_line.adch(linkButton(client.id, listing.link, "none").clss("hover:underline").atxt(listing.title.text));
+        } else {
+            content_title_line.adch(txt(listing.title.text));
+        }
     }
     if(listing.flair) {
         content_title_line.atxt(" ");
