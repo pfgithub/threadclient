@@ -309,6 +309,12 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
     return [rt.error("Unsupported Node", node)];
 }
 
+function htmlToPlaintext(html: string): string {
+    const container = el("div");
+    container.innerHTML = html;
+    return container.textContent ?? "*no content*";
+}
+
 function setupGenMeta(host: string, content: string, meta: ParseContentMeta): [GenMeta, NodeListOf<ChildNode>] {
     const parsed_v = document.createElement("div");
     parsed_v.innerHTML = content; // safe, scripts won't execute and this won't be displayed directly on the screen
@@ -776,7 +782,7 @@ export const client: ThreadClient = {
                 mnu.link("Federated", "/"+host+"/timelines/public", parsed.tmname === "public"),
                 mnu.link("Notifications", "/"+host+"/notifications", false),
             ];
-            return await timelineView(host, auth, parsed.api_path, pathraw, genericHeader(), timelines_navbar);
+            return await timelineView(host, auth, parsed.api_path, pathraw, genericHeader(), timelines_navbar, "Timeline "+parsed.tmname);
         }else if(parsed.kind === "status") {
             const [postinfo, context] = await Promise.all([
                 getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", parsed.status)),
@@ -787,7 +793,7 @@ export const client: ThreadClient = {
             if('error' in context) return error404(host, "Error! "+context.error);
             
             return {
-                title: "Status",
+                title: postinfo.account.acct + " on Mastodon: \""+htmlToPlaintext(postinfo.content)+"\"",
                 navbar: getNavbar(host),
                 body: {
                     kind: "one",
@@ -874,7 +880,7 @@ export const client: ThreadClient = {
                 menu: null, // … Posts | … Following | … Followers
                 // link: "/"+host+"/accounts/"+acc_id,
                 raw_value: account_info,
-            }, []);
+            }, [], (account_info.display_name ?? "") + " (" + account_info.acct + ")");
         }else if(parsed.kind === "notifications") {
             const notifications = await getResult<Mastodon.Notification[]>(auth, mkurl(host, "api/v1/notifications"));
             if('error' in notifications) return error404("error: "+notifications.error);
@@ -970,7 +976,7 @@ export const client: ThreadClient = {
     async loadMoreUnmounted(action) {
         const act = load_more_unmounted_encoder.decode(action);
         const auth = await getAuth(act.tl_info.host);
-        const timeline_view = await timelineView(act.tl_info.host, auth, act.tl_info.api_path, act.tl_info.web_path, genericHeader(), []);
+        const timeline_view = await timelineView(act.tl_info.host, auth, act.tl_info.api_path, act.tl_info.web_path, genericHeader(), [], "*unused*");
         if(timeline_view.body.kind === "listing") {
             return {children: timeline_view.body.items, next: timeline_view.body.next};
         }
@@ -994,7 +1000,7 @@ function assertUnreachable(value: never): never {
     throw new Error("Expected unreachable: "+value);
 }
 
-async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode, navbar: Generic.Menu): Promise<Generic.Page> {
+async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode, navbar: Generic.Menu, timeline_title: string): Promise<Generic.Page> {
     const thisurl = mkurl(host, api_path);
     const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
 
@@ -1015,7 +1021,7 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
     }
 
     const res: Generic.Page = {
-        title: "Timeline | "+web_path,
+        title: timeline_title,
         navbar: getNavbar(host),
         body: {
             kind: "listing",
