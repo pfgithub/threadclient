@@ -353,7 +353,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             raw_value: [host, post, opts],
         };
     }
-}
+};
 const postToThreadCanError = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
     const info: Generic.Info = {
         time: new Date(post.created_at).getTime(),
