@@ -122,7 +122,15 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Bo
 }
 function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph {
     switch(rtd.e) {
-        case "par": return {
+        case "par": if(rtd.c.length === 1 && rtd.c[0]?.e === "gif") {
+            const gif = rtd.c[0];
+            const meta = opt.media_metadata[gif.id];
+            if(!meta) return rt.p(rt.error("Missing media id "+gif.id, meta));
+            return {
+                kind: "body",
+                body: mediaMetaToBody(meta, gif.id.split("|")[0]),
+            };
+        } else return {
             kind: "paragraph",
             children: richtextSpanArray(rtd.c, opt),
         };
