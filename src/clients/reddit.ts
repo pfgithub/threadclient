@@ -755,12 +755,6 @@ function sidebarFromWidgets(subinfo: SubInfo): Generic.ContentNode[] {
     return res;
 }
 
-const nullish = (v: "" | null | undefined | string): v is string => {
-    if(v == null) return false;
-    if(v === "") return false;
-    return true;
-};
-
 
 function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     if(!subinfo) return {
