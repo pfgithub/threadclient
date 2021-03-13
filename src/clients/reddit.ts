@@ -924,6 +924,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
         const is_contest_mode = firstchild.data.contest_mode;
         const can_mod_post = firstchild.data.can_mod_post;
         const permalink: string = firstchild.data.permalink;
+        const is_locked = firstchild.data.locked;
 
         const children_root = listing[1].data.children;
         const header_children: Generic.Node[] = [];
@@ -1045,6 +1046,24 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                         },
                         display_mode: {body: "visible", comments: "collapsed"},
                         raw_value: is_contest_mode,
+                        link: "no",
+                        actions: [],
+                        default_collapsed: false,
+                        layout: "reddit-post",
+                    }))()] : [], ...is_locked ? [((): Generic.Thread => ({
+                        kind: "thread",
+                        body: {
+                            kind: "richtext",
+                            content: [
+                                rt.p(rt.txt("This thread is locked.")),
+                                rt.p(rt.txt(can_mod_post
+                                    ? "Only mods like you can comment on this thread."
+                                    : "You are not able to comment on this thread."
+                                )),
+                            ],
+                        },
+                        display_mode: {body: "visible", comments: "collapsed"},
+                        raw_value: is_locked,
                         link: "no",
                         actions: [],
                         default_collapsed: false,
@@ -2331,10 +2350,30 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 getCodeButton(listing.body),
             ],
             default_collapsed: listing.collapsed,
+            replies: [
+                ...listing.locked ? [((): Generic.Thread => ({
+                    kind: "thread",
+                    body: {
+                        kind: "richtext",
+                        content: [
+                            rt.p(rt.txt("This comment is locked.")),
+                            rt.p(rt.txt(
+                                "Only moderators are able to comment on this thread."
+                            )),
+                        ],
+                    },
+                    display_mode: {body: "visible", comments: "collapsed"},
+                    raw_value: listing.locked,
+                    link: "no",
+                    actions: [],
+                    default_collapsed: false,
+                    layout: "reddit-post",
+                }))()] : [],
+                ...listing.replies ?
+                    listing.replies.data.children.map(v => threadFromListing(v, options, sortWrap(parent_permalink, listing.permalink)))
+                : [],
+            ],
         };
-        if(listing.replies) {
-            result.replies = listing.replies.data.children.map(v => threadFromListing(v, options, sortWrap(parent_permalink, listing.permalink)));
-        }
         return result;
     }else if(listing_raw.kind === "t3") {
         const listing = listing_raw.data;
