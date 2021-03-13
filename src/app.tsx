@@ -196,7 +196,6 @@ function videoPreview(sources: {src: string, type?: string}[], opts: {autoplay: 
     });
     if(opts.gifv) {
         video.loop = true;
-        video.onplaying = () => video.controls = false;
     }
     if(opts.autoplay) void video.play();
     let playing_before_hide = false;
