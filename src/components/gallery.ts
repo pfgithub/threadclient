@@ -85,8 +85,8 @@ It's a separate element, as animating opacity is faster than rgba(). -->
         if(img.body.kind !== "captioned_image") throw new Error("bad");
         return {
             src: img.body.url,
-            w: img.body.w,
-            h: img.body.h,
+            w: img.body.w ?? undefined,
+            h: img.body.h ?? undefined,
             msrc: img.thumb,
             title: img.body.caption,
             alt: img.body.alt,
