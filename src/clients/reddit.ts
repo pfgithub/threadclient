@@ -199,8 +199,8 @@ function isBraille(codepoint: number): boolean {
     return codepoint >= 0x2800 && codepoint <= 0x28FF;
 }
 function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
-    text = text.replaceAll("¯_(ツ)_/¯", "¯\\_(ツ)_/¯");
     if(format.length === 0) {
+        text = text.replaceAll("¯_(ツ)_/¯", "¯\\_(ツ)_/¯");
         let braille_character_count = 0;
         let text_len_excl_zwsp = 0;
         [...text].forEach(char => {
