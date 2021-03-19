@@ -397,6 +397,14 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
                 imgur_kind: isv,
             };
         }
+        if(splitv.length === 1 && (splitv[0] ?? "").length > 4) {
+            return {
+                kind: "captioned_image",
+                url: "https://i.imgur.com/"+splitv[0]+".jpg",
+                w: null,
+                h: null,
+            };
+        }
     }
     if(url && url.host === "clips.twitch.tv" && url.pathname.split("/").filter(q => q).length === 1) {
         const clipid = url.pathname.split("/").filter(q => q)[0];

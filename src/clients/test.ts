@@ -14,6 +14,7 @@ const sample_preview_links: {
     {expected_result: "image", url: "https://i.imgur.com/NmMIeSj.png"},
     {expected_result: "image", url: "https://i.imgur.com/NmMIeSj.jpeg"},
     {expected_result: "image", url: "https://i.imgur.com/NmMIeSj.jpg"},
+    {expected_result: "image", url: "https://imgur.com/NmMIeSj"},
     {expected_result: "gif (silent)", url: "https://i.imgur.com/kLG36BI.gif"},
     // TODO ….webp
     {expected_result: "image", url: "https://pbs.twimg.com/media/EuYqgG_VcAIGXvs?format=png&name=medium"},
