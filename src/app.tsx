@@ -1095,10 +1095,8 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         zoomableImage(body.url, {w: body.w ?? undefined, h: body.h ?? undefined, alt: body.alt}).adto(el("div").adto(content));
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "video") {
-        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
         if(body.source.kind === "img") {
             zoomableImage(body.source.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
-            return hsc;
         }else if(body.source.kind === "video") {
             videoPreview(body.source.sources.map(src => ({src: src.url, type: src.type})), {autoplay: opts.autoplay, width: body.w, height: body.h, gifv: body.gifv, alt: body.alt})
                 .defer(hsc)
@@ -1114,6 +1112,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
                 return shsc;
             }).defer(hsc).adto(content);
         }
+        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "audio") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
         videoPreview([{src: body.url}], {autoplay: opts.autoplay, gifv: false, audio: true, alt: body.alt}).defer(hsc).adto(content);
@@ -1488,6 +1487,8 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
                     return res;
                 }),
             };
+            // this can be used to render like a post rather than a list of thumbnails you can click
+            //  renderBody(client, {kind: "array", body: gallery.images.map(img => img.body)}, {autoplay: false}).defer(hsc).adto(resdiv);
             renderBody(client, gallery, {autoplay: false}).defer(hsc).adto(resdiv);
             loader.remove();
         }else{
