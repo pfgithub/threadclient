@@ -23,6 +23,30 @@ export type WikiPage = {
     },
 };
 
+export type LabeledMulti = {
+    kind: "LabeledMulti",
+    data: {
+        name: string,
+        description_md: Markdown,
+        description_html: HTML,
+        owner: string, // /u/…
+        
+        can_edit: boolean,
+        display_name: string,
+        num_subscribers: number,
+        copied_from: null,
+        icon_url: string,
+        subreddits: {name: string}[],
+        created_utc: Date.Sec,
+        visibility: SubredditType,
+        over_18: boolean,
+        path: string,
+        key_color: "",
+        owner_id: `t2_${string}`,
+        is_favorited: boolean,
+    },
+};
+
 export type InboxMsg = {
     kind: "t1" | "t4",
     data: {

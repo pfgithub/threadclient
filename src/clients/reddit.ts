@@ -1406,6 +1406,11 @@ type SubrInfo = {
     base: string[],
     user: string,
 } | {
+    kind: "multireddit",
+    base: string[],
+    user: string,
+    multireddit: string,
+} | {
     kind: "subreddit",
     base: string[],
     subreddit: string,
@@ -1502,11 +1507,16 @@ path_router.route(["raw", {path: "rest"}] as const, opts => ({
 // /explore · /explore/:categoryName // redirect /
 // /web/special-membership/:subredditName · /web/membership/:subredditName // → redirect /r/:subredditName
 // /vault/burn // → no idea, it requires some query parameters
-// /me/m/:multiredditName · /user/:username/m/:multiredditName · /me/m/:multiredditName/:sort(best)? · /me/m/:multiredditName/:sort(hot)? · /me/m/:multiredditName/:sort(new)?
-//  · /me/m/:multiredditName/:sort(rising)? · /me/m/:multiredditName/:sort(controversial)? · /me/m/:multiredditName/:sort(top)? · /me/m/:multiredditName/:sort(gilded)?
-//  · /me/m/:multiredditName/:sort(awarded)? · /user/:username/m/:multiredditName/:sort(best)? · /user/:username/m/:multiredditName/:sort(hot)?
-//  · /user/:username/m/:multiredditName/:sort(new)? · /user/:username/m/:multiredditName/:sort(rising)? · /user/:username/m/:multiredditName/:sort(controversial)?
-//  · /user/:username/m/:multiredditName/:sort(top)? · /user/:username/m/:multiredditName/:sort(gilded)? · /user/:username/m/:multiredditName/:sort(awarded)?
+
+// /me/m/:multiredditName
+// /me/m/:multiredditName/:sort(best)?
+// /me/m/:multiredditName/:sort(hot)?
+// /me/m/:multiredditName/:sort(new)?
+// /me/m/:multiredditName/:sort(rising)?
+// /me/m/:multiredditName/:sort(controversial)?
+// /me/m/:multiredditName/:sort(top)?
+// /me/m/:multiredditName/:sort(gilded)?
+// /me/m/:multiredditName/:sort(awarded)?
 
 marked_routes.push("/acknowledgements");
 path_router.route(["acknowledgements"] as const, linkout);
@@ -1559,23 +1569,28 @@ path_router.route(["web", "community-points"] as const, linkout);
 // /user/me · /user/me/:rest(.*)
 // fetch the current user then redirect to /user/…/… with query
 
-function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: string, subreddit?: string}, ParsedPath>, kind: "home" | "subreddit" | "user") {
-    const getSub = (opts: {user?: string, subreddit?: string}): SubrInfo => opts.user != null
+function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: string, subreddit?: string, multireddit?: string}, ParsedPath>, kind: "home" | "subreddit" | "user" | "multireddit") {
+    const getSub = (opts: {user?: string, subreddit?: string, multireddit?: string}): SubrInfo => (opts.multireddit != null && opts.user != null)
+        ? {kind: "multireddit", multireddit: opts.multireddit, user: opts.user, base: ["user", opts.user, "m", opts.multireddit]}
+        : opts.user != null
         ? {kind: "userpage", user: opts.user, base: ["user", opts.user]}
         : opts.subreddit != null
         ? {kind: "subreddit", subreddit: opts.subreddit, base: ["r", opts.subreddit]}
         : {kind: "homepage", base: []}
     ;
 
-    if(kind === "home") marked_routes.push("/submit");
-    if(kind === "subreddit") marked_routes.push("/r/:subredditName/submit");
-    if(kind === "user") marked_routes.push("/user/:profileName/submit");
-    urlr.route(["submit"] as const, todo("submit post"));
+    if(kind === "home" || kind === "subreddit" || kind === "user") {
+        if(kind === "home") marked_routes.push("/submit");
+        if(kind === "subreddit") marked_routes.push("/r/:subredditName/submit");
+        if(kind === "user") marked_routes.push("/user/:profileName/submit");
+        urlr.route(["submit"] as const, todo("submit post"));
+    }
 
     const base_sort_methods = ["best", "hot", "new", "rising", "controversial", "top", "gilded", "awarded"] as const;
     if(kind === "home") marked_routes.push("/", "/:sort("+base_sort_methods.join("|")+")?");
     if(kind === "user") {/*new.reddit does not support /u/…/hot eg but old.reddit does*/}
     if(kind === "subreddit") marked_routes.push("/r/:subredditName", ...base_sort_methods.map(sm => "/r/:subredditName/:sort("+sm+")?"));
+    if(kind === "multireddit") marked_routes.push("/user/:username/m/:multiredditName", ...base_sort_methods.map(sm => "/user/:username/m/:multiredditName/:sort("+sm+")?"));
     urlr.route([{sort: [...base_sort_methods, ...kind === "user" ? [] : [null]]}] as const, opts => ({
         kind: "subreddit",
         sub: getSub(opts),
@@ -1586,7 +1601,7 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
         after: opts.query.after ?? null,
     }));
 
-    if(kind !== "home") {
+    if(kind === "subreddit" || kind === "user") {
         // /:routePrefix(r)/:subredditName/collection/:collectionId/:partialPostId/:partialCommentId · /:routePrefix(r)/:subredditName/collection/:collectionId/:partialPostId
         //  · /:routePrefix(r)/:subredditName/collection/:collectionId
         // /:routePrefix(user)/:subredditName/collection/:collectionId/:partialPostId/:partialCommentId · /:routePrefix(user)/:subredditName/collection/:collectionId/:partialPostId
@@ -1597,39 +1612,41 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
         // • Note: add support for posts that are part of collections. Maybe add a collections (#) button if data.collections.length > 1\
     }
 
-    const rpfx = kind === "subreddit" ? "/:routePrefix(r)/:subredditName" : kind === "user" ? "/:routePrefix(user)/:subredditName" : kind === "home" ? "" : assertNever(kind);
+    if(kind === "subreddit" || kind === "user" || kind === "home") {
+        const rpfx = kind === "subreddit" ? "/:routePrefix(r)/:subredditName" : kind === "user" ? "/:routePrefix(user)/:subredditName" : kind === "home" ? "" : assertNever(kind);
 
-    marked_routes.push(rpfx+"/duplicates/:partialPostId/:urlSafePostTitle?");
-    urlr.route(["duplicates", {post_id_unprefixed: "any"}, {url_safe_post_title: "optional"}] as const, opts => ({
-        kind: "duplicates",
-        sub: getSub(opts),
-        post_id_unprefixed: opts.post_id_unprefixed,
+        marked_routes.push(rpfx+"/duplicates/:partialPostId/:urlSafePostTitle?");
+        urlr.route(["duplicates", {post_id_unprefixed: "any"}, {url_safe_post_title: "optional"}] as const, opts => ({
+            kind: "duplicates",
+            sub: getSub(opts),
+            post_id_unprefixed: opts.post_id_unprefixed,
 
-        after: opts.query.after ?? null,
-        before: opts.query.before ?? null,
-        crossposts_only: (opts.query.crossposts_only as string | null) === "true",
-        sort: opts.query.sort ?? "num_comments",
-    }));
+            after: opts.query.after ?? null,
+            before: opts.query.before ?? null,
+            crossposts_only: (opts.query.crossposts_only as string | null) === "true",
+            sort: opts.query.sort ?? "num_comments",
+        }));
 
-    marked_routes.push(rpfx+"/comments/:partialPostId/:urlSafePostTitle?");
-    urlr.route(["comments", {post_id_unprefixed: "any"}, {url_safe_post_title: "optional"}] as const, opts => ({
-        kind: "comments",
-        sub: getSub(opts),
-        post_id_unprefixed: opts.post_id_unprefixed,
-        focus_comment: opts.query.comment ?? null,
-        sort_override: opts.query.sort ?? null,
-        context: opts.query.context ?? null,
-    }));
-    
-    marked_routes.push(rpfx+"/comments/:partialPostId/:urlSafePostTitle/:partialCommentId");
-    urlr.route(["comments", {post_id_unprefixed: "any"}, {url_safe_post_title: "any"}, {partial_comment_id: "any"}] as const, opts => ({
-        kind: "comments",
-        sub: getSub(opts),
-        post_id_unprefixed: opts.post_id_unprefixed,
-        focus_comment: opts.partial_comment_id,
-        sort_override: opts.query.sort ?? null,
-        context: opts.query.context ?? null,
-    }));
+        marked_routes.push(rpfx+"/comments/:partialPostId/:urlSafePostTitle?");
+        urlr.route(["comments", {post_id_unprefixed: "any"}, {url_safe_post_title: "optional"}] as const, opts => ({
+            kind: "comments",
+            sub: getSub(opts),
+            post_id_unprefixed: opts.post_id_unprefixed,
+            focus_comment: opts.query.comment ?? null,
+            sort_override: opts.query.sort ?? null,
+            context: opts.query.context ?? null,
+        }));
+        
+        marked_routes.push(rpfx+"/comments/:partialPostId/:urlSafePostTitle/:partialCommentId");
+        urlr.route(["comments", {post_id_unprefixed: "any"}, {url_safe_post_title: "any"}, {partial_comment_id: "any"}] as const, opts => ({
+            kind: "comments",
+            sub: getSub(opts),
+            post_id_unprefixed: opts.post_id_unprefixed,
+            focus_comment: opts.partial_comment_id,
+            sort_override: opts.query.sort ?? null,
+            context: opts.query.context ?? null,
+        }));
+    }
 }
 
 path_router.with(["user", "me"] as const, urlr => {
@@ -1689,6 +1706,8 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
     // /user/:profileName/about/edit/moderation
     marked_routes.push("/user/:profileName/about/edit/moderation");
     urlr.route(["about", "edit", "moderation"] as const, todo("user profile moderation settings"));
+
+    urlr.with(["m", {multireddit: "any"}] as const, urlr => userOrSubredditOrHome(urlr, "multireddit"));
 
     userOrSubredditOrHome(urlr, "user");
 });
@@ -2662,7 +2681,62 @@ async function fetchSubInfo(sub: SubrInfo): Promise<{sidebar: Generic.ContentNod
             header: subredditHeader(subinfo),
         };
     }
+    if(sub.kind === "multireddit") {
+        const [multi_info] = await Promise.all([
+            redditRequest<Reddit.LabeledMulti | undefined>("/" + ["api", "multi", ...sub.base].join("/"), {method: "GET", onerror: e => undefined, cache: true}),
+        ]);
+        return {
+            sidebar: multi_info ? sidebarFromMulti(multi_info) : null,
+        };
+    }
     assertNever(sub);
+}
+
+function sidebarFromMulti(multi_raw: Reddit.LabeledMulti): Generic.ContentNode[] {
+    const multi = multi_raw.data;
+    return [
+        {
+            kind: "widget",
+            title: multi.display_name,
+            raw_value: multi_raw,
+            widget_content: {
+                kind: "body",
+                body: {
+                    kind: "array",
+                    body: [{
+                        kind: "richtext",
+                        content: [
+                            rt.p(rt.txt("Curated by "), rt.link("/u/"+multi.owner, {is_user_link: multi.owner.toLowerCase()}, rt.txt("u/"+multi.owner))),
+                            rt.p(rt.txt("Created "), rt.timeAgo(multi.created_utc * 1000)),
+                        ],
+                    }, {
+                        kind: "text",
+                        content: multi.description_md,
+                        markdown_format: "reddit",
+                    }],
+                },
+            },
+            actions_bottom: [
+                {kind: "link", text: "Create a copy", url: "TODO"},
+            ],
+        },
+        {
+            kind: "widget",
+            title: "Subreddits ("+multi.subreddits.length+")",
+            raw_value: multi.subreddits,
+            widget_content: {
+                kind: "list",
+                items: multi.subreddits.map(sub => {
+                    return {
+                        // icon: undefined,
+                        name: {kind: "text", text: "r/"+sub.name},
+                        click: {kind: "link", url: "/r/"+sub.name},
+                        //action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
+                    };
+                }),
+            },
+        }
+    ];
 }
 
 function bannerAndIcon(sub: Reddit.T5Data): {
