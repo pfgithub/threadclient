@@ -1437,13 +1437,20 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
                 description: string | null,
                 layout: "blog" | "unknown",
                 images_count: number,
-                images: {
+                images: ({
                     id: string,
                     description: string,
                     link: string, // img src
                     width: number,
                     height: number,
-                }[],
+                    type: "image/jpeg" | "image/gif" | "video/mp4" | "image/png" | "unsupported",
+                } & ({animated: false} | {
+                    animated: true,
+                    looping: boolean,
+
+                    gifv?: string,
+                    mp4?: string,
+                }))[],
             },
         });
         console.log("imgur result", typed);
@@ -1451,17 +1458,32 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
             const gallery: Generic.Body = {
                 kind: "gallery",
                 images: ('images' in typed.data ? typed.data.images : [typed.data]).map(image => {
-                    const res: Generic.GalleryItem = {
-                        thumb: image.link,
+                    const body: Generic.Body = image.animated && image.mp4 != null ? {
+                        kind: "video",
+                        source: {
+                            // there's also the option of hls if imgur allows cors on it
+                            kind: "video",
+                            sources: [{
+                                url: image.mp4,
+                                type: "video/mp4",
+                            }],
+                        },
                         w: image.width,
                         h: image.height,
-                        body: {
-                            kind: "captioned_image",
-                            caption: image.description,
-                            url: image.link,
-                            w: image.width,
-                            h: image.height,
-                        },
+                        gifv: image.looping,
+                        caption: image.description,
+                    } : {
+                        kind: "captioned_image",
+                        caption: image.description,
+                        url: image.link,
+                        w: image.width,
+                        h: image.height,
+                    };
+                    const res: Generic.GalleryItem = {
+                        thumb: "https://i.imgur.com/"+image.id+"s.jpg",
+                        w: 90,
+                        h: 90,
+                        body,
                     };
                     return res;
                 }),
