@@ -1029,46 +1029,47 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                 item: {
                     parents: [
                         threadFromListing(firstchild, {force_expand: header_children.length > 0 ? "closed" : "open", show_post_reply_button: true}, {permalink, sort: "unsupported"}),
+                        ...is_contest_mode ? [((): Generic.Thread => ({
+                            kind: "thread",
+                            body: {
+                                kind: "richtext",
+                                content: [
+                                    rt.p(rt.txt("This thread is in contest mode.")),
+                                    rt.p(rt.txt(can_mod_post
+                                        ? "As a mod, you can sort comments however you wish. Regular users have randomized sorting and cannot see scores."
+                                        : "Sorting is randomized and scores are hidden."
+                                    )),
+                                ],
+                            },
+                            display_mode: {body: "visible", comments: "collapsed"},
+                            raw_value: is_contest_mode,
+                            link: "no",
+                            actions: [],
+                            default_collapsed: false,
+                            layout: "reddit-post",
+                        }))()] : [], ...is_locked ? [((): Generic.Thread => ({
+                            kind: "thread",
+                            body: {
+                                kind: "richtext",
+                                content: [
+                                    rt.p(rt.txt("This thread is locked.")),
+                                    rt.p(rt.txt(can_mod_post
+                                        ? "Only mods like you can comment on this thread."
+                                        : "You are not able to comment on this thread."
+                                    )),
+                                ],
+                            },
+                            display_mode: {body: "visible", comments: "collapsed"},
+                            raw_value: is_locked,
+                            link: "no",
+                            actions: [],
+                            default_collapsed: false,
+                            layout: "reddit-post",
+                        }))()] : [], 
                         ...header_children,
                     ],
                     menu,
-                    replies: [...is_contest_mode ? [((): Generic.Thread => ({
-                        kind: "thread",
-                        body: {
-                            kind: "richtext",
-                            content: [
-                                rt.p(rt.txt("This thread is in contest mode.")),
-                                rt.p(rt.txt(can_mod_post
-                                    ? "As a mod, you can sort comments however you wish. Regular users have randomized sorting and cannot see scores."
-                                    : "Sorting is randomized and scores are hidden."
-                                )),
-                            ],
-                        },
-                        display_mode: {body: "visible", comments: "collapsed"},
-                        raw_value: is_contest_mode,
-                        link: "no",
-                        actions: [],
-                        default_collapsed: false,
-                        layout: "reddit-post",
-                    }))()] : [], ...is_locked ? [((): Generic.Thread => ({
-                        kind: "thread",
-                        body: {
-                            kind: "richtext",
-                            content: [
-                                rt.p(rt.txt("This thread is locked.")),
-                                rt.p(rt.txt(can_mod_post
-                                    ? "Only mods like you can comment on this thread."
-                                    : "You are not able to comment on this thread."
-                                )),
-                            ],
-                        },
-                        display_mode: {body: "visible", comments: "collapsed"},
-                        raw_value: is_locked,
-                        link: "no",
-                        actions: [],
-                        default_collapsed: false,
-                        layout: "reddit-post",
-                    }))()] : [], ...replies],
+                    replies: replies,
                 },
             },
             sidebar: opts.sidebar ?? undefined,
