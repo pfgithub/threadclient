@@ -93,6 +93,7 @@ async function renderAccessToken(oauth_token: string, oauth_verifier: string) {
         oauth_version: parameters.oauth_version,
     };
 
+    // TODO use authorizedRequest but with oauth_token and oauth_token_secret not assigned
     const fetchres = await fetch(url+"?"+query({
         oauth_token,
         oauth_verifier,
@@ -124,63 +125,41 @@ async function renderAccessToken(oauth_token: string, oauth_verifier: string) {
 //     console.log("Error", e);
 // });
 
-(async () => {
-    // https://api.twitter.com/2/tweets?ids=
-    const http_method = "GET";
-    const url = "https://api.twitter.com/2/tweets";
+type OauthInfo = {
+    consumer: {key: string, secret: string},
+    token: {key: string, secret: string} | null,
+};
 
-    const query_params = {
-        'ids': secret.sample.tweet_id,
-        'tweet.fields': [
-            "id",
-            // "text",
-            // "attachments",
-            // "author_id",
-            // "context_annotations",
-            // "conversation_id",
-            // "created_at",
-            // "entities",
-            // "geo",
-            // "in_reply_to_user_id",
-            // "lang",
-            // "possiby_sensitive",
-            // "public_metrics",
-            // "referenced_tweets",
-            // "reply_settings",
-            // "source",
-            // "withheld",
-        ].join(","),
-        'expansions': "author_id",
-        'user.fields': "created_at",
-    };
+async function authorizedRequest<T>(opts: {
+    route: string,
+    oauth: OauthInfo,
+    query_params: {[key: string]: string},
+    body_params: {[key: string]: string} | null,
+}): Promise<T> {
+    const http_method = opts.body_params ? "POST" : "GET";
+    const url = "https://api.twitter.com"+opts.route;
 
     const oauthparams = {
-        oauth_consumer_key: secret.public_consumer_key,
+        oauth_consumer_key: opts.oauth.consumer.key,
         oauth_nonce: (+("" + Math.random()).replace(".", "")).toString(16),
         oauth_signature_method: "HMAC-SHA1",
         oauth_timestamp: "" + (Date.now() / 1000 |0),
-        oauth_token: secret.sample.auth.oauth_token,
         oauth_version: "1.0",
+        ...opts.oauth.token ? {oauth_token: opts.oauth.token.key} : {},
     };
+
     const parameters = {
-        ...query_params,
+        ...opts.query_params,
         ...oauthparams,
     };
-    const signature = generateSignature(parameters, http_method, url, secret.secret_consumer_key, secret.sample.auth.oauth_token_secret);
+    const signature = generateSignature(parameters, http_method, url, opts.oauth.consumer.secret, opts.oauth.token?.secret);
 
     const outparams = {
         ...oauthparams,
         oauth_signature: signature,
     };
 
-    console.log(signature);
-
-    console.log("Fetching:", url+"?"+query(query_params));
-    console.log( "OAuth "+Object.entries(outparams)
-                .map(([key, value]) => key + "=\"" + percentEncode(value) + "\"").join(", ")
-            ,);
-
-    const fetchres = await fetch(url+"?"+query(query_params), {
+    const fetchres = await fetch(url+"?"+query(opts.query_params), {
         method: http_method,
         headers: {
             'Accept': 'application/json',
@@ -188,11 +167,107 @@ async function renderAccessToken(oauth_token: string, oauth_verifier: string) {
                 .map(([key, value]) => key + "=\"" + percentEncode(value) + "\"").join(", ")
             ,
         },
+        body: opts.body_params ? query(opts.body_params) : null,
+    });
+    const resjson = await fetchres.json();
+    return resjson as T; // errors generally take the form of {title: string, type: string, status: number, detail: string}
+}
+
+type TweetModel = {
+    attachments: unknown,
+    author_id: string,
+    context_annotations: unknown,
+    conversation_id: string,
+    created_at: string,
+    entities: unknown,
+    geo: unknown | undefined,
+    in_reply_to_user_id: string,
+    lang: string,
+    possibly_sensitive: boolean,
+    public_metrics: unknown,
+    referenced_tweets: unknown[],
+    reply_settings: "everyone" | "mentioned_users" | "followers" | "unsupported",
+    source: string,
+    withheld: unknown,
+
+    // must be your tweet
+    non_public_metrics: unknown,
+    orgnaic_metrics: unknown,
+    promoted_metrics: unknown,
+};
+type UserModel = {
+    created_at: string,
+    description: string,
+    entities: unknown,
+    location: string,
+    pinned_tweet_id: string,
+    profile_image_url: string,
+    protected: boolean,
+    public_metrics: unknown,
+    url: string,
+    verified: boolean,
+    withheld: unknown,
+};
+
+type Fields<Model extends {[key: string]: unknown}, Fields extends (keyof Model)[]> = {[key in Fields[number]]: Model[key]};
+
+type Tweet<ModelFields extends (keyof TweetModel)[]> = {
+    id: string,
+    text: string,
+} & Fields<TweetModel, ModelFields>;
+type User<ModelFields extends (keyof UserModel)[]> = {
+    id: string,
+    name: string,
+    username: string,
+} & Fields<UserModel, ModelFields>;
+
+type ApiTweetsV2 = {
+    data: Tweet<[
+        "attachments", "author_id", "context_annotations",
+        "conversation_id", "created_at", "entities", "geo",
+        "in_reply_to_user_id", "lang", "possibly_sensitive",
+        "public_metrics", "referenced_tweets", "reply_settings",
+        "source", "withheld",
+    ]>[],
+    includes: {
+        users: User<["created_at"]>,
+    },
+};
+(async () => {
+    const query_params = {
+        'ids': secret.sample.tweet_id,
+        'tweet.fields': [
+            "attachments",
+            "author_id",
+            "context_annotations",
+            "conversation_id",
+            "created_at",
+            "entities",
+            "geo",
+            "in_reply_to_user_id",
+            "lang",
+            "possibly_sensitive",
+            "public_metrics",
+            "referenced_tweets",
+            "reply_settings",
+            "source",
+            "withheld",
+        ].join(","),
+        'expansions': "author_id",
+        'user.fields': "created_at",
+    };
+
+    const frjson = await authorizedRequest<ApiTweetsV2>({
+        route: "/2/tweets",
+        oauth: {
+            consumer: {key: secret.public_consumer_key, secret: secret.secret_consumer_key},
+            token: {key: secret.sample.auth.oauth_token, secret: secret.sample.auth.oauth_token_secret},
+        },
+        query_params,
+        body_params: null,
     });
 
-    const frjson = await fetchres.json();
-
-    console.log(frjson);
+    console.log(JSON.stringify(frjson, null, "  "));
 })().catch(e => console.log("Error", e));
 
 
