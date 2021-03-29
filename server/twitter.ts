@@ -1,5 +1,5 @@
 //@ts-ignore
-import {secret_consumer_key, public_consumer_key} from "./secret.ts";
+import * as secret from "./secret.ts";
 import {b64_hmac_sha1} from "./hmac_sha1.js";
 //@ts-ignore
 import {percentEncode} from "./percent_encode.ts";
@@ -38,13 +38,13 @@ async function getAuthenticationURL() {
         oauth_callback: "https://thread.pfg.pw/login/twitter",
         oauth_signature_method: "HMAC-SHA1",
         oauth_timestamp: "" + (Date.now() / 1000 |0),
-        oauth_consumer_key: public_consumer_key,
+        oauth_consumer_key: secret.public_consumer_key,
         oauth_version: "1.0",
     };
     const http_method = "POST";
     const url = "https://api.twitter.com/oauth/request_token";
 
-    const signature = generateSignature(parameters, http_method, url, secret_consumer_key, undefined);
+    const signature = generateSignature(parameters, http_method, url, secret.secret_consumer_key, undefined);
     const outparams = {...parameters, oauth_signature: signature};
 
     const auth_res = await fetch(url, {
@@ -72,7 +72,7 @@ async function getAuthenticationURL() {
 }
 async function renderAccessToken(oauth_token: string, oauth_verifier: string) {
     const parameters = {
-        oauth_consumer_key: public_consumer_key,
+        oauth_consumer_key: secret.public_consumer_key,
         oauth_nonce: (+("" + Math.random()).replace(".", "")).toString(16),
         oauth_signature_method: "HMAC-SHA1",
         oauth_timestamp: "" + (Date.now() / 1000 |0),
@@ -83,9 +83,9 @@ async function renderAccessToken(oauth_token: string, oauth_verifier: string) {
     const http_method = "POST";
     const url = "https://api.twitter.com/oauth/access_token";
 
-    const signature = generateSignature(parameters, http_method, url, secret_consumer_key, undefined);
+    const signature = generateSignature(parameters, http_method, url, secret.secret_consumer_key, undefined);
     const outparams = {
-        oauth_consumer_key: public_consumer_key,
+        oauth_consumer_key: secret.public_consumer_key,
         oauth_nonce: parameters.oauth_nonce,
         oauth_signature: signature,
         oauth_signature_method: parameters.oauth_signature_method,
@@ -123,6 +123,77 @@ async function renderAccessToken(oauth_token: string, oauth_verifier: string) {
 // }).catch(e => {
 //     console.log("Error", e);
 // });
+
+(async () => {
+    // https://api.twitter.com/2/tweets?ids=
+    const http_method = "GET";
+    const url = "https://api.twitter.com/2/tweets";
+
+    const query_params = {
+        'ids': secret.sample.tweet_id,
+        'tweet.fields': [
+            "id",
+            // "text",
+            // "attachments",
+            // "author_id",
+            // "context_annotations",
+            // "conversation_id",
+            // "created_at",
+            // "entities",
+            // "geo",
+            // "in_reply_to_user_id",
+            // "lang",
+            // "possiby_sensitive",
+            // "public_metrics",
+            // "referenced_tweets",
+            // "reply_settings",
+            // "source",
+            // "withheld",
+        ].join(","),
+        'expansions': "author_id",
+        'user.fields': "created_at",
+    };
+
+    const oauthparams = {
+        oauth_consumer_key: secret.public_consumer_key,
+        oauth_nonce: (+("" + Math.random()).replace(".", "")).toString(16),
+        oauth_signature_method: "HMAC-SHA1",
+        oauth_timestamp: "" + (Date.now() / 1000 |0),
+        oauth_token: secret.sample.auth.oauth_token,
+        oauth_version: "1.0",
+    };
+    const parameters = {
+        ...query_params,
+        ...oauthparams,
+    };
+    const signature = generateSignature(parameters, http_method, url, secret.secret_consumer_key, secret.sample.auth.oauth_token_secret);
+
+    const outparams = {
+        ...oauthparams,
+        oauth_signature: signature,
+    };
+
+    console.log(signature);
+
+    console.log("Fetching:", url+"?"+query(query_params));
+    console.log( "OAuth "+Object.entries(outparams)
+                .map(([key, value]) => key + "=\"" + percentEncode(value) + "\"").join(", ")
+            ,);
+
+    const fetchres = await fetch(url+"?"+query(query_params), {
+        method: http_method,
+        headers: {
+            'Accept': 'application/json',
+            'Authorization': "OAuth "+Object.entries(outparams)
+                .map(([key, value]) => key + "=\"" + percentEncode(value) + "\"").join(", ")
+            ,
+        },
+    });
+
+    const frjson = await fetchres.json();
+
+    console.log(frjson);
+})().catch(e => console.log("Error", e));
 
 
 function test() {
