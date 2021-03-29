@@ -2343,7 +2343,7 @@ function bioRender(client: ThreadClient, listing: Generic.RedditHeader, frame: H
     if(listing.banner) {
         const zoomframe = zoomableFrame(
             el("img").clss("w-full min-h-200px object-cover object-center sm:object-top").attr({src: listing.banner.desktop})
-        ).clss("absolute top-0 left-0 right-0 w-full").adto(frame);
+        ).clss("absolute top-0 left-0 right-0 w-full max-h-full").adto(frame);
         zoomframe.adch(el("div").clss("absolute top-150px left-0 right-0 bottom-0 header-gradient"));
         // <div style="position: absolute;top: 150px;left: 0;right: 0;
         //      background: linear-gradient(to bottom, rgb(24, 26, 27, 0), rgb(24, 26, 27, 0.9) 50px, rgb(24, 26, 27));height: 242px;"></div>
