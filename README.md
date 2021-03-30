@@ -173,6 +173,9 @@ reddit todo:
 -   [x] make full use of Generic.Page - for threads where you are linked part way into the thread, set up the parent nodes correctly
 -   [x] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
 -   [x] support op, mod distinguished, and admin distinguished comments and posts
+-   [x] messages
+-   [ ] improve messages appearence
+-   [ ] if you see the message on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit
 -   [ ] support contest mode
 -   [ ] figure out what "url_overridden_by_dest" is
 -   [ ] more braille image support, [for example](https://thread.pfg.pw/reddit/r/unicodecirclejerk/comments/izk1ef/%E0%B6%9E_unicode_among_us_crewmate_symbol/gamw9br/)
@@ -197,7 +200,6 @@ reddit todo:
 -   [ ] get more information about specific awards by clicking them
 -   [ ] user profile pages, defaulting to the overview tab
 -   [ ] navigation buttons eg homepage link
--   [ ] notifications (+ if you see the notification on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit)
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
 -   [ ] use the `post.media`/`post.secure_media` property?
 -   [ ] jsonp hack when cors requests fail (spooky, evaluating code from a remote server) eg `?jsonp=jsonp_response_#` where each request adds a `window.jsonp_response_#`

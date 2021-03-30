@@ -673,6 +673,17 @@ export type T5Data = { // T5_Data? pascal_underscore case?
 
 type Depricated<T> = T;
 
+export type ModmailUnreadCount = {
+    archived: number,
+    appeals: number,
+    highlighted: number,
+    notifications: number,
+    join_requests: number,
+    new: number,
+    inprogress: number,
+    mod: number,
+};
+
 export type Page = [Listing, Listing];
 export type Listing = {
     kind: "Listing",

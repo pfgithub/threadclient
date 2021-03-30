@@ -3001,6 +3001,34 @@ function updateTitle(hsc: HideShowCleanup<unknown>, client_id: string): UpdateTi
     return res;
 }
 
+function renderInbox(client: ThreadClient, inbox: Generic.Inbox): HideShowCleanup<HTMLElement> {
+    // TODO this should probably be a react / uhtml component to avoid complex update logic
+
+    const frame = linkButton(client.id, inbox.url, "action-button");
+    const hsc = hideshow(frame);
+    const textspan = el("span").adto(frame);
+
+    const resvtxt = txt("… ").adto(textspan);
+    textspan.atxt(inbox.name);
+
+    client.hydrateInbox!(inbox.hydrate).then(res => {
+        if(res.messages.kind === "zero") {
+            resvtxt.nodeValue = "";
+        }else if(res.messages.kind === "exact") {
+            resvtxt.nodeValue = res.messages.value + " ";
+        }else if(res.messages.kind === "minimum") {
+            resvtxt.nodeValue = res.messages.min + "+ ";
+        }
+        if(res.messages.kind !== "zero") {
+            textspan.classList.add({green: "text-green-500", orange: "text-orange-500"}[inbox.active_color]);
+        }
+    }).catch(err => {
+        resvtxt.nodeValue = "� ";
+    });
+
+    return hsc;
+}
+
 const makeTopLevelWrapper = () => el("div").clss("top-level-wrapper", "object-wrapper", "bg-postcolor-100");
 
 function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HTMLDivElement, title: UpdateTitle): HideShowCleanup<undefined> {
@@ -3013,11 +3041,16 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
     frame.classList.add("display-"+listing.display_style);
 
     const navbar_area = el("div").adto(frame).clss("navbar-area");
-    for(const navbar_action of listing.navbar) {
+    for(const navbar_action of listing.navbar.actions) {
         renderAction(client, navbar_action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
         txt(" ").adto(navbar_area);
     }
     elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(listing));
+    txt(" ").adto(navbar_area);
+    for(const navbar_inbox of listing.navbar.inboxes) {
+        renderInbox(client, navbar_inbox).defer(hsc).adto(navbar_area);
+        txt(" ").adto(navbar_area);
+    }
     // TODO save the raw page responses. listings are not meant to be copied, they can have symbols
     // and might in the future have functions and stuff
     //

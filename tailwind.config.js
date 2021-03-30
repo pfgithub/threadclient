@@ -21,6 +21,7 @@ module.exports = {
             'red': colors.red,
             'cyan': colors.cyan,
             'light-blue': colors.lightBlue,
+            'orange': colors.orange,
             'flair-light': "var(--flair-color)",
             'flair-dark': "var(--flair-color-dark)",
             'body': "var(--body-color)",

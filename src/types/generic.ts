@@ -13,7 +13,7 @@ export type InfoRequestMap = {
 
 export type Page = {
     title: string,
-    navbar: Action[],
+    navbar: Navbar,
     sidebar?: ContentNode[],
     body: {
         kind: "listing",
@@ -27,6 +27,23 @@ export type Page = {
         item: UnmountedNode,
     },
     display_style: "comments-view" | "fullscreen-view",
+};
+export type Navbar = {
+    actions: Action[],
+    inboxes: Inbox[],
+};
+export type Inbox = {
+    id: string,
+    name: string,
+    active_color: "orange" | "green",
+    hydrate: Opaque<"deferred_inbox">,
+
+    url: string,
+};
+export type InboxData = {
+    messages: {kind: "zero"} | {kind: "exact", value: number} | {kind: "minimum", min: number},
+
+    url: string,
 };
 export type UnmountedNode = {
     // [...Node[], ContentNode] // requires a newer version of typescript
@@ -454,7 +471,10 @@ export type Action = {
     body: Body,
 };
 
-export type DataEncodings = "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more" | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis";
+export type DataEncodings = 
+    | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
+    | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
+;
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 
 export type FlairList = {

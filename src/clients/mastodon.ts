@@ -7,9 +7,9 @@ import { oembed } from "./oembed";
 
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
-function getNavbar(host: string | null): Generic.Action[] {
-    if(host == null || host === "") return [];
-    return [
+function getNavbar(host: string | null): Generic.Navbar {
+    if(host == null || host === "") return {actions: [], inboxes: []};
+    return {actions: [
         !isLoggedIn(host) ? {
             kind: "login",
             data: login_url_encoder.encode({host}),
@@ -17,9 +17,9 @@ function getNavbar(host: string | null): Generic.Action[] {
         } : {
             kind: "link",
             text: "Log Out",
-            url: "TODO log out",
+            url: "TODO log out from mastodon",
         },
-    ];
+    ], inboxes: []};
 }
 
 const error404 = (host: string | null, msg = "404 not found"): Generic.Page => ({

@@ -17,6 +17,8 @@ export type ThreadClient = {
 
     loadMore: (action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>,
     loadMoreUnmounted: (action: Generic.Opaque<"load_more_unmounted">) => Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}>,
+
+    hydrateInbox?: (inbox: Generic.Opaque<"deferred_inbox">) => Promise<Generic.InboxData>,
 };
 
 //eslint-disable-next-line @typescript-eslint/ban-types

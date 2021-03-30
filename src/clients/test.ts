@@ -54,7 +54,7 @@ const sample_preview_links: {
 function bodyPage(path: string, body: Generic.Body): Generic.Page {
     return {
         title: path,
-        navbar: [],
+        navbar: {actions: [], inboxes: []},
         body: {
             kind: "one",
             item: {
@@ -78,7 +78,7 @@ function bodyPage(path: string, body: Generic.Body): Generic.Page {
 function listingPage(path: string, header: Generic.Thread, items: Generic.Thread[]): Generic.Page {
     return {
         title: path,
-        navbar: [],
+        navbar: {actions: [], inboxes: []},
         body: {
             kind: "listing",
             header: header,

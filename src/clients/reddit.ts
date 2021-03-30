@@ -828,21 +828,45 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     };
 }
 
+type DeferredInbox = {
+    kind: "inbox",
+} | {
+    kind: "modmail",
+};
+const deferred_inbox = encoderGenerator<DeferredInbox, "deferred_inbox">("deferred_inbox");
+
 type SubInfo = {
     subreddit: string,
     widgets: Reddit.ApiWidgets | null,
     sub_t5: Reddit.T5 | null,
 };
-function getNavbar(): Generic.Action[] {
-    const res: Generic.Action[] = [];
-    if(isLoggedIn()) res.push(
-        {kind: "act", action: act_encoder.encode({kind: "log_out"}), text: "Log Out"},
-    );
-    else res.push(
-        {kind: "link", url: getLoginURL(), text: "Log In"},
-        {kind: "link", url: "raw!https://www.reddit.com/register", text: "Sign Up"},
-    );
-    return res;
+function getNavbar(): Generic.Navbar {
+    if(isLoggedIn()) return {
+        actions: [{kind: "act", action: act_encoder.encode({kind: "log_out"}), text: "Log Out"}],
+        inboxes: [
+            {
+                id: "/messages",
+                name: "Messages",
+                active_color: "orange",
+                hydrate: deferred_inbox.encode({kind: "inbox"}),
+                url: "/message/inbox",
+            },
+            {
+                id: "/modmail",
+                name: "Modmail",
+                active_color: "green",
+                hydrate: deferred_inbox.encode({kind: "modmail"}),
+                url: "/mod/mail/all",
+            },
+        ],
+    };
+    return {
+        actions: [
+            {kind: "link", url: getLoginURL(), text: "Log In"},
+            {kind: "link", url: "raw!https://www.reddit.com/register", text: "Sign Up"},
+        ],
+        inboxes: [],
+    };
 }
 const pathFromListingRaw = (path: string, listing: unknown, opts: {warning?: Generic.Richtext.Paragraph[], sidebar: Generic.ContentNode[] | null}): Generic.Page => {
     const rtitems: Generic.Richtext.Paragraph[] = [];
@@ -896,27 +920,11 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
     const page = parsed_path_in;
     if(Array.isArray(listing)) {
         if(listing[0].data.children.length !== 1) {
-            return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: [
-                rt.h1(rt.txt("This url is not supported yet")),
-                rt.p(
-                    rt.txt("Submit an issue "),
-                    rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
-                    rt.txt(" if you would like to see this supported. Mention the url: "),
-                    rt.txt(pathraw, {code: true})
-                ),
-            ]});
+            return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: urlNotSupportedYet(pathraw)});
         }
         const firstchild = listing[0].data.children[0]!;
         if(firstchild.kind !== "t3") {
-            return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: [
-                rt.h1(rt.txt("This url is not supported yet")),
-                rt.p(
-                    rt.txt("Submit an issue "),
-                    rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
-                    rt.txt(" if you would like to see this supported. Mention the url: "),
-                    rt.txt(pathraw, {code: true})
-                ),
-            ]});
+            return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: urlNotSupportedYet(pathraw)});
         }
 
         const link_fullname = firstchild.data.name;
@@ -1299,16 +1307,31 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
         };
     }
     expectUnsupported(listing.kind);
-    return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: [
+    return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: urlNotSupportedYet(pathraw)});
+};
+
+function urlNotSupportedYet(pathraw: string) {
+    const ismod = pathraw.startsWith("/mod/") || pathraw.startsWith("/mod?") || pathraw.startsWith("/mod#") || pathraw === "/mod"; // kinda hack
+    if(ismod) {
+        pathraw = pathraw.replace("/mod", "");
+    }
+    return [
         rt.h1(rt.txt("This url is not supported yet")),
+        ismod ? rt.h2(
+            rt.txt("View it on mod.reddit.com: "),
+            rt.link("raw!https://mod.reddit.com"+pathraw, {}, rt.txt("mod.reddit.com"+pathraw)),
+        ) : rt.h2(
+            rt.txt("View it on reddit.com: "),
+            rt.link("raw!https://www.reddit.com"+pathraw, {}, rt.txt("reddit.com"+pathraw)),
+        ),
         rt.p(
             rt.txt("Submit an issue "),
             rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
             rt.txt(" if you would like to see this supported. Mention the url: "),
             rt.txt(pathraw, {code: true}),
         ),
-    ]});
-};
+    ];
+}
 
 type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded";
 type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
@@ -1776,6 +1799,10 @@ path_router.with(["message"] as const, urlr => {
 });
 
 userOrSubredditOrHome(path_router, "home");
+
+path_router.with(["mod"] as const, urlr => {
+    path_router.catchall(todo("not supported"));
+});
 
 path_router.catchall(todo("not supported"));
 
@@ -3432,6 +3459,33 @@ export const client: ThreadClient = {
             throw new Error("TODO more");
         }else assertNever(act);
     },
+    async hydrateInbox(inbox_raw: Generic.Opaque<"deferred_inbox">): Promise<Generic.InboxData> {
+        const inbox = deferred_inbox.decode(inbox_raw);
+        if(inbox.kind === "inbox") {
+            const resp = await redditRequest<Reddit.Listing>("/message/unread", {
+                method: "GET",
+            });
+            const msgs = resp.data.after != null
+                ? {kind: "minimum", min: resp.data.children.length} as const
+                : resp.data.children.length > 0
+                ? {kind: "exact", value: resp.data.children.length} as const
+                : {kind: "zero"} as const
+            ;
+            return {
+                messages: msgs,
+                url: msgs.kind === "zero" ? "/message/inbox" : "/message/unread",
+            };
+            // in the future, clicking the button could have resp preloaded rather than loading it again
+        }else if(inbox.kind === "modmail") {
+            const resp = await redditRequest<Reddit.ModmailUnreadCount>("/api/mod/conversations/unread/count", {
+                method: "GET",
+            });
+            return {
+                messages: resp.notifications > 0 ? {kind: "exact", value: resp.notifications} : {kind: "zero"},
+                url: "/mod/mail/all"
+            };
+        }else assertNever(inbox);
+    }
 };
 
 // turns out (content: never): never => {} doesn't work properly
