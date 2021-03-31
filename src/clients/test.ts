@@ -2,6 +2,8 @@ import * as Generic from "../types/generic";
 import { rt } from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 
+import * as variables from "_variables";
+
 () => encoderGenerator;
 
 const sample_preview_links: {
@@ -194,6 +196,13 @@ export const client: ThreadClient = {
                 return userThread(path, body, {title: desc, collapse_body: true, layout: "reddit-post"});
             });
         })());
+        if(path === "/updates") return bodyPage(path, {
+            kind: "richtext",
+            content: [
+                rt.h1(rt.txt("Version "+variables.version)),
+                rt.pre(variables.log),
+            ],
+        });
         return bodyPage(path, {
             kind: "richtext",
             content: [
