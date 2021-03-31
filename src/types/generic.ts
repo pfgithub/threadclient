@@ -95,6 +95,12 @@ export declare namespace Richtext {
         headings: TableHeading[],
         children: TableItem[][],
     };
+    // TODO split this out a bit?
+    //
+    // InteractiveSpan = SpoilerSpan
+    // SpoilerSpan = {spoiler} | LinkSpan
+    // LinkSpan = {link} | Span
+    // Span = …
     export type Span = {
         kind: "text",
         text: string,
