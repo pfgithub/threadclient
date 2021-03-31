@@ -1,7 +1,6 @@
 import * as Generic from "../types/generic";
 import { rt } from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
-import { router } from "../util";
 
 import * as variables from "_variables";
 
@@ -73,19 +72,6 @@ function bodyPage(path: string, body: Generic.Body): Generic.Page {
                 }],
                 replies: [],
             },
-        },
-        display_style: "comments-view",
-    };
-}
-
-function listingPage(path: string, header: Generic.Thread, items: Generic.Thread[]): Generic.Page {
-    return {
-        title: path,
-        navbar: {actions: [], inboxes: []},
-        body: {
-            kind: "listing",
-            header: header,
-            items: items.map(item => ({parents: [item], replies: []})),
         },
         display_style: "comments-view",
     };
@@ -263,7 +249,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[]):
     const current_bit = path[index];
     if(current_bit == null) return undefined;
 
-    const urlr = "/" + path.filter((_, i) => index <= i).join("/");
+    const urlr = "/" + path.filter((unused, i) => index <= i).join("/");
     
     const found_value = replies.find(([name, cb]) => {
         if(current_bit === name) return current_bit;
