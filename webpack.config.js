@@ -3,7 +3,6 @@ const CopyPlugin = require("copy-webpack-plugin");
 const WorkboxPlugin = require("workbox-webpack-plugin");
 const webpack = require("webpack");
 const VirtualModulesPlugin = require("webpack-virtual-modules");
-const child_process = require("child_process");
 
 const dev = process.env.NODE_ENV === "development";
 
@@ -77,7 +76,7 @@ module.exports = {
             navigateFallback: "/index.html",
         })]),
         new VirtualModulesPlugin({
-            'node_modules/_variables.js': require("src/_variables.js"),
+            'node_modules/_variables.js': require("./src/_variables.js"),
         }),
     ],
     devServer: {

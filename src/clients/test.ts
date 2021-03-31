@@ -95,6 +95,7 @@ type UserThreadOpts = {
     layout: Generic.Thread["layout"],
     collapse_body?: true,
     title?: string,
+    info?: Generic.Info,
 };
 function userThread(path: string, body: Generic.Body, opts: UserThreadOpts): Generic.Thread {
     return {
@@ -104,6 +105,7 @@ function userThread(path: string, body: Generic.Body, opts: UserThreadOpts): Gen
         display_mode: {body: opts.collapse_body ?? false ? "collapsed" : "visible", comments: "collapsed"},
         raw_value: sample_preview_links,
         link: path,
+        info: opts.info,
         layout: opts.layout,
         actions: [],
         default_collapsed: false,
@@ -117,6 +119,36 @@ function richtextPost(path: string, richtext: Generic.Richtext.Paragraph[]): Gen
 
 function collapsibleComment(path: string, body: Generic.Body, opts: {content_warning?: string}): Generic.Thread {
     return userThread(path, body, {...opts, layout: "reddit-comment"});
+}
+
+function commitThread(path: string, entry: variables.LogEntry): Generic.Thread {
+    return userThread(path,
+        {
+            kind: "richtext",
+            content: [
+                rt.pre(entry.commit_body),
+            ],
+        },
+        {
+            title: ""+entry.hash+": "+entry.commit_title,
+            layout: "reddit-post",
+            collapse_body: true,
+            info: {
+                author: {
+                    name: entry.author_name,
+                    flair: [{
+                        elems: [{type: "text", text: entry.author_email}],
+                        content_warning: false,
+                    }],
+                    color_hash: entry.author_email,
+                    link: "ENOLINK",
+                },
+                time: +entry.date,
+                edited: false,
+                pinned: false,
+            },
+        },
+    );
 }
 
 export const client: ThreadClient = {
@@ -196,13 +228,10 @@ export const client: ThreadClient = {
                 return userThread(path, body, {title: desc, collapse_body: true, layout: "reddit-post"});
             });
         })());
-        if(path === "/updates") return bodyPage(path, {
-            kind: "richtext",
-            content: [
-                rt.h1(rt.txt("Version "+variables.version)),
-                rt.pre(variables.log),
-            ],
-        });
+        if(path === "/updates") return listingPage(path, richtextPost(path, [
+            rt.h1(rt.txt("Version "+variables.version)),
+            rt.p(rt.txt("Built "), rt.timeAgo(variables.build_time)),
+        ]), variables.log.map(entry => commitThread(path, entry)));
         return bodyPage(path, {
             kind: "richtext",
             content: [
