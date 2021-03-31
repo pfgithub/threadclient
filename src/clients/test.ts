@@ -1,6 +1,7 @@
 import * as Generic from "../types/generic";
 import { rt } from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
+import { router } from "../util";
 
 import * as variables from "_variables";
 
@@ -93,7 +94,7 @@ function listingPage(path: string, header: Generic.Thread, items: Generic.Thread
 type UserThreadOpts = {
     content_warning?: string,
     layout: Generic.Thread["layout"],
-    collapse_body?: true,
+    collapse_body?: boolean,
     title?: string,
     info?: Generic.Info,
 };
@@ -151,10 +152,15 @@ function commitThread(path: string, entry: variables.LogEntry): Generic.Thread {
     );
 }
 
-export const client: ThreadClient = {
-    id: "test",
-    async getThread(path): Promise<Generic.Page> {
-        if(path === "/link-preview") return listingPage(path, richtextPost(path, [
+type SitemapEntryData = {
+    post: Generic.Thread,
+    replies?: SitemapEntry[],
+};
+type SitemapEntry = [string, (path: string) => SitemapEntryData];
+
+const sitemap: SitemapEntry[] = [
+    ["link-preview", (urlr) => ({
+        post: richtextPost(urlr, [
             rt.h1(rt.txt("Testing Link Preview")),
             rt.p(rt.txt("Check each link and make sure:")),
             rt.ul(
@@ -162,14 +168,18 @@ export const client: ThreadClient = {
                 rt.li(rt.p(rt.txt("When collapsing or uncollapsing the comment, it functions as expected"))),
                 rt.li(rt.p(rt.txt("When closing the preview, it functions as expected"))),
             ),
-        ]), sample_preview_links.map(spl => collapsibleComment(path, {
+        ]),
+        replies: sample_preview_links.map((spl, i) => ["" + i, (urlr) => ({post: collapsibleComment(urlr, {
             kind: "richtext",
             content: [
                 rt.p(rt.txt(spl.expected_result)),
                 rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
             ],
-        }, {content_warning: spl.warn})));
-        if(path === "/body-preview") return listingPage(path, richtextPost(path, []), ((): Generic.Thread[] => {
+        }, {content_warning: spl.warn})})]),
+    })],
+    ["body-preview", (urlr) => ({
+        post: richtextPost(urlr, []),
+        replies: (() => {
             type ITRes = {desc: string, body: Generic.Body};
             const item = (desc: string, body: Generic.Body) => ({desc, body});
             const body_kinds: {[key in Generic.Body["kind"]]: ITRes[]} = {
@@ -209,11 +219,11 @@ export const client: ThreadClient = {
                 removed: [],
                 crosspost: [
                     item("inner post should appear with title and body, width should be as small as possible",
-                        {
-                            kind: "crosspost", source: userThread(path, {kind: "richtext", content: [rt.p(rt.txt("Crossposted Body"))]
-                            }, {
-                                title: "Crossposted Source", layout: "reddit-post"})
-                        }
+                        {kind: "crosspost", source: userThread(urlr, {
+                            kind: "richtext", content: [rt.p(rt.txt("Crossposted Body"))]
+                        }, {
+                            title: "Crossposted Source", layout: "reddit-post"
+                        })},
                     )
                 ],
                 array: [],
@@ -221,25 +231,109 @@ export const client: ThreadClient = {
                 oembed: [],
                 mastodon_instance_selector: [item("mastodon instance selector", {kind: "mastodon_instance_selector"})],
             };
-            return Object.entries(body_kinds).flatMap(([key, items]): ITRes[] => {
-                if(items.length === 0) return [item("ERROR! Missing for "+key, {kind: "none"})];
-                return items;
-            }).map(({desc, body}) => {
-                return userThread(path, body, {title: desc, collapse_body: true, layout: "reddit-post"});
-            });
-        })());
-        if(path === "/updates") return listingPage(path, richtextPost(path, [
+            return Object.entries(body_kinds).map(([key, items]): SitemapEntry => [
+                key,
+                (urlr) => ({
+                    post: userThread(urlr, {kind: "richtext", content: []}, {title: key, collapse_body: true, layout: "reddit-post"}),
+                    replies: items.map(({body, desc}, i): SitemapEntry => [
+                        "" + i,
+                        (urlr) => ({
+                            post: userThread(urlr, body, {title: desc, collapse_body: true, layout: "reddit-post"})
+                        }),
+                    ])
+                }),
+            ]);
+        })(),
+    })],
+    ["updates", (urlr) => ({
+        post: richtextPost(urlr, [
             rt.h1(rt.txt("Version "+variables.version)),
             rt.p(rt.txt("Built "), rt.timeAgo(variables.build_time)),
-        ]), variables.log.map(entry => commitThread(path, entry)));
+        ]),
+        replies: variables.log.map((entry, i): SitemapEntry => [
+            entry.hash_full,
+            (urlr) => ({post: commitThread(urlr, entry)}),
+        ]),
+    })],
+];
+
+type SitemapResult = {current: Generic.Thread, children: SitemapResult | Generic.Thread[]};
+
+function getFromSitemap(path: string[], index: number, replies: SitemapEntry[]): SitemapResult | undefined {
+    const current_bit = path[index];
+    if(current_bit == null) return undefined;
+
+    const urlr = "/" + path.filter((_, i) => index <= i).join("/");
+    
+    const found_value = replies.find(([name, cb]) => {
+        if(current_bit === name) return current_bit;
+    });
+
+    if(found_value) {
+        const called = found_value[1](urlr);
+        return {
+            current: called.post,
+            children: getFromSitemap(path, index + 1, called.replies ?? []) ?? (called.replies ?? []).map(reply => {
+                const urlr2 = urlr + "/" + reply[0];
+                return reply[1](urlr2).post;
+            }),
+        };
+    }
+
+    return {children: [], current: userThread(urlr, {
+        kind: "richtext",
+        content: [
+            rt.p(rt.txt("404 not found "+path)),
+        ],
+    }, {title: "404", collapse_body: false, layout: "reddit-post"})};
+}
+
+export const client: ThreadClient = {
+    id: "test",
+    async getThread(path): Promise<Generic.Page> {
+        const parsed_path = new URL(path, "http://test/");
+
+        const pathsplit = parsed_path.pathname.split("/").filter(q => q);
+
+        const smres = getFromSitemap(pathsplit, 0, sitemap);
+
+        if(smres) {
+            const parent_nodes: Generic.Thread[] = [];
+            let children_nodes: Generic.Thread[];
+            let last_node: Generic.Thread;
+            const evalv = (q: SitemapResult) => {
+                parent_nodes.push(q.current);
+                if(Array.isArray(q.children)) {
+                    children_nodes = q.children;
+                    last_node = q.current;
+                }else{
+                    evalv(q.children);
+                }
+            };
+            evalv(smres);
+
+            return {
+                title: last_node!.title?.text ?? "«err no title»",
+                navbar: {actions: [], inboxes: []},
+                body: {
+                    kind: "one",
+                    item: {
+                        parents: parent_nodes,
+                        replies: children_nodes!,
+                    },
+                },
+                display_style: "comments-view",
+            };
+        }
+
         return bodyPage(path, {
             kind: "richtext",
             content: [
-                ...path === "/" ? [] : [rt.p(rt.txt("404 not found "+path))],
                 rt.h1(rt.txt("Tests:")),
                 rt.ul(...[
                     "/body-preview",
                     "/link-preview",
+                    "/updates",
                 ].map(v => rt.li(rt.p(
                     rt.link(v, {}, rt.txt(v)),
                 )))),
