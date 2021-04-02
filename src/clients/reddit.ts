@@ -2097,7 +2097,7 @@ const topLevelThreadFromInboxMsg = (inbox_msg: Reddit.InboxMsg): Generic.Unmount
 };
 
 const topLevelThreadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.UnmountedNode => {
-    const res = threadFromListingMayError(listing_raw, options, parent_permalink);
+    const res = threadFromListing(listing_raw, options, parent_permalink);
     if(listing_raw.kind === "t1" && 'link_title' in listing_raw.data) {
         return {
             parents: [{
@@ -2509,10 +2509,11 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     return res;
                 }
                 if(moreinfo.e === "Image") {
+                    const thumb = moreinfo.p[0] ?? moreinfo.s;
                     const res: Generic.GalleryItem = {
-                        thumb: moreinfo.p[0]!.u ?? "error",
-                        w: moreinfo.p[0]!.x,
-                        h: moreinfo.p[0]!.y,
+                        thumb: thumb.u ?? "error",
+                        w: thumb.x,
+                        h: thumb.y,
                         body: {
                             kind: "captioned_image",
                             url: moreinfo.s.u ?? "error",
@@ -2524,10 +2525,11 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     return res;
                 }
                 if(moreinfo.e === "AnimatedImage") {
+                    const thumb = moreinfo.p?.[0];
                     const res: Generic.GalleryItem = {
-                        thumb: moreinfo.p![0]!.u ?? "error",
-                        w: moreinfo.p![0]!.x,
-                        h: moreinfo.p![0]!.y,
+                        thumb: thumb ? thumb.u : "error",
+                        w: thumb?.x,
+                        h: thumb?.y,
                         body: {
                             kind: "video",
                             source: moreinfo.s.mp4 != null
