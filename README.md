@@ -32,7 +32,6 @@ Demo:
 ## why this instead of old.reddit?
 
 -   old.reddit is missing many features including
-    -   the "3 discussions in other communities" feature (partial support in threadreader) ([userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this in old.reddit)
     -   the ability to collapse a comment from anywhere in a comment (I have a [userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this)
     -   richtext comments (wip in threadreader)
     -   sidebar widgets
@@ -174,6 +173,7 @@ reddit todo:
 -   [x] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
 -   [x] support op, mod distinguished, and admin distinguished comments and posts
 -   [x] messages
+-   [ ] reddit youtube comments using `/search?syntax=cloudsearch&q=`encode(`(url:`vid_id`) AND (site:youtube.com OR site:youtu.be)`)
 -   [ ] improve messages appearence
 -   [ ] if you see the message on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit
 -   [ ] support contest mode
