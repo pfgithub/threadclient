@@ -1261,7 +1261,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                 }, ...user_sortless_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
                     selected: page.current.tab === tab,
                     text: tabname,
-                    action: {kind: "link", url: "/"+["u", page.username, tabname].join("/")},
+                    action: {kind: "link", url: "/"+["u", page.username, tab].join("/")},
                 }))] : page.kind === "inbox" ? [{
                     selected: page.current.tab === "compose",
                     text: "Compose",
