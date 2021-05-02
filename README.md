@@ -247,3 +247,9 @@ twitter/tumblr todo:
 
 -   [ ] create an oauth 1.0a proxy server
 -   [ ] try some requests
+
+mail todo:
+
+- use like imap/pop/smtp/gmail api or something
+- threadreader actually fits well as an email interface
+- unfortunately will require a backend but at least it doesn't require a secret so the backend can be run locally on a computer
