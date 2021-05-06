@@ -253,3 +253,7 @@ mail todo:
 - use like imap/pop/smtp/gmail api or something
 - threadreader actually fits well as an email interface
 - unfortunately will require a backend but at least it doesn't require a secret so the backend can be run locally on a computer
+
+github todo:
+
+https://github.com/octokit/octokit.js/ it has issues support
