@@ -2661,6 +2661,11 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             content_subminfo_line.atxt(", ").adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
+        if(listing.layout === "reddit-comment" && listing.info.author.pfp) {
+            const pfpimg = el("img").attr({src: listing.info.author.pfp.url}).adto(content_subminfo_line).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
+            pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
+            content_subminfo_line.atxt(" ");
+        }
         content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name));
         if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.layout === "mastodon-post" && listing.info.author.pfp) {
@@ -3338,48 +3343,135 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
 
-    const colorschemearea = el("div").clss("p-4").adto(res);
-    colorschemearea.adch(el("h1").atxt("Color Scheme").clss("text-2xl font-black"));
-    const lightbtn = el("button").atxt("Light Mode").adto(colorschemearea).onev("click", e => {
-        e.stopPropagation();
-        setColorScheme("light");
-    });
-    const darkbtn = el("button").atxt("Dark Mode").adto(colorschemearea).onev("click", e => {
-        e.stopPropagation();
-        setColorScheme("dark");
-    });
-    const systembtn = el("button").atxt("System Default ").adto(colorschemearea).onev("click", e => {
-        e.stopPropagation();
-        setColorScheme("system");
-    });
-    const systemtext = txt("(…)");
-    systembtn.adch(systemtext);
+    {
+        const colorschemearea = el("div").clss("p-4").adto(res);
+        colorschemearea.adch(el("h1").atxt("Color Scheme").clss("text-2xl font-black"));
+        const lightbtn = el("button").atxt("Light Mode").adto(colorschemearea).onev("click", e => {
+            e.stopPropagation();
+            setColorScheme("light");
+        });
+        const darkbtn = el("button").atxt("Dark Mode").adto(colorschemearea).onev("click", e => {
+            e.stopPropagation();
+            setColorScheme("dark");
+        });
+        const systembtn = el("button").atxt("System Default ").adto(colorschemearea).onev("click", e => {
+            e.stopPropagation();
+            setColorScheme("system");
+        });
+        const systemtext = txt("(…)");
+        systembtn.adch(systemtext);
 
-    const onupdate = ([scheme, system]: SchemeInfo) => {
-        systemtext.nodeValue = system ? "(Dark)" : "(Light)";
+        const onupdate = ([scheme, system]: SchemeInfo) => {
+            systemtext.nodeValue = system ? "(Dark)" : "(Light)";
 
-        lightbtn.setAttribute("class", menuButtonStyle(scheme === "light"));
-        darkbtn.setAttribute("class", menuButtonStyle(scheme === "dark"));
-        systembtn.setAttribute("class", menuButtonStyle(scheme === "system"));
-    };
-    onupdate(getColorScheme());
-    const removeOnchange = onColorSchemeChange((cschm, csys) => {
-        onupdate([cschm, csys]);
-    });
-    hsc.on("cleanup", () => removeOnchange());
+            lightbtn.setAttribute("class", menuButtonStyle(scheme === "light"));
+            darkbtn.setAttribute("class", menuButtonStyle(scheme === "dark"));
+            systembtn.setAttribute("class", menuButtonStyle(scheme === "system"));
+        };
+        onupdate(getColorScheme());
+        const removeOnchange = onColorSchemeChange((cschm, csys) => {
+            onupdate([cschm, csys]);
+        });
+        hsc.on("cleanup", () => removeOnchange());
 
-    const demoitm = el("div").adto(colorschemearea);
-    el("div").clss("w-max max-w-full").adto(demoitm).adch(
-        makeTopLevelWrapper().adch(
-            el("div").clss("prose").adch(
-                el("h1").atxt("Theme"),
-                el("p").atxt("theme"),
+        const demoitm = el("div").adto(colorschemearea);
+        el("div").clss("w-max max-w-full").adto(demoitm).adch(
+            makeTopLevelWrapper().adch(
+                el("div").clss("prose").adch(
+                    el("h1").atxt("Theme"),
+                    el("p").atxt("theme"),
+                ),
             ),
-        ),
-    );
+        );
+    }
+
+    // cfg-reddit-pfp
+    {
+        const pfparea = el("div").clss("p-4").adto(res);
+        pfparea.adch(el("h1").atxt("Profile Images (reddit)").clss("text-2xl font-black"));
+        const onbtn = el("button").atxt("Enable").adto(pfparea).onev("click", e => {
+            e.stopPropagation();
+            localStorage.setItem("pfp-cfg", "on");
+            updatePfpcfg();
+        });
+        const offbtn = el("button").atxt("Disable").adto(pfparea).onev("click", e => {
+            e.stopPropagation();
+            localStorage.setItem("pfp-cfg", "off");
+            updatePfpcfg();
+        });
+
+        const onupdate = () => {
+            onbtn.setAttribute("class", menuButtonStyle(pfpcfg === "on"));
+            offbtn.setAttribute("class", menuButtonStyle(pfpcfg === "off"));
+        };
+
+        pfpevent.push(onupdate);
+        hsc.on("cleanup", () => {
+            pfpevent.splice(pfpevent.indexOf(onupdate), 1);
+        });
+        onupdate();
+
+        const fake = makeTopLevelWrapper().adto(pfparea);
+
+        // a hack. ideally I'd render a real comment using the reddit client
+        // but that's a bit annoying to do atm so instead here is a hack.
+        fake.innerHTML = `
+        <div class="post text-sm layout-reddit-comment layout-commentlike spacefiller-redditpoints">${""
+}<button class="collapse-btn" draggable="true" aria-label="Collapse" aria-pressed="false"><div class${""
+}="collapse-btn-inner"></div></button><div class="post-voting"><span class="counter counted-reset"><${""
+}button class="counter-increment-btn p-1 rounded hover:bg-gray-200" draggable="true" aria-label="Up"${""
+} aria-pressed="false"><span>⯅ Vote</span></button>  <button class="p-1 rounded hover:bg-gray-200 co${""
+}unter-decrement-btn" draggable="true" aria-label="Down"><span>⯆</span></button></span></div><div cl${""
+}ass="post-content-title"></div><button class="post-thumbnail no-thumbnail"></button><div class="pos${""
+}t-content-subminfo text-xs"><img src="https://www.redditstatic.com/avatars/avatar_default_02_FF8717${""
+}.png" class="w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp" title="Disable in sett${""
+}ings (thread.pfg.pw/settings)"> <a class="text-userlink-color-light dark:text-userlink-color-dark hov${""
+}er:underline" href="/reddit/u/pfg___" target="_blank" rel="noreferrer noopener" style="--ligh${""
+}t-color:rgb(3, 48, 21); --dark-color:rgb(207, 252, 224);">pfg___</a> <span class="counter-count" tit${""
+}le="2">2</span> points<!----> <span><span title="Sun May 09 2021 18:00:14 GMT-0700 (Pacific Daylight${""
+} Time)">5 hours ago</span></span></div><div class="post-preview"><div class="post-body"><div><div cl${""
+}ass="prose whitespace-pre-wrap"><p><span>This is an example comment!</span></p></div></div></div></d${""
+}iv><div class="post-content-buttons text-xs"> <button class="p-1 rounded hover:bg-gray-200" draggabl${""
+}e="true">Reply</button> <span><button class="p-1 rounded hover:bg-gray-200" draggable="true">Delete</button><${""
+}/span><span style="display: none;">Are you sure? <button class="text-red-600 dark:text-red-500 hover${""
+}:underline" draggable="true">Delete</button> / <button class="text-blue-600 dark:text-blue-500 hover${""
+}:underline" draggable="true">Cancel</button></span><span style="display: none;">Deleted!</span><span${""
+} style="display: none;"></span><span style="display: none;">Deleting…</span> <span class="counter co${""
+}unted-reset"><button class="counter-increment-btn p-1 rounded hover:bg-gray-200" draggable="true" ar${""
+}ia-label="Up" aria-pressed="false"><span>Save</span></button> <span class="counter-count" title="[sc${""
+}ore hidden]"></span></span> <button class="p-1 rounded hover:bg-gray-200" draggable="true">Report</b${""
+}utton> <button class="p-1 rounded hover:bg-gray-200" draggable="true">Code</button></div><div class=${""
+}"post-replies"><ul class="replies"></ul></div></div>`;
+    }
 
     return hsc;
 }
+
+let pfpcfg: "on" | "off" = "on";
+let pfpstyl: HTMLStyleElement | undefined = undefined;
+const pfpevent: (() => void)[] = [];
+function updatePfpcfg() {
+    const lsv = localStorage.getItem("pfp-cfg");
+    if(lsv === "on" || lsv === "off") pfpcfg = lsv;
+
+    if(pfpcfg === "off") {
+        if(!pfpstyl) {
+            // instead of this it could emit an event but this is good enough for now
+            pfpstyl = el("style").atxt(".cfg-reddit-pfp {display: none;}").adto(document.head);
+            pfpevent.map(ev => ev());
+        }
+    }else{
+        if(pfpstyl) {
+            pfpstyl.remove();
+            pfpstyl = undefined;
+            pfpevent.map(ev => ev());
+        }
+    }
+}
+updatePfpcfg();
+window.addEventListener("storage", () => {
+    updatePfpcfg();
+});
 
 function pwaStartPage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");

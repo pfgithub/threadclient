@@ -329,6 +329,7 @@ const pathURL = (oauth: boolean, path: string, opts: {override?: boolean}) => {
     query.set("rtj", "yes"); // undefined | "yes" | "only" but it turns out in listings eg /r/subreddit.json rtj=only cuts off after like 10 paragraphs but rtj=yes doesn't weird
     query.set("emotes_as_images", "true"); // enables sending {t: "gif"} span elements in richtext rather than sending a link
     query.set("gilding_detail", "1"); // not sure what this does but new.reddit sends it in an oauth.reddit.com request so it sounds good
+    query.set("profile_img", "true"); // profile images
     return baseURL(oauth) + pathname + ".json?"+query.toString();
 };
 
@@ -2216,6 +2217,7 @@ function authorFromInfo(opts: {
     distinguished: Reddit.UserDistinguished | null,
     is_submitter: boolean,
     author_cakeday: boolean | undefined,
+    pfp: string | undefined,
 }): Generic.Info["author"] {
     const system_colors: {[key in Reddit.UserDistinguished]: string} = {
         admin: "text-red-500",
@@ -2253,7 +2255,11 @@ function authorFromInfo(opts: {
                 system: system_colors[opts.distinguished] ?? system_colors.unsupported,
             }]) : [],
             ...opts.additional_flairs ?? [],
-        ]
+        ],
+        pfp: opts.pfp != null && opts.pfp !== "" ? {
+            url: opts.pfp,
+            hover: opts.pfp,
+        } : undefined,
     };
 }
 function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.PostComment, additional_flairs?: Generic.Flair[]): Generic.Info["author"] {
@@ -2269,6 +2275,7 @@ function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.PostCom
         distinguished: listing.distinguished,
         is_submitter: 'is_submitter' in listing ? (listing.is_submitter ?? false) : false,
         author_cakeday: listing.author_cakeday,
+        pfp: listing.profile_img,
     });
 }
 

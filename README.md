@@ -9,7 +9,7 @@ Demo:
 -   ability to preview links in comments like RES adds
 -   ability to preview comments written in markdown mode before posting them
 -   all external links open in a new tab by default so you never have to worry if you should click or ctrl click a link
--   usernames are different colors to make it easier to notice repeat users (new.reddit has profile pictures for this)
+-   usernames are different colors to make it easier to notice repeat users
 -   threadreader preview supports these better than reddit in some ways:
     -   imgur albums
     -   gfycat gifs
@@ -33,10 +33,10 @@ Demo:
 
 -   old.reddit is missing many features including
     -   the ability to collapse a comment from anywhere in a comment (I have a [userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this)
-    -   richtext comments (wip in threadreader)
     -   sidebar widgets
+    -   profile pictures
+    -   replying with richtext (TODO in threadreader)
     -   removal reasons (TODO in threadreader)
-    -   adding flairs to posts before posting and submission guidelines (TODO in threadreader)
 -   old.reddit takes a while to go back/forwards in the browser, so you have to use tabs instead
 -   threadreader has dark mode support
 
@@ -250,9 +250,9 @@ twitter/tumblr todo:
 
 mail todo:
 
-- use like imap/pop/smtp/gmail api or something
-- threadreader actually fits well as an email interface
-- unfortunately will require a backend but at least it doesn't require a secret so the backend can be run locally on a computer
+-   use like imap/pop/smtp/gmail api or something
+-   threadreader actually fits well as an email interface
+-   unfortunately will require a backend but at least it doesn't require a secret so the backend can be run locally on a computer
 
 github todo:
 
