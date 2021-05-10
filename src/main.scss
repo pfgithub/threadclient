@@ -957,3 +957,6 @@ summary {
     filter: grayscale(100%);
     transform: skewX(-10deg);
 }
+.comment-collapsed .post-content-subminfo .cfg-reddit-pfp {
+    display: none;
+}
