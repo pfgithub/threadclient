@@ -15,6 +15,9 @@ function childrenOf(node: commonmark.Node): commonmark.Node[] {
     return res;
 }
 
+// switch to marked it has a better structure and supports more things
+//https://marked.js.org/demo/?outputType=lexer&text=Test%20~~hmm~~%20Interesting%0A%0A%7Ctable%7C1%7C2%7C%0A%7C-%7C-%7C-%7C%0A%7Ca%7Cb%7Cc%7C&options=%7B%0A%20%22baseUrl%22%3A%20null%2C%0A%20%22breaks%22%3A%20false%2C%0A%20%22gfm%22%3A%20true%2C%0A%20%22headerIds%22%3A%20true%2C%0A%20%22headerPrefix%22%3A%20%22%22%2C%0A%20%22highlight%22%3A%20null%2C%0A%20%22langPrefix%22%3A%20%22language-%22%2C%0A%20%22mangle%22%3A%20true%2C%0A%20%22pedantic%22%3A%20false%2C%0A%20%22sanitize%22%3A%20false%2C%0A%20%22sanitizer%22%3A%20null%2C%0A%20%22silent%22%3A%20false%2C%0A%20%22smartLists%22%3A%20false%2C%0A%20%22smartypants%22%3A%20false%2C%0A%20%22tokenizer%22%3A%20null%2C%0A%20%22walkTokens%22%3A%20null%2C%0A%20%22xhtml%22%3A%20false%0A%7D&version=master
+
 function paragraphToRichtextParagraph(node: commonmark.Node): Richtext.Paragraph {
     if(node.type === "heading") {
         return rt.hn(node.level, ...childrenOf(node).flatMap(it => spanToRichtextSpan(it, {})));
