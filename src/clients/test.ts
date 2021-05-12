@@ -26,7 +26,7 @@ function paragraphToRichtextParagraph(node: commonmark.Node): Richtext.Paragraph
         return rt.hr();
     }else if(node.type === "code_block") {
         // node.info for the language eg ```zig
-        return rt.pre(node.literal ?? "ERR");
+        return rt.pre(node.literal ?? "ERR", node.info ?? undefined);
     }else if(node.type === "list") {
         return {
             kind: "list",

@@ -57,14 +57,6 @@ export type BodyText = {
     markdown_format: "reddit" | "reddit_html" | "none",
 };
 export declare namespace Richtext {
-    // TODO:
-    // lists:
-    // - list children: (TightListItem[] | ListItem[])
-    // text:
-    // - remove code as a style, it should be a span type
-    // - remove the error style
-    // block code:
-    // - add support for setting a language
 
     export type Style = {
         strong?: boolean,
@@ -94,6 +86,7 @@ export declare namespace Richtext {
     } | {
         kind: "code_block",
         text: string,
+        lang?: string,
     } | {
         kind: "table",
         headings: TableHeading[],
@@ -580,7 +573,7 @@ export const rt = {
     blockquote: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "blockquote", children: items}),
     txt: (text: string, styles: Richtext.Style = {}): Richtext.Span => ({kind: "text", text, styles}),
     link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => ({kind: "link", url, children, ...opts}),
-    pre: (text: string): Richtext.Paragraph => ({kind: "code_block", text}),
+    pre: (text: string, lang?: string): Richtext.Paragraph => ({kind: "code_block", text, lang}),
     error: (text: string, value: unknown): Richtext.Span => ({kind: "error", text, value}),
     br: (): Richtext.Span => ({kind: "br"}),
     flair: (flair: Flair): Richtext.Span => ({kind: "flair", flair}),

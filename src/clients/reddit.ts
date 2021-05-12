@@ -159,15 +159,12 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
             ordered: rtd.o,
             children: rtd.c.map(itm => rt.li(...richtextParagraphArray(itm.c, opt))),
         };
-        case "code": return {
-            kind: "code_block",
-            text: rtd.c.map(v => {
-                switch(v.e) {
-                    case "raw": return v.t;
-                    case "unsupported": return "Err «"+JSON.stringify(v)+"»";
-                }
-            }).join("\n"),
-        };
+        case "code": return rt.pre(rtd.c.map(v => {
+            switch(v.e) {
+                case "raw": return v.t;
+                case "unsupported": return "Err «"+JSON.stringify(v)+"»";
+            }
+        }).join("\n"));
         case "table": return {
             kind: "table",
             headings: rtd.h.map(h => richtextTableHeading(h, opt)),

@@ -999,7 +999,11 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             el("hr").adto(container);
         } break;
         case "code_block": {
-            el("pre").adch(el("code").atxt(rtp.text)).adto(container);
+            const preel = el("pre");
+            if(rtp.lang != null) {
+                preel.adch(el("div").clss("font-sans").adch(el("span").clss("bg-gray-100 p-1 inline-block rounded-sm").atxt("lang="+rtp.lang)));
+            }
+            preel.adch(el("code").atxt(rtp.text)).adto(container);
         } break;
         case "body": {
             // TODO
