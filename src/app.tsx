@@ -868,9 +868,7 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
                 outer.adch(mainel);
                 mainel = outer;
             };
-            if(rts.styles.code ?? false) wrap(el("code"));
             if(rts.styles.emphasis ?? false) wrap(el("i"));
-            if(rts.styles.error != null) wrap(el("span").clss("error").attr({title: rts.styles.error}));
             if(rts.styles.strikethrough ?? false) wrap(el("s"));
             if(rts.styles.strong ?? false) wrap(el("b"));
             if(rts.styles.superscript ?? false) wrap(el("sup"));
@@ -932,6 +930,9 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
         } break;
         case "time-ago": {
             timeAgo(rts.start).defer(hsc).adto(container);
+        } break;
+        case "code": {
+            el("code").atxt(rts.text).adto(container);
         } break;
         default: assertNever(rts);
     }

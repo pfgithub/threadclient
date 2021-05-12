@@ -71,8 +71,6 @@ export declare namespace Richtext {
         emphasis?: boolean,
         strikethrough?: boolean,
         superscript?: boolean,
-        code?: boolean,
-        error?: string,
     };
     export type Paragraph = {
         kind: "paragraph",
@@ -141,6 +139,9 @@ export declare namespace Richtext {
         kind: "error",
         text: string,
         value: unknown,
+    } | {
+        kind: "code",
+        text: string,
     };
     export type TableHeading = {
         align?: "left" | "center" | "right",
@@ -588,7 +589,7 @@ export const rt = {
     td: (...content: Richtext.Span[]): Richtext.TableItem => ({children: content}),
     timeAgo: (time: number): Richtext.Span => ({kind: "time-ago", start: time}),
     hr: (): Richtext.Paragraph => ({kind: "horizontal_line"}),
-    code: (text: string): Richtext.Span => rt.txt(text, {code: true}), // this should instead be {kind: "code", text: …}
+    code: (text: string): Richtext.Span => ({kind: "code", text}), // this should instead be {kind: "code", text: …}
 };
 
 export const mnu = {

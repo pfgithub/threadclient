@@ -72,7 +72,7 @@ function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormatting
         return richtextParagraphArray(rtd.document, opt);
     }catch(e) {
         console.log("Error parsing richtext:", e);
-        return [{kind: "paragraph", children: [{kind: "text", styles: {error: "thrown error"}, text: "Error parsing richtext: "+e}]}];
+        return [rt.p(rt.error("Error parsing richtext: "+e, e))];
     }
 }
 function richtextParagraphArray(rtd: Reddit.Richtext.Paragraph[], opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
@@ -85,7 +85,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Bo
     if(media_meta.status !== "valid") {
         return {
             kind: "richtext",
-            content: [richtextErrorP("Bad Status "+media_meta.status, JSON.stringify(media_meta))],
+            content: [rt.p(rt.error("Bad Status "+media_meta.status, media_meta))],
         };
     }
     if(media_meta.e === "Image") return {
@@ -117,7 +117,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Bo
     expectUnsupported(media_meta.e);
     return {
         kind: "richtext",
-        content: [richtextErrorP("TODO "+media_meta.e, JSON.stringify(media_meta))],
+        content: [rt.p(rt.error("TODO "+media_meta.e, media_meta))],
     };
 }
 function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph {
@@ -136,7 +136,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
         };
         case "img": case "video": case "gif": {
             const data = opt.media_metadata[rtd.id];
-            if(!data) return richtextErrorP("unknown id "+rtd.id, JSON.stringify(opt));
+            if(!data) return rt.p(rt.error("unknown id "+rtd.id, opt));
             return {
                 kind: "body",
                 body: mediaMetaToBody(data, rtd.c),
@@ -175,10 +175,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
         };
     }
     expectUnsupported(rtd.e);
-    return {
-        kind: "paragraph",
-        children: [{kind: "text", text: "TODO "+rtd.e, styles: {error: "TODO «"+JSON.stringify(rtd)+"»"}}],
-    };
+    return rt.p(rt.error("TODO "+rtd.e, rtd));
 }
 function richtextTableHeading(tbh: Reddit.Richtext.TableHeading, opt: RichtextFormattingOptions): Generic.Richtext.TableHeading {
     return {
@@ -244,7 +241,19 @@ function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange
         commit(start);
         previdx = start + length;
         const fmt = text.substr(start, length);
-        resitems.push({kind: "text", text: fmt, styles: richtextStyle(fmtid)});
+        const resstyl = richtextStyle(fmtid);
+        if(resstyl.error != null) {
+            resitems.push(rt.error(fmt, resstyl.error));
+        }else if(resstyl.code) {
+            resitems.push(rt.code(fmt));
+        }else{
+            resitems.push(rt.txt(fmt, {
+                strong: resstyl.strong,
+                emphasis: resstyl.emphasis,
+                strikethrough: resstyl.strike,
+                superscript: resstyl.super,
+            }));
+        }
     });
     commit(text.length);
     return resitems;
@@ -269,9 +278,9 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
         case "raw": return [{kind: "text", text: rtd.t, styles: {}}];
         case "gif": {
             const meta = opt.media_metadata[rtd.id];
-            if(!meta) return richtextError("Missing media id "+rtd.id, JSON.stringify(meta));
-            if(meta.status !== "valid") return richtextError("Bad status "+meta.status, JSON.stringify(meta));
-            if(meta.e !== "AnimatedImage") return richtextError("Unsupported "+meta.e, JSON.stringify(meta));
+            if(!meta) return [rt.error("Missing media id "+rtd.id, meta)];
+            if(meta.status !== "valid") return [rt.error("Bad status "+meta.status, meta)];
+            if(meta.e !== "AnimatedImage") return [rt.error("Unsupported "+meta.e, meta)];
             return [
                 {kind: "link", url: meta.s.mp4 ?? meta.s.gif,
                     children: [{kind: "text", text: "[embedded "+rtd.id.split("|")[0]+"]", styles: {}}],
@@ -280,26 +289,25 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
         }
     }
     expectUnsupported(rtd.e);
-    return [{kind: "text", text: "TODO "+rtd.e, styles: {error: "TODO «"+JSON.stringify(rtd)+"»"}}];
-}
-function richtextError(text: string, hover: string): Generic.Richtext.Span[] {
-    return [{kind: "text", text: text, styles: {error: hover}}];
-}
-function richtextErrorP(text: string, hover: string): Generic.Richtext.Paragraph {
-    return {
-        kind: "paragraph",
-        children: richtextError(text, hover),
-    };
+    return [rt.error("TODO "+rtd.e, rtd)];
 }
 function richtextSpanArray(rtsa: Reddit.Richtext.Span[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     return (rtsa ?? []).flatMap(v => richtextSpan(v, opt));
 }
-function richtextStyle(style: number): Generic.Richtext.Style {
+type StyleRes = {
+    strong: boolean,
+    emphasis: boolean,
+    strike: boolean,
+    super: boolean,
+    code: boolean,
+    error?: string,
+};
+function richtextStyle(style: number): StyleRes {
     return {
         strong: !!(style & 1),
         emphasis: !!(style & 2),
-        strikethrough: !!(style & 8),
-        superscript: !!(style & 32),
+        strike: !!(style & 8),
+        super: !!(style & 32),
         code: !!(style & 64),
         error: style & ~0b1101011 ? "unsupported style "+style.toString(2) : undefined,
     };
@@ -514,7 +522,7 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
             kind: "widget",
             title: "Error!",
             raw_value: data,
-            widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! Error "+e.toString(), JSON.stringify(data))]}},
+            widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! Error "+e.toString(), data))]}},
         };
     }
 };
@@ -575,12 +583,12 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         kind: "widget",
         title: "Error!",
         raw_value: data,
-        widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Not supported "+data.kind, JSON.stringify(data))]}},
+        widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Not supported "+data.kind, data))]}},
     }; else if(data.kind === "menu") return {
         kind: "widget",
         title: "Error!",
         raw_value: data,
-        widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! TODO widget "+data.kind, JSON.stringify(data))]}},
+        widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! TODO widget "+data.kind, data))]}},
     }; else if(data.kind === "textarea") return {
         kind: "widget",
         title: data.shortName,
@@ -676,7 +684,7 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         kind: "widget",
         title: "Error!",
         raw_value: data,
-        widget_content: {kind: "body", body: {kind: "richtext", content: [richtextErrorP("Uh oh! Unsupported widget "+data.kind, JSON.stringify(data))]}},
+        widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! Unsupported widget "+data.kind, data))]}},
     };
 };
 function customIDCardWidget(t5: Reddit.T5, subreddit: string): Generic.ContentNode {
@@ -1320,7 +1328,7 @@ function urlNotSupportedYet(pathraw: string) {
             rt.txt("Submit an issue "),
             rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
             rt.txt(" if you would like to see this supported. Mention the url: "),
-            rt.txt(pathraw, {code: true}),
+            rt.code(pathraw),
         ),
     ];
 }
@@ -2145,7 +2153,7 @@ const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, p
         console.log(e);
         return {
             kind: "thread",
-            body: {kind: "richtext", content: [richtextErrorP("Error! "+e.toString(), e.stack)]},
+            body: {kind: "richtext", content: [rt.p(rt.error("Error! "+e.toString(), e))]},
             display_mode: {body: "visible", comments: "visible"},
             raw_value: {error: e, listing: listing_raw},
             link: "Error!",
@@ -2496,12 +2504,9 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                         h: 200,
                         body: {
                             kind: "richtext",
-                            content: [{kind: "paragraph", children: [
-                                {kind: "text", text: "bad status: "+moreinfo.status, styles: {error: moreinfo.status}}
-                            ]}, {
-                                kind: "code_block",
-                                text: JSON.stringify(moreinfo, null, "\t"),
-                            }],
+                            content: [rt.p(
+                                rt.error("bad status: "+moreinfo.status, moreinfo)
+                            ), rt.pre(JSON.stringify(moreinfo, null, "\t"))],
                         },
                     };
                     return res;
@@ -2552,12 +2557,9 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     h: 200,
                     body: {
                         kind: "richtext",
-                        content: [{kind: "paragraph", children: [
-                            {kind: "text", text: "unsupported kind: "+moreinfo.e, styles: {error: moreinfo.e}}
-                        ]}, {
-                            kind: "code_block",
-                            text: JSON.stringify(moreinfo, null, "\t"),
-                        }],
+                        content: [rt.p(
+                            rt.error("unsupported kind: "+moreinfo.e, moreinfo),
+                        ), rt.pre(JSON.stringify(moreinfo, null, "\t"))],
                     },
                 };
                 return res;
@@ -2956,7 +2958,7 @@ export const client: ThreadClient = {
                     kind: "widget",
                     title: "TODO",
                     widget_content: {kind: "body", body: {kind: "richtext", content: [
-                        rt.p(rt.txt("This page "), rt.txt(pathraw, {code: true}), rt.txt(" is not supported (yet)")),
+                        rt.p(rt.txt("This page "), rt.code(pathraw), rt.txt(" is not supported (yet)")),
                         rt.p(rt.txt(parsed.msg)),
                     ]}},
                     raw_value: parsed,
@@ -2980,7 +2982,7 @@ export const client: ThreadClient = {
                         body: {kind: "richtext", content: [
                             rt.h1(rt.txt("Error! Redirect Loop")),
                             rt.p(rt.txt("Threadreader tried to redirect over 100 times.")),
-                            rt.p(rt.txt("Path: "), rt.txt(pathraw, {code: true}), rt.error("Code", parsed)),
+                            rt.p(rt.txt("Path: "), rt.code(pathraw), rt.error("Code", parsed)),
                         ]},
                         display_mode: {comments: "visible", body: "visible"},
                         link: pathraw,
@@ -2997,7 +2999,7 @@ export const client: ThreadClient = {
                 kind: "widget",
                 title: "TODO",
                 widget_content: {kind: "body", body: {kind: "richtext", content: [
-                    rt.p(rt.txt("This page "), rt.txt(pathraw, {code: true}), rt.txt(" is not supported (yet)")),
+                    rt.p(rt.txt("This page "), rt.code(pathraw), rt.txt(" is not supported (yet)")),
                     rt.p(rt.txt(parsed.kind)),
                     rt.p(rt.txt("View it on "), rt.link("raw!https://reddit.com"+pathraw, {}, rt.txt("reddit.com")), rt.txt(".")),
                 ]}},
