@@ -157,11 +157,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
         case "list": return {
             kind: "list",
             ordered: rtd.o,
-            children: richtextParagraphArray(rtd.c, opt),
-        };
-        case "li": return {
-            kind: "list_item",
-            children: richtextParagraphArray(rtd.c, opt),
+            children: rtd.c.map(itm => rt.li(...richtextParagraphArray(itm.c, opt))),
         };
         case "code": return {
             kind: "code_block",
@@ -881,14 +877,9 @@ const pathFromListingRaw = (path: string, listing: unknown, opts: {warning?: Gen
                 level: 1,
                 children: [{kind: "text", text: "Errors:", styles: {}}],
             });
-            rtitems.push({
-                kind: "list",
-                ordered: false,
-                children: listing_json.json.errors.map(error => {
-                    const res: Generic.Richtext.Paragraph = {kind: "list_item", children: [{kind: "paragraph", children: [{kind: "text", text: error, styles: {}}]}]};
-                    return res;
-                }),
-            });
+            rtitems.push(rt.ul(...listing_json.json.errors.map(error =>
+                rt.ili(rt.txt(error))
+            )));
         }
     }
     if(opts.warning) rtitems.push(...opts.warning);

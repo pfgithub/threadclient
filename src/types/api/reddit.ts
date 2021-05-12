@@ -1045,10 +1045,7 @@ export declare namespace Richtext {
     } | {
         e: "list",
         o: false, // if the list is ordered
-        c: Paragraph[],
-    } | {
-        e: "li",
-        c: Paragraph[],
+        c: LI[],
     } | {
         e: "code",
         c: Raw[], // I guess they didn't want to use white-space: pre?
@@ -1058,6 +1055,10 @@ export declare namespace Richtext {
         c: TableItem[][],
     } | {
         e: "unsupported",
+    };
+    export type LI = {
+        e: "li",
+        c: Paragraph[],
     };
     export type Span = {
         e: "text",

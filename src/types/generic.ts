@@ -92,10 +92,7 @@ export declare namespace Richtext {
     } | {
         kind: "list",
         ordered: boolean,
-        children: Paragraph[],
-    } | {
-        kind: "list_item",
-        children: Paragraph[],
+        children: ListItem[],
     } | {
         kind: "code_block",
         text: string,
@@ -103,6 +100,13 @@ export declare namespace Richtext {
         kind: "table",
         headings: TableHeading[],
         children: TableItem[][],
+    };
+    export type ListItem = {
+        kind: "list_item",
+        children: Paragraph[],
+    } | {
+        kind: "tight_list_item",
+        children: Span[],
     };
     // TODO split this out a bit?
     //
@@ -568,9 +572,10 @@ export const rt = {
     hn: (l: number, ...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "heading", level: l, children: items}),
     h1: (...items: Richtext.Span[]): Richtext.Paragraph => rt.hn(1, ...items),
     h2: (...items: Richtext.Span[]): Richtext.Paragraph => rt.hn(2, ...items),
-    ul: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
-    ol: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
-    li: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list_item", children: items}),
+    ul: (...items: Richtext.ListItem[]): Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
+    ol: (...items: Richtext.ListItem[]): Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
+    li: (...items: Richtext.Paragraph[]): Richtext.ListItem => ({kind: "list_item", children: items}),
+    ili: (...items: Richtext.Span[]): Richtext.ListItem => ({kind: "tight_list_item", children: items}),
     blockquote: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "blockquote", children: items}),
     txt: (text: string, styles: Richtext.Style = {}): Richtext.Span => ({kind: "text", text, styles}),
     link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => ({kind: "link", url, children, ...opts}),

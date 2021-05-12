@@ -939,6 +939,31 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
     return hsc;
 }
 
+function renderRichtextListItem(
+    client: ThreadClient,
+    rtp: Generic.Richtext.ListItem,
+    container: ChildNode
+): HideShowCleanup<undefined> {
+    const hsc = hideshow();
+
+    const liv = el("li").clss("richtext-render-node").adto(container);
+    switch(rtp.kind) {
+        case "list_item": {
+            for(const child of rtp.children) {
+                renderRichtextParagraph(client, child, liv).defer(hsc);
+            }
+        } break;
+        case "tight_list_item": {
+            for(const child of rtp.children) {
+                renderRichtextSpan(client, child, liv).defer(hsc);
+            }
+        } break;
+        default: assertNever(rtp);
+    }
+
+    return hsc;
+}
+
 function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Paragraph, container: ChildNode): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
@@ -955,20 +980,18 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
                 renderRichtextSpan(client, child, hel).defer(hsc);
             }
         } break;
-        case "blockquote": case "list": case "list_item": {
-            const bquot = el(
-                rtp.kind === "blockquote"
-                    ? "blockquote"
-                    : rtp.kind === "list"
-                    ? rtp.ordered
-                        ? "ol"
-                        : "ul"
-                    : rtp.kind === "list_item"
-                    ? "li"
-                    : assertNever(rtp)
-            ).clss(rtp.kind === "list" ? rtp.ordered ? "list-decimal" : "list-disc" : "").adto(container).clss("richtext-render-node");
+        case "blockquote": {
+            const bquot = el("blockquote").adto(container).clss("richtext-render-node");
             for(const child of rtp.children) {
                 renderRichtextParagraph(client, child, bquot).defer(hsc);
+            }
+        } break;
+        case "list": {
+            const bquot = el(
+                rtp.ordered ? "ol" : "ul"
+            ).clss(rtp.ordered ? "list-decimal" : "list-disc").adto(container).clss("richtext-render-node");
+            for(const child of rtp.children) {
+                renderRichtextListItem(client, child, bquot).defer(hsc);
             }
         } break;
         case "horizontal_line": {
