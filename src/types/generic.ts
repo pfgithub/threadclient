@@ -57,6 +57,15 @@ export type BodyText = {
     markdown_format: "reddit" | "reddit_html" | "none",
 };
 export declare namespace Richtext {
+    // TODO:
+    // lists:
+    // - list children: (TightListItem[] | ListItem[])
+    // text:
+    // - remove code as a style, it should be a span type
+    // - remove the error style
+    // block code:
+    // - add support for setting a language
+
     export type Style = {
         strong?: boolean,
         emphasis?: boolean,
@@ -556,8 +565,9 @@ export type SentReport = {
 
 export const rt = {
     p: (...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "paragraph", children: items}),
-    h1: (...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "heading", level: 1, children: items}),
-    h2: (...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "heading", level: 2, children: items}),
+    hn: (l: number, ...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "heading", level: l, children: items}),
+    h1: (...items: Richtext.Span[]): Richtext.Paragraph => rt.hn(1, ...items),
+    h2: (...items: Richtext.Span[]): Richtext.Paragraph => rt.hn(2, ...items),
     ul: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
     ol: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
     li: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "list_item", children: items}),
@@ -573,6 +583,7 @@ export const rt = {
     td: (...content: Richtext.Span[]): Richtext.TableItem => ({children: content}),
     timeAgo: (time: number): Richtext.Span => ({kind: "time-ago", start: time}),
     hr: (): Richtext.Paragraph => ({kind: "horizontal_line"}),
+    code: (text: string): Richtext.Span => rt.txt(text, {code: true}), // this should instead be {kind: "code", text: …}
 };
 
 export const mnu = {

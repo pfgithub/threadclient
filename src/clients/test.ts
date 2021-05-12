@@ -1,8 +1,63 @@
 import * as Generic from "../types/generic";
-import { rt } from "../types/generic";
+import { rt, Richtext } from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
-
+import * as commonmark from "commonmark";
 import * as variables from "_variables";
+import { assertNever } from "../util";
+
+function childrenOf(node: commonmark.Node): commonmark.Node[] {
+    const res: commonmark.Node[] = [];
+    let current = node.firstChild;
+    while(current != null) {
+        res.push(current);
+        current = current.next;
+    }
+    return res;
+}
+
+function paragraphToRichtextParagraph(node: commonmark.Node): Richtext.Paragraph {
+    if(node.type === "heading") {
+        return rt.hn(node.level, ...childrenOf(node).flatMap(it => spanToRichtextSpan(it, {})));
+    }else if(node.type === "paragraph") {
+        return rt.p(...childrenOf(node).flatMap(it => spanToRichtextSpan(it, {})));
+    }else if(node.type === "block_quote") {
+        return rt.blockquote(...childrenOf(node).map(paragraphToRichtextParagraph));
+    }else if(node.type === "thematic_break") {
+        return rt.hr();
+    }else if(node.type === "code_block") {
+        // node.info for the language eg ```zig
+        return rt.pre(node.literal ?? "ERR");
+    }else if(node.type === "list") {
+        return {
+            kind: "list",
+            ordered: node.listType === "ordered",
+            children: childrenOf(node).map(it => rt.li(...childrenOf(it).map(paragraphToRichtextParagraph))),
+        };
+    }else return rt.p(rt.error(node.type, node));
+}
+
+function spanToRichtextSpan(node: commonmark.Node, styl: Richtext.Style): Richtext.Span[] {
+    if(node.type === "text") {
+        return [rt.txt(node.literal ?? "ERR", styl)];
+    }else if(node.type === "link") {
+        return [rt.link(node.destination ?? "ERR", {title: node.title ?? undefined}, ...childrenOf(node).flatMap(it => spanToRichtextSpan(it, styl)))];
+    }else if(node.type === "softbreak") {
+        return [rt.txt(" ")]; // a newline without two spaces
+    }else if(node.type === "strong") {
+        return childrenOf(node).flatMap(it => spanToRichtextSpan(it, {...styl, strong: true}));
+    }else if(node.type === "emph") {
+        return childrenOf(node).flatMap(it => spanToRichtextSpan(it, {...styl, emphasis: true}));
+    }else if(node.type === "code") {
+        return [rt.code(node.literal ?? "ERR")];
+    }else return [rt.error(node.type, node)];
+}
+
+function markdownToRichtext(md: string): Richtext.Paragraph[] {
+    const reader = new commonmark.Parser();
+    const parsed = reader.parse(md);
+
+    return childrenOf(parsed).map(paragraphToRichtextParagraph);
+}
 
 () => encoderGenerator;
 
@@ -83,6 +138,7 @@ type UserThreadOpts = {
     collapse_body?: boolean,
     title?: string,
     info?: Generic.Info,
+    actions?: Generic.Action[],
 };
 function userThread(path: string, body: Generic.Body, opts: UserThreadOpts): Generic.Thread {
     return {
@@ -94,7 +150,7 @@ function userThread(path: string, body: Generic.Body, opts: UserThreadOpts): Gen
         link: path,
         info: opts.info,
         layout: opts.layout,
-        actions: [],
+        actions: opts.actions ?? [],
         default_collapsed: false,
         flair: opts.content_warning != null ? [{elems: [{type: "text", text: opts.content_warning}], content_warning: true}] : [],
     };
@@ -241,7 +297,16 @@ const sitemap: SitemapEntry[] = [
             (urlr) => ({post: commitThread(urlr, entry)}),
         ]),
     })],
+    ["markdown", (urlr) => ({
+        post: userThread(urlr, {kind: "richtext", content: [rt.p(rt.txt("Press 'Reply'"))]}, {
+            layout: "reddit-post",
+            actions: [{kind: "reply", text: "Reply", reply_info: reply_encoder.encode({kind: "markdown"})}],
+        }),
+    })]
 ];
+
+type ReplyData = {kind: "markdown"} | {kind: "other"};
+const reply_encoder = encoderGenerator<ReplyData, "reply">("reply");
 
 type SitemapResult = {current: Generic.Thread, children: SitemapResult | Generic.Thread[]};
 
@@ -320,6 +385,7 @@ export const client: ThreadClient = {
                     "/body-preview",
                     "/link-preview",
                     "/updates",
+                    "/markdown",
                 ].map(v => rt.li(rt.p(
                     rt.link(v, {}, rt.txt(v)),
                 )))),
@@ -337,7 +403,14 @@ export const client: ThreadClient = {
     async act(action) {
         throw new Error("act not supported");
     },
-    previewReply() {throw new Error("preview reply not supported")},
+    previewReply(body, reply_info) {
+        const decoded = reply_encoder.decode(reply_info);
+        if(decoded.kind === "markdown") {
+            return richtextPost("/", markdownToRichtext(body));
+        }else if(decoded.kind === "other") {
+            return richtextPost("/", [rt.p(rt.txt("err!"))]);
+        }else assertNever(decoded);
+    },
     async sendReply() {throw new Error("preview reply not supported")},
     async loadMore() {throw new Error("load more not supported")},
     async loadMoreUnmounted() {throw new Error("load more unmounted not supported")},
