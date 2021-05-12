@@ -28,11 +28,9 @@ function paragraphToRichtextParagraph(node: commonmark.Node): Richtext.Paragraph
         // node.info for the language eg ```zig
         return rt.pre(node.literal ?? "ERR", node.info ?? undefined);
     }else if(node.type === "list") {
-        return {
-            kind: "list",
+        return rt.kind("list", {
             ordered: node.listType === "ordered",
-            children: childrenOf(node).map(it => rt.li(...childrenOf(it).map(paragraphToRichtextParagraph))),
-        };
+        }, childrenOf(node).map(it => rt.li(...childrenOf(it).map(paragraphToRichtextParagraph))));
     }else return rt.p(rt.error(node.type, node));
 }
 

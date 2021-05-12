@@ -559,30 +559,36 @@ export type SentReport = {
     body: Body,
 };
 
-
+function rtkind<C extends string, T, I extends unknown = undefined>(kind: C, data: T, children?: I[]): (
+    {kind: C} & (I extends undefined ? {__nothing: 0} : {children: I[]}) & T
+) {
+    return {...data, kind, ...children ? {children} : {}} as unknown as {kind: C} & (I extends undefined ? {__nothing: 0} : {children: I[]}) & T;
+}
 
 export const rt = {
-    p: (...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "paragraph", children: items}),
-    hn: (l: number, ...items: Richtext.Span[]): Richtext.Paragraph => ({kind: "heading", level: l, children: items}),
+    kind: rtkind,
+    p: (...items: Richtext.Span[]): Richtext.Paragraph => rt.kind("paragraph", {}, items),
+    hn: (l: number, ...items: Richtext.Span[]): Richtext.Paragraph => rt.kind("heading", {level: l}, items),
     h1: (...items: Richtext.Span[]): Richtext.Paragraph => rt.hn(1, ...items),
     h2: (...items: Richtext.Span[]): Richtext.Paragraph => rt.hn(2, ...items),
-    ul: (...items: Richtext.ListItem[]): Richtext.Paragraph => ({kind: "list", ordered: false, children: items}),
-    ol: (...items: Richtext.ListItem[]): Richtext.Paragraph => ({kind: "list", ordered: true, children: items}),
-    li: (...items: Richtext.Paragraph[]): Richtext.ListItem => ({kind: "list_item", children: items}),
-    ili: (...items: Richtext.Span[]): Richtext.ListItem => ({kind: "tight_list_item", children: items}),
-    blockquote: (...items: Richtext.Paragraph[]): Richtext.Paragraph => ({kind: "blockquote", children: items}),
-    txt: (text: string, styles: Richtext.Style = {}): Richtext.Span => ({kind: "text", text, styles}),
-    link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => ({kind: "link", url, children, ...opts}),
-    pre: (text: string, lang?: string): Richtext.Paragraph => ({kind: "code_block", text, lang}),
-    error: (text: string, value: unknown): Richtext.Span => ({kind: "error", text, value}),
-    br: (): Richtext.Span => ({kind: "br"}),
-    flair: (flair: Flair): Richtext.Span => ({kind: "flair", flair}),
-    table: (headings: Richtext.TableHeading[], ...rows: Richtext.TableItem[][]): Richtext.Paragraph => ({kind: "table", headings, children: rows}),
-    th: (align: "left" | "center" | "right", ...content: Richtext.Span[]): Richtext.TableHeading => ({align, children: content}),
+    ul: (...items: Richtext.ListItem[]): Richtext.Paragraph => rt.kind("list", {ordered: false}, items),
+    ol: (...items: Richtext.ListItem[]): Richtext.Paragraph => rt.kind("list", {ordered: true}, items),
+    li: (...items: Richtext.Paragraph[]): Richtext.ListItem => rt.kind("list_item", {}, items),
+    ili: (...items: Richtext.Span[]): Richtext.ListItem => rt.kind("tight_list_item", {}, items),
+    blockquote: (...items: Richtext.Paragraph[]): Richtext.Paragraph => rt.kind("blockquote", {}, items),
+    txt: (text: string, styles: Richtext.Style = {}): Richtext.Span => rt.kind("text", {text, styles}),
+    link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => rt.kind("link", {url, ...opts}, children),
+    pre: (text: string, lang?: string): Richtext.Paragraph => rt.kind("code_block", {text, lang}),
+    error: (text: string, value: unknown): Richtext.Span => rt.kind("error", {text, value}),
+    br: (): Richtext.Span => rt.kind("br", {}),
+    flair: (flair: Flair): Richtext.Span => rt.kind("flair", {flair}),
+    table: (headings: Richtext.TableHeading[], ...rows: Richtext.TableItem[][]): Richtext.Paragraph => rt.kind("table", {headings}, rows),
+    th: (align: "left" | "center" | "right" | undefined, ...content: Richtext.Span[]): Richtext.TableHeading => ({align, children: content}),
     td: (...content: Richtext.Span[]): Richtext.TableItem => ({children: content}),
-    timeAgo: (time: number): Richtext.Span => ({kind: "time-ago", start: time}),
-    hr: (): Richtext.Paragraph => ({kind: "horizontal_line"}),
-    code: (text: string): Richtext.Span => ({kind: "code", text}), // this should instead be {kind: "code", text: …}
+    timeAgo: (time: number): Richtext.Span => rt.kind("time-ago", {start: time}),
+    hr: (): Richtext.Paragraph => rt.kind("horizontal_line", {}),
+    code: (text: string): Richtext.Span => rt.kind("code", {text}), // this should instead be {kind: "code", text: …}
+    spoiler: (...items: Richtext.Span[]): Richtext.Span => rt.kind("spoiler", {}, items),
 };
 
 export const mnu = {

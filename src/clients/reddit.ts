@@ -126,64 +126,43 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
             const gif = rtd.c[0];
             const meta = opt.media_metadata[gif.id];
             if(!meta) return rt.p(rt.error("Missing media id "+gif.id, meta));
-            return {
-                kind: "body",
+            return rt.kind("body", {
                 body: mediaMetaToBody(meta, gif.id.split("|")[0]),
-            };
-        } else return {
-            kind: "paragraph",
-            children: richtextSpanArray(rtd.c, opt),
-        };
+            });
+        } else return rt.p(...richtextSpanArray(rtd.c, opt));
         case "img": case "video": case "gif": {
             const data = opt.media_metadata[rtd.id];
             if(!data) return rt.p(rt.error("unknown id "+rtd.id, opt));
-            return {
-                kind: "body",
+            return rt.kind("body", {
                 body: mediaMetaToBody(data, rtd.c),
-            };
+            });
         }
-        case "h": return {
-            kind: "heading",
-            level: rtd.l,
-            children: richtextSpanArray(rtd.c, opt),
-        };
-        case "hr": return {
-            kind: "horizontal_line"
-        };
-        case "blockquote": return {
-            kind: "blockquote",
-            children: richtextParagraphArray(rtd.c, opt),
-        };
-        case "list": return {
-            kind: "list",
-            ordered: rtd.o,
-            children: rtd.c.map(itm => rt.li(...richtextParagraphArray(itm.c, opt))),
-        };
+        case "h": return rt.hn(rtd.l, ...richtextSpanArray(rtd.c, opt));
+        case "hr": return rt.hr();
+        case "blockquote": return rt.blockquote(...richtextParagraphArray(rtd.c, opt));
+        case "list": return rt.kind("list", {ordered: rtd.o}, rtd.c.map(itm => rt.li(...richtextParagraphArray(itm.c, opt))));
         case "code": return rt.pre(rtd.c.map(v => {
             switch(v.e) {
                 case "raw": return v.t;
                 case "unsupported": return "Err «"+JSON.stringify(v)+"»";
             }
         }).join("\n"));
-        case "table": return {
-            kind: "table",
-            headings: rtd.h.map(h => richtextTableHeading(h, opt)),
-            children: rtd.c.map(c => c.map(q => richtextTableItem(q, opt))),
-        };
+        case "table": return rt.table(
+            rtd.h.map(h => richtextTableHeading(h, opt)),
+            ...rtd.c.map(c => c.map(q => richtextTableItem(q, opt))),
+        );
     }
     expectUnsupported(rtd.e);
     return rt.p(rt.error("TODO "+rtd.e, rtd));
 }
 function richtextTableHeading(tbh: Reddit.Richtext.TableHeading, opt: RichtextFormattingOptions): Generic.Richtext.TableHeading {
-    return {
-        align: tbh.a != null ? ({'L': "left", 'C': "center", 'R': "right"} as const)[tbh.a] : undefined,
-        children: richtextSpanArray(tbh.c, opt),
-    };
+    return rt.th(
+        tbh.a != null ? ({'L': "left", 'C': "center", 'R': "right"} as const)[tbh.a] : undefined,
+        ...richtextSpanArray(tbh.c, opt),
+    );
 }
 function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormattingOptions): Generic.Richtext.TableItem {
-    return {
-        children: richtextSpanArray(tbh.c, opt),
-    };
+    return rt.td(...richtextSpanArray(tbh.c, opt));
 }
 function isBraille(codepoint: number): boolean {
     return codepoint >= 0x2800 && codepoint <= 0x28FF;
@@ -224,15 +203,15 @@ function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange
                 }
             }
             res_lines.push(...last_line);
-            return [{kind: "text", text: res_lines.join("\n"), styles: {}}];
+            return [rt.txt(res_lines.join("\n"))];
         }
-        return [{kind: "text", text: text, styles: {}}];
+        return [rt.txt(text)];
     }
     const resitems: Generic.Richtext.Span[] = [];
     let previdx = 0;
     const commit = (endv: number) => {
         const nofmt = text.substring(previdx, endv);
-        if(nofmt.length > 0) resitems.push({kind: "text", text: nofmt, styles: {}});
+        if(nofmt.length > 0) resitems.push(rt.txt(nofmt));
     };
     format.forEach(([fmtid, start, length]) => {
         commit(start);
@@ -258,30 +237,22 @@ function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange
 function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
     switch(rtd.e) {
         case "text": return richtextFormattedText(rtd.t, rtd.f ?? [], opt);
-        case "r/": case "u/": return [{
-            kind: "link",
-            url: "/"+rtd.e+rtd.t,
-            is_user_link: rtd.e === "u/" ? rtd.t : undefined,
-            children: [{kind: "text", text: (rtd.l ? "/" : "") + rtd.e + rtd.t, styles: {}}],
-        }];
-        case "link": return [{
-            kind: "link",
-            url: rtd.u,
-            title: rtd.a,
-            children: richtextFormattedText(rtd.t, rtd.f ?? [], opt),
-        }];
-        case "br": return [{kind: "br"}];
-        case "spoilertext": return [{kind: "spoiler", children: richtextSpanArray(rtd.c, opt)}];
-        case "raw": return [{kind: "text", text: rtd.t, styles: {}}];
+        case "r/": case "u/": return [
+            rt.link("/"+rtd.e+rtd.t, {
+                is_user_link: rtd.e === "u/" ? rtd.t : undefined,
+            }, rt.txt((rtd.l ? "/" : "") + rtd.e + rtd.t)),
+        ];
+        case "link": return [rt.link(rtd.u, {title: rtd.a}, ...richtextFormattedText(rtd.t, rtd.f ?? [], opt))];
+        case "br": return [rt.br()];
+        case "spoilertext": return [rt.spoiler(...richtextSpanArray(rtd.c, opt))];
+        case "raw": return [rt.txt(rtd.t)];
         case "gif": {
             const meta = opt.media_metadata[rtd.id];
             if(!meta) return [rt.error("Missing media id "+rtd.id, meta)];
             if(meta.status !== "valid") return [rt.error("Bad status "+meta.status, meta)];
             if(meta.e !== "AnimatedImage") return [rt.error("Unsupported "+meta.e, meta)];
             return [
-                {kind: "link", url: meta.s.mp4 ?? meta.s.gif,
-                    children: [{kind: "text", text: "[embedded "+rtd.id.split("|")[0]+"]", styles: {}}],
-                }
+                rt.link(meta.s.mp4 ?? meta.s.gif, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
             ];
         }
     }
@@ -552,7 +523,7 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         raw_value: data,
         widget_content: {
             kind: "list",
-            items: data.data.map(sub => {
+            items: data.data.map((sub): Generic.WidgetListItem => {
                 if(sub.type === "subreddit") return {
                     icon: sub.communityIcon || undefined,
                     name: {kind: "text", text: "r/"+sub.name},
@@ -562,7 +533,7 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
                 expectUnsupported(sub.type);
                 return {
                     name: {kind: "text", text: "ERROR UNSUPPORTED" + sub.type},
-                    click: {kind: "body", body: {kind: "richtext", content: [{kind: "code_block", text: JSON.stringify(sub, null, "\t")}]}},
+                    click: {kind: "body", body: {kind: "richtext", content: [rt.pre(JSON.stringify(sub, null, "\t"))]}},
                 };
             }),
         },
@@ -877,11 +848,7 @@ const pathFromListingRaw = (path: string, listing: unknown, opts: {warning?: Gen
         && 'errors' in listing_json.json && Array.isArray(listing_json.json.errors)
     ) {
         if(listing_json.json.errors.length > 0) {
-            rtitems.push({
-                kind: "heading",
-                level: 1,
-                children: [{kind: "text", text: "Errors:", styles: {}}],
-            });
+            rtitems.push(rt.h1(rt.txt("Errors:")));
             rtitems.push(rt.ul(...listing_json.json.errors.map(error =>
                 rt.ili(rt.txt(error))
             )));
@@ -897,7 +864,7 @@ const pathFromListingRaw = (path: string, listing: unknown, opts: {warning?: Gen
                 parents: [{
                     kind: "thread",
                     raw_value: listing,
-                    body: {kind: "richtext", content: [...rtitems, {kind: "code_block", text: JSON.stringify(listing, null, "\t")}]},
+                    body: {kind: "richtext", content: [...rtitems, rt.pre(JSON.stringify(listing, null, "\t"))]},
                     display_mode: {body: "visible", comments: "visible"},
                     link: path,
                     layout: "error",

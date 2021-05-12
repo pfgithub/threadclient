@@ -206,7 +206,7 @@ function childNodesToRichtextParagraphs(meta: GenMeta, nodes: NodeListOf<ChildNo
 function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic.Richtext.Paragraph | undefined {
     if(node instanceof HTMLElement) {
         if(node.nodeName === "P") {
-            return {kind: "paragraph", children: contentSpansToRichtextSpans(meta, node.childNodes)};
+            return rt.p(...contentSpansToRichtextSpans(meta, node.childNodes));
         }
     }
     return undefined;
@@ -230,7 +230,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
             const emoji_v = meta.emojis.get(text);
             if(emoji_v) {
                 commit();
-                res_segments.push({kind: "emoji", url: emoji_v.static_url, hover: ":"+text+":"});
+                res_segments.push(rt.kind("emoji", {url: emoji_v.static_url, hover: ":"+text+":"}));
             }else{
                 uncommitted_text.push(text);
             }
@@ -275,12 +275,9 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
             if(eatClass("mention")) {
                 const mention_data = meta.mentions.get(href_v);
                 if(mention_data) {
-                    return noClasses({
-                        kind: "link",
-                        url: "/"+meta.host+"/accounts/"+mention_data.id,
+                    return noClasses(rt.link("/"+meta.host+"/accounts/"+mention_data.id, {
                         is_user_link: mention_data.username,
-                        children: [rt.txt("@"+mention_data.acct, styles)],
-                    });
+                    }, rt.txt("@"+mention_data.acct, styles)));
                 }
             }
 
@@ -841,17 +838,17 @@ export const client: ThreadClient = {
                 },
                 body: {
                     kind: "richtext",
-                    content: [...parseContentHTML(host, account_info.note, pcmeta), {kind: "table", headings: [
-                        {children: [{kind: "text", text: "Key", styles: {}}]},
-                        {children: [{kind: "text", text: "Value", styles: {}}]},
-                        {children: [{kind: "text", text: "V", styles: {}}]},
-                    ], children: account_info.fields.map((field): Generic.Richtext.TableItem[] => {
+                    content: [...parseContentHTML(host, account_info.note, pcmeta), rt.table([
+                        rt.th(undefined, rt.txt("Key")),
+                        rt.th(undefined, rt.txt("Value")),
+                        rt.th(undefined, rt.txt("V")),
+                    ], ...account_info.fields.map((field): Generic.Richtext.TableItem[] => {
                         return [
-                            {children: [{kind: "text", text: field.name, styles: {}}]},
-                            {children: parseContentSpanHTML(host, field.value, pcmeta)},
-                            {children: [{kind: "text", text: field.verified_at != null ? "✓" : "✗", styles: {}}]},
+                            rt.td(rt.txt(field.name)),
+                            rt.td(...parseContentSpanHTML(host, field.value, pcmeta)),
+                            rt.td(rt.txt(field.verified_at != null ? "✓" : "✗")),
                         ];
-                    })}],
+                    }))],
                 },
                 subscribe: {
                     kind: "counter",
