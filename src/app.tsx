@@ -389,7 +389,7 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
             }, gifv: true};
         }        
     }
-    if(url && (url.host === "www.imgur.com" || url.host === "imgur.com")) {
+    if(url && (url.host === "www.imgur.com" || url.host === "imgur.com" || url.host === "m.imgur.com")) {
         const splitv = url.pathname.split("/").filter(q => q);
         const galleryid = splitv[1]!;
         const isv = splitv[0] === "gallery" ? "gallery" : splitv[0] === "a" ? "album" : undefined;
