@@ -1009,7 +1009,8 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
             // TODO
             // 1: render this in a shadow dom with normal styles
             // 2: padding
-            renderBody(client, rtp.body, {autoplay: false}).defer(hsc).adto(container);
+            const bnode = el("div").adto(container).clss("my-2");
+            renderBody(client, rtp.body, {autoplay: false}).defer(hsc).adto(bnode);
         } break;
         case "table": {
             const tablel = el("table").adto(container);
@@ -2676,27 +2677,31 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             content_subminfo_line.adch(timeAgo(listing.info.time).defer(hsc));
             content_subminfo_line.atxt(" ");
         }
-        content_subminfo_line
+        if(listing.info.author) content_subminfo_line
             .atxt("by ")
             .adch(userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name))
         ;
-        if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
+        if(listing.info.author?.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
             content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link, "normal").atxt(listing.info.in.name));
         }
-        if(listing.info.edited !== false) content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
+        if(listing.info.edited !== false) {
+            if(content_subminfo_line.hasChildNodes()) content_subminfo_line.atxt(", ");
+            content_subminfo_line.atxt("Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
+        }
         if(listing.info.pinned) {
-            content_subminfo_line.atxt(", ").adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
+            if(content_subminfo_line.hasChildNodes()) content_subminfo_line.atxt(", ");
+            content_subminfo_line.adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
-        if(listing.layout === "reddit-comment" && listing.info.author.pfp) {
+        if(listing.layout === "reddit-comment" && listing.info.author?.pfp) {
             const pfpimg = el("img").attr({src: listing.info.author.pfp.url}).adto(content_subminfo_line).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
             pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
             content_subminfo_line.atxt(" ");
         }
-        content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name));
-        if(listing.info.author.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
-        if(listing.layout === "mastodon-post" && listing.info.author.pfp) {
+        if(listing.info.author) content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name));
+        if(listing.info.author?.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
+        if(listing.layout === "mastodon-post" && listing.info.author?.pfp) {
             frame.clss("spacefiller-pfp");
 
             const pfpimg = el("div").clss("pfp").styl({
@@ -2717,13 +2722,14 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
             content_subminfo_line.atxt(", ").adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
         }
         if(listing.info.reblogged_by) {
-            content_subminfo_line.atxt(" ← Boosted by ")
+            content_subminfo_line.atxt(" ← Boosted by ");
+            if(listing.info.reblogged_by.author) content_subminfo_line
                 .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.color_hash).atxt(listing.info.reblogged_by.author.name))
             ;
             if(listing.info.reblogged_by.time !== false) {
                 content_subminfo_line.atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc));
             }
-            if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author.pfp) {
+            if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author?.pfp) {
                 frame.clss("spacefiller-pfp");
                 const pfpimg = el("div").clss("pfp", "pfp-reblog").styl({
                     "--url": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.url)+")",
@@ -2860,7 +2866,9 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }).atxt("Code").adto(content_buttons_line);
     }
 
-    const children_node = el("ul").clss("replies").adto(replies_area);
+    const children_node = el("ul").clss("replies").styl({margin: "0"}).adto(replies_area);
+    // m-0 is a temporary hack working around incorrect display
+    // inside prose. actually why does richtext even use prose styles like what? can't I get rid of that?
 
     const added_comments_are_threaded = listing.replies?.length === 1 && (listing.replies[0] as Generic.Thread).replies?.length === 1;
 

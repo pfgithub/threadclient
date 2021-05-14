@@ -277,7 +277,7 @@ export type Thread = {
         kind: "default",
         thumb: ThumbType,
     },
-    display_mode: {
+    display_mode: { // todo revamp, this is useless
         body: "visible" | "collapsed",
         body_default?: "open" | "closed",
         comments: "visible" | "collapsed",
@@ -321,9 +321,9 @@ type RedditModState = {
 };
 
 export type Info = {
-    time: false | number,
-    edited: false | number,
-    author: {
+    time: false | number, // null | number
+    edited: false | number, // null | false | number
+    author?: {
         name: string,
         color_hash: string,
         link: string,

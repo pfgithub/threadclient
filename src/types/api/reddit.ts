@@ -23,6 +23,54 @@ export type WikiPage = {
     },
 };
 
+export type TrophyList = {
+    kind: "TrophyList",
+    data: {
+        trophies: Trophy[],
+    },
+};
+export type Trophy = {
+    kind: "t6",
+    data: {
+        name: string,
+        url: string | null,
+        icon_70: string,
+        icon_40: string,
+        award_id: string,
+        description: string | null,
+        granted_at: number | null,
+    },
+};
+
+export type ModeratedList = {
+    kind: "ModeratedList",
+    data: ModeratedSub[],
+};
+
+export type ModeratedSub = {
+    community_icon: "" | string,
+    display_name: string,
+    title: string,
+    over_18: boolean,
+    icon_size: null,
+    primary_color: "" | string, // ?
+    icon_img: "" | string, // ?
+    display_name_prefixed: string, // r/…
+    sr_display_name_prefixed: string, // r/…
+    subscribers: number,
+    whitelist_status: null | "some_ads" | "unsupported",
+    subreddit_type: SubredditType,
+    key_color: "" | `#${string}`,
+    name: `t5_${string}`,
+    // created: number,
+    url: string,
+    sr: string,
+    created_utc: number,
+    banner_size: null,
+    mod_permissions: [],
+    user_can_crosspost: boolean,
+};
+
 export type LabeledMulti = {
     kind: "LabeledMulti",
     data: {

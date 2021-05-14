@@ -2749,18 +2749,13 @@ function bannerAndIcon(sub: Reddit.T5Data): {
     };
 }
 
-function generateUserSidebar(user: Reddit.T2 | undefined): Generic.ContentNode[] {
-    if(!user) {
-        return [{
-            kind: "widget",
-            title: "TODO",
-            widget_content: {kind: "body", body: {kind: "richtext", content: [
-                rt.p(rt.txt("Failed to fetch user info for this user :(")),
-            ]}},
-            raw_value: user,
-        }];
-    }
-    return [{
+function generateUserSidebar(
+    user: Reddit.T2 | undefined,
+    trophies: Reddit.TrophyList | undefined,
+    modded_subs: Reddit.ModeratedList | undefined,
+): Generic.ContentNode[] {
+    const resitems: Generic.ContentNode[] = [];
+    if(user) resitems.push({
         kind: "bio",
         ...bannerAndIcon(user.data.subreddit),
         name: {
@@ -2800,9 +2795,98 @@ function generateUserSidebar(user: Reddit.T2 | undefined): Generic.ContentNode[]
             rt.h1(rt.link("/u/"+user.data.name, {is_user_link: user.data.name}, rt.txt(user.data.name))),
             rt.p(rt.txt(user.data.link_karma + " post karma")),
             rt.p(rt.txt(user.data.comment_karma + " comment karma")),
+            rt.p(rt.txt("Account created "), rt.timeAgo(user.data.created_utc * 1000)),
         ]}},
         raw_value: user,
-    }];
+    }); else resitems.push({
+        kind: "widget",
+        title: "TODO",
+        widget_content: {kind: "body", body: {kind: "richtext", content: [
+            rt.p(rt.txt("Failed to fetch user info for this user :(")),
+        ]}},
+        raw_value: user,
+    });
+
+    if(modded_subs) resitems.push({
+        kind: "widget",
+        title: "Moderates",
+        raw_value: modded_subs,
+        widget_content: {
+            kind: "list",
+            items: modded_subs.data.map((sub): Generic.WidgetListItem => {
+                return {
+                    icon: sub.community_icon || sub.icon_img || "undefined",
+                    name: {kind: "text", text: "r/"+sub.name},
+                    click: {kind: "link", url: "/r/"+sub.name},
+                    // action: createSubscribeAction(sub.name, sub.subscribers, ??),
+                };
+            }),
+        },
+    }); else resitems.push({
+        kind: "widget",
+        title: "TODO",
+        widget_content: {kind: "body", body: {kind: "richtext", content: [
+            rt.p(rt.txt("Failed to fetch modded subs for this user :(")),
+        ]}},
+        raw_value: modded_subs,
+    });
+
+    if(trophies) resitems.push({
+        kind: "widget",
+        title: "Trophy Case",
+        widget_content: {kind: "body", body: {kind: "richtext", content: [
+            ...trophies.data.trophies.map(({data: trophy}): Generic.Richtext.Paragraph => {
+                const rt_content: Generic.Richtext.Paragraph[] = [
+                    ...trophy.url != null ? [rt.p(rt.link(trophy.url, {}, rt.txt(trophy.url)))] : [],
+                    ...trophy.description != null ? [rt.p(rt.txt(trophy.description))] : [],
+                ];
+                return {kind: "body", body: {
+                    // kind: "link_preview",
+                    // title: trophy.name,
+                    // description: trophy.description + " " + trophy.granted_at,
+                    // thumb: trophy.icon_70 ?? undefined,
+                    // click: {kind: "richtext", content: [
+                    //     ...trophy.url != null ? [rt.p(rt.link(trophy.url, {}, rt.txt(trophy.url)))] : [],
+                    //     ...trophy.description != null ? [rt.p(rt.txt(trophy.description))] : [],
+                    // ]},
+                    // click_enabled: false,
+                    // url: trophy.url ?? "NO",
+
+                    kind: "crosspost",
+                    source: {
+                        kind: "thread",
+                        title: {text: trophy.name},
+                        body: rt_content.length ? {kind: "richtext", content: rt_content} : {kind: "none"},
+                        thumbnail: {
+                            kind: "image",
+                            url: trophy.icon_70,
+                        },
+                        display_mode: {body: "collapsed", comments: "collapsed", body_default: "closed"},
+                        raw_value: trophy,
+                        link: trophy.icon_70,
+                        layout: "reddit-post",
+                        info: {
+                            time: trophy.granted_at != null ? trophy.granted_at * 1000 : false,
+                            edited: false,
+                            pinned: true,
+                        },
+                        actions: [],
+                        default_collapsed: false,
+                    },
+                }};
+            })
+        ]}},
+        raw_value: user,
+    }); else resitems.push({
+        kind: "widget",
+        title: "TODO",
+        widget_content: {kind: "body", body: {kind: "richtext", content: [
+            rt.p(rt.txt("Failed to fetch trophy case for this user :(")),
+        ]}},
+        raw_value: trophies,
+    });
+
+    return resitems;
 }
 
 function parseLink(path: string) {
@@ -2867,13 +2951,16 @@ export const client: ThreadClient = {
                 return pageFromListing(pathraw, parsed, result, {...subinfo});
             }else if(parsed.kind === "user") {
                 const link = pathraw;
-                const [result, userabout] = await Promise.all([
+                const [result, userabout, trophies, modded_subs] = await Promise.all([
                     redditRequest<Reddit.AnyResult>(link, {method: "GET"}),
                     redditRequest<Reddit.T2 | undefined>("/user/"+parsed.username+"/about", {method: "GET", onerror: e => undefined, cache: true}),
-                    // trophies? /api/v1/user/…/trophies
+                    redditRequest<Reddit.TrophyList | undefined>("/api/v1/user/"+parsed.username+"/trophies", {method: "GET", onerror: e => undefined, cache: true}),
+                    redditRequest<Reddit.ModeratedList | undefined>("/user/"+parsed.username+"/moderated_subreddits", {
+                        method: "GET", onerror: e => undefined, cache: true,
+                    }), // this is undocumented?
                 ]);
 
-                return pageFromListing(pathraw, parsed, result, {sidebar: generateUserSidebar(userabout)});
+                return pageFromListing(pathraw, parsed, result, {sidebar: generateUserSidebar(userabout, trophies, modded_subs)});
             }else if(parsed.kind === "inbox") {
                 // TODO
                 if(parsed.current.tab === "compose") {
