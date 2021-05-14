@@ -2751,11 +2751,11 @@ function bannerAndIcon(sub: Reddit.T5Data): {
 
 function generateUserSidebar(
     user: Reddit.T2 | undefined,
-    trophies: Reddit.TrophyList | undefined,
-    modded_subs: Reddit.ModeratedList | undefined,
+    trophies: Reddit.TrophyList | {data: undefined} | undefined,
+    modded_subs: Reddit.ModeratedList | {data: undefined} | undefined,
 ): Generic.ContentNode[] {
     const resitems: Generic.ContentNode[] = [];
-    if(user) resitems.push({
+    if(user?.data) resitems.push({
         kind: "bio",
         ...bannerAndIcon(user.data.subreddit),
         name: {
@@ -2807,7 +2807,7 @@ function generateUserSidebar(
         raw_value: user,
     });
 
-    if(modded_subs) resitems.push({
+    if(modded_subs?.data) resitems.push({
         kind: "widget",
         title: "Moderates",
         raw_value: modded_subs,
@@ -2822,7 +2822,7 @@ function generateUserSidebar(
                 };
             }),
         },
-    }); else resitems.push({
+    }); else if(!modded_subs) resitems.push({
         kind: "widget",
         title: "TODO",
         widget_content: {kind: "body", body: {kind: "richtext", content: [
@@ -2831,7 +2831,7 @@ function generateUserSidebar(
         raw_value: modded_subs,
     });
 
-    if(trophies) resitems.push({
+    if(trophies?.data) resitems.push({
         kind: "widget",
         title: "Trophy Case",
         widget_content: {kind: "body", body: {kind: "richtext", content: [
