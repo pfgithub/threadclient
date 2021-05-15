@@ -2816,8 +2816,8 @@ function generateUserSidebar(
             items: modded_subs.data.map((sub): Generic.WidgetListItem => {
                 return {
                     icon: sub.community_icon || sub.icon_img || "undefined",
-                    name: {kind: "text", text: "r/"+sub.name},
-                    click: {kind: "link", url: "/r/"+sub.name},
+                    name: {kind: "text", text: sub.sr_display_name_prefixed},
+                    click: {kind: "link", url: sub.url},
                     // action: createSubscribeAction(sub.name, sub.subscribers, ??),
                 };
             }),
