@@ -173,6 +173,12 @@ reddit todo:
 -   [x] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
 -   [x] support op, mod distinguished, and admin distinguished comments and posts
 -   [x] messages
+-   [ ] fix it so when you subscribe to a sub and then navigate to that sub page it still shows you as subscribed. this is
+        an easy, but annoying, fix. just have to change it so the time the page was fetched gets piped through the whole system
+        so good data doesn't get replaced with older bad data.
+-   [ ] add support for showing the multireddits a user has. new.reddit gets a fancy gql api for this but we have to use
+        `/api/multi/:user` which is slow and will hold up page load so it must be done async. also along with this, other
+        things that are only relevant to sidebar widgets should be switched to async too.
 -   [ ] reddit youtube comments using `/search?syntax=cloudsearch&q=`encode(`(url:`vid_id`) AND (site:youtube.com OR site:youtu.be)`)
 -   [ ] improve messages appearence
 -   [ ] if you see the message on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit
