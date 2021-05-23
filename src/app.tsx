@@ -462,7 +462,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
                     width: img.w != null ? `${img.w}px` as const : undefined,
                     height: img.h != null ? `${img.h}px` as const : undefined,
                 }).clss("w-auto h-auto max-w-full max-h-full");
-                el("button").clss("m-1 w-24 h-24 flex items-center justify-center inline-block").adto(el("div").clss("inline-block").adto(div)).adch(
+                el("button").clss("m-1 w-24 h-24 flex items-center justify-center inline-block bg-body rounded-md").adto(el("div").clss("inline-block").adto(div)).adch(
                     imgv,
                 ).onev("click", (e) => {
                     e.stopPropagation();
@@ -497,7 +497,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         if(prevbodyhsc) {prevbodyhsc.cleanup(); prevbodyhsc.associated_data.remove(); prevbodyhsc = undefined}
         if(state === "overview") {
             uhtml.render(container, htmlr`${images.map((image, i) => htmlr`
-                <button class="m-1 inline-block" onclick=${() => {setState({index: i})}}>
+                <button class="m-1 inline-block bg-body rounded-md" onclick=${() => {setState({index: i})}}>
                     <img src=${image.thumb} width=${image.w+"px"} height=${image.h+"px"}
                         class="w-24 h-24 object-contain"
                     />
