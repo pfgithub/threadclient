@@ -231,6 +231,7 @@ mastodon todo:
 -   [x] fix that "view parent" thing that looks bad (it looks even worse now but it is represented properly now)
 -   [x] emojis. why did they make emojis some weird text replacement thing instead of … including them in the html that already has to be decoded, or for usernames eg rich text like reddit flairs
 -   [x] improve card support (eg show title and stuff using a new body type `{kind: "card", thumb: string, title: string, onopen: Body}`)
+-   [ ] report accounts. how: report button on posts, accounts. clicking report : there is a checkbox "Send anonymized copy of this report to «site.tld» moderators?" : there is a uuh a textbox with character limit for report text (note: character limits vary by sites) : there is a list of posts to include in the report : there is a button "add more" that tells you to click the report button on more posts to include in this report. A bit more complicated than reddit reporting, but not too bad. It is unclear how to get good ui for selecting posts to include in the report.
 -   [ ] emojis in more places
 -   [ ] blurhashes
 -   [ ] support at links and hashtag links without leaving the app
