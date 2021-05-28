@@ -362,14 +362,14 @@ const getAccessTokenInternal = async () => {
         }
         
 
-        const v: Reddit.AccessToken = await fetch("https://www.reddit.com/api/v1/access_token", {
+        const v = await fetch("https://www.reddit.com/api/v1/access_token", {
             method: "POST", mode: "cors", credentials: "omit",
             headers: {
                 'Authorization': "Basic "+btoa(client_id+":"),
                 'Content-Type': "application/x-www-form-urlencoded",
             },
             body: encodeQuery({grant_type: "https://oauth.reddit.com/grants/installed_client", device_id, redirect_uri}),
-        }).then(r => r.json());
+        }).then(r => r.json()) as Reddit.AccessToken;
 
         if(v.error) {
             console.log(v);
@@ -490,7 +490,7 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
             kind: "widget",
             title: "Error!",
             raw_value: data,
-            widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! Error "+e.toString(), data))]}},
+            widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! Error "+(e as Error).toString(), data))]}},
         };
     }
 };
@@ -843,7 +843,7 @@ function getNavbar(): Generic.Navbar {
 }
 const pathFromListingRaw = (path: string, listing: unknown, opts: {warning?: Generic.Richtext.Paragraph[], sidebar: Generic.ContentNode[] | null}): Generic.Page => {
     const rtitems: Generic.Richtext.Paragraph[] = [];
-    const listing_json = listing as unknown as {json: {errors: string[]}};
+    const listing_json = listing as {json: {errors: string[]}};
     if(typeof listing_json === "object" && 'json' in listing_json && typeof listing_json.json === "object"
         && 'errors' in listing_json.json && Array.isArray(listing_json.json.errors)
     ) {
@@ -2117,9 +2117,9 @@ const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, p
         console.log(e);
         return {
             kind: "thread",
-            body: {kind: "richtext", content: [rt.p(rt.error("Error! "+e.toString(), e))]},
+            body: {kind: "richtext", content: [rt.p(rt.error("Error! "+(e as Error).toString(), e))]},
             display_mode: {body: "visible", comments: "visible"},
-            raw_value: {error: e, listing: listing_raw},
+            raw_value: {error: e as Error, listing: listing_raw},
             link: "Error!",
             layout: "error",
             actions: [],
@@ -3103,14 +3103,14 @@ export const client: ThreadClient = {
             throw new Error("Login was for "+state);
         }
 
-        const v: Reddit.AccessToken = await fetch("https://www.reddit.com/api/v1/access_token", {
+        const v = await fetch("https://www.reddit.com/api/v1/access_token", {
             method: "POST", mode: "cors", credentials: "omit",
             headers: {
                 'Authorization': "Basic "+btoa(client_id+":"),
                 'Content-Type': "application/x-www-form-urlencoded",
             },
             body: encodeQuery({grant_type: "authorization_code", code, redirect_uri}),
-        }).then(res => res.json());
+        }).then(res => res.json()) as Reddit.AccessToken;
     
         if(v.error) {
             console.log(v.error);

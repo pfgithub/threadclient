@@ -75,7 +75,7 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
         if(status !== 200) console.log("got status "+status, posts);
         return posts;
     }catch(e) {
-        return {error: "Failed to load! "+e.toString()};
+        return {error: "Failed to load! "+(e as Error).toString()};
     }
 };
 const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Generic.UnmountedNode[] => {
@@ -347,7 +347,7 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
         return {
             kind: "thread",
             title: {text: "Error!"},
-            body: {kind: "richtext", content: [rt.p(rt.error("Error "+e.toString(), e))]},
+            body: {kind: "richtext", content: [rt.p(rt.error("Error "+(e as Error).toString(), e))]},
             display_mode: {body: "visible", comments: "collapsed"},
             link: "/"+host+"/statuses/"+post.id,
             layout: "reddit-post",
@@ -508,7 +508,7 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
 
         const {data: app} = appraw;
 
-        const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
+        const resv = await fetch(mkurl(host, "oauth", "token"), {
             method: "post", mode: "cors", credentials: "omit",
             headers: {
                 'Content-Type': "application/json",
@@ -520,7 +520,7 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
                 redirect_uri: redirectURI(host),
                 grant_type: "client_credentials",
             }),
-        }).then(v => v.json());
+        }).then(v => v.json()) as {error: string} | TokenResult;
 
         if('error' in resv) {
             lsitems.client_did_error.set(host, true);
@@ -687,7 +687,7 @@ export const client: ThreadClient = {
             return getLoginURL(host, preapp.data);
         }
 
-        const resv: {error: string} | ApplicationResult = await fetch(mkurl(host, "api/v1", "apps"), {
+        const resv = await fetch(mkurl(host, "api/v1", "apps"), {
             method: "post", mode: "cors", credentials: "omit",
             headers: {
                 'Content-Type': "application/json",
@@ -699,7 +699,7 @@ export const client: ThreadClient = {
                 scopes: "read write follow push",
                 website: "https://thread.pfg.pw",
             }),
-        }).then(v => v.json());
+        }).then(v => v.json()) as {error: string} | ApplicationResult;
 
         if('error' in resv) {
             console.log(resv);
@@ -721,7 +721,7 @@ export const client: ThreadClient = {
         }
         const {data: app} = appv;
 
-        const resv: {error: string} | TokenResult = await fetch(mkurl(host, "oauth", "token"), {
+        const resv = await fetch(mkurl(host, "oauth", "token"), {
             method: "post", mode: "cors", credentials: "omit",
             headers: {
                 'Content-Type': "application/json",
@@ -735,7 +735,7 @@ export const client: ThreadClient = {
                 code,
                 scope: "read write follow push",
             }),
-        }).then(v => v.json());
+        }).then(v => v.json()) as {error: string} | TokenResult;
 
         if('error' in resv) {
             console.log(resv);

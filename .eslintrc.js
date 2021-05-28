@@ -11,7 +11,11 @@ module.exports = {
     root: true,
     parser: "@typescript-eslint/parser",
     plugins: ["@typescript-eslint", "custom-quote-rule"],
-    extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:custom-quote-rule/recommended"],
+    extends: [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:custom-quote-rule/recommended",
+    ],
     rules: {
         // losening default rules
         "no-undef": "off",
@@ -49,7 +53,15 @@ module.exports = {
         parserOptions: {
             project: "./tsconfig.json",
         },
+        extends: [
+            "plugin:@typescript-eslint/recommended-requiring-type-checking",
+        ],
         rules: {
+            // looser rules:
+            "@typescript-eslint/restrict-plus-operands": 0, // "" + number is used frequently
+            "@typescript-eslint/require-await": 0, // ?? do you want me to function() {return new Promise(r => r())}??
+            "@typescript-eslint/prefer-regexp-exec": 0, // imo more confusing
+
             // stricter linting rules:
             "@typescript-eslint/no-floating-promises": "warn",
             "@typescript-eslint/strict-boolean-expressions": "warn",

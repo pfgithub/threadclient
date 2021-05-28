@@ -294,7 +294,8 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
                 el("div").clss("error").atxt("Error bad image uh oh").adto(resdiv);
             }
         }
-    }).catch(e => {
+    }).catch(er => {
+        const e = er as Error;
         console.log(e);
         if(loader.parentNode) loader.remove();
         resdiv.adch(el("div").clss("error").atxt("Error loading gfycat : " + e.toString()));
@@ -702,7 +703,8 @@ const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdown
             exports.freeText(strptr, utf8.byteLength);
             exports.freeText(res, outlen);
             return decoded as string & {_is_safe: true};
-        }catch(e){
+        }catch(er){
+            const e = er as Error;
             // note that chrome sometimes crashes on wasm errors and this
             // handler might not run.
             console.log(e.toString() + "\n" + e.stack);
@@ -804,6 +806,8 @@ function renderSafeHTML(client: ThreadClient, safe_html: string & {_is_safe: tru
         newbtn.attr({class: newbtn.getAttribute("class") + " " + alink.getAttribute("class")});
         content.forEach(el => newbtn.appendChild(el));
     }
+    // false positive?
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     for(const spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
         const children = Array.from(spoilerspan.childNodes);
         el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
@@ -1042,11 +1046,12 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
 const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {
     try {
         return renderBodyMayError(client, body, opts);
-    }catch(e) {
+    }catch(er) {
+        const e = er as Error;
         console.log(e);
         const content = el("div");
         el("div").clss("error").adto(content).atxt("Got error: "+e.toString());
-        el("code").adto(el("pre").adto(content)).atxt(e.stack);
+        el("code").adto(el("pre").adto(content)).atxt(e.stack ?? "no stack");
         return hideshow(content);
     }
 };
@@ -1080,8 +1085,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
             // unfortunately, this is not react or uil and that can't be done easily
             // given how stateful listings are
             // for now, just update the body.
-            fetch_btn.onev("click", async (e) => {
-                e.stopPropagation();
+            const doClick = async () => {
                 let new_body: Generic.Body;
                 let errored = false;
                 fetch_btn.textContent = "…";
@@ -1089,7 +1093,8 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
                 if(!client.fetchRemoved) throw new Error("client provided a removal fetch path but has no fetchRemoved");
                 try {
                     new_body = await client.fetchRemoved(body.fetch_path!);
-                }catch(error) {
+                }catch(error_) {
+                    const error = error_ as Error;
                     errored = true;
                     console.log(error);
                     new_body = {kind: "text", content: "Error! "+error.toString(), markdown_format: "none"};
@@ -1099,6 +1104,10 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
                 fetch_btn.disabled = false;
                 if(!errored) fetch_btn.remove();
                 renderBody(client, new_body, {autoplay: true}).defer(hsc).adto(removed_v);
+            };
+            fetch_btn.onev("click", e => {
+                e.stopPropagation();
+                void doClick().catch(console.log);
             });
         }
         renderBody(client, body.body, {autoplay: opts.autoplay}).defer(hsc).adto(content);
@@ -1290,7 +1299,8 @@ function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
         hsc.on("hide", () => {if(iframe) {iframe.remove(); iframe = undefined}});
         hsc.on("show", () => initFrame());
         return hsc;
-    }catch(e) {
+    }catch(er) {
+        const e = er as Error;
         console.log(e);
         const frame = el("div");
         frame.adch(el("p").atxt("Error adding suggestedembed: "+e.toString()).clss("error"));
@@ -1423,8 +1433,8 @@ function twitchClip(clipid: string, opts: {autoplay: boolean}): HideShowCleanup<
         // → the chat messages
     }).catch(e => {
         console.log(e);
-        try {loading.remove()}catch(er){()=>er}
-        el("div").clss("error").adto(frame).atxt(e.toString());
+        try {loading.remove()}catch(er){void er}
+        el("div").clss("error").adto(frame).atxt((e as Error).toString());
     });
 
     return hsc;
@@ -1529,7 +1539,7 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
     }).catch(e => {
         console.log(e);
         if(loader.parentNode) loader.remove();
-        resdiv.adch(el("div").clss("error").atxt("Error loading imgur : "+e.toString()));
+        resdiv.adch(el("div").clss("error").atxt("Error loading imgur : "+(e as Error).toString()));
     });
 
     return hsc;
@@ -1613,7 +1623,7 @@ function zoomableFrame(img: HTMLImageElement): HTMLElement {
         }).catch(err => {
             console.log(err);
             frame.disabled = false;
-            alert(err.toString());
+            alert((err as Error).toString());
         });
     };
 
@@ -1823,7 +1833,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                 setv("deleted");
             }).catch(err => {
                 console.log("Got error:", err);
-                setv({error: err.toString()});
+                setv({error: (err as Error).toString()});
             });
         });
         nvmbtn.onev("click", (e) => {
@@ -1894,7 +1904,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
             }).catch(err => {
                 console.log("got error: "+err);
                 btn.disabled = false;
-                frame.adch(el("span").clss("error").atxt(err.toString()));
+                frame.adch(el("span").clss("error").atxt((err as Error).toString()));
             });
         });
     }else if(action.kind === "flair") {
@@ -1972,7 +1982,7 @@ function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportSc
                     onreported(res);
                 }).catch(err => {
                     console.log(err);
-                    state = {error: err.toString()};
+                    state = {error: (err as Error).toString()};
                     update();
                 });
             });
@@ -2021,7 +2031,7 @@ function renderReportScreen(client: ThreadClient, report_fetch_info: Generic.Opa
         }
     }).catch(e => {
         console.log("error loading report screen", e);
-        frame.adch(el("div").clss("error").atxt("Error loading: "+e.toString()));
+        frame.adch(el("div").clss("error").atxt("Error loading: "+(e as Error).toString()));
         loader.remove();
     });
 
@@ -2544,7 +2554,7 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts:
         hsc.cleanup();
         console.log("Got error", e); 
         frame.innerHTML = "";
-        frame.adch(el("pre").adch(el("code").atxt(e.toString() + "\n\n" + e.stack)));
+        frame.adch(el("pre").adch(el("code").atxt((e as Error).toString() + "\n\n" + (e as Error).stack ?? "*no stack*")));
         frame.adch(elButton("code-button").atxt("Code").onev("click", (err) => {err.stopPropagation(); console.log(listing)}));
         return hideshow(frame);
     }
@@ -3249,7 +3259,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         loader_area.remove();
         renderClientPage(client, listing, frame, title).defer(hsc);
     })().catch(e => {
-        console.log(e, e.stack);
+        console.log(e, (e as Error).stack ?? "*no stack*");
         if(loader_area.parentNode) loader_area.remove();
         el("div").atxt("Error! "+e+", check console.").clss("error").adto(frame);
     });
@@ -3278,7 +3288,7 @@ function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchP
         }catch(e) {
             console.log(e);
             // TODO if this is the only open history item, don't target _blank
-            uhtml.render(frame, uhtml.html`<div class="error">Login error! ${e.toString()}.</div>`);
+            uhtml.render(frame, uhtml.html`<div class="error">Login error! ${(e as Error).toString()}.</div>`);
             // const v: {removeSelf: () => void} = clientLogin(client, () => v.removeSelf()).insertBefore(frame, null);
             return;
         }
@@ -3286,7 +3296,7 @@ function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchP
         uhtml.render(frame, uhtml.html`<div>Logged In! You may now close this page.</div>`);
     })().catch(e => {
         console.log(e);
-        alert("Unexpected error "+e.toString());
+        alert("Unexpected error "+(e as Error).toString());
     });
 
     return hsc;
@@ -3296,12 +3306,13 @@ function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchP
 window.onpopstate = (ev: PopStateEvent) => {
     // onNavigate(ev?.state.index ?? 0);
     console.log("onpopstate. ev:",ev.state);
-    if(ev.state?.session_name !== session_name) {
+    const state = ev.state as HistoryState | undefined;
+    if(state?.session_name !== session_name) {
         console.log("Going to history item from different session");
         onNavigate(0, location);
         return;
     }
-    onNavigate(ev.state?.index ?? 0, location);
+    onNavigate(state?.index ?? 0, location);
 };
 
 const client_cache: {[key: string]: ThreadClient} = {};
@@ -3326,6 +3337,8 @@ type NavigationEntry = {url: string, node: NavigationEntryNode};
 const nav_history: NavigationEntry[] = [];
 
 const session_name = "" + Math.random();
+
+type HistoryState = {index: number, session_name: string};
 
 function navigate({path, replace}: {path: string, replace?: boolean}) {
     replace ??= false;
@@ -3645,7 +3658,7 @@ function fetchPromiseThen<T>(promise: Promise<T>, cb: (v: T) => HideShowCleanup<
         loader_container.remove();
     }).catch(e => {
         console.log("error rendering", e);
-        wrapper.adch(el("span").clss("error").atxt("Got error! Check console! "+e.toString()));
+        wrapper.adch(el("span").clss("error").atxt("Got error! Check console! "+(e as Error).toString()));
     });
 
     return hsc;

@@ -37,6 +37,7 @@ declare global {
 }
 
 //@ts-ignore
+//eslint-disable-next-line @typescript-eslint/no-unsafe-return
 window.el = (...a) => document.createElement(...a);
 window.txt = (txt: string) => document.createTextNode(txt);
 window.anychange = (itms, cb) => {itms.forEach(itm => itm.oninput = () => cb()); cb(); return cb};
@@ -49,5 +50,5 @@ Node.prototype.atxt = function(txta) {this.appendChild(txt(txta)); return this};
 Node.prototype.onev = function(...a) {this.addEventListener(...a); return this};
 Node.prototype.clss = function(...clss) {clss.forEach(clitm => clitm.split(/[. ]/g).filter(q => q).map(itm => (this as unknown as HTMLElement).classList.add(itm))); return this};
 Node.prototype.styl = function(styl) {Object.entries(styl).forEach(([k, v]) => this.style.setProperty(k, v)); return this};
-Object.defineProperty(Array.prototype, "last", {enumerable: false, get: function() {return this[this.length - 1]}});
-Object.defineProperty(Object.prototype, "dwth", {enumerable: false, value: function(cb: (v: unknown) => unknown) {cb(this); return this}});
+Object.defineProperty(Array.prototype, "last", {enumerable: false, get: function(this: unknown[]) {return this[this.length - 1]}});
+Object.defineProperty(Object.prototype, "dwth", {enumerable: false, value: function(this: unknown, cb: (v: unknown) => unknown) {cb(this); return this}});

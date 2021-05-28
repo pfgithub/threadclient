@@ -5,7 +5,7 @@ export const templateGenerator = <InType>(helper: (str: InType) => string) => {
     type ValueArrayType = (InType | {[rawsym]: string})[];
     return (strings: TemplateStringsArray, ...values: ValueArrayType) => {
         const result: ({raw: string} | {val: InType})[] = [];
-        (strings as TemplateStringsArray).forEach((string, i) => {
+        strings.forEach((string, i) => {
             result.push({raw: string});
             if(i < values.length) {
                 const val = values[i];

@@ -173,6 +173,7 @@ reddit todo:
 -   [x] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
 -   [x] support op, mod distinguished, and admin distinguished comments and posts
 -   [x] messages
+-   [ ] add support for /u/me. also when ppl link there, make the link appear as if it is linking to you directly with /u/yourusername when you hover it.
 -   [ ] fix it so when you subscribe to a sub and then navigate to that sub page it still shows you as subscribed. this is
         an easy, but annoying, fix. just have to change it so the time the page was fetched gets piped through the whole system
         so good data doesn't get replaced with older bad data.

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Node as UntypedNode, createEditor, Editor, Transforms, Path } from "slate";
-import { Slate, Editable, withReact, useSelected, useFocused, useSlate } from "slate-react";
+import { Slate, Editable, withReact, useSelected, useFocused, useSlate, RenderElementProps } from "slate-react";
 import {withHistory} from "slate-history";
 
 const { useCallback, useMemo, useState } = React;
@@ -282,7 +282,7 @@ export const App: React.FC = (): React.ReactElement => {
         <div className="prose">
             <Editable
                 //eslint-disable-next-line @typescript-eslint/no-explicit-any
-                renderElement={renderElement as any}
+                renderElement={renderElement as unknown as (props: RenderElementProps) => JSX.Element}
                 renderLeaf={renderLeaf}
                 // todo update newline to isnert a br then a parargraph break if there alreads aflk
                 // uh oh! this code block doesn't respond properly to newlines
