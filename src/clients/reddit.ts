@@ -2353,7 +2353,8 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 time: listing.created_utc * 1000,
                 edited: listing.edited === false ? false : listing.edited * 1000,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
-                pinned: listing.stickied,
+                // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+                pinned: listing.pinned || listing.stickied,
             },
             actions: [
                 replyButton(listing.name), {

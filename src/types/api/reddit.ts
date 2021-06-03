@@ -844,6 +844,7 @@ export type PostOrComment = {
     locked: boolean,
 
     approved?: boolean,
+    pinned?: boolean,
 
     mod_reports: ModReport[],
     mod_reports_dismissed: ModReport[],
