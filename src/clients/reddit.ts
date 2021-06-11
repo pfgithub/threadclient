@@ -897,6 +897,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
         const can_mod_post = firstchild.data.can_mod_post;
         const permalink: string = firstchild.data.permalink;
         const is_locked = firstchild.data.locked;
+        const is_chat = firstchild.data.discussion_type === "CHAT";
 
         const children_root = listing[1].data.children;
         const header_children: Generic.Node[] = [];
@@ -904,7 +905,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
         if(root0 && root0.kind === "t1" && root0.data.parent_id !== link_fullname) {
             header_children.push(loadMoreContextNode(root0.data.subreddit, (link_fullname ?? "").replace("t3_", ""), root0.data.parent_id.replace("t1_", "")));
         }
-        let replies = children_root.map(child => threadFromListing(child, {link_fullname}, {permalink: permalink, sort: default_sort}));
+        let replies = children_root.map(child => threadFromListing(child, {link_fullname}, {permalink: permalink, sort: default_sort, is_chat}));
 
         if(page.kind === "comments" && page.focus_comment != null) {
             // a mess of code:
@@ -1000,7 +1001,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                 kind: "one",
                 item: {
                     parents: [
-                        threadFromListing(firstchild, {force_expand: header_children.length > 0 ? "closed" : "open", show_post_reply_button: true}, {permalink, sort: "unsupported"}),
+                        threadFromListing(firstchild, {force_expand: header_children.length > 0 ? "closed" : "open", show_post_reply_button: true}, {permalink, sort: "unsupported", is_chat}),
                         ...is_contest_mode ? [((): Generic.Thread => ({
                             kind: "thread",
                             body: {
@@ -1262,7 +1263,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
                 },
                 items: page.kind === "inbox"
                     ? listing.data.children.map(child => topLevelThreadFromInboxMsg(child as unknown as Reddit.InboxMsg))
-                    : listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: pathraw, sort: "unsupported"}))
+                    : listing.data.children.map(child => topLevelThreadFromListing(child, undefined, {permalink: pathraw, sort: "unsupported", is_chat: false}))
                 ,
                 next,
             },
@@ -2247,6 +2248,7 @@ const fetch_path = encoderGenerator<{path: string}, "fetch_removed_path">("fetch
 type SortedPermalink = {
     permalink: string, // with sort param
     sort: Reddit.Sort,
+    is_chat: boolean,
 };
 
 // TODO instead of this, make a function to get the permalink from a SortedPermalink object
@@ -2254,6 +2256,7 @@ function sortWrap(parent: SortedPermalink, next: string): SortedPermalink {
     return {
         permalink: updateQuery(next, {sort: parent.sort}),
         sort: parent.sort,
+        is_chat: parent.is_chat,
     };
 }
 
@@ -2365,7 +2368,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                 deleteButton(listing.name),
                 saveButton(listing.name, listing.saved),
                 reportButton(listing.name, listing.subreddit),
-                getPointsOn(listing),
+                ...parent_permalink.is_chat ? [] : [getPointsOn(listing)],
                 getCodeButton(listing.body),
             ],
             default_collapsed: listing.collapsed,
@@ -3313,7 +3316,7 @@ export const client: ThreadClient = {
         }
         console.log(reply);
         // the reply also has a "rte_mode": "markdown" | "unsupported"
-        return threadFromListing({kind: "t1", data: reply}, {}, {permalink: "TODO", sort: "unsupported"});
+        return threadFromListing({kind: "t1", data: reply}, {}, {permalink: "TODO", sort: "unsupported", is_chat: false});
     },
     async fetchReportScreen(data_raw) {
         const data = report_encoder.decode(data_raw);

@@ -937,6 +937,14 @@ export type PostSubmission = PostOrComment & {
         hls_url: string, // https://watch.redd.it/hls/…/index.m3u8 // note this can be fetched, it allows cross-origin requests
         scrubber_media_url: string, // https://watch.redd.it/hls/…/thumbnail.jpg // not sure why this would be a jpg file
     },
+
+    // chat threads must be "unrolled" and all comments should be sorted by time
+    // then, comments with parents should act like on mastodon and have a "show thread" button
+    // alternatively, they should be a link that scrolls the page
+    // actually that might not work properly when loading more
+    // uuh
+    // that's unfortunate I guess
+    discussion_type: "CHAT" | "unsupported" | null,
 };
 
 export type RemovedByCategory =
