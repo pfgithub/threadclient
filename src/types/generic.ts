@@ -1,5 +1,7 @@
 // types that clients return
 
+/// export namespace generic<InternalDataType>?
+
 export type ContentFrame = {
     // clients should provide a method to bundle requests. requestAll([above, content, below])
     // the recommended request order returns the best order and grouping to perform the needed requests
@@ -10,6 +12,160 @@ export type InfoRequest = keyof InfoRequestMap;
 export type InfoRequestMap = {
     body: Page,
 };
+
+// ok "load more"
+// situations this may occur:
+// - comments:
+//   - comment one
+//   - load more…
+//   - comment two
+// here, the load more can load multiple items
+//
+// - comment one
+//   - load more…
+//     - comment four
+// here, the load more is filling in parent/replies
+// like after loading more, you might end up with
+// - comment one
+//   - comment two
+//     - comment three
+//       - comment four
+// to represent this
+// like uuh
+// comment four needs to have a parent comment that's a load more
+// and that should have the identifier or whatever it is
+// are these the same thing or are they different in some fundamental way?
+// they seem different
+
+// ok an interesting one
+// sometimes, replies→a reply→parent is not the original thing
+// eg the reddit homepage
+// replies has a bunch of posts but the posts each have subreddit parents
+
+// ok here's something
+// rather than returning a filled in content map,
+// how about providing functions to rehydrate uuh
+// nah provide a content map that's as filled as it
+// can be and then use loaders I think.
+
+/// note that this includes cyclic references
+/// when stringifying, it's necessary to keep maps of what has been added
+export type Page2 = {
+    title: string,
+    pivot: PostData,
+    content: ContentMap,
+};
+export type ContentMap = Map<ID<unknown>, unknown>;
+export type ID<T> = symbol & {__is_id: T};
+export type ParentPost = PostData | PostVerticalLoader;
+export type PostData = {
+    kind: "post",
+    parent: ParentPost | null,
+    replies: ListingData | null,
+
+    content: PostContent, // content should always be in a PostData. eg: crossposts that are embedded in a body also need parent, replies.
+    internal_data: unknown,
+    display_style: "fullscreen" | "centered",
+};
+// loads like :: a parent might be known and a replies might be known.
+// returns an array of PostData | PostVerticalLoader to place between
+// the parent and replies in the node tree.
+export type PostVerticalLoader = {
+    kind: "vloader",
+    parent: ParentPost | null,
+    replies: ListingData | null,
+};
+export type ListingData = {
+    sort: null | ID<SortData>,
+    // pinned: …
+    // items: …
+    items: ListingEntry[],
+};
+export type ListingEntry = {
+    kind: "post",
+    post: PostData,
+} | {
+    kind: "load_more",
+};
+
+// ok dealing with sidebars
+// so take eg twxtter
+// sidebars often contain info relative to the pivoted content
+// maybe anything should be able to specify a sidebar and it should only
+// be used if it's at or above the pivot?
+
+export type ClientPost = {
+    kind: "client",
+    navbar: Navbar,
+};
+
+export type PostContent = ClientPost | {
+    /// the thing containing the header and sidebar. when rendered below
+    /// the pivot, uses an alternate render.
+    kind: "page",
+    wrap_page: {
+        sidebar: ListingData,
+        header: ListingData,
+    },
+    overview: PostData,
+} | {
+    /// the thing containing a post. generally post replies
+    /// are only shown when it's at or above the pivot.
+    /// this should be clickable if:
+    /// - this is below the pivot and show_replies_when… is false
+    /// - this is above the pivot
+    kind: "post",
+
+    url: string | null, // a link to this post. when navigating to this link, the pivot will be this post.
+    title: null | {
+        text: string,
+        body_collapsible: null | {default_collapsed: boolean},
+    },
+    author: null | ID<UserData>,
+    body: Body,
+    /// if the item should display replies like
+    /// item
+    /// | reply
+    /// | | reply
+    show_replies_when_below_pivot: boolean,
+} | {
+    kind: "legacy",
+    thread: Thread,
+};
+/// in case the body contains a loader. it should also be supported to have a loader in richtext content.
+// export type BodyData = {
+//     body: Body,
+// };
+export type UserData = {
+    name: string,
+    color_hash: string,
+    pfp: "TODO",
+    flair: "TODO",
+    // …
+};
+export type SortData = {
+    sort_methods: "TODO",
+    current_method: number,
+    // this can be more than just sort.
+    // eg it should have a way
+    // to have stuff like post duplicates and subreddit
+    // navbars.
+};
+// take an example comment
+// - client (root)
+// - subreddit ("page")
+// - link post and comments up to pivot ("")
+// - comments below pivot
+//
+// take an example subreddit view
+// - client
+// - subreddit (pivot)
+// - threads
+//
+// take an example wiki page
+// - client
+// - subreddit
+// - the wiki page (pivot)
 
 export type Page = {
     title: string,

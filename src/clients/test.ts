@@ -340,8 +340,138 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[]):
     }, {title: "404", collapse_body: false, layout: "reddit-post"})};
 }
 
+function idFrom<T>(a: string): Generic.ID<T> {
+    return Symbol(a) as Generic.ID<T>;
+}
+
+function postData(content: Generic.PostData): Generic.PostData {
+    return content;
+}
+
+function idMapAdd<T>(map: Map<Generic.ID<unknown>, unknown>, id: string, content: T): Generic.ID<T> {
+    map.set(idFrom(id), content);
+    return idFrom(id);
+}
+
+function clientWrapperAdd(map: Map<Generic.ID<unknown>, unknown>): Generic.PostData {
+    return {
+        kind: "post",
+        parent: null,
+        replies: null,
+
+        display_style: "centered",
+        content: {
+            kind: "client",
+            navbar: {actions: [], inboxes: []},
+        },
+        internal_data: idFrom("internal_data:/client-wrapper"),
+    };
+}
+
+export async function getPage(path: string): Promise<Generic.Page2> {
+    const parsed_path = new URL(path, "http://test/");
+    const pathsplit = parsed_path.pathname.split("/").filter(q => q);
+    const smres = getFromSitemap(pathsplit, 0, sitemap);
+
+    const content = new Map<Generic.ID<unknown>, unknown>();
+    const client_wrapper = clientWrapperAdd(content);
+
+    if(!smres) {
+        const home_page: Generic.PostContent = {
+            kind: "post",
+            title: null,
+            author: null,
+            url: "/",
+            body: {
+                kind: "richtext",
+                content: [
+                    rt.h1(rt.txt("Tests:")),
+                    rt.ul(...[
+                        "/body-preview",
+                        "/link-preview",
+                        "/updates",
+                        "/markdown",
+                    ].map(v => rt.li(rt.p(
+                        rt.link(v, {}, rt.txt(v)),
+                    )))),
+                    rt.h1(rt.txt("TODO:")),
+                    rt.p(rt.txt("Test download pages from clients, for example a real sidebar widget or a real post or a real saved inbox")),
+                    rt.p(rt.txt("Test actual pages from clients. For example:")),
+                    rt.ul(
+                        rt.li(rt.p(rt.txt("Test that logging in and logging out works"))),
+                        rt.li(rt.p(rt.txt("Test posting actual replies"))),
+                        rt.li(rt.p(rt.txt("Test sending actual reports"))),
+                    )
+                ],
+            },
+            show_replies_when_below_pivot: false,
+        };
+        const pivot: Generic.PostData = {
+            kind: "post",
+            parent: client_wrapper,
+            replies: null,
+
+            display_style: "centered",
+            content: home_page,
+            internal_data: 0,
+        };
+        return {
+            title: "home",
+            pivot,
+            content,
+        };
+    }
+
+    let parent_node: Generic.PostData = client_wrapper;
+
+    for(let q = smres; true;) {
+        parent_node = postFromLegacy(content, parent_node, q.current);
+        if(Array.isArray(q.children)) {
+            parent_node.replies = {
+                sort: null,
+                items: q.children.map(child => ({kind: "post", post: postFromLegacy(content, parent_node, child)})),
+            };
+            break;
+        }
+        q = q.children;
+    }
+
+    return {
+        title: "«err no title»",
+        pivot: parent_node,
+        content,
+    };
+}
+
+function postFromLegacy(content: Generic.ContentMap, parent: Generic.PostData | null, legacy: Generic.Thread): Generic.PostData {
+    const replies = legacy.replies ? {
+        sort: null,
+        items: legacy.replies.map((reply): Generic.ListingEntry => {
+            if(reply.kind === "load_more") throw new Error("TODO load more");
+            return {
+                kind: "post",
+                post: postFromLegacy(content, parent, reply),
+            }
+        })
+    } : null;
+    legacy.replies = undefined;
+    return {
+        kind: "post",
+        parent,
+        replies,
+
+        display_style: "centered",
+        content: {
+            kind: "legacy",
+            thread: legacy,
+        },
+        internal_data: 0,
+    };
+}
+
 export const client: ThreadClient = {
     id: "test",
+    getPage,
     async getThread(path): Promise<Generic.Page> {
         const parsed_path = new URL(path, "http://test/");
 

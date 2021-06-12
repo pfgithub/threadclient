@@ -85,6 +85,12 @@ yarn tsc --noEmit
 
 ## todo
 
+update notes:
+
+-   in mastodon, threads above and below can be fetched seperately. when threads above finish loading, they should keep the page
+    scroll the same. eg: get the scroll before adding the nodes, get the node height, set the scroll to the previous scroll plus
+    the height of the added nodes.
+
 all todo:
 
 -   [x] dark mode for people without darkreader

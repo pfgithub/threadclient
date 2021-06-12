@@ -3235,6 +3235,116 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
 
     return hsc;
 }
+function renderClientContent(client: ThreadClient, listing: Generic.PostContent, opts: ClientContentOpts): HideShowCleanup<Node> {
+    // console.log(listing);
+    
+    const frame = clientListingWrapperNode();
+    const hsc = hideshow(frame);
+
+    try {
+        if(listing.kind === "page") {
+            frame.atxt("TODO page (also note that this should have special handling in the parent list)");
+        }else if(listing.kind === "post") {
+            frame.atxt("TODO post");
+        }else if(listing.kind === "client") {
+            frame.atxt("TODO client (also note that this shouldn't render in the parent list)");
+        }else if(listing.kind === "legacy") {
+            clientContent(client, listing.thread, opts).defer(hsc).adto(frame);
+        }else assertNever(listing);
+        return hsc;
+    }catch(e) {
+        hsc.cleanup();
+        console.log("Got error", e); 
+        frame.innerHTML = "";
+        frame.adch(el("pre").adch(el("code").atxt((e as Error).toString() + "\n\n" + (e as Error).stack ?? "*no stack*")));
+        frame.adch(elButton("code-button").atxt("Code").onev("click", (err) => {err.stopPropagation(); console.log(listing)}));
+        return hideshow(frame);
+    }
+}
+function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: HTMLDivElement, title: UpdateTitle): HideShowCleanup<undefined> {
+    const hsc = hideshow();
+
+    // It might get mutated so just in case make a copy. This should be fixed
+    // so the listing can't be mutated and this isn't necessary
+    title.setTitle(listing.title);
+
+    frame.classList.add("display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[listing.pivot.display_style]);
+
+    let client_item: Generic.ClientPost | undefined;
+    for(let highest: Generic.ParentPost | null = listing.pivot; highest != null; highest = highest.parent) {
+        if(highest.kind === "post" && highest.content.kind === "client") {
+            client_item = highest.content;
+            break;
+        }
+    }
+
+    const navbar_area = el("div").adto(frame).clss("navbar-area");
+    for(const navbar_action of client_item?.navbar.actions ?? []) {
+        renderAction(client, navbar_action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
+        txt(" ").adto(navbar_area);
+    }
+    elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(listing));
+    txt(" ").adto(navbar_area);
+    for(const navbar_inbox of client_item?.navbar.inboxes ?? []) {
+        renderInbox(client, navbar_inbox).defer(hsc).adto(navbar_area);
+        txt(" ").adto(navbar_area);
+    }
+    // TODO save the raw page responses. listings are not meant to be copied, they can have symbols
+    // and might in the future have functions and stuff
+    //
+    // How to make this change:
+    // make client.getThread return an Opaque<ThreadData> that you pass back to client to get the listing 
+    //
+    // const saveofflinebtn = elButton("action-button").atxt("Save Offline").adto(navbar_area).onev("click", () => {
+    //     // save listing in indexed db
+    //     // (or in the future, save the raw responses from the web so they can be re-transformed if necessary)
+    //     localStorage.setItem("saved-post", JSON.stringify(listing_copy));
+    //     saveofflinebtn.disabled = true;
+    //     saveofflinebtn.textContent = "✓ Saved";
+    //     // set url to /saved/… without reloading
+    // }).adto(navbar_area);
+
+    const header_area = el("div").adto(frame).clss("header-area");
+    const content_area = el("div").adto(frame).clss("content-area");
+
+    
+    const parents_list: Generic.ParentPost[] = [];
+    for(let highest: Generic.ParentPost | null = listing.pivot; highest != null; highest = highest.parent) {
+        parents_list.push(highest);
+    }
+    parents_list.reverse();
+
+    const parent_area = makeTopLevelWrapper().adto(header_area);
+    for(const parent of parents_list) {
+        const is_last = parent === parents_list[parents_list.length - 1];
+        if(parent.kind === "post") {
+            if(parent.content.kind === "client" || parent.content.kind === "page") {
+                continue; // TODO special handling for pages
+            }
+            renderClientContent(client, parent.content, {clickable: !is_last}).defer(hsc).adto(parent_area);
+        }else if(parent.kind === "vloader") {
+            const area = el("div").adto(parent_area);
+            linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(area);
+            // replace the linkbutton with the new content once it loads
+        }else assertNever(parent);
+    }
+
+    if(listing.pivot.replies) {
+        if(listing.pivot.replies.items.length === 0) content_area.atxt("*No replies*");
+        for(const child of listing.pivot.replies.items) {
+            if(child.kind === "load_more") {
+                const area = el("div").adto(content_area);
+                linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(area);
+                // load into the area
+            }else{
+                const itmv = makeTopLevelWrapper().adto(content_area);
+                renderClientContent(client, child.post.content, {clickable: false}).defer(hsc).adto(itmv);
+            }
+        }
+    }
+
+    return hsc;
+}
 
 // const top_level_wrapper: string[] = [];
 // const object_wrapper = ["shadow-md m-5 p-3 dark:bg-gray-800 rounded-xl m-5 p-3"];
@@ -3255,9 +3365,15 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        const listing = await client.getThread(current_path);
-        loader_area.remove();
-        renderClientPage(client, listing, frame, title).defer(hsc);
+        if(client.getPage) {
+            const page2 = await client.getPage(current_path);
+            loader_area.remove();
+            renderClientPage2(client, page2, frame, title).defer(hsc);
+        }else{
+            const listing = await client.getThread(current_path);
+            loader_area.remove();
+            renderClientPage(client, listing, frame, title).defer(hsc);
+        }
     })().catch(e => {
         console.log(e, (e as Error).stack ?? "*no stack*");
         if(loader_area.parentNode) loader_area.remove();
