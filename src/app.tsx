@@ -2564,6 +2564,7 @@ type ClientPostOpts = {
     clickable: boolean,
     replies: Generic.ListingData | null,
     at_or_above_pivot: boolean,
+    is_pivot: boolean,
     top_level: boolean,
 };
 function renderClientPost(client: ThreadClient, content: Generic.PostContentPost, opts: ClientPostOpts): HideShowCleanup<HTMLElement> {
@@ -2577,7 +2578,21 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
     }
 
     const body_area = el("div").clss("post-preview").adto(frame);
-    renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
+    if(!opts.is_pivot && content.title && content.title.body_collapsible) {
+        let body_collapsed = content.title.body_collapsible.default_collapsed;
+        if(body_collapsed) {
+            const show_btn = elButton("pill-empty").atxt("Show").adto(body_area);
+            show_btn.onev("click", () => {
+                body_collapsed = !body_collapsed;
+                show_btn.remove();
+                renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
+            })
+        }else{
+            renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
+        }
+    }else{
+        renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
+    }
 
     const action_buttons_area = el("div").clss("post-content-buttons text-xs").adto(frame);
     if(content.url) linkButton(client.id, content.url, "action-button").atxt("View").adto(action_buttons_area);
@@ -2599,7 +2614,7 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
                 // if(threaded) reply_node.clss("relative threaded");
                 if(reply.kind === "post") {
                     reply_node.clss("comment");
-                    renderClientContent(client, reply.post.content, {clickable: false, at_or_above_pivot: false, replies: reply.post.replies, top_level: false}).defer(hsc).adto(reply_node);
+                    renderClientContent(client, reply.post.content, {clickable: false, at_or_above_pivot: false, is_pivot: false, replies: reply.post.replies, top_level: false}).defer(hsc).adto(reply_node);
                 }else if(reply.kind === "load_more") {
                     linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(reply_node);
                     reply_container.insertBefore(document.createComment(""), insert_before);
@@ -3432,15 +3447,16 @@ function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: 
     for(const parent of parents_list) {
         const is_last = parent === parents_list[parents_list.length - 1];
         if(parent.kind === "post") {
-            if(parent.content.kind === "client" || parent.content.kind === "page") {
+            if(!is_last && parent.content.kind === "client" || parent.content.kind === "page") {
                 continue; // TODO special handling for pages
             }
-            renderClientContent(client, parent.content, {clickable: !is_last, replies: parent.replies, at_or_above_pivot: true, top_level: true}).defer(hsc).adto(parent_area);
+            renderClientContent(client, parent.content, {clickable: !is_last, replies: parent.replies, at_or_above_pivot: true, top_level: true, is_pivot: is_last}).defer(hsc).adto(parent_area);
         }else if(parent.kind === "vloader") {
             const area = el("div").adto(parent_area);
             linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(area);
             // replace the linkbutton with the new content once it loads
         }else assertNever(parent);
+        if(!is_last) parent_area.adch(el("hr").clss("my-2").styl({"border-top-color": "var(--collapse-line-color)", "border-top-width": "3px"})); // var(--collapse-line-color)
     }
 
     if(listing.pivot.replies) {
@@ -3452,7 +3468,7 @@ function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: 
                 // load into the area
             }else if(child.kind === "post") {
                 const itmv = makeTopLevelWrapper().adto(content_area);
-                renderClientContent(client, child.post.content, {clickable: false, replies: child.post.replies, at_or_above_pivot: false, top_level: true}).defer(hsc).adto(itmv);
+                renderClientContent(client, child.post.content, {clickable: false, replies: child.post.replies, at_or_above_pivot: false, top_level: true, is_pivot: false}).defer(hsc).adto(itmv);
             }else if(child.kind === "loaded") {
                 child.entries.forEach(addReply);
             }else assertNever(child);

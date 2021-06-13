@@ -348,13 +348,14 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
     const current_bit = path[index];
     if(current_bit == null) return undefined;
 
-    const urlr = "/" + path.filter((unused, i) => index <= i).join("/");
+    const urlr = "/" + path.filter((unused, i) => i <= index).join("/");
     
     const found_value = replies.find(([name, cb]) => {
         if(current_bit === name) return current_bit;
     });
 
     if(found_value) {
+        console.log(urlr);
         const called = found_value[1](urlr);
         const this_post: Generic.PostData = {
             kind: "post",
