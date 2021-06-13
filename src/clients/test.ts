@@ -165,64 +165,74 @@ function collapsibleComment(path: string, body: Generic.Body, opts: {content_war
     return userThread(path, body, {...opts, layout: "reddit-comment"});
 }
 
-function commitThread(path: string, entry: variables.LogEntry): Generic.Thread {
-    return userThread(path,
-        {
-            kind: "richtext",
-            content: [
-                rt.pre(entry.commit_body),
-            ],
+function commitThread(path: string, entry: variables.LogEntry): Generic.PostContent {
+    return {
+        kind: "post",
+        url: path,
+        title: {text: "" + entry.hash + ": " + entry.commit_title, body_collapsible: {default_collapsed: true}},
+        author: {
+            name: entry.author_name,
+            flair: [{
+                elems: [{type: "text", text: entry.author_email}],
+                content_warning: false,
+            }],
+            color_hash: entry.author_email,
+            link: "ENOLINK",
         },
-        {
-            title: ""+entry.hash+": "+entry.commit_title,
-            layout: "reddit-post",
-            collapse_body: true,
-            info: {
-                author: {
-                    name: entry.author_name,
-                    flair: [{
-                        elems: [{type: "text", text: entry.author_email}],
-                        content_warning: false,
-                    }],
-                    color_hash: entry.author_email,
-                    link: "ENOLINK",
-                },
-                time: +entry.date,
-                edited: false,
-                pinned: false,
-            },
-        },
-    );
+        body: {kind: "richtext", content: [
+            rt.pre(entry.commit_body),
+        ]},
+        show_replies_when_below_pivot: {default_collapsed: false},
+    };
 }
 
 type SitemapEntryData = {
-    post: Generic.Thread,
+    content: Generic.PostContent,
     replies?: SitemapEntry[],
 };
 type SitemapEntry = [string, (path: string) => SitemapEntryData];
 
 const sitemap: SitemapEntry[] = [
-    ["link-preview", (urlr) => ({
-        post: richtextPost(urlr, [
-            rt.h1(rt.txt("Testing Link Preview")),
-            rt.p(rt.txt("Check each link and make sure:")),
-            rt.ul(
-                rt.li(rt.p(rt.txt("It appears as described"))),
-                rt.li(rt.p(rt.txt("When collapsing or uncollapsing the comment, it functions as expected"))),
-                rt.li(rt.p(rt.txt("When closing the preview, it functions as expected"))),
-            ),
-        ]),
-        replies: sample_preview_links.map((spl, i) => ["" + i, (urlr) => ({post: collapsibleComment(urlr, {
-            kind: "richtext",
-            content: [
-                rt.p(rt.txt(spl.expected_result)),
-                rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
-            ],
-        }, {content_warning: spl.warn})})]),
+    ["link-preview", (urlr): SitemapEntryData => ({
+        content: {
+            kind: "post",
+            url: urlr,
+            title: null,
+            author: null,
+            body: {kind: "richtext", content: [
+                rt.h1(rt.txt("Testing Link Preview")),
+                rt.p(rt.txt("Check each link and make sure:")),
+                rt.ul(
+                    rt.li(rt.p(rt.txt("It appears as described"))),
+                    rt.li(rt.p(rt.txt("When collapsing or uncollapsing the comment, it functions as expected"))),
+                    rt.li(rt.p(rt.txt("When closing the preview, it functions as expected"))),
+                ),
+            ]},
+            show_replies_when_below_pivot: false,
+        },
+        replies: sample_preview_links.map((spl, i) => ["" + i, (urlr): SitemapEntryData => ({
+            content: {
+                kind: "legacy",
+                thread: collapsibleComment(urlr, {
+                    kind: "richtext",
+                    content: [
+                        rt.p(rt.txt(spl.expected_result)),
+                        rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
+                    ],
+                }, {content_warning: spl.warn}),
+            },
+        })]),
     })],
-    ["body-preview", (urlr) => ({
-        post: richtextPost(urlr, []),
-        replies: (() => {
+    ["body-preview", (urlr): SitemapEntryData => ({
+        content: {
+            kind: "post",
+            url: urlr,
+            title: {text: "Body Preview", body_collapsible: null},
+            author: null,
+            body: {kind: "none"},
+            show_replies_when_below_pivot: false,
+        },
+        replies: ((): SitemapEntry[] => {
             type ITRes = {desc: string, body: Generic.Body};
             const item = (desc: string, body: Generic.Body) => ({desc, body});
             const body_kinds: {[key in Generic.Body["kind"]]: ITRes[]} = {
@@ -276,42 +286,65 @@ const sitemap: SitemapEntry[] = [
             };
             return Object.entries(body_kinds).map(([key, items]): SitemapEntry => [
                 key,
-                (urlr) => ({
-                    post: userThread(urlr, {kind: "richtext", content: []}, {title: key, collapse_body: true, layout: "reddit-post"}),
+                (urlr): SitemapEntryData => ({
+                    content: {
+                        kind: "post",
+                        url: urlr,
+                        title: {text: key, body_collapsible: null},
+                        author: null,
+                        body: {kind: "none"},
+                        show_replies_when_below_pivot: {default_collapsed: false},
+                    },
                     replies: items.map(({body, desc}, i): SitemapEntry => [
                         "" + i,
-                        (urlr) => ({
-                            post: userThread(urlr, body, {title: desc, collapse_body: true, layout: "reddit-post"})
+                        (urlr): SitemapEntryData => ({
+                            content: {
+                                kind: "post",
+                                url: urlr,
+                                title: {text: desc, body_collapsible: {default_collapsed: true}},
+                                author: null,
+                                body,
+                                show_replies_when_below_pivot: {default_collapsed: false},
+                            },
                         }),
                     ])
                 }),
             ]);
         })(),
     })],
-    ["updates", (urlr) => ({
-        post: richtextPost(urlr, [
-            rt.h1(rt.txt("Version "+variables.version)),
-            rt.p(rt.txt("Built "), rt.timeAgo(variables.build_time)),
-        ]),
+    ["updates", (urlr): SitemapEntryData => ({
+        content: {
+            kind: "post",
+            url: urlr,
+            title: null,
+            author: null,
+            body: {kind: "richtext", content: [
+                rt.h1(rt.txt("Version "+variables.version)),
+                rt.p(rt.txt("Built "), rt.timeAgo(variables.build_time)),
+            ]},
+            show_replies_when_below_pivot: false,
+        },
         replies: variables.log.map((entry, i): SitemapEntry => [
             entry.hash_full,
-            (urlr) => ({post: commitThread(urlr, entry)}),
+            (urlr): SitemapEntryData => ({content: commitThread(urlr, entry)}),
         ]),
     })],
-    ["markdown", (urlr) => ({
-        post: userThread(urlr, {kind: "richtext", content: [rt.p(rt.txt("Press 'Reply'"))]}, {
-            layout: "reddit-post",
-            actions: [{kind: "reply", text: "Reply", reply_info: reply_encoder.encode({kind: "markdown"})}],
-        }),
+    ["markdown", (urlr): SitemapEntryData => ({
+        content: {
+            kind: "post",
+            url: urlr,
+            title: null,
+            author: null,
+            body: {kind: "richtext", content: [rt.p(rt.txt("Press 'Reply'"))]},
+            show_replies_when_below_pivot: false,
+        },
     })]
 ];
 
 type ReplyData = {kind: "markdown"} | {kind: "other"};
 const reply_encoder = encoderGenerator<ReplyData, "reply">("reply");
 
-type SitemapResult = {current: Generic.Thread, children: SitemapResult | Generic.Thread[]};
-
-function getFromSitemap(path: string[], index: number, replies: SitemapEntry[]): SitemapResult | undefined {
+function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], parent: Generic.PostData | null): Generic.PostData | undefined {
     const current_bit = path[index];
     if(current_bit == null) return undefined;
 
@@ -323,21 +356,66 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[]):
 
     if(found_value) {
         const called = found_value[1](urlr);
-        return {
-            current: called.post,
-            children: getFromSitemap(path, index + 1, called.replies ?? []) ?? (called.replies ?? []).map(reply => {
-                const urlr2 = urlr + "/" + reply[0];
-                return reply[1](urlr2).post;
-            }),
+        const this_post: Generic.PostData = {
+            kind: "post",
+            parent,
+            replies: {sort: null, items: [{kind: "load_more"}]},
+            content: called.content,
+            internal_data: 0,
+            display_style: "centered",
         };
+        if(called.replies) {
+            const subv = getFromSitemap(path, index + 1, called.replies, this_post);
+            if(subv) return subv;
+            const mapReplies = (replies: SitemapEntry[], urlr: string): Generic.ListingEntry[] => (
+                replies.map((reply): Generic.ListingEntry => {
+                    const urlr2 = urlr + "/" + reply[0];
+                    const replyitm = reply[1](urlr2);
+                    // reply count estimate: replyitm.replies.length
+                    return {
+                        kind: "post",
+                        post: {
+                            kind: "post",
+                            parent: this_post,
+                            replies: replyitm.replies ? {
+                                sort: null,
+                                items: replyitm.content.kind === "post" && replyitm.content.show_replies_when_below_pivot ? (
+                                    mapReplies(replyitm.replies, urlr2)
+                                ) : [{kind: "load_more"}],
+                            } : null,
+                            content: replyitm.content,
+                            internal_data: 0,
+                            display_style: "centered",
+                        },
+                    };
+                })
+            );
+            this_post.replies = {sort: null, items: mapReplies(called.replies, urlr)};
+        }else{
+            this_post.replies = null;
+        }
+        return this_post;
     }
 
-    return {children: [], current: userThread(urlr, {
-        kind: "richtext",
-        content: [
-            rt.p(rt.txt("404 not found "+path)),
-        ],
-    }, {title: "404", collapse_body: false, layout: "reddit-post"})};
+    const this_post: Generic.PostData = {
+        kind: "post",
+        parent,
+        replies: null,
+        content: {
+            kind: "post",
+            url: urlr,
+            title: {text: "404", body_collapsible: null},
+            author: null,
+            body: {kind: "richtext", content: [
+                rt.p(rt.txt("404 not found "+path)),
+            ]},
+            show_replies_when_below_pivot: false,
+        },
+        internal_data: 0,
+        display_style: "centered",
+    };
+    if(parent) parent.replies = {sort: null, items: [{kind: "load_more"}]};
+    return this_post;
 }
 
 function idFrom<T>(a: string): Generic.ID<T> {
@@ -371,144 +449,25 @@ function clientWrapperAdd(map: Map<Generic.ID<unknown>, unknown>): Generic.PostD
 export async function getPage(path: string): Promise<Generic.Page2> {
     const parsed_path = new URL(path, "http://test/");
     const pathsplit = parsed_path.pathname.split("/").filter(q => q);
-    const smres = getFromSitemap(pathsplit, 0, sitemap);
 
     const content = new Map<Generic.ID<unknown>, unknown>();
     const client_wrapper = clientWrapperAdd(content);
+    const smres = getFromSitemap(pathsplit, 0, sitemap, client_wrapper);
 
-    if(!smres) {
-        const home_page: Generic.PostContent = {
-            kind: "post",
-            title: null,
-            author: null,
-            url: "/",
-            body: {
-                kind: "richtext",
-                content: [
-                    rt.h1(rt.txt("Tests:")),
-                    rt.ul(...[
-                        "/body-preview",
-                        "/link-preview",
-                        "/updates",
-                        "/markdown",
-                    ].map(v => rt.li(rt.p(
-                        rt.link(v, {}, rt.txt(v)),
-                    )))),
-                    rt.h1(rt.txt("TODO:")),
-                    rt.p(rt.txt("Test download pages from clients, for example a real sidebar widget or a real post or a real saved inbox")),
-                    rt.p(rt.txt("Test actual pages from clients. For example:")),
-                    rt.ul(
-                        rt.li(rt.p(rt.txt("Test that logging in and logging out works"))),
-                        rt.li(rt.p(rt.txt("Test posting actual replies"))),
-                        rt.li(rt.p(rt.txt("Test sending actual reports"))),
-                    )
-                ],
-            },
-            show_replies_when_below_pivot: false,
-        };
-        const pivot: Generic.PostData = {
-            kind: "post",
-            parent: client_wrapper,
-            replies: null,
-
-            display_style: "centered",
-            content: home_page,
-            internal_data: 0,
-        };
+    if(smres) {
         return {
-            title: "home",
-            pivot,
+            title: "«err no title»",
+            pivot: smres,
             content,
         };
     }
 
-    let parent_node: Generic.PostData = client_wrapper;
-
-    for(let q = smres; true;) {
-        parent_node = postFromLegacy(content, parent_node, q.current);
-        if(Array.isArray(q.children)) {
-            parent_node.replies = {
-                sort: null,
-                items: q.children.map(child => ({kind: "post", post: postFromLegacy(content, parent_node, child)})),
-            };
-            break;
-        }
-        q = q.children;
-    }
-
-    return {
-        title: "«err no title»",
-        pivot: parent_node,
-        content,
-    };
-}
-
-function postFromLegacy(content: Generic.ContentMap, parent: Generic.PostData | null, legacy: Generic.Thread): Generic.PostData {
-    const replies = legacy.replies ? {
-        sort: null,
-        items: legacy.replies.map((reply): Generic.ListingEntry => {
-            if(reply.kind === "load_more") throw new Error("TODO load more");
-            return {
-                kind: "post",
-                post: postFromLegacy(content, parent, reply),
-            }
-        })
-    } : null;
-    legacy.replies = undefined;
-    return {
+    const home_page: Generic.PostContent = {
         kind: "post",
-        parent,
-        replies,
-
-        display_style: "centered",
-        content: {
-            kind: "legacy",
-            thread: legacy,
-        },
-        internal_data: 0,
-    };
-}
-
-export const client: ThreadClient = {
-    id: "test",
-    getPage,
-    async getThread(path): Promise<Generic.Page> {
-        const parsed_path = new URL(path, "http://test/");
-
-        const pathsplit = parsed_path.pathname.split("/").filter(q => q);
-
-        const smres = getFromSitemap(pathsplit, 0, sitemap);
-
-        if(smres) {
-            const parent_nodes: Generic.Thread[] = [];
-            let children_nodes: Generic.Thread[];
-            let last_node: Generic.Thread;
-            const evalv = (q: SitemapResult) => {
-                parent_nodes.push(q.current);
-                if(Array.isArray(q.children)) {
-                    children_nodes = q.children;
-                    last_node = q.current;
-                }else{
-                    evalv(q.children);
-                }
-            };
-            evalv(smres);
-
-            return {
-                title: last_node!.title?.text ?? "«err no title»",
-                navbar: {actions: [], inboxes: []},
-                body: {
-                    kind: "one",
-                    item: {
-                        parents: parent_nodes,
-                        replies: children_nodes!,
-                    },
-                },
-                display_style: "comments-view",
-            };
-        }
-
-        return bodyPage(path, {
+        title: null,
+        author: null,
+        url: "/",
+        body: {
             kind: "richtext",
             content: [
                 rt.h1(rt.txt("Tests:")),
@@ -529,7 +488,55 @@ export const client: ThreadClient = {
                     rt.li(rt.p(rt.txt("Test sending actual reports"))),
                 )
             ],
-        });
+        },
+        show_replies_when_below_pivot: false,
+    };
+    const pivot: Generic.PostData = {
+        kind: "post",
+        parent: client_wrapper,
+        replies: null,
+
+        display_style: "centered",
+        content: home_page,
+        internal_data: 0,
+    };
+    return {
+        title: "home",
+        pivot,
+        content,
+    };
+}
+
+// function postFromLegacy(content: Generic.ContentMap, parent: Generic.PostData | null, legacy: Generic.Thread): Generic.PostData {
+//     const replies = legacy.replies ? {
+//         sort: null,
+//         items: legacy.replies.map((reply): Generic.ListingEntry => {
+//             if(reply.kind === "load_more") return {kind: "load_more"};
+//             return {
+//                 kind: "post",
+//                 post: postFromLegacy(content, parent, reply),
+//             }
+//         })
+//     } : null;
+//     return {
+//         kind: "post",
+//         parent,
+//         replies,
+
+//         display_style: "centered",
+//         content: {
+//             kind: "legacy",
+//             thread: {...legacy, replies: undefined},
+//         },
+//         internal_data: 0,
+//     };
+// }
+
+export const client: ThreadClient = {
+    id: "test",
+    getPage,
+    async getThread(path): Promise<Generic.Page> {
+        throw new Error("Not supported.");
     },
     async act(action) {
         throw new Error("act not supported");

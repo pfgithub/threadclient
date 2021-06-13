@@ -8,10 +8,10 @@ void (async () => {
     for(const file of dircont) {
         const filecont = await fs.readFile(__dirname+"/sample_data/"+file, "utf-8");
         const parsed = JSON.parse(filecont);
-        const res = reddit.pageFromListing("/PATHROOT", parsed, {});
-        await fs.writeFile(__dirname+"/sample_out/"+file, JSON.stringify(res, (key: string, value) => {
-            if(key === "raw_value") return undefined;
-            return value;
-        }, "\t"), "utf-8");
+        // const res = reddit.pageFromListing("/PATHROOT", parsed, {});
+        // await fs.writeFile(__dirname+"/sample_out/"+file, JSON.stringify(res, (key: string, value) => {
+        //     if(key === "raw_value") return undefined;
+        //     return value;
+        // }, "\t"), "utf-8");
     }
 })();

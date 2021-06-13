@@ -86,6 +86,9 @@ export type ListingEntry = {
     post: PostData,
 } | {
     kind: "load_more",
+} | {
+    kind: "loaded",
+    entries: ListingEntry[],
 };
 
 // ok dealing with sidebars
@@ -98,17 +101,7 @@ export type ClientPost = {
     kind: "client",
     navbar: Navbar,
 };
-
-export type PostContent = ClientPost | {
-    /// the thing containing the header and sidebar. when rendered below
-    /// the pivot, uses an alternate render.
-    kind: "page",
-    wrap_page: {
-        sidebar: ListingData,
-        header: ListingData,
-    },
-    overview: PostData,
-} | {
+export type PostContentPost = {
     /// the thing containing a post. generally post replies
     /// are only shown when it's at or above the pivot.
     /// this should be clickable if:
@@ -121,14 +114,25 @@ export type PostContent = ClientPost | {
         text: string,
         body_collapsible: null | {default_collapsed: boolean},
     },
-    author: null | ID<UserData>,
+    author: null | InfoAuthor,
     body: Body,
     /// if the item should display replies like
     /// item
     /// | reply
     /// | | reply
-    show_replies_when_below_pivot: boolean,
-} | {
+    show_replies_when_below_pivot: false | {default_collapsed: boolean},
+}
+
+export type PostContent = ClientPost | {
+    /// the thing containing the header and sidebar. when rendered below
+    /// the pivot, uses an alternate render.
+    kind: "page",
+    wrap_page: {
+        sidebar: ListingData,
+        header: ListingData,
+    },
+    overview: PostData,
+} | PostContentPost | {
     kind: "legacy",
     thread: Thread,
 };
@@ -136,13 +140,6 @@ export type PostContent = ClientPost | {
 // export type BodyData = {
 //     body: Body,
 // };
-export type UserData = {
-    name: string,
-    color_hash: string,
-    pfp: "TODO",
-    flair: "TODO",
-    // …
-};
 export type SortData = {
     sort_methods: "TODO",
     current_method: number,
@@ -476,19 +473,20 @@ type RedditModState = {
     approved: boolean, // TODO counter index
 };
 
+export type InfoAuthor = {
+    name: string,
+    color_hash: string,
+    link: string,
+    flair?: Flair[],
+    pfp?: {
+        url: string,
+        hover: string,
+    },
+};
 export type Info = {
     time: false | number, // null | number
     edited: false | number, // null | false | number
-    author?: {
-        name: string,
-        color_hash: string,
-        link: string,
-        flair?: Flair[],
-        pfp?: {
-            url: string,
-            hover: string,
-        },
-    },
+    author?: InfoAuthor,
     in?: {name: string, link: string},
     reblogged_by?: RebloggedBy,
     pinned: boolean,
