@@ -2439,6 +2439,7 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
                     default_collapsed: false,
                     layout: "reddit-post",
                 }))()] : [],
+                // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
                 ...listing.replies ?
                     listing.replies.data.children.map(v => threadFromListing(v, options, sortWrap(parent_permalink, listing.permalink)))
                 : [],

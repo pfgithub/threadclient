@@ -1478,27 +1478,28 @@ function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: s
                 description: string | null,
                 layout: "blog" | "unknown",
                 images_count: number,
-                images: ({
-                    id: string,
-                    description: string,
-                    link: string, // img src
-                    width: number,
-                    height: number,
-                    type: "image/jpeg" | "image/gif" | "video/mp4" | "image/png" | "unsupported",
-                } & ({animated: false} | {
-                    animated: true,
-                    looping: boolean,
+                images: TypedImage[],
+            } | TypedImage,
+        });
+        type TypedImage = {
+            id: string,
+            description: string,
+            link: string, // img src
+            width: number,
+            height: number,
+            type: "image/jpeg" | "image/gif" | "video/mp4" | "image/png" | "unsupported",
+        } & ({animated: false} | {
+            animated: true,
+            looping: boolean,
 
-                    gifv?: string,
-                    mp4?: string,
-                }))[],
-            },
+            gifv?: string,
+            mp4?: string,
         });
         console.log("imgur result", typed);
         if(typed.success) {
             const gallery: Generic.Body = {
                 kind: "gallery",
-                images: ('images' in typed.data ? typed.data.images : [typed.data]).map(image => {
+                images: ('images' in typed.data ? typed.data.images : [typed.data]).map((image) => {
                     const body: Generic.Body = image.animated && image.mp4 != null ? {
                         kind: "video",
                         source: {
