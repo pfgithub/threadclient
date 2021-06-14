@@ -1,0 +1,1 @@
+(self.webpackChunkthreadclient=self.webpackChunkthreadclient||[]).push([[764],{8764:(e,o,n)=>{"use strict";function r(e){const o=Symbol(e);return{encode:n=>({...n,encoding_symbol:o,encoding_type:e}),decode(n){if(n.encoding_symbol!==o)throw console.log("decoder error",n,e,o),new Error("Decoder was passed encoded data from the wrong encoder");return n}}}n.d(o,{e:()=>r})}}]);
