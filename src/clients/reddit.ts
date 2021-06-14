@@ -2319,6 +2319,54 @@ function getCodeButton(markdown: string): Generic.Action {
     ]}};
 }
 
+/// maybe some kind of map from id to value? so because parent the parent id it needs to give a parent to the Generic.PostData
+/// then fill it as much as possible, add it to the map, evaluate the parent and replies, add those
+export function postDataFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.PostData {
+    options.force_expand ??= "closed";
+    if(listing_raw.kind === "t1") {
+        const listing = listing_raw.data;
+
+        let is_deleted: Generic.RemovalMessage | undefined;
+        if(listing.author === "[deleted]") {
+            if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
+                is_deleted = removal_reasons.deleted("deleted", listing.subreddit_name_prefixed);
+            }else if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[removed]"}], e: "par"}]})) {
+                is_deleted = removal_reasons.moderator("moderator", listing.subreddit_name_prefixed);
+            }
+        }
+        const body_content: Generic.Body = {
+            kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})
+        };
+        const comment_body: Generic.Body = is_deleted != null
+            ? {kind: "removed", removal_message: is_deleted,
+                fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/comment/search?ids="+listing.id}),
+                body: body_content,
+            } : body_content
+        ;
+
+        return {
+            kind: "post",
+            parent: {kind: "vloader", parent: null, replies: null}, // TODO load more | known content
+            replies: {
+                sort: null,
+                reply: null,
+                items: [],
+            },
+
+            content: {
+                kind: "post",
+                url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
+                title: null,
+                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
+                body: comment_body,
+                show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
+            },
+            internal_data: 0,
+            display_style: "centered",
+        };
+    }else throw new Error("TODO "+listing_raw.kind);
+}
+
 const as = <T>(a: T): T => a;
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {

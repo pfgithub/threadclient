@@ -2594,6 +2594,43 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
     if(content.title) {
         el("div").atxt(content.title.text).adto(title_area);
     }
+    {
+        if(content.author?.pfp) {
+            const pfpimg = el("img").attr({src: content.author.pfp.url}).adto(title_area).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
+            pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
+            title_area.atxt(" ");
+        }
+        if(content.author) title_area.adch(userLink(client.id, content.author.link, content.author.color_hash).atxt(content.author.name));
+        if(content.author?.flair) title_area.adch(renderFlair(content.author.flair));
+        // reserved_points_area = document.createComment("").adto(content_subminfo_line);
+        // if(listing.info.time !== false) {
+        //     const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc));
+        //     content_subminfo_line.atxt(" ").adch(submission_time);
+        // }
+        // if(listing.info.edited !== false) {
+        //     content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
+        // }
+        // if(listing.info.pinned) {
+        //     content_subminfo_line.atxt(", ").adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
+        // }
+        // if(listing.info.reblogged_by) {
+        //     content_subminfo_line.atxt(" ← Boosted by ");
+        //     if(listing.info.reblogged_by.author) content_subminfo_line
+        //         .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.color_hash).atxt(listing.info.reblogged_by.author.name))
+        //     ;
+        //     if(listing.info.reblogged_by.time !== false) {
+        //         content_subminfo_line.atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc));
+        //     }
+        //     if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author?.pfp) {
+        //         frame.clss("spacefiller-pfp");
+        //         const pfpimg = el("div").clss("pfp", "pfp-reblog").styl({
+        //             "--url": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.url)+")",
+        //             "--url-hover": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.hover)+")"
+        //         });
+        //         pfpimg.adto(content_voting_area);
+        //     }
+        // }
+    }
 
     if(!opts.is_pivot && content.title && content.title.body_collapsible) {
         let body_collapsed = content.title.body_collapsible.default_collapsed;
@@ -2603,7 +2640,7 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
                 body_collapsed = !body_collapsed;
                 show_btn.remove();
                 renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
-            })
+            });
         }else{
             renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
         }
@@ -2611,14 +2648,14 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
         renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
     }
 
-    if(content.url) linkButton(client.id, content.url, "action-button").atxt("View").adto(action_buttons_area);
+    if(content.url != null) linkButton(client.id, content.url, "action-button").atxt("View").adto(action_buttons_area);
     elButton("code-button").onev("click", e => {
         e.stopPropagation();
         console.log(content, opts);
     }).atxt("Code").adto(action_buttons_area);
 
     if(!opts.at_or_above_pivot && opts.replies) {
-        if(content.show_replies_when_below_pivot) {
+        if(content.show_replies_when_below_pivot !== false) {
             if(opts.replies.reply) {
                 renderAction(client, opts.replies.reply, action_buttons_area, {value_for_code_btn: 0}).defer(hsc);
             }
@@ -2647,7 +2684,7 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
         }
     }
 
-    if(content.show_replies_when_below_pivot) {
+    if(content.show_replies_when_below_pivot !== false) {
         frame.clss("layout-reddit-comment layout-commentlike");
         let collapsed = content.show_replies_when_below_pivot.default_collapsed;
         const update = () => {
@@ -2663,7 +2700,7 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
             const topv = collapsed_button.getBoundingClientRect().top;
             const heightv = 5 + navbar.getBoundingClientRect().height;
             if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv }
-        }).styl({"bottom": "0"});
+        }).styl({bottom: "0"});
         frame.insertBefore(collapsed_button, frame.childNodes[0] ?? null);
         update();
     }else{

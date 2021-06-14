@@ -122,7 +122,7 @@ export type PostContentPost = {
     /// | reply
     /// | | reply
     show_replies_when_below_pivot: false | {default_collapsed: boolean},
-}
+};
 
 export type PostContent = ClientPost | {
     /// the thing containing the header and sidebar. when rendered below

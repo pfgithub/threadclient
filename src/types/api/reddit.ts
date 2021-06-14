@@ -799,7 +799,8 @@ export type MediaMetadata = {[key: string]: Media};
 export type UserDistinguished = "admin" | "moderator" | "unsupported";
 
 export type PostOrComment = {
-    name: string, // post id
+    id: string,
+    name: `${string}_${string}`, // post fullname
 
     author: string,
     author_fullname: `t2_${string}`,
@@ -847,7 +848,7 @@ export type PostOrComment = {
     pinned?: boolean,
 
     mod_reports: ModReport[],
-    mod_reports_dismissed: ModReport[],
+    mod_reports_dismissed?: ModReport[],
     user_reports: UserReport[],
 
     // moderator stuff. always null unless you're moderator
@@ -973,7 +974,7 @@ export type RemovedByCategory =
 ;
 
 export type PostComment = PostOrComment & {
-    replies?: Listing,
+    replies: Listing | "",
     parent_id: string,
 
     author_flair_richtext: RichtextFlair,
