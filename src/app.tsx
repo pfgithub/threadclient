@@ -1685,9 +1685,8 @@ const scoreToString = (score: number) => {
 type RenderActionOpts = {
     value_for_code_btn: unknown,
 };
-function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node, opts: RenderActionOpts): HideShowCleanup<undefined> {
-    if(action.kind === "link") linkButton(client.id, action.url, "action-button").atxt(action.text).adto(content_buttons_line);
-    else if(action.kind === "reply") {
+function renderReplyAction(client: ThreadClient, action: Generic.ReplyAction, content_buttons_line: Node, onAddReply: (thread: Generic.Thread) => void): HideShowCleanup<undefined> {
+    {
         let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
         let reply_state: "none" | {preview?: Generic.Thread} = "none";
         const reply_btn = elButton("action-button").atxt("Reply").adto(content_buttons_line);
@@ -1787,6 +1786,20 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
             update();
         });
         update();
+
+        return hsc;
+    }
+}
+function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node, opts: RenderActionOpts): HideShowCleanup<undefined> {
+    if(action.kind === "link") {
+        linkButton(client.id, action.url, "action-button").atxt(action.text).adto(content_buttons_line);
+        return hideshow();
+    }else if(action.kind === "reply") {
+        const hsc = hideshow();
+        renderReplyAction(client, action, content_buttons_line, (thread) => {
+            clientContent(client, thread, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
+        }).defer(hsc);
+        return hsc;
     }else if(action.kind === "counter") {
         const hsc = hideshow();
         renderCounterAction(client, action, content_buttons_line, {parens: true}).defer(hsc);
@@ -1840,6 +1853,7 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
             e.stopPropagation();
             setv("none");
         });
+        return hideshow();
     }else if(action.kind === "report") {
         const hsc = hideshow();
         let report_container: HideShowCleanup<HTMLElement> | undefined;
@@ -1907,8 +1921,10 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
                 frame.adch(el("span").clss("error").atxt((err as Error).toString()));
             });
         });
+        return hideshow();
     }else if(action.kind === "flair") {
         // TODO
+        return hideshow();
     }else if(action.kind === "code") {
         const hsc = hideshow();
         let report_container: HideShowCleanup<HTMLElement> | undefined;
@@ -1931,7 +1947,6 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
 
         return hsc;
     }else assertNever(action);
-    return hideshow();
 }
 
 function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportScreen, onreported: (sentr: Generic.SentReport) => void): HideShowCleanup<HTMLElement> {
@@ -2573,11 +2588,13 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
     const hsc = hideshow(frame);
 
     const title_area = el("div").clss("post-content-subminfo").adto(frame);
+    const body_area = el("div").clss("post-preview").adto(frame);
+    const action_buttons_area = el("div").clss("post-content-buttons text-xs").adto(frame);
+
     if(content.title) {
         el("div").atxt(content.title.text).adto(title_area);
     }
 
-    const body_area = el("div").clss("post-preview").adto(frame);
     if(!opts.is_pivot && content.title && content.title.body_collapsible) {
         let body_collapsed = content.title.body_collapsible.default_collapsed;
         if(body_collapsed) {
@@ -2594,7 +2611,6 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
         renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
     }
 
-    const action_buttons_area = el("div").clss("post-content-buttons text-xs").adto(frame);
     if(content.url) linkButton(client.id, content.url, "action-button").atxt("View").adto(action_buttons_area);
     elButton("code-button").onev("click", e => {
         e.stopPropagation();
@@ -2603,6 +2619,9 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
 
     if(!opts.at_or_above_pivot && opts.replies) {
         if(content.show_replies_when_below_pivot) {
+            if(opts.replies.reply) {
+                renderAction(client, opts.replies.reply, action_buttons_area, {value_for_code_btn: 0}).defer(hsc);
+            }
             const reply_container = el("ul").clss("post-replies").adto(frame);
             const addReply = (reply: Generic.ListingEntry, insert_before: HTMLElement | null) => {
                 if(reply.kind === "loaded") {
@@ -3460,6 +3479,15 @@ function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: 
     }
 
     if(listing.pivot.replies) {
+        if(listing.pivot.replies.reply) {
+            const btna = el("div").adto(content_area);
+            renderReplyAction(client, listing.pivot.replies.reply, btna, thread => {
+                const tlw = makeTopLevelWrapper();
+                content_area.insertBefore(tlw, ibslot);
+                clientContent(client, thread, {clickable: false}).defer(hsc).adto(el("div").adto(tlw));
+            }).defer(hsc);
+        }
+        const ibslot = document.createComment("").adto(content_area);
         if(listing.pivot.replies.items.length === 0) content_area.atxt("*No replies*");
         const addReply = (child: Generic.ListingEntry) => {
             if(child.kind === "load_more") {

@@ -76,9 +76,10 @@ export type PostVerticalLoader = {
     replies: ListingData | null,
 };
 export type ListingData = {
-    sort: null | ID<SortData>,
+    sort: ID<SortData> | null,
     // pinned: …
     // items: …
+    reply: ReplyAction | null,
     items: ListingEntry[],
 };
 export type ListingEntry = {
@@ -608,15 +609,16 @@ export type Flair = {
     system?: string, // tailwind css color class
 };
 export type ActionLabel = string;
+export type ReplyAction = {
+    kind: "reply",
+    text: ActionLabel,
+    reply_info: Opaque<"reply">,
+};
 export type Action = {
     kind: "link",
     url: string,
     text: ActionLabel,
-} | {
-    kind: "reply",
-    text: ActionLabel,
-    reply_info: Opaque<"reply">,
-} | CounterAction | {
+} | ReplyAction | CounterAction | {
     kind: "delete",
     data: Opaque<"act">,
 } | {

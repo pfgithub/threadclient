@@ -189,6 +189,7 @@ function commitThread(path: string, entry: variables.LogEntry): Generic.PostCont
 type SitemapEntryData = {
     content: Generic.PostContent,
     replies?: SitemapEntry[],
+    replyopts?: Partial<Exclude<Generic.ListingData, "reply">>,
 };
 type SitemapEntry = [string, (path: string) => SitemapEntryData];
 
@@ -338,6 +339,14 @@ const sitemap: SitemapEntry[] = [
             body: {kind: "richtext", content: [rt.p(rt.txt("Press 'Reply'"))]},
             show_replies_when_below_pivot: false,
         },
+        replyopts: {
+            reply: {
+                kind: "reply",
+                text: "Reply",
+                reply_info: reply_encoder.encode({kind: "markdown"}),
+            },
+        },
+        replies: [],
     })]
 ];
 
@@ -360,7 +369,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         const this_post: Generic.PostData = {
             kind: "post",
             parent,
-            replies: {sort: null, items: [{kind: "load_more"}]},
+            replies: {sort: null, reply: null, ...called.replyopts, items: [{kind: "load_more"}]},
             content: called.content,
             internal_data: 0,
             display_style: "centered",
@@ -380,6 +389,8 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
                             parent: this_post,
                             replies: replyitm.replies ? {
                                 sort: null,
+                                reply: null,
+                                ...replyitm.replyopts,
                                 items: replyitm.content.kind === "post" && replyitm.content.show_replies_when_below_pivot ? (
                                     mapReplies(replyitm.replies, urlr2)
                                 ) : [{kind: "load_more"}],
@@ -391,7 +402,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
                     };
                 })
             );
-            this_post.replies = {sort: null, items: mapReplies(called.replies, urlr)};
+            this_post.replies = {sort: null, reply: null, ...called.replyopts, items: mapReplies(called.replies, urlr)};
         }else{
             this_post.replies = null;
         }
@@ -415,7 +426,6 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         internal_data: 0,
         display_style: "centered",
     };
-    if(parent) parent.replies = {sort: null, items: [{kind: "load_more"}]};
     return this_post;
 }
 
@@ -550,7 +560,20 @@ export const client: ThreadClient = {
             return richtextPost("/", [rt.p(rt.txt("err!"))]);
         }else assertNever(decoded);
     },
-    async sendReply() {throw new Error("preview reply not supported")},
+    async sendReply(body, reply_info) {
+        const decoded = reply_encoder.decode(reply_info);
+        if(decoded.kind === "markdown") {
+            const res = richtextPost("/", markdownToRichtext(body));
+            res.actions.push({
+                kind: "reply",
+                text: "Reply",
+                reply_info: reply_encoder.encode({kind: "markdown"}),
+            });
+            return res;
+        }else if(decoded.kind === "other") {
+            throw new Error("Other not supported");
+        }else assertNever(decoded);
+    },
     async loadMore() {throw new Error("load more not supported")},
     async loadMoreUnmounted() {throw new Error("load more unmounted not supported")},
 };
