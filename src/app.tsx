@@ -2671,7 +2671,9 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
                 // if(threaded) reply_node.clss("relative threaded");
                 if(reply.kind === "post") {
                     reply_node.clss("comment");
-                    renderClientContent(client, reply.post.content, {clickable: false, at_or_above_pivot: false, is_pivot: false, replies: reply.post.replies, top_level: false}).defer(hsc).adto(reply_node);
+                    if(reply.post.err != null) throw new Error(reply.post.err);
+                    const comment = reply.post.ref;
+                    renderClientContent(client, comment.content, {clickable: false, at_or_above_pivot: false, is_pivot: false, replies: comment.replies, top_level: false}).defer(hsc).adto(reply_node);
                 }else if(reply.kind === "load_more") {
                     linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(reply_node);
                     reply_container.insertBefore(document.createComment(""), insert_before);
@@ -3454,14 +3456,19 @@ function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: 
     // so the listing can't be mutated and this isn't necessary
     title.setTitle(listing.title);
 
-    frame.classList.add("display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[listing.pivot.display_style]);
+    if(listing.pivot.err != null) throw new Error(listing.pivot.err);
+    const pivot = listing.pivot.ref;
+    frame.classList.add("display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[pivot.display_style]);
 
     let client_item: Generic.ClientPost | undefined;
-    for(let highest: Generic.ParentPost | null = listing.pivot; highest != null; highest = highest.parent) {
+    for(let highest: Generic.ParentPost = pivot; ;) {
         if(highest.kind === "post" && highest.content.kind === "client") {
             client_item = highest.content;
             break;
         }
+        if(!highest.parent) break;
+        if(highest.parent.err != null) throw new Error(highest.parent.err);
+        highest = highest.parent.ref;
     }
 
     const navbar_area = el("div").adto(frame).clss("navbar-area");
@@ -3495,8 +3502,11 @@ function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: 
 
     
     const parents_list: Generic.ParentPost[] = [];
-    for(let highest: Generic.ParentPost | null = listing.pivot; highest != null; highest = highest.parent) {
+    for(let highest: Generic.ParentPost = pivot; ;) {
         parents_list.push(highest);
+        if(!highest.parent) break;
+        if(highest.parent.err != null) throw new Error(highest.parent.err);
+        highest = highest.parent.ref;
     }
     parents_list.reverse();
 
@@ -3516,17 +3526,17 @@ function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: 
         if(!is_last) parent_area.adch(el("hr").clss("my-2").styl({"border-top-color": "var(--collapse-line-color)", "border-top-width": "3px"})); // var(--collapse-line-color)
     }
 
-    if(listing.pivot.replies) {
-        if(listing.pivot.replies.reply) {
+    if(pivot.replies) {
+        if(pivot.replies.reply) {
             const btna = el("div").adto(content_area);
-            renderReplyAction(client, listing.pivot.replies.reply, btna, thread => {
+            renderReplyAction(client, pivot.replies.reply, btna, thread => {
                 const tlw = makeTopLevelWrapper();
                 content_area.insertBefore(tlw, ibslot);
                 clientContent(client, thread, {clickable: false}).defer(hsc).adto(el("div").adto(tlw));
             }).defer(hsc);
         }
         const ibslot = document.createComment("").adto(content_area);
-        if(listing.pivot.replies.items.length === 0) content_area.atxt("*No replies*");
+        if(pivot.replies.items.length === 0) content_area.atxt("*No replies*");
         const addReply = (child: Generic.ListingEntry) => {
             if(child.kind === "load_more") {
                 const area = el("div").adto(content_area);
@@ -3534,12 +3544,17 @@ function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: 
                 // load into the area
             }else if(child.kind === "post") {
                 const itmv = makeTopLevelWrapper().adto(content_area);
-                renderClientContent(client, child.post.content, {clickable: false, replies: child.post.replies, at_or_above_pivot: false, top_level: true, is_pivot: false}).defer(hsc).adto(itmv);
+                if(child.post.err != null) throw new Error(child.post.err);
+                const child_post = child.post.ref;
+                renderClientContent(client, child_post.content, {
+                    clickable: false, replies: child_post.replies,
+                    at_or_above_pivot: false, top_level: true, is_pivot: false
+                }).defer(hsc).adto(itmv);
             }else if(child.kind === "loaded") {
                 child.entries.forEach(addReply);
             }else assertNever(child);
         };
-        for(const child of listing.pivot.replies.items) {
+        for(const child of pivot.replies.items) {
             addReply(child);
         }
     }

@@ -2319,49 +2319,131 @@ function getCodeButton(markdown: string): Generic.Action {
     ]}};
 }
 
+function getCommentBody(listing: Reddit.PostComment): Generic.Body {
+    let is_deleted: Generic.RemovalMessage | undefined;
+    if(listing.author === "[deleted]") {
+        if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
+            is_deleted = removal_reasons.deleted("deleted", listing.subreddit_name_prefixed);
+        }else if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[removed]"}], e: "par"}]})) {
+            is_deleted = removal_reasons.moderator("moderator", listing.subreddit_name_prefixed);
+        }
+    }
+    const body_content: Generic.Body = {
+        kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})
+    };
+    const comment_body: Generic.Body = is_deleted != null
+        ? {kind: "removed", removal_message: is_deleted,
+            fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/comment/search?ids="+listing.id}),
+            body: body_content,
+        } : body_content
+    ;
+    return comment_body;
+}
+
+// // needs to be able to tell you if it's a thing or load more or whatever
+// // also it should like update in the future
+// // idk
+type IDMapEntry = {
+    kind: "unprocessed" | "processing" | "processed",
+    link: Generic.Link<Generic.PostData>,
+
+    listing_raw: Reddit.Post,
+    options: ThreadOpts,
+    parent_permalink: SortedPermalink,
+};
+export type IDMap = Map<string, IDMapEntry>;
+
+function createLink<T>(): Generic.Link<T> {
+    return {ref: undefined, err: "processing not completed"};
+}
+
+export function setupMap(map: IDMap, listing_raw: Reddit.Post, options: ThreadOpts, parent_permalink: SortedPermalink): void {
+    options.force_expand ??= "closed";
+
+    const prev_value = map.get(listing_raw.data.name);
+    if(prev_value) {
+        if(prev_value.listing_raw !== listing_raw) throw new Error("TODO it already exists "+listing_raw.data.name+" but it's different");
+        throw new Error("TODO it already exists "+listing_raw.data.name);
+    }
+    map.set(listing_raw.data.name, {
+        kind: "unprocessed",
+        link: createLink(),
+
+        listing_raw,
+        options,
+        parent_permalink,
+    });
+
+    if(listing_raw.kind === "t1") {
+        const listing = listing_raw.data;
+
+        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        if(listing.replies) {
+            for(const reply of listing.replies.data.children) {
+                setupMap(map, reply, options, sortWrap(parent_permalink, listing.permalink));
+            }
+        }
+    }else throw new Error("TODO "+listing_raw.kind);
+}
+
+// returns a pointer to the PostData
+// TODO support load more in both parents and replies
+export function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostData> {
+    const value = map.get(key);
+    if(!value) {
+        // TODO determine which load more to use
+        return {ref: undefined, err: "post was not found in tree"};
+    }
+    if(value.kind === "unprocessed") {
+        value.kind = "processing";
+
+        const res = postDataFromListingMayError(map, value.listing_raw, value.options, value.parent_permalink);
+        [value.link.ref, value.link.err] = [res, undefined];
+
+        value.kind = "processed";
+
+        return value.link;
+    }else if(value.kind === "processing" || value.kind === "processed") {
+        return value.link;
+    }else assertNever(value.kind);
+}
+
 /// maybe some kind of map from id to value? so because parent the parent id it needs to give a parent to the Generic.PostData
 /// then fill it as much as possible, add it to the map, evaluate the parent and replies, add those
-export function postDataFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.PostData {
+function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, options: ThreadOpts, parent_permalink: SortedPermalink): Generic.PostData {
     options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
         const listing = listing_raw.data;
 
-        let is_deleted: Generic.RemovalMessage | undefined;
-        if(listing.author === "[deleted]") {
-            if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
-                is_deleted = removal_reasons.deleted("deleted", listing.subreddit_name_prefixed);
-            }else if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[removed]"}], e: "par"}]})) {
-                is_deleted = removal_reasons.moderator("moderator", listing.subreddit_name_prefixed);
+        const replies: Generic.ListingData = {
+            sort: null,
+            reply: null,
+            items: [],
+        };
+        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        if(listing.replies) {
+            for(const reply of listing.replies.data.children) {
+                replies.items.push({
+                    kind: "post",
+                    post: getPostData(map, reply.data.name),
+                });
             }
         }
-        const body_content: Generic.Body = {
-            kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})
-        };
-        const comment_body: Generic.Body = is_deleted != null
-            ? {kind: "removed", removal_message: is_deleted,
-                fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/comment/search?ids="+listing.id}),
-                body: body_content,
-            } : body_content
-        ;
 
         return {
             kind: "post",
-            parent: {kind: "vloader", parent: null, replies: null}, // TODO load more | known content
-            replies: {
-                sort: null,
-                reply: null,
-                items: [],
-            },
+            parent: {ref: {kind: "vloader", parent: null, replies: null}, err: undefined}, // TODO handle this with getPostData or something
+            replies,
 
             content: {
                 kind: "post",
                 url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
                 title: null,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
-                body: comment_body,
+                body: getCommentBody(listing),
                 show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
             },
-            internal_data: 0,
+            internal_data: listing_raw,
             display_style: "centered",
         };
     }else throw new Error("TODO "+listing_raw.kind);
@@ -2375,27 +2457,9 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
         // Comment
         const listing = listing_raw.data;
 
-        let is_deleted: Generic.RemovalMessage | undefined;
-        if(listing.author === "[deleted]") {
-            if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
-                is_deleted = removal_reasons.deleted("deleted", listing.subreddit_name_prefixed);
-            }else if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[removed]"}], e: "par"}]})) {
-                is_deleted = removal_reasons.moderator("moderator", listing.subreddit_name_prefixed);
-            }
-        }
-        const post_id_no_pfx = listing.name.substring(3);
-
-        const body_content: Generic.Body = {
-            kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})
-        };
-
         const result: Generic.Node = {
             kind: "thread",
-            body: is_deleted != null
-                ? {kind: "removed", removal_message: is_deleted,
-                    fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/comment/search?ids="+post_id_no_pfx}),
-                    body: body_content,
-                } : body_content,
+            body: getCommentBody(listing),
             display_mode: {body: "visible", comments: "visible"},
             raw_value: listing_raw,
             link: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),

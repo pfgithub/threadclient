@@ -5,6 +5,7 @@ import * as commonmark from "commonmark";
 import * as variables from "_variables";
 import { assertNever } from "../util";
 import * as Reddit from "../types/api/reddit";
+import { IDMap } from "./reddit";
 
 function childrenOf(node: commonmark.Node): commonmark.Node[] {
     const res: commonmark.Node[] = [];
@@ -428,7 +429,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         const called = found_value[1](urlr);
         const this_post: Generic.PostData = {
             kind: "post",
-            parent,
+            parent: parent ? {ref: parent, err: undefined} : null,
             replies: {sort: null, reply: null, ...called.replyopts, items: [{kind: "load_more"}]},
             content: called.content,
             internal_data: 0,
@@ -437,32 +438,34 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         if(called.replies) {
             const subv = getFromSitemap(path, index + 1, called.replies, this_post);
             if(subv) return subv;
-            const mapReplies = (nreplies: SitemapEntry[], urlr: string): Generic.ListingEntry[] => (
+            const mapReplies = (parentv: Generic.PostData, nreplies: SitemapEntry[], urlr: string): Generic.ListingEntry[] => (
                 nreplies.map((reply): Generic.ListingEntry => {
                     const urlr2 = urlr + "/" + reply[0];
                     const replyitm = reply[1](urlr2);
                     // reply count estimate: replyitm.replies.length
-                    return {
+                    const thispost: Generic.ListingEntry = {
                         kind: "post",
-                        post: {
+                        post: {ref: {
                             kind: "post",
-                            parent: this_post,
-                            replies: replyitm.replies ? {
-                                sort: null,
-                                reply: null,
-                                ...replyitm.replyopts,
-                                items: replyitm.content.kind === "post" && replyitm.content.show_replies_when_below_pivot !== false ? (
-                                    mapReplies(replyitm.replies, urlr2)
-                                ) : [{kind: "load_more"}],
-                            } : null,
+                            parent: {ref: parentv, err: undefined},
+                            replies: null,
                             content: replyitm.content,
                             internal_data: 0,
                             display_style: "centered",
-                        },
+                        }, err: undefined},
                     };
+                    if(replyitm.replies) thispost.post.ref!.replies = {
+                        sort: null,
+                        reply: null,
+                        ...replyitm.replyopts,
+                        items: replyitm.content.kind === "post" && replyitm.content.show_replies_when_below_pivot !== false ? (
+                            mapReplies(thispost.post.ref!, replyitm.replies, urlr2)
+                        ) : [{kind: "load_more"}],
+                    };
+                    return thispost;
                 })
             );
-            this_post.replies = {sort: null, reply: null, ...called.replyopts, items: mapReplies(called.replies, urlr)};
+            this_post.replies = {sort: null, reply: null, ...called.replyopts, items: mapReplies(this_post, called.replies, urlr)};
         }else{
             this_post.replies = null;
         }
@@ -471,7 +474,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
 
     const this_post: Generic.PostData = {
         kind: "post",
-        parent,
+        parent: parent ? {ref: parent, err: undefined} : null,
         replies: null,
         content: {
             kind: "post",
@@ -513,18 +516,24 @@ export async function getPage(path: string): Promise<Generic.Page2> {
 
     if(pathsplit[0] === "reddit") {
         const reddit_client = await import("./reddit");
+
+        const comment_map: IDMap = new Map();
+        for(const comment of sample_reddit_comments) {
+            reddit_client.setupMap(comment_map, comment, {}, {
+                permalink: "/",
+                sort: "unsupported",
+                is_chat: false,
+            });
+        }
+
         const pivot: Generic.PostData = {
             kind: "post",
-            parent: client_wrapper,
+            parent: {ref: client_wrapper, err: undefined},
             replies: {
                 sort: null,
                 reply: null, // this can be the reddit reply button
                 items: sample_reddit_comments.map(comment => {
-                    return {kind: "post", post: reddit_client.postDataFromListingMayError(comment, {}, {
-                        permalink: "/",
-                        sort: "unsupported",
-                        is_chat: false,
-                    })};
+                    return {kind: "post", post: reddit_client.getPostData(comment_map, comment.data.name)};
                 }),
             },
 
@@ -541,7 +550,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
         };
         return {
             title: "reddit",
-            pivot,
+            pivot: {ref: pivot, err: undefined},
             content,
         };
     }
@@ -551,7 +560,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     if(smres) {
         return {
             title: "«err no title»",
-            pivot: smres,
+            pivot: {ref: smres, err: undefined},
             content,
         };
     }
@@ -588,7 +597,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     };
     const pivot: Generic.PostData = {
         kind: "post",
-        parent: client_wrapper,
+        parent: {ref: client_wrapper, err: undefined},
         replies: null,
 
         display_style: "centered",
@@ -597,7 +606,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     };
     return {
         title: "home",
-        pivot,
+        pivot: {ref: pivot, err: undefined},
         content,
     };
 }

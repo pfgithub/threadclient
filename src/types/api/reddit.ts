@@ -1022,6 +1022,7 @@ export type Post = {
     data: PostSubmission,
 } | PostCommentLike | {
     kind: "unknown",
+    data: {name: string},
 };
 
 export type Award = {

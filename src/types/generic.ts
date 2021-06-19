@@ -52,7 +52,7 @@ export type InfoRequestMap = {
 /// when stringifying, it's necessary to keep maps of what has been added
 export type Page2 = {
     title: string,
-    pivot: PostData,
+    pivot: Link<PostData>,
     content: ContentMap,
 };
 export type ContentMap = Map<ID<unknown>, unknown>;
@@ -60,7 +60,7 @@ export type ID<T> = symbol & {__is_id: T};
 export type ParentPost = PostData | PostVerticalLoader;
 export type PostData = {
     kind: "post",
-    parent: ParentPost | null,
+    parent: Link<ParentPost> | null,
     replies: ListingData | null,
 
     content: PostContent, // content should always be in a PostData. eg: crossposts that are embedded in a body also need parent, replies.
@@ -72,7 +72,7 @@ export type PostData = {
 // the parent and replies in the node tree.
 export type PostVerticalLoader = {
     kind: "vloader",
-    parent: ParentPost | null,
+    parent: Link<ParentPost> | null,
     replies: ListingData | null,
 };
 export type ListingData = {
@@ -84,7 +84,7 @@ export type ListingData = {
 };
 export type ListingEntry = {
     kind: "post",
-    post: PostData,
+    post: Link<PostData>,
 } | {
     kind: "load_more",
 } | {
@@ -102,6 +102,7 @@ export type ClientPost = {
     kind: "client",
     navbar: Navbar,
 };
+export type Link<T> = {ref: T, err: undefined} | {ref: undefined, err: string};
 export type PostContentPost = {
     /// the thing containing a post. generally post replies
     /// are only shown when it's at or above the pivot.
@@ -122,6 +123,8 @@ export type PostContentPost = {
     /// | reply
     /// | | reply
     show_replies_when_below_pivot: false | {default_collapsed: boolean},
+    reddit_vote?: CounterAction,
+    actions?: Action[],
 };
 
 export type PostContent = ClientPost | {
@@ -132,7 +135,7 @@ export type PostContent = ClientPost | {
         sidebar: ListingData,
         header: ListingData,
     },
-    overview: PostData,
+    overview: Link<PostData>,
 } | PostContentPost | {
     kind: "legacy",
     thread: Thread,
@@ -164,6 +167,7 @@ export type SortData = {
 // - client
 // - subreddit
 // - the wiki page (pivot)
+
 
 export type Page = {
     title: string,
