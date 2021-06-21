@@ -2661,26 +2661,38 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
                 renderAction(client, opts.replies.reply, action_buttons_area, {value_for_code_btn: 0}).defer(hsc);
             }
             const reply_container = el("ul").clss("post-replies").adto(frame);
-            const addReply = (reply: Generic.ListingEntry, insert_before: HTMLElement | null) => {
+            const addReply = (reply: Generic.ListingEntry, insert_before: HTMLElement | null, reply_opts: {threaded: boolean}) => {
                 if(reply.kind === "loaded") {
-                    reply.entries.forEach(r => addReply(r, insert_before));
+                    reply.entries.forEach(r => addReply(r, insert_before, {threaded: false}));
                     return;
                 }
                 const reply_node = el("li");
+                const markSelfThreaded = () => void reply_node.clss("relative threaded");
+                if(reply_opts.threaded) markSelfThreaded();
+
                 reply_container.insertBefore(reply_node, insert_before);
-                // if(threaded) reply_node.clss("relative threaded");
                 if(reply.kind === "post") {
                     reply_node.clss("comment");
                     if(reply.post.err != null) throw new Error(reply.post.err);
                     const comment = reply.post.ref;
-                    renderClientContent(client, comment.content, {clickable: false, at_or_above_pivot: false, is_pivot: false, replies: comment.replies, top_level: false}).defer(hsc).adto(reply_node);
+                    let replies = comment.replies;
+                    let add_reply: null | Generic.ListingEntry = null;
+                    if(comment.replies && comment.replies.items.length === 1) {
+                        replies = null;
+                        add_reply = comment.replies.items[0]!;
+                        markSelfThreaded();
+                    }
+                    renderClientContent(client, comment.content, {clickable: false, at_or_above_pivot: false, is_pivot: false, replies, top_level: false}).defer(hsc).adto(reply_node);
+                    if(add_reply) {
+                        addReply(add_reply, insert_before, {threaded: true});
+                    }
                 }else if(reply.kind === "load_more") {
                     linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(reply_node);
                     reply_container.insertBefore(document.createComment(""), insert_before);
                 }else assertNever(reply);
             };
             for(const reply of opts.replies.items) {
-                addReply(reply, null);
+                addReply(reply, null, {threaded: false});
             }
         }else{
             // idk maybe show a button you can click to view replies in a new page

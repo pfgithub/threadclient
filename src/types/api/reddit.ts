@@ -855,6 +855,8 @@ export type PostOrComment = {
     // maybe do a LoginWrap<{}> for this?
     approved_at_utc: null,
     mod_reason_title: null,
+
+    depth: number, // use this to determine the number for "load x more" when going up
 };
 
 export type PostSubmission = PostOrComment & {

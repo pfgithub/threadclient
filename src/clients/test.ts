@@ -64,89 +64,6 @@ function markdownToRichtext(md: string): Richtext.Paragraph[] {
 
 () => encoderGenerator;
 
-const sample_reddit_comments: Reddit.Post[] = [
-    {
-        kind: "t1",
-        data: {
-            // total_awards_received: 0,
-            // comment_type: null,
-            // awarders: [],
-            // mod_reason_by: null,
-            // banned_by: null,
-            // ups: 31,
-            // removal_reason: null,
-            // author_flair_template_id: null,
-            // profile_over_18: false,
-            // banned_at_utc: null,
-            // gilded: 0,
-            // no_follow: false,
-            // can_mod_post: false,
-            // send_replies: true,
-            // approved_by: null,
-            // report_reasons: null,
-            // author_premium: false,
-            // author_flair_css_class: null,
-            // downs: 0,
-            // author_patreon_flair: false,
-            // gildings: {},
-            // collapsed_reason: null,
-            // associated_award: null,
-            // top_awarded_type: null,
-            // num_reports: null,
-            // created: 1623689967,
-            // treatment_tags: [],
-            // depth: 1,
-            // collapsed_because_crowd_control: null,
-            // mod_note: null,
-            // can_gild: true,
-            id: "h1pn8r5",
-            approved_at_utc: null,
-            replies: "",
-            author_flair_type: "text",
-            link_id: "t3_nzd1jx",
-            likes: null,
-            rtjson: {
-                document: [{
-                    c: [{e: "text", t: "Ya"}],
-                    e: "par"
-                }],
-            },
-            user_reports: [],
-            saved: false,
-            mod_reason_title: null,
-            archived: false,
-            author: "ConfidentContract7",
-            parent_id: "t1_h1pm632",
-            score: 31,
-            all_awardings: [],
-            subreddit_id: "t5_2v92f",
-            collapsed: false,
-            body: "Ya",
-            edited: false,
-            profile_img: "https://www.redditstatic.com/avatars/avatar_default_06_FF8717.png",
-            is_submitter: false,
-            author_flair_richtext: [],
-            body_html: "<div class=\"md\"><p>Ya</p>\n</div>",
-            stickied: false,
-            subreddit_type: "public",
-            author_fullname: "t2_5k2r1qf9",
-            author_flair_text_color: null,
-            score_hidden: false,
-            permalink: "/r/196/comments/nzd1jx/rule/h1pn8r5/",
-            locked: false,
-            name: "t1_h1pn8r5",
-            subreddit: "196",
-            author_flair_text: null,
-            created_utc: 1623661167,
-            subreddit_name_prefixed: "r/196",
-            controversiality: 0,
-            author_flair_background_color: null,
-            mod_reports: [],
-            distinguished: null
-        }
-    }
-];
-
 const sample_preview_links: {
     expected_result: string,
     url: string,
@@ -516,6 +433,9 @@ export async function getPage(path: string): Promise<Generic.Page2> {
 
     if(pathsplit[0] === "reddit") {
         const reddit_client = await import("./reddit");
+        const reddit_comments = await import("./test/sample_comment");
+
+        const sample_reddit_comments: Reddit.Post[] = [reddit_comments.sample_comment];
 
         const comment_map: IDMap = new Map();
         for(const comment of sample_reddit_comments) {
