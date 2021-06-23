@@ -3570,8 +3570,6 @@ function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: 
                     clickable: false, replies: child_post.replies,
                     at_or_above_pivot: false, top_level: true, is_pivot: false
                 }).defer(hsc).adto(itmv);
-            }else if(child.kind === "loaded") {
-                child.entries.forEach(addReply);
             }else assertNever(child);
         };
         for(const child of pivot.replies.items) {
