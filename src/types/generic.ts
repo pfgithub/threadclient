@@ -87,9 +87,6 @@ export type ListingEntry = {
     post: Link<PostData>,
 } | {
     kind: "load_more",
-} | {
-    kind: "loaded",
-    entries: ListingEntry[],
 };
 
 // ok dealing with sidebars

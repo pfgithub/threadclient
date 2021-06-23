@@ -2576,7 +2576,7 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts:
     }
 }
 
-type ClientPostOpts = {
+export type ClientPostOpts = {
     clickable: boolean,
     replies: Generic.ListingData | null,
     at_or_above_pivot: boolean,
@@ -2585,7 +2585,8 @@ type ClientPostOpts = {
 };
 import {render} from "solid-js/web";
 import {makeRenderFunction} from "./components/author_pfp_solid";
-function renderClientPost(client: ThreadClient, content: Generic.PostContentPost, opts: ClientPostOpts): HideShowCleanup<HTMLElement> {
+() => renderClientPostEg;
+function renderClientPostEg(client: ThreadClient, content: Generic.PostContentPost, opts: ClientPostOpts): HideShowCleanup<HTMLElement> {
     const frame = el("div").clss("post text-sm").styl({"margin-left": "-10px"});
     if(opts.top_level) frame.styl({"margin-top": "-10px"});
     const hsc = hideshow(frame);
@@ -2599,13 +2600,8 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
     }
     {
         if(content.author?.pfp) {
-            const area = el("div").adto(title_area).clss("inline-block cfg-reddit-pfp");
-            const src_url = content.author.pfp.url;
-            const dispose = render(makeRenderFunction(src_url), area);
-            // import { render } from "solid-js/web";
-            // const pfpimg = el("img").attr({src: content.author.pfp.url}).adto(title_area).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
-            // pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
-            hsc.on("cleanup", () => dispose());
+            const pfpimg = el("img").attr({src: content.author.pfp.url}).adto(title_area).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
+            pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
             title_area.atxt(" ");
         }
         if(content.author) title_area.adch(userLink(client.id, content.author.link, content.author.color_hash).atxt(content.author.name));
@@ -2674,10 +2670,10 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
             }
             const reply_container = el("ul").clss("post-replies").adto(frame);
             const addReply = (reply: Generic.ListingEntry, insert_before: HTMLElement | null, reply_opts: {threaded: boolean}) => {
-                if(reply.kind === "loaded") {
-                    reply.entries.forEach(r => addReply(r, insert_before, {threaded: false}));
-                    return;
-                }
+                // if(reply.kind === "loaded") {
+                //     reply.entries.forEach(r => addReply(r, insert_before, {threaded: false}));
+                //     return;
+                // }
                 const reply_node = el("li");
                 const markSelfThreaded = () => void reply_node.clss("relative threaded");
                 if(reply_opts.threaded) markSelfThreaded();
@@ -3454,8 +3450,8 @@ function renderClientContent(client: ThreadClient, listing: Generic.PostContent,
         if(listing.kind === "page") {
             frame.atxt("TODO page (also note that this should have special handling in the parent list)");
         }else if(listing.kind === "post") {
-            // frame.atxt("TODO post");
-            renderClientPost(client, listing, opts).defer(hsc).adto(frame);
+            const cleanup = render(makeRenderFunction({client, content: listing, opts}), frame);
+            hsc.on("cleanup", () => cleanup());
         }else if(listing.kind === "client") {
             frame.atxt("TODO client (also note that this shouldn't render in the parent list)");
         }else if(listing.kind === "legacy") {
@@ -4134,7 +4130,7 @@ function onNavigate(to_index: number, url: URLLike) {
 // on the top that don't use history or whatever
 
 export const bodytop = el("div").adto(document.body);
-let navbar: HTMLDivElement; {
+export let navbar: HTMLDivElement; {
     const frame = el("div").clss("navbar", "bg-postcolor-100").adto(document.body);
     navbar = frame;
 
