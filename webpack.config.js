@@ -19,8 +19,17 @@ module.exports = {
     ...(dev ? {devtool: "eval-cheap-module-source-map"} : {}),
     module: {
         rules: [{
-            test: /\.tsx?$/,
+            test: /_solid\.tsx$/,
             exclude: /node_modules/,
+            use: {loader: "babel-loader", options: {
+                presets: [
+                    "@babel/preset-typescript",
+                    "solid",
+                ],
+            }},
+        }, {
+            test: /\.tsx?$/,
+            exclude: /node_modules|_solid\.tsx$/,
             use: {loader: "babel-loader", options: {
                 presets: [
                     "@babel/preset-typescript",
@@ -28,7 +37,9 @@ module.exports = {
                         targets: {browsers: ">10%"},
                         modules: false,
                     }],
-                    "@babel/preset-react",
+                    ["@babel/preset-react", {
+                        runtime: "automatic",
+                    }],
                 ],
                 plugins: [
                     ["@babel/plugin-proposal-pipeline-operator", {

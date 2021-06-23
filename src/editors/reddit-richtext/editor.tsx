@@ -1,3 +1,5 @@
+/** @jsxImportSource react */
+
 import * as React from "react";
 import { Node as UntypedNode, createEditor, Editor, Transforms, Path } from "slate";
 import { Slate, Editable, withReact, useSelected, useFocused, useSlate, RenderElementProps } from "slate-react";

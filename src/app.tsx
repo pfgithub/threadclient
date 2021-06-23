@@ -599,7 +599,7 @@ function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
     const span = el("span").attr({title: "" + new Date(start_ms)});
     const hsc = hideshow(span);
     const tanode = txt("…").adto(span);
-    let timeout: number | undefined;
+    let timeout: NodeJS.Timeout | undefined;
     const update = () => {
         timeout = undefined;
         const [newtext, wait_time] = timeAgoText(start_ms, Date.now());
@@ -2583,6 +2583,8 @@ type ClientPostOpts = {
     is_pivot: boolean,
     top_level: boolean,
 };
+import {render} from "solid-js/web";
+import {makeRenderFunction} from "./components/author_pfp_solid";
 function renderClientPost(client: ThreadClient, content: Generic.PostContentPost, opts: ClientPostOpts): HideShowCleanup<HTMLElement> {
     const frame = el("div").clss("post text-sm").styl({"margin-left": "-10px"});
     if(opts.top_level) frame.styl({"margin-top": "-10px"});
@@ -2597,8 +2599,13 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
     }
     {
         if(content.author?.pfp) {
-            const pfpimg = el("img").attr({src: content.author.pfp.url}).adto(title_area).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
-            pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
+            const area = el("div").adto(title_area).clss("inline-block cfg-reddit-pfp");
+            const src_url = content.author.pfp.url;
+            const dispose = render(makeRenderFunction(src_url), area);
+            // import { render } from "solid-js/web";
+            // const pfpimg = el("img").attr({src: content.author.pfp.url}).adto(title_area).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
+            // pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
+            hsc.on("cleanup", () => dispose());
             title_area.atxt(" ");
         }
         if(content.author) title_area.adch(userLink(client.id, content.author.link, content.author.color_hash).atxt(content.author.name));

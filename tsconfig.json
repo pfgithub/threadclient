@@ -9,6 +9,7 @@
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "jsx": "preserve",
+        "jsxImportSource": "solid-js",
         "lib": [
             "es2019",
             "dom",
