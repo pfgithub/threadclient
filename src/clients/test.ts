@@ -146,7 +146,6 @@ function collapsibleComment(path: string, body: Generic.Body, opts: {content_war
 function commitThread(path: string, entry: variables.LogEntry): Generic.PostContent {
     return {
         kind: "post",
-        url: path,
         title: {text: "" + entry.hash + ": " + entry.commit_title, body_collapsible: {default_collapsed: true}},
         author: {
             name: entry.author_name,
@@ -175,7 +174,6 @@ const sitemap: SitemapEntry[] = [
     ["link-preview", (urlr): SitemapEntryData => ({
         content: {
             kind: "post",
-            url: urlr,
             title: null,
             author: null,
             body: {kind: "richtext", content: [
@@ -205,7 +203,6 @@ const sitemap: SitemapEntry[] = [
     ["body-preview", (urlr): SitemapEntryData => ({
         content: {
             kind: "post",
-            url: urlr,
             title: {text: "Body Preview", body_collapsible: null},
             author: null,
             body: {kind: "none"},
@@ -268,7 +265,6 @@ const sitemap: SitemapEntry[] = [
                 (urlr): SitemapEntryData => ({
                     content: {
                         kind: "post",
-                        url: urlr,
                         title: {text: key, body_collapsible: null},
                         author: null,
                         body: {kind: "none"},
@@ -279,7 +275,6 @@ const sitemap: SitemapEntry[] = [
                         (urlr): SitemapEntryData => ({
                             content: {
                                 kind: "post",
-                                url: urlr,
                                 title: {text: desc, body_collapsible: {default_collapsed: true}},
                                 author: null,
                                 body,
@@ -294,7 +289,6 @@ const sitemap: SitemapEntry[] = [
     ["updates", (urlr): SitemapEntryData => ({
         content: {
             kind: "post",
-            url: urlr,
             title: null,
             author: null,
             body: {kind: "richtext", content: [
@@ -311,7 +305,6 @@ const sitemap: SitemapEntry[] = [
     ["markdown", (urlr): SitemapEntryData => ({
         content: {
             kind: "post",
-            url: urlr,
             title: null,
             author: null,
             body: {kind: "richtext", content: [rt.p(rt.txt("Press 'Reply'"))]},
@@ -395,7 +388,6 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         replies: null,
         content: {
             kind: "post",
-            url: urlr,
             title: {text: "404", body_collapsible: null},
             author: null,
             body: {kind: "richtext", content: [
@@ -462,7 +454,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
                 kind: "post",
                 title: null,
                 author: null,
-                url: "/reddit",
                 body: {kind: "none"},
                 show_replies_when_below_pivot: false,
             },
@@ -489,7 +480,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
         kind: "post",
         title: null,
         author: null,
-        url: "/",
         body: {
             kind: "richtext",
             content: [

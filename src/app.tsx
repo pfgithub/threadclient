@@ -2649,7 +2649,12 @@ function renderClientPost(client: ThreadClient, content: Generic.PostContentPost
         renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
     }
 
-    if(content.url != null) linkButton(client.id, content.url, "action-button").atxt("View").adto(action_buttons_area);
+    // the "View" button should recenter the view on this node and refresh the recommended content
+    // if(content.url != null) linkButton(client.id, content.url, "action-button").atxt("View").adto(action_buttons_area);
+
+    // unrelated what if I tried svelte app.tsx rendering?
+    // that way I can get vanilla js speeds with easy update functions
+
     elButton("code-button").onev("click", e => {
         e.stopPropagation();
         console.log(content, opts);

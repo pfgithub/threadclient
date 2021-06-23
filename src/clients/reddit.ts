@@ -2437,7 +2437,6 @@ function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, optio
 
             content: {
                 kind: "post",
-                url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
                 title: null,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
                 body: getCommentBody(listing),

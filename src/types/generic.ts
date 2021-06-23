@@ -111,7 +111,6 @@ export type PostContentPost = {
     /// - this is above the pivot
     kind: "post",
 
-    url: string | null, // a link to this post. when navigating to this link, the pivot will be this post.
     title: null | {
         text: string,
         body_collapsible: null | {default_collapsed: boolean},
@@ -125,12 +124,29 @@ export type PostContentPost = {
     show_replies_when_below_pivot: false | {default_collapsed: boolean},
     reddit_vote?: CounterAction,
     actions?: Action[],
+
+    // why no url?
+    // the reason for not including a url is so when you click a post it will keep the existing content
+    // and then request to fetch the needed data or something
+    // posts should have a refresh token though or something similar
+    // and refreshing the post should refresh surrounding stuff too
+
+    // if you have a url, you should call like getFrame or something which gives you
+    // an empty frame and then you should fetch from there. that might be nice to implement now.
+
+    // basically: call getFrame() which returns a Page2
+    // - title will get moved to a property of the pivot
+    // - the pivot will be updated to be a single-item loader,
+    //   likely with a vertical loader above and a horizontal
+    //   loader below
+    // - the highest post with a title is used for the title
 };
 
 export type PostContent = ClientPost | {
     /// the thing containing the header and sidebar. when rendered below
     /// the pivot, uses an alternate render.
     kind: "page",
+    title: null | string,
     wrap_page: {
         sidebar: ListingData,
         header: ListingData,
