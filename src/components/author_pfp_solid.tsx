@@ -1,4 +1,4 @@
-import { createSignal, JSX, Index, Show, Switch, Match, createMemo } from "solid-js";
+import { createSignal, JSX, Index, Show, Switch, Match, createMemo, createContext, useContext } from "solid-js";
 import { ThreadClient } from "../clients/base";
 import type * as Generic from "../types/generic";
 import {ClientPostOpts, navbar} from "../app";
@@ -60,16 +60,39 @@ const ClientPostReply = (props: ClientPostReplyProps): JSX.Element => {
     </>;
 };
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const HideshowContext = createContext<{visible: () => boolean}>();
+
+const HideshowProvider = (props: {visible: () => boolean, children: JSX.Element}): JSX.Element => {
+    const parent_state = useContext(HideshowContext);
+    const selfVisible = createMemo(() => {
+        const parent_v = parent_state?.visible() ?? true;
+        const props_v = props.visible();
+        return parent_v ? props_v : false;
+    });
+    return <HideshowContext.Provider value={{visible: selfVisible}}>{props.children}</HideshowContext.Provider>;
+};
+
+const ShowVisibleState = (): JSX.Element => {
+    const visible_state = useContext(HideshowContext);
+
+    const demo = createMemo(() => {
+        return visible_state?.visible() ?? true ? "Visible" : "Hidden";
+    });
+
+    return <span>{visible_state?.visible() ?? true ? "Visible" : "Hidden"}{demo()}</span>;
+};
+
 export type ClientPostProps = {client: ThreadClient, content: Generic.PostContentPost, opts: ClientPostOpts};
 export const ClientPost = (props: ClientPostProps): JSX.Element => {
-    const [selfCollapsed, setSelfCollapsed] = createSignal(false);
+    const [selfVisible, setSelfVisible] = createSignal(true);
     return <div
         classList={{
             'post': true,
             'text-sm': true,
             'layout-reddit-comment': props.content.show_replies_when_below_pivot !== false,
             'layout-commentlike': props.content.show_replies_when_below_pivot !== false,
-            'comment-collapsed': selfCollapsed(),
+            'comment-collapsed': !selfVisible(),
         }}
         style={{'margin-left': "-10px", ...props.opts.top_level ? {'margin-top': "-10px"} : {}}}
     >
@@ -80,7 +103,7 @@ export const ClientPost = (props: ClientPostProps): JSX.Element => {
                 const heightv = 5 + navbar.getBoundingClientRect().height;
                 if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv}
 
-                setSelfCollapsed(!selfCollapsed());
+                setSelfVisible(!selfVisible());
             }}>
                 <div class="collapse-btn-inner"></div>
             </button>
@@ -101,18 +124,20 @@ export const ClientPost = (props: ClientPostProps): JSX.Element => {
                 {" "}<Flair flair={flair} />
             </>}</Show>
         </div>
-        <div class="post-preview">TODO</div>
-        <div class="post-content-buttons text-xs"></div>
-        <Show when={!props.opts.at_or_above_pivot && props.opts.replies}>
-            <Show when={props.opts.replies}>{replies => <Show when={props.content.show_replies_when_below_pivot !== false}>
-                <ul class="post-replies">
-                    <Index each={replies.items}>{reply => (
-                        // - if replies.items is 1, maybe thread replies?
-                        <ClientPostReply reply={reply} client={props.client} is_threaded={replies.items.length === 1} />
-                    )}</Index>
-                </ul>
-            </Show>}</Show>
-        </Show>
+        <HideshowProvider visible={selfVisible}>
+            <div class="post-preview">TODO <ShowVisibleState /></div>
+            <div class="post-content-buttons text-xs"></div>
+            <Show when={!props.opts.at_or_above_pivot && props.opts.replies}>
+                <Show when={props.opts.replies}>{replies => <Show when={props.content.show_replies_when_below_pivot !== false}>
+                    <ul class="post-replies">
+                        <Index each={replies.items}>{reply => (
+                            // - if replies.items is 1, maybe thread replies?
+                            <ClientPostReply reply={reply} client={props.client} is_threaded={replies.items.length === 1} />
+                        )}</Index>
+                    </ul>
+                </Show>}</Show>
+            </Show>
+        </HideshowProvider>
     </div>;
 };
 
