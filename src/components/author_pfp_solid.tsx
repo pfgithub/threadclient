@@ -101,10 +101,8 @@ export const ClientPost = (props: ClientPostProps): JSX.Element => {
                 {" "}<Flair flair={flair} />
             </>}</Show>
         </div>
-        <Show when={!selfCollapsed()}>
-            <div class="post-preview">TODO</div>
-            <div class="post-content-buttons text-xs"></div>
-        </Show>
+        <div class="post-preview">TODO</div>
+        <div class="post-content-buttons text-xs"></div>
         <Show when={!props.opts.at_or_above_pivot && props.opts.replies}>
             <Show when={props.opts.replies}>{replies => <Show when={props.content.show_replies_when_below_pivot !== false}>
                 <ul class="post-replies">
