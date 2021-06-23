@@ -79,7 +79,9 @@ const ShowVisibleState = (): JSX.Element => {
     const demo = createMemo(() => {
         return visible_state?.visible() ?? true ? "Visible" : "Hidden";
     });
-
+    
+    // bug in solid, it's not detecting this expression as requiring wrapping when in jsx
+    // use demo() for now.
     return <span>{visible_state?.visible() ?? true ? "Visible" : "Hidden"}{demo()}</span>;
 };
 
