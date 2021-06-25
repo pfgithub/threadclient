@@ -120,7 +120,7 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
     const [selfVisible, setSelfVisible] = createSignal(true);
     const [bodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
     const defaultBodyVisible = createMemo(() => {
-        return props.content.title?.body_collapsible?.default_collapsed ?? true;
+        return !(props.content.title?.body_collapsible?.default_collapsed ?? false);
     });
     const bodyToggleable = createMemo(() => {
         return !!props.content.title?.body_collapsible;
