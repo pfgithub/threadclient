@@ -67,7 +67,6 @@ function markdownToRichtext(md: string): Richtext.Paragraph[] {
 const sample_preview_links: {
     expected_result: string,
     url: string,
-    warn?: string,
 }[] = [
     // TODO ….gif?format=mp4, I think this is a reddit link of some kind
     {expected_result: "image", url: "https://i.redd.it/p0y4mrku6xh61.png"},
@@ -139,10 +138,6 @@ function richtextPost(path: string, richtext: Generic.Richtext.Paragraph[]): Gen
     return userThread(path, {kind: "richtext", content: richtext}, {layout: "reddit-post"});
 }
 
-function collapsibleComment(path: string, body: Generic.Body, opts: {content_warning?: string}): Generic.Thread {
-    return userThread(path, body, {...opts, layout: "reddit-comment"});
-}
-
 function commitThread(path: string, entry: variables.LogEntry): Generic.PostContent {
     return {
         kind: "post",
@@ -189,14 +184,14 @@ const sitemap: SitemapEntry[] = [
         },
         replies: sample_preview_links.map((spl, i) => ["" + i, (urlr): SitemapEntryData => ({
             content: {
-                kind: "legacy",
-                thread: collapsibleComment(urlr, {
-                    kind: "richtext",
-                    content: [
-                        rt.p(rt.txt(spl.expected_result)),
-                        rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
-                    ],
-                }, {content_warning: spl.warn}),
+                kind: "post",
+                title: null,
+                author: null,
+                body: {kind: "richtext", content: [
+                    rt.p(rt.txt(spl.expected_result)),
+                    rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
+                ]},
+                show_replies_when_below_pivot: {default_collapsed: false},
             },
         })]),
     })],

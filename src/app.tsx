@@ -3455,10 +3455,6 @@ function renderClientContent(client: ThreadClient, listing: Generic.PostContent,
             // hsc.on("cleanup", () => cleanup());
         }else if(listing.kind === "client") {
             frame.atxt("TODO client (also note that this shouldn't render in the parent list)");
-        }else if(listing.kind === "legacy") {
-            // TODO get rid of this
-            hsc.cleanup();
-            return clientContent(client, listing.thread, opts);
         }else assertNever(listing);
         return hsc;
     }catch(e) {

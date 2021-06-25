@@ -149,10 +149,7 @@ export type PostContent = ClientPost | {
         header: ListingData,
     },
     overview: Link<PostData>,
-} | PostContentPost | {
-    kind: "legacy",
-    thread: Thread,
-};
+} | PostContentPost;
 /// in case the body contains a loader. it should also be supported to have a loader in richtext content.
 // export type BodyData = {
 //     body: Body,
