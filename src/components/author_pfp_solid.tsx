@@ -1,7 +1,7 @@
 import { createSignal, JSX, Show, Switch, Match, createMemo, createContext, useContext, ErrorBoundary, For, createEffect, onCleanup } from "solid-js";
 import { ThreadClient } from "../clients/base";
 import type * as Generic from "../types/generic";
-import {ClientPostOpts, hideshow, HideShowCleanup, navbar, renderBody} from "../app";
+import {ClientPostOpts, hideshow, HideShowCleanup, link_styles_v, navbar, renderBody} from "../app";
 import { render } from "solid-js/web";
 
 const decorative_alt = "";
@@ -9,6 +9,29 @@ const decorative_alt = "";
 export const AuthorPfp = (props: {src_url: string}): JSX.Element => (
     <img src={props.src_url} alt={decorative_alt} class="w-8 h-8 object-center inline-block cfg-reddit-pfp rounded-full"/>
 );
+
+export const ImageGallery = (props: {images: Generic.GalleryItem[]}): JSX.Element => {
+    const [state, setState] = createSignal<{kind: "overview"} | {kind: "image", index: number}>({kind: "overview"});
+
+    return <Switch fallback={<button onClick={() => {console.log(state()); setState({kind: "overview"})}}>Error state!</button>}>
+        <Match when={kindIs(state(), "overview")}>
+            <For each={props.images}>{(image, i) => (
+                <button class="m-1 inline-block bg-body rounded-md" onClick={() => setState({kind: "image", index: i()})}>
+                    <img src={image.thumb} width={image.w+"px"} height={image.h+"px"}
+                        class="w-24 h-24 object-contain"
+                    />
+                </button>
+            )}</For>
+        </Match>
+        <Match when={kindIs(state(), "image")}>{sel => <>
+            <button class={link_styles_v["outlined-button"]} onClick={() => setState({kind: "image", index: sel.index - 1})} disabled={sel.index <= 0}>Prev</button>
+            {sel.index + 1}/{props.images.length}
+            <button class={link_styles_v["outlined-button"]} onClick={() => setState({kind: "image", index: sel.index + 1})} disabled={sel.index >= props.images.length - 1}>Next</button>
+            <button class={link_styles_v["outlined-button"]} onClick={() => setState({kind: "overview"})}>Gallery</button>
+            <Body body={props.images[sel.index]!.body} />
+        </>}</Match>
+    </Switch>;
+};
 
 const UserLink = (props: {id: string, link: string, color_hash: string, children: JSX.Element}): JSX.Element => (
     // TODO userLink
@@ -324,9 +347,9 @@ const WrapParent = (props: {node: Generic.ParentPost, children: JSX.Element, is_
 };
 
 export const vanillaToSolidBoundary = <U, T extends (props: U) => JSX.Element>(
-    client: ThreadClient, frame: HTMLDivElement, SolidNode: T, props: U,
-): HideShowCleanup<HTMLDivElement> => {
-    const hsc = hideshow(frame);
+    client: ThreadClient, frame: HTMLElement, SolidNode: T, props: U,
+): HideShowCleanup<undefined> => {
+    const hsc = hideshow();
 
     const cleanup = render(() => {
         const [cvisible, setCvisible] = createSignal(hsc.visible);

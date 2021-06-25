@@ -480,59 +480,15 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
             return hsco;
         });
     }
-    const container = el("div");
-    const hsc = hideshow(container);
 
-    type State = "overview" | {
-        index: number,
-    };
-    let state: State = "overview";
-    const setState = (new_state: State) => {
-        state = new_state;
-        update();
-    };
+    return fetchPromiseThen(import("./components/author_pfp_solid"), ({vanillaToSolidBoundary, ImageGallery}) => {
+        const frame = el("div");
+        const hsc = hideshow(frame);
 
-    let prevbodyhsc: HideShowCleanup<HTMLElement> | undefined;
+        vanillaToSolidBoundary(client, frame, ImageGallery, {images});
 
-    const update = () => {
-        if(prevbodyhsc) {prevbodyhsc.cleanup(); prevbodyhsc.associated_data.remove(); prevbodyhsc = undefined}
-        if(state === "overview") {
-            uhtml.render(container, htmlr`${images.map((image, i) => htmlr`
-                <button class="m-1 inline-block bg-body rounded-md" onclick=${() => {setState({index: i})}}>
-                    <img src=${image.thumb} width=${image.w+"px"} height=${image.h+"px"}
-                        class="w-24 h-24 object-contain"
-                    />
-                </button>
-            `)}`);
-            return;
-        }
-        const index = state.index;
-        const selimg = images[index]!;
-        const ref: {current?: HTMLDivElement} = {};
-        uhtml.render(container, htmlr`
-            <button class="${link_styles_v["outlined-button"]}" onclick=${() => setState({index: index - 1})} disabled=${index <= 0 ? "" : undefined}>Prev</button>
-            ${index + 1}/${images.length}
-            <button class="${link_styles_v["outlined-button"]}" onclick=${() => setState({index: index + 1})} disabled=${index >= images.length - 1 ? "" : undefined}>Next</button>
-            <button class="${link_styles_v["outlined-button"]}" onclick=${() => setState("overview")}>Gallery</button>
-            <div ref=${ref}></div>
-        `);
-        if(!ref.current) throw new Error("!ref.current");
-        prevbodyhsc = renderBody(client, selimg.body, {autoplay: true});
-        prevbodyhsc.associated_data.adto(ref.current);
-    };
-
-    hsc.on("cleanup", () => {
-        if(prevbodyhsc) prevbodyhsc.cleanup();
+        return hsc;
     });
-    hsc.on("hide", () => {
-        prevbodyhsc?.setVisible(false);
-    });
-    hsc.on("show", () => {
-        prevbodyhsc?.setVisible(false);
-    });
-
-    setState(state);
-    return hsc;
 }
 
 function renderFlair(flairs: Generic.Flair[]) {
@@ -3134,7 +3090,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
 
 type LinkStyle = keyof typeof link_styles_v;
 
-const link_styles_v = {
+export const link_styles_v = {
     'none': "",
     'normal': "text-blue-600 dark:text-blue-500 underline",
     'previewable': "text-blue-600 dark:text-blue-500 hover:underline",
