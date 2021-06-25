@@ -1155,7 +1155,7 @@ export declare namespace Richtext {
     };
     export type TableHeading = {
         a?: "L" | "C" | "R", // align
-        c: Span[],
+        c?: Span[],
     };
     export type TableItem = {
         c: Span[],
