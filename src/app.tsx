@@ -1043,7 +1043,7 @@ function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Par
     return hsc;
 }
 
-const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {
+export const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {
     try {
         return renderBodyMayError(client, body, opts);
     }catch(er) {

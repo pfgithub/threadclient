@@ -1,7 +1,7 @@
-import { createSignal, JSX, Show, Switch, Match, createMemo, createContext, useContext, ErrorBoundary, For } from "solid-js";
+import { createSignal, JSX, Show, Switch, Match, createMemo, createContext, useContext, ErrorBoundary, For, createEffect, onCleanup } from "solid-js";
 import { ThreadClient } from "../clients/base";
 import type * as Generic from "../types/generic";
-import {ClientPostOpts, hideshow, HideShowCleanup, navbar} from "../app";
+import {ClientPostOpts, hideshow, HideShowCleanup, navbar, renderBody} from "../app";
 import { render } from "solid-js/web";
 
 const decorative_alt = "";
@@ -92,21 +92,39 @@ const HideshowProvider = (props: {visible: () => boolean, children: JSX.Element}
     return <HideshowContext.Provider value={{visible: selfVisible}}>{props.children}</HideshowContext.Provider>;
 };
 
-const ShowVisibleState = (): JSX.Element => {
+const getIsVisible = (): (() => boolean) => {
     const visible_state = useContext(HideshowContext);
+    return visible_state?.visible ?? (() => true);
+};
 
-    const demo = createMemo(() => {
-        return visible_state?.visible() ?? true ? "Visible" : "Hidden";
-    });
-    
-    // bug in solid, it's not detecting this expression as requiring wrapping when in jsx
-    // use demo() for now.
-    return <span>{visible_state?.visible() ?? true ? "Visible" : "Hidden"}{demo()}</span>;
+const Body = (props: {body: Generic.Body}): JSX.Element => {
+    const client = getClient();
+    const visible = getIsVisible();
+    return <div ref={(div) => {
+        createEffect(() => {
+            const hsc = hideshow();
+            const body = renderBody(client(), props.body, {autoplay: false}).defer(hsc).adto(div);
+            createEffect(() => {
+                hsc.setVisible(visible());
+            });
+            onCleanup(() => {
+                hsc.cleanup();
+                body.remove();
+            });
+        });
+    }}></div>;
 };
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 const ClientPost = (props: ClientPostProps): JSX.Element => {
     const [selfVisible, setSelfVisible] = createSignal(true);
+    const [bodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
+    const defaultBodyVisible = createMemo(() => {
+        return props.content.title?.body_collapsible?.default_collapsed ?? true;
+    });
+    const bodyToggleable = createMemo(() => {
+        return !!props.content.title?.body_collapsible;
+    });
     const client = getClient();
     return <div
         classList={{
@@ -147,8 +165,22 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
             </>}</Show>
         </div>
         <HideshowProvider visible={selfVisible}>
-            <div class="post-preview">TODO <ShowVisibleState /></div>
-            <div class="post-content-buttons text-xs"></div>
+            <div class="post-preview">
+                {/*working around a solid bug where !! is used on the lhs of a ??. should be fixed soon*/null}
+                <Show when={(void 0, bodyVisible() ?? defaultBodyVisible())}>
+                    <Body body={props.content.body} />
+                </Show>
+            </div>
+            <div class="post-content-buttons text-xs">
+                <Show when={bodyToggleable()}>
+                    <button onClick={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
+                        {bodyVisible() ?? defaultBodyVisible() ? "Hide" : "Show"}
+                    </button>
+                </Show>
+                <button onClick={() => {
+                    console.log(props.content, props.opts);
+                }}>Code</button>
+            </div>
             <Show when={!props.opts.at_or_above_pivot && props.opts.replies}>
                 <Show when={props.opts.replies}>{replies => <Show when={props.content.show_replies_when_below_pivot !== false}>
                     <ul class="post-replies">
@@ -165,6 +197,7 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
 
 const DefaultErrorBoundary = (props: {data: unknown, children: JSX.Element}): JSX.Element => {
     return <ErrorBoundary fallback={(err: unknown, reset) => {
+        console.log(err);
         return <div>
             <pre><code textContent={err instanceof Error ? err.toString() + "\n\n" + err.stack ?? "*no stack*" : "Something went wrong"} /></pre>
             <button onClick={() => console.log(err, props.data)}>Code</button>{" / "}
