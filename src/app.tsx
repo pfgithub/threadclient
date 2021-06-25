@@ -3,16 +3,12 @@ import "./main.scss";
 import "tailwindcss/tailwind.css";
 import "./typography.pcss";
 
-import * as uhtml from "uhtml";
-
 import * as Generic from "./types/generic";
 import {ThreadClient} from "./clients/base";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 
 import {escapeHTML} from "./util";
 import { OEmbed, oembed } from "./clients/oembed";
-
-export const htmlr = uhtml.html;
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -3588,20 +3584,23 @@ function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchP
     const frame = document.createElement("div");
     const hsc = hideshow(frame);
 
-    uhtml.render(frame, uhtml.html`<div>…</div>`);
+    frame.atxt("…");
     (async () => {
-        uhtml.render(frame, uhtml.html`<div>Logging In…</div>`);
+        frame.innerHTML = "";
+        frame.atxt("Logging In…");
         try {
             await client.login!(path, query);
         }catch(e) {
             console.log(e);
             // TODO if this is the only open history item, don't target _blank
-            uhtml.render(frame, uhtml.html`<div class="error">Login error! ${(e as Error).toString()}.</div>`);
+            frame.innerHTML = "";
+            frame.adch(el("div").clss("error").atxt("Login error! "+(e as Error).toString()));
             // const v: {removeSelf: () => void} = clientLogin(client, () => v.removeSelf()).insertBefore(frame, null);
             return;
         }
         // if this page is still active, navigate({path: "/login/success", replace: true}); to get rid of the token in the url
-        uhtml.render(frame, uhtml.html`<div>Logged In! You may now close this page.</div>`);
+        frame.innerHTML = "";
+        frame.atxt("Logged In! You may now close this page.");
     })().catch(e => {
         console.log(e);
         alert("Unexpected error "+(e as Error).toString());
