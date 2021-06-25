@@ -2576,6 +2576,10 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts:
     }
 }
 
+// TODO
+() => renderClientPostEg;
+() => renderClientPage2;
+
 export type ClientPostOpts = {
     clickable: boolean,
     replies: Generic.ListingData | null,
@@ -2583,9 +2587,6 @@ export type ClientPostOpts = {
     is_pivot: boolean,
     top_level: boolean,
 };
-import {render} from "solid-js/web";
-import {makeRenderFunction} from "./components/author_pfp_solid";
-() => renderClientPostEg;
 function renderClientPostEg(client: ThreadClient, content: Generic.PostContentPost, opts: ClientPostOpts): HideShowCleanup<HTMLElement> {
     const frame = el("div").clss("post text-sm").styl({"margin-left": "-10px"});
     if(opts.top_level) frame.styl({"margin-top": "-10px"});
@@ -3450,8 +3451,8 @@ function renderClientContent(client: ThreadClient, listing: Generic.PostContent,
         if(listing.kind === "page") {
             frame.atxt("TODO page (also note that this should have special handling in the parent list)");
         }else if(listing.kind === "post") {
-            const cleanup = render(makeRenderFunction({client, content: listing, opts}), frame);
-            hsc.on("cleanup", () => cleanup());
+            // const cleanup = render(makeRenderFunction({client, content: listing, opts}), frame);
+            // hsc.on("cleanup", () => cleanup());
         }else if(listing.kind === "client") {
             frame.atxt("TODO client (also note that this shouldn't render in the parent list)");
         }else if(listing.kind === "legacy") {
@@ -3601,8 +3602,13 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         // await new Promise(r => 0);
         if(client.getPage) {
             const page2 = await client.getPage(current_path);
+            const {ClientPage, vanillaToSolidBoundary} = await import("./components/author_pfp_solid");
             loader_area.remove();
-            renderClientPage2(client, page2, frame, title).defer(hsc);
+
+            frame.classList.remove("client-main-frame");
+            frame.classList.add("display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[page2.pivot.ref!.display_style]);
+            vanillaToSolidBoundary(client, frame, ClientPage, {page: page2}).defer(hsc);
+            // renderClientPage2(client, page2, frame, title).defer(hsc);
         }else{
             const listing = await client.getThread(current_path);
             loader_area.remove();
