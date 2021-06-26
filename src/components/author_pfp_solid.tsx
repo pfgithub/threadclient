@@ -1,8 +1,8 @@
-import { createSignal, JSX, Show, Switch, Match, createMemo, createContext, useContext, ErrorBoundary, For, createEffect, onCleanup } from "solid-js";
-import { ThreadClient } from "../clients/base";
+import { createSignal, JSX, Show, Switch, Match, createMemo, ErrorBoundary, For, createEffect, onCleanup } from "solid-js";
 import type * as Generic from "../types/generic";
-import {ClientPostOpts, hideshow, HideShowCleanup, link_styles_v, navbar, renderBody} from "../app";
-import { render } from "solid-js/web";
+import {ClientPostOpts, hideshow, link_styles_v, navbar, renderBody} from "../app";
+import { getClient, getIsVisible, HideshowProvider } from "../util/interop_solid";
+export * from "../util/interop_solid";
 
 const decorative_alt = "";
 
@@ -90,36 +90,6 @@ const ClientPostReply = (props: ClientPostReplyProps): JSX.Element => {
     </>;
 };
 
-// TODO disable this rule in _solid.tsx files
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const ClientContext = createContext<{client: ThreadClient}>();
-const ClientProvider = (props: {client: ThreadClient, children: JSX.Element}): JSX.Element => {
-    return <ClientContext.Provider value={{client: props.client}}>{props.children}</ClientContext.Provider>;
-};
-const getClient = (): (() => ThreadClient) => {
-    const client = useContext(ClientContext);
-    if(!client) throw new Error("A client is required to render this component");
-    return createMemo(() => client.client);
-};
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const HideshowContext = createContext<{visible: () => boolean}>();
-
-const HideshowProvider = (props: {visible: () => boolean, children: JSX.Element}): JSX.Element => {
-    const parent_state = useContext(HideshowContext);
-    const selfVisible = createMemo(() => {
-        const parent_v = parent_state?.visible() ?? true;
-        const props_v = props.visible();
-        return parent_v ? props_v : false;
-    });
-    return <HideshowContext.Provider value={{visible: selfVisible}}>{props.children}</HideshowContext.Provider>;
-};
-
-const getIsVisible = (): (() => boolean) => {
-    const visible_state = useContext(HideshowContext);
-    return visible_state?.visible ?? (() => true);
-};
-
 const Body = (props: {body: Generic.Body}): JSX.Element => {
     const client = getClient();
     const visible = getIsVisible();
@@ -140,10 +110,10 @@ const Body = (props: {body: Generic.Body}): JSX.Element => {
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 const ClientPost = (props: ClientPostProps): JSX.Element => {
-    const [selfVisible, setSelfVisible] = createSignal(true);
+    const [selfVisible, setSelfVisible] = createSignal(props.content.show_replies_when_below_pivot !== false ? !props.content.show_replies_when_below_pivot.default_collapsed : true);
     const [bodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
     const defaultBodyVisible = createMemo(() => {
-        return !(props.content.title?.body_collapsible?.default_collapsed ?? false);
+        return props.opts.is_pivot ? true : !(props.content.title?.body_collapsible?.default_collapsed ?? false);
     });
     const bodyToggleable = createMemo(() => {
         return !!props.content.title?.body_collapsible;
@@ -346,26 +316,6 @@ const WrapParent = (props: {node: Generic.ParentPost, children: JSX.Element, is_
     </>;
 };
 
-export const vanillaToSolidBoundary = <U, T extends (props: U) => JSX.Element>(
-    client: ThreadClient, frame: HTMLElement, SolidNode: T, props: U,
-): HideShowCleanup<undefined> => {
-    const hsc = hideshow();
-
-    const cleanup = render(() => {
-        const [cvisible, setCvisible] = createSignal(hsc.visible);
-        hsc.on("hide", () => setCvisible(false));
-        hsc.on("show", () => setCvisible(true));
-
-        return <HideshowProvider visible={cvisible}>
-            <ClientProvider client={client}>
-                <SolidNode {...props} />
-            </ClientProvider>
-        </HideshowProvider>;
-    }, frame);
-    hsc.on("cleanup", () => cleanup());
-
-    return hsc;
-};
 // solidToVanillaBoundary needs to uuh
 // idk do something but it needs to link hideshow and cleanup and return the threadclient or something
 

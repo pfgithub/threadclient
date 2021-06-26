@@ -266,6 +266,7 @@ export declare namespace Richtext {
     } | {
         kind: "tight_list_item",
         children: Span[],
+        // TODO if any list items are not tight, wrap all the tight ones in a paragraph
     };
     // TODO split this out a bit?
     //

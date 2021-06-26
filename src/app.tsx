@@ -595,7 +595,7 @@ function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
     };
 }
 
-const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdownRenderer> => {
+export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdownRenderer> => {
     const enc = new TextEncoder();
     const dec = new TextDecoder();
     const getMem = () => obj.instance.exports.memory as WebAssembly.Memory;
@@ -665,29 +665,6 @@ const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdown
     }};
 });
 
-type HtmlSaftifier = {saftify: (html: string, class_prefix: string) => string & {_is_safe: true}};
-const getHtmlSaftifier = dynamicLoader(async (): Promise<HtmlSaftifier> => {
-    await new Promise((r, re) => {
-        const script_el = el("script");
-        script_el.src = "/deps/xss.min.js";
-        script_el.onload = r;
-        script_el.onerror = re;
-        document.head.appendChild(script_el);
-    });
-    const xss = (window as unknown as {
-        filterXSS:
-            ((html: string, opts: {onTagAttr: (tag: string, name: string, value: string, isWhiteAttr: string) => string | undefined}) => string)
-            & {escapeAttrValue: (val: string) => string},
-    }).filterXSS;
-    return {
-        saftify: (html, class_prefix: string) => xss(html, {
-            onTagAttr: (tag: string, name: string, value: string, is_white_attr: string) => {
-                if(name === "class") return name+"=\""+xss.escapeAttrValue(value.split(" ").map(v => class_prefix + v).join(" "))+"\"";
-            },
-        }) as string & {_is_safe: true},
-    };
-});
-
 function renderPreviewableLink(client: ThreadClient, href: string, __after_once: Node | null, parent_node: Node): HideShowCleanup<{newbtn: HTMLElement}> {
     const after_node = document.createComment("");
     parent_node.insertBefore(after_node, __after_once);
@@ -735,79 +712,33 @@ function renderPreviewableLink(client: ThreadClient, href: string, __after_once:
     return hsc;
 }
 
-function renderSafeHTML(client: ThreadClient, safe_html: string & {_is_safe: true}, parent_node: Node, class_prefix: string): HideShowCleanup<undefined> {
-    const divel = el("div").adto(parent_node).clss("prose");
-    const hsc = hideshow();
-    divel.innerHTML = safe_html;
-    if(class_prefix) for(const node of Array.from(divel.querySelectorAll("*"))) {
-        Array.from(node.classList).forEach(classname => {
-            node.classList.replace(classname, class_prefix + classname);
-        });
-    }
-    for(const alink of Array.from(divel.querySelectorAll("a"))) {
-        const after_node = document.createComment("after");
-        if(!alink.parentNode) throw new Error("alink without parent node. never.");
-        alink.parentNode.replaceChild(after_node, alink);
-        if(!after_node.parentNode) throw new Error("never.");
-
-        const href = alink.getAttribute("href") ?? "error no href";
-        const content = Array.from(alink.childNodes);
-
-        const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode).defer(hsc);
-
-        newbtn.attr({class: newbtn.getAttribute("class") + " " + alink.getAttribute("class")});
-        content.forEach(el => newbtn.appendChild(el));
-    }
-    // false positive?
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    for(const spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
-        const children = Array.from(spoilerspan.childNodes);
-        el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
-        spoilerspan.attr({title: "Click to reveal spoiler"});
-        spoilerspan.clss("md-spoiler-unrevealed");
-        spoilerspan.addEventListener("click", (e) => {
-            if(!spoilerspan.classList.contains("md-spoiler-unrevealed")) return;
-            e.preventDefault();
-            e.stopPropagation();
-            spoilerspan.classList.remove("md-spoiler-unrevealed");
-            spoilerspan.attr({title: ""});
-        }, {capture: true});
-    }
-    for(const image of Array.from(divel.querySelectorAll("img"))) {
-        image.clss("preview-image");
-    }
-    return hsc;
-}
-
 function renderText(client: ThreadClient, body: Generic.BodyText): HideShowCleanup<Node> {
     const container = el("div");
     const hsc = hideshow(container);
     
     if(body.markdown_format === "reddit") {
-        const preel = el("pre").adto(container);
-        el("code").atxt(body.content).adto(preel);
-        getRedditMarkdownRenderer().then(mdr => {
+        const preel = el("div").adto(container).atxt("Loading…");
+        Promise.all([getRedditMarkdownRenderer(), import("./clients/reddit/html_to_richtext")]).then(([mdr, htr]) => {
             preel.remove();
             const safe_html = mdr.renderMd(body.content);
-            renderSafeHTML(client, safe_html, container, "").defer(hsc);
+            renderBody(client, {kind: "richtext", content: htr.parseContentHTML(safe_html)}, {autoplay: false}).defer(hsc).adto(container);
         }).catch(e => {
             preel.remove();
             console.log(e);
-            renderSafeHTML(client, "Got error! Check console!" as string & {_is_safe: true}, container, "").defer(hsc);
+            container.textContent = "Got error! Check console!";
         });
     }else if(body.markdown_format === "none") {
         container.atxt(body.content);
     }else if(body.markdown_format === "reddit_html") {
-        const preel = el("pre").adto(container);
-        el("code").atxt(body.content).adto(preel);
-        getHtmlSaftifier().then(hsr => {
+        const preel = el("div").adto(container).atxt("Loading…");
+        import("./clients/reddit/html_to_richtext").then(htr => {
             preel.remove();
-            const safe_html = hsr.saftify(body.content, "");
-            renderSafeHTML(client, safe_html, container, "").defer(hsc);
+            console.log(body.content);
+            renderBody(client, {kind: "richtext", content: htr.parseContentHTML(body.content)}, {autoplay: false}).defer(hsc).adto(container);
         }).catch(e => {
             preel.remove();
             console.log(e);
-            renderSafeHTML(client, "Got error! Check console!" as string & {_is_safe: true}, container, "").defer(hsc);
+            container.textContent = "Got error! Check console!";
         });
     }else assertNever(body.markdown_format);
 
@@ -820,6 +751,7 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
     switch(rts.kind) {
         case "text": {
             let mainel: Node = el("span");
+            mainel.atxt(rts.text);
             const wrap = (outer: Node) => {
                 outer.adch(mainel);
                 mainel = outer;
@@ -829,7 +761,6 @@ function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, co
             if(rts.styles.strong ?? false) wrap(el("b"));
             if(rts.styles.superscript ?? false) wrap(el("sup"));
 
-            mainel.atxt(rts.text);
             mainel.adto(container);
         } break;
         case "link": {
@@ -3986,6 +3917,14 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
     }
     if(path0 === "settings") {
         return settingsPage();
+    }
+    if(path0 === "automated_testing") {
+        return fetchPromiseThen(import("./tests/root_solid"), tests => {
+            const frame = el("div");
+            const hsc = hideshow(frame);
+            tests.vanillaToSolidBoundary(0 as unknown as ThreadClient, frame, tests.Root, {}).defer(hsc);
+            return hsc;
+        });
     }
 
     if(path0 === "login"){

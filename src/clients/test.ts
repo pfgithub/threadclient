@@ -313,8 +313,60 @@ const sitemap: SitemapEntry[] = [
             },
         },
         replies: [],
-    })]
+    })],
+    // ["reddit_html", (urlr): SitemapEntryData => ({
+    //     content: {
+    //         kind: "post",
+    //         title: {text: "Reddit HTML", body_collapsible: null},
+    //         author: null,
+    //         body: {kind: "none"},
+    //         show_replies_when_below_pivot: false,
+    //     },
+    //     replies: reddit_html_tests.map((test, i): SitemapEntry => [
+    //         "" + i,
+    //         (urlr): SitemapEntryData => ({
+    //             content: {
+    //                 kind: "post",
+    //                 title: {text: "Test "+(i + 1), body_collapsible: null},
+    //                 author: null,
+    //                 body: {kind: "none"},
+    //                 show_replies_when_below_pivot: {default_collapsed: true},
+    //             },
+    //             replies: [
+    //                 ["markdown", (urlr): SitemapEntryData => ({
+    //                     content: {
+    //                         kind: "post",
+    //                         title: {text: "Markdown", body_collapsible: {default_collapsed: true}},
+    //                         author: null,
+    //                         body: {kind: "text", markdown_format: "reddit", content: test[0]},
+    //                         show_replies_when_below_pivot: false,
+    //                     },
+    //                 })],
+    //                 ["html", (urlr): SitemapEntryData => ({
+    //                     content: {
+    //                         kind: "post",
+    //                         title: {text: "HTML", body_collapsible: {default_collapsed: true}},
+    //                         author: null,
+    //                         body: {kind: "text", markdown_format: "reddit_html", content: test[1]},
+    //                         show_replies_when_below_pivot: false,
+    //                     },
+    //                 })],
+    //                 ["richtext", (urlr): SitemapEntryData => ({
+    //                     content: {
+    //                         kind: "post",
+    //                         title: {text: "Richtext", body_collapsible: {default_collapsed: true}},
+    //                         author: null,
+    //                         body: {kind: "richtext", content: test[2] ?? []},
+    //                         show_replies_when_below_pivot: false,
+    //                     },
+    //                 })],
+    //             ],
+    //         }),
+    //     ]),
+    // })],
 ];
+
+// import {reddit_html_tests} from "./reddit/html_to_richtext.spec";
 
 type ReplyData = {kind: "markdown"} | {kind: "other"};
 const reply_encoder = encoderGenerator<ReplyData, "reply">("reply");
