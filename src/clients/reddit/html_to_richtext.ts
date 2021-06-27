@@ -5,51 +5,6 @@ import {rt} from "../../types/generic";
 // https://pfg.pw/snudown/test
 // test all expected output → richtext transformations
 
-// function renderSafeHTML(client: ThreadClient, safe_html: string & {_is_safe: true}, parent_node: Node, class_prefix: string): HideShowCleanup<undefined> {
-//     const divel = el("div").adto(parent_node).clss("prose");
-//     const hsc = hideshow();
-//     divel.innerHTML = safe_html;
-//     if(class_prefix) for(const node of Array.from(divel.querySelectorAll("*"))) {
-//         Array.from(node.classList).forEach(classname => {
-//             node.classList.replace(classname, class_prefix + classname);
-//         });
-//     }
-//     for(const alink of Array.from(divel.querySelectorAll("a"))) {
-//         const after_node = document.createComment("after");
-//         if(!alink.parentNode) throw new Error("alink without parent node. never.");
-//         alink.parentNode.replaceChild(after_node, alink);
-//         if(!after_node.parentNode) throw new Error("never.");
-
-//         const href = alink.getAttribute("href") ?? "error no href";
-//         const content = Array.from(alink.childNodes);
-
-//         const {newbtn} = renderPreviewableLink(client, href, after_node, after_node.parentNode).defer(hsc);
-
-//         newbtn.attr({class: newbtn.getAttribute("class") + " " + alink.getAttribute("class")});
-//         content.forEach(el => newbtn.appendChild(el));
-//     }
-//     // false positive?
-//     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-//     for(const spoilerspan of Array.from(divel.querySelectorAll(".md-spoiler-text")) as HTMLSpanElement[]) {
-//         const children = Array.from(spoilerspan.childNodes);
-//         el("span").adto(spoilerspan).adch(...children).clss("md-spoiler-content");
-//         spoilerspan.attr({title: "Click to reveal spoiler"});
-//         spoilerspan.clss("md-spoiler-unrevealed");
-//         spoilerspan.addEventListener("click", (e) => {
-//             if(!spoilerspan.classList.contains("md-spoiler-unrevealed")) return;
-//             e.preventDefault();
-//             e.stopPropagation();
-//             spoilerspan.classList.remove("md-spoiler-unrevealed");
-//             spoilerspan.attr({title: ""});
-//         }, {capture: true});
-//     }
-//     for(const image of Array.from(divel.querySelectorAll("img"))) {
-//         image.clss("preview-image");
-//     }
-//     return hsc;
-// }
-
-
 type GenMeta = {_?: undefined};
 
 function childNodesToRichtextParagraphs(meta: GenMeta, nodes: NodeListOf<ChildNode>): Generic.Richtext.Paragraph[] {

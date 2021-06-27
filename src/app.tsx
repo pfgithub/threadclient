@@ -3506,7 +3506,7 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
         el("div").clss("w-max max-w-full").adto(demoitm).adch(
             makeTopLevelWrapper().adch(
                 el("div").clss("prose").adch(
-                    el("h1").atxt("Theme"),
+                    el("h1").clss("font-black text-3xl").atxt("Theme"),
                     el("p").atxt("theme"),
                 ),
             ),
@@ -3541,8 +3541,10 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
 
         const fake = makeTopLevelWrapper().adto(pfparea);
 
-        // a hack. ideally I'd render a real comment using the reddit client
-        // but that's a bit annoying to do atm so instead here is a hack.
+        // TODO rewrite in solid and get rid of this
+        // also pfps can be moved to in-js rather than in-css because of stores
+        // but only after the solid rewrite is complete (alternatively, localstorage
+        // stores can be used probably and I don't think that requires a full rewrite)
         fake.innerHTML = `
         <div class="post text-sm layout-reddit-comment layout-commentlike spacefiller-redditpoints">${""
 }<button class="collapse-btn" draggable="true" aria-label="Collapse" aria-pressed="false"><div class${""
@@ -3558,7 +3560,7 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
 }t-color:rgb(3, 48, 21); --dark-color:rgb(207, 252, 224);">pfg___</a> <span class="counter-count" tit${""
 }le="2">2</span> points<!----> <span><span title="Sun May 09 2021 18:00:14 GMT-0700 (Pacific Daylight${""
 } Time)">5 hours ago</span></span></div><div class="post-preview"><div class="post-body"><div><div cl${""
-}ass="prose whitespace-pre-wrap"><p><span>This is an example comment!</span></p></div></div></div></d${""
+}ass="whitespace-pre-wrap"><p><span>This is an example comment!</span></p></div></div></div></d${""
 }iv><div class="post-content-buttons text-xs"> <button class="p-1 rounded hover:bg-gray-200" draggabl${""
 }e="true">Reply</button> <span><button class="p-1 rounded hover:bg-gray-200" draggable="true">Delete</button><${""
 }/span><span style="display: none;">Are you sure? <button class="text-red-600 dark:text-red-500 hover${""

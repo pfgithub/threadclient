@@ -255,6 +255,7 @@ export const App: React.FC = (): React.ReactElement => {
         return <span {...props.attributes}>{outer_elem}</span>;
     }, []);
 
+    // note prose is no longer supported so todo fix headings and stuff
     return <Slate
         editor={editor}
         value={value}
@@ -281,7 +282,7 @@ export const App: React.FC = (): React.ReactElement => {
                 <button title="Table" className="p-1 w-8 h-8 hover:bg-gray-100 rounded-md inline-block"><span className="border border-black w-full h-full block">T</span></button>
             </div>
         </div>
-        <div className="prose">
+        <div>
             <Editable
                 //eslint-disable-next-line @typescript-eslint/no-explicit-any
                 renderElement={renderElement as unknown as (props: RenderElementProps) => JSX.Element}
