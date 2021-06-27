@@ -181,11 +181,13 @@ reddit todo:
 -   [x] fix depth based load more things to not include the parent comment twice. this will be automatically fixed by doing ^^^^
 -   [x] support op, mod distinguished, and admin distinguished comments and posts
 -   [x] messages
+-   [x] header images
 -   [ ] add support for /about/stylesheet eg /reddit/r/askreddit/about/stylesheet. it could look really neat showing both the css and associated images and stuff.
 -   [ ] add support for /u/me. also when ppl link there, make the link appear as if it is linking to you directly with /u/yourusername when you hover it.
 -   [ ] fix it so when you subscribe to a sub and then navigate to that sub page it still shows you as subscribed. this is
         an easy, but annoying, fix. just have to change it so the time the page was fetched gets piped through the whole system
         so good data doesn't get replaced with older bad data.
+        - this should be easier to fix with page2 I think
 -   [ ] add support for showing the multireddits a user has. new.reddit gets a fancy gql api for this but we have to use
         `/api/multi/:user` which is slow and will hold up page load so it must be done async. also along with this, other
         things that are only relevant to sidebar widgets should be switched to async too.
@@ -211,15 +213,12 @@ reddit todo:
 -   [ ] posts + post preview (+ /api/v1/:subreddit/post_requirements)
 -   [ ] upload images to reddit (it seems possible, post to /asset to get perms and then upload to `reddit-uploaded-media.s3-accelerate.amazonaws.com`)
 -   [ ] fix dark flairs being displayed on a dark background
--   [ ] header images
 -   [ ] support live comment / chat threads (eg used in rpan chat)
 -   [ ] get more information about specific awards by clicking them
 -   [ ] user profile pages, defaulting to the overview tab
 -   [ ] navigation buttons eg homepage link
 -   [ ] display <0 or ≤0 for posts with 0 votes because the actual count is unknown
 -   [ ] use the `post.media`/`post.secure_media` property?
--   [ ] jsonp hack when cors requests fail (spooky, evaluating code from a remote server) eg `?jsonp=jsonp_response_#` where each request adds a `window.jsonp_response_#`
-        function and removes it after the jsonp request is completed. note that this doesn't work for requests that require authentication so maybe don't do it.
 -   [ ] code block automatic syntax highlighting (using hljs automatic or something)
 -   [ ] when revealing a crosspost with the same content warnings as the parent post, don't require accepting twice
 -   [ ] fix load more when loading batches of 100 comments sometimes the batch will contain a top level load more button (this is even easier now - the load mores can be consolidated)
