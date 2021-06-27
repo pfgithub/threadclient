@@ -230,7 +230,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
             const emoji_v = meta.emojis.get(text);
             if(emoji_v) {
                 commit();
-                res_segments.push(rt.kind("emoji", {url: emoji_v.static_url, hover: ":"+text+":"}));
+                res_segments.push(rt.kind("emoji", {url: emoji_v.static_url, name: ":"+text+":"}));
             }else{
                 uncommitted_text.push(text);
             }
