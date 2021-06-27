@@ -268,6 +268,11 @@ export declare namespace Richtext {
         children: Span[],
         // TODO if any list items are not tight, wrap all the tight ones in a paragraph
     };
+    export type LinkSpan = ({
+        kind: "link",
+        url: string,
+        children: Span[],
+    } & LinkOpts);
     // TODO split this out a bit?
     //
     // InteractiveSpan = SpoilerSpan
@@ -278,11 +283,7 @@ export declare namespace Richtext {
         kind: "text",
         text: string,
         styles: Style,
-    } | ({
-        kind: "link",
-        url: string,
-        children: Span[],
-    } & LinkOpts) | {
+    } | LinkSpan | {
         kind: "br",
     } | {
         kind: "spoiler",
@@ -290,12 +291,12 @@ export declare namespace Richtext {
     } | {
         kind: "emoji",
         url: string,
-        hover: string,
+        name: string,
     } | {
         kind: "flair",
         flair: Flair,
     } | {
-        kind: "time-ago",
+        kind: "time_ago",
         start: number,
     } | {
         kind: "error",
@@ -756,7 +757,7 @@ export const rt = {
     table: (headings: Richtext.TableHeading[], ...rows: Richtext.TableItem[][]): Richtext.Paragraph => rt.kind("table", {headings}, rows),
     th: (align: "left" | "center" | "right" | undefined, ...content: Richtext.Span[]): Richtext.TableHeading => ({align, children: content}),
     td: (...content: Richtext.Span[]): Richtext.TableItem => ({children: content}),
-    timeAgo: (time: number): Richtext.Span => rt.kind("time-ago", {start: time}),
+    timeAgo: (time: number): Richtext.Span => rt.kind("time_ago", {start: time}),
     hr: (): Richtext.Paragraph => rt.kind("horizontal_line", {}),
     code: (text: string): Richtext.Span => rt.kind("code", {text}), // this should instead be {kind: "code", text: …}
     spoiler: (...items: Richtext.Span[]): Richtext.Span => rt.kind("spoiler", {}, items),

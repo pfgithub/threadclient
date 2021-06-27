@@ -9,6 +9,8 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 
 import {escapeHTML} from "./util";
 import { OEmbed, oembed } from "./clients/oembed";
+import { vanillaToSolidBoundary } from "./util/interop_solid";
+import { RichtextParagraphs, RichtextSpans } from "./components/author_pfp_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -477,7 +479,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
         });
     }
 
-    return fetchPromiseThen(import("./components/author_pfp_solid"), ({vanillaToSolidBoundary, ImageGallery}) => {
+    return fetchPromiseThen(import("./components/author_pfp_solid"), ({ImageGallery}) => {
         const frame = el("div");
         const hsc = hideshow(frame);
 
@@ -487,7 +489,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
     });
 }
 
-function renderFlair(flairs: Generic.Flair[]) {
+export function renderFlair(flairs: Generic.Flair[]): Node {
     const resl = document.createDocumentFragment();
     for(const flair of flairs) {
         const flairv = el("span").clss("rounded-full", (flair.system != null ? "" : "px-2"));
@@ -547,7 +549,7 @@ function timeAgoText(start_ms: number, now: number): [string, number] {
     return [new Date(start_ms).toISOString(), -1];
 }
 
-function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
+export function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
     const span = el("span").attr({title: "" + new Date(start_ms)});
     const hsc = hideshow(span);
     const tanode = txt("…").adto(span);
@@ -745,183 +747,24 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
     return hsc;
 }
 
-function renderRichtextSpan(client: ThreadClient, rts: Generic.Richtext.Span, container: Node): HideShowCleanup<undefined> {
-    const hsc = hideshow();
-
-    switch(rts.kind) {
-        case "text": {
-            let mainel: Node = el("span");
-            mainel.atxt(rts.text);
-            const wrap = (outer: Node) => {
-                outer.adch(mainel);
-                mainel = outer;
-            };
-            if(rts.styles.emphasis ?? false) wrap(el("i"));
-            if(rts.styles.strikethrough ?? false) wrap(el("s"));
-            if(rts.styles.strong ?? false) wrap(el("b"));
-            if(rts.styles.superscript ?? false) wrap(el("sup"));
-
-            mainel.adto(container);
-        } break;
-        case "link": {
-            let reslink: HTMLElement;
-            if(rts.is_user_link != null) {
-                reslink = userLink(client.id, rts.url, rts.is_user_link).adto(container);
-            }else if((rts.style ?? "link") === "link"){
-                const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
-                reslink = newbtn;
-            }else{
-                const mappings: {[key in Generic.Richtext.LinkStyle]: LinkStyle} = {'link': "normal", 'pill-empty': "pill-empty"};
-                reslink = linkButton(client.id, rts.url, mappings[rts.style ?? "link"]).adto(container);
-            }
-            if(rts.title != null) reslink.title = rts.title;
-            if(rts.children.every(child => child.kind === "text" && child.text === "")) {
-                el("span").atxt("«no text»").adto(reslink);
-            }
-            for(const child of rts.children) {
-                renderRichtextSpan(client, child, reslink).defer(hsc);
-            }
-        } break;
-        case "br": {
-            container.adch(el("br"));
-        } break;
-        case "spoiler": {
-            const spoilerspan = el("spoiler").clss("md-spoiler-text").adto(container);
-            const subspan = el("span").adto(spoilerspan).clss("md-spoiler-content");
-            for(const child of rts.children) {
-                renderRichtextSpan(client, child, subspan).defer(hsc);
-            }
-
-            spoilerspan.attr({title: "Click to reveal spoiler"});
-            spoilerspan.clss("md-spoiler-unrevealed");
-            spoilerspan.addEventListener("click", (e) => {
-                if(!spoilerspan.classList.contains("md-spoiler-unrevealed")) return;
-                e.preventDefault();
-                e.stopPropagation();
-                spoilerspan.classList.remove("md-spoiler-unrevealed");
-                spoilerspan.attr({title: ""});
-            }, {capture: true});
-        } break;
-        case "error": {
-            elButton("error").atxt(rts.text).onev("click", e => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log(rts.value);
-            }).adto(container);
-        } break;
-        case "emoji": {
-            el("img").attr({src: rts.url, title: rts.hover}).clss("w-4 h-4 object-contain inline-block").adto(container);
-        } break;
-        case "flair": {
-            renderFlair([rts.flair]).adto(container);
-        } break;
-        case "time-ago": {
-            timeAgo(rts.start).defer(hsc).adto(container);
-        } break;
-        case "code": {
-            el("code").atxt(rts.text).adto(container);
-        } break;
-        default: assertNever(rts);
+export function renderRichtextLink(client: ThreadClient, rts: Generic.Richtext.LinkSpan): HideShowCleanup<HTMLElement> {
+    const container = el("span");
+    const hsc = hideshow(container);
+    let reslink: HTMLElement;
+    if(rts.is_user_link != null) {
+        reslink = userLink(client.id, rts.url, rts.is_user_link).adto(container);
+    }else if((rts.style ?? "link") === "link"){
+        const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
+        reslink = newbtn;
+    }else{
+        const mappings: {[key in Generic.Richtext.LinkStyle]: LinkStyle} = {'link': "normal", 'pill-empty': "pill-empty"};
+        reslink = linkButton(client.id, rts.url, mappings[rts.style ?? "link"]).adto(container);
     }
-
-    return hsc;
-}
-
-function renderRichtextListItem(
-    client: ThreadClient,
-    rtp: Generic.Richtext.ListItem,
-    container: ChildNode
-): HideShowCleanup<undefined> {
-    const hsc = hideshow();
-
-    const liv = el("li").clss("richtext-render-node").adto(container);
-    switch(rtp.kind) {
-        case "list_item": {
-            for(const child of rtp.children) {
-                renderRichtextParagraph(client, child, liv).defer(hsc);
-            }
-        } break;
-        case "tight_list_item": {
-            for(const child of rtp.children) {
-                renderRichtextSpan(client, child, liv).defer(hsc);
-            }
-        } break;
-        default: assertNever(rtp);
+    if(rts.title != null) reslink.title = rts.title;
+    if(rts.children.every(child => child.kind === "text" && child.text === "")) {
+        el("span").atxt("«no text»").adto(reslink);
     }
-
-    return hsc;
-}
-
-function renderRichtextParagraph(client: ThreadClient, rtp: Generic.Richtext.Paragraph, container: ChildNode): HideShowCleanup<undefined> {
-    const hsc = hideshow();
-
-    switch(rtp.kind) {
-        case "paragraph": {
-            const pel = el("p").adto(container);
-            for(const child of rtp.children) {
-                renderRichtextSpan(client, child, pel).defer(hsc);
-            }
-        } break;
-        case "heading": {
-            const hel = el("h"+rtp.level).adto(container);
-            for(const child of rtp.children) {
-                renderRichtextSpan(client, child, hel).defer(hsc);
-            }
-        } break;
-        case "blockquote": {
-            const bquot = el("blockquote").adto(container).clss("richtext-render-node");
-            for(const child of rtp.children) {
-                renderRichtextParagraph(client, child, bquot).defer(hsc);
-            }
-        } break;
-        case "list": {
-            const bquot = el(
-                rtp.ordered ? "ol" : "ul"
-            ).clss(rtp.ordered ? "list-decimal" : "list-disc").adto(container).clss("richtext-render-node");
-            for(const child of rtp.children) {
-                renderRichtextListItem(client, child, bquot).defer(hsc);
-            }
-        } break;
-        case "horizontal_line": {
-            el("hr").adto(container);
-        } break;
-        case "code_block": {
-            const preel = el("pre");
-            if(rtp.lang != null) {
-                preel.adch(el("div").clss("font-sans").adch(el("span").clss("bg-gray-100 p-1 inline-block rounded-sm").atxt("lang="+rtp.lang)));
-            }
-            preel.adch(el("code").atxt(rtp.text)).adto(container);
-        } break;
-        case "body": {
-            // TODO
-            // 1: render this in a shadow dom with normal styles
-            // 2: padding
-            const bnode = el("div").adto(container).clss("my-2");
-            renderBody(client, rtp.body, {autoplay: false}).defer(hsc).adto(bnode);
-        } break;
-        case "table": {
-            const tablel = el("table").adto(container);
-            const thead = el("tr").adto(el("thead").adto(tablel));
-            for(const heading of rtp.headings) {
-                const headth = el("th").adto(thead).attr({align: heading.align});
-                for(const child of heading.children) {
-                    renderRichtextSpan(client, child, headth).defer(hsc);
-                }
-            }
-            const tbody = el("tbody").adto(tablel);
-            for(const row of rtp.children) {
-                const rowr = el("tr").adto(tbody);
-                row.forEach((col, i) => {
-                    const align = rtp.headings[i]!.align;
-                    const td = el("td").adto(rowr).attr({align});
-                    for(const child of col.children) {
-                        renderRichtextSpan(client, child, td).defer(hsc);
-                    }
-                });
-            }
-        } break;
-        default: assertNever(rtp);
-    }
+    vanillaToSolidBoundary(client, reslink, RichtextSpans, {spans: rts.children});
 
     return hsc;
 }
@@ -998,10 +841,8 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
         const parentel = el("div").clss("bg-body rounded-xl max-w-xl").adto(content);
         clientContent(client, body.source, {clickable: true}).defer(hsc).clss("crosspost-post").adto(parentel);
     }else if(body.kind === "richtext") {
-        const txta = el("div").adto(content).clss("prose whitespace-pre-wrap");
-        for(const pargrph of body.content) {
-            renderRichtextParagraph(client, pargrph, txta).defer(hsc);
-        }
+        const frame = el("div").adto(content);
+        vanillaToSolidBoundary(client, frame, RichtextParagraphs, {content: body.content}).defer(hsc);
     }else if(body.kind === "poll") {
         const pollcontainer = el("ul").adto(content).clss("poll-container");
         const expires = el("div").adto(pollcontainer).atxt("Expires: ");
@@ -3481,7 +3322,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         // await new Promise(r => 0);
         if(client.getPage) {
             const page2 = await client.getPage(current_path);
-            const {ClientPage, vanillaToSolidBoundary} = await import("./components/author_pfp_solid");
+            const {ClientPage} = await import("./components/author_pfp_solid");
             loader_area.remove();
 
             frame.classList.remove("client-main-frame");

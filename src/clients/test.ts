@@ -221,7 +221,132 @@ const sitemap: SitemapEntry[] = [
                 ],
                 richtext: [
                     item("richtext", {kind: "richtext", content: [
-                        rt.p(rt.txt("TODO richtext demo")),
+                        rt.h1(rt.txt("Heading level 1 and a horizontal line below")),
+                        rt.hr(),
+                        rt.p(
+                            rt.txt("Richtext paragraph containing text. Styles: "),
+                            rt.txt("Bold", {strong: true}),
+                            rt.txt(", "),
+                            rt.txt("Italic", {emphasis: true}),
+                            rt.txt(", "),
+                            rt.txt("Strikethrough", {strikethrough: true}),
+                            rt.txt(", "),
+                            rt.txt("Superscript", {superscript: true}),
+                            rt.txt(", "),
+                            rt.txt("Mixed Bold/Italic/Strike/Sup", {strong: true, emphasis: true, strikethrough: true, superscript: true}),
+                        ),
+                        rt.p(
+                            rt.txt("Soft break:"), rt.br(),
+                            rt.txt("Next line"), rt.br(),
+                        ),
+                        rt.h2(rt.txt("Heading level 2. Tight list of links:")),
+                        rt.hr(),
+                        rt.ul(
+                            rt.ili(
+                                rt.txt("Sample link: "), rt.link("/", {}, rt.txt("Goes to '/'")),
+                            ),
+                            rt.ili(
+                                rt.txt("Error link: "), rt.link("javascript:alert(\"xss\")", {}, rt.txt("Uh oh!")),
+                            ),
+                            rt.ili(
+                                rt.txt("Raw link: "), rt.link("raw:https://www.reddit.com/", {}, rt.txt("Goes to www.reddit.com")),
+                            ),
+                            rt.ili(
+                                rt.txt("Link with title: "), rt.link("/", {title: "Title is working!"}, rt.txt("Hover me!")),
+                            ),
+                            rt.ili(
+                                rt.txt("User link: "), rt.link("/", {is_user_link: "u/sample_user"}, rt.txt("I should be light pink (or dark pink/'cab sav' in light mode)")),
+                            ),
+                            rt.ili(
+                                rt.link("https://i.imgur.com/Cnm26CH.png", {}, rt.txt("Preview me!")),
+                            ),
+                        ),
+                        rt.p(
+                            rt.txt("Pill link: "), rt.link("/", {style: "pill-empty"}, rt.txt("I should be an empty pill")),
+                        ),
+                        rt.p(rt.txt("Assorted span items:")),
+                        rt.ul(
+                            rt.ili(rt.txt("Recent time: "), rt.timeAgo(Date.now())),
+                            rt.ili(rt.txt("Long past time: "), rt.timeAgo(0)),
+                            rt.ili(
+                                rt.txt("Here's a fun emoji: "),
+                                {kind: "emoji", url: "https://i.imgur.com/2zGFZM2.png", name: ":smiley:"},
+                                rt.txt(". It's not quite square, hopefully that's okay. Hover it, it should say its name."),
+                            ),
+                            rt.ili(
+                                rt.txt("My user flair: "),
+                                rt.flair({content_warning: false, elems: [{type: "text", text: "Hi!"}]}),
+                                rt.txt(". Flairs should eventually be normal richtext but aren't yet.")
+                            ),
+                            rt.ili(
+                                rt.txt("An error button. Should log some text to the console when clicked: "),
+                                rt.error("Uh oh!", "some text"),
+                            ),
+                        ),
+                        rt.p(rt.txt("A list that isn't tight:")),
+                        rt.ul(
+                            rt.ili(rt.txt("I shouldn't be tight")),
+                            rt.li(rt.p(rt.txt("Neither should I")), rt.p(rt.txt("Especially b/c I contain multiple paragraphs"))),
+                            rt.ili(rt.txt("Me neither")),
+                            rt.ili(rt.txt("Wow!")),
+                            rt.ili(rt.txt("None of us are tight :(")),
+                        ),
+                        rt.p(rt.txt("A list that is tight:")),
+                        rt.ul(
+                            rt.li(rt.p(rt.txt("Look at me! I'm a single paragraph"))),
+                            rt.ili(rt.txt("And yet, this list is not tight")),
+                            rt.ili(rt.txt("Amazing!")),
+                        ),
+                        rt.hn(3, rt.txt("Heading level 3. Blockquote:")),
+                        rt.hr(),
+                        rt.blockquote(
+                            rt.p(
+                                rt.txt("Hi! Here's a spoiler for Star Wars: Infinity War: "), rt.spoiler(rt.txt("Han's last name is Solo")),
+                            ),
+                            rt.p(
+                                rt.txt("Make sure links work within spoilers and aren't clickable until revealed: "),
+                                rt.spoiler(rt.link("/", {}, rt.txt("I shouldn't be clickable until the spoiler is opened"))),
+                            ),
+                        ),
+                        rt.blockquote(
+                            rt.p(rt.txt("What happens if we stack two blockquotes on top of eachother? Hopefully nothing bad")),
+                            rt.blockquote(rt.p(rt.txt("btw this inner blockquote should end at the same level as the outer one, no extra padding"))),
+                        ),
+                        rt.hn(4, rt.txt("Heading level 4. Code:")),
+                        rt.hr(),
+                        {kind: "code_block", lang: "demo", text: "Here is a sample code block\n← there was a newline\n  two spaces at the start of this line"},
+                        {kind: "code_block", text: "This one doesn't have a language set."},
+                        rt.p(rt.code("Some inline code"), rt.txt(", amazing!")),
+                        rt.hn(5, rt.txt("Heading level 5. Table:")),
+                        rt.hr(),
+                        rt.table(
+                            [
+                                rt.th(undefined, rt.txt("Default")),
+                                rt.th("left", rt.txt("Left-aligned")),
+                                rt.th("center", rt.txt("Center-aligned")),
+                                rt.th("right", rt.txt("Right-aligned")),
+                            ],
+                            [
+                                rt.td(rt.txt("1")),
+                                rt.td(rt.txt("2")),
+                                rt.td(rt.txt("3")),
+                                rt.td(rt.txt("4")),
+                            ],
+                            [
+                                rt.td(rt.txt("5")),
+                                rt.td(rt.txt("6")),
+                                rt.td(rt.txt("7")),
+                                rt.td(rt.txt("8")),
+                            ],
+                        ),
+                        rt.hn(6, rt.txt("Heading level 6. Should be normal and underlined. Body:")),
+                        {kind: "body", body:
+                            {kind: "crosspost", source: userThread(urlr, {
+                                kind: "richtext", content: [rt.p(rt.txt("Crossposted Body"))]
+                            }, {
+                                title: "Crossposted Source", layout: "reddit-post"
+                            })}
+                        },
                     ]})
                 ],
                 link: [],
