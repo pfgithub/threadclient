@@ -747,7 +747,7 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
     return hsc;
 }
 
-export function renderRichtextLink(client: ThreadClient, rts: Generic.Richtext.LinkSpan): HideShowCleanup<HTMLElement> {
+export function renderRichtextLink(client: ThreadClient, rts: Generic.Richtext.LinkSpan): {hsc: HideShowCleanup<HTMLElement>, link: HTMLElement} {
     const container = el("span");
     const hsc = hideshow(container);
     let reslink: HTMLElement;
@@ -764,9 +764,8 @@ export function renderRichtextLink(client: ThreadClient, rts: Generic.Richtext.L
     if(rts.children.every(child => child.kind === "text" && child.text === "")) {
         el("span").atxt("«no text»").adto(reslink);
     }
-    vanillaToSolidBoundary(client, reslink, RichtextSpans, {spans: rts.children});
 
-    return hsc;
+    return {hsc, link: reslink};
 }
 
 export const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {

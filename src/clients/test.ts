@@ -264,6 +264,10 @@ const sitemap: SitemapEntry[] = [
                         rt.p(
                             rt.txt("Pill link: "), rt.link("/", {style: "pill-empty"}, rt.txt("I should be an unfilled pill")),
                         ),
+                        rt.p(
+                            rt.txt("Link containing a spoiler? should this even be allowed?: "),
+                            rt.link("/", {}, rt.txt("Spoiler: "), rt.spoiler(rt.txt("No."))),
+                        ),
                         rt.p(rt.txt("Assorted span items:")),
                         rt.ul(
                             rt.ili(rt.txt("Recent time: "), rt.timeAgo(Date.now())),

@@ -44,7 +44,9 @@ const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
             'text-xs': text.styles.superscript,
         }}>{text.text}</span>,
         link: (link) => <SolidToVanillaBoundary getValue={(hsc, client) => {
-            return renderRichtextLink(client(), link).defer(hsc);
+            const res = renderRichtextLink(client(), link);
+            res.link.adch(<span><RichtextSpans spans={link.children} /></span> as HTMLElement);
+            return res.hsc.defer(hsc);
         }} />,
         br: () => <br />,
         spoiler: (spoiler) => {
@@ -60,7 +62,7 @@ const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
                         class="absolute top-0 left-0 bottom-0 right-0 w-full h-full rounded bg-spoiler-color hover:bg-spoiler-color-hover cursor-pointer"
                         title="Click to reveal spoiler"
                         onClick={() => setOpened(true)}
-                    />
+                    ></button>
                 </Show>
                 <span
                     class="rounded transition-opacity bg-spoiler-color-revealed"
