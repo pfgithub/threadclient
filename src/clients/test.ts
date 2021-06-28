@@ -515,6 +515,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         const called = found_value[1](urlr);
         const this_post: Generic.PostData = {
             kind: "post",
+            url: urlr,
             parent: parent ? {ref: parent, err: undefined} : null,
             replies: {sort: null, reply: null, ...called.replyopts, items: [{kind: "load_more"}]},
             content: called.content,
@@ -533,6 +534,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
                         kind: "post",
                         post: {ref: {
                             kind: "post",
+                            url: urlr2,
                             parent: {ref: parentv, err: undefined},
                             replies: null,
                             content: replyitm.content,
@@ -560,6 +562,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
 
     const this_post: Generic.PostData = {
         kind: "post",
+        url: "/"+path.join("/"),
         parent: parent ? {ref: parent, err: undefined} : null,
         replies: null,
         content: {
@@ -580,6 +583,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
 function clientWrapperAdd(map: Map<Generic.ID<unknown>, unknown>): Generic.PostData {
     return {
         kind: "post",
+        url: null,
         parent: null,
         replies: null,
 
@@ -616,6 +620,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
 
         const pivot: Generic.PostData = {
             kind: "post",
+            url: path,
             parent: {ref: client_wrapper, err: undefined},
             replies: {
                 sort: null,
@@ -683,6 +688,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     };
     const pivot: Generic.PostData = {
         kind: "post",
+        url: "/",
         parent: {ref: client_wrapper, err: undefined},
         replies: null,
 

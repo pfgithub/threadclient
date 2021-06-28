@@ -2432,6 +2432,7 @@ function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, optio
 
         return {
             kind: "post",
+            url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
             parent: {ref: {kind: "vloader", parent: null, replies: null}, err: undefined}, // TODO handle this with getPostData or something
             replies,
 

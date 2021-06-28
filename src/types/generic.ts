@@ -60,6 +60,7 @@ export type ID<T> = symbol & {__is_id: T};
 export type ParentPost = PostData | PostVerticalLoader;
 export type PostData = {
     kind: "post",
+    url: string | null, // if a thing does not have a url, it cannot be the pivot
     parent: Link<ParentPost> | null,
     replies: ListingData | null,
 
