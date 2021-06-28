@@ -262,7 +262,7 @@ const sitemap: SitemapEntry[] = [
                             ),
                         ),
                         rt.p(
-                            rt.txt("Pill link: "), rt.link("/", {style: "pill-empty"}, rt.txt("I should be an empty pill")),
+                            rt.txt("Pill link: "), rt.link("/", {style: "pill-empty"}, rt.txt("I should be an unfilled pill")),
                         ),
                         rt.p(rt.txt("Assorted span items:")),
                         rt.ul(

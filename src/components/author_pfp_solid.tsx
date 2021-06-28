@@ -1,5 +1,5 @@
 import { createMemo, createSignal, ErrorBoundary, For, JSX, Match, Show, Switch } from "solid-js";
-import { ClientPostOpts, link_styles_v, navbar, renderBody, renderFlair, renderRichtextLink, timeAgo } from "../app";
+import { ClientPostOpts, elButton, link_styles_v, navbar, renderBody, renderFlair, renderRichtextLink, timeAgo } from "../app";
 import type * as Generic from "../types/generic";
 import { getClient, HideshowProvider, kindIs, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -76,7 +76,11 @@ const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
         emoji: (emoji) => <img class="w-4 h-4 object-contain inline-block" src={emoji.url} title={emoji.name} />,
         flair: (flair) => <Flair flair={[flair.flair]} />,
         time_ago: (time) => <TimeAgo start={time.start} />,
-        error: () => <>TODO</>,
+        error: (err) => <SolidToVanillaBoundary getValue={(hsc, client) => {
+            return elButton("error").atxt(err.text).onev("click", e => {
+                console.log(err.value);
+            });
+        }} />,
         code: (code) => <code class="bg-gray-200 p-1 rounded text-gray-800">{code.text}</code>,
     }}</SwitchKind>;
 };

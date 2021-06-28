@@ -2879,7 +2879,7 @@ export const link_styles_v = {
 
 const linkAppearence = (display_style: LinkStyle) => [link_styles_v[display_style]];
 
-function elButton(display_style: LinkStyle) {
+export function elButton(display_style: LinkStyle) {
     return el("button").clss(...linkAppearence(display_style)).attr({draggable: "true"});
 }
 
