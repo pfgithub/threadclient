@@ -1,5 +1,5 @@
-import { createMemo, createSignal, ErrorBoundary, For, JSX, Match, Show, Switch } from "solid-js";
-import { ClientPostOpts, elButton, link_styles_v, navbar, renderBody, renderFlair, renderRichtextLink, timeAgo } from "../app";
+import { createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Show, Switch } from "solid-js";
+import { ClientPostOpts, elButton, link_styles_v, navbar, renderBody, renderFlair, renderRichtextLink, timeAgoText } from "../app";
 import type * as Generic from "../types/generic";
 import { getClient, HideshowProvider, kindIs, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -10,6 +10,17 @@ const decorative_alt = "";
 export const AuthorPfp = (props: {src_url: string}): JSX.Element => (
     <img src={props.src_url} alt={decorative_alt} class="w-8 h-8 object-center inline-block cfg-reddit-pfp rounded-full"/>
 );
+
+export const TimeAgo = (props: {start: number}): JSX.Element => {
+    const [now, setNow] = createSignal(Date.now());
+    const label = createMemo(() => {
+        const res_text = timeAgoText(props.start, now());
+        const timeout = setTimeout(() => setNow(Date.now()), res_text[1] + 10);
+        onCleanup(() => clearTimeout(timeout));
+        return res_text[0];
+    });
+    return <span title={"" + new Date(props.start)}>{label}</span>;
+};
 
 export const ImageGallery = (props: {images: Generic.GalleryItem[]}): JSX.Element => {
     const [state, setState] = createSignal<{kind: "overview"} | {kind: "image", index: number}>({kind: "overview"});
@@ -214,12 +225,6 @@ const ClientPostReply = (props: ClientPostReplyProps): JSX.Element => {
 const Body = (props: {body: Generic.Body}): JSX.Element => {
     return <SolidToVanillaBoundary getValue={(hsc, client) => {
         return renderBody(client(), props.body, {autoplay: false}).defer(hsc);
-    }} />;
-};
-
-const TimeAgo = (props: {start: number}): JSX.Element => {
-    return <SolidToVanillaBoundary getValue={(hsc, client) => {
-        return timeAgo(props.start).defer(hsc);
     }} />;
 };
 

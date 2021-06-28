@@ -10,7 +10,7 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {escapeHTML} from "./util";
 import { OEmbed, oembed } from "./clients/oembed";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { RichtextParagraphs, RichtextSpans } from "./components/author_pfp_solid";
+import { RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -523,7 +523,7 @@ function s(number: number, text: string) {
 
 // TODO replace this with a proper thing that can calculate actual "months ago" values
 // returns [time_string, time_until_update]
-function timeAgoText(start_ms: number, now: number): [string, number] {
+export function timeAgoText(start_ms: number, now: number): [string, number] {
     const ms = now - start_ms;
     if(ms < 0) return ["in the future "+new Date(start_ms).toISOString(), -ms];
     if(ms < 60 * 1000) return ["just now", 60 * 1000 - ms];
@@ -550,20 +550,9 @@ function timeAgoText(start_ms: number, now: number): [string, number] {
 }
 
 export function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
-    const span = el("span").attr({title: "" + new Date(start_ms)});
-    const hsc = hideshow(span);
-    const tanode = txt("…").adto(span);
-    let timeout: NodeJS.Timeout | undefined;
-    const update = () => {
-        timeout = undefined;
-        const [newtext, wait_time] = timeAgoText(start_ms, Date.now());
-        tanode.nodeValue = newtext;
-        if(wait_time >= 0) timeout = setTimeout(() => update(), wait_time + 100);
-    };
-    update();
-    hsc.on("cleanup", () => {
-        if(timeout !== undefined) clearTimeout(timeout);
-    });
+    const frame = el("span");
+    const hsc = hideshow(frame);
+    vanillaToSolidBoundary(0 as unknown as ThreadClient, frame, TimeAgo, {start: start_ms}).defer(hsc);
     return hsc;
 }
 
@@ -2878,7 +2867,7 @@ export const link_styles_v = {
 
 const linkAppearence = (display_style: LinkStyle) => [link_styles_v[display_style]];
 
-export function elButton(display_style: LinkStyle) {
+export function elButton(display_style: LinkStyle): HTMLButtonElement {
     return el("button").clss(...linkAppearence(display_style)).attr({draggable: "true"});
 }
 
