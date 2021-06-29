@@ -7,6 +7,14 @@ import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { ThreadClient } from "src/clients/base";
 export * from "../util/interop_solid";
 
+declare module "solid-js" {
+    namespace JSX {
+        interface CustomEvents {
+            click: MouseEvent,
+        }
+    }
+}
+
 export type ClientPostOpts = {
     clickable: boolean,
     replies: Generic.ListingData | null,
@@ -35,10 +43,10 @@ export const TimeAgo = (props: {start: number}): JSX.Element => {
 export const ImageGallery = (props: {images: Generic.GalleryItem[]}): JSX.Element => {
     const [state, setState] = createSignal<{kind: "overview"} | {kind: "image", index: number}>({kind: "overview"});
 
-    return <Switch fallback={<button onClick={() => {console.log(state()); setState({kind: "overview"})}}>Error state!</button>}>
+    return <Switch fallback={<button on:click={() => {console.log(state()); setState({kind: "overview"})}}>Error state!</button>}>
         <Match when={kindIs(state(), "overview")}>
             <For each={props.images}>{(image, i) => (
-                <button class="m-1 inline-block bg-body rounded-md" onClick={() => setState({kind: "image", index: i()})}>
+                <button class="m-1 inline-block bg-body rounded-md" on:click={() => setState({kind: "image", index: i()})}>
                     <img src={image.thumb} width={image.w+"px"} height={image.h+"px"}
                         class="w-24 h-24 object-contain"
                     />
@@ -46,10 +54,10 @@ export const ImageGallery = (props: {images: Generic.GalleryItem[]}): JSX.Elemen
             )}</For>
         </Match>
         <Match when={kindIs(state(), "image")}>{sel => <>
-            <button class={link_styles_v["outlined-button"]} onClick={() => setState({kind: "image", index: sel.index - 1})} disabled={sel.index <= 0}>Prev</button>
+            <button class={link_styles_v["outlined-button"]} on:click={() => setState({kind: "image", index: sel.index - 1})} disabled={sel.index <= 0}>Prev</button>
             {sel.index + 1}/{props.images.length}
-            <button class={link_styles_v["outlined-button"]} onClick={() => setState({kind: "image", index: sel.index + 1})} disabled={sel.index >= props.images.length - 1}>Next</button>
-            <button class={link_styles_v["outlined-button"]} onClick={() => setState({kind: "overview"})}>Gallery</button>
+            <button class={link_styles_v["outlined-button"]} on:click={() => setState({kind: "image", index: sel.index + 1})} disabled={sel.index >= props.images.length - 1}>Next</button>
+            <button class={link_styles_v["outlined-button"]} on:click={() => setState({kind: "overview"})}>Gallery</button>
             <Body body={props.images[sel.index]!.body} />
         </>}</Match>
     </Switch>;
@@ -82,7 +90,7 @@ const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
                     <button
                         class="absolute top-0 left-0 bottom-0 right-0 w-full h-full rounded bg-spoiler-color hover:bg-spoiler-color-hover cursor-pointer"
                         title="Click to reveal spoiler"
-                        onClick={() => setOpened(true)}
+                        on:click={() => setOpened(true)}
                     ></button>
                 </Show>
                 <span
@@ -260,7 +268,7 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
         style={{'margin-left': "-10px", ...props.opts.top_level ? {'margin-top': "-10px"} : {}}}
     >
         <Show when={props.content.show_replies_when_below_pivot !== false}>
-            <button style={{bottom: "0"}} class="collapse-btn" draggable={true} onClick={(e) => {
+            <button style={{bottom: "0"}} class="collapse-btn" draggable={true} on:click={(e) => {
                 const collapsed_button = e.currentTarget;
                 const topv = collapsed_button.getBoundingClientRect().top;
                 const heightv = 5 + navbar.getBoundingClientRect().height;
@@ -296,18 +304,18 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
             </div>
             <div class="post-content-buttons text-xs">
                 <Show when={bodyToggleable()}>
-                    <button onClick={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
+                    <button on:click={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
                         {bodyVisible() ?? defaultBodyVisible() ? "Hide" : "Show"}
                     </button>
                 </Show>
-                <button onClick={() => {
+                <button on:click={() => {
                     console.log(props.content, props.opts);
                 }}>Code</button>
                 <Show when={props.opts.replies?.reply}>{(reply_action) => {
                     const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
 
                     return <>
-                        <button disabled={replyWindowOpen()} onClick={() => {
+                        <button disabled={replyWindowOpen()} on:click={() => {
                             setReplyWindowOpen(true);
                         }}>{reply_action.text}</button>
                         <Show when={replyWindowOpen()}>
@@ -356,13 +364,7 @@ export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () =>
             setContent(e.currentTarget.value);
         }} />
         <div class="flex space-x-1">
-            <button disabled={isSending()} class={link_styles_v["pill-filled"]} ref={q => q.addEventListener("click", (e) => {
-                // this addEventListener thing is to work around the solid event system which does not like a
-                // vanilla js parent element that uses stopPropagation, so we have to use ref=addEventListener rather than
-                // being able to use onclick directly
-                e.preventDefault();
-                e.stopPropagation();
-
+            <button disabled={isSending()} class={link_styles_v["pill-filled"]} on:click={(e) => {
                 setSending(true);
 
                 client().sendReply(content(), props.action.reply_info).then((r) => {
@@ -373,18 +375,15 @@ export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () =>
                     console.log("Got error", err);
                     setSendError(err.stack ?? err.toString() ?? "Unknown error");
                 });
-            })}>{isSending() ? "…" : "Reply"}</button>
-            <button disabled={isSending()} class={link_styles_v["pill-empty"]} ref={q => q.addEventListener("click", (e) => {
+            }}>{isSending() ? "…" : "Reply"}</button>
+            <button disabled={isSending()} class={link_styles_v["pill-empty"]} on:click={(e) => {
                 console.log("Cancel button clicked");
-
-                e.preventDefault();
-                e.stopPropagation();
 
                 if(content()) {
                     if(!confirm("delete draft?")) return;
                 }
                 props.onCancel();
-            })}>Cancel<div /></button>
+            }}>Cancel<div /></button>
         </div>
         <Show when={sendError()}>{errv => <>
             <pre class="error"><code>There was an error! {errv}</code></pre>
