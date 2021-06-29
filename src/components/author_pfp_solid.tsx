@@ -116,6 +116,7 @@ const RichtextParagraph = (props: {paragraph: Generic.Richtext.Paragraph}): JSX.
         paragraph: (pgph) => <p><RichtextSpans spans={pgph.children} /></p>,
         body: (body) => <Body body={body.body} />,
         heading: (heading) => {
+            // <Dynamic> can work for this. they need different classes though so idk.
             const content = () => <RichtextSpans spans={heading.children} />;
             if(heading.level === 1) return <h1 class="text-3xl text-gray-900 font-black">{content()}</h1>;
             if(heading.level === 2) return <h2 class="text-2xl text-gray-900 font-bold">{content()}</h2>;
