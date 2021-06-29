@@ -32,5 +32,4 @@ jobs:
             - name: Check
               run: |
                   yarn install
-                  yarn eslint src --max-warnings 0
-                  yarn tsc --noEmit
+                  yarn lint

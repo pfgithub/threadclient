@@ -5,7 +5,8 @@
     "author": "pfg <pfg@pfg.pw>",
     "license": "MIT",
     "scripts": {
-        "build": "webpack"
+        "build": "webpack",
+        "lint": "eslint src --max-warnings 0 && tsc --noEmit"
     },
     "devDependencies": {
         "@babel/core": "^7.12.10",

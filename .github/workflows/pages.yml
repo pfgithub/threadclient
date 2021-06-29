@@ -13,6 +13,7 @@ jobs:
       - name: Install and Build 🔧
         run: |
           yarn install
+          yarn lint
           env node_env=PRODUCTION yarn build
 
       - name: Deploy 🚀
