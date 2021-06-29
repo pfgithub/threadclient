@@ -1,9 +1,19 @@
-import { createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Show, Switch } from "solid-js";
-import { ClientPostOpts, elButton, link_styles_v, navbar, renderBody, renderFlair, renderRichtextLink, timeAgoText } from "../app";
+import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Show, Switch } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
+import { clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, renderRichtextLink, timeAgoText } from "../app";
 import type * as Generic from "../types/generic";
-import { getClient, HideshowProvider, kindIs, SwitchKind } from "../util/utils_solid";
+import { ClientProvider, getClient, HideshowProvider, kindIs, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
+import { ThreadClient } from "src/clients/base";
 export * from "../util/interop_solid";
+
+export type ClientPostOpts = {
+    clickable: boolean,
+    replies: Generic.ListingData | null,
+    at_or_above_pivot: boolean,
+    is_pivot: boolean,
+    top_level: boolean,
+};
 
 const decorative_alt = "";
 
@@ -293,6 +303,21 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
                 <button onClick={() => {
                     console.log(props.content, props.opts);
                 }}>Code</button>
+                <Show when={props.opts.replies?.reply}>{(reply_action) => {
+                    const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
+
+                    return <>
+                        <button disabled={replyWindowOpen()} onClick={() => {
+                            setReplyWindowOpen(true);
+                        }}>{reply_action.text}</button>
+                        <Show when={replyWindowOpen()}>
+                            <ReplyEditor action={reply_action} onCancel={() => setReplyWindowOpen(false)} onAddReply={() => {
+                                setReplyWindowOpen(false);
+                                //
+                            }} />
+                        </Show>
+                    </>
+                }}</Show>
             </div>
             <Show when={!props.opts.at_or_above_pivot && props.opts.replies}>
                 <Show when={props.opts.replies}>{replies => <Show when={props.content.show_replies_when_below_pivot !== false}>
@@ -305,6 +330,76 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
                 </Show>}</Show>
             </Show>
         </HideshowProvider>
+    </div>;
+};
+
+type StoreTypeValue = {value: null | Generic.PostContent};
+export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () => void, onAddReply: (response: Generic.Node) => void}): JSX.Element => {
+    const client = getClient();
+    const [content, setContent] = createSignal("");
+
+    const [isSending, setSending] = createSignal(false);
+    const [sendError, setSendError] = createSignal<string | undefined>(undefined);
+
+    const [diffable, setDiffable] = createStore<StoreTypeValue>({value: null});
+    createEffect(() => {
+        const resv: Generic.PostContent = client().previewReply(content(), props.action.reply_info);
+        setDiffable(reconcile<StoreTypeValue>({value: resv}, {merge: true}));
+        // this does well but unfortunately it doesn't know what to use as keys for lists and it can't really know
+        // because it's text → (opaque parser) → richtext
+        // there's no way to set a custom key function so idk how to do a heuristic for this. a heuristic would be
+        // matching links or stateful components idk
+    });
+
+    return <div>
+        <textarea disabled={isSending()} class="border my-3 w-full resize-y" value={content()} onInput={(e) => {
+            setContent(e.currentTarget.value);
+        }} />
+        <div class="flex space-x-1">
+            <button disabled={isSending()} class={link_styles_v["pill-filled"]} ref={q => q.addEventListener("click", (e) => {
+                // this addEventListener thing is to work around the solid event system which does not like a
+                // vanilla js parent element that uses stopPropagation, so we have to use ref=addEventListener rather than
+                // being able to use onclick directly
+                e.preventDefault();
+                e.stopPropagation();
+
+                setSending(true);
+
+                client().sendReply(content(), props.action.reply_info).then((r) => {
+                    console.log("Got response", r);
+                    props.onAddReply(r);
+                }).catch((err) => {
+                    const error = err as Error;
+                    console.log("Got error", err);
+                    setSendError(err.stack ?? err.toString() ?? "Unknown error");
+                });
+            })}>{isSending() ? "…" : "Reply"}</button>
+            <button disabled={isSending()} class={link_styles_v["pill-empty"]} ref={q => q.addEventListener("click", (e) => {
+                console.log("Cancel button clicked");
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                if(content()) {
+                    if(!confirm("delete draft?")) return;
+                }
+                props.onCancel();
+            })}>Cancel<div /></button>
+        </div>
+        <Show when={sendError()}>{errv => <>
+            <pre class="error"><code>There was an error! {errv}</code></pre>
+            <button onClick={() => setSendError(undefined)}>Hide error</button>
+        </>}</Show>
+        <Show when={diffable.value}>{value => {
+            console.log("Value changed", value);
+            return <div class="bg-body rounded-xl max-w-xl object-wrapper shadow-none"><ClientContent listing={value} opts={{
+                clickable: false,
+                replies: null,
+                at_or_above_pivot: true,
+                is_pivot: true,
+                top_level: true,   
+            }}/></div>;
+        }}</Show>
     </div>;
 };
 
@@ -326,31 +421,26 @@ const DefaultErrorBoundary = (props: {data: unknown, children: JSX.Element}): JS
 // should client be provided by a provider?
 export type ClientContentProps = {listing: Generic.PostContent, opts: ClientPostOpts};
 const ClientContent = (props: ClientContentProps): JSX.Element => {
+    const todosupport = (thing: unknown) => <>
+        TODO support. also in the parent list these should probably{" "}
+        be one of those navbars with bits like ClientName {">"} PageName {">"} …{" "}
+        <button onClick={() => console.log(thing)}>code</button>
+    </>;
     return <div>
         <DefaultErrorBoundary data={[props.listing, props.opts]}>
-            <Switch fallback={
-                <>
-                    Error! unsupported.
-                    <button onClick={() => console.log(props.listing)}>code</button>
-                </>
-            }>
-                <Match when={kindIs(props.listing, "page") || kindIs(props.listing, "client")}>{thing => (
-                    <>
-                        TODO support. also in the parent list these should probably{" "}
-                        be one of those navbars with bits like ClientName {">"} PageName {">"} …{" "}
-                        <button onClick={() => console.log(thing)}>code</button>
-                    </>
-                )}</Match>
-                <Match when={kindIs(props.listing, "post")}>{post => (
+            <SwitchKind item={props.listing}>{{
+                page: thing => todosupport(thing),
+                client: thing => todosupport(thing),
+                post: (post) => <>
                     <ClientPost content={post} opts={props.opts} />
-                )}</Match>
-                <Match when={kindIs(props.listing, "legacy")}>{legacy => (
-                    <>
-                        TODO legacy{" "}
-                        <button onClick={() => console.log(legacy)}>code</button>
-                    </>
-                )}</Match>
-            </Switch>
+                </>,
+                legacy: legacy => <SolidToVanillaBoundary getValue={(hsc, client): HTMLElement => {
+                    // clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
+                    // return clientContent()
+                    //                             clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
+                    return clientContent(client(), legacy.thread, {clickable: false}).defer(hsc);
+                }}/>,
+            }}</SwitchKind>
         </DefaultErrorBoundary>
     </div>;
 };

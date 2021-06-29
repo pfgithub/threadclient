@@ -26,7 +26,7 @@ export const ClientProvider = (props: {client: ThreadClient, children: JSX.Eleme
 export const getClient = (): (() => ThreadClient) => {
     const client = useContext(ClientContext);
     if(!client) throw new Error("A client is required to render this component");
-    return createMemo(() => client.client);
+    return createMemo(() => client.client); // turns out you can't update provider values? weird
 };
 
 // eslint-disable-next-line @typescript-eslint/naming-convention

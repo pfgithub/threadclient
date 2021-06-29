@@ -3338,10 +3338,10 @@ export const client: ThreadClient = {
             localStorage.removeItem("reddit-secret");
         }else assertUnreachable(act);
     },
-    previewReply(md: string, data: Generic.Opaque<"reply">): Generic.Thread {
+    previewReply(md: string, data: Generic.Opaque<"reply">): Generic.PostContent {
         //eslint-disable-next-line @typescript-eslint/no-unused-vars
         const reply_info = reply_encoder.decode(data);
-        return {
+        const legacy_value: Generic.Thread = {
             kind: "thread",
             body: {kind: "text", content: md, markdown_format: "reddit"},
             display_mode: {body: "visible", comments: "visible"},
@@ -3376,6 +3376,10 @@ export const client: ThreadClient = {
                 actions: {error: "reply not posted"},
             }],
             default_collapsed: false,
+        };
+        return {
+            kind: "legacy",
+            thread: legacy_value,
         };
     },
     async sendReply(md: string, data_raw: Generic.Opaque<"reply">): Promise<Generic.Node> {

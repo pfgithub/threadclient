@@ -44,6 +44,8 @@ function spanToRichtextSpan(node: commonmark.Node, styl: Richtext.Style): Richte
         return [rt.txt(node.literal ?? "ERR", styl)];
     }else if(node.type === "link") {
         return [rt.link(node.destination ?? "ERR", {title: node.title ?? undefined}, ...childrenOf(node).flatMap(it => spanToRichtextSpan(it, styl)))];
+    }else if(node.type === "linebreak") {
+        return [rt.br()];
     }else if(node.type === "softbreak") {
         return [rt.txt(" ")]; // a newline without two spaces
     }else if(node.type === "strong") {
@@ -737,12 +739,19 @@ export const client: ThreadClient = {
     async act(action) {
         throw new Error("act not supported");
     },
-    previewReply(body, reply_info) {
+    previewReply(body, reply_info): Generic.PostContent {
         const decoded = reply_encoder.decode(reply_info);
         if(decoded.kind === "markdown") {
-            return richtextPost("/", markdownToRichtext(body));
+            return {
+                kind: "post",
+                title: null,
+                author: null,
+                body: {kind: "richtext", content: markdownToRichtext(body)},
+                show_replies_when_below_pivot: false,
+            };
+            // return richtextPost("/", markdownToRichtext(body));
         }else if(decoded.kind === "other") {
-            return richtextPost("/", [rt.p(rt.txt("err!"))]);
+            throw new Error("Other not supported");
         }else assertNever(decoded);
     },
     async sendReply(body, reply_info) {

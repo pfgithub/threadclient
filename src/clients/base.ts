@@ -13,7 +13,7 @@ export type ThreadClient = {
     act: (action: Generic.Opaque<"act">) => Promise<void>,
     fetchReportScreen?: (report: Generic.Opaque<"report">) => Promise<Generic.ReportFlow>,
     sendReport?: (action: Generic.Opaque<"send_report">, text?: string) => Promise<Generic.SentReport>,
-    previewReply: (body: string, reply_info: Generic.Opaque<"reply">) => Generic.Thread,
+    previewReply: (body: string, reply_info: Generic.Opaque<"reply">) => Generic.PostContent,
     sendReply: (body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>,
 
     loadMore: (action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>,

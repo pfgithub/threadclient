@@ -113,6 +113,10 @@ export type PostContentPost = {
         text: string,
         body_collapsible: null | {default_collapsed: boolean},
     },
+    info?: {
+        creation_date?: number,
+        edited?: {date?: number}, // you can have an edited date w/out a creation date
+    },
     author: null | InfoAuthor,
     body: Body,
     /// if the item should display replies like
@@ -121,24 +125,26 @@ export type PostContentPost = {
     /// | | reply
     show_replies_when_below_pivot: false | {default_collapsed: boolean},
     reddit_vote?: CounterAction,
-    actions?: Action[],
-
-    // why no url?
-    // the reason for not including a url is so when you click a post it will keep the existing content
-    // and then request to fetch the needed data or something
-    // posts should have a refresh token though or something similar
-    // and refreshing the post should refresh surrounding stuff too
-
-    // if you have a url, you should call like getFrame or something which gives you
-    // an empty frame and then you should fetch from there. that might be nice to implement now.
-
-    // basically: call getFrame() which returns a Page2
-    // - title will get moved to a property of the pivot
-    // - the pivot will be updated to be a single-item loader,
-    //   likely with a vertical loader above and a horizontal
-    //   loader below
-    // - the highest post with a title is used for the title
+    // actions?: {
+    //     collapse_line?: Action[],
+    //     content_buttons?: Action[],
+    //     info_line?: Action[], // should only be for info eg the points on a counter
+    // },
+    actions?: {
+        vote?: CounterAction, // puts the up and down arrow in the gutter and points/% voted in the info line. could do something similar but with a star for mastodon.
+        other?: Action[],
+    },
 };
+
+// if you have a url, you should call like getFrame or something which gives you
+// an empty frame and then you should fetch from there. that might be nice to implement now.
+
+// basically: call getFrame() which returns a Page2
+// - title will get moved to a property of the pivot
+// - the pivot will be updated to be a single-item loader,
+//   likely with a vertical loader above and a horizontal
+//   loader below
+// - the highest post with a title is used for the title
 
 export type PostContent = ClientPost | {
     /// the thing containing the header and sidebar. when rendered below
@@ -150,7 +156,10 @@ export type PostContent = ClientPost | {
         header: ListingData,
     },
     overview: Link<PostData>,
-} | PostContentPost;
+} | PostContentPost | {
+    kind: "legacy",
+    thread: Thread,
+};
 /// in case the body contains a loader. it should also be supported to have a loader in richtext content.
 // export type BodyData = {
 //     body: Body,
@@ -500,6 +509,7 @@ export type InfoAuthor = {
         url: string,
         hover: string,
     },
+    // system_perms?: {moderator?: …, admin?: …}, or something idk
 };
 export type Info = {
     time: false | number, // null | number

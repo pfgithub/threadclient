@@ -10,7 +10,7 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {escapeHTML} from "./util";
 import { OEmbed, oembed } from "./clients/oembed";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
+import { ReplyEditor, RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -1401,101 +1401,57 @@ type RenderActionOpts = {
 function renderReplyAction(client: ThreadClient, action: Generic.ReplyAction, content_buttons_line: Node, onAddReply: (thread: Generic.Thread) => void): HideShowCleanup<undefined> {
     {
         let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
-        let reply_state: "none" | {preview?: Generic.Thread} = "none";
+        let reply_state: "none" | "some" = "none";
         const reply_btn = elButton("action-button").atxt("Reply").adto(content_buttons_line);
 
         const hsc = hideshow();
 
-        let reply_container: HTMLDivElement | undefined;
+        let reply_container: HideShowCleanup<HTMLDivElement> | undefined;
 
         hsc.on("cleanup", () => {
-            if(prev_preview) {prev_preview.remove(); prev_preview = undefined}
+            if(reply_container) reply_container.cleanup();
+        });
+        hsc.on("hide", () => {
+            if(reply_container) reply_container.setParentVisible(false);
+        });
+        hsc.on("show", () => {
+            if(reply_container) reply_container.setParentVisible(true);
         });
         
         const update = () => {
             if(reply_state === "none") {
-                if(reply_container) {reply_container.remove(); reply_container = undefined}
-                if(prev_preview) {prev_preview.remove(); prev_preview = undefined}
+                if(reply_container) {
+                    const node = reply_container.associated_data;
+                    reply_container.cleanup();
+                    node.remove();
+                    reply_container = undefined
+                }
                 reply_btn.disabled = false;
             }else{
                 if(!reply_container) {
-                    reply_container = el("div").adto(content_buttons_line);
-                    const textarea = el("textarea").clss("border my-3 w-full resize-y").adto(el("div").adto(reply_container));
-                    // maybe make this empty if the text input is empty?
-                    const btnline = el("div").clss("flex space-x-1").adto(reply_container);
-                    const submit = elButton("pill-filled").adto(btnline).atxt("Reply");
-                    const preview = elButton("pill-empty").adto(btnline).atxt("Preview");
-                    const cancel = elButton("pill-empty").adto(btnline).atxt("Cancel");
-                    preview.onev("click", (e) => {
-                        e.stopPropagation();
-                        reply_state = {preview: client.previewReply(textarea.value, action.reply_info)};
+                    const div = el("div").adto(content_buttons_line);
+                    reply_container = hideshow(div);
+
+                    vanillaToSolidBoundary(client, div, ReplyEditor, {action, onCancel: () => {
+                        reply_state = "none";
                         update();
-                    });
-                    // this might lag too much idk
-                    textarea.onev("input", () => {
-                        reply_state = {preview: client.previewReply(textarea.value, action.reply_info)};
+                    }, onAddReply: (r: Generic.Node) => {
+                        console.log("Got response", r);
+                        reply_state = "none";
                         update();
-                    });
-                    cancel.onev("click", (e) => {
-                        e.stopPropagation();
-                        const deleteres = textarea.value ? confirm("delete?") : true;
-                        if(deleteres) {
-                            reply_state = "none";
-                            update();
+                        if(r.kind === "load_more") {
+                            console.log("got back load more item. todo display it.");
+                            return;
                         }
-                    });
-                    submit.onev("click", (e) => {
-                        e.stopPropagation();
-                        submit.disabled = true;
-                        submit.textContent = "…";
-                        console.log("SUBMITTING");
-                        client.sendReply(textarea.value, action.reply_info).then(r => {
-                            console.log("Got response", r);
-                            reply_state = "none";
-                            update();
-                            if(r.kind === "load_more") {
-                                console.log("got back load more item. todo display it.");
-                                return;
-                            }
-                            clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
-                        }).catch(err => {
-                            const error = err as Error;
-                            submit.disabled = false;
-                            submit.textContent = "Reply";
-                            console.log("Got error", err);
-                            const displayv = el("div").adto(content_buttons_line).clss("error").styl({'white-space': "pre-wrap"});
-                            displayv.atxt(error.toString()+"\n\n"+error.stack);
-                        });
-                    });
-                }
-                reply_btn.disabled = true;
-                label: if(reply_state.preview) {
-                    if(prev_preview) {
-                        if(prev_preview.preview === reply_state.preview) {
-                            break label;
-                        }
-                        prev_preview.remove();
-                        prev_preview = undefined;
-                    }
-                    // hacky for now. reply buttons should need a special override
-                    // rather than being bundled with the rest of stuff in renderAction
-                    const containerel = el("div").adto(content_buttons_line);
-                    const listing_el = clientContent(client, reply_state.preview, {clickable: false});
-                    listing_el.associated_data.adto(containerel);
-                    prev_preview = {
-                        preview: reply_state.preview,
-                        remove: () => {
-                            listing_el.cleanup();
-                            containerel.remove();
-                        },
-                    };
+                        clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
+                    }}).defer(reply_container);
                 }
             }
         };
 
         reply_btn.onev("click", (e) => {
             e.stopPropagation();
-            if(reply_state === "none") reply_state = {};
+            if(reply_state === "none") reply_state = "some";
             update();
         });
         update();
@@ -2254,7 +2210,7 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
 type ClientContentOpts = {
     clickable: boolean,
 };
-function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts: ClientContentOpts): HideShowCleanup<Node> {
+export function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts: ClientContentOpts): HideShowCleanup<HTMLElement> {
     // console.log(listing);
     
     const frame = clientListingWrapperNode();
@@ -2286,164 +2242,6 @@ function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts:
         frame.adch(elButton("code-button").atxt("Code").onev("click", (err) => {err.stopPropagation(); console.log(listing)}));
         return hideshow(frame);
     }
-}
-
-// TODO
-() => renderClientPostEg;
-() => renderClientPage2;
-
-export type ClientPostOpts = {
-    clickable: boolean,
-    replies: Generic.ListingData | null,
-    at_or_above_pivot: boolean,
-    is_pivot: boolean,
-    top_level: boolean,
-};
-function renderClientPostEg(client: ThreadClient, content: Generic.PostContentPost, opts: ClientPostOpts): HideShowCleanup<HTMLElement> {
-    const frame = el("div").clss("post text-sm").styl({"margin-left": "-10px"});
-    if(opts.top_level) frame.styl({"margin-top": "-10px"});
-    const hsc = hideshow(frame);
-
-    const title_area = el("div").clss("post-content-subminfo").adto(frame);
-    const body_area = el("div").clss("post-preview").adto(frame);
-    const action_buttons_area = el("div").clss("post-content-buttons text-xs").adto(frame);
-
-    if(content.title) {
-        el("div").atxt(content.title.text).adto(title_area);
-    }
-    {
-        if(content.author?.pfp) {
-            const pfpimg = el("img").attr({src: content.author.pfp.url}).adto(title_area).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
-            pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
-            title_area.atxt(" ");
-        }
-        if(content.author) title_area.adch(userLink(client.id, content.author.link, content.author.color_hash).atxt(content.author.name));
-        if(content.author?.flair) title_area.adch(renderFlair(content.author.flair));
-        // reserved_points_area = document.createComment("").adto(content_subminfo_line);
-        // if(listing.info.time !== false) {
-        //     const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc));
-        //     content_subminfo_line.atxt(" ").adch(submission_time);
-        // }
-        // if(listing.info.edited !== false) {
-        //     content_subminfo_line.atxt(", Edited ").adch(timeAgo(listing.info.edited).defer(hsc));
-        // }
-        // if(listing.info.pinned) {
-        //     content_subminfo_line.atxt(", ").adch(el("span").clss("text-green-600 dark:text-green-500").atxt("Pinned"));
-        // }
-        // if(listing.info.reblogged_by) {
-        //     content_subminfo_line.atxt(" ← Boosted by ");
-        //     if(listing.info.reblogged_by.author) content_subminfo_line
-        //         .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.color_hash).atxt(listing.info.reblogged_by.author.name))
-        //     ;
-        //     if(listing.info.reblogged_by.time !== false) {
-        //         content_subminfo_line.atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc));
-        //     }
-        //     if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author?.pfp) {
-        //         frame.clss("spacefiller-pfp");
-        //         const pfpimg = el("div").clss("pfp", "pfp-reblog").styl({
-        //             "--url": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.url)+")",
-        //             "--url-hover": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.hover)+")"
-        //         });
-        //         pfpimg.adto(content_voting_area);
-        //     }
-        // }
-    }
-
-    if(!opts.is_pivot && content.title && content.title.body_collapsible) {
-        let body_collapsed = content.title.body_collapsible.default_collapsed;
-        if(body_collapsed) {
-            const show_btn = elButton("pill-empty").atxt("Show").adto(body_area);
-            show_btn.onev("click", () => {
-                body_collapsed = !body_collapsed;
-                show_btn.remove();
-                renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
-            });
-        }else{
-            renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
-        }
-    }else{
-        renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(body_area);
-    }
-
-    // the "View" button should recenter the view on this node and refresh the recommended content
-    // if(content.url != null) linkButton(client.id, content.url, "action-button").atxt("View").adto(action_buttons_area);
-
-    // unrelated what if I tried svelte app.tsx rendering?
-    // that way I can get vanilla js speeds with easy update functions
-
-    elButton("code-button").onev("click", e => {
-        e.stopPropagation();
-        console.log(content, opts);
-    }).atxt("Code").adto(action_buttons_area);
-
-    if(!opts.at_or_above_pivot && opts.replies) {
-        if(content.show_replies_when_below_pivot !== false) {
-            if(opts.replies.reply) {
-                renderAction(client, opts.replies.reply, action_buttons_area, {value_for_code_btn: 0}).defer(hsc);
-            }
-            const reply_container = el("ul").clss("post-replies").adto(frame);
-            const addReply = (reply: Generic.ListingEntry, insert_before: HTMLElement | null, reply_opts: {threaded: boolean}) => {
-                // if(reply.kind === "loaded") {
-                //     reply.entries.forEach(r => addReply(r, insert_before, {threaded: false}));
-                //     return;
-                // }
-                const reply_node = el("li");
-                const markSelfThreaded = () => void reply_node.clss("relative threaded");
-                if(reply_opts.threaded) markSelfThreaded();
-
-                reply_container.insertBefore(reply_node, insert_before);
-                if(reply.kind === "post") {
-                    reply_node.clss("comment");
-                    if(reply.post.err != null) throw new Error(reply.post.err);
-                    const comment = reply.post.ref;
-                    let replies = comment.replies;
-                    let add_reply: null | Generic.ListingEntry = null;
-                    if(comment.replies && comment.replies.items.length === 1) {
-                        replies = null;
-                        add_reply = comment.replies.items[0]!;
-                        markSelfThreaded();
-                    }
-                    renderClientContent(client, comment.content, {clickable: false, at_or_above_pivot: false, is_pivot: false, replies, top_level: false}).defer(hsc).adto(reply_node);
-                    if(add_reply) {
-                        addReply(add_reply, insert_before, {threaded: true});
-                    }
-                }else if(reply.kind === "load_more") {
-                    linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(reply_node);
-                    reply_container.insertBefore(document.createComment(""), insert_before);
-                }else assertNever(reply);
-            };
-            for(const reply of opts.replies.items) {
-                addReply(reply, null, {threaded: false});
-            }
-        }else{
-            // idk maybe show a button you can click to view replies in a new page
-        }
-    }
-
-    if(content.show_replies_when_below_pivot !== false) {
-        frame.clss("layout-reddit-comment layout-commentlike");
-        let collapsed = content.show_replies_when_below_pivot.default_collapsed;
-        const update = () => {
-            hsc.setVisible(!collapsed);
-            frame.classList.toggle("comment-collapsed", collapsed);
-            collapsed_button.setAttribute("aria-label", collapsed ? "Uncollapse" : "Collapse");
-            collapsed_button.setAttribute("aria-pressed", collapsed ? "true" : "false");
-        };
-        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).adch(el("div").clss("collapse-btn-inner")).onev("click", (e) => {
-            e.stopPropagation();
-            collapsed =! collapsed;
-            update();
-            const topv = collapsed_button.getBoundingClientRect().top;
-            const heightv = 5 + navbar.getBoundingClientRect().height;
-            if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv }
-        }).styl({bottom: "0"});
-        frame.insertBefore(collapsed_button, frame.childNodes[0] ?? null);
-        update();
-    }else{
-        frame.clss("layout-reddit-post");
-    }
-
-    return hsc;
 }
 
 // const addChild = (child_listing: Generic.Node) => {
@@ -3150,141 +2948,6 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
             el("div").atxt("*There are no replies*").adto(content_area);
         }
     }else assertNever(listing.body);
-
-    return hsc;
-}
-function renderClientContent(client: ThreadClient, listing: Generic.PostContent, opts: ClientPostOpts): HideShowCleanup<Node> {
-    // console.log(listing);
-    
-    const frame = el("div");
-    const hsc = hideshow(frame);
-
-    try {
-        if(listing.kind === "page") {
-            frame.atxt("TODO page (also note that this should have special handling in the parent list)");
-        }else if(listing.kind === "post") {
-            // const cleanup = render(makeRenderFunction({client, content: listing, opts}), frame);
-            // hsc.on("cleanup", () => cleanup());
-        }else if(listing.kind === "client") {
-            frame.atxt("TODO client (also note that this shouldn't render in the parent list)");
-        }else assertNever(listing);
-        return hsc;
-    }catch(e) {
-        hsc.cleanup();
-        console.log("Got error", e); 
-        frame.innerHTML = "";
-        frame.adch(el("pre").adch(el("code").atxt((e as Error).toString() + "\n\n" + (e as Error).stack ?? "*no stack*")));
-        frame.adch(elButton("code-button").atxt("Code").onev("click", (err) => {err.stopPropagation(); console.log(listing)}));
-        return hideshow(frame);
-    }
-}
-function renderClientPage2(client: ThreadClient, listing: Generic.Page2, frame: HTMLDivElement, title: UpdateTitle): HideShowCleanup<undefined> {
-    const hsc = hideshow();
-
-    // It might get mutated so just in case make a copy. This should be fixed
-    // so the listing can't be mutated and this isn't necessary
-    title.setTitle(listing.title);
-
-    if(listing.pivot.err != null) throw new Error(listing.pivot.err);
-    const pivot = listing.pivot.ref;
-    frame.classList.add("display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[pivot.display_style]);
-
-    let client_item: Generic.ClientPost | undefined;
-    for(let highest: Generic.ParentPost = pivot; ;) {
-        if(highest.kind === "post" && highest.content.kind === "client") {
-            client_item = highest.content;
-            break;
-        }
-        if(!highest.parent) break;
-        if(highest.parent.err != null) throw new Error(highest.parent.err);
-        highest = highest.parent.ref;
-    }
-
-    const navbar_area = el("div").adto(frame).clss("navbar-area");
-    for(const navbar_action of client_item?.navbar.actions ?? []) {
-        renderAction(client, navbar_action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
-        txt(" ").adto(navbar_area);
-    }
-    elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(listing));
-    txt(" ").adto(navbar_area);
-    for(const navbar_inbox of client_item?.navbar.inboxes ?? []) {
-        renderInbox(client, navbar_inbox).defer(hsc).adto(navbar_area);
-        txt(" ").adto(navbar_area);
-    }
-    // TODO save the raw page responses. listings are not meant to be copied, they can have symbols
-    // and might in the future have functions and stuff
-    //
-    // How to make this change:
-    // make client.getThread return an Opaque<ThreadData> that you pass back to client to get the listing 
-    //
-    // const saveofflinebtn = elButton("action-button").atxt("Save Offline").adto(navbar_area).onev("click", () => {
-    //     // save listing in indexed db
-    //     // (or in the future, save the raw responses from the web so they can be re-transformed if necessary)
-    //     localStorage.setItem("saved-post", JSON.stringify(listing_copy));
-    //     saveofflinebtn.disabled = true;
-    //     saveofflinebtn.textContent = "✓ Saved";
-    //     // set url to /saved/… without reloading
-    // }).adto(navbar_area);
-
-    const header_area = el("div").adto(frame).clss("header-area");
-    const content_area = el("div").adto(frame).clss("content-area");
-
-    
-    const parents_list: Generic.ParentPost[] = [];
-    for(let highest: Generic.ParentPost = pivot; ;) {
-        parents_list.push(highest);
-        if(!highest.parent) break;
-        if(highest.parent.err != null) throw new Error(highest.parent.err);
-        highest = highest.parent.ref;
-    }
-    parents_list.reverse();
-
-    const parent_area = makeTopLevelWrapper().adto(header_area);
-    for(const parent of parents_list) {
-        const is_last = parent === parents_list[parents_list.length - 1];
-        if(parent.kind === "post") {
-            if(!is_last && parent.content.kind === "client" || parent.content.kind === "page") {
-                continue; // TODO special handling for pages
-            }
-            renderClientContent(client, parent.content, {clickable: !is_last, replies: parent.replies, at_or_above_pivot: true, top_level: true, is_pivot: is_last}).defer(hsc).adto(parent_area);
-        }else if(parent.kind === "vloader") {
-            const area = el("div").adto(parent_area);
-            linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(area);
-            // replace the linkbutton with the new content once it loads
-        }else assertNever(parent);
-        if(!is_last) parent_area.adch(el("hr").clss("my-2").styl({"border-top-color": "var(--collapse-line-color)", "border-top-width": "3px"})); // var(--collapse-line-color)
-    }
-
-    if(pivot.replies) {
-        if(pivot.replies.reply) {
-            const btna = el("div").adto(content_area);
-            renderReplyAction(client, pivot.replies.reply, btna, thread => {
-                const tlw = makeTopLevelWrapper();
-                content_area.insertBefore(tlw, ibslot);
-                clientContent(client, thread, {clickable: false}).defer(hsc).adto(el("div").adto(tlw));
-            }).defer(hsc);
-        }
-        const ibslot = document.createComment("").adto(content_area);
-        if(pivot.replies.items.length === 0) content_area.atxt("*No replies*");
-        const addReply = (child: Generic.ListingEntry) => {
-            if(child.kind === "load_more") {
-                const area = el("div").adto(content_area);
-                linkButton(client.id, "TODO", "load-more").atxt("Load More").adto(area);
-                // load into the area
-            }else if(child.kind === "post") {
-                const itmv = makeTopLevelWrapper().adto(content_area);
-                if(child.post.err != null) throw new Error(child.post.err);
-                const child_post = child.post.ref;
-                renderClientContent(client, child_post.content, {
-                    clickable: false, replies: child_post.replies,
-                    at_or_above_pivot: false, top_level: true, is_pivot: false
-                }).defer(hsc).adto(itmv);
-            }else assertNever(child);
-        };
-        for(const child of pivot.replies.items) {
-            addReply(child);
-        }
-    }
 
     return hsc;
 }

@@ -960,8 +960,8 @@ export const client: ThreadClient = {
             // this returns a result, TODO use it
         }else assertUnreachable(action);
     },
-    previewReply(reply_text: string, reply_info): Generic.Thread {
-        return genericHeader();
+    previewReply(reply_text: string, reply_info): Generic.PostContent {
+        throw new Error("TODO");
     },
     sendReply(reply_text, reply_info) {
         throw new Error("NIY");
