@@ -2,18 +2,9 @@ import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match,
 import { createStore, reconcile } from "solid-js/store";
 import { clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, renderRichtextLink, timeAgoText } from "../app";
 import type * as Generic from "../types/generic";
-import { ClientProvider, getClient, HideshowProvider, kindIs, SwitchKind } from "../util/utils_solid";
+import { getClient, HideshowProvider, kindIs, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { ThreadClient } from "src/clients/base";
 export * from "../util/interop_solid";
-
-declare module "solid-js" {
-    namespace JSX {
-        interface CustomEvents {
-            click: MouseEvent,
-        }
-    }
-}
 
 export type ClientPostOpts = {
     clickable: boolean,
@@ -324,7 +315,7 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
                                 //
                             }} />
                         </Show>
-                    </>
+                    </>;
                 }}</Show>
             </div>
             <Show when={!props.opts.at_or_above_pivot && props.opts.replies}>
@@ -370,8 +361,8 @@ export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () =>
                 client().sendReply(content(), props.action.reply_info).then((r) => {
                     console.log("Got response", r);
                     props.onAddReply(r);
-                }).catch((err) => {
-                    const error = err as Error;
+                }).catch((error) => {
+                    const err = error as Error;
                     console.log("Got error", err);
                     setSendError(err.stack ?? err.toString() ?? "Unknown error");
                 });

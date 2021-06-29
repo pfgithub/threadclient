@@ -1400,7 +1400,6 @@ type RenderActionOpts = {
 };
 function renderReplyAction(client: ThreadClient, action: Generic.ReplyAction, content_buttons_line: Node, onAddReply: (thread: Generic.Thread) => void): HideShowCleanup<undefined> {
     {
-        let prev_preview: {preview: Generic.Thread, remove: () => void} | undefined = undefined;
         let reply_state: "none" | "some" = "none";
         const reply_btn = elButton("action-button").atxt("Reply").adto(content_buttons_line);
 
@@ -1424,7 +1423,7 @@ function renderReplyAction(client: ThreadClient, action: Generic.ReplyAction, co
                     const node = reply_container.associated_data;
                     reply_container.cleanup();
                     node.remove();
-                    reply_container = undefined
+                    reply_container = undefined;
                 }
                 reply_btn.disabled = false;
             }else{
