@@ -582,7 +582,12 @@ export type MenuItem = {
 
 export type WidgetListItem = {
     icon?: string,
-    name: {kind: "text", text: string} | {kind: "username", username: string} | {kind: "flair", flair: Flair} | {kind: "image", src: string, w: number, h: number, alt?: string},
+    name:
+        | {kind: "text", text: string}
+        | {kind: "username", username: string}
+        | {kind: "flair", flair: Flair}
+        | {kind: "image", src: string, w: number, h: number, alt?: string}
+    ,
     click: {kind: "link", url: string} | {kind: "body", body: Body},
     action?: Action,
 };
@@ -745,7 +750,9 @@ export type SentReport = {
 function rtkind<C extends string, T, I extends unknown = undefined>(kind: C, data: T, children?: I[]): (
     {kind: C} & (I extends undefined ? {__nothing: 0} : {children: I[]}) & T
 ) {
-    return {...data, kind, ...children ? {children} : {}} as unknown as {kind: C} & (I extends undefined ? {__nothing: 0} : {children: I[]}) & T;
+    return {
+        ...data, kind, ...children ? {children} : {}
+    } as unknown as {kind: C} & (I extends undefined ? {__nothing: 0} : {children: I[]}) & T;
 }
 
 export const rt = {
@@ -760,13 +767,19 @@ export const rt = {
     ili: (...items: Richtext.Span[]): Richtext.ListItem => rt.kind("tight_list_item", {}, items),
     blockquote: (...items: Richtext.Paragraph[]): Richtext.Paragraph => rt.kind("blockquote", {}, items),
     txt: (text: string, styles: Richtext.Style = {}): Richtext.Span => rt.kind("text", {text, styles}),
-    link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => rt.kind("link", {url, ...opts}, children),
+    link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span =>
+        rt.kind("link", {url, ...opts}, children)
+    ,
     pre: (text: string, lang?: string): Richtext.Paragraph => rt.kind("code_block", {text, lang}),
     error: (text: string, value: unknown): Richtext.Span => rt.kind("error", {text, value}),
     br: (): Richtext.Span => rt.kind("br", {}),
     flair: (flair: Flair): Richtext.Span => rt.kind("flair", {flair}),
-    table: (headings: Richtext.TableHeading[], ...rows: Richtext.TableItem[][]): Richtext.Paragraph => rt.kind("table", {headings}, rows),
-    th: (align: "left" | "center" | "right" | undefined, ...content: Richtext.Span[]): Richtext.TableHeading => ({align, children: content}),
+    table: (headings: Richtext.TableHeading[], ...rows: Richtext.TableItem[][]): Richtext.Paragraph =>
+        rt.kind("table", {headings}, rows)
+    ,
+    th: (align: "left" | "center" | "right" | undefined, ...content: Richtext.Span[]): Richtext.TableHeading => ({
+        align, children: content
+    }),
     td: (...content: Richtext.Span[]): Richtext.TableItem => ({children: content}),
     timeAgo: (time: number): Richtext.Span => rt.kind("time_ago", {start: time}),
     hr: (): Richtext.Paragraph => rt.kind("horizontal_line", {}),

@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use strict";
 
 // https://github.com/pfgithub/typescript-eslint/blob/master/packages/eslint-plugin/src/rules/member-delimiter-style.ts

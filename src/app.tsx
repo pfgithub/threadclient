@@ -21,7 +21,11 @@ export function isModifiedEvent(event: MouseEvent): boolean {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
 
-export function unsafeLinkToSafeLink(client_id: string, href: string): {kind: "error", title: string} | {kind: "mailto", title: string} | {kind: "link", url: string} {
+export function unsafeLinkToSafeLink(client_id: string, href: string): (
+    | {kind: "error", title: string}
+    | {kind: "mailto", title: string}
+    | {kind: "link", url: string}
+) {
     // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
     if(href.startsWith("/") && client_id) {
         href = "/"+client_id+href;
@@ -55,7 +59,9 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): {kind: "e
 function linkButton(client_id: string, unsafe_href: string, style: LinkStyle, opts: {onclick?: () => void} = {}) {
     const link_type = unsafeLinkToSafeLink(client_id, unsafe_href);
     if(link_type.kind === "error") {
-        return el("a").clss(...linkAppearence(style), "error").attr({title: link_type.title}).clss("error").onev("click", (e) => {e.stopPropagation(); alert(unsafe_href)});
+        return el("a").clss(...linkAppearence(style), "error").attr({title: link_type.title}).clss("error")
+            .onev("click", (e) => {e.stopPropagation(); alert(unsafe_href)})
+        ;
     }else if(link_type.kind === "mailto") {
         return el("span").attr({title: link_type.title});
     }else if(link_type.kind === "link") {
@@ -77,7 +83,11 @@ function linkButton(client_id: string, unsafe_href: string, style: LinkStyle, op
     }else assertNever(link_type);
 }
 
-function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, search: URLSearchParams): {node: Node, onhide?: () => void, onshow?: () => void} {
+function embedYoutubeVideo(
+    youtube_video_id: string,
+    opts: {autoplay: boolean},
+    search: URLSearchParams
+): {node: Node, onhide?: () => void, onshow?: () => void} {
     const start_code = search.get("t") ?? search.get("start") ?? undefined;
     const yt_player = el("iframe").attr({
         allow: "fullscreen",
@@ -87,9 +97,12 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, 
             +(start_code != null ? "&start="+start_code.replace("s", "") : "")
         ,
     });
-    return {node: el("div").clss("resizable-iframe").styl({width: "640px", height: "360px"}).adch(yt_player), onhide: () => {
-        yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
-    }};
+    return {
+        node: el("div").clss("resizable-iframe").styl({width: "640px", height: "360px"}).adch(yt_player),
+        onhide: () => {
+            yt_player.contentWindow?.postMessage(JSON.stringify({event: "command", func: "pauseVideo", args: ""}), "*");
+        }
+    };
 }
 
 function menuButtonStyle(active: boolean): string {
@@ -199,9 +212,17 @@ function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<
     });
     return hsc;
 }
-function videoPreview(sources: {src: string, type?: string}[], opts: {autoplay: boolean, width?: number, height?: number, gifv: boolean, audio?: boolean, alt?: string}): HideShowCleanup<Node> {
+function videoPreview(sources: {src: string, type?: string}[], opts: {
+    autoplay: boolean,
+    width?: number,
+    height?: number,
+    gifv: boolean,
+    audio?: boolean,
+    alt?: string,
+}): HideShowCleanup<Node> {
     const video = el(opts.audio ?? false ? "audio" : "video").attr({controls: "",
-        width: opts.width != null ? `${opts.width}px` as const : undefined, height: opts.height != null ? `${opts.height}px` as const : undefined,
+        width: opts.width != null ? `${opts.width}px` as const : undefined,
+        height: opts.height != null ? `${opts.height}px` as const : undefined,
         alt: opts.alt,
     }).clss("preview-image");
     sources.forEach(source => {
@@ -232,7 +253,9 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
             width: number,
             height: number,
         };
-        resdiv.adch(el("div").adch(elButton("code-button").atxt("code").onev("click", (e) => {e.stopPropagation(); console.log(r)})));
+        resdiv.adch(el("div").adch(elButton("code-button").atxt("code")
+            .onev("click", (e) => {e.stopPropagation(); console.log(r)})))
+        ;
         const error_v = r as {
             logged?: boolean,
             message: string,
@@ -241,8 +264,11 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
         };
         if('message' in error_v || 'errorMessage' in error_v) {
             el("div").clss("error").adto(resdiv).atxt("Error: "
-                +(error_v.message ?? (typeof error_v.errorMessage === "string" ? error_v.errorMessage : error_v.errorMessage.description))
-                + ('logged' in error_v ? " ; logged="+error_v.logged : "")+('reported' in error_v ? " ; reported="+error_v.reported : "")
+                + (error_v.message ?? (
+                    typeof error_v.errorMessage === "string" ? error_v.errorMessage : error_v.errorMessage.description
+                ))
+                + ('logged' in error_v ? " ; logged="+error_v.logged : "")
+                + ('reported' in error_v ? " ; reported="+error_v.reported : "")
             );
             return;
         }
@@ -292,13 +318,22 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
             ...gfy_item.mobileUrl != null ? [{src: gfy_item.mobileUrl}] : [],
         ];
         if(sources.length > 0) {
-            videoPreview(sources, {autoplay: opts.autoplay, width: gfy_item.width, height: gfy_item.height, gifv: false}).defer(hsc).adto(resdiv);
+            videoPreview(sources, {
+                autoplay: opts.autoplay,
+                width: gfy_item.width,
+                height: gfy_item.height,
+                gifv: false,
+            }).defer(hsc).adto(resdiv);
         }else{
             const urls = gfy_item.content_urls;
             const url = urls.max5mbGif ?? urls.max2mbGif ?? urls.max1mbGif; // ?? webp url
 
             if(url) {
-                el("img").attr({src: url.url, width: `${url.width}px` as const, height: `${url.height}px` as const}).clss("preview-image").adto(resdiv);
+                el("img").attr({
+                    src: url.url,
+                    width: `${url.width}px` as const,
+                    height: `${url.height}px` as const,
+                }).clss("preview-image").adto(resdiv);
             }else {
                 console.log(gfy_item);
                 el("div").clss("error").atxt("Error bad image uh oh").adto(resdiv);
@@ -315,7 +350,11 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
 }
 
 
-export function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?: string}): undefined | Generic.Body {
+export function previewLink(
+    client: ThreadClient,
+    link: string,
+    opts: {suggested_embed?: string},
+): undefined | Generic.Body {
     let url_mut: URL | undefined;
     try { 
         url_mut = new URL(link);
@@ -325,7 +364,9 @@ export function previewLink(client: ThreadClient, link: string, opts: {suggested
     const url = url_mut;
     const path = url?.pathname ?? link;
     const is_mp4_link_masking_as_gif = url ? path.endsWith(".gif") && url.searchParams.get("format") === "mp4" : false;
-    if(is_mp4_link_masking_as_gif) return {kind: "video", gifv: true, source: {kind: "video", sources: [{url: link, type: "video/mp4"}]}};
+    if(is_mp4_link_masking_as_gif) {
+        return {kind: "video", gifv: true, source: {kind: "video", sources: [{url: link, type: "video/mp4"}]}};
+    }
     if((url?.hostname ?? "") === "i.redd.it"
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
@@ -352,12 +393,18 @@ export function previewLink(client: ThreadClient, link: string, opts: {suggested
             gifv: false,
         };
     }
-    if(url && (url.host === "gfycat.com" || url.host.endsWith(".gfycat.com")) && url.pathname.split("/").length === 2) return {
+    if(url
+        && (url.host === "gfycat.com" || url.host.endsWith(".gfycat.com"))
+        && url.pathname.split("/").length === 2
+    ) return {
         kind: "gfycat",
         id: url.pathname.replace("/", "").split("-")[0]!.toLowerCase(),
         host: "gfycat.com",
     };
-    if(url && (url.host === "\x72\x65\x64gifs.com" || url.host.endsWith(".\x72\x65\x64gifs.com")) && url.pathname.split("/").length === 3 && url.pathname.startsWith("/watch/")) {
+    if(url
+        && (url.host === "\x72\x65\x64gifs.com" || url.host.endsWith(".\x72\x65\x64gifs.com"))
+        && url.pathname.split("/").length === 3 && url.pathname.startsWith("/watch/")
+    ) {
         const gfylink = url.pathname.replace("/watch/", "").split("-")[0]!.toLowerCase();
         return {
             kind: "gfycat",
@@ -444,9 +491,15 @@ export function previewLink(client: ThreadClient, link: string, opts: {suggested
 
 // what instead of actually previewing the link, this returned a body? pretty resonable idea tbh, just make sure not to allow
 // infinite loops where this returns a link body
-export function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<HTMLElement>) {
+export function canPreview(
+    client: ThreadClient,
+    link: string,
+    opts: {autoplay: boolean, suggested_embed?: string},
+): undefined | (() => HideShowCleanup<HTMLElement>) {
     const preview_body = previewLink(client, link, {suggested_embed: opts.suggested_embed});
-    if(preview_body) return (): HideShowCleanup<HTMLElement> => renderBody(client, preview_body, {autoplay: opts.autoplay});
+    if(preview_body) {
+        return (): HideShowCleanup<HTMLElement> => renderBody(client, preview_body, {autoplay: opts.autoplay});
+    }
     return undefined;
 }
 
@@ -473,7 +526,9 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
                     width: img.w != null ? `${img.w}px` as const : undefined,
                     height: img.h != null ? `${img.h}px` as const : undefined,
                 }).clss("w-auto h-auto max-w-full max-h-full");
-                el("button").clss("m-1 w-24 h-24 flex items-center justify-center inline-block bg-body rounded-md").adto(el("div").clss("inline-block").adto(div)).adch(
+                el("button").clss(
+                    "m-1 w-24 h-24 flex items-center justify-center inline-block bg-body rounded-md"
+                ).adto(el("div").clss("inline-block").adto(div)).adch(
                     imgv,
                 ).onev("click", (e) => {
                     e.stopPropagation();
@@ -509,17 +564,24 @@ export function renderFlair(flairs: Generic.Flair[]): Node {
         if(flair.system != null) {
             flairv.clss(flair.system);
         }else{
-            if(flair.color != null && flair.color !== "") flairv.clss("bg-flair-light dark:bg-flair-dark").styl({"--flair-color": flair.color, "--flair-color-dark": flair.color});
-            else flairv.clss("bg-gray-300 dark:bg-gray-600");
+            if(flair.color != null && flair.color !== "") {
+                flairv
+                    .clss("bg-flair-light dark:bg-flair-dark")
+                    .styl({"--flair-color": flair.color, "--flair-color-dark": flair.color})
+                ;
+            }else flairv.clss("bg-gray-300 dark:bg-gray-600");
             if(flair.fg_color != null) flairv.clss("flair-text-"+flair.fg_color);
         }
         for(const flairelem of flair.elems) {
             if(flairelem.type === "text") {
                 flairv.atxt(flairelem.text);
             }else if(flairelem.type === "emoji") {
-                el("img").attr({title: flairelem.name, src: flairelem.url, width: `${flairelem.w}px` as const, height: `${flairelem.h}px` as const})
-                    .clss("inline-block w-4 h-4 align-middle object-contain").adto(flairv)
-                ;
+                el("img").attr({
+                    title: flairelem.name,
+                    src: flairelem.url,
+                    width: `${flairelem.w}px` as const,
+                    height: `${flairelem.h}px` as const
+                }).clss("inline-block w-4 h-4 align-middle object-contain").adto(flairv);
             }else assertNever(flairelem);
         }
         resl.adch(flairv);
@@ -677,7 +739,11 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
         Promise.all([getRedditMarkdownRenderer(), import("./clients/reddit/html_to_richtext")]).then(([mdr, htr]) => {
             preel.remove();
             const safe_html = mdr.renderMd(body.content);
-            renderBody(client, {kind: "richtext", content: htr.parseContentHTML(safe_html)}, {autoplay: false}).defer(hsc).adto(container);
+            renderBody(
+                client,
+                {kind: "richtext", content: htr.parseContentHTML(safe_html)},
+                {autoplay: false}
+            ).defer(hsc).adto(container);
         }).catch(e => {
             preel.remove();
             console.log(e);
@@ -690,7 +756,11 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
         import("./clients/reddit/html_to_richtext").then(htr => {
             preel.remove();
             console.log(body.content);
-            renderBody(client, {kind: "richtext", content: htr.parseContentHTML(body.content)}, {autoplay: false}).defer(hsc).adto(container);
+            renderBody(
+                client,
+                {kind: "richtext", content: htr.parseContentHTML(body.content)},
+                {autoplay: false}
+            ).defer(hsc).adto(container);
         }).catch(e => {
             preel.remove();
             console.log(e);
@@ -701,7 +771,11 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
     return hsc;
 }
 
-export function renderBody(client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> {
+export function renderBody(
+    client: ThreadClient,
+    body: Generic.Body,
+    opts: {autoplay: boolean}
+): HideShowCleanup<HTMLDivElement> {
     try {
         return renderBodyMayError(client, body, opts);
     }catch(er) {
@@ -713,7 +787,11 @@ export function renderBody(client: ThreadClient, body: Generic.Body, opts: {auto
         return hideshow(content);
     }
 }
-function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> {
+function renderBodyMayError(
+    client: ThreadClient,
+    body: Generic.Body,
+    opts: {autoplay: boolean}
+): HideShowCleanup<HTMLDivElement> {
     const content = el("div");
     const hsc = hideshow(content);
 
@@ -723,7 +801,10 @@ function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {aut
     }else if(body.kind === "link") {
         // TODO fix this link button thing
         el("div").adto(content).adch(linkButton(client.id, body.url, "normal").atxt(body.url));
-        const renderLinkPreview = canPreview(client, body.url, {autoplay: opts.autoplay, suggested_embed: body.embed_html});
+        const renderLinkPreview = canPreview(client, body.url, {
+            autoplay: opts.autoplay,
+            suggested_embed: body.embed_html
+        });
         if(renderLinkPreview) {
             renderLinkPreview().defer(hsc).adto(content);
         }
@@ -748,7 +829,9 @@ function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {aut
                 let errored = false;
                 fetch_btn.textContent = "…";
                 fetch_btn.disabled = true;
-                if(!client.fetchRemoved) throw new Error("client provided a removal fetch path but has no fetchRemoved");
+                if(!client.fetchRemoved) {
+                    throw new Error("client provided a removal fetch path but has no fetchRemoved");
+                }
                 try {
                     new_body = await client.fetchRemoved(body.fetch_path!);
                 }catch(error_) {
@@ -780,7 +863,9 @@ function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {aut
         const expires = el("div").adto(pollcontainer).atxt("Expires: ");
         timeAgo(body.close_time).defer(hsc).adto(expires);
         for(const choice of body.choices) {
-            const choicebtn = elButton("outlined-button").adto(el("li").adto(pollcontainer).clss("poll-choice-li")).clss("poll-choice");
+            const choicebtn = elButton("outlined-button").adto(
+                el("li").adto(pollcontainer).clss("poll-choice-li")
+            ).clss("poll-choice");
             choicebtn.atxt(choice.name + " ("+(choice.votes === "hidden" ? "hidden" : s(choice.votes, " Votes"))+")");
             choicebtn.onev("click", (e) => {e.stopPropagation(); alert("TODO voting on polls")});
         }
@@ -789,16 +874,26 @@ function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {aut
             submitbtn.onclick = () => alert("TODO vote on polls");
         }
     }else if(body.kind === "captioned_image") {
-        zoomableImage(body.url, {w: body.w ?? undefined, h: body.h ?? undefined, alt: body.alt}).adto(el("div").adto(content));
+        zoomableImage(body.url, {
+            w: body.w ?? undefined,
+            h: body.h ?? undefined,
+            alt: body.alt
+        }).adto(el("div").adto(content));
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "video") {
         if(body.source.kind === "img") {
             zoomableImage(body.source.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
         }else if(body.source.kind === "video") {
-            videoPreview(body.source.sources.map(src => ({src: src.url, type: src.type})), {autoplay: opts.autoplay, width: body.w, height: body.h, gifv: body.gifv, alt: body.alt})
-                .defer(hsc)
-                .adto(content)
-            ;
+            videoPreview(
+                body.source.sources.map(src => ({src: src.url, type: src.type})),
+                {
+                    autoplay: opts.autoplay,
+                    width: body.w,
+                    height: body.h,
+                    gifv: body.gifv,
+                    alt: body.alt
+                },
+            ).defer(hsc).adto(content);
         }else if(body.source.kind === "m3u8") {
             const srcurl = body.source.url;
             const poster = body.source.poster;
@@ -812,7 +907,12 @@ function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {aut
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "audio") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
-        videoPreview([{src: body.url}], {autoplay: opts.autoplay, gifv: false, audio: true, alt: body.alt}).defer(hsc).adto(content);
+        videoPreview([{src: body.url}], {
+            autoplay: opts.autoplay,
+            gifv: false,
+            audio: true,
+            alt: body.alt
+        }).defer(hsc).adto(content);
     }else if(body.kind === "vreddit_video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
         previewVreddit(body.id, {autoplay: false}).defer(hsc).adto(content);
@@ -844,9 +944,15 @@ function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {aut
                 renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(content);
             } : undefined}).clss("bg-body rounded-lg hover:shadow-md hover:bg-gray-100 block").adto(content);
         }
-        const link_preview_box = el("article").clss("flex", body.click_enabled ? "flex-col" : "flex-row").adto(button_box);
+        const link_preview_box = el("article")
+            .clss("flex", body.click_enabled ? "flex-col" : "flex-row")
+            .adto(button_box)
+        ;
         const thumb_box = el("div").clss(
-            body.click_enabled ? "w-full h-auto min-h-10 relative" : "w-24 h-full flex items-center justify-center bg-gray-100",
+            body.click_enabled
+                ? "w-full h-auto min-h-10 relative"
+                : "w-24 h-full flex items-center justify-center bg-gray-100"
+            ,
             "rounded-lg overflow-hidden",
         )
             .adto(el("div").adto(link_preview_box))
@@ -905,7 +1011,9 @@ function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {aut
         const go = () => {
             navigate({path: "/"+client.id+"/"+(inputel.value.replaceAll("/", "-"))});
         };
-        const inputel = el("input").clss("border rounded-md p-1").attr({placeholder: "instance.site"}).adto(label).onev("keypress", e => {
+        const inputel = el("input").clss("border rounded-md p-1").attr({
+            placeholder: "instance.site"
+        }).adto(label).onev("keypress", e => {
             if(e.key === "Enter") go();
         }).onev("input", () => {
             updatebtn();
@@ -923,7 +1031,10 @@ function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {aut
         el("p").atxt("Not on mastodon? Join at ").clss("py-2")
             .adch(linkButton(client.id, "https://joinmastodon.org", "normal").atxt("joinmastodon.org")).adto(content)
         ;
-        el("p").atxt("Note that some instances may require logging in before they let you view timelines.").clss("py-2").adto(content);
+        el("p")
+            .atxt("Note that some instances may require logging in before they let you view timelines.")
+            .clss("py-2").adto(content)
+        ;
     }else assertNever(body);
 
     return hsc;
@@ -1066,7 +1177,9 @@ function twitchClip(clipid: string, opts: {autoplay: boolean}): HideShowCleanup<
             }}},
         ];
         if(!video.data.clip) {
-            el("div").clss("text-xl font-bold text-red-500").adto(frame).atxt("404 clip not found. It might be deleted or otherwise no longer available.");
+            el("div").clss("text-xl font-bold text-red-500").adto(frame)
+                .atxt("404 clip not found. It might be deleted or otherwise no longer available.")
+            ;
             return;
         }
         el("h1").clss("text-xl font-bold text-gray-500").adto(frame).atxt(title.data.clip.title);
@@ -1305,7 +1418,11 @@ function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string})
     return zoomableFrame(elImg(url, opt).clss("preview-image"));
 }
 
-function userProfileListing(client: ThreadClient, profile: Generic.Profile, frame: HTMLDivElement): HideShowCleanup<undefined> {
+function userProfileListing(
+    client: ThreadClient,
+    profile: Generic.Profile,
+    frame: HTMLDivElement,
+): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     {
@@ -1342,7 +1459,12 @@ function scoreToString(score: number) {
 type RenderActionOpts = {
     value_for_code_btn: unknown,
 };
-function renderReplyAction(client: ThreadClient, action: Generic.ReplyAction, content_buttons_line: Node, onAddReply: (thread: Generic.Thread) => void): HideShowCleanup<undefined> {
+function renderReplyAction(
+    client: ThreadClient,
+    action: Generic.ReplyAction,
+    content_buttons_line: Node,
+    onAddReply: (thread: Generic.Thread) => void,
+): HideShowCleanup<undefined> {
     {
         let reply_state: "none" | "some" = "none";
         const reply_btn = elButton("action-button").atxt("Reply").adto(content_buttons_line);
@@ -1386,7 +1508,9 @@ function renderReplyAction(client: ThreadClient, action: Generic.ReplyAction, co
                             console.log("got back load more item. todo display it.");
                             return;
                         }
-                        clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
+                        clientContent(client, r, {clickable: false}).defer(hsc)
+                            .adto(el("div").adto(content_buttons_line))
+                        ;
                     }}).defer(reply_container);
                 }
             }
@@ -1402,7 +1526,12 @@ function renderReplyAction(client: ThreadClient, action: Generic.ReplyAction, co
         return hsc;
     }
 }
-function renderAction(client: ThreadClient, action: Generic.Action, content_buttons_line: Node, opts: RenderActionOpts): HideShowCleanup<undefined> {
+function renderAction(
+    client: ThreadClient,
+    action: Generic.Action,
+    content_buttons_line: Node,
+    opts: RenderActionOpts
+): HideShowCleanup<undefined> {
     if(action.kind === "link") {
         linkButton(client.id, action.url, "action-button").atxt(action.text).adto(content_buttons_line);
         return hideshow();
@@ -1561,7 +1690,11 @@ function renderAction(client: ThreadClient, action: Generic.Action, content_butt
     }else assertNever(action);
 }
 
-function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportScreen, onreported: (sentr: Generic.SentReport) => void): HideShowCleanup<HTMLElement> {
+function renderOneReportItem(
+    client: ThreadClient,
+    report_item: Generic.ReportScreen,
+    onreported: (sentr: Generic.SentReport) => void,
+): HideShowCleanup<HTMLElement> {
     const outer_v = el("details").clss("report-item");
     const hsc = hideshow(outer_v);
 
@@ -1629,7 +1762,10 @@ function renderOneReportItem(client: ThreadClient, report_item: Generic.ReportSc
     return hsc;
 }
 
-function renderReportScreen(client: ThreadClient, report_fetch_info: Generic.Opaque<"report">): HideShowCleanup<HTMLDivElement> {
+function renderReportScreen(
+    client: ThreadClient,
+    report_fetch_info: Generic.Opaque<"report">,
+): HideShowCleanup<HTMLDivElement> {
     const frame = el("div").clss("report-screen text-sm");
     const hsc = hideshow(frame);
 
@@ -1684,7 +1820,10 @@ type WatchableCounterState = {
 
 const global_counter_info = new Map<string, GlobalCounter>();
 
-function watchCounterState(counter_id_raw: string | null, updates: {count: number | "hidden" | "none", you: "increment" | "decrement" | undefined, time: number}): HideShowCleanup<WatchableCounterState> {
+function watchCounterState(
+    counter_id_raw: string | null,
+    updates: {count: number | "hidden" | "none", you: "increment" | "decrement" | undefined, time: number}
+): HideShowCleanup<WatchableCounterState> {
     const counter_id = counter_id_raw ?? `${Math.random()}`;
     const global_state: GlobalCounter = global_counter_info.get(counter_id) ?? {
         state: {
@@ -1727,7 +1866,12 @@ function watchCounterState(counter_id_raw: string | null, updates: {count: numbe
     return hsc;
 }
 
-function renderCounterAction(client: ThreadClient, action: Generic.CounterAction, content_buttons_line: Node, opts: {parens: boolean}): HideShowCleanup<{
+function renderCounterAction(
+    client: ThreadClient,
+    action: Generic.CounterAction,
+    content_buttons_line: Node,
+    opts: {parens: boolean},
+): HideShowCleanup<{
     percent_voted_txt: Text, votecount: HTMLSpanElement,
 }> {
     const display_count = action.count_excl_you !== "none";
@@ -1739,21 +1883,34 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     const btxt = txt("…").adto(btn_span);
     const votecount = el("span").adto(wrapper.atxt(" ")).clss("counter-count");
     const votecount_txt = txt("…").adto(votecount);
-    const percent_voted_txt = action.percent == null ? txt("—% upvoted") : txt(action.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted");
+    const percent_voted_txt = action.percent == null
+        ? txt("—% upvoted")
+        : txt(action.percent.toLocaleString(undefined, {style: "percent"}) + " upvoted")
+    ;
     let decr_button: HTMLButtonElement | undefined;
 
     const hsc = hideshow({percent_voted_txt, votecount});
-    const {state, emit, onupdate} = watchCounterState(action.unique_id, {count: action.count_excl_you, you: action.you, time: action.time}).defer(hsc);
+    const {state, emit, onupdate} = watchCounterState(action.unique_id, {
+        count: action.count_excl_you,
+        you: action.you,
+        time: action.time
+    }).defer(hsc);
 
     const getPointsText = () => {
         if(state.pt_count === "hidden" || state.pt_count === "none") return ["—", "[score hidden]"];
-        const score_mut = state.pt_count + (state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0);
+        const score_mut = state.pt_count + (
+            state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0
+        );
         return [scoreToString(score_mut), score_mut.toLocaleString()] as const;
     };
 
     onupdate(() => {
         const [pt_text, pt_raw] = getPointsText();
-        btxt.nodeValue = {increment: action.incremented_label, decrement: action.decremented_label ?? "ERR", none: action.label}[state.your_vote ?? "none"];
+        btxt.nodeValue = {
+            increment: action.incremented_label, 
+            decrement: action.decremented_label ?? "ERR",
+            none: action.label
+        }[state.your_vote ?? "none"];
         votecount_txt.nodeValue = opts.parens ? "(" + pt_text + ")" : pt_text;
         if(!display_count) votecount_txt.nodeValue = ""; // hmm
         votecount.title = pt_raw;
@@ -1763,8 +1920,22 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
         button.disabled = state.loading;
         if(decr_button) decr_button.disabled = state.loading;
 
-        button.setAttribute("class", "counter-increment-btn " + link_styles_v[state.your_vote === "increment" ? (action.incremented_style ?? "action-button") : (action.style ?? "action-button")]);
-        if(decr_button) decr_button.setAttribute("class", "counter-decrement-btn " + link_styles_v[state.your_vote === "decrement" ? (action.decremented_style ?? "action-button") : (action.style ?? "action-button")]);
+        button.setAttribute("class", "" +
+            + "counter-increment-btn "
+            + link_styles_v[
+                state.your_vote === "increment"
+                ? (action.incremented_style ?? "action-button")
+                : (action.style ?? "action-button")
+            ]
+        );
+        if(decr_button) decr_button.setAttribute("class", ""
+            + "counter-decrement-btn "
+            + link_styles_v[
+                state.your_vote === "decrement"
+                ? (action.decremented_style ?? "action-button")
+                : (action.style ?? "action-button")
+            ]
+        );
 
         button.setAttribute("aria-pressed", state.your_vote === "increment" ? "true" : "false");
         if(decr_button) decr_button.setAttribute("aria-pressed", state.your_vote === "decrement" ? "true" : "false");
@@ -1797,7 +1968,9 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     if(action.decremented_label != null) {
         pretxt.nodeValue = "⯅ ";
         wrapper.atxt(" ");
-        decr_button = elButton("action-button").adch(el("span").atxt("⯆")).attr({'aria-label': "Down"}).adto(wrapper).onev("click", (e) => {
+        decr_button = elButton("action-button").adch(
+            el("span").atxt("⯆")
+        ).attr({'aria-label': "Down"}).adto(wrapper).onev("click", (e) => {
             e.stopPropagation();
             if(state.your_vote === "decrement") {
                 doAct(undefined);
@@ -1865,7 +2038,11 @@ export function watchWith<T>(dependencies: Watchable<unknown>[], value: () => T)
 
     return hsc;
 }
-export function watchNode<Node>(dependencies: Watchable<unknown>[], node: Node, update: (node: Node) => void): HideShowCleanup<Node> {
+export function watchNode<Node>(
+    dependencies: Watchable<unknown>[],
+    node: Node,
+    update: (node: Node) => void,
+): HideShowCleanup<Node> {
     const hsc = hideshow(node);
 
     for(const dependnc of dependencies) {
@@ -1884,7 +2061,10 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
         const smdiv = el("div");
         for(const item of items) {
             if(item.action.kind === "link") {
-                linkButton(client.id, item.action.url, "none").clss("text-gray-600 dark:text-gray-400 hover:text-gray-900").adto(smdiv).atxt(item.text);
+                linkButton(client.id, item.action.url, "none")
+                    .clss("text-gray-600 dark:text-gray-400 hover:text-gray-900")
+                    .adto(smdiv).atxt(item.text)
+                ;
             }else if(item.action.kind === "menu") {
                 elButton("none").adto(smdiv).atxt(item.text + " " + "▸").onev("click", e => {
                     e.stopPropagation();
@@ -1940,7 +2120,10 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
                             "absolute z-10 flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
                         ).adto(document.body);
                         const bbox = itcontainer.getBoundingClientRect();
-                        submenu_v.styl({left: bbox.left+"px", top: (bbox.bottom + (window.pageYOffset ?? document.documentElement.scrollTop))+"px"});
+                        submenu_v.styl({
+                            left: bbox.left+"px",
+                            top: (bbox.bottom + (window.pageYOffset ?? document.documentElement.scrollTop))+"px"
+                        });
                     }
                 }else{
                     if(submenu_v) {submenu_v.remove(); submenu_v = undefined}
@@ -1962,7 +2145,11 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
             };
             document.addEventListener("click", documentEventListener, {capture: true});
             hsc.on("cleanup", () => document.removeEventListener("click", documentEventListener, {capture: true}));
-            const btnel = elButton("none").attr({'aria-haspopup': "true"}).atxt(item.text).atxt(" ").adch(arrowv).adto(itcontainer).onev("click", e => {
+            const btnel = elButton("none").attr({'aria-haspopup': "true"})
+                .atxt(item.text)
+                .atxt(" ")
+                .adch(arrowv)
+            .adto(itcontainer).onev("click", e => {
                 e.preventDefault();
                 e.stopPropagation();
                 
@@ -2004,14 +2191,19 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
     return hsc;
 }
 
-function bioRender(client: ThreadClient, listing: Generic.RedditHeader, frame: HTMLDivElement): HideShowCleanup<undefined> {
+function bioRender(
+    client: ThreadClient,
+    listing: Generic.RedditHeader, frame: HTMLDivElement,
+): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     frame.clss("subreddit-banner");
 
     if(listing.banner) {
         const zoomframe = zoomableFrame(
-            el("img").clss("w-full min-h-270px object-cover object-center sm:object-top").attr({src: listing.banner.desktop})
+            el("img").clss(
+                "w-full min-h-270px object-cover object-center sm:object-top"
+            ).attr({src: listing.banner.desktop})
         ).clss("absolute top-0 left-0 right-0 w-full max-h-full").adto(frame);
         zoomframe.adch(el("div").clss("absolute top-150px left-0 right-0 bottom-0 header-gradient"));
         // <div style="position: absolute;top: 150px;left: 0;right: 0;
@@ -2050,12 +2242,18 @@ function bioRender(client: ThreadClient, listing: Generic.RedditHeader, frame: H
     if(listing.more_actions) for(const act of listing.more_actions) {
         renderAction(client, act, final_actions_area, {value_for_code_btn: listing}).defer(hsc);
     }
-    elButton("action-button").atxt("Code").adto(final_actions_area).onev("click", (e) => {e.stopPropagation(); console.log(listing)});
+    elButton("action-button").atxt("Code").adto(final_actions_area)
+        .onev("click", (e) => {e.stopPropagation(); console.log(listing)})
+    ;
 
     return hsc;
 }
 
-function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: HTMLDivElement): HideShowCleanup<undefined> {
+function widgetRender(
+    client: ThreadClient,
+    widget: Generic.Widget,
+    outest_el: HTMLDivElement,
+): HideShowCleanup<undefined> {
     const hsc = hideshow();
     outest_el.clss("widget");
 
@@ -2099,7 +2297,12 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
             }else if(item.name.kind === "username") {
                 name_node = txt(item.name.username);
             }else if(item.name.kind === "image") {
-                name_node = el("img").clss("w-fill h-auto").attr({src: item.name.src, alt: item.name.alt, width: `${item.name.w}px` as const, height: `${item.name.h}px` as const});
+                name_node = el("img").clss("w-fill h-auto").attr({
+                    src: item.name.src,
+                    alt: item.name.alt,
+                    width: `${item.name.w}px` as const,
+                    height: `${item.name.h}px` as const
+                });
             }else assertNever(item.name);
 
             if(item.click.kind === "link") {
@@ -2124,7 +2327,11 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
         const alt_frame = el("div");
         outest_el.replaceChild(alt_frame, outer_el);
         outest_el.clss("widget-fullscreen-content");
-        const iframe = el("iframe").adto(alt_frame).styl({width: "312px"}).attr({width: "312px", height: content.height as unknown as `${number}px`, srcdoc: content.srcdoc});
+        const iframe = el("iframe").adto(alt_frame).styl({width: "312px"}).attr({
+            width: "312px",
+            height: content.height as unknown as `${number}px`,
+            srcdoc: content.srcdoc,
+        });
         iframe.onload = () => {
             if(!iframe.contentWindow) return console.log("no content window");
             iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 20) + "px";
@@ -2145,7 +2352,9 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
             renderAction(client, action, actionstop, {value_for_code_btn: widget}).defer(hsc);
         }
     }
-    el("div").adto(frame).adch(elButton("code-button").atxt("Code").onev("click", (e) => {e.stopPropagation(); console.log(widget)}));
+    el("div").adto(frame).adch(elButton("code-button").atxt("Code")
+        .onev("click", (e) => {e.stopPropagation(); console.log(widget)}))
+    ;
 
     return hsc;
 } 
@@ -2153,7 +2362,11 @@ function widgetRender(client: ThreadClient, widget: Generic.Widget, outest_el: H
 type ClientContentOpts = {
     clickable: boolean,
 };
-export function clientContent(client: ThreadClient, listing: Generic.ContentNode, opts: ClientContentOpts): HideShowCleanup<HTMLElement> {
+export function clientContent(
+    client: ThreadClient,
+    listing: Generic.ContentNode,
+    opts: ClientContentOpts,
+): HideShowCleanup<HTMLElement> {
     // console.log(listing);
     
     const frame = clientListingWrapperNode();
@@ -2181,8 +2394,12 @@ export function clientContent(client: ThreadClient, listing: Generic.ContentNode
         hsc.cleanup();
         console.log("Got error", e); 
         frame.innerHTML = "";
-        frame.adch(el("pre").adch(el("code").atxt((e as Error).toString() + "\n\n" + (e as Error).stack ?? "*no stack*")));
-        frame.adch(elButton("code-button").atxt("Code").onev("click", (err) => {err.stopPropagation(); console.log(listing)}));
+        frame.adch(el("pre").adch(el("code").atxt(
+            (e as Error).toString() + "\n\n" + (e as Error).stack ?? "*no stack*")
+        ));
+        frame.adch(elButton("code-button").atxt("Code")
+            .onev("click", (err) => {err.stopPropagation(); console.log(listing)}))
+        ;
         return hideshow(frame);
     }
 }
@@ -2223,7 +2440,12 @@ function clientListingWrapperNode(): HTMLDivElement {
     return frame;
 }
 type AddChildrenFn = (children: Generic.Node[]) => void;
-function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTMLElement, opts: ClientContentOpts): HideShowCleanup<{addChildren: AddChildrenFn}> {
+function clientListing(
+    client: ThreadClient,
+    listing: Generic.Thread,
+    frame: HTMLElement,
+    opts: ClientContentOpts,
+): HideShowCleanup<{addChildren: AddChildrenFn}> {
     let content_voting_area: HTMLDivElement;
     let thumbnail_loc: HTMLButtonElement;
     let preview_area: HTMLDivElement;
@@ -2305,7 +2527,9 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
                 collapsed_button.setAttribute("aria-pressed", "false");
             }
         };
-        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).adch(el("div").clss("collapse-btn-inner")).onev("click", (e) => {
+        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).adch(
+            el("div").clss("collapse-btn-inner")
+        ).onev("click", (e) => {
             e.stopPropagation();
             collapsed =! collapsed;
             update();
@@ -2328,7 +2552,9 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     }
     if(listing.title) {
         if(opts.clickable) {
-            content_title_line.adch(linkButton(client.id, listing.link, "none").clss("hover:underline").atxt(listing.title.text));
+            content_title_line.adch(
+                linkButton(client.id, listing.link, "none").clss("hover:underline").atxt(listing.title.text)
+            );
         } else {
             content_title_line.adch(txt(listing.title.text));
         }
@@ -2348,11 +2574,16 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }
         if(listing.info.author) content_subminfo_line
             .atxt("by ")
-            .adch(userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name))
+            .adch(
+                userLink(client.id, listing.info.author.link, listing.info.author.color_hash
+            ).atxt(listing.info.author.name))
         ;
         if(listing.info.author?.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {
-            content_subminfo_line.atxt(" in ").adch(linkButton(client.id, listing.info.in.link, "normal").atxt(listing.info.in.name));
+            content_subminfo_line.atxt(" in ").adch(
+                linkButton(client.id, listing.info.in.link, "normal")
+                .atxt(listing.info.in.name)
+            );
         }
         if(listing.info.edited !== false) {
             if(content_subminfo_line.hasChildNodes()) content_subminfo_line.atxt(", ");
@@ -2364,11 +2595,15 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
         if(listing.layout === "reddit-comment" && listing.info.author?.pfp) {
-            const pfpimg = el("img").attr({src: listing.info.author.pfp.url}).adto(content_subminfo_line).clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp");
+            const pfpimg = el("img").attr({src: listing.info.author.pfp.url}).adto(content_subminfo_line)
+                .clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp")
+            ;
             pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
             content_subminfo_line.atxt(" ");
         }
-        if(listing.info.author) content_subminfo_line.adch(userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name));
+        if(listing.info.author) content_subminfo_line.adch(
+            userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name)
+        );
         if(listing.info.author?.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.layout === "mastodon-post" && listing.info.author?.pfp) {
             frame.clss("spacefiller-pfp");
@@ -2393,7 +2628,11 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         if(listing.info.reblogged_by) {
             content_subminfo_line.atxt(" ← Boosted by ");
             if(listing.info.reblogged_by.author) content_subminfo_line
-                .adch(userLink(client.id, listing.info.reblogged_by.author.link, listing.info.reblogged_by.author.color_hash).atxt(listing.info.reblogged_by.author.name))
+                .adch(userLink(
+                    client.id,
+                    listing.info.reblogged_by.author.link,
+                    listing.info.reblogged_by.author.color_hash,
+                ).atxt(listing.info.reblogged_by.author.name))
             ;
             if(listing.info.reblogged_by.time !== false) {
                 content_subminfo_line.atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc));
@@ -2539,7 +2778,10 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     // m-0 is a temporary hack working around incorrect display
     // inside prose. actually why does richtext even use prose styles like what? can't I get rid of that?
 
-    const added_comments_are_threaded = listing.replies?.length === 1 && (listing.replies[0] as Generic.Thread).replies?.length === 1;
+    const added_comments_are_threaded = true
+        && listing.replies?.length === 1
+        && (listing.replies[0] as Generic.Thread).replies?.length === 1
+    ;
 
     let lastElemAddChildren: AddChildrenFn | undefined;
 
@@ -2567,7 +2809,12 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
         }
         reply_node.clss("comment");
         const reply_frame = clientListingWrapperNode();
-        lastElemAddChildren = clientListing(client, child_listing, reply_frame, {clickable: opts.clickable}).defer(hsc).addChildren;
+        lastElemAddChildren = clientListing(
+            client,
+            child_listing,
+            reply_frame,
+            {clickable: opts.clickable}
+        ).defer(hsc).addChildren;
         reply_frame.adto(reply_node);
 
         if(futureadd) addChild(futureadd);
@@ -2599,9 +2846,12 @@ export const link_styles_v = {
     'code-button': "text-gray-600 dark:text-gray-500 hover:underline",
     'load-more': "text-blue-600 dark:text-blue-500 hover:underline text-base",
     'userlink': "text-userlink-color-light dark:text-userlink-color-dark hover:underline",
-    'pill-empty': "text-sm border-2 border-black text-black hover:text-white hover:bg-black p-1 px-3 rounded-full transition-colors",
-    'pill-transparent': "text-sm border-2 border-transparent text-black hover:text-white hover:bg-black p-1 px-3 rounded-full transition-colors",
-    'pill-filled': "text-sm border-2 border-black bg-black text-white hover:text-black hover:bg-transparent p-1 px-3 rounded-full transition-colors",
+    'pill-empty': "text-sm border-2 border-black text-black hover:text-white "
+        + "hover:bg-black p-1 px-3 rounded-full transition-colors",
+    'pill-transparent': "text-sm border-2 border-transparent text-black "
+        + "hover:text-white hover:bg-black p-1 px-3 rounded-full transition-colors",
+    'pill-filled': "text-sm border-2 border-black bg-black text-white "
+        + "hover:text-black hover:bg-transparent p-1 px-3 rounded-full transition-colors",
     'outlined-button': "border border-gray-600 dark:border-gray-500 px-2",
     'error': "text-red-600 dark:text-red-500 hover:underline",
 };
@@ -2619,7 +2869,12 @@ function loadingSpinner() {
 // TODO I guess support loading more in places other than the end of the list
 // that means :: addChildren needs to have a second before_once argument and this needs to have a before_once
 // doesn't matter atm but later.
-function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChildren: (children: Generic.Node[]) => void, removeSelf: () => void) {
+function loadMoreButton(
+    client: ThreadClient,
+    load_more_node: Generic.LoadMore,
+    addChildren: (children: Generic.Node[]) => void,
+    removeSelf: () => void,
+) {
     const container = el("div");
     const makeButton = () => linkButton(client.id, load_more_node.url, "load-more", {onclick: () => {
         const loading_txt = el("div").adto(container);
@@ -2639,7 +2894,9 @@ function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, 
         });
     }});
 
-    let current_node: ChildNode = makeButton().atxt(load_more_node.count != null ? "Load "+load_more_node.count+" More…" : "Load More…").adto(container).clss("load-more");
+    let current_node: ChildNode = makeButton().atxt(
+        load_more_node.count != null ? "Load "+load_more_node.count+" More…" : "Load More…"
+    ).adto(container).clss("load-more");
 
     container.atxt(" ");
     elButton("code-button").onev("click", e => {
@@ -2655,6 +2912,7 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
     addChildren: (children: Generic.UnmountedNode[]) => void, removeSelf: () => void
 ) {
     const container = el("div");
+    // eslint-disable-next-line max-len
     const makeButton = (lmnode: Generic.LoadMoreUnmounted) => linkButton(client.id, lmnode.url, "load-more", {onclick: () => {
         const loading_txt = el("div").adto(container);
         loading_txt.adch(el("span").atxt("Loading…"));
@@ -2679,7 +2937,10 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
 
     const mkbtn = (lmnode: Generic.LoadMoreUnmounted) => {
         current_node = el("div").adch(
-            makeButton(lmnode).atxt(lmnode.count != null ? "Load "+lmnode.count+" More…" : "Load More…").adto(container).clss("load-more")
+            makeButton(lmnode)
+                .atxt(lmnode.count != null ? "Load "+lmnode.count+" More…" : "Load More…")
+                .adto(container).clss("load-more")
+            ,
         ).atxt(" ").adch(elButton("code-button").onev("click", e => {
             e.stopPropagation();
             console.log(lmnode);
@@ -2741,7 +3002,12 @@ function renderInbox(client: ThreadClient, inbox: Generic.Inbox): HideShowCleanu
 
 const makeTopLevelWrapper = () => el("div").clss("top-level-wrapper", "object-wrapper", "bg-postcolor-100");
 
-function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HTMLDivElement, title: UpdateTitle): HideShowCleanup<undefined> {
+function renderClientPage(
+    client: ThreadClient,
+    listing: Generic.Page,
+    frame: HTMLDivElement,
+    title: UpdateTitle,
+): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     // It might get mutated so just in case make a copy. This should be fixed
@@ -2781,18 +3047,25 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
 
     if(listing.sidebar) {
         // on mobile, ideally this would be a link that opens the sidebar in a new history item
-        elButton("pill-filled").adto(frame).clss("sidebar-toggle-mobile", "my-1").atxt("Toggle Sidebar").onev("click", e => {
+        elButton("pill-filled").adto(frame)
+            .clss("sidebar-toggle-mobile", "my-1").atxt("Toggle Sidebar")
+        .onev("click", e => {
             e.stopPropagation();
             sidebar_area.classList.toggle("sidebar-visible-mobile");
         });
         const sidebar_area = el("div").adto(frame).clss("sidebar-area");
         for(const sidebar_elem of listing.sidebar) {
-            clientContent(client, sidebar_elem, {clickable: false}).defer(hsc).adto(makeTopLevelWrapper().adto(sidebar_area));
+            clientContent(client, sidebar_elem, {clickable: false}).defer(hsc)
+                .adto(makeTopLevelWrapper().adto(sidebar_area))
+            ;
         }
     }
 
     if(listing.body.kind === "listing") {
-        clientContent(client, listing.body.header, {clickable: false}).defer(hsc).adto(makeTopLevelWrapper().adto(header_area));
+        clientContent(client, listing.body.header, {clickable: false})
+            .defer(hsc)
+            .adto(makeTopLevelWrapper().adto(header_area))
+        ;
 
         if(listing.body.menu) {
             renderMenu(client, listing.body.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
@@ -2838,7 +3111,11 @@ function renderClientPage(client: ThreadClient, listing: Generic.Page, frame: HT
                         };
                         const addChildReplies = (child_replies: Generic.Node) => {
                             if(child_replies.kind === "load_more") {
-                                const lmbtn = loadMoreButton(client, child_replies, addChildrenReplies, () => lmbtn.remove());
+                                const lmbtn = loadMoreButton(client,
+                                    child_replies,
+                                    addChildrenReplies,
+                                    () => lmbtn.remove()
+                                );
                                 lmbtn.adto(rdiv);
                                 return;
                             }
@@ -2920,7 +3197,9 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             loader_area.remove();
 
             frame.classList.remove("client-main-frame");
-            frame.classList.add("display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[page2.pivot.ref!.display_style]);
+            frame.classList.add(
+                "display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[page2.pivot.ref!.display_style]
+            );
             vanillaToSolidBoundary(client, frame, ClientPage, {page: page2}).defer(hsc);
             // renderClientPage2(client, page2, frame, title).defer(hsc);
         }else{
@@ -2946,7 +3225,11 @@ function fullscreenError(message: string): HideShowCleanup<HTMLDivElement> {
     return hsc;
 }
 
-function clientLoginPage(client: ThreadClient, path: string[], query: URLSearchParams): HideShowCleanup<HTMLDivElement> {
+function clientLoginPage(
+    client: ThreadClient,
+    path: string[],
+    query: URLSearchParams,
+): HideShowCleanup<HTMLDivElement> {
     const frame = document.createElement("div");
     const hsc = hideshow(frame);
 
@@ -3017,7 +3300,10 @@ export function navigate({path, replace}: {path: string, replace?: boolean}): vo
     replace ??= false;
     if(replace) {
         console.log("Replacing history item", current_history_index, path);
-        nav_history[current_history_index] = {url: "::redirecting::", node: {removeSelf: () => {""}, hide: () => {""}, show: () => {""}}};
+        nav_history[current_history_index] = {
+            url: "::redirecting::",
+            node: {removeSelf: () => {""}, hide: () => {""}, show: () => {""}},
+        };
         history.replaceState({index: current_history_index, session_name}, "ThreadReader", path);
         onNavigate(current_history_index, location);
     }else{
@@ -3041,17 +3327,30 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
                 <p>Try for <span id="reddit"></span></p>
                 <p>Try for <span id="mastodon"></span></p>
                 <div class="mt-10"></div>
-                <p class="text-gray-800 dark:text-gray-500"><span id="settings"></span> · <span id="github"></span> · <span id="license"></span> · <span id="privacy"></span></p>
+                <p class="text-gray-800 dark:text-gray-500">
+                    <span id="settings"></span> ·
+                    <span id="github"></span> · <span id="license"></span> · <span id="privacy"></span>
+                </p>
                 <div class="mt-2"></div>
             </div>
         </div>
     </div>`;
-    res.querySelector("#reddit")!.appendChild(linkButton("", "/reddit", "normal").atxt("Reddit").adto(res));
-    res.querySelector("#mastodon")!.appendChild(linkButton("", "/mastodon", "normal").atxt("Mastodon").adto(res));
-    res.querySelector("#settings")!.appendChild(linkButton("", "/settings", "action-button").atxt("Settings").adto(res));
-    res.querySelector("#github")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient", "action-button").atxt("Github").adto(res));
-    res.querySelector("#license")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient/blob/main/LICENSE", "action-button").atxt("License").adto(res));
-    res.querySelector("#privacy")!.appendChild(linkButton("", "https://github.com/pfgithub/threadclient/blob/main/privacy.md", "action-button").atxt("Privacy").adto(res));
+    res.querySelector("#reddit")!.appendChild(linkButton("", "/reddit", "normal").atxt("Reddit"));
+    res.querySelector("#mastodon")!.appendChild(linkButton("", "/mastodon", "normal").atxt("Mastodon"));
+    res.querySelector("#settings")!.appendChild(
+        linkButton("", "/settings", "action-button").atxt("Settings"),
+    );
+    res.querySelector("#github")!.appendChild(
+        linkButton("", "https://github.com/pfgithub/threadclient", "action-button").atxt("Github"),
+    );
+    res.querySelector("#license")!.appendChild(
+        linkButton("", "https://github.com/pfgithub/threadclient/blob/main/LICENSE", "action-button").atxt("License"),
+    );
+    res.querySelector("#privacy")!.appendChild(
+        linkButton("", "https://github.com/pfgithub/threadclient/blob/main/privacy.md", "action-button")
+            .atxt("Privacy")
+        ,
+    );
 
     return hsc;
 }
@@ -3307,7 +3606,10 @@ export function hideshow<T>(a_any?: T): HideShowCleanup<T> {
     return res;
 }
 
-function fetchClientThen(client_id: string, cb: (client: ThreadClient) => HideShowCleanup<HTMLDivElement>): HideShowCleanup<HTMLDivElement> {
+function fetchClientThen(
+    client_id: string,
+    cb: (client: ThreadClient) => HideShowCleanup<HTMLDivElement>,
+): HideShowCleanup<HTMLDivElement> {
     const cached = getClientCached(client_id);
     if(cached) {
         return cb(cached);
@@ -3322,7 +3624,10 @@ function fetchClientThen(client_id: string, cb: (client: ThreadClient) => HideSh
 
 }
 // import { richtextEditor } from "./editors/reddit-richtext"; 
-function fetchPromiseThen<T>(promise: Promise<T>, cb: (v: T) => HideShowCleanup<HTMLDivElement>): HideShowCleanup<HTMLDivElement> {
+function fetchPromiseThen<T>(
+    promise: Promise<T>,
+    cb: (v: T) => HideShowCleanup<HTMLDivElement>,
+): HideShowCleanup<HTMLDivElement> {
     const wrapper = el("div").adto(document.body);
     const hsc = hideshow(wrapper);
     const loader_container = el("div").adto(wrapper);
@@ -3467,10 +3772,18 @@ export let navbar: HTMLDivElement; {
 
     const navbar_button = ["px-2"];
 
-    el("button").adto(frame).atxt("←").clss(...navbar_button).onev("click", e => {e.stopPropagation(); history.back()});
-    el("button").adto(frame).atxt("→").clss(...navbar_button).onev("click", e => {e.stopPropagation(); history.forward()});
+    el("button").adto(frame).atxt("←").clss(...navbar_button).onev("click", e => {
+        e.stopPropagation();
+        history.back();
+    });
+    el("button").adto(frame).atxt("→").clss(...navbar_button).onev("click", e => {
+        e.stopPropagation();
+        history.forward();
+    });
 
-    const nav_path = el("input").adto(frame).clss("bg-transparent text-center border border-gray-600 dark:border-gray-500");
+    const nav_path = el("input").adto(frame)
+        .clss("bg-transparent text-center border border-gray-600 dark:border-gray-500")
+    ;
 
     const nav_go = el("button").clss(...navbar_button).atxt("⏎").adto(frame);
     const nav_reload = el("button").clss(...navbar_button).atxt("🗘").adto(frame);

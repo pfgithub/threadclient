@@ -25,7 +25,10 @@ export function vanillaToSolidBoundary<U, T extends (props: U) => JSX.Element>(
     return hsc;
 }
 
-export function SolidToVanillaBoundary(props: {getValue: (hsc: HideShowCleanup<undefined>, client: () => ThreadClient) => HTMLElement}): JSX.Element {
+export function SolidToVanillaBoundary(props: {
+    getValue: (hsc: HideShowCleanup<undefined>,
+    client: () => ThreadClient) => HTMLElement,
+}): JSX.Element {
     const client = getClient();
     const visible = getIsVisible();
     return <span ref={(div) => {

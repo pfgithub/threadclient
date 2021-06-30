@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+
 import * as Reddit from "../types/api/reddit";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
@@ -59,8 +61,12 @@ type Action =
     | {kind: "log_out"}
 ;
 
-function encodeVoteAction(query: Reddit.VoteBody): Generic.Opaque<"act"> {return act_encoder.encode({kind: "vote", query})}
-function encodeDeleteAction(fullname: string): Generic.Opaque<"act"> {return act_encoder.encode({kind: "delete", fullname})}
+function encodeVoteAction(query: Reddit.VoteBody): Generic.Opaque<"act"> {
+    return act_encoder.encode({kind: "vote", query});
+}
+function encodeDeleteAction(fullname: string): Generic.Opaque<"act"> {
+    return act_encoder.encode({kind: "delete", fullname});
+}
 
 const act_encoder = encoderGenerator<Action, "act">("act");
 
@@ -75,7 +81,10 @@ function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormatting
         return [rt.p(rt.error("Error parsing richtext: "+e, e))];
     }
 }
-function richtextParagraphArray(rtd: Reddit.Richtext.Paragraph[], opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
+function richtextParagraphArray(
+    rtd: Reddit.Richtext.Paragraph[],
+    opt: RichtextFormattingOptions,
+): Generic.Richtext.Paragraph[] {
     return rtd.map(v => richtextParagraph(v, opt));
 }
 function expectUnsupported(text: "unsupported"): void {/*no runtime error!*/}
@@ -140,7 +149,9 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
         case "h": return rt.hn(rtd.l, ...richtextSpanArray(rtd.c, opt));
         case "hr": return rt.hr();
         case "blockquote": return rt.blockquote(...richtextParagraphArray(rtd.c, opt));
-        case "list": return rt.kind("list", {ordered: rtd.o}, rtd.c.map(itm => rt.li(...richtextParagraphArray(itm.c, opt))));
+        case "list": return rt.kind("list", {ordered: rtd.o},
+            rtd.c.map(itm => rt.li(...richtextParagraphArray(itm.c, opt)))
+        );
         case "code": return rt.pre(rtd.c.map(v => {
             switch(v.e) {
                 case "raw": return v.t;
@@ -155,7 +166,10 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
     expectUnsupported(rtd.e);
     return rt.p(rt.error("TODO "+rtd.e, rtd));
 }
-function richtextTableHeading(tbh: Reddit.Richtext.TableHeading, opt: RichtextFormattingOptions): Generic.Richtext.TableHeading {
+function richtextTableHeading(
+    tbh: Reddit.Richtext.TableHeading,
+    opt: RichtextFormattingOptions,
+): Generic.Richtext.TableHeading {
     return rt.th(
         tbh.a != null ? ({'L': "left", 'C': "center", 'R': "right"} as const)[tbh.a] : undefined,
         ...richtextSpanArray(tbh.c ?? [], opt),
@@ -167,7 +181,11 @@ function richtextTableItem(tbh: Reddit.Richtext.TableItem, opt: RichtextFormatti
 function isBraille(codepoint: number): boolean {
     return codepoint >= 0x2800 && codepoint <= 0x28FF;
 }
-function richtextFormattedText(text: string, format: Reddit.Richtext.FormatRange[], opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
+function richtextFormattedText(
+    text: string,
+    format: Reddit.Richtext.FormatRange[],
+    opt: RichtextFormattingOptions,
+): Generic.Richtext.Span[] {
     if(format.length === 0) {
         text = text.replaceAll("¯_(ツ)_/¯", "¯\\_(ツ)_/¯");
         let braille_character_count = 0;
@@ -368,7 +386,11 @@ async function getAccessTokenInternal() {
                 'Authorization': "Basic "+btoa(client_id+":"),
                 'Content-Type': "application/x-www-form-urlencoded",
             },
-            body: encodeQuery({grant_type: "https://oauth.reddit.com/grants/installed_client", device_id, redirect_uri}),
+            body: encodeQuery({
+                grant_type: "https://oauth.reddit.com/grants/installed_client",
+                device_id,
+                redirect_uri,
+            }),
         }).then(r => r.json()) as Reddit.AccessToken;
 
         if(v.error) {
@@ -490,7 +512,10 @@ function sidebarWidgetToGenericWidget(data: Reddit.Widget, subreddit: string): G
             kind: "widget",
             title: "Error!",
             raw_value: data,
-            widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! Error "+(e as Error).toString(), data))]}},
+            widget_content: {kind: "body", body: {
+                kind: "richtext",
+                content: [rt.p(rt.error("Uh oh! Error "+(e as Error).toString(), data))],
+            }},
         };
     }
 }
@@ -505,7 +530,9 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
             body: {
                 kind: "richtext",
                 content: [
-                    rt.p(rt.link("/message/compose?to=/r/"+subreddit, {style: "pill-empty"}, rt.txt("Message the mods"))),
+                    rt.p(
+                        rt.link("/message/compose?to=/r/"+subreddit, {style: "pill-empty"}, rt.txt("Message the mods")),
+                    ),
                     rt.ul(...data.mods.map(mod => rt.li(rt.p(
                         rt.link("/u/"+mod.name, {is_user_link: mod.name}, rt.txt("u/"+mod.name)),
                         ...flairToGenericFlair({
@@ -551,12 +578,18 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
         kind: "widget",
         title: "Error!",
         raw_value: data,
-        widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Not supported "+data.kind, data))]}},
+        widget_content: {kind: "body", body: {
+            kind: "richtext",
+            content: [rt.p(rt.error("Not supported "+data.kind, data))],
+        }},
     }; else if(data.kind === "menu") return {
         kind: "widget",
         title: "Error!",
         raw_value: data,
-        widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! TODO widget "+data.kind, data))]}},
+        widget_content: {kind: "body", body: {
+            kind: "richtext",
+            content: [rt.p(rt.error("Uh oh! TODO widget "+data.kind, data))],
+        }},
     }; else if(data.kind === "textarea") return {
         kind: "widget",
         title: data.shortName,

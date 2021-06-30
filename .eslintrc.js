@@ -38,10 +38,14 @@ module.exports = {
             multiline: {delimiter: "comma", requireLast: true},
             singleline: {delimiter: "comma", requireLast: false},
             overrides: {
-                interface: {multiline: {delimiter: "semi", requireLast: true}, singleline: {delimiter: "semi", requireLast: false}}
+                interface: {
+                    multiline: {delimiter: "semi", requireLast: true},
+                    singleline: {delimiter: "semi", requireLast: false}
+                },
             },
         }],
         "custom-quote-rule/func-style": "warn",
+        "max-len": ["warn", 120, {ignoreComments: true}],
     },
     overrides: [{
         files: ["*.js", "*.jsx"],
@@ -69,11 +73,26 @@ module.exports = {
 
             // style rules:
             "@typescript-eslint/naming-convention": ["warn",
-                {selector: ["variable", "function", "parameter"], format: ["snake_case"]},
-                {selector: ["variable", "function", "parameter"], format: ["snake_case"], prefix: ["__"], filter: {regex: "^__", match: true}},
-                {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase", "PascalCase"]},
-                {selector: ["variable", "function", "parameter"], types: ["function"], format: ["camelCase"], prefix: ["__"], filter: {regex: "^__", match: true}},
-                {selector: "typeLike", format: ["PascalCase"]},
+                {
+                    selector: ["variable", "function", "parameter"],
+                    format: ["snake_case"]
+                },
+                {
+                    selector: ["variable", "function", "parameter"],
+                    format: ["snake_case"], prefix: ["__"], filter: {regex: "^__", match: true},
+                },
+                {
+                    selector: ["variable", "function", "parameter"], types: ["function"],
+                    format: ["camelCase", "PascalCase"],
+                },
+                {
+                    selector: ["variable", "function", "parameter"], types: ["function"],
+                    format: ["camelCase"], prefix: ["__"], filter: {regex: "^__", match: true},
+                },
+                {
+                    selector: "typeLike",
+                    format: ["PascalCase"]
+                },
             ],
         }
     }],

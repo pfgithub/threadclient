@@ -4,7 +4,11 @@ function convert(str, new_quote) {
     if (new_quote === old_quote) {
         return str;
     }
-    return new_quote + str.slice(1, -1).replace(/\\(\$\{|\r\n?|\n|.)|["'`]|\$\{|(\r\n?|\n)/gu, (match, escaped, newline) => {
+    return new_quote + str.slice(1, -1).replace(/\\(\$\{|\r\n?|\n|.)|["'`]|\$\{|(\r\n?|\n)/gu, (
+        match,
+        escaped,
+        newline,
+    ) => {
         if (escaped === old_quote || old_quote === "`" && escaped === "${") {
             return escaped; // unescape
         }

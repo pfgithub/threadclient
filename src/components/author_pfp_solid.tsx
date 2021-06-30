@@ -1,6 +1,9 @@
 import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, timeAgoText, unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink } from "../app";
+import {
+    clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, timeAgoText,
+    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink
+} from "../app";
 import type * as Generic from "../types/generic";
 import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -18,7 +21,11 @@ export type ClientPostOpts = {
 const decorative_alt = "";
 
 export function AuthorPfp(props: {src_url: string}): JSX.Element {
-    return <img src={props.src_url} alt={decorative_alt} class="w-8 h-8 object-center inline-block cfg-reddit-pfp rounded-full"/>;
+    return <img
+        src={props.src_url}
+        alt={decorative_alt}
+        class="w-8 h-8 object-center inline-block cfg-reddit-pfp rounded-full"
+    />;
 }
 
 export function TimeAgo(props: {start: number}): JSX.Element {
@@ -37,10 +44,15 @@ export function TimeAgo(props: {start: number}): JSX.Element {
 export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Element {
     const [state, setState] = createSignal<{kind: "overview"} | {kind: "image", index: number}>({kind: "overview"});
 
-    return <Switch fallback={<button on:click={() => {console.log(state()); setState({kind: "overview"})}}>Error state!</button>}>
+    return <Switch
+        fallback={<button on:click={() => {console.log(state()); setState({kind: "overview"})}}>Error state!</button>}
+    >
         <Match when={kindIs(state(), "overview")}>
             <For each={props.images}>{(image, i) => (
-                <button class="m-1 inline-block bg-body rounded-md" on:click={() => setState({kind: "image", index: i()})}>
+                <button 
+                    class="m-1 inline-block bg-body rounded-md"
+                    on:click={() => setState({kind: "image", index: i()})}
+                >
                     <img src={image.thumb} width={image.w+"px"} height={image.h+"px"}
                         class="w-24 h-24 object-contain"
                     />
@@ -48,16 +60,29 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
             )}</For>
         </Match>
         <Match when={kindIs(state(), "image")}>{sel => <>
-            <button class={link_styles_v["outlined-button"]} on:click={() => setState({kind: "image", index: sel.index - 1})} disabled={sel.index <= 0}>Prev</button>
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => setState({kind: "image", index: sel.index - 1})}
+                disabled={sel.index <= 0}
+            >Prev</button>
             {sel.index + 1}/{props.images.length}
-            <button class={link_styles_v["outlined-button"]} on:click={() => setState({kind: "image", index: sel.index + 1})} disabled={sel.index >= props.images.length - 1}>Next</button>
-            <button class={link_styles_v["outlined-button"]} on:click={() => setState({kind: "overview"})}>Gallery</button>
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => setState({kind: "image", index: sel.index + 1})}
+                disabled={sel.index >= props.images.length - 1}
+            >Next</button>
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => setState({kind: "overview"})}
+            >Gallery</button>
             <Body body={props.images[sel.index]!.body} />
         </>}</Match>
     </Switch>;
 }
 
-const generic_linkstyle_mappings: {[key in Generic.Richtext.LinkStyle]: LinkStyle} = {'link': "normal", 'pill-empty': "pill-empty"};
+const generic_linkstyle_mappings: {
+    [key in Generic.Richtext.LinkStyle]: LinkStyle
+} = {'link': "normal", 'pill-empty': "pill-empty"};
 function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
     // TODO display links with no text
     // used to do this: el("span").atxt("«no text»").adto(reslink);
@@ -73,7 +98,10 @@ function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
             <PreviewableLink href={props.rts.url}><RichtextSpans spans={props.rts.children} /></PreviewableLink>
         </Match>
         <Match when={props.rts.is_user_link == null && !styleIsLink()}>
-            <LinkButton href={props.rts.url} style={generic_linkstyle_mappings[props.rts.style ?? "link"]}><RichtextSpans spans={props.rts.children} /></LinkButton>
+            <LinkButton
+                href={props.rts.url}
+                style={generic_linkstyle_mappings[props.rts.style ?? "link"]}
+            ><RichtextSpans spans={props.rts.children} /></LinkButton>
         </Match>
     </Switch></span>;
 }
@@ -99,7 +127,9 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
             >
                 <ShowBool when={!opened()}>
                     <button
-                        class="absolute top-0 left-0 bottom-0 right-0 w-full h-full rounded bg-spoiler-color hover:bg-spoiler-color-hover cursor-pointer"
+                        class={"absolute top-0 left-0 bottom-0 right-0 w-full h-full "
+                            +"rounded bg-spoiler-color hover:bg-spoiler-color-hover cursor-pointer"
+                        }
                         title="Click to reveal spoiler"
                         on:click={() => setOpened(true)}
                     ></button>
@@ -146,7 +176,9 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             return <h6 class="text-sm text-gray-600 font-normal underline">{content()}</h6>;
         },
         horizontal_line: () => <hr class="border-gray-200" />,
-        blockquote: (bquote) => <blockquote class="border-l-2 border-gray-600 text-gray-600 pl-3"><RichtextParagraphs content={bquote.children} /></blockquote>,
+        blockquote: (bquote) => <blockquote class="border-l-2 border-gray-600 text-gray-600 pl-3">
+            <RichtextParagraphs content={bquote.children} />
+        </blockquote>,
         list: (list) => {
             // "list_item"/"tight_list_item" is not real
             // non-tight list items containing eg text and a sublist might not be tight
@@ -166,7 +198,9 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
                     <li classList={{tight: isTight()}}>
                         <SwitchKind item={child}>{{
                             list_item: (content) => <RichtextParagraphs content={content.children} tight={isTight()} />,
-                            tight_list_item: (content) => <div classList={{'my-2': !isTight()}}><RichtextSpans spans={content.children} /></div>,
+                            tight_list_item: (content) => <div classList={{'my-2': !isTight()}}>
+                                <RichtextSpans spans={content.children} />
+                            </div>,
                         }}</SwitchKind>
                     </li>
                 )}</For>;
@@ -175,7 +209,9 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             return <ul class="list-disc pl-4">{listContent()}</ul>;
         },
         code_block: (code) => <pre class="bg-gray-200 p-2 rounded text-gray-800">
-            <ShowCond when={code.lang}>{lang => <div class="font-sans"><span class="bg-gray-100 p-1 inline-block rounded-sm">lang={lang}</span></div>}</ShowCond>
+            <ShowCond when={code.lang}>{lang => <div class="font-sans">
+                <span class="bg-gray-100 p-1 inline-block rounded-sm">lang={lang}</span>
+            </div>}</ShowCond>
             <code>{code.text}</code>
         </pre>,
         table: (table) => <table>
@@ -193,7 +229,10 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
     }}</SwitchKind>;
 }
 
-export function RichtextParagraphs(props: {content: readonly Generic.Richtext.Paragraph[], tight?: boolean}): JSX.Element {
+export function RichtextParagraphs(props: {
+    content: readonly Generic.Richtext.Paragraph[],
+    tight?: boolean,
+}): JSX.Element {
     return <For each={props.content}>{paragraph => (
         <div classList={{'my-2': !(props.tight ?? false)}}>
             <RichtextParagraph paragraph={paragraph} />
@@ -225,7 +264,9 @@ function ErrableLink<T,>(props: {link: Generic.Link<T>, children: (link: T) => J
 
 type ClientPostReplyProps = {reply: Generic.ListingEntry, is_threaded: boolean};
 function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
-    const isThreaded = createMemo(() => (props.is_threaded || undefined) && kindIs(props.reply, "post")?.post.ref?.replies?.items);
+    const isThreaded = createMemo(() =>
+        (props.is_threaded || undefined) && kindIs(props.reply, "post")?.post.ref?.replies?.items
+    );
 
     return <>
         <li classList={{
@@ -269,7 +310,11 @@ function Body(props: {body: Generic.Body, autoplay?: boolean}): JSX.Element {
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
-    const [selfVisible, setSelfVisible] = createSignal(props.content.show_replies_when_below_pivot !== false ? !props.content.show_replies_when_below_pivot.default_collapsed : true);
+    const [selfVisible, setSelfVisible] = createSignal(
+        props.content.show_replies_when_below_pivot !== false
+        ? !props.content.show_replies_when_below_pivot.default_collapsed
+        : true
+    );
     const [bodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
     const defaultBodyVisible = createMemo(() => {
         return props.opts.is_pivot ? true : !(props.content.title?.body_collapsible?.default_collapsed ?? false);
@@ -339,16 +384,22 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             setReplyWindowOpen(true);
                         }}>{reply_action.text}</button>
                         <ShowBool when={replyWindowOpen()}>
-                            <ReplyEditor action={reply_action} onCancel={() => setReplyWindowOpen(false)} onAddReply={() => {
-                                setReplyWindowOpen(false);
-                                //
-                            }} />
+                            <ReplyEditor
+                                action={reply_action} 
+                                onCancel={() => setReplyWindowOpen(false)}
+                                onAddReply={() => {
+                                    setReplyWindowOpen(false);
+                                    //
+                                }}
+                            />
                         </ShowBool>
                     </>;
                 }}</ShowCond>
             </div>
             <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
-                <ShowCond when={props.opts.replies}>{replies => <ShowBool when={props.content.show_replies_when_below_pivot !== false}>
+                <ShowCond when={props.opts.replies}>{replies => <ShowBool
+                    when={props.content.show_replies_when_below_pivot !== false}
+                >
                     <ul class="post-replies">
                         <For each={replies.items}>{reply => (
                             // - if replies.items is 1, maybe thread replies?
@@ -362,7 +413,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
 }
 
 type StoreTypeValue = {value: null | Generic.PostContent};
-export function ReplyEditor(props: {action: Generic.ReplyAction, onCancel: () => void, onAddReply: (response: Generic.Node) => void}): JSX.Element {
+export function ReplyEditor(props: {
+    action: Generic.ReplyAction,
+    onCancel: () => void,
+    onAddReply: (response: Generic.Node) => void,
+}): JSX.Element {
     const client = getClient();
     const [content, setContent] = createSignal("");
 
@@ -411,13 +466,17 @@ export function ReplyEditor(props: {action: Generic.ReplyAction, onCancel: () =>
         </>}</ShowCond>
         <ShowCond when={diffable.value}>{value => {
             console.log("Value changed", value);
-            return <div class="bg-body rounded-xl max-w-xl object-wrapper shadow-none"><ClientContent listing={value} opts={{
-                clickable: false,
-                replies: null,
-                at_or_above_pivot: true,
-                is_pivot: true,
-                top_level: true,   
-            }}/></div>;
+            return <div
+                class="bg-body rounded-xl max-w-xl object-wrapper shadow-none"
+            >
+                <ClientContent listing={value} opts={{
+                    clickable: false,
+                    replies: null,
+                    at_or_above_pivot: true,
+                    is_pivot: true,
+                    top_level: true,   
+                }}/>
+            </div>;
         }}</ShowCond>
     </div>;
 }
@@ -425,7 +484,11 @@ export function ReplyEditor(props: {action: Generic.ReplyAction, onCancel: () =>
 function PreviewableLink(props: {href: string, children: JSX.Element}): JSX.Element {
     const client = getClient();
 
-    const linkPreview: () => {visible: () => boolean, setVisible: (a: boolean) => void, body: Generic.Body} | undefined = createMemo(() => {
+    const linkPreview: () => {
+        visible: () => boolean,
+        setVisible: (a: boolean) => void,
+        body: Generic.Body,
+    } | undefined = createMemo(() => {
         const body = previewLink(client(), props.href, {});
         if(!body) return undefined;
         const [visible, setVisible] = createSignal(false);
@@ -482,7 +545,10 @@ function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JS
     return <ErrorBoundary fallback={(err: unknown, reset) => {
         console.log(err);
         return <div>
-            <pre><code textContent={err instanceof Error ? err.toString() + "\n\n" + err.stack ?? "*no stack*" : "Something went wrong"} /></pre>
+            <pre><code textContent={err instanceof Error 
+                ? err.toString() + "\n\n" + err.stack ?? "*no stack*"
+                : "Something went wrong"
+            } /></pre>
             <button onClick={() => console.log(err, props.data)}>Code</button>{" / "}
             <button onClick={() => reset()}>Retry</button>
         </div>;

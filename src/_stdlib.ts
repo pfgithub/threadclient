@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+
 // ideally pipelines would be used instead of this
 //   el("div") |> adto(#, parent) |> adch(#, child) |> atxt(#, text)
 // unfortunately, typescript doesn't like them

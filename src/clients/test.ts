@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+
 import * as Generic from "../types/generic";
 import { rt, Richtext } from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";

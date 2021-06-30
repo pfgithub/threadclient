@@ -25,7 +25,9 @@ export function stringify(object: unknown): {[key: string]: unknown} {
                 if(sval && sval.seen_count > 1) return {'$ref': sval.idx};
             }
             if(typeof value === "symbol") {
-                const symval = symbol_map.get(value) ?? symbol_map.set(value, {symidx: "#" + symbol_index++}).get(value)!;
+                const symval = symbol_map.get(value)
+                    ?? symbol_map.set(value, {symidx: "#" + symbol_index++}).get(value)!
+                ;
                 return {'$sym': symval};
             }
             return value;

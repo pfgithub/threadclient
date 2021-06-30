@@ -17,7 +17,9 @@ export type ThreadClient = {
     sendReply: (body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>,
 
     loadMore: (action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>,
-    loadMoreUnmounted: (action: Generic.Opaque<"load_more_unmounted">) => Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}>,
+    loadMoreUnmounted: (
+        action: Generic.Opaque<"load_more_unmounted">
+    ) => Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}>,
 
     hydrateInbox?: (inbox: Generic.Opaque<"deferred_inbox">) => Promise<Generic.InboxData>,
 };

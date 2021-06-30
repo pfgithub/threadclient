@@ -28,7 +28,15 @@ function BlockquoteElement(props: RProps<BlockquoteElement>): React.ReactElement
 function ImageElement(props: RProps<ErrorSpan>): React.ReactElement {
     const selected = useSelected();
     const focused = useFocused();
-    return <span {...props.attributes}><span draggable="true" className={"bg-red-100 rounded p-1 font-mono "+(selected && focused ? "outline-default " : "")}>{props.element.image_text}</span>{props.children}</span>;
+    return <span {...props.attributes}>
+        <span
+            draggable="true"
+            className={"bg-red-100 rounded p-1 font-mono "+(selected && focused ? "outline-default " : "")}
+        >{
+            props.element.image_text
+        }</span>
+        {props.children}
+    </span>;
 }
 
 function isMarkActive(editor: Editor, format: FormatType) {
@@ -58,13 +66,23 @@ function Spoiler(props: {children: JSX.Element}): React.ReactElement {
     </span>;
 }
 
-function FormatButton(props: {editor: Editor, format: FormatType, class?: string, children?: React.ReactNode}): React.ReactElement {
+function FormatButton(props: {
+    editor: Editor,
+    format: FormatType,
+    class?: string,
+    children?: React.ReactNode,
+}): React.ReactElement {
     const editor = useSlate();
-    return <button className={"py-1 w-8 h-8 rounded-md " + props.class+(isMarkActive(editor, props.format) ? " bg-gray-200" : " hover:bg-gray-100")} onMouseDown={e => {
-        e.preventDefault();
-        e.stopPropagation();
-        updateFormat(props.editor, props.format);
-    }}>{props.children}</button>;
+    return <button
+        className={"py-1 w-8 h-8 rounded-md "
+            + props.class+(isMarkActive(editor, props.format) ? " bg-gray-200" : " hover:bg-gray-100")
+        }
+        onMouseDown={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            updateFormat(props.editor, props.format);
+        }}
+    >{props.children}</button>;
 }
 
 // either block or inline
@@ -145,8 +163,12 @@ function withPlugin(editor: Editor): Editor {
             for(const [child_raw, child_path] of UntypedNode.children(editor, node_path)) {
                 const child = child_raw as Node;
                 if('text' in child) {
-                    if((child.bold ?? false) || (child.inline_code ?? false) || (child.italic ?? false) || (child.strike ?? false) || (child.sup ?? false)) {
-                        Transforms.setNodes(editor, {bold: false, italic: false, strike: false, sup: false, inline_code: false} as Partial<Leaf>, {at: child_path}); 
+                    if((child.bold ?? false) || (child.inline_code ?? false) 
+                    || (child.italic ?? false) || (child.strike ?? false) || (child.sup ?? false)) {
+                        Transforms.setNodes(editor, {
+                            bold: false, italic: false,
+                            strike: false, sup: false, inline_code: false
+                        } as Partial<Leaf>, {at: child_path}); 
                         return;
                     }
                 }else if('children' in child) {
@@ -162,7 +184,9 @@ function withPlugin(editor: Editor): Editor {
             }
         }
         if('text' in node && (node.inline_code ?? false)) {
-            Transforms.setNodes(editor, {bold: false, italic: false, strike: false, sup: false} as Partial<Leaf>, {at: node_path});
+            Transforms.setNodes(editor, {
+                bold: false, italic: false, strike: false, sup: false,
+            } as Partial<Leaf>, {at: node_path});
             return;
         }
 
@@ -220,11 +244,23 @@ export function App(): React.ReactElement {
 
     const [value, setValue] = useState<Node[]>([
         {type: "paragraph", children: [{text: "Hello and welcome!"}]},
-        {type: "paragraph", children: [{text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"}]},
-        {type: "blockquote", children: [{type: "paragraph", children: [{text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"}]}]},
-        {type: "paragraph", children: [{text: "Here is a spoiler: "}, {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]}]},
+        {type: "paragraph", children: [
+            {text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"},
+        ]},
+        {type: "blockquote", children: [
+            {type: "paragraph", children: [
+                {text: "Lorem ipsum is simply dummy text of the printing and typesetting industry"},
+            ]},
+        ]},
+        {type: "paragraph", children: [
+            {text: "Here is a spoiler: "},
+            {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]},
+        ]},
         {type: "code", children: [{text: "Here is a spoiler: >!Star wars dies in infinity war!<"}]},
-        {type: "paragraph", children: [{text: "Here is a spoiler: "}, {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]}]},
+        {type: "paragraph", children: [
+            {text: "Here is a spoiler: "},
+            {type: "spoiler", children: [{text: "Star wars dies in infinity war"}]},
+        ]},
     ]);
 
     // render blocks
@@ -279,7 +315,9 @@ export function App(): React.ReactElement {
                 <button>Block Code</button>
             </div>
             <div className="flex flex-row-1">
-                <button title="Table" className="p-1 w-8 h-8 hover:bg-gray-100 rounded-md inline-block"><span className="border border-black w-full h-full block">T</span></button>
+                <button title="Table" className="p-1 w-8 h-8 hover:bg-gray-100 rounded-md inline-block">
+                    <span className="border border-black w-full h-full block">T</span>
+                </button>
             </div>
         </div>
         <div>
@@ -293,7 +331,11 @@ export function App(): React.ReactElement {
                     const event = event_react as unknown as KeyboardEvent;
                     if(event.key === "m" && event.ctrlKey) {
                         event.preventDefault();
-                        return Transforms.insertNodes(editor, {image_text: "Hi!", type: "error", children: [{text: ""}]});
+                        return Transforms.insertNodes(editor, {
+                            image_text: "Hi!",
+                            type: "error",
+                            children: [{text: ""}]
+                        });
                     }
                     if(event.key === "`" && event.ctrlKey) {
                         event.preventDefault();
@@ -301,7 +343,10 @@ export function App(): React.ReactElement {
                         const [match] = Editor.nodes(editor, {
                             match: n => n.type === "code",
                         });
-                        Transforms.setNodes(editor, {type: match ? "paragraph" : "code"}, {match: n => Editor.isBlock(editor, n)});
+                        Transforms.setNodes(editor,
+                            {type: match ? "paragraph" : "code"},
+                            {match: n => Editor.isBlock(editor, n)},
+                        );
                     }
                     if(event.key === "b" && event.ctrlKey) {
                         event.preventDefault();

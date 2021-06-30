@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+
 import { getRedditMarkdownRenderer } from "../../app";
 import type { TestState } from "../../tests/root_solid";
 import type * as Generic from "../../types/generic";

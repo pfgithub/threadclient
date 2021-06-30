@@ -551,7 +551,15 @@ type LoginWrap<T extends {[key: string]: LoginState<unknown, unknown>}> =
     {[key in keyof T]: T[key]["_logged_in"]} | {[key in keyof T]: T[key]["_not_logged_in"]}
 ;
 
-export type SubredditType = "public" | "private" | "restricted" | "gold_restricted" | "archived" | "user" | "unsupported";
+export type SubredditType =
+    | "public"
+    | "private"
+    | "restricted"
+    | "gold_restricted"
+    | "archived"
+    | "user"
+    | "unsupported"
+;
 
 // outdated documentation: https://github.com/reddit-archive/reddit/wiki/JSON
 // more here: https://github.com/Pyprohly/reddit-api-doc-notes/blob/master/docs/api-reference/subreddit.rst

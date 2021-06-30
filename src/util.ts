@@ -1,5 +1,7 @@
 const rawsym = Symbol("raw");
-export const raw = (string: string): {[rawsym]: string, toString: () => string} => ({[rawsym]: "" + string, toString: () => string});
+export const raw = (string: string): {[rawsym]: string, toString: () => string} => ({
+    [rawsym]: "" + string, toString: () => string,
+});
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function templateGenerator<InType>(helper: (str: InType) => string) {
     type ValueArrayType = (InType | {[rawsym]: string})[];
@@ -81,8 +83,14 @@ type CleanTooltip<T> = T extends Record<string, unknown> ? { [k in keyof T] : T[
 
 // TS 4.2 will allow (...bits: Bits, cb: …)
 export type Router<ParentOpts extends BaseParentOpts, Out> = {
-    with<Bits extends readonly RouteBit[]>(bits: Bits, cb: (urlr: Router<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>) => void): void,
-    route<Bits extends readonly RouteBit[]>(bits: Bits, cb: (args: CleanTooltip<ParentOpts & BitsToOpts<Bits>>) => Out): void,
+    with<Bits extends readonly RouteBit[]>(
+        bits: Bits,
+        cb: (urlr: Router<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>) => void,
+    ): void,
+    route<Bits extends readonly RouteBit[]>(
+        bits: Bits,
+        cb: (args: CleanTooltip<ParentOpts & BitsToOpts<Bits>>) => Out,
+    ): void,
     catchall(cb: (args: ParentOpts) => Out): void,
     parse(path: string): Out | null,
     parseSub(opts: ParentOpts, path: string[]): Out | null,
@@ -133,7 +141,10 @@ function routerBased<ParentOpts extends BaseParentOpts, Out>(is_root: boolean): 
     const routes: ((opts: ParentOpts, path: string[]) => Out | null)[] = [];
 
     const res: Router<ParentOpts, Out> = {
-        with<Bits extends readonly RouteBit[]>(bits: Bits, cb: (urlr: Router<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>) => void): void {
+        with<Bits extends readonly RouteBit[]>(
+            bits: Bits,
+            cb: (urlr: Router<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>,
+        ) => void): void {
             const subrouter = routerBased<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>(false);
             cb(subrouter);
             routes.push((opts, path) => {
@@ -144,7 +155,10 @@ function routerBased<ParentOpts extends BaseParentOpts, Out>(is_root: boolean): 
                 return null;
             });
         },
-        route<Bits extends readonly RouteBit[]>(bits: Bits, cb: (args: CleanTooltip<ParentOpts & BitsToOpts<Bits>>) => Out): void {
+        route<Bits extends readonly RouteBit[]>(
+            bits: Bits,
+            cb: (args: CleanTooltip<ParentOpts & BitsToOpts<Bits>>) => Out,
+        ): void {
             routes.push((opts, path) => {
                 const match = checkMatch(opts, path, bits, {assert_end: true});
                 if(match) {

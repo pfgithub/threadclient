@@ -9,7 +9,12 @@ import "photoswipe/dist/default-skin/default-skin.css";
 
 import "./gallery.scss";
 
-export function showGallery(images: Generic.GalleryItem[], index: number, getThumbBoundsFn: (index: number) => {x: number, y: number, w: number}, onclose?: () => void): HideShowCleanup<undefined> {
+export function showGallery(
+    images: Generic.GalleryItem[],
+    index: number,
+    getThumbBoundsFn: (index: number) => {x: number, y: number, w: number},
+    onclose?: () => void,
+): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     const pwspel = el("div").clss("pwsp")

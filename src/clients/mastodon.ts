@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+
 import { assertNever, encodeQuery, router } from "../util";
 import * as Generic from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";

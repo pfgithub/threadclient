@@ -69,7 +69,9 @@ function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic
             return true;
         };
         const noClasses = (...value: Generic.Richtext.Paragraph[]): Generic.Richtext.Paragraph[] => {
-            if(classes.length !== 0) return [rt.blockquote(rt.p(rt.error(classes.map(clss => "."+clss).join(""), node.outerHTML)), ...value)];
+            if(classes.length !== 0) return [
+                rt.blockquote(rt.p(rt.error(classes.map(clss => "."+clss).join(""), node.outerHTML)), ...value),
+            ];
             return value;
         };
 
@@ -99,7 +101,9 @@ function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic
         }else if(node.nodeName === "TABLE") {
             const thead = node.children[0];
             const tbody = node.children[1];
-            if(!thead || !tbody || thead.nodeName !== "THEAD" || tbody.nodeName !== "TBODY") return [rt.p(rt.error("Table missing head/body", node))];
+            if(!thead || !tbody || thead.nodeName !== "THEAD" || tbody.nodeName !== "TBODY") {
+                return [rt.p(rt.error("Table missing head/body", node))];
+            }
             //
 
             if(thead.children.length !== 1) {
@@ -112,7 +116,12 @@ function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic
                 Array.from(tbhrow.children).map(child => {
                     if(child.nodeName !== "TH") return rt.th(undefined, rt.error("Not th", child));
                     return rt.th(
-                        ({left: "left", center: "center", right: "right", none: undefined} as const)[child.getAttribute("align") ?? "none" as const],
+                        ({
+                            left: "left",
+                            center: "center",
+                            right: "right",
+                            none: undefined,
+                        } as const)[child.getAttribute("align") ?? "none" as const],
                         ...contentSpansToRichtextSpans(meta, child.childNodes, {}),
                     );
                 }),
@@ -126,7 +135,9 @@ function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic
             ));
         }else if(node.nodeName === "PRE") {
             const child_elements = Array.from(node.children);
-            if(child_elements.length !== 1 || child_elements[0]!.nodeName !== "CODE") return [rt.p(rt.error("Unsupported bad pre/code", node))];
+            if(child_elements.length !== 1 || child_elements[0]!.nodeName !== "CODE") {
+                return [rt.p(rt.error("Unsupported bad pre/code", node))];
+            }
             const code_el = child_elements[0]!;
             const classv = Array.from(code_el.classList);
             let lang: string | undefined;
@@ -146,7 +157,11 @@ function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic
     }
     return undefined;
 }
-function contentSpansToRichtextSpans(meta: GenMeta, node: NodeListOf<ChildNode>, styles: Generic.Richtext.Style): Generic.Richtext.Span[] {
+function contentSpansToRichtextSpans(
+    meta: GenMeta,
+    node: NodeListOf<ChildNode>,
+    styles: Generic.Richtext.Style,
+): Generic.Richtext.Span[] {
     return Array.from(node).flatMap(child => contentSpanToRichtextSpan(meta, child, styles));
 }
 function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Richtext.Style): Generic.Richtext.Span[] {
@@ -199,7 +214,9 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
         }else if(node.nodeName === "CODE") {
             return noClasses(rt.code(node.textContent ?? "ERRNOCODE"));
         }else if(node.nodeName === "SPAN") {
-            const res_nodes = Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles));
+            const res_nodes = Array.from(node.childNodes).flatMap(child =>
+                contentSpanToRichtextSpan(meta, child, styles)
+            );
 
             if(eatClass("md-spoiler-text")) {
                 return noClasses(rt.spoiler(...res_nodes));

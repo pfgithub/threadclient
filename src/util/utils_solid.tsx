@@ -8,7 +8,10 @@ export function kindIs<K extends string, T extends {kind: string}>(value: T, key
 }
 
 type MatchFn<T, Key> = (value: Include<T, {kind: Key}>) => JSX.Element;
-export function SwitchKind<T extends {kind: string}>(props: {item: T, children: {[Key in T["kind"]]: MatchFn<T, Key>}}): JSX.Element {
+export function SwitchKind<T extends {kind: string}>(props: {
+    item: T,
+    children: {[Key in T["kind"]]: MatchFn<T, Key>},
+}): JSX.Element {
     // <Switch children={/*@once*/} />
     return createMemo(() => {
         const match = props.children[props.item.kind as T["kind"]] as MatchFn<T, T["kind"]> | undefined;
