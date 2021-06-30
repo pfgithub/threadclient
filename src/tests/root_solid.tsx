@@ -1,5 +1,5 @@
 import { createSignal, JSX, For } from "solid-js";
-import { ShowCond } from "src/util/utils_solid";
+import { ShowCond } from "../util/utils_solid";
 import { testHtmlToRichtext } from "../clients/reddit/html_to_richtext.spec";
 export * from "../util/interop_solid";
 
