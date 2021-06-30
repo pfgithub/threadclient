@@ -24,8 +24,10 @@ export const TimeAgo = (props: {start: number}): JSX.Element => {
     const [now, setNow] = createSignal(Date.now());
     const label = createMemo(() => {
         const res_text = timeAgoText(props.start, now());
-        const timeout = setTimeout(() => setNow(Date.now()), res_text[1] + 10);
-        onCleanup(() => clearTimeout(timeout));
+        if(res_text[1] > 0) {
+            const timeout = setTimeout(() => setNow(Date.now()), res_text[1] + 10);
+            onCleanup(() => clearTimeout(timeout));
+        }
         return res_text[0];
     });
     return <span title={"" + new Date(props.start)}>{label}</span>;
