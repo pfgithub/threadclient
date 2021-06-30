@@ -1,8 +1,8 @@
-import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Show, Switch } from "solid-js";
+import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, timeAgoText, unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, userLink, previewLink } from "../app";
 import type * as Generic from "../types/generic";
-import { getClient, HideshowProvider, kindIs, SwitchKind } from "../util/utils_solid";
+import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 export * from "../util/interop_solid";
 
@@ -93,13 +93,13 @@ const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
             return <span
                 class="relative bg-spoiler-color-hover rounded"
             >
-                <Show when={!opened()}>
+                <ShowBool when={!opened()}>
                     <button
                         class="absolute top-0 left-0 bottom-0 right-0 w-full h-full rounded bg-spoiler-color hover:bg-spoiler-color-hover cursor-pointer"
                         title="Click to reveal spoiler"
                         on:click={() => setOpened(true)}
                     ></button>
-                </Show>
+                </ShowBool>
                 <span
                     class="rounded transition-opacity bg-spoiler-color-revealed"
                     classList={{
@@ -171,7 +171,7 @@ const RichtextParagraph = (props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             return <ul class="list-disc pl-4">{listContent()}</ul>;
         },
         code_block: (code) => <pre class="bg-gray-200 p-2 rounded text-gray-800">
-            <Show when={code.lang}>{lang => <div class="font-sans"><span class="bg-gray-100 p-1 inline-block rounded-sm">lang={lang}</span></div>}</Show>
+            <ShowCond when={code.lang}>{lang => <div class="font-sans"><span class="bg-gray-100 p-1 inline-block rounded-sm">lang={lang}</span></div>}</ShowCond>
             <code>{code.text}</code>
         </pre>,
         table: (table) => <table>
@@ -208,9 +208,9 @@ const Flair = (props: {flair: Generic.Flair[]}): JSX.Element => (
 );
 
 const ErrableLink = <T,>(props: {link: Generic.Link<T>, children: (link: T) => JSX.Element}) => {
-    return <Show when={props.link.err == null} fallback={<div>Error! {props.link.err}</div>}>
+    return <ShowBool when={props.link.err == null} fallback={<div>Error! {props.link.err}</div>}>
         {props.children(props.link.ref!)}
-    </Show>;
+    </ShowBool>;
 };
 
 type ClientPostReplyProps = {reply: Generic.ListingEntry, is_threaded: boolean};
@@ -242,9 +242,9 @@ const ClientPostReply = (props: ClientPostReplyProps): JSX.Element => {
                 </Match>
             </Switch>
         </li>
-        <Show when={isThreaded()?.length === 1}>{
+        <ShowBool when={isThreaded()?.length === 1}>{
             <ClientPostReply reply={isThreaded()![0]!} is_threaded={true} />
-        }</Show>
+        }</ShowBool>
     </>;
 };
 
@@ -278,7 +278,7 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
         }}
         style={{'margin-left': "-10px", ...props.opts.top_level ? {'margin-top': "-10px"} : {}}}
     >
-        <Show when={props.content.show_replies_when_below_pivot !== false}>
+        <ShowBool when={props.content.show_replies_when_below_pivot !== false}>
             <button style={{bottom: "0"}} class="collapse-btn" draggable={true} on:click={(e) => {
                 const collapsed_button = e.currentTarget;
                 const topv = collapsed_button.getBoundingClientRect().top;
@@ -289,65 +289,65 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
             }}>
                 <div class="collapse-btn-inner"></div>
             </button>
-        </Show>
+        </ShowBool>
         <div class="post-content-subminfo">
-            <Show when={props.content.title}>{title => (
+            <ShowCond when={props.content.title}>{title => (
                 <div>{title.text}</div>   
-            )}</Show>
-            <Show when={props.content.author?.pfp}>{pfp => <>
+            )}</ShowCond>
+            <ShowCond when={props.content.author?.pfp}>{pfp => <>
                 <AuthorPfp src_url={pfp.url} />{" "}
-            </>}</Show>
-            <Show when={props.content.author}>{author => (
+            </>}</ShowCond>
+            <ShowCond when={props.content.author}>{author => (
                 <UserLink id={client().id} link={author.link} color_hash={author.color_hash}>
                     {author.name}
                 </UserLink>
-            )}</Show>
-            <Show when={props.content.author?.flair}>{flair => <>
+            )}</ShowCond>
+            <ShowCond when={props.content.author?.flair}>{flair => <>
                 {" "}<Flair flair={flair} />
-            </>}</Show>
+            </>}</ShowCond>
         </div>
         <HideshowProvider visible={selfVisible}>
             <div class="post-preview">
                 {/*working around a solid bug where !! is used on the lhs of a ??. should be fixed soon*/null}
-                <Show when={(void 0, bodyVisible() ?? defaultBodyVisible())}>
+                <ShowBool when={(void 0, bodyVisible() ?? defaultBodyVisible())}>
                     <Body body={props.content.body} />
-                </Show>
+                </ShowBool>
             </div>
             <div class="post-content-buttons text-xs">
-                <Show when={bodyToggleable()}>
+                <ShowBool when={bodyToggleable()}>
                     <button on:click={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
                         {bodyVisible() ?? defaultBodyVisible() ? "Hide" : "Show"}
                     </button>
-                </Show>
+                </ShowBool>
                 <button on:click={() => {
                     console.log(props.content, props.opts);
                 }}>Code</button>
-                <Show when={props.opts.replies?.reply}>{(reply_action) => {
+                <ShowCond when={props.opts.replies?.reply}>{(reply_action) => {
                     const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
 
                     return <>
                         <button disabled={replyWindowOpen()} on:click={() => {
                             setReplyWindowOpen(true);
                         }}>{reply_action.text}</button>
-                        <Show when={replyWindowOpen()}>
+                        <ShowBool when={replyWindowOpen()}>
                             <ReplyEditor action={reply_action} onCancel={() => setReplyWindowOpen(false)} onAddReply={() => {
                                 setReplyWindowOpen(false);
                                 //
                             }} />
-                        </Show>
+                        </ShowBool>
                     </>;
-                }}</Show>
+                }}</ShowCond>
             </div>
-            <Show when={!props.opts.at_or_above_pivot && props.opts.replies}>
-                <Show when={props.opts.replies}>{replies => <Show when={props.content.show_replies_when_below_pivot !== false}>
+            <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
+                <ShowCond when={props.opts.replies}>{replies => <ShowBool when={props.content.show_replies_when_below_pivot !== false}>
                     <ul class="post-replies">
                         <For each={replies.items}>{reply => (
                             // - if replies.items is 1, maybe thread replies?
                             <ClientPostReply reply={reply} is_threaded={replies.items.length === 1} />
                         )}</For>
                     </ul>
-                </Show>}</Show>
-            </Show>
+                </ShowBool>}</ShowCond>
+            </ShowBool>
         </HideshowProvider>
     </div>;
 };
@@ -396,11 +396,11 @@ export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () =>
                 props.onCancel();
             }}>Cancel<div /></button>
         </div>
-        <Show when={sendError()}>{errv => <>
+        <ShowCond when={sendError()}>{errv => <>
             <pre class="error"><code>There was an error! {errv}</code></pre>
             <button onClick={() => setSendError(undefined)}>Hide error</button>
-        </>}</Show>
-        <Show when={diffable.value}>{value => {
+        </>}</ShowCond>
+        <ShowCond when={diffable.value}>{value => {
             console.log("Value changed", value);
             return <div class="bg-body rounded-xl max-w-xl object-wrapper shadow-none"><ClientContent listing={value} opts={{
                 clickable: false,
@@ -409,7 +409,7 @@ export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () =>
                 is_pivot: true,
                 top_level: true,   
             }}/></div>;
-        }}</Show>
+        }}</ShowCond>
     </div>;
 };
 
@@ -430,15 +430,15 @@ const PreviewableLink = (props: {href: string, children: JSX.Element}): JSX.Elem
             lp.setVisible(!lp.visible());
         } : undefined}>
             {props.children}
-            <Show when={linkPreview()}>{preview_opts => <>
+            <ShowCond when={linkPreview()}>{preview_opts => <>
                 {" "}{preview_opts.visible() ? "▾" : "▸"}
-            </>}</Show>
+            </>}</ShowCond>
         </LinkButton>
-        <Show when={linkPreview()}>{preview_opts =>
-            <Show when={preview_opts.visible()}>
+        <ShowCond when={linkPreview()}>{preview_opts =>
+            <ShowBool when={preview_opts.visible()}>
                 <Body autoplay={true} body={preview_opts.body} />
-            </Show>
-        }</Show>
+            </ShowBool>
+        }</ShowCond>
     </>;
 };
 
@@ -530,7 +530,7 @@ export const ClientPage = (props: ClientPageProps): JSX.Element => {
 
     // it should be index for replies right? actually should be for jk
     return <WrapParent node={props.page.pivot.ref!} is_pivot={true}>
-        <Show when={props.page.pivot.ref!.replies}>{replies => <>
+        <ShowCond when={props.page.pivot.ref!.replies}>{replies => <>
             <hr class="my-2 border-t-2 mb-8" style={{'border-top-color': "var(--collapse-line-color)"}} />
             {/*TODO put the sorting options here*/null}
             <For each={replies.items} fallback={<div>*There are no replies*</div>}>{reply => (
@@ -548,7 +548,7 @@ export const ClientPage = (props: ClientPageProps): JSX.Element => {
                     )}</Match>
                 </Switch>
             )}</For>
-        </>}</Show>
+        </>}</ShowCond>
     </WrapParent>;
 };
 
@@ -582,7 +582,7 @@ const WrapParent = (props: {node: Generic.ParentPost, children: JSX.Element, is_
         {props.children}
     </>;
     return <>
-        <Show when={props.node.parent} fallback={
+        <ShowCond when={props.node.parent} fallback={
             content()
         } children={parent_link => {
             return <ErrableLink link={parent_link} children={parent => (

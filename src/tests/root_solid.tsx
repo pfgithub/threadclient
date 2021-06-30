@@ -1,4 +1,5 @@
-import { createSignal, JSX, Show, For } from "solid-js";
+import { createSignal, JSX, For } from "solid-js";
+import { ShowCond } from "src/util/utils_solid";
 import { testHtmlToRichtext } from "../clients/reddit/html_to_richtext.spec";
 export * from "../util/interop_solid";
 
@@ -16,7 +17,7 @@ function TestBatch(props: {title: string, execute: (cb: (update: TestState[]) =>
         <button onClick={() => {
             void props.execute(setState);
         }}>Run</button>
-        <Show when={state()} fallback={<div>Not running.</div>}>{list => <>
+        <ShowCond when={state()} fallback={<div>Not running.</div>}>{list => <>
             <div>
                 Completed: {list.filter(itm => itm.mode === "done" || itm.mode === "error").length}/{list.length}.{" "}
                 Errors: {list.filter(itm => itm.mode === "error").length}
@@ -28,7 +29,7 @@ function TestBatch(props: {title: string, execute: (cb: (update: TestState[]) =>
                     <pre><For each={item.text}>{line => <code class="block">{line}</code>}</For></pre>
                 </li>}</For>
             </ul>
-        </>}</Show>
+        </>}</ShowCond>
     </div>;
 }
 
