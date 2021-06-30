@@ -58,8 +58,11 @@ export const ImageGallery = (props: {images: Generic.GalleryItem[]}): JSX.Elemen
 
 const generic_linkstyle_mappings: {[key in Generic.Richtext.LinkStyle]: LinkStyle} = {'link': "normal", 'pill-empty': "pill-empty"};
 const RichtextLink = (props: {rts: Generic.Richtext.LinkSpan}): JSX.Element => {
+    // TODO display links with no text
+    // used to do this: el("span").atxt("«no text»").adto(reslink);
+    // but that doesn't work in many conditions
     const styleIsLink = () => (props.rts.style ?? "link") === "link";
-    return <Switch>
+    return <span title={props.rts.title}><Switch>
         <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => <SolidToVanillaBoundary getValue={(hsc, client) => {
             return userLink(client().id, props.rts.url, color_hash).adch(<span>
                 <RichtextSpans spans={props.rts.children} />
@@ -71,7 +74,7 @@ const RichtextLink = (props: {rts: Generic.Richtext.LinkSpan}): JSX.Element => {
         <Match when={props.rts.is_user_link == null && !styleIsLink()}>
             <LinkButton href={props.rts.url} style={generic_linkstyle_mappings[props.rts.style ?? "link"]}><RichtextSpans spans={props.rts.children} /></LinkButton>
         </Match>
-    </Switch>;
+    </Switch></span>;
 };
 
 const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
