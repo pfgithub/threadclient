@@ -41,6 +41,7 @@ module.exports = {
                 interface: {multiline: {delimiter: "semi", requireLast: true}, singleline: {delimiter: "semi", requireLast: false}}
             },
         }],
+        "custom-quote-rule/func-style": "warn",
     },
     overrides: [{
         files: ["*.js", "*.jsx"],

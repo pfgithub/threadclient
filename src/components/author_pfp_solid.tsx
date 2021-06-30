@@ -17,11 +17,11 @@ export type ClientPostOpts = {
 
 const decorative_alt = "";
 
-export const AuthorPfp = (props: {src_url: string}): JSX.Element => (
-    <img src={props.src_url} alt={decorative_alt} class="w-8 h-8 object-center inline-block cfg-reddit-pfp rounded-full"/>
-);
+export function AuthorPfp(props: {src_url: string}): JSX.Element {
+    return <img src={props.src_url} alt={decorative_alt} class="w-8 h-8 object-center inline-block cfg-reddit-pfp rounded-full"/>;
+}
 
-export const TimeAgo = (props: {start: number}): JSX.Element => {
+export function TimeAgo(props: {start: number}): JSX.Element {
     const [now, setNow] = createSignal(Date.now());
     const label = createMemo(() => {
         const res_text = timeAgoText(props.start, now());
@@ -32,9 +32,9 @@ export const TimeAgo = (props: {start: number}): JSX.Element => {
         return res_text[0];
     });
     return <span title={"" + new Date(props.start)}>{label}</span>;
-};
+}
 
-export const ImageGallery = (props: {images: Generic.GalleryItem[]}): JSX.Element => {
+export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Element {
     const [state, setState] = createSignal<{kind: "overview"} | {kind: "image", index: number}>({kind: "overview"});
 
     return <Switch fallback={<button on:click={() => {console.log(state()); setState({kind: "overview"})}}>Error state!</button>}>
@@ -55,10 +55,10 @@ export const ImageGallery = (props: {images: Generic.GalleryItem[]}): JSX.Elemen
             <Body body={props.images[sel.index]!.body} />
         </>}</Match>
     </Switch>;
-};
+}
 
 const generic_linkstyle_mappings: {[key in Generic.Richtext.LinkStyle]: LinkStyle} = {'link': "normal", 'pill-empty': "pill-empty"};
-const RichtextLink = (props: {rts: Generic.Richtext.LinkSpan}): JSX.Element => {
+function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
     // TODO display links with no text
     // used to do this: el("span").atxt("«no text»").adto(reslink);
     // but that doesn't work in many conditions
@@ -76,9 +76,9 @@ const RichtextLink = (props: {rts: Generic.Richtext.LinkSpan}): JSX.Element => {
             <LinkButton href={props.rts.url} style={generic_linkstyle_mappings[props.rts.style ?? "link"]}><RichtextSpans spans={props.rts.children} /></LinkButton>
         </Match>
     </Switch></span>;
-};
+}
 
-const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
+function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
     return <SwitchKind item={props.span}>{{
         text: (text) => <span classList={{
             'font-bold': text.styles.strong,
@@ -125,13 +125,13 @@ const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
         }} />,
         code: (code) => <code class="bg-gray-200 p-1 rounded text-gray-800">{code.text}</code>,
     }}</SwitchKind>;
-};
+}
 
-export const RichtextSpans = (props: {spans: Generic.Richtext.Span[]}): JSX.Element => {
+export function RichtextSpans(props: {spans: Generic.Richtext.Span[]}): JSX.Element {
     return <For each={props.spans}>{span => <RichtextSpan span={span}/>}</For>;
-};
+}
 
-const RichtextParagraph = (props: {paragraph: Generic.Richtext.Paragraph}): JSX.Element => {
+function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.Element {
     return <SwitchKind item={props.paragraph}>{{
         paragraph: (pgph) => <p><RichtextSpans spans={pgph.children} /></p>,
         body: (body) => <Body body={body.body} />,
@@ -191,17 +191,17 @@ const RichtextParagraph = (props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             </tr>}</For></tbody>
         </table>,
     }}</SwitchKind>;
-};
+}
 
-export const RichtextParagraphs = (props: {content: readonly Generic.Richtext.Paragraph[], tight?: boolean}): JSX.Element => {
+export function RichtextParagraphs(props: {content: readonly Generic.Richtext.Paragraph[], tight?: boolean}): JSX.Element {
     return <For each={props.content}>{paragraph => (
         <div classList={{'my-2': !(props.tight ?? false)}}>
             <RichtextParagraph paragraph={paragraph} />
         </div>
     )}</For>;
-};
+}
 
-const UserLink = (props: {href: string, color_hash: string, children: JSX.Element}): JSX.Element => {
+function UserLink(props: {href: string, color_hash: string, children: JSX.Element}): JSX.Element {
     const getStyle = () => {
         const [author_color, author_color_dark] = getRandomColor(seededRandom(props.color_hash.toLowerCase()));
         return  {
@@ -210,21 +210,21 @@ const UserLink = (props: {href: string, color_hash: string, children: JSX.Elemen
         };
     };
     return <span style={getStyle()}><LinkButton style="userlink" href={props.href}>{props.children}</LinkButton></span>;
-};
+}
 
-const Flair = (props: {flair: Generic.Flair[]}): JSX.Element => (
+function Flair(props: {flair: Generic.Flair[]}): JSX.Element {
     // TODO renderFlair
-    createMemo(() => renderFlair(props.flair)) // wow flairs don't even need a client or hsc
-);
+    return createMemo(() => renderFlair(props.flair)); // wow flairs don't even need a client or hsc
+}
 
-const ErrableLink = <T,>(props: {link: Generic.Link<T>, children: (link: T) => JSX.Element}) => {
+function ErrableLink<T,>(props: {link: Generic.Link<T>, children: (link: T) => JSX.Element}) {
     return <ShowBool when={props.link.err == null} fallback={<div>Error! {props.link.err}</div>}>
         {props.children(props.link.ref!)}
     </ShowBool>;
-};
+}
 
 type ClientPostReplyProps = {reply: Generic.ListingEntry, is_threaded: boolean};
-const ClientPostReply = (props: ClientPostReplyProps): JSX.Element => {
+function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
     const isThreaded = createMemo(() => (props.is_threaded || undefined) && kindIs(props.reply, "post")?.post.ref?.replies?.items);
 
     return <>
@@ -256,19 +256,19 @@ const ClientPostReply = (props: ClientPostReplyProps): JSX.Element => {
             <ClientPostReply reply={isThreaded()![0]!} is_threaded={true} />
         }</ShowBool>
     </>;
-};
+}
 
-const Body = (props: {body: Generic.Body, autoplay?: boolean}): JSX.Element => {
+function Body(props: {body: Generic.Body, autoplay?: boolean}): JSX.Element {
     let autoplay = props.autoplay ?? false;
     return <SolidToVanillaBoundary getValue={(hsc, client) => {
         const this_autoplay = autoplay;
         autoplay = false;
         return renderBody(client(), props.body, {autoplay: this_autoplay}).defer(hsc);
     }} />;
-};
+}
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
-const ClientPost = (props: ClientPostProps): JSX.Element => {
+function ClientPost(props: ClientPostProps): JSX.Element {
     const [selfVisible, setSelfVisible] = createSignal(props.content.show_replies_when_below_pivot !== false ? !props.content.show_replies_when_below_pivot.default_collapsed : true);
     const [bodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
     const defaultBodyVisible = createMemo(() => {
@@ -359,10 +359,10 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
             </ShowBool>
         </HideshowProvider>
     </div>;
-};
+}
 
 type StoreTypeValue = {value: null | Generic.PostContent};
-export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () => void, onAddReply: (response: Generic.Node) => void}): JSX.Element => {
+export function ReplyEditor(props: {action: Generic.ReplyAction, onCancel: () => void, onAddReply: (response: Generic.Node) => void}): JSX.Element {
     const client = getClient();
     const [content, setContent] = createSignal("");
 
@@ -420,9 +420,9 @@ export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () =>
             }}/></div>;
         }}</ShowCond>
     </div>;
-};
+}
 
-const PreviewableLink = (props: {href: string, children: JSX.Element}): JSX.Element => {
+function PreviewableLink(props: {href: string, children: JSX.Element}): JSX.Element {
     const client = getClient();
 
     const linkPreview: () => {visible: () => boolean, setVisible: (a: boolean) => void, body: Generic.Body} | undefined = createMemo(() => {
@@ -449,9 +449,9 @@ const PreviewableLink = (props: {href: string, children: JSX.Element}): JSX.Elem
             </ShowBool>
         }</ShowCond>
     </>;
-};
+}
 
-const LinkButton = (props: {href: string, style: LinkStyle, onClick?: () => void, children: JSX.Element}): JSX.Element => {
+function LinkButton(props: {href: string, style: LinkStyle, onClick?: () => void, children: JSX.Element}): JSX.Element {
     const client = getClient();
     const linkValue = createMemo(() => unsafeLinkToSafeLink(client().id, props.href));
     return <SwitchKind item={linkValue()}>{{
@@ -476,9 +476,9 @@ const LinkButton = (props: {href: string, style: LinkStyle, onClick?: () => void
             } : undefined}
         >{props.children}</a>,
     }}</SwitchKind>;
-};
+}
 
-const DefaultErrorBoundary = (props: {data: unknown, children: JSX.Element}): JSX.Element => {
+function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JSX.Element {
     return <ErrorBoundary fallback={(err: unknown, reset) => {
         console.log(err);
         return <div>
@@ -489,13 +489,13 @@ const DefaultErrorBoundary = (props: {data: unknown, children: JSX.Element}): JS
     }}>
         {props.children}
     </ErrorBoundary>;
-};
+}
 
 // TODO make a custom <Switch> that asserts that all the cases have been handled
 
 // should client be provided by a provider?
 export type ClientContentProps = {listing: Generic.PostContent, opts: ClientPostOpts};
-const ClientContent = (props: ClientContentProps): JSX.Element => {
+function ClientContent(props: ClientContentProps): JSX.Element {
     const todosupport = (thing: unknown) => <>
         TODO support. also in the parent list these should probably{" "}
         be one of those navbars with bits like ClientName {">"} PageName {">"} …{" "}
@@ -518,10 +518,10 @@ const ClientContent = (props: ClientContentProps): JSX.Element => {
             }}</SwitchKind>
         </DefaultErrorBoundary>
     </div>;
-};
+}
 
 export type ClientPageProps = {page: Generic.Page2};
-export const ClientPage = (props: ClientPageProps): JSX.Element => {
+export function ClientPage(props: ClientPageProps): JSX.Element {
     // TODO set page title
     // using a store or something
 
@@ -559,16 +559,16 @@ export const ClientPage = (props: ClientPageProps): JSX.Element => {
             )}</For>
         </>}</ShowCond>
     </WrapParent>;
-};
+}
 
-const TopLevelWrapper = (props: {children: JSX.Element}): JSX.Element => {
+function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
     return <div class="top-level-wrapper object-wrapper bg-postcolor-100">{props.children}</div>;
-};
+}
 
 // you know what'd be interesting?
 // what if the Client post in a post's parent list actually contained the client to use to render it
 // not going to do that but it could be interesting
-const WrapParent = (props: {node: Generic.ParentPost, children: JSX.Element, is_pivot: boolean}): JSX.Element => {
+function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_pivot: boolean}): JSX.Element {
     // () => in order to capture any .Provider nodes in a parent
     const content = () => <>
         <Switch fallback={<div>error! {props.node.kind}</div>}>
@@ -599,7 +599,7 @@ const WrapParent = (props: {node: Generic.ParentPost, children: JSX.Element, is_
             )} />;
         }} />
     </>;
-};
+}
 
 // solidToVanillaBoundary needs to uuh
 // idk do something but it needs to link hideshow and cleanup and return the threadclient or something

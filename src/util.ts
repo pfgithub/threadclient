@@ -1,7 +1,7 @@
 const rawsym = Symbol("raw");
 export const raw = (string: string): {[rawsym]: string, toString: () => string} => ({[rawsym]: "" + string, toString: () => string});
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const templateGenerator = <InType>(helper: (str: InType) => string) => {
+export function templateGenerator<InType>(helper: (str: InType) => string) {
     type ValueArrayType = (InType | {[rawsym]: string})[];
     return (strings: TemplateStringsArray, ...values: ValueArrayType) => {
         const result: ({raw: string} | {val: InType})[] = [];
@@ -19,10 +19,10 @@ export const templateGenerator = <InType>(helper: (str: InType) => string) => {
         const res = result.map(el => 'raw' in el ? el.raw : helper(el.val)).join("");
         return res;
     };
-};
+}
 export const encodeURL = templateGenerator<string>(str => encodeURIComponent(str));
 
-export const encodeQuery = (items: {[key: string]: string | null}): string => {
+export function encodeQuery(items: {[key: string]: string | null}): string {
     let res = "";
     for(const [key, value] of Object.entries(items)) {
         if(value == null) continue;
@@ -30,7 +30,7 @@ export const encodeQuery = (items: {[key: string]: string | null}): string => {
         res += encodeURL`${key}=${value}`;
     }
     return res;
-};
+}
 
 export function escapeHTML(unsafe_html: string): string {
     return unsafe_html.replace(/[^a-zA-Z0-9. ]/giu, c => "&#"+c.codePointAt(0)+";");

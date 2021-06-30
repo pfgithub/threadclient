@@ -281,17 +281,17 @@ function richtextStyle(style: number): StyleRes {
     };
 }
 
-const isLoggedIn = (): boolean => {
+function isLoggedIn(): boolean {
     const item = localStorage.getItem("reddit-secret");
     if(item == null || item === "") return false;
     return true;
-};
+}
 
-const baseURL = (oauth: boolean) => {
+function baseURL(oauth: boolean) {
     const base = oauth ? "oauth.reddit.com" : "www.reddit.com";
     return "https://"+base;
-};
-const pathURL = (oauth: boolean, path: string, opts: {override?: boolean}) => {
+}
+function pathURL(oauth: boolean, path: string, opts: {override?: boolean}) {
     const [pathname, query] = splitURL(path);
     if(!pathname.startsWith("/")) {
         throw new Error("path didn't start with `/` : `"+path+"`");
@@ -303,7 +303,7 @@ const pathURL = (oauth: boolean, path: string, opts: {override?: boolean}) => {
     query.set("gilding_detail", "1"); // not sure what this does but new.reddit sends it in an oauth.reddit.com request so it sounds good
     query.set("profile_img", "true"); // profile images
     return baseURL(oauth) + pathname + ".json?"+query.toString();
-};
+}
 
 // ok so the idea::
 // reddit listings are [pageinfo], [comments]
@@ -320,7 +320,7 @@ const pathURL = (oauth: boolean, path: string, opts: {override?: boolean}) => {
 
 let running_get_access_token: ((res: string | null) => void)[] = [];
 
-const getAccessToken = () => {
+function getAccessToken() {
     return new Promise(r => {
         running_get_access_token.push(r);
         if(running_get_access_token.length === 1) getAccessTokenInternal().then(res => {
@@ -333,13 +333,13 @@ const getAccessToken = () => {
             running_get_access_token = [];
         });
     });
-};
+}
 
 function generateDeviceID(): string {
     return [...crypto.getRandomValues(new Uint8Array(25))].map(v => v.toString(16).padStart(2, "0")).join("");
 }
 
-const getAccessTokenInternal = async () => {
+async function getAccessTokenInternal() {
 
     const data = localStorage.getItem("reddit-secret");
     if(data === "" || data == null) {
@@ -438,26 +438,26 @@ const getAccessTokenInternal = async () => {
         return res_data.access_token;
     }
     return json.access_token;
-};
+}
 
-const getAuthorization = async () => {
+async function getAuthorization() {
     const access_token = await getAccessToken();
     if(access_token == null) return "";
     return "Bearer "+access_token;
-};
+}
 
-const splitURL = (path: string): [string, URLSearchParams] => {
+function splitURL(path: string): [string, URLSearchParams] {
     const [pathname, ...query] = path.split("?");
     return [pathname ?? "", new URLSearchParams(query.join("?"))];
-};
-const updateQuery = (path: string, update: {[key: string]: string | undefined}) => {
+}
+function updateQuery(path: string, update: {[key: string]: string | undefined}) {
     const [pathname, query] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
         if(v != null) query.set(k, v);
         else query.delete(k);
     }
     return pathname + "?" + query.toString();
-};
+}
 
 function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.Action {
     return {
@@ -481,7 +481,7 @@ function createSubscribeAction(subreddit: string, subscribers: number, you_subbe
         },
     };
 }
-const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): Generic.ContentNode => {
+function sidebarWidgetToGenericWidget(data: Reddit.Widget, subreddit: string): Generic.ContentNode {
     try {
         return sidebarWidgetToGenericWidgetTry(data, subreddit);
     }catch(e) {
@@ -493,9 +493,9 @@ const sidebarWidgetToGenericWidget = (data: Reddit.Widget, subreddit: string): G
             widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! Error "+(e as Error).toString(), data))]}},
         };
     }
-};
+}
 
-const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string): Generic.ContentNode => {
+function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string): Generic.ContentNode {
     if(data.kind === "moderators") return {
         kind: "widget",
         title: "Moderators",
@@ -654,7 +654,7 @@ const sidebarWidgetToGenericWidgetTry = (data: Reddit.Widget, subreddit: string)
         raw_value: data,
         widget_content: {kind: "body", body: {kind: "richtext", content: [rt.p(rt.error("Uh oh! Unsupported widget "+data.kind, data))]}},
     };
-};
+}
 function customIDCardWidget(t5: Reddit.T5, subreddit: string): Generic.ContentNode {
     return {
         kind: "widget",
@@ -841,7 +841,12 @@ function getNavbar(): Generic.Navbar {
         inboxes: [],
     };
 }
-const pathFromListingRaw = (path: string, listing: unknown, opts: {warning?: Generic.Richtext.Paragraph[], sidebar: Generic.ContentNode[] | null}): Generic.Page => {
+function pathFromListingRaw(
+    path: string,
+    listing: unknown,
+    opts: {warning?: Generic.Richtext.Paragraph[],
+    sidebar: Generic.ContentNode[] | null,
+}): Generic.Page {
     const rtitems: Generic.Richtext.Paragraph[] = [];
     const listing_json = listing as {json: {errors: string[]}};
     if(typeof listing_json === "object" && 'json' in listing_json && typeof listing_json.json === "object"
@@ -877,10 +882,10 @@ const pathFromListingRaw = (path: string, listing: unknown, opts: {warning?: Gen
         sidebar: opts.sidebar ?? undefined,
         display_style: "comments-view",
     };
-};
+}
 
 // TODO pass in menu rather than generating it here
-export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, listing: Reddit.AnyResult, opts: {header?: Generic.ContentNode, sidebar: Generic.ContentNode[] | null}): Generic.Page => {
+export function pageFromListing(pathraw: string, parsed_path_in: ParsedPath, listing: Reddit.AnyResult, opts: {header?: Generic.ContentNode, sidebar: Generic.ContentNode[] | null}): Generic.Page {
     const page = parsed_path_in;
     if(Array.isArray(listing)) {
         if(listing[0].data.children.length !== 1) {
@@ -1273,7 +1278,7 @@ export const pageFromListing = (pathraw: string, parsed_path_in: ParsedPath, lis
     }
     expectUnsupported(listing.kind);
     return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: urlNotSupportedYet(pathraw)});
-};
+}
 
 function urlNotSupportedYet(pathraw: string) {
     const ismod = pathraw.startsWith("/mod/") || pathraw.startsWith("/mod?") || pathraw.startsWith("/mod#") || pathraw === "/mod"; // kinda hack
@@ -1927,7 +1932,7 @@ type LoadMoreData = {
     // all the query params + after: string
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
-const getPointsOn = (listing: {
+function getPointsOn(listing: {
     name: string,
     score_hidden?: boolean,
     hide_score?: boolean,
@@ -1935,7 +1940,7 @@ const getPointsOn = (listing: {
     likes: true | false | null,
     upvote_ratio?: number,
     archived?: boolean,
-}): Generic.Action => {
+}): Generic.Action {
     // not sure what rank is for
     const vote_data = {id: listing.name, rank: "2"};
     return {
@@ -1960,7 +1965,7 @@ const getPointsOn = (listing: {
             reset: encodeVoteAction({...vote_data, dir: "0"}),
         },
     };
-};
+}
 
 function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
     if(inbox_msg.kind === "t1" || inbox_msg.kind === "t4") {
@@ -2017,7 +2022,7 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
     };
 }
 
-const topLevelThreadFromInboxMsg = (inbox_msg: Reddit.InboxMsg): Generic.UnmountedNode => {
+function topLevelThreadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.UnmountedNode {
     if(inbox_msg.kind === "t1" || inbox_msg.kind === "t4") {
         const msg = inbox_msg.data;
         // TODO display the link title
@@ -2059,9 +2064,9 @@ const topLevelThreadFromInboxMsg = (inbox_msg: Reddit.InboxMsg): Generic.Unmount
         }],
         replies: [],
     };
-};
+}
 
-const topLevelThreadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.UnmountedNode => {
+function topLevelThreadFromListing(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.UnmountedNode {
     const res = threadFromListing(listing_raw, options, parent_permalink);
     if(listing_raw.kind === "t1" && 'link_title' in listing_raw.data) {
         return {
@@ -2101,7 +2106,7 @@ const topLevelThreadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts
         parents: [res],
         replies: [],
     };
-};
+}
 function loadMoreContextNode(subreddit: string, link_id: string, parent_id: string): Generic.LoadMore {
     return {
         kind: "load_more",
@@ -2110,7 +2115,7 @@ function loadMoreContextNode(subreddit: string, link_id: string, parent_id: stri
         raw_value: [subreddit, link_id, parent_id],
     };
 }
-const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
+function threadFromListing(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node {
     try {
         const res = threadFromListingMayError(listing_raw, options, parent_permalink);
         return res;
@@ -2127,32 +2132,32 @@ const threadFromListing = (listing_raw: Reddit.Post, options: ThreadOpts = {}, p
             default_collapsed: false,
         };
     }
-};
-const deleteButton = (fullname: string): Generic.Action => {
+}
+function deleteButton(fullname: string): Generic.Action {
     return {
         kind: "delete",
         data: encodeDeleteAction(fullname),
     };
-};
+}
 type ReportInfo = {
     subreddit: string,
     fullname: string,
 };
 const report_encoder = encoderGenerator<ReportInfo, "report">("report");
-const reportButton = (fullname: string, subreddit: string): Generic.Action => {
+function reportButton(fullname: string, subreddit: string): Generic.Action {
     return {
         kind: "report",
         data: report_encoder.encode({subreddit, fullname}),
     };
-};
-const replyButton = (fullname: string): Generic.Action => {
+}
+function replyButton(fullname: string): Generic.Action {
     return {
         kind: "reply",
         text: "Reply",
         reply_info: reply_encoder.encode({parent_id: fullname}),
     };
-};
-const saveButton = (fullname: string, saved: boolean): Generic.Action => {
+}
+function saveButton(fullname: string, saved: boolean): Generic.Action {
     return {
         kind: "counter",
 
@@ -2172,7 +2177,7 @@ const saveButton = (fullname: string, saved: boolean): Generic.Action => {
             reset: act_encoder.encode({kind: "save", fullname, direction: "un"}),
         },
     };
-};
+}
 
 function authorFromInfo(opts: {
     author: string,
@@ -2451,7 +2456,7 @@ function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, optio
 
 const as = <T>(a: T): T => a;
 type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
-const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node => {
+function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node {
     options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
         // Comment
@@ -2756,9 +2761,9 @@ const threadFromListingMayError = (listing_raw: Reddit.Post, options: ThreadOpts
     }
     // console.log("Post: ",listing);
     
-};
+}
 
-const getLoginURL = () => {
+function getLoginURL() {
     const state = typeof location !== "undefined" ? location.host : "NOSTATE";
     // https://www.reddit.com/api/v1/scopes.json → {[key: string]: {description: string, id: string, name: string}}
     // except "modtraffic" isn't a thing, why is it listed there?
@@ -2775,7 +2780,7 @@ const getLoginURL = () => {
         encodeQuery({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
     ;
     return url;
-};
+}
 
 async function fetchSubInfo(sub: SubrInfo): Promise<{sidebar: Generic.ContentNode[] | null, header?: Generic.ContentNode}> {
     if(sub.kind === "homepage") return {sidebar: null};
@@ -3669,7 +3674,7 @@ function assertNever(content: never): never {
     console.log("not never:", content);
     throw new Error("Expected never");
 }
-const siteRuleToReportScreen = (data: ReportInfo, site_rule: Reddit.FlowRule): Generic.ReportScreen => {
+function siteRuleToReportScreen(data: ReportInfo, site_rule: Reddit.FlowRule): Generic.ReportScreen {
     let action: Generic.ReportAction;
     if('nextStepReasons' in site_rule) {
         action = {
@@ -3723,7 +3728,7 @@ const siteRuleToReportScreen = (data: ReportInfo, site_rule: Reddit.FlowRule): G
         title: site_rule.reasonTextToShow,
         report: action,
     };
-};
+}
 
 type ReportAction = {
     fullname: string,

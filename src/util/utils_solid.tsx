@@ -8,7 +8,7 @@ export function kindIs<K extends string, T extends {kind: string}>(value: T, key
 }
 
 type MatchFn<T, Key> = (value: Include<T, {kind: Key}>) => JSX.Element;
-export const SwitchKind = <T extends {kind: string}>(props: {item: T, children: {[Key in T["kind"]]: MatchFn<T, Key>}}): JSX.Element => {
+export function SwitchKind<T extends {kind: string}>(props: {item: T, children: {[Key in T["kind"]]: MatchFn<T, Key>}}): JSX.Element {
     // <Switch children={/*@once*/} />
     return createMemo(() => {
         const match = props.children[props.item.kind as T["kind"]] as MatchFn<T, T["kind"]> | undefined;
@@ -16,24 +16,24 @@ export const SwitchKind = <T extends {kind: string}>(props: {item: T, children: 
         const arg = props.item as Include<T, {kind: T["kind"]}>;
         return untrack(() => match(arg)); // untrack in order to treat the function as a widget (dependencies accessed don't cause this to reexec)
     });
-};
+}
 
 // TODO disable this rule in _solid.tsx files
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ClientContext = createContext<{client: ThreadClient}>();
-export const ClientProvider = (props: {client: ThreadClient, children: JSX.Element}): JSX.Element => {
+export function ClientProvider(props: {client: ThreadClient, children: JSX.Element}): JSX.Element {
     return <ClientContext.Provider value={{client: props.client}}>{props.children}</ClientContext.Provider>;
-};
-export const getClient = (): (() => ThreadClient) => { // TODO getClient: (): ThreadClient => {}
+}
+export function getClient(): (() => ThreadClient) { // TODO getClient: (): ThreadClient =}
     const client = useContext(ClientContext);
     if(!client) throw new Error("A client is required to render this component");
     return createMemo(() => client.client); // turns out you can't update provider values? weird
-};
+}
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const HideshowContext = createContext<{visible: () => boolean}>();
 
-export const HideshowProvider = (props: {visible: () => boolean, children: JSX.Element}): JSX.Element => {
+export function HideshowProvider(props: {visible: () => boolean, children: JSX.Element}): JSX.Element {
     const parent_state = useContext(HideshowContext);
     const selfVisible = createMemo(() => {
         const parent_v = parent_state?.visible() ?? true;
@@ -41,12 +41,12 @@ export const HideshowProvider = (props: {visible: () => boolean, children: JSX.E
         return parent_v ? props_v : false;
     });
     return <HideshowContext.Provider value={{visible: selfVisible}}>{props.children}</HideshowContext.Provider>;
-};
+}
 
-export const getIsVisible = (): (() => boolean) => {
+export function getIsVisible(): (() => boolean) {
     const visible_state = useContext(HideshowContext);
     return visible_state?.visible ?? (() => true);
-};
+}
 
 // versions of built in control flow with strict booleans
 

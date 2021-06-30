@@ -56,10 +56,10 @@ const genericHeader = (): Generic.Thread => ({
     default_collapsed: false,
     raw_value: {},
 });
-const mkurl = (host: string, ...bits: string[]): string => {
+function mkurl(host: string, ...bits: string[]): string {
     return "https://"+host+"/"+bits.join("/");
-};
-const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "GET" | "POST" = "GET"): Promise<T | {error: string}> => {
+}
+async function getResult<T>(auth: TokenResult | undefined, url: string, method: "GET" | "POST" = "GET"): Promise<T | {error: string}> {
     try {
         const [status, posts] = await fetch(url, {
             method,
@@ -77,8 +77,8 @@ const getResult = async<T>(auth: TokenResult | undefined, url: string, method: "
     }catch(e) {
         return {error: "Failed to load! "+(e as Error).toString()};
     }
-};
-const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Generic.UnmountedNode[] => {
+}
+function postArrayToReparentedTimeline(host: string, posts: Mastodon.Post[]): Generic.UnmountedNode[] {
     let nextv: Generic.Node[] = [];
     return posts.flatMap((post, i): Generic.UnmountedNode[] => {
         const thread = postToThread(host, post);
@@ -101,8 +101,8 @@ const postArrayToReparentedTimeline = (host: string, posts: Mastodon.Post[]): Ge
         nextv = [];
         return [{parents: [...loadmore_v, thread, ...thispv], replies: []}];
     });
-};
-const postArrayToReparentedThread = (host: string, root_id: string, posts: Mastodon.Post[]): Generic.Node[] => {
+}
+function postArrayToReparentedThread(host: string, root_id: string, posts: Mastodon.Post[]): Generic.Node[] {
     const id_map = new Map<string, {replies?: Generic.Node[]}>();
 
     const root: {replies: Generic.Node[]} = {replies: []};
@@ -122,9 +122,9 @@ const postArrayToReparentedThread = (host: string, root_id: string, posts: Masto
         id_map.set(post.id, thispost);
     }
     return root.replies;
-};
-const expectUnsupported = (a: "unsupported") => {/**/};
-const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.GalleryItem => {
+}
+function expectUnsupported(a: "unsupported") {/**/}
+function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.GalleryItem {
     if(media.type === "image") {
         return {
             thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=image",
@@ -174,7 +174,7 @@ const mediaToGalleryItem = (host: string, media: Mastodon.Media): Generic.Galler
         body: {kind: "link", url: media.url},
     };
     
-};
+}
 
 type GenMeta = {
     host: string,
@@ -340,7 +340,7 @@ function parseContentSpanHTML(host: string, content: string, meta: ParseContentM
     const [genmeta, children] = setupGenMeta(host, content, meta);
     return contentSpansToRichtextSpans(genmeta, children);
 }
-const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
+function postToThread(host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread {
     try {
         return postToThreadCanError(host, post, opts);
     } catch(e) {
@@ -356,8 +356,8 @@ const postToThread = (host: string, post: Mastodon.Post, opts: {replies?: Generi
             raw_value: [host, post, opts],
         };
     }
-};
-const postToThreadCanError = (host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread => {
+}
+function postToThreadCanError(host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread {
     const info: Generic.Info = {
         time: new Date(post.created_at).getTime(),
         edited: false,
@@ -425,19 +425,19 @@ const postToThreadCanError = (host: string, post: Mastodon.Post, opts: {replies?
         replies: opts.replies,
     };
     return res;
-};
-const splitURL = (path: string): [string, URLSearchParams] => {
+}
+function splitURL(path: string): [string, URLSearchParams] {
     const [pathname, ...query] = path.split("?");
     return [pathname ?? "", new URLSearchParams(query.join("?"))];
-};
-const updateQuery = (path: string, update: {[key: string]: string | undefined}) => {
+}
+function updateQuery(path: string, update: {[key: string]: string | undefined}) {
     const [pathname, query] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
         if(v != null) query.set(k, v);
         else query.delete(k);
     }
     return pathname + "?" + query.toString();
-};
+}
 type ApplicationResult = {
     client_id: string,
     client_secret: string,
@@ -453,18 +453,18 @@ type TokenResult = {
     scope: string,
     token_type: "Bearer",
 };
-const getLoginURL = (host: string, appres: ApplicationResult) => {
+function getLoginURL(host: string, appres: ApplicationResult) {
     return "raw!https://"+host+"/oauth/authorize?"+encodeQuery({
         client_id: appres.client_id,
         scope: "read write follow push",
         redirect_uri: redirectURI(host),
         response_type: "code"
     });
-};
-const lsgetter = <T>(namegtr: (host: string) => string): {
+}
+function lsgetter<T>(namegtr: (host: string) => string): {
     get: (host: string) => T | undefined,
     set: (host: string, newval: T | undefined) => void,
-} => {
+} {
     return {
         get(host): undefined | T {
             if(!host) return undefined;
@@ -482,7 +482,7 @@ const lsgetter = <T>(namegtr: (host: string) => string): {
             localStorage.setItem(namegtr(host), JSON.stringify(newval));
         }
     };
-};
+}
 const lsitems = {
     app: lsgetter<{host: string, data: ApplicationResult}>((host: string) => "mastodon-application-"+host),
     token: lsgetter<TokenResult>((host: string) => "mastodon-secret-"+host),
@@ -496,10 +496,10 @@ type Action =
 
 const action_encoder = encoderGenerator<Action, "act">("act");
 
-const isLoggedIn = (host: string) => {
+function isLoggedIn(host: string) {
     return !!lsitems.token.get(host);
-};
-const getAuth = async (host: string): Promise<undefined | TokenResult> => {
+}
+async function getAuth(host: string): Promise<undefined | TokenResult> {
     if(!host) return undefined;
     const authv = lsitems.token.get(host) ?? lsitems.client_creds.get(host);
     if(!authv) {
@@ -534,7 +534,7 @@ const getAuth = async (host: string): Promise<undefined | TokenResult> => {
         return resv;
     }
     return authv;
-};
+}
 
 function bodyPage(host: string, title: string, body: Generic.Body): Generic.Page {
     return {

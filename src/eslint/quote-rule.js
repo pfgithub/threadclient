@@ -1,4 +1,4 @@
-const convert = (str, new_quote) => {
+function convert(str, new_quote) {
     const old_quote = str[0];
 
     if (new_quote === old_quote) {
@@ -16,22 +16,22 @@ const convert = (str, new_quote) => {
         }
         return match;
     }) + new_quote;
-};
+}
 
-const quoteFixer = (node, new_quote) => {
+function quoteFixer(node, new_quote) {
     return (fixer) => {
         return [
             fixer.replaceText(node, convert(node.raw, new_quote)),
         ];
     };
-};
+}
 
-const propNameRequiresQuotes = (prop_name) => {
+function propNameRequiresQuotes(prop_name) {
     if(prop_name.match(/^[a-z_][a-zA-Z0-9_]*$/)) return false;
     return true;
-};
+}
 
-const default_rule = function(context) {
+function default_rule(context) {
     return {
         Literal(node) {
             if(!node.raw.startsWith("'") && !node.raw.startsWith('"')) return; // not a string
@@ -94,12 +94,13 @@ const default_rule = function(context) {
             }
         },
     };
-};
+}
 
 module.exports = {
     rules: {
         'quote-style': {create: default_rule},
         'member-delimiter-style': require("./member-delimiter-style").default,
+        'func-style': require("./func-style"),
     },
     configs: {
         recommended: {

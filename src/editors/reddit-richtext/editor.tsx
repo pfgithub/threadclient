@@ -7,29 +7,29 @@ import {withHistory} from "slate-history";
 
 const { useCallback, useMemo, useState } = React;
 
-const CodeElement = (props: RProps<CodeElement>): React.ReactElement => {
+function CodeElement(props: RProps<CodeElement>): React.ReactElement {
     return <pre {...props.attributes} className="rte-pre">
         <code>{props.children}</code>
     </pre>;
-};
+}
 
-const ParagraphElement = (props: RProps<ParagraphElement>): React.ReactElement => {
+function ParagraphElement(props: RProps<ParagraphElement>): React.ReactElement {
     return <p {...props.attributes} className="rte-p">{props.children}</p>;
-};
+}
 
-const NeverElement = (props: RProps<AnyElement>): React.ReactElement => {
+function NeverElement(props: RProps<AnyElement>): React.ReactElement {
     return <p {...props.attributes} className="rte-never">{props.children}</p>;
-};
+}
 
-const BlockquoteElement = (props: RProps<BlockquoteElement>): React.ReactElement => {
+function BlockquoteElement(props: RProps<BlockquoteElement>): React.ReactElement {
     return <blockquote {...props.attributes} className="rte-quote">{props.children}</blockquote>;
-};
+}
 
-const ImageElement = (props: RProps<ErrorSpan>): React.ReactElement => {
+function ImageElement(props: RProps<ErrorSpan>): React.ReactElement {
     const selected = useSelected();
     const focused = useFocused();
     return <span {...props.attributes}><span draggable="true" className={"bg-red-100 rounded p-1 font-mono "+(selected && focused ? "outline-default " : "")}>{props.element.image_text}</span>{props.children}</span>;
-};
+}
 
 function isMarkActive(editor: Editor, format: FormatType) {
     const marks = Editor.marks(editor);
@@ -49,23 +49,23 @@ function updateFormat(editor: Editor, new_fmt: FormatType) {
     // Transforms.setNodes(editor, {[new_fmt]: !match}, {match: n => Text.isText(n), split: true});
 }
 
-const Spoiler: React.FC = (props): React.ReactElement => {
+function Spoiler(props: {children: JSX.Element}): React.ReactElement {
     const selected = useSelected();
     const focused = useFocused();
     const revealed = selected && focused;
     return <span className={"md-spoiler-text"}>
         <span className={"md-spoiler-content"} style={{opacity: revealed ? "1" : "0"}}>{props.children}</span>
     </span>;
-};
+}
 
-const FormatButton = (props: {editor: Editor, format: FormatType, class?: string, children?: React.ReactNode}): React.ReactElement => {
+function FormatButton(props: {editor: Editor, format: FormatType, class?: string, children?: React.ReactNode}): React.ReactElement {
     const editor = useSlate();
     return <button className={"py-1 w-8 h-8 rounded-md " + props.class+(isMarkActive(editor, props.format) ? " bg-gray-200" : " hover:bg-gray-100")} onMouseDown={e => {
         e.preventDefault();
         e.stopPropagation();
         updateFormat(props.editor, props.format);
     }}>{props.children}</button>;
-};
+}
 
 // either block or inline
 type ParagraphElement = {
@@ -126,7 +126,7 @@ type RenderLeaf = (props: RProps<Leaf>) => React.ReactElement;
 
 // should the start and end of spoilers have a text node like `>` and `<`? that way it's easier to choose if you are adding to the spoiler or not?
 
-const withPlugin = (editor: Editor): Editor => {
+function withPlugin(editor: Editor): Editor {
     const {isInline, isVoid, normalizeNode, deleteBackward, insertText, insertBreak} = editor;
 
     editor.normalizeNode = entry => {
@@ -208,14 +208,14 @@ const withPlugin = (editor: Editor): Editor => {
     };
 
     return editor;
-};
+}
 
 function expectNeverValue<T>(a: never, b: T): T {
     return b;
 }
 
 // TODO: down arrow at bottom of page : insert a paragraph below if the outer element is not a paragraph
-export const App: React.FC = (): React.ReactElement => {
+export function App(): React.ReactElement {
     const editor = useMemo(() => withHistory(withReact(withPlugin(createEditor()))), []);
 
     const [value, setValue] = useState<Node[]>([
@@ -311,6 +311,6 @@ export const App: React.FC = (): React.ReactElement => {
             />
         </div>
     </Slate>;
-};
+}
 
 export const main = (): React.ReactElement => <App />;

@@ -92,12 +92,12 @@ function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, 
     }};
 }
 
-const menuButtonStyle = (active: boolean): string => {
+function menuButtonStyle(active: boolean): string {
     return [
         "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
         active ? "border-gray-900" : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900"
     ].join(" ");
-};
+}
 
 function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
     const container = el("div");
@@ -701,7 +701,7 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
     return hsc;
 }
 
-export const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {
+export function renderBody(client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> {
     try {
         return renderBodyMayError(client, body, opts);
     }catch(er) {
@@ -712,8 +712,8 @@ export const renderBody = (client: ThreadClient, body: Generic.Body, opts: {auto
         el("code").adto(el("pre").adto(content)).atxt(e.stack ?? "no stack");
         return hideshow(content);
     }
-};
-const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {
+}
+function renderBodyMayError(client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> {
     const content = el("div");
     const hsc = hideshow(content);
 
@@ -927,7 +927,7 @@ const renderBodyMayError = (client: ThreadClient, body: Generic.Body, opts: {aut
     }else assertNever(body);
 
     return hsc;
-};
+}
 
 function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
     // TODO?: render a body with markdown type unsafe-html that supports iframes
@@ -1331,13 +1331,13 @@ function userProfileListing(client: ThreadClient, profile: Generic.Profile, fram
     return hsc;
 }
 
-const scoreToString = (score: number) => {
+function scoreToString(score: number) {
     if(score < 10_000) return "" + score;
     if(score < 100_000) return (score / 1_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
     if(score < 1_000_000) return (score / 1_000 |0) + "k";
     if(score < 100_000_000) return (score / 1_000_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "m";
     return (score / 1_000_000 |0) + "m";
-};
+}
 
 type RenderActionOpts = {
     value_for_code_btn: unknown,
@@ -1818,12 +1818,12 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     return hsc;
 }
 
-export const userLink = (client_id: string, href: string, name: string): HTMLElement => {
+export function userLink(client_id: string, href: string, name: string): HTMLElement {
     const [author_color, author_color_dark] = getRandomColor(seededRandom(name.toLowerCase()));
     return linkButton(client_id, href, "userlink")
         .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
     ;
-};
+}
 
 export type Watchable<T> = {
     value: T,
@@ -2994,16 +2994,16 @@ const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     mastodon: () =>  import("./clients/mastodon").then(client => client.client),
     test: () =>  import("./clients/test").then(client => client.client),
 };
-const getClient = async (name: string) => {
+async function getClient(name: string) {
     const clientInitializer = client_initializers[name];
     if(!clientInitializer) return undefined;
     if(!client_cache[name]) client_cache[name] = await clientInitializer();
     if(client_cache[name]!.id !== name) throw new Error("client has incorrect id");
     return client_cache[name];
-};
-const getClientCached = (name: string): ThreadClient | undefined => {
+}
+function getClientCached(name: string): ThreadClient | undefined {
     return client_cache[name] ?? undefined;
-};
+}
 
 type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () => void};
 type NavigationEntry = {url: string, node: NavigationEntryNode};
@@ -3509,11 +3509,11 @@ history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname
 onNavigate(0, location);
 
 let drtime = 100;
-const rmdarkreader = () => {
+function rmdarkreader() {
     document.head.querySelector(".darkreader")?.remove();
     drtime *= 2;
     setTimeout(() => rmdarkreader(), drtime);
-};
+}
 setTimeout(() => rmdarkreader(), 0);
 
 const alertarea = el("div").adto(document.body).clss("alert-area");

@@ -4,9 +4,9 @@ import { render } from "solid-js/web";
 import { hideshow, HideShowCleanup } from "../app";
 import { ThreadClient } from "../clients/base";
 
-export const vanillaToSolidBoundary = <U, T extends (props: U) => JSX.Element>(
+export function vanillaToSolidBoundary<U, T extends (props: U) => JSX.Element>(
     client: ThreadClient, frame: HTMLElement, SolidNode: T, props: U,
-): HideShowCleanup<undefined> => {
+): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     const cleanup = render(() => {
@@ -23,9 +23,9 @@ export const vanillaToSolidBoundary = <U, T extends (props: U) => JSX.Element>(
     hsc.on("cleanup", () => cleanup());
 
     return hsc;
-};
+}
 
-export const SolidToVanillaBoundary = (props: {getValue: (hsc: HideShowCleanup<undefined>, client: () => ThreadClient) => HTMLElement}): JSX.Element => {
+export function SolidToVanillaBoundary(props: {getValue: (hsc: HideShowCleanup<undefined>, client: () => ThreadClient) => HTMLElement}): JSX.Element {
     const client = getClient();
     const visible = getIsVisible();
     return <span ref={(div) => {
@@ -41,4 +41,4 @@ export const SolidToVanillaBoundary = (props: {getValue: (hsc: HideShowCleanup<u
             });
         });
     }}></span>;
-};
+}
