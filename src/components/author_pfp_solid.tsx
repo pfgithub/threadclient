@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Show, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, renderRichtextLink, timeAgoText } from "../app";
+import { clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, timeAgoText, unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, userLink, previewLink } from "../app";
 import type * as Generic from "../types/generic";
 import { getClient, HideshowProvider, kindIs, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -54,6 +54,24 @@ export const ImageGallery = (props: {images: Generic.GalleryItem[]}): JSX.Elemen
     </Switch>;
 };
 
+const generic_linkstyle_mappings: {[key in Generic.Richtext.LinkStyle]: LinkStyle} = {'link': "normal", 'pill-empty': "pill-empty"};
+const RichtextLink = (props: {rts: Generic.Richtext.LinkSpan}): JSX.Element => {
+    const styleIsLink = () => (props.rts.style ?? "link") === "link";
+    return <Switch>
+        <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => <SolidToVanillaBoundary getValue={(hsc, client) => {
+            return userLink(client().id, props.rts.url, color_hash).adch(<span>
+                <RichtextSpans spans={props.rts.children} />
+            </span> as HTMLElement);
+        }} />}</Match>
+        <Match when={props.rts.is_user_link == null && styleIsLink()}>
+            <PreviewableLink href={props.rts.url}><RichtextSpans spans={props.rts.children} /></PreviewableLink>
+        </Match>
+        <Match when={props.rts.is_user_link == null && !styleIsLink()}>
+            <LinkButton href={props.rts.url} style={generic_linkstyle_mappings[props.rts.style ?? "link"]}><RichtextSpans spans={props.rts.children} /></LinkButton>
+        </Match>
+    </Switch>;
+};
+
 const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
     return <SwitchKind item={props.span}>{{
         text: (text) => <span classList={{
@@ -63,11 +81,7 @@ const RichtextSpan = (props: {span: Generic.Richtext.Span}): JSX.Element => {
             'align-top': text.styles.superscript,
             'text-xs': text.styles.superscript,
         }}>{text.text}</span>,
-        link: (link) => <SolidToVanillaBoundary getValue={(hsc, client) => {
-            const res = renderRichtextLink(client(), link);
-            res.link.adch(<span><RichtextSpans spans={link.children} /></span> as HTMLElement);
-            return res.hsc.defer(hsc);
-        }} />,
+        link: (link) => <RichtextLink rts={link} />,
         br: () => <br />,
         spoiler: (spoiler) => {
             // TODO what if the spoiler contained a button
@@ -232,9 +246,12 @@ const ClientPostReply = (props: ClientPostReplyProps): JSX.Element => {
     </>;
 };
 
-const Body = (props: {body: Generic.Body}): JSX.Element => {
+const Body = (props: {body: Generic.Body, autoplay?: boolean}): JSX.Element => {
+    let autoplay = props.autoplay ?? false;
     return <SolidToVanillaBoundary getValue={(hsc, client) => {
-        return renderBody(client(), props.body, {autoplay: false}).defer(hsc);
+        const this_autoplay = autoplay;
+        autoplay = false;
+        return renderBody(client(), props.body, {autoplay: this_autoplay}).defer(hsc);
     }} />;
 };
 
@@ -392,6 +409,62 @@ export const ReplyEditor = (props: {action: Generic.ReplyAction, onCancel: () =>
             }}/></div>;
         }}</Show>
     </div>;
+};
+
+const PreviewableLink = (props: {href: string, children: JSX.Element}): JSX.Element => {
+    const client = getClient();
+
+    const linkPreview: () => {visible: () => boolean, setVisible: (a: boolean) => void, body: Generic.Body} | undefined = createMemo(() => {
+        const body = previewLink(client(), props.href, {});
+        if(!body) return undefined;
+        const [visible, setVisible] = createSignal(false);
+        return {visible, setVisible, body};
+    });
+
+
+    return <>
+        <LinkButton href={props.href} style={linkPreview() ? "previewable" : "normal"} onClick={linkPreview() ? () => {
+            const lp = linkPreview()!;
+            lp.setVisible(!lp.visible());
+        } : undefined}>
+            {props.children}
+            <Show when={linkPreview()}>{preview_opts => <>
+                {" "}{preview_opts.visible() ? "▾" : "▸"}
+            </>}</Show>
+        </LinkButton>
+        <Show when={linkPreview()}>{preview_opts =>
+            <Show when={preview_opts.visible()}>
+                <Body autoplay={true} body={preview_opts.body} />
+            </Show>
+        }</Show>
+    </>;
+};
+
+const LinkButton = (props: {href: string, style: LinkStyle, onClick?: () => void, children: JSX.Element}): JSX.Element => {
+    const client = getClient();
+    const linkValue = createMemo(() => unsafeLinkToSafeLink(client().id, props.href));
+    return <SwitchKind item={linkValue()}>{{
+        error: (error) => <a class={link_styles_v[props.style] + " error"} title={error.title} on:click={(e) => {
+            e.stopPropagation();
+            alert(props.href);
+        }}>{props.children}</a>,
+        mailto: (mailto) => <span title={mailto.title}>{props.children}</span>,
+        link: (link) => <a
+            class={link_styles_v[props.style]} href={link.url} target="_blank" rel="noopener noreferrer"
+            on:click={(link.url.startsWith("/") || props.onClick) ? event => {
+                event.stopPropagation();
+                if (
+                    !event.defaultPrevented && // onClick prevented default
+                    event.button === 0 && // ignore everything but left clicks
+                    !isModifiedEvent(event) // ignore clicks with modifier keys
+                ) {
+                    event.preventDefault();
+                    if(props.onClick) return props.onClick();
+                    navigate({path: link.url});
+                }
+            } : undefined}
+        >{props.children}</a>,
+    }}</SwitchKind>;
 };
 
 const DefaultErrorBoundary = (props: {data: unknown, children: JSX.Element}): JSX.Element => {

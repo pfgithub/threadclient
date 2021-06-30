@@ -23,7 +23,7 @@ const ClientContext = createContext<{client: ThreadClient}>();
 export const ClientProvider = (props: {client: ThreadClient, children: JSX.Element}): JSX.Element => {
     return <ClientContext.Provider value={{client: props.client}}>{props.children}</ClientContext.Provider>;
 };
-export const getClient = (): (() => ThreadClient) => {
+export const getClient = (): (() => ThreadClient) => { // TODO getClient: (): ThreadClient => {}
     const client = useContext(ClientContext);
     if(!client) throw new Error("A client is required to render this component");
     return createMemo(() => client.client); // turns out you can't update provider values? weird

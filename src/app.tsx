@@ -17,17 +17,17 @@ function assertNever(content: never): never {
     throw new Error("is not never");
 }
 
-function isModifiedEvent(event: MouseEvent) {
+export function isModifiedEvent(event: MouseEvent): boolean {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
 
-function linkButton(client_id: string, href: string, style: LinkStyle, opts: {onclick?: (e: MouseEvent) => void} = {}) {
+export function unsafeLinkToSafeLink(client_id: string, href: string): {kind: "error", title: string} | {kind: "mailto", title: string} | {kind: "link", url: string} {
     // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
     if(href.startsWith("/") && client_id) {
         href = "/"+client_id+href;
     }
     if(href.startsWith("mailto:")) {
-        return el("span").attr({title: href.replace("mailto:", "")});
+        return {kind: "mailto", title: href.replace("mailto:", "")};
     }
     let is_raw = false;
     if(href.startsWith("raw!")) {
@@ -35,7 +35,7 @@ function linkButton(client_id: string, href: string, style: LinkStyle, opts: {on
         is_raw = true;
     }
     if(!href.startsWith("http") && !href.startsWith("/")) {
-        return el("a").clss(...linkAppearence(style), "error").attr({title: href}).clss("error").onev("click", (e) => {e.stopPropagation(); alert(href)});
+        return {kind: "error", title: href};
     }
     let urlparsed: URL | undefined;
     try {
@@ -49,20 +49,32 @@ function linkButton(client_id: string, href: string, style: LinkStyle, opts: {on
     if(urlparsed && !is_raw && (urlparsed.host === "redd.it")) {
         href = "/reddit/comments"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
     }
-    const res = el("a").clss(...linkAppearence(style)).attr({href, target: "_blank", rel: "noreferrer noopener"});
-    if(href.startsWith("/") || opts.onclick) res.onclick = event => {
-        event.stopPropagation();
-        if (
-            !event.defaultPrevented && // onClick prevented default
-            event.button === 0 && // ignore everything but left clicks
-            !isModifiedEvent(event) // ignore clicks with modifier keys
-        ) {
-            event.preventDefault();
-            if(opts.onclick) return opts.onclick(event);
-            navigate({path: href});
-        }
-    };
-    return res;
+    return {kind: "link", url: href};
+}
+
+function linkButton(client_id: string, unsafe_href: string, style: LinkStyle, opts: {onclick?: () => void} = {}) {
+    const link_type = unsafeLinkToSafeLink(client_id, unsafe_href);
+    if(link_type.kind === "error") {
+        return el("a").clss(...linkAppearence(style), "error").attr({title: link_type.title}).clss("error").onev("click", (e) => {e.stopPropagation(); alert(unsafe_href)});
+    }else if(link_type.kind === "mailto") {
+        return el("span").attr({title: link_type.title});
+    }else if(link_type.kind === "link") {
+        const href = link_type.url;
+        const res = el("a").clss(...linkAppearence(style)).attr({href, target: "_blank", rel: "noopener noreferrer"});
+        if(href.startsWith("/") || opts.onclick) res.onclick = event => {
+            event.stopPropagation();
+            if (
+                !event.defaultPrevented && // onClick prevented default
+                event.button === 0 && // ignore everything but left clicks
+                !isModifiedEvent(event) // ignore clicks with modifier keys
+            ) {
+                event.preventDefault();
+                if(opts.onclick) return opts.onclick();
+                navigate({path: href});
+            }
+        };
+        return res;
+    }else assertNever(link_type);
 }
 
 function embedYoutubeVideo(youtube_video_id: string, opts: {autoplay: boolean}, search: URLSearchParams): {node: Node, onhide?: () => void, onshow?: () => void} {
@@ -303,7 +315,7 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
 }
 
 
-function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?: string}): undefined | Generic.Body {
+export function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?: string}): undefined | Generic.Body {
     let url_mut: URL | undefined;
     try { 
         url_mut = new URL(link);
@@ -432,9 +444,9 @@ function previewLink(client: ThreadClient, link: string, opts: {suggested_embed?
 
 // what instead of actually previewing the link, this returned a body? pretty resonable idea tbh, just make sure not to allow
 // infinite loops where this returns a link body
-function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<Node>) {
+export function canPreview(client: ThreadClient, link: string, opts: {autoplay: boolean, suggested_embed?: string}): undefined | (() => HideShowCleanup<HTMLElement>) {
     const preview_body = previewLink(client, link, {suggested_embed: opts.suggested_embed});
-    if(preview_body) return (): HideShowCleanup<Node> => renderBody(client, preview_body, {autoplay: opts.autoplay});
+    if(preview_body) return (): HideShowCleanup<HTMLElement> => renderBody(client, preview_body, {autoplay: opts.autoplay});
     return undefined;
 }
 
@@ -656,53 +668,6 @@ export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditM
     }};
 });
 
-function renderPreviewableLink(client: ThreadClient, href: string, __after_once: Node | null, parent_node: Node): HideShowCleanup<{newbtn: HTMLElement}> {
-    const after_node = document.createComment("");
-    parent_node.insertBefore(after_node, __after_once);
-
-    const renderLinkPreview = canPreview(client, href, {autoplay: true});
-
-    const newbtn = linkButton(client.id, href, renderLinkPreview ? "previewable" : "normal", {onclick: renderLinkPreview ? () => togglepreview() : undefined});
-    parent_node.insertBefore(newbtn, after_node);
-
-    const hsc = hideshow({newbtn});
-
-    if(!renderLinkPreview) return hsc;
-
-    const showpreviewbtn = elButton("none").clss("text-blue-500").atxt("…").onev("click", (e) => {e.stopPropagation(); togglepreview()});
-
-    let preview_div: undefined | {hsc: HideShowCleanup<unknown>, node: ChildNode} = undefined;
-
-    const togglepreview = () => {
-        if(preview_div) hidepreview();
-        else showpreview();
-    };
-
-    const hidepreview = () => {
-        showpreviewbtn.textContent = "▸";
-        if(preview_div) {preview_div.hsc.cleanup(); preview_div.node.remove(); preview_div = undefined}
-    };
-    const showpreview = () => {
-        showpreviewbtn.textContent = "▾";
-        const preview_container = el("div");
-        parent_node.insertBefore(preview_container, after_node);
-        const lprvw = renderLinkPreview();
-        lprvw.associated_data.adto(preview_container);
-        preview_div = {node: preview_container, hsc: lprvw};
-    };
-    hidepreview();
-
-    hsc.on("hide", () => {if(preview_div) preview_div.hsc.setVisible(false);});
-    hsc.on("show", () => {if(preview_div) preview_div.hsc.setVisible(true);});
-    hsc.on("cleanup", () => {
-        if(preview_div) preview_div.hsc.cleanup();
-    });
-
-    parent_node.insertBefore(showpreviewbtn, after_node);
-
-    return hsc;
-}
-
 function renderText(client: ThreadClient, body: Generic.BodyText): HideShowCleanup<Node> {
     const container = el("div");
     const hsc = hideshow(container);
@@ -734,27 +699,6 @@ function renderText(client: ThreadClient, body: Generic.BodyText): HideShowClean
     }else assertNever(body.markdown_format);
 
     return hsc;
-}
-
-export function renderRichtextLink(client: ThreadClient, rts: Generic.Richtext.LinkSpan): {hsc: HideShowCleanup<HTMLElement>, link: HTMLElement} {
-    const container = el("span");
-    const hsc = hideshow(container);
-    let reslink: HTMLElement;
-    if(rts.is_user_link != null) {
-        reslink = userLink(client.id, rts.url, rts.is_user_link).adto(container);
-    }else if((rts.style ?? "link") === "link"){
-        const {newbtn} = renderPreviewableLink(client, rts.url, null, container).defer(hsc);
-        reslink = newbtn;
-    }else{
-        const mappings: {[key in Generic.Richtext.LinkStyle]: LinkStyle} = {'link': "normal", 'pill-empty': "pill-empty"};
-        reslink = linkButton(client.id, rts.url, mappings[rts.style ?? "link"]).adto(container);
-    }
-    if(rts.title != null) reslink.title = rts.title;
-    if(rts.children.every(child => child.kind === "text" && child.text === "")) {
-        el("span").atxt("«no text»").adto(reslink);
-    }
-
-    return {hsc, link: reslink};
 }
 
 export const renderBody = (client: ThreadClient, body: Generic.Body, opts: {autoplay: boolean}): HideShowCleanup<HTMLDivElement> => {
@@ -1874,7 +1818,7 @@ function renderCounterAction(client: ThreadClient, action: Generic.CounterAction
     return hsc;
 }
 
-const userLink = (client_id: string, href: string, name: string) => {
+export const userLink = (client_id: string, href: string, name: string): HTMLElement => {
     const [author_color, author_color_dark] = getRandomColor(seededRandom(name.toLowerCase()));
     return linkButton(client_id, href, "userlink")
         .styl({"--light-color": rgbToString(author_color), "--dark-color": rgbToString(author_color_dark)})
@@ -2641,7 +2585,7 @@ function clientListing(client: ThreadClient, listing: Generic.Thread, frame: HTM
     return hsc;
 }
 
-type LinkStyle = keyof typeof link_styles_v;
+export type LinkStyle = keyof typeof link_styles_v;
 
 export const link_styles_v = {
     'none': "",
@@ -2677,7 +2621,7 @@ function loadingSpinner() {
 // doesn't matter atm but later.
 function loadMoreButton(client: ThreadClient, load_more_node: Generic.LoadMore, addChildren: (children: Generic.Node[]) => void, removeSelf: () => void) {
     const container = el("div");
-    const makeButton = () => linkButton(client.id, load_more_node.url, "load-more", {onclick: ev => {
+    const makeButton = () => linkButton(client.id, load_more_node.url, "load-more", {onclick: () => {
         const loading_txt = el("div").adto(container);
         loading_txt.adch(el("span").atxt("Loading…"));
         loading_txt.adch(loadingSpinner());
@@ -2711,7 +2655,7 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
     addChildren: (children: Generic.UnmountedNode[]) => void, removeSelf: () => void
 ) {
     const container = el("div");
-    const makeButton = (lmnode: Generic.LoadMoreUnmounted) => linkButton(client.id, lmnode.url, "load-more", {onclick: ev => {
+    const makeButton = (lmnode: Generic.LoadMoreUnmounted) => linkButton(client.id, lmnode.url, "load-more", {onclick: () => {
         const loading_txt = el("div").adto(container);
         loading_txt.adch(el("span").atxt("Loading…"));
         loading_txt.adch(loadingSpinner());
@@ -3069,7 +3013,7 @@ const session_name = "" + Math.random();
 
 type HistoryState = {index: number, session_name: string};
 
-function navigate({path, replace}: {path: string, replace?: boolean}) {
+export function navigate({path, replace}: {path: string, replace?: boolean}): void {
     replace ??= false;
     if(replace) {
         console.log("Replacing history item", current_history_index, path);
