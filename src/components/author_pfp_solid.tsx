@@ -1,9 +1,10 @@
 import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, timeAgoText, unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, userLink, previewLink } from "../app";
+import { clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, timeAgoText, unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink } from "../app";
 import type * as Generic from "../types/generic";
 import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
+import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 export * from "../util/interop_solid";
 
 export type ClientPostOpts = {
@@ -63,11 +64,11 @@ const RichtextLink = (props: {rts: Generic.Richtext.LinkSpan}): JSX.Element => {
     // but that doesn't work in many conditions
     const styleIsLink = () => (props.rts.style ?? "link") === "link";
     return <span title={props.rts.title}><Switch>
-        <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => <SolidToVanillaBoundary getValue={(hsc, client) => {
-            return userLink(client().id, props.rts.url, color_hash).adch(<span>
+        <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => 
+            <UserLink color_hash={color_hash} href={props.rts.url}>
                 <RichtextSpans spans={props.rts.children} />
-            </span> as HTMLElement);
-        }} />}</Match>
+            </UserLink>
+        }</Match>
         <Match when={props.rts.is_user_link == null && styleIsLink()}>
             <PreviewableLink href={props.rts.url}><RichtextSpans spans={props.rts.children} /></PreviewableLink>
         </Match>
@@ -200,10 +201,16 @@ export const RichtextParagraphs = (props: {content: readonly Generic.Richtext.Pa
     )}</For>;
 };
 
-const UserLink = (props: {id: string, link: string, color_hash: string, children: JSX.Element}): JSX.Element => (
-    // TODO userLink
-    <span>{props.children}</span>
-);
+const UserLink = (props: {href: string, color_hash: string, children: JSX.Element}): JSX.Element => {
+    const getStyle = () => {
+        const [author_color, author_color_dark] = getRandomColor(seededRandom(props.color_hash.toLowerCase()));
+        return  {
+            '--light-color': rgbToString(author_color),
+            '--dark-color': rgbToString(author_color_dark),
+        };
+    };
+    return <span style={getStyle()}><LinkButton style="userlink" href={props.href}>{props.children}</LinkButton></span>;
+};
 
 const Flair = (props: {flair: Generic.Flair[]}): JSX.Element => (
     // TODO renderFlair
@@ -270,7 +277,6 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
     const bodyToggleable = createMemo(() => {
         return !!props.content.title?.body_collapsible;
     });
-    const client = getClient();
     return <div
         classList={{
             'post': true,
@@ -301,7 +307,7 @@ const ClientPost = (props: ClientPostProps): JSX.Element => {
                 <AuthorPfp src_url={pfp.url} />{" "}
             </>}</ShowCond>
             <ShowCond when={props.content.author}>{author => (
-                <UserLink id={client().id} link={author.link} color_hash={author.color_hash}>
+                <UserLink href={author.link} color_hash={author.color_hash}>
                     {author.name}
                 </UserLink>
             )}</ShowCond>
