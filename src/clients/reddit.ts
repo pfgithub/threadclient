@@ -24,14 +24,14 @@ function flairToGenericFlair(
     if(opts.type === "text" && (opts.text == null || opts.text === "")) return [];
     const elems: Generic.RichTextItem[] = opts.type === "richtext" ? (opts.richtext ?? []).map(v => {
         if(v.e === "text") {
-            return {type: "text", text: v.t};
+            return {kind: "text", text: v.t};
         }else if(v.e === "emoji") {
-            return {type: "emoji", url: v.u, name: v.a, w: 16, h: 16}; // only aspect is known uuh
+            return {kind: "emoji", url: v.u, name: v.a, w: 16, h: 16}; // only aspect is known uuh
         }
         expectUnsupported(v.e);
-        return {type: "text", text: "#TODO("+v.e+")"};
-    }) : opts.type === "text" ? [{type: "text", text: opts.text!}] : [{type: "text", text: "TODO: "+opts.type}];
-    const flair_text = elems.map(v => v.type === "text" ? v.text : "").join("");
+        return {kind: "text", text: "#TODO("+v.e+")"};
+    }) : opts.type === "text" ? [{kind: "text", text: opts.text!}] : [{kind: "text", text: "TODO: "+opts.type}];
+    const flair_text = elems.map(v => v.kind === "text" ? v.text : "").join("");
     return [{
         color: opts.background_color ?? undefined,
         fg_color: opts.text_color === "light" ? "light" : "dark",
@@ -43,10 +43,10 @@ function flairToGenericFlair(
 function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     const resitems: Generic.RichTextItem[] = [];
     for(const awarding of awardings.sort((a1, a2) => a2.count - a1.count)) {
-        if(resitems.length > 0) resitems.push({type: "text", text: " "});
+        if(resitems.length > 0) resitems.push({kind: "text", text: " "});
         const icon = awarding.resized_static_icons[0]!;
-        resitems.push({type: "emoji", url: icon.url, w: icon.width, h: icon.height, name: awarding.name});
-        if(awarding.count > 1) resitems.push({type: "text", text: "×" + awarding.count});
+        resitems.push({kind: "emoji", url: icon.url, w: icon.width, h: icon.height, name: awarding.name});
+        if(awarding.count > 1) resitems.push({kind: "text", text: "×" + awarding.count});
     }
     if(resitems.length === 0) return [];
     return [{elems: resitems, content_warning: false, system: ""}];
@@ -2236,7 +2236,7 @@ function authorFromInfo(opts: {
             ...flairToGenericFlair(opts.flair_bits),
             ...opts.is_submitter ? as<Generic.Flair[]>([{
                 elems: [{
-                    type: "text",
+                    kind: "text",
                     text: "«OP»",
                 }],
                 content_warning: false,
@@ -2244,7 +2244,7 @@ function authorFromInfo(opts: {
             }]) : [],
             ...opts.author_cakeday ?? false ? as<Generic.Flair[]>([{
                 elems: [{
-                    type: "text",
+                    kind: "text",
                     text: "«🍰»",
                 }],
                 content_warning: false,
@@ -2252,7 +2252,7 @@ function authorFromInfo(opts: {
             }]) : [],
             ...opts.distinguished != null ? as<Generic.Flair[]>([{
                 elems: [{
-                    type: "text",
+                    kind: "text",
                     text: "«"+opts.distinguished+"»",
                 }],
                 content_warning: false,
@@ -2569,14 +2569,14 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 richtext: listing.link_flair_richtext,
             })
         );
-        if(listing.spoiler) flairs.push({elems: [{type: "text", text: "Spoiler"}], content_warning: true});
-        if(listing.over_18) flairs.push({elems: [{type: "text", text: "NSFW"}], content_warning: true});
-        if(listing.is_original_content) flairs.push({elems: [{type: "text", text: "OC"}], content_warning: false});
+        if(listing.spoiler) flairs.push({elems: [{kind: "text", text: "Spoiler"}], content_warning: true});
+        if(listing.over_18) flairs.push({elems: [{kind: "text", text: "NSFW"}], content_warning: true});
+        if(listing.is_original_content) flairs.push({elems: [{kind: "text", text: "OC"}], content_warning: false});
         flairs.push(...awardingsToFlair(listing.all_awardings ?? []));
 
         if(listing.approved === true) {
             flairs.push({
-                elems: [{type: "text", text: "✓ Approved"}],
+                elems: [{kind: "text", text: "✓ Approved"}],
                 content_warning: false,
                 system: "text-green-500",
             });

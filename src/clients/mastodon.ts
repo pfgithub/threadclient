@@ -367,7 +367,7 @@ function postToThreadCanError(host: string, post: Mastodon.Post, opts: {replies?
             name: post.account.display_name + " (@"+post.account.acct+")",
             color_hash: post.account.username,
             link: "/"+host+"/accounts/"+post.account.id,
-            flair: post.account.bot ? [{elems: [{type: "text", text: "bot"}], content_warning: false}] : [],
+            flair: post.account.bot ? [{elems: [{kind: "text", text: "bot"}], content_warning: false}] : [],
             pfp: {
                 url: post.account.avatar_static,
                 hover: post.account.avatar,
@@ -403,7 +403,7 @@ function postToThreadCanError(host: string, post: Mastodon.Post, opts: {replies?
         link: "/"+host+"/statuses/"+post.id,
         layout: "mastodon-post",
         info,
-        flair: post.sensitive || post.spoiler_text ? [{content_warning: post.sensitive, elems: [{type: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
+        flair: post.sensitive || post.spoiler_text ? [{content_warning: post.sensitive, elems: [{kind: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
         actions: [
             {kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")},
             {kind: "link", url: post.uri, text: "Permalink"},

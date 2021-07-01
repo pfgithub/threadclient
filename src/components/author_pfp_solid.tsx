@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import {
-    clientContent, elButton, link_styles_v, navbar, renderBody, renderFlair, timeAgoText,
+    clientContent, elButton, link_styles_v, navbar, renderBody, timeAgoText,
     unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink
 } from "../app";
 import type * as Generic from "../types/generic";
@@ -146,7 +146,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
             </span>;
         },
         emoji: (emoji) => <img class="w-4 h-4 object-contain inline-block" src={emoji.url} title={emoji.name} />,
-        flair: (flair) => <Flair flair={[flair.flair]} />,
+        flair: (flair) => <Flair flairs={[flair.flair]} />,
         time_ago: (time) => <TimeAgo start={time.start} />,
         error: (err) => <SolidToVanillaBoundary getValue={(hsc, client) => {
             return elButton("error").atxt(err.text).onev("click", e => {
@@ -251,9 +251,31 @@ function UserLink(props: {href: string, color_hash: string, children: JSX.Elemen
     return <span style={getStyle()}><LinkButton style="userlink" href={props.href}>{props.children}</LinkButton></span>;
 }
 
-function Flair(props: {flair: Generic.Flair[]}): JSX.Element {
+export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
     // TODO renderFlair
-    return createMemo(() => renderFlair(props.flair)); // wow flairs don't even need a client or hsc
+    return <span><For each={props.flairs}>{(flair) => <>
+        {" "}
+        <span
+            class={flair.system != null ? flair.system : "rounded-full px-2"
+                + (flair.color != null ? " bg-flair-light dark:bg-flair-dark" : " bg-gray-300 dark:bg-gray-600")
+                + (flair.fg_color != null ? " flair-text-"+flair.fg_color : "")
+            }
+            style={{
+                '--flair-color': flair.color,
+                '--flair-color-dark': flair.color,
+            }}
+        >
+            <For each={flair.elems}>{elem => <SwitchKind item={elem}>{{
+                text: (txt) => <>{txt.text}</>,
+                emoji: (emoji) => <img
+                    title={emoji.name}
+                    src={emoji.url}
+                    width={emoji.w + "px"} height={emoji.h + "px"}
+                    class="inline-block w-4 h-4 align-middle object-contain"
+                />,
+            }}</SwitchKind>}</For>
+        </span>
+    </>}</For></span>;
 }
 
 function ErrableLink<T,>(props: {link: Generic.Link<T>, children: (link: T) => JSX.Element}) {
@@ -357,7 +379,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 </UserLink>
             )}</ShowCond>
             <ShowCond when={props.content.author?.flair}>{flair => <>
-                {" "}<Flair flair={flair} />
+                {" "}<Flair flairs={flair} />
             </>}</ShowCond>
         </div>
         <HideshowProvider visible={selfVisible}>

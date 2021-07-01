@@ -10,7 +10,7 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {escapeHTML} from "./util";
 import { OEmbed, oembed } from "./clients/oembed";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { ReplyEditor, RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
+import { Flair, ReplyEditor, RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -557,36 +557,7 @@ function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[])
 }
 
 export function renderFlair(flairs: Generic.Flair[]): Node {
-    const resl = document.createDocumentFragment();
-    for(const flair of flairs) {
-        const flairv = el("span").clss("rounded-full", (flair.system != null ? "" : "px-2"));
-        resl.atxt(" ");
-        if(flair.system != null) {
-            flairv.clss(flair.system);
-        }else{
-            if(flair.color != null && flair.color !== "") {
-                flairv
-                    .clss("bg-flair-light dark:bg-flair-dark")
-                    .styl({"--flair-color": flair.color, "--flair-color-dark": flair.color})
-                ;
-            }else flairv.clss("bg-gray-300 dark:bg-gray-600");
-            if(flair.fg_color != null) flairv.clss("flair-text-"+flair.fg_color);
-        }
-        for(const flairelem of flair.elems) {
-            if(flairelem.type === "text") {
-                flairv.atxt(flairelem.text);
-            }else if(flairelem.type === "emoji") {
-                el("img").attr({
-                    title: flairelem.name,
-                    src: flairelem.url,
-                    width: `${flairelem.w}px` as const,
-                    height: `${flairelem.h}px` as const
-                }).clss("inline-block w-4 h-4 align-middle object-contain").adto(flairv);
-            }else assertNever(flairelem);
-        }
-        resl.adch(flairv);
-    }
-    return resl;
+    return el("span").adch(Flair({flairs}) as HTMLElement); // a bit hacky
 }
 
 function s(number: number, text: string) {

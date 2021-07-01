@@ -624,10 +624,10 @@ export type Widget = {
 export type ContentNode = Thread | Profile | RedditHeader | Widget;
 export type Node = Thread | LoadMore;
 export type RichTextItem = {
-    type: "text",
+    kind: "text",
     text: string,
 } | {
-    type: "emoji",
+    kind: "emoji",
     url: string,
     name: string,
     w: number,

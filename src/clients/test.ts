@@ -134,7 +134,7 @@ function userThread(path: string, body: Generic.Body, opts: UserThreadOpts): Gen
         layout: opts.layout,
         actions: opts.actions ?? [],
         default_collapsed: false,
-        flair: opts.content_warning != null ? [{elems: [{type: "text", text: opts.content_warning}], content_warning: true}] : [],
+        flair: opts.content_warning != null ? [{elems: [{kind: "text", text: opts.content_warning}], content_warning: true}] : [],
     };
 }
 
@@ -149,7 +149,7 @@ function commitThread(path: string, entry: variables.LogEntry): Generic.PostCont
         author: {
             name: entry.author_name,
             flair: [{
-                elems: [{type: "text", text: entry.author_email}],
+                elems: [{kind: "text", text: entry.author_email}],
                 content_warning: false,
             }],
             color_hash: entry.author_email,
@@ -283,7 +283,7 @@ const sitemap: SitemapEntry[] = [
                             ),
                             rt.ili(
                                 rt.txt("My user flair: "),
-                                rt.flair({content_warning: false, elems: [{type: "text", text: "Hi!"}]}),
+                                rt.flair({content_warning: false, elems: [{kind: "text", text: "Hi!"}]}),
                                 rt.txt(". Flairs should eventually be normal richtext but aren't yet.")
                             ),
                             rt.ili(
