@@ -2,6 +2,7 @@
 dist/
 zig-cache/
 node_modules/
+coverage/
 
 server/deno
 server/secret.ts
