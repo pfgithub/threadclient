@@ -21,32 +21,11 @@ module.exports = {
         rules: [{
             test: /_solid\.tsx$/,
             exclude: /node_modules/,
-            use: {loader: "babel-loader", options: {
-                presets: [
-                    "@babel/preset-typescript",
-                    "solid",
-                ],
-            }},
+            use: {loader: "babel-loader", options: require("./config/babel-config-solid.js")},
         }, {
             test: /\.tsx?$/,
             exclude: /node_modules|_solid\.tsx$/,
-            use: {loader: "babel-loader", options: {
-                presets: [
-                    "@babel/preset-typescript",
-                    ["@babel/preset-env", {
-                        targets: {browsers: ">10%"},
-                        modules: false,
-                    }],
-                    ["@babel/preset-react", {
-                        runtime: "automatic",
-                    }],
-                ],
-                plugins: [
-                    ["@babel/plugin-proposal-pipeline-operator", {
-                        proposal: "smart",
-                    }],
-                ],
-            }},
+            use: {loader: "babel-loader", options: require("./config/babel-config.js")},
         }, {
             test: /\.(gif|svg|png)$/i,
             use: [
@@ -87,7 +66,7 @@ module.exports = {
             navigateFallback: "/index.html",
         })]),
         new VirtualModulesPlugin({
-            'node_modules/_variables.js': require("./src/_variables.js"),
+            'node_modules/_variables.js': "module.exports = "+JSON.stringify(require("./src/_variables.js")),
         }),
     ],
     devServer: {

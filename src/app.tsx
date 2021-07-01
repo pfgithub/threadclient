@@ -3661,14 +3661,6 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
     if(path0 === "settings") {
         return settingsPage();
     }
-    if(path0 === "automated_testing") {
-        return fetchPromiseThen(import("./tests/root_solid"), tests => {
-            const frame = el("div");
-            const hsc = hideshow(frame);
-            tests.vanillaToSolidBoundary(0 as unknown as ThreadClient, frame, tests.Root, {}).defer(hsc);
-            return hsc;
-        });
-    }
 
     if(path0 === "login"){
         return fetchClientThen(path[0] ?? "ENOCLIENT", (client) => {
@@ -3819,19 +3811,9 @@ export let navbar: HTMLDivElement; {
     }, {passive: false});
 }
 
-history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);
-onNavigate(0, location);
-
-let drtime = 100;
-function rmdarkreader() {
-    document.head.querySelector(".darkreader")?.remove();
-    drtime *= 2;
-    setTimeout(() => rmdarkreader(), drtime);
-}
-setTimeout(() => rmdarkreader(), 0);
-
-const alertarea = el("div").adto(document.body).clss("alert-area");
+let alertarea: HTMLElement | undefined;
 export function showAlert(text: string): void {
+    if(!alertarea) return;
     const alert = el("div").clss("alert").adto(alertarea);
     el("div").clss("alert-body").adto(alert).atxt(text);
     elButton("pill-empty").atxt("🗙 Close").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
@@ -3839,7 +3821,7 @@ export function showAlert(text: string): void {
     elButton("pill-empty").atxt("🗘 Refresh").adto(alert).onev("click", (e) => {e.stopPropagation(); location.reload()});
 }
 
-declare const fakevar: {build: "development" | "production"};
+declare const fakevar: {build: "development" | "production" | "test"};
 if(fakevar.build === "production" && 'serviceWorker' in navigator) {
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("/service-worker.js").then(regr => {
@@ -3848,4 +3830,21 @@ if(fakevar.build === "production" && 'serviceWorker' in navigator) {
             console.log("ServiceWorker registration failed", e);
         });
     });
+}
+
+// this is only necessary b/c app.tsx is both an entrypoint for web and contains a bunch of exported stuff.
+if(fakevar.build !== "test") {
+    history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);
+    onNavigate(0, location);
+
+    let drtime = 100;
+    const rmdarkreader = () => {
+        document.head.querySelector(".darkreader")?.remove();
+        drtime *= 2;
+        setTimeout(() => rmdarkreader(), drtime);
+    };
+    setTimeout(() => rmdarkreader(), 0);
+
+
+    alertarea = el("div").adto(document.body).clss("alert-area");
 }

@@ -1,56 +1,73 @@
 /* eslint-disable max-len */
 /* eslint-disable custom-quote-rule/indent */
 
-import { getRedditMarkdownRenderer } from "../../app";
-import type { TestState } from "../../tests/root_solid";
+// import { getRedditMarkdownRenderer } from "../../app";
 import type * as Generic from "../../types/generic";
 import {rt} from "../../types/generic";
 
-// I should just use a normal testing framework so I can get coverage and stuff
-// need to find one that runs in the browser / in node w/ browser functions
-export async function testHtmlToRichtext(update: (tests: TestState[]) => void): Promise<void> {
-    const state: TestState[] = reddit_html_tests.map((test, i) => ({title: "#"+(i+1), mode: "none", text: []}));
-    update([...state]);
-    const [mdr, htr] = await Promise.all([
-        getRedditMarkdownRenderer(),
+test("sample", async () => {
+    const [htr] = await Promise.all([
+        // getRedditMarkdownRenderer(),
         import("./html_to_richtext"),
     ]);
-    for(const [i, test] of reddit_html_tests.entries()) {
-        let error = false;
-        const text: string[] = [];
-        if(test[0] != null) {
-            const md_as_html = mdr.renderMd(test[0]);
-            if(md_as_html !== test[1]) {
-                error = true;
-                text.push("MD → HTML Errored. MD:");
-                text.push(test[0]);
-                text.push("Expected HTML:");
-                text.push(test[1]);
-                text.push("Got HTML:");
-                text.push(md_as_html);
-            }else{
-                text.push("✓ MD → HTML Ok.");
-            }
-        }
-        const html_as_rt = JSON.stringify(htr.parseContentHTML(test[1]));
-        const expected_rt = JSON.stringify(test[2]);
-        if(html_as_rt !== expected_rt) {
-            error = true;
-            text.push("HTML → RT Errored. HTML:");
-            text.push(test[1]);
-            text.push("Expected RT:");
-            text.push(expected_rt);
-            text.push("Got RT:");
-            text.push(html_as_rt);
-        }else{
-            text.push("✓ HTML → RT Ok.");
-        }
+    if(htr == null) throw new Error("??????");
+    for(const test of reddit_html_tests) {
+        // if(test[0] != null) {
+        //     const md_as_html = mdr.renderMd(test[0]);
+        //     expect(md_as_html).toEqual(test[1]);
+        // }
+        const html_as_rt = htr.parseContentHTML(test[1]);
+        const expected_rt = test[2];
 
-        state[i] = {...state[i]!, mode: error ? "error" : "done", text};
-        update([...state]);
-        await new Promise(r => setTimeout(r, 0));
+        expect(html_as_rt).toEqual(expected_rt);
     }
-}
+});
+
+// // I should just use a normal testing framework so I can get coverage and stuff
+// // need to find one that runs in the browser / in node w/ browser functions
+// export async function testHtmlToRichtext(update: (tests: TestState[]) => void): Promise<void> {
+//     const state: TestState[] = reddit_html_tests.map((test, i) => ({title: "#"+(i+1), mode: "none", text: []}));
+//     update([...state]);
+//     const [mdr, htr] = await Promise.all([
+//         getRedditMarkdownRenderer(),
+//         import("./html_to_richtext"),
+//     ]);
+//     for(const [i, test] of reddit_html_tests.entries()) {
+//         let error = false;
+//         const text: string[] = [];
+//         if(test[0] != null) {
+//             const md_as_html = mdr.renderMd(test[0]);
+//             if(md_as_html !== test[1]) {
+//                 error = true;
+//                 text.push("MD → HTML Errored. MD:");
+//                 text.push(test[0]);
+//                 text.push("Expected HTML:");
+//                 text.push(test[1]);
+//                 text.push("Got HTML:");
+//                 text.push(md_as_html);
+//             }else{
+//                 text.push("✓ MD → HTML Ok.");
+//             }
+//         }
+//         const html_as_rt = JSON.stringify(htr.parseContentHTML(test[1]));
+//         const expected_rt = JSON.stringify(test[2]);
+//         if(html_as_rt !== expected_rt) {
+//             error = true;
+//             text.push("HTML → RT Errored. HTML:");
+//             text.push(test[1]);
+//             text.push("Expected RT:");
+//             text.push(expected_rt);
+//             text.push("Got RT:");
+//             text.push(html_as_rt);
+//         }else{
+//             text.push("✓ HTML → RT Ok.");
+//         }
+
+//         state[i] = {...state[i]!, mode: error ? "error" : "done", text};
+//         update([...state]);
+//         await new Promise(r => setTimeout(r, 0));
+//     }
+// }
 
 // this test set doesn't include basic things like **bold**, ***bold italic***, <ul>, <ol>, …
 // I should probably go find the other test set that has those

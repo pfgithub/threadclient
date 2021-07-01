@@ -18,9 +18,12 @@
         ],
         "strict": true,
         "sourceMap": true,
-        "types": []
+        "types": [
+            "jest",
+        ],
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "jest.config.ts"
     ],
 }

@@ -42,7 +42,7 @@ const out_obj = {
     build_time: Date.now(),
 };
 
-module.exports = "module.exports = "+JSON.stringify(out_obj);
+module.exports = out_obj;
 
 if(require.main === module) {
     console.log(out_obj);
