@@ -14,8 +14,6 @@ export function vanillaToSolidBoundary<U, T extends (props: U) => JSX.Element>(
         hsc.on("hide", () => setCvisible(false));
         hsc.on("show", () => setCvisible(true));
 
-        console.log("Hi! I was called by", new Error().stack);
-
         return <HideshowProvider visible={cvisible}>
             <ClientProvider client={client}>
                 <SolidNode {...props} />

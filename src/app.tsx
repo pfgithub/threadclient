@@ -1920,7 +1920,7 @@ function renderCounterAction(
         button.disabled = state.loading;
         if(decr_button) decr_button.disabled = state.loading;
 
-        button.setAttribute("class", "" +
+        button.setAttribute("class", ""
             + "counter-increment-btn "
             + link_styles_v[
                 state.your_vote === "increment"
