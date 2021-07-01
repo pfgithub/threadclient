@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+/* eslint-disable custom-quote-rule/indent */
 
 import { getRedditMarkdownRenderer } from "../../app";
 import type { TestState } from "../../tests/root_solid";

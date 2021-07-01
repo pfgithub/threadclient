@@ -105,6 +105,7 @@ module.exports = {
         'quote-style': {create: default_rule},
         'member-delimiter-style': require("./member-delimiter-style").default,
         'func-style': require("./func-style"),
+        'indent': require("./indent"),
     },
     configs: {
         recommended: {

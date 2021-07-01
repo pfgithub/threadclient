@@ -877,9 +877,11 @@ function getNavbar(): Generic.Navbar {
 function pathFromListingRaw(
     path: string,
     listing: unknown,
-    opts: {warning?: Generic.Richtext.Paragraph[],
-    sidebar: Generic.ContentNode[] | null,
-}): Generic.Page {
+    opts: {
+        warning?: Generic.Richtext.Paragraph[],
+        sidebar: Generic.ContentNode[] | null,
+    },
+): Generic.Page {
     const rtitems: Generic.Richtext.Paragraph[] = [];
     const listing_json = listing as {json: {errors: string[]}};
     if(typeof listing_json === "object" && 'json' in listing_json && typeof listing_json.json === "object"
@@ -887,9 +889,9 @@ function pathFromListingRaw(
     ) {
         if(listing_json.json.errors.length > 0) {
             rtitems.push(rt.h1(rt.txt("Errors:")));
-            rtitems.push(rt.ul(...listing_json.json.errors.map(error =>
+            rtitems.push(rt.ul(...listing_json.json.errors.map(error => (
                 rt.ili(rt.txt(error))
-            )));
+            ))));
         }
     }
     if(opts.warning) rtitems.push(...opts.warning);
@@ -1597,14 +1599,14 @@ path_router.route(["web", "community-points"] as const, linkout);
 // fetch the current user then redirect to /user/…/… with query
 
 function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: string, subreddit?: string, multireddit?: string}, ParsedPath>, kind: "home" | "subreddit" | "user" | "multireddit") {
-    const getSub = (opts: {user?: string, subreddit?: string, multireddit?: string}): SubrInfo => (opts.multireddit != null && opts.user != null)
+    const getSub = (opts: {user?: string, subreddit?: string, multireddit?: string}): SubrInfo => ((opts.multireddit != null && opts.user != null)
         ? {kind: "multireddit", multireddit: opts.multireddit, user: opts.user, base: ["user", opts.user, "m", opts.multireddit]}
         : opts.user != null
         ? {kind: "userpage", user: opts.user, base: ["user", opts.user]}
         : opts.subreddit != null
         ? {kind: "subreddit", subreddit: opts.subreddit, base: ["r", opts.subreddit]}
         : {kind: "homepage", base: []}
-    ;
+    );
 
     if(kind === "home" || kind === "subreddit" || kind === "user") {
         if(kind === "home") marked_routes.push("/submit");
@@ -2128,10 +2130,10 @@ function topLevelThreadFromListing(listing_raw: Reddit.Post, options: ThreadOpts
                 actions: [{kind: "link", url: listing_raw.data.link_permalink, text: "Permalink"}],
                 raw_value: listing_raw,
                 replies: [],
-            }, ...listing_raw.data.parent_id === listing_raw.data.link_id
+            }, ...(listing_raw.data.parent_id === listing_raw.data.link_id
                 ? []
-                : [loadMoreContextNode(listing_raw.data.subreddit, listing_raw.data.link_id.replace("t3_", ""), listing_raw.data.parent_id.replace("t1_", ""))],
-            res],
+                : [loadMoreContextNode(listing_raw.data.subreddit, listing_raw.data.link_id.replace("t3_", ""), listing_raw.data.parent_id.replace("t1_", ""))]
+            ), res],
             replies: [],
         };
     }
@@ -2552,10 +2554,10 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
         const listing = listing_raw.data;
         // if((listing as any).preview) console.log((listing as any).preview);
 
-        const is_deleted: undefined | Generic.RemovalMessage = listing.removed_by_category != null
+        const is_deleted: undefined | Generic.RemovalMessage = (listing.removed_by_category != null
             ? (removal_reasons[listing.removed_by_category] ?? removal_reasons.unsupported)(listing.removed_by_category, listing.subreddit_name_prefixed)
             : undefined
-        ;
+        );
         const post_id_no_pfx = listing.name.substring(3);
 
         const flairs: Generic.Flair[] = [];
@@ -3454,10 +3456,10 @@ export const client: ThreadClient = {
             api_type: "json",
             thing_id: reply_info.parent_id,
             return_rtjson: "true",
-            ...md === "richtext_demo"
+            ...(md === "richtext_demo"
                 ? {richtext_json: JSON.stringify(richtext_json)}
                 : {text: md}
-            ,
+            ),
         };
         const reply = await redditRequest<Reddit.PostComment | {json: {errors: [id: string, desc: string, other: string][]}}>("/api/comment", {
             method: "POST",
@@ -3555,14 +3557,14 @@ export const client: ThreadClient = {
             body: {
                 sr_name: report.subreddit,
                 thing_id: report.fullname,
-                ...report.reason.kind === "sub"
+                ...(report.reason.kind === "sub"
                     ? {rule_reason: report.reason.id}
                     : report.reason.kind === "site"
                     ? {site_reason: report.reason.id, custom_text: text == null ? undefined : text} // assuming this is right, can't test it
                     : report.reason.kind === "sub_other"
                     ? {reason: text!}
                     : assertNever(report.reason)
-                ,
+                ),
             },
         });
         console.log("GOT Response:", response);

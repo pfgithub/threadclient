@@ -767,16 +767,16 @@ export const rt = {
     ili: (...items: Richtext.Span[]): Richtext.ListItem => rt.kind("tight_list_item", {}, items),
     blockquote: (...items: Richtext.Paragraph[]): Richtext.Paragraph => rt.kind("blockquote", {}, items),
     txt: (text: string, styles: Richtext.Style = {}): Richtext.Span => rt.kind("text", {text, styles}),
-    link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span =>
+    link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => (
         rt.kind("link", {url, ...opts}, children)
-    ,
+    ),
     pre: (text: string, lang?: string): Richtext.Paragraph => rt.kind("code_block", {text, lang}),
     error: (text: string, value: unknown): Richtext.Span => rt.kind("error", {text, value}),
     br: (): Richtext.Span => rt.kind("br", {}),
     flair: (flair: Flair): Richtext.Span => rt.kind("flair", {flair}),
-    table: (headings: Richtext.TableHeading[], ...rows: Richtext.TableItem[][]): Richtext.Paragraph =>
+    table: (headings: Richtext.TableHeading[], ...rows: Richtext.TableItem[][]): Richtext.Paragraph => (
         rt.kind("table", {headings}, rows)
-    ,
+    ),
     th: (align: "left" | "center" | "right" | undefined, ...content: Richtext.Span[]): Richtext.TableHeading => ({
         align, children: content
     }),

@@ -89,11 +89,11 @@ function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
     // but that doesn't work in many conditions
     const styleIsLink = () => (props.rts.style ?? "link") === "link";
     return <span title={props.rts.title}><Switch>
-        <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => 
+        <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => (
             <UserLink color_hash={color_hash} href={props.rts.url}>
                 <RichtextSpans spans={props.rts.children} />
             </UserLink>
-        }</Match>
+        )}</Match>
         <Match when={props.rts.is_user_link == null && styleIsLink()}>
             <PreviewableLink href={props.rts.url}><RichtextSpans spans={props.rts.children} /></PreviewableLink>
         </Match>
@@ -264,9 +264,9 @@ function ErrableLink<T,>(props: {link: Generic.Link<T>, children: (link: T) => J
 
 type ClientPostReplyProps = {reply: Generic.ListingEntry, is_threaded: boolean};
 function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
-    const isThreaded = createMemo(() =>
+    const isThreaded = createMemo(() => (
         (props.is_threaded || undefined) && kindIs(props.reply, "post")?.post.ref?.replies?.items
-    );
+    ));
 
     return <>
         <li classList={{
@@ -506,11 +506,11 @@ function PreviewableLink(props: {href: string, children: JSX.Element}): JSX.Elem
                 {" "}{preview_opts.visible() ? "▾" : "▸"}
             </>}</ShowCond>
         </LinkButton>
-        <ShowCond when={linkPreview()}>{preview_opts =>
+        <ShowCond when={linkPreview()}>{preview_opts => (
             <ShowBool when={preview_opts.visible()}>
                 <Body autoplay={true} body={preview_opts.body} />
             </ShowBool>
-        }</ShowCond>
+        )}</ShowCond>
     </>;
 }
 

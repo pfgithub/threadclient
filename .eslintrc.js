@@ -46,6 +46,8 @@ module.exports = {
         }],
         "custom-quote-rule/func-style": "warn",
         "max-len": ["warn", 120, {ignoreComments: true}],
+        "custom-quote-rule/indent": "warn",
+        "one-var": ["warn", "never"],
     },
     overrides: [{
         files: ["*.js", "*.jsx"],

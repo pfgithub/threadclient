@@ -254,8 +254,8 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
             height: number,
         };
         resdiv.adch(el("div").adch(elButton("code-button").atxt("code")
-            .onev("click", (e) => {e.stopPropagation(); console.log(r)})))
-        ;
+            .onev("click", (e) => {e.stopPropagation(); console.log(r)})
+        ));
         const error_v = r as {
             logged?: boolean,
             message: string,
@@ -2341,9 +2341,9 @@ function widgetRender(
         outest_el.clss("widget-fullscreen-content");
         outest_el.replaceChild(alt_frame, outer_el);
         const imgel = elImg(content.src, {w: content.width, h: content.height}).clss("w-full h-auto");
-        if(content.link_url != null) linkButton(client.id, content.link_url, "none")
-            .adch(imgel).adto(alt_frame);
-        else zoomableFrame(imgel).adto(alt_frame);
+        if(content.link_url != null) (linkButton(client.id, content.link_url, "none")
+            .adch(imgel).adto(alt_frame)
+        ); else zoomableFrame(imgel).adto(alt_frame);
     }else assertNever(content);
 
     if(widget.actions_bottom) {
@@ -2353,8 +2353,8 @@ function widgetRender(
         }
     }
     el("div").adto(frame).adch(elButton("code-button").atxt("Code")
-        .onev("click", (e) => {e.stopPropagation(); console.log(widget)}))
-    ;
+        .onev("click", (e) => {e.stopPropagation(); console.log(widget)})
+    );
 
     return hsc;
 } 
@@ -2395,11 +2395,11 @@ export function clientContent(
         console.log("Got error", e); 
         frame.innerHTML = "";
         frame.adch(el("pre").adch(el("code").atxt(
-            (e as Error).toString() + "\n\n" + (e as Error).stack ?? "*no stack*")
-        ));
+            (e as Error).toString() + "\n\n" + (e as Error).stack ?? "*no stack*"
+        )));
         frame.adch(elButton("code-button").atxt("Code")
-            .onev("click", (err) => {err.stopPropagation(); console.log(listing)}))
-        ;
+            .onev("click", (err) => {err.stopPropagation(); console.log(listing)})
+        );
         return hideshow(frame);
     }
 }
@@ -2575,8 +2575,9 @@ function clientListing(
         if(listing.info.author) content_subminfo_line
             .atxt("by ")
             .adch(
-                userLink(client.id, listing.info.author.link, listing.info.author.color_hash
-            ).atxt(listing.info.author.name))
+                userLink(client.id, listing.info.author.link, listing.info.author.color_hash)
+                .atxt(listing.info.author.name),
+            )
         ;
         if(listing.info.author?.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
         if(listing.info.in) {

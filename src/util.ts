@@ -143,8 +143,8 @@ function routerBased<ParentOpts extends BaseParentOpts, Out>(is_root: boolean): 
     const res: Router<ParentOpts, Out> = {
         with<Bits extends readonly RouteBit[]>(
             bits: Bits,
-            cb: (urlr: Router<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>,
-        ) => void): void {
+            cb: (urlr: Router<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>) => void,
+        ): void {
             const subrouter = routerBased<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>(false);
             cb(subrouter);
             routes.push((opts, path) => {

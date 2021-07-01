@@ -214,9 +214,9 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
         }else if(node.nodeName === "CODE") {
             return noClasses(rt.code(node.textContent ?? "ERRNOCODE"));
         }else if(node.nodeName === "SPAN") {
-            const res_nodes = Array.from(node.childNodes).flatMap(child =>
+            const res_nodes = Array.from(node.childNodes).flatMap(child => (
                 contentSpanToRichtextSpan(meta, child, styles)
-            );
+            ));
 
             if(eatClass("md-spoiler-text")) {
                 return noClasses(rt.spoiler(...res_nodes));

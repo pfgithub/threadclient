@@ -23,7 +23,7 @@ export function showGallery(
         .adto(document.body)
     ;
 
-    pwspel.innerHTML = `
+    pwspel.innerHTML = (`
 <!-- Background of PhotoSwipe. 
 It's a separate element, as animating opacity is faster than rgba(). -->
 <div class="pswp__bg"></div>
@@ -84,7 +84,8 @@ It's a separate element, as animating opacity is faster than rgba(). -->
 </div>
 
 </div>
-`;
+`
+    );
 
     const items: PhotoSwipe.Item[] = images.map(img => {
         if(img.body.kind !== "captioned_image") throw new Error("bad");

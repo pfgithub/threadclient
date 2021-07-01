@@ -16,9 +16,9 @@ const key_sep = "«<!!KEY-SEPARATOR!!>»";
 
 const log_command = ""
  + 'git log -n 10 --pretty=format:"'
- + Object.entries(commit_data).map(([key, fmt]) =>
+ + Object.entries(commit_data).map(([key, fmt]) => (
      key+key_sep+fmt+entry_sep
- ).join("") + commit_sep
+ )).join("") + commit_sep
  + '"'
 ;
 
@@ -26,14 +26,14 @@ const git_log = child_process.execSync(log_command)
     .toString()
     .split(commit_sep)
     .filter(v => v)
-    .map(commit_log =>
+    .map(commit_log => (
         Object.fromEntries(commit_log
             .trim()
             .split(entry_sep)
             .filter(v => v)
             .map(entry => entry.split(key_sep))
         )
-    )
+    ))
 ;
 
 const out_obj = {
