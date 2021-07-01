@@ -3,17 +3,17 @@ const CopyPlugin = require("copy-webpack-plugin");
 const WorkboxPlugin = require("workbox-webpack-plugin");
 const webpack = require("webpack");
 const VirtualModulesPlugin = require("webpack-virtual-modules");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const dev = process.env.NODE_ENV === "development";
 
 module.exports = {
     entry: {
         bundle: "./src/entry.ts",
-        darkmode: "./src/darkmode.js",
     },
     output: {
         path: path.resolve(__dirname, "dist"),
-        filename: "[name].js",
+        filename: "[name].[contenthash].js",
     },
     mode: dev ? "development" : "production",
     ...(dev ? {devtool: "eval-cheap-module-source-map"} : {}),
@@ -52,22 +52,41 @@ module.exports = {
         extensions: [".tsx", ".ts", ".js"],
     },
     plugins: [
+        new webpack.ProgressPlugin(),
         new webpack.DefinePlugin({
             'fakevar.build': JSON.stringify(dev ? "development" : "production"),
+            'fakevar.b_time': JSON.stringify(Date.now()),
         }),
         new CopyPlugin({
             patterns: [
                 {from: "static", to: ""},
             ],
         }),
-        ...(dev ? [] : [new WorkboxPlugin.GenerateSW({
-            clientsClaim: true,
-            skipWaiting: true,
-            navigateFallback: "/index.html",
-        })]),
+        new HtmlWebpackPlugin({
+            template: "src/index.html",
+            filename: "index.html",
+        }),
+        new HtmlWebpackPlugin({
+            template: "src/index.html",
+            filename: "404.html",
+        }),
         new VirtualModulesPlugin({
             'node_modules/_variables.js': "module.exports = "+JSON.stringify(require("./src/_variables.js")),
         }),
+        ...(dev ? [] : [new WorkboxPlugin.GenerateSW({
+            // clientsClaim: true,
+            // skipWaiting: true,
+            navigateFallback: "/index.html",
+            // runtimeCaching: [{
+            //     handler: "CacheFirst",
+            //     urlPattern: /^.*$/,
+            //     options: {
+            //         broadcastUpdate: {
+            //             channelName: "update-available",
+            //         },
+            //     },
+            // }],
+        })]),
     ],
     devServer: {
         contentBase: path.join(__dirname, "dist"),

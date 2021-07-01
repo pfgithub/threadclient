@@ -3782,24 +3782,70 @@ export let navbar: HTMLDivElement; {
     }, {passive: false});
 }
 
+let waiting_sw: ServiceWorker | null;
 let alertarea: HTMLElement | undefined;
 export function showAlert(text: string): void {
     if(!alertarea) return;
     const alert = el("div").clss("alert").adto(alertarea);
     el("div").clss("alert-body").adto(alert).atxt(text);
-    elButton("pill-empty").atxt("🗙 Close").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
+    elButton("pill-empty").atxt("🗙 Ignore").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
     alert.atxt(" ");
-    elButton("pill-empty").atxt("🗘 Refresh").adto(alert).onev("click", (e) => {e.stopPropagation(); location.reload()});
+    const update_btn = elButton("pill-empty").atxt("🗘 Update").adto(alert).onev("click", (e) => {
+        e.stopPropagation();
+        if(waiting_sw) {
+            const wsw = waiting_sw;
+            update_btn.disabled = true;
+            waiting_sw.postMessage({type: "SKIP_WAITING"});
+            waiting_sw.addEventListener("statechange", event => {
+                console.log(event);
+                if(wsw.state === "activated") {
+                    location.reload();
+                }
+            });
+            return;
+        }
+        location.reload();
+    });
 }
 
-declare const fakevar: {build: "development" | "production" | "test"};
+console.log("ThreadReader built on "+fakevar.b_time);
+
+declare const fakevar: {build: "development" | "production" | "test", b_time: string};
 if(fakevar.build === "production" && 'serviceWorker' in navigator) {
+    // const updates_channel = new BroadcastChannel("workbox");
+    // updates_channel.addEventListener("message", (event) => {
+    //     console.log("Got sw message1__", event);
+    // });
+    // const updates_channel_2 = new BroadcastChannel("update-available");
+    // updates_channel_2.addEventListener("message", (event) => {
+    //     console.log("Got sw message2_", event);
+    // });
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("/service-worker.js").then(regr => {
             console.log("ServiceWorker registered", regr, regr.scope);
+            regr.onupdatefound = () => {
+                const installing_worker = regr.installing;
+                console.log(installing_worker);
+                if(!installing_worker) return;
+                installing_worker.onstatechange = () => {
+                    if(installing_worker.state === "installed") {
+                        if(navigator.serviceWorker.controller) {
+                            waiting_sw = regr.waiting;
+                            console.log("New service worker installed. Send SKIP_WAITING to update immediately.!");
+                            showAlert("An update to ThreadReader is available.");
+                        }else{
+                            console.log("SW content cached, ready for offline.");
+                        }
+                    }
+                };
+            };
         }).catch(e => {
             console.log("ServiceWorker registration failed", e);
         });
+        // navigator.serviceWorker.addEventListener("message", event => {
+        //     console.log("GOT sw message", event);
+        //     console.log("!! !");
+        // });
     });
 }
 
