@@ -14,6 +14,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, "dist"),
         filename: "[name].[contenthash].js",
+        publicPath: "/",
     },
     mode: dev ? "development" : "production",
     ...(dev ? {devtool: "eval-cheap-module-source-map"} : {}),
