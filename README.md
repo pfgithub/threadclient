@@ -193,6 +193,8 @@ reddit todo:
         things that are only relevant to sidebar widgets should be switched to async too.
 -   [ ] reddit youtube comments using `/search?syntax=cloudsearch&q=`encode(`(url:`vid_id`) AND (site:youtube.com OR site:youtu.be)`)
 -   [ ] improve messages appearence
+-   [ ] moderator list is hidden while logged out https://www.reddithelp.com/hc/en-us/articles/360049499032 (although, for some reason, you can still
+-       see the moderator list on new.reddit by going to `https://www.reddit.com/r/`subreddit`/about/moderators`
 -   [ ] if you see the message on one tab have it go away from the other tabs too without requiring a refresh, unlike old. and new.reddit
 -   [ ] support contest mode
 -   [ ] figure out what "url_overridden_by_dest" is
