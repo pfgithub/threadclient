@@ -44,10 +44,8 @@ export function TimeAgo(props: {start: number}): JSX.Element {
 export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Element {
     const [state, setState] = createSignal<{kind: "overview"} | {kind: "image", index: number}>({kind: "overview"});
 
-    return <Switch
-        fallback={<button on:click={() => {console.log(state()); setState({kind: "overview"})}}>Error state!</button>}
-    >
-        <Match when={kindIs(state(), "overview")}>
+    return <SwitchKind item={state()}>{{
+        overview: overview => <>
             <For each={props.images}>{(image, i) => (
                 <button 
                     class="m-1 inline-block bg-body rounded-md"
@@ -58,8 +56,8 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                     />
                 </button>
             )}</For>
-        </Match>
-        <Match when={kindIs(state(), "image")}>{sel => <>
+        </>,
+        image: sel => <>
             <button
                 class={link_styles_v["outlined-button"]}
                 on:click={() => setState({kind: "image", index: sel.index - 1})}
@@ -76,8 +74,8 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                 on:click={() => setState({kind: "overview"})}
             >Gallery</button>
             <Body body={props.images[sel.index]!.body} />
-        </>}</Match>
-    </Switch>;
+        </>,
+    }}</SwitchKind>;
 }
 
 const generic_linkstyle_mappings: {
@@ -296,10 +294,8 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
             relative: props.is_threaded,
             threaded: props.is_threaded,
         }}>
-            <Switch fallback={
-                <div>ERROR! missing {props.reply.kind}</div>
-            }>
-                <Match when={kindIs(props.reply, "post")}>{post_link => (
+            <SwitchKind item={props.reply}>{{
+                post: post_link => (
                     <ErrableLink link={post_link.post}>{post => (
                         <ClientPost content={post.content as Generic.PostContentPost} opts={{
                             clickable: false,
@@ -309,11 +305,9 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
                             top_level: false,
                         }} />
                     )}</ErrableLink>
-                )}</Match>
-                <Match when={kindIs(props.reply, "load_more")}>
-                    Post
-                </Match>
-            </Switch>
+                ),
+                load_more: () => <>TODO load more</>
+            }}</SwitchKind>
         </li>
         <ShowBool when={isThreaded()?.length === 1}>{
             <ClientPostReply reply={isThreaded()![0]!} is_threaded={true} />
@@ -631,8 +625,8 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
             <hr class="my-2 border-t-2 mb-8" style={{'border-top-color': "var(--collapse-line-color)"}} />
             {/*TODO put the sorting options here*/null}
             <For each={replies.items} fallback={<div>*There are no replies*</div>}>{reply => (
-                <Switch fallback={<div>Missing {reply.kind}</div>}>
-                    <Match when={kindIs(reply, "post")}>{post => (
+                <SwitchKind item={reply}>{{
+                    post: post => (
                         <TopLevelWrapper>
                             <ClientContent listing={post.post.ref!.content} opts={{
                                 clickable: false, // TODO
@@ -642,8 +636,11 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
                                 is_pivot: false,
                             }} />
                         </TopLevelWrapper>
-                    )}</Match>
-                </Switch>
+                    ),
+                    load_more: () => {
+                        throw new Error("todo load more");
+                    },
+                }}</SwitchKind>
             )}</For>
         </>}</ShowCond>
     </WrapParent>;
@@ -659,10 +656,10 @@ function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
 function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_pivot: boolean}): JSX.Element {
     // () => in order to capture any .Provider nodes in a parent
     const content = () => <>
-        <Switch fallback={<div>error! {props.node.kind}</div>}>
-            <Match when={kindIs(props.node, "post")} children={(post_root) => (
-                <Switch fallback={<div>error kind! {post_root.content.kind}</div>}>
-                    <Match when={kindIs(post_root.content, "post")} children={(post) => (
+        <SwitchKind item={props.node}>{{
+            post: post_root => (
+                <SwitchKind item={post_root.content}>{{
+                    post: post => (
                         <TopLevelWrapper>
                             <ClientContent listing={post} opts={{
                                 clickable: !props.is_pivot,
@@ -672,10 +669,14 @@ function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_
                                 is_pivot: props.is_pivot,
                             }} />
                         </TopLevelWrapper>
-                    )} />
-                </Switch>
-            )} />
-        </Switch>
+                    ),
+                    page: () => <>TODO page</>,
+                    legacy: () => <>TODO legacy</>,
+                    client: () => <>TODO client</>,
+                }}</SwitchKind>
+            ),
+            vloader: () => <>TODO vloader</>,
+        }}</SwitchKind>
         {props.children}
     </>;
     return <>
