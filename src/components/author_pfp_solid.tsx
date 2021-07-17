@@ -2,12 +2,13 @@ import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match,
 import { createStore, reconcile } from "solid-js/store";
 import {
     clientContent, elButton, link_styles_v, navbar, renderBody, timeAgoText,
-    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink
+    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink, renderAction
 } from "../app";
 import type * as Generic from "../types/generic";
 import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
+import React from "react";
 export * from "../util/interop_solid";
 
 export type ClientPostOpts = {
@@ -411,6 +412,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </ShowBool>
                     </>;
                 }}</ShowCond>
+                <ShowCond when={props.content.actions && props.content.actions.other}>{other_actions => <>
+                    <For each={other_actions}>{(item, i) => <>
+                        <Action action={item} />
+                    </>}</For>
+                </>}</ShowCond>
             </div>
             <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
                 <ShowCond when={props.opts.replies}>{replies => <ShowBool
@@ -426,6 +432,14 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             </ShowBool>
         </HideshowProvider>
     </div>;
+}
+
+export function Action(props: {action: Generic.Action}): JSX.Element {
+    return <SolidToVanillaBoundary getValue={(hsc, client) => {
+        const span = el("span");
+        renderAction(client(), props.action, span, {value_for_code_btn: 0}).defer(hsc);
+        return span;
+    }} />
 }
 
 type StoreTypeValue = {value: null | Generic.PostContent};

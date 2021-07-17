@@ -1497,7 +1497,7 @@ function renderReplyAction(
         return hsc;
     }
 }
-function renderAction(
+export function renderAction(
     client: ThreadClient,
     action: Generic.Action,
     content_buttons_line: Node,
