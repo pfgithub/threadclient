@@ -68,6 +68,23 @@ export type PostData = {
     internal_data: unknown,
     display_style: "fullscreen" | "centered",
 };
+// two posts with the same url should be
+// the same.
+// this property should be used when
+// a partial update is recieved. eg:
+//   you're browsing a thread and
+//   focus a comment. threadreader
+//   can refocus immediately and
+//   display a load more, but then
+//   it should fetch updated content
+//   and diff with existing content.
+//   when diffing, things with the
+//   same url can be used as "anchor
+//   points" if eg you know some
+//   content hidden behind a load
+//   more button already
+
+
 // loads like :: a parent might be known and a replies might be known.
 // returns an array of PostData | PostVerticalLoader to place between
 // the parent and replies in the node tree.
@@ -75,6 +92,10 @@ export type PostVerticalLoader = {
     kind: "vloader",
     parent: Link<ParentPost> | null,
     replies: ListingData | null,
+};
+export type PostHorizontalLoader = {
+    kind: "load_more",
+    // TODO
 };
 export type ListingData = {
     sort: ID<SortData> | null,
@@ -86,9 +107,7 @@ export type ListingData = {
 export type ListingEntry = {
     kind: "post",
     post: Link<PostData>,
-} | {
-    kind: "load_more",
-};
+} | PostHorizontalLoader;
 
 // ok dealing with sidebars
 // so take eg twxtter
@@ -107,11 +126,20 @@ export type PostContentPost = {
     /// this should be clickable if:
     /// - this is below the pivot and show_replies_when… is false
     /// - this is above the pivot
+    /// - in the future, probably everything should be clickable
     kind: "post",
 
     title: null | {
         text: string,
         body_collapsible: null | {default_collapsed: boolean},
+    },
+    flair?: Flair[], // maybe content warnings should be seperate
+    thumbnail?: {
+        kind: "image",
+        url: string,
+    } | {
+        kind: "default",
+        thumb: ThumbType,
     },
     info?: {
         creation_date?: number,
@@ -124,7 +152,6 @@ export type PostContentPost = {
     /// | reply
     /// | | reply
     show_replies_when_below_pivot: false | {default_collapsed: boolean},
-    reddit_vote?: CounterAction,
     // actions?: {
     //     collapse_line?: Action[],
     //     content_buttons?: Action[],
@@ -132,7 +159,19 @@ export type PostContentPost = {
     // },
     actions?: {
         vote?: CounterAction, // puts the up and down arrow in the gutter and points/% voted in the info line. could do something similar but with a star for mastodon.
+        // delete?: DeleteAction
+        // save?: SaveAction
+        // report?: ReportAction
         other?: Action[],
+
+        // note, on mobile all of these
+        // should appear in a … menu too
+        // maybe on desktop too, why not
+        // to do mobile viewport targeted
+        // stuff in js I need to complete
+        // the solid migration
+        
+        moderator?: RedditModState,
     },
 };
 

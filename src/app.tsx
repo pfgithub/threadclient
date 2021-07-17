@@ -3165,6 +3165,8 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         // await new Promise(r => 0);
         if(client.getPage) {
             const page2 = await client.getPage(current_path);
+            title.setTitle(page2.title); // TODO use the pivot to find the title
+
             const {ClientPage} = await import("./components/author_pfp_solid");
             loader_area.remove();
 
