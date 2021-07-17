@@ -3148,7 +3148,7 @@ function renderClientPage(
 // const object_wrapper = ["shadow-md m-5 p-3 dark:bg-gray-800 rounded-xl m-5 p-3"];
 
 function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
-    const outer = el("div").clss("client-wrapper", "whitespace-pre-wrap");
+    const outer = el("div").clss("client-wrapper");
     const hsc = hideshow(outer);
 
     const frame = el("div").adto(outer);

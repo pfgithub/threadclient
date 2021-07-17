@@ -113,6 +113,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
             'line-through': text.styles.strikethrough,
             'align-top': text.styles.superscript,
             'text-xs': text.styles.superscript,
+            'whitespace-pre-wrap': true,
         }}>{text.text}</span>,
         link: (link) => <RichtextLink rts={link} />,
         br: () => <br />,
