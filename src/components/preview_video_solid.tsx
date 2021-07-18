@@ -1,14 +1,9 @@
-import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Switch } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
-import {
-    clientContent, elButton, link_styles_v, navbar, renderBody, timeAgoText,
-    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink, renderAction, zoomableImage, fetchPromiseThen, hideshow
-} from "../app";
-import type * as Generic from "../types/generic";
-import { getClient, getIsVisible, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
-import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import React from "react";
+import { createEffect, createSignal, For, JSX } from "solid-js";
+import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app";
+import type * as Generic from "../types/generic";
+import { SolidToVanillaBoundary } from "../util/interop_solid";
+import { getIsVisible, ShowCond, SwitchKind } from "../util/utils_solid";
 
 const speaker_icons = {
     mute: "🔇",
@@ -41,7 +36,7 @@ function PreviewRealVideo(props: {
         }
     });
     return <div>
-        <ShowCond when={props.source.seperate_audio_track}>{audio_track =>
+        <ShowCond when={props.source.seperate_audio_track}>{audio_track => (
             <audio
                 onloadedmetadata={(e) => {
                     setAudioVolume(e.currentTarget.volume);
@@ -55,11 +50,11 @@ function PreviewRealVideo(props: {
                     audio_el.volume = audioVolume();
                 })}
             >
-                <For each={audio_track}>{track =>
+                <For each={audio_track}>{track => (
                     <source src={track.url} type={track.type} />
-                }</For>
+                )}</For>
             </audio>
-        }</ShowCond>
+        )}</ShowCond>
         <video
             ref={video_el}
             controls={true}
@@ -71,7 +66,7 @@ function PreviewRealVideo(props: {
             onplay={() => {sync()}}
             onplaying={() => {
                 const audio_el = hasSeperateAudio();
-                if(audio_el) audio_el.play();
+                if(audio_el) void audio_el.play();
             }}
             onseeking={() => sync()}
             ontimeupdate={() => {
@@ -88,9 +83,9 @@ function PreviewRealVideo(props: {
             <span>{
                 props.video.alt ?? "Your device does not support video, and alt text was not supplied."
             }</span>
-            <For each={props.source.sources}>{source =>
+            <For each={props.source.sources}>{source => (
                 <source src={source.url} type={source.type} />
-            }</For>
+            )}</For>
         </video>
         <ShowCond when={hasSeperateAudio()}>{audio_el => <div class="flex">
             <button
@@ -127,9 +122,9 @@ export function PreviewVideo(props: {
     autoplay: boolean,
 }): JSX.Element {
     return <div>
-        <ShowCond when={props.video.caption}>{caption =>
+        <ShowCond when={props.video.caption}>{caption => (
             <div>Caption: {caption}</div>
-        }</ShowCond>
+        )}</ShowCond>
         <SwitchKind item={props.video.source}>{{
             video: video => <PreviewRealVideo video={props.video} source={video} autoplay={props.autoplay} />,
             img: img => <SolidToVanillaBoundary getValue={(hsc, client) => {

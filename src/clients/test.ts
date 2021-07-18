@@ -361,7 +361,6 @@ const sitemap: SitemapEntry[] = [
                 captioned_image: [],
                 unknown_size_image: [],
                 video: [],
-                vreddit_video: [],
                 gfycat: [],
                 youtube: [],
                 imgur: [],

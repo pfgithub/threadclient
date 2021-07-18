@@ -149,7 +149,12 @@ function getVredditPreview(id: string): Generic.Video {
     };
     return video;
 }
-function gfyLike(client: ThreadClient, gfy_host: string, gfy_link: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
+function gfyLike(
+    client: ThreadClient,
+    gfy_host: string,
+    gfy_link: string,
+    opts: {autoplay: boolean},
+): HideShowCleanup<Node> {
     const resdiv = el("div");
     const hsc = hideshow(resdiv);
     

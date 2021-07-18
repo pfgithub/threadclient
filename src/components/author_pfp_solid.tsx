@@ -440,7 +440,7 @@ export function Action(props: {action: Generic.Action}): JSX.Element {
         const span = el("span");
         renderAction(client(), props.action, span, {value_for_code_btn: 0}).defer(hsc);
         return span;
-    }} />
+    }} />;
 }
 
 type StoreTypeValue = {value: null | Generic.PostContent};
@@ -545,7 +545,12 @@ function PreviewableLink(props: {href: string, children: JSX.Element}): JSX.Elem
     </>;
 }
 
-export function LinkButton(props: {href: string, style: LinkStyle, onClick?: () => void, children: JSX.Element}): JSX.Element {
+export function LinkButton(props: {
+    href: string,
+    style: LinkStyle,
+    onClick?: () => void,
+    children: JSX.Element,
+}): JSX.Element {
     const client = getClient();
     const linkValue = createMemo(() => unsafeLinkToSafeLink(client().id, props.href));
     return <SwitchKind item={linkValue()}>{{
