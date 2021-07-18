@@ -823,7 +823,7 @@ function renderBodyMayError(
         }).defer(hsc).adto(content);
     }else if(body.kind === "vreddit_video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
-        previewVreddit(client, {id: body.id, autoplay: false}).defer(hsc).adto(content);
+        previewVreddit(client, {id: body.id, autoplay: opts.autoplay}).defer(hsc).adto(content);
     }else if(body.kind === "array") {
         for(const v of body.body) {
             if(!v) continue;

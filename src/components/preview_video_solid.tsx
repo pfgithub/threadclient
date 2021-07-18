@@ -66,6 +66,8 @@ function PreviewRealVideo(props: {
             controls={true}
             class="preview-image"
             autoplay={props.autoplay}
+            width={props.video.w}
+            height={props.video.h}
 
             onplay={() => {sync()}}
             onplaying={() => {
@@ -84,6 +86,9 @@ function PreviewRealVideo(props: {
             }}
 
         >
+            <span>{
+                props.video.alt ?? "Your device does not support video, and alt text was not supplied."
+            }</span>
             <For each={props.source.sources}>{source =>
                 <source src={source.url} type={source.type} />
             }</For>
