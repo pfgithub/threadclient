@@ -1976,7 +1976,7 @@ function getPointsOn(listing: {
     likes: true | false | null,
     upvote_ratio?: number,
     archived?: boolean,
-}): Generic.Action {
+}): Generic.CounterAction {
     // not sure what rank is for
     const vote_data = {id: listing.name, rank: "2"};
     return {
@@ -2186,7 +2186,7 @@ function reportButton(fullname: string, subreddit: string): Generic.Action {
         data: report_encoder.encode({subreddit, fullname}),
     };
 }
-function replyButton(fullname: string): Generic.Action {
+function replyButton(fullname: string): Generic.ReplyAction {
     return {
         kind: "reply",
         text: "Reply",
@@ -2458,7 +2458,8 @@ function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, optio
 
         const replies: Generic.ListingData = {
             sort: null,
-            reply: null,
+            reply: replyButton(listing.name),
+            locked: listing.locked,
             items: [],
         };
         //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
@@ -2482,7 +2483,26 @@ function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, optio
                 title: null,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
                 body: getCommentBody(listing),
+                info: {
+                    creation_date: listing.created_utc * 1000,
+                    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+                    edited: listing.edited ? {date: listing.edited * 1000} : undefined,
+                    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+                    pinned: listing.pinned || listing.stickied,
+                },
                 show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
+                actions: {
+                    vote: parent_permalink.is_chat
+                        ? undefined
+                        : getPointsOn(listing)
+                    ,
+                    other: [
+                        deleteButton(listing.name),
+                        saveButton(listing.name, listing.saved),
+                        reportButton(listing.name, listing.subreddit),
+                        getCodeButton(listing.body),
+                    ],
+                },
             },
             internal_data: listing_raw,
             display_style: "centered",
@@ -2513,7 +2533,8 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 pinned: listing.pinned || listing.stickied,
             },
             actions: [
-                replyButton(listing.name), {
+                replyButton(listing.name),
+                {
                     kind: "link",
                     text: "Permalink",
                     url: listing.permalink ? updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}) : "Error no permalink",

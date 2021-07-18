@@ -102,6 +102,7 @@ export type ListingData = {
     // pinned: …
     // items: …
     reply: ReplyAction | null,
+    locked?: boolean, // only moderators can comment
     items: ListingEntry[],
 };
 export type ListingEntry = {
@@ -144,6 +145,7 @@ export type PostContentPost = {
     info?: {
         creation_date?: number,
         edited?: {date?: number}, // you can have an edited date w/out a creation date
+        pinned?: boolean,
     },
     author: null | InfoAuthor,
     body: Body,
