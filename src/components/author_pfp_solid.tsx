@@ -493,7 +493,7 @@ export function ReplyEditor(props: {
         </div>
         <ShowCond when={sendError()}>{errv => <>
             <pre class="error"><code>There was an error! {errv}</code></pre>
-            <button onClick={() => setSendError(undefined)}>Hide error</button>
+            <button on:click={() => setSendError(undefined)}>Hide error</button>
         </>}</ShowCond>
         <ShowCond when={diffable.value}>{value => {
             console.log("Value changed", value);
@@ -580,8 +580,8 @@ function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JS
                 ? err.toString() + "\n\n" + err.stack ?? "*no stack*"
                 : "Something went wrong"
             } /></pre>
-            <button onClick={() => console.log(err, props.data)}>Code</button>{" / "}
-            <button onClick={() => reset()}>Retry</button>
+            <button on:click={() => console.log(err, props.data)}>Code</button>{" / "}
+            <button on:click={() => reset()}>Retry</button>
         </div>;
     }}>
         {props.children}
@@ -596,7 +596,7 @@ function ClientContent(props: ClientContentProps): JSX.Element {
     const todosupport = (thing: unknown) => <>
         TODO support. also in the parent list these should probably{" "}
         be one of those navbars with bits like ClientName {">"} PageName {">"} …{" "}
-        <button onClick={() => console.log(thing)}>code</button>
+        <button on:click={() => console.log(thing)}>code</button>
     </>;
     return <div>
         <DefaultErrorBoundary data={[props.listing, props.opts]}>

@@ -373,6 +373,15 @@ export type RichText = {
     kind: "richtext",
     content: readonly Richtext.Paragraph[],
 };
+export type Video = {
+    kind: "video",
+    source: VideoSource,
+    w?: number,
+    h?: number,
+    gifv: boolean,
+    caption?: string,
+    alt?: string,
+};
 export type Body = BodyText | RichText | {
     kind: "link",
     url: string,
@@ -387,15 +396,7 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "unknown_size_image",
     url: string,
-} | {
-    kind: "video",
-    source: VideoSource,
-    w?: number,
-    h?: number,
-    gifv: boolean,
-    caption?: string,
-    alt?: string,
-} | {
+} | Video | {
     kind: "vreddit_video",
     id: string,
     w?: number,
@@ -469,13 +470,23 @@ export type RemovalMessage = {
     title: string,
     body: string,
 };
-export type VideoSource = {
+export type VideoSourceVideo = {
     kind: "video",
     sources: {
         url: string,
         type?: string,
     }[],
-} | {
+    seperate_audio_track?: {
+        url: string,
+        type?: string,
+    }[],
+    preview?: { // for the preview scrubber bar thing
+        url: string,
+        type?: string,
+    }[],
+    poster?: string, // TODO use the reddit post thumbnail for this
+};
+export type VideoSource = VideoSourceVideo | {
     kind: "img",
     url: string,
 } | {

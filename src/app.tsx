@@ -11,6 +11,7 @@ import {escapeHTML} from "./util";
 import { OEmbed, oembed } from "./clients/oembed";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { Flair, ReplyEditor, RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
+import { PreviewVideo } from "./components/preview_video_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -112,104 +113,40 @@ function menuButtonStyle(active: boolean): string {
     ].join(" ");
 }
 
-function previewVreddit(id: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
-    const container = el("div");
-    const link = "https://v.redd.it/"+id;
+function previewVreddit(client: ThreadClient, opts: {id: string, autoplay: boolean}): HideShowCleanup<Node> {
+    const frame = el("div");
+    const hsc = hideshow(frame);
 
-    const audio = el("audio").adto(container);
-    el("source").attr({src: link+"/DASH_audio.mp4", type: "video/mp4"}).adto(audio);
-    el("source").attr({src: link+"/audio", type: "video/mp4"}).adto(audio);
-
-    const video = el("video").attr({controls: ""}).clss("preview-image").adto(el("div").adto(container));
-    el("source").attr({src: link+"/DASH_720.mp4", type: "video/mp4"}).adto(video);
-    el("source").attr({src: link+"/DASH_720", type: "video/mp4"}).adto(video);
-    el("source").attr({src: link+"/DASH_480.mp4", type: "video/mp4"}).adto(video);
-    el("source").attr({src: link+"/DASH_480", type: "video/mp4"}).adto(video);
-    el("source").attr({src: link+"/DASH_360.mp4", type: "video/mp4"}).adto(video);
-    el("source").attr({src: link+"/DASH_360", type: "video/mp4"}).adto(video);
-    el("source").attr({src: link+"/DASH_240.mp4", type: "video/mp4"}).adto(video);
-    el("source").attr({src: link+"/DASH_240", type: "video/mp4"}).adto(video);
-
-    el("source").attr({src: link+"/HLSPlaylist.m3u8", type: "application/x-mpegURL"}).adto(video);
-    // cross-origin request blocked, can't use this unless the browser happens to support it
-
-    audio.onloadedmetadata = () => {
-        const speaker_icons = ["🔇", "🔈", "🔊"] as const;
-        const btnarea = el("div").adto(container).styl({display: "flex"});
-        const mutebtn = elButton("outlined-button").adto(btnarea);
-        const muteicn = txt(speaker_icons[2]).adto(mutebtn);
-        const slider = el("input").attr({type: "range", min: "0", max: "100", value: "100"}).adto(btnarea);
-        const upslider = () => slider.value = "" + (audio.volume * 100);
-        let mute_backv: undefined | number;
-        const upbtn = () => {
-            if(mute_backv === undefined) {
-                if(audio.volume < 0.2) {
-                    muteicn.nodeValue = speaker_icons[1];
-                }else {
-                    muteicn.nodeValue = speaker_icons[2];
-                }
-            }else{
-                muteicn.nodeValue = speaker_icons[0];
-            }
-        };
-        upslider();
-        slider.oninput = () => {
-            audio.volume = (+slider.value) / 100;
-            mute_backv = undefined;
-            upbtn();
-        };
-        mutebtn.onclick = () => {
-            if(mute_backv === undefined) {
-                mute_backv = audio.volume;
-                audio.volume = 0;
-            }else{
-                audio.volume = mute_backv;
-                mute_backv = undefined;
-            }
-            upslider();
-            upbtn();
-        };
+    const link = "https://v.redd.it/"+opts.id;
+    const video: Generic.Video = {
+        kind: "video",
+        source: {
+            kind: "video",
+            sources: [
+                {url: link+"/DASH_720.mp4", type: "video/mp4"},
+                {url: link+"/DASH_720", type: "video/mp4"},
+                {url: link+"/DASH_480.mp4", type: "video/mp4"},
+                {url: link+"/DASH_480", type: "video/mp4"},
+                {url: link+"/DASH_360.mp4", type: "video/mp4"},
+                {url: link+"/DASH_360", type: "video/mp4"},
+                {url: link+"/DASH_240.mp4", type: "video/mp4"},
+                {url: link+"/DASH_240", type: "video/mp4"},
+            ],
+            seperate_audio_track: [
+                {url: link+"/DASH_audio.mp4", type: "video/mp4"},
+                {url: link+"/audio", type: "video/mp4"},
+            ],
+            preview: [
+                {url: "/DASH_96.mp4", type: "video/mp4"},
+                {url: "/DASH_96", type: "video/mp4"},
+            ],
+        },
+        gifv: false,
     };
-
-    // TODO:
-    // - proper sync accounting for audio buffering
-    // - custom player:
-    //   - audio volume controls
-    //   - /DASH_96.mp4 preview when hovering the scrubber bar
-
-    const sync = () => {
-        audio.currentTime = video.currentTime;
-        audio.playbackRate = video.playbackRate;
-    };
-    video.onplay = () => {
-        sync();
-    };
-    video.onplaying = () => {
-        sync();
-        void audio.play();
-    };
-    video.onseeking = () => sync();
-    video.ontimeupdate = () => {
-        if(!video.paused) return;
-        sync();
-    };
-    video.onpause = () => {
-        audio.pause();
-        sync();
-    };
-
-    if(opts.autoplay) void video.play();
-
-    let playing_before_hide = false;
-
-    const hsc = hideshow(container);
-    hsc.on("hide", () => {
-        playing_before_hide = !video.paused;
-        video.pause();
-    });
-    hsc.on("show", () => {
-        if(playing_before_hide) void video.play();
-    });
+    vanillaToSolidBoundary(client, frame, PreviewVideo, {
+        video,
+        autoplay: opts.autoplay,
+    }).defer(hsc);
     return hsc;
 }
 function videoPreview(sources: {src: string, type?: string}[], opts: {
@@ -886,7 +823,7 @@ function renderBodyMayError(
         }).defer(hsc).adto(content);
     }else if(body.kind === "vreddit_video") {
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
-        previewVreddit(body.id, {autoplay: false}).defer(hsc).adto(content);
+        previewVreddit(client, {id: body.id, autoplay: false}).defer(hsc).adto(content);
     }else if(body.kind === "array") {
         for(const v of body.body) {
             if(!v) continue;
