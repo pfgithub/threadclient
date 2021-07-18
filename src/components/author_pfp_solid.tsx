@@ -545,7 +545,7 @@ function PreviewableLink(props: {href: string, children: JSX.Element}): JSX.Elem
     </>;
 }
 
-function LinkButton(props: {href: string, style: LinkStyle, onClick?: () => void, children: JSX.Element}): JSX.Element {
+export function LinkButton(props: {href: string, style: LinkStyle, onClick?: () => void, children: JSX.Element}): JSX.Element {
     const client = getClient();
     const linkValue = createMemo(() => unsafeLinkToSafeLink(client().id, props.href));
     return <SwitchKind item={linkValue()}>{{

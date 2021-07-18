@@ -12,6 +12,7 @@ import { OEmbed, oembed } from "./clients/oembed";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { Flair, ReplyEditor, RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
 import { PreviewVideo } from "./components/preview_video_solid";
+import { Homepage } from "./components/homepage_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -3186,39 +3187,7 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
 
-    res.innerHTML = `<div class="flex justify-center flex-row">
-        <div class="w-full max-w-prose">
-            <div class="bg-white p-5 sm:m-5 sm:p-10 shadow sm:rounded-xl">
-                <h1 class="text-3xl sm:text-5xl font-black">ThreadReader</h1>
-                <h2 class="text-base font-light text-gray-800 dark:text-gray-500">A client for Reddit and Mastodon</h2>
-                <div class="mt-10"></div>
-                <p>Try for <span id="reddit"></span></p>
-                <p>Try for <span id="mastodon"></span></p>
-                <div class="mt-10"></div>
-                <p class="text-gray-800 dark:text-gray-500">
-                    <span id="settings"></span> ·
-                    <span id="github"></span> · <span id="license"></span> · <span id="privacy"></span>
-                </p>
-                <div class="mt-2"></div>
-            </div>
-        </div>
-    </div>`;
-    res.querySelector("#reddit")!.appendChild(linkButton("", "/reddit", "normal").atxt("Reddit"));
-    res.querySelector("#mastodon")!.appendChild(linkButton("", "/mastodon", "normal").atxt("Mastodon"));
-    res.querySelector("#settings")!.appendChild(
-        linkButton("", "/settings", "action-button").atxt("Settings"),
-    );
-    res.querySelector("#github")!.appendChild(
-        linkButton("", "https://github.com/pfgithub/threadclient", "action-button").atxt("Github"),
-    );
-    res.querySelector("#license")!.appendChild(
-        linkButton("", "https://github.com/pfgithub/threadclient/blob/main/LICENSE", "action-button").atxt("License"),
-    );
-    res.querySelector("#privacy")!.appendChild(
-        linkButton("", "https://github.com/pfgithub/threadclient/blob/main/privacy.md", "action-button")
-            .atxt("Privacy")
-        ,
-    );
+    vanillaToSolidBoundary(0 as unknown as ThreadClient, res, Homepage, {}).defer(hsc);
 
     return hsc;
 }

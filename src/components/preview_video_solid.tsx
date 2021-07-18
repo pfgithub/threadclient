@@ -9,7 +9,6 @@ import { getClient, getIsVisible, HideshowProvider, kindIs, ShowBool, ShowCond, 
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import React from "react";
-export * from "../util/interop_solid";
 
 const speaker_icons = {
     mute: "🔇",
