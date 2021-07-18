@@ -397,13 +397,6 @@ export type Body = BodyText | RichText | {
     kind: "unknown_size_image",
     url: string,
 } | Video | {
-    kind: "vreddit_video",
-    id: string,
-    w?: number,
-    h?: number,
-    gifv: boolean,
-    caption?: string,
-} | {
     kind: "gfycat",
     id: string,
     host: string,

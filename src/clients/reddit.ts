@@ -6,6 +6,7 @@ import {encoderGenerator, ThreadClient} from "./base";
 import * as util from "../util";
 import { encodeQuery, encodeURL } from "../util";
 import { rt } from "../types/generic";
+import { getVredditSources } from "../app";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -116,8 +117,8 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Bo
         caption: caption,
     };
     if(media_meta.e === "RedditVideo") return {
-        kind: "vreddit_video",
-        id: media_meta.id,
+        kind: "video",
+        source: getVredditSources(media_meta.id),
         w: media_meta.x,
         h: media_meta.y,
         gifv: media_meta.isGif ?? false,

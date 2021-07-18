@@ -2,7 +2,7 @@ import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match,
 import { createStore, reconcile } from "solid-js/store";
 import {
     clientContent, elButton, link_styles_v, navbar, renderBody, timeAgoText,
-    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink, renderAction
+    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink, renderAction, zoomableImage, fetchPromiseThen, hideshow
 } from "../app";
 import type * as Generic from "../types/generic";
 import { getClient, getIsVisible, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
@@ -127,9 +127,27 @@ export function PreviewVideo(props: {
     video: Generic.Video,
     autoplay: boolean,
 }): JSX.Element {
-    return <SwitchKind item={props.video.source}>{{
-        video: video => <PreviewRealVideo video={props.video} source={video} autoplay={props.autoplay} />,
-        img: img => <>TODO</>,
-        m3u8: m3u8 => <>TODO</>,
-    }}</SwitchKind>;
+    return <div>
+        <ShowCond when={props.video.caption}>{caption =>
+            <div>Caption: {caption}</div>
+        }</ShowCond>
+        <SwitchKind item={props.video.source}>{{
+            video: video => <PreviewRealVideo video={props.video} source={video} autoplay={props.autoplay} />,
+            img: img => <SolidToVanillaBoundary getValue={(hsc, client) => {
+                const content = el("div");
+                zoomableImage(img.url, {w: props.video.w, h: props.video.h, alt: props.video.alt}).adto(content);
+                return content;
+            }} />,
+            m3u8: m3u8 => <SolidToVanillaBoundary getValue={(hsc, client) => {
+                const srcurl = m3u8.url;
+                const poster = m3u8.poster;
+                return fetchPromiseThen(import("./video"), vidplayer => {
+                    const cframe = el("div");
+                    const shsc = hideshow(cframe);
+                    vidplayer.playM3U8(srcurl, poster, {autoplay: props.autoplay}).defer(shsc).adto(cframe);
+                    return shsc;
+                }).defer(hsc);
+            }}/>,
+        }}</SwitchKind>
+    </div>;
 }

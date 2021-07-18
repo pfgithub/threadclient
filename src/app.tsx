@@ -113,69 +113,42 @@ function menuButtonStyle(active: boolean): string {
     ].join(" ");
 }
 
-function previewVreddit(client: ThreadClient, opts: {id: string, autoplay: boolean}): HideShowCleanup<Node> {
-    const frame = el("div");
-    const hsc = hideshow(frame);
+// TODO move this somewhere shared
+export function getVredditSources(id: string): Generic.VideoSource {
+    const link = "https://v.redd.it/"+id;
+    return {
+        kind: "video",
+        sources: [
+            {url: link+"/DASH_720.mp4", type: "video/mp4"},
+            {url: link+"/DASH_720", type: "video/mp4"},
+            {url: link+"/DASH_480.mp4", type: "video/mp4"},
+            {url: link+"/DASH_480", type: "video/mp4"},
+            {url: link+"/DASH_360.mp4", type: "video/mp4"},
+            {url: link+"/DASH_360", type: "video/mp4"},
+            {url: link+"/DASH_240.mp4", type: "video/mp4"},
+            {url: link+"/DASH_240", type: "video/mp4"},
+        ],
+        seperate_audio_track: [
+            {url: link+"/DASH_audio.mp4", type: "video/mp4"},
+            {url: link+"/audio", type: "video/mp4"},
+        ],
+        preview: [
+            {url: "/DASH_96.mp4", type: "video/mp4"},
+            {url: "/DASH_96", type: "video/mp4"},
+        ],
+    };
+}
 
-    const link = "https://v.redd.it/"+opts.id;
+function getVredditPreview(id: string): Generic.Video {
+    const link = "https://v.redd.it/"+id;
     const video: Generic.Video = {
         kind: "video",
-        source: {
-            kind: "video",
-            sources: [
-                {url: link+"/DASH_720.mp4", type: "video/mp4"},
-                {url: link+"/DASH_720", type: "video/mp4"},
-                {url: link+"/DASH_480.mp4", type: "video/mp4"},
-                {url: link+"/DASH_480", type: "video/mp4"},
-                {url: link+"/DASH_360.mp4", type: "video/mp4"},
-                {url: link+"/DASH_360", type: "video/mp4"},
-                {url: link+"/DASH_240.mp4", type: "video/mp4"},
-                {url: link+"/DASH_240", type: "video/mp4"},
-            ],
-            seperate_audio_track: [
-                {url: link+"/DASH_audio.mp4", type: "video/mp4"},
-                {url: link+"/audio", type: "video/mp4"},
-            ],
-            preview: [
-                {url: "/DASH_96.mp4", type: "video/mp4"},
-                {url: "/DASH_96", type: "video/mp4"},
-            ],
-        },
+        source: getVredditSources(link),
         gifv: false,
     };
-    vanillaToSolidBoundary(client, frame, PreviewVideo, {
-        video,
-        autoplay: opts.autoplay,
-    }).defer(hsc);
-    return hsc;
+    return video;
 }
-function videoPreview(sources: {src: string, type?: string}[], opts: {
-    autoplay: boolean,
-    width?: number,
-    height?: number,
-    gifv: boolean,
-    audio?: boolean,
-    alt?: string,
-}): HideShowCleanup<Node> {
-    const video = el(opts.audio ?? false ? "audio" : "video").attr({controls: "",
-        width: opts.width != null ? `${opts.width}px` as const : undefined,
-        height: opts.height != null ? `${opts.height}px` as const : undefined,
-        alt: opts.alt,
-    }).clss("preview-image");
-    sources.forEach(source => {
-        el("source").attr({src: source.src, type: source.type}).adto(video);
-    });
-    if(opts.gifv) {
-        video.loop = true;
-    }
-    if(opts.autoplay) void video.play();
-    let playing_before_hide = false;
-    const hsc = hideshow(video);
-    hsc.on("hide", () => {playing_before_hide = !video.paused; video.pause()});
-    hsc.on("show", () => {if(playing_before_hide) void video.play();});
-    return hsc;
-}
-function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
+function gfyLike(client: ThreadClient, gfy_host: string, gfy_link: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
     const resdiv = el("div");
     const hsc = hideshow(resdiv);
     
@@ -243,39 +216,42 @@ function gfyLike(gfy_host: string, gfy_link: string, opts: {autoplay: boolean}):
         if(gfy_item.title != null) resdiv.adch(el("div").atxt("Title: " + gfy_item.title));
         if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
 
-        const sources = [
-            ...gfy_item.mp4Url != null ? [{src: gfy_item.mp4Url, type: "video/mp4"}] : [],
-            ...gfy_item.webmUrl != null ? [{src: gfy_item.webmUrl, type: "video/webm"}] : [],
-            ...gfy_item.content_urls.webm ? [{src: gfy_item.content_urls.webm.url}] : [],
+        const sources: {url: string, type?: string}[] = [
+            ...gfy_item.mp4Url != null ? [{url: gfy_item.mp4Url, type: "video/mp4"}] : [],
+            ...gfy_item.webmUrl != null ? [{url: gfy_item.webmUrl, type: "video/webm"}] : [],
+            ...gfy_item.content_urls.webm ? [{url: gfy_item.content_urls.webm.url}] : [],
             ...gfy_item.content_urls.mp4 ? [
-                {src: gfy_item.content_urls.mp4.url},
-                {src: gfy_item.content_urls.mp4.url.replace(".mp4", "-mobile.mp4")}, // hack
+                {url: gfy_item.content_urls.mp4.url},
+                {url: gfy_item.content_urls.mp4.url.replace(".mp4", "-mobile.mp4")}, // hack
             ] : [],
-            ...gfy_item.content_urls.mobile ? [{src: gfy_item.content_urls.mobile.url}] : [],
-            ...gfy_item.mobileUrl != null ? [{src: gfy_item.mobileUrl}] : [],
+            ...gfy_item.content_urls.mobile ? [{url: gfy_item.content_urls.mobile.url}] : [],
+            ...gfy_item.mobileUrl != null ? [{url: gfy_item.mobileUrl}] : [],
         ];
-        if(sources.length > 0) {
-            videoPreview(sources, {
-                autoplay: opts.autoplay,
-                width: gfy_item.width,
-                height: gfy_item.height,
-                gifv: false,
-            }).defer(hsc).adto(resdiv);
-        }else{
-            const urls = gfy_item.content_urls;
-            const url = urls.max5mbGif ?? urls.max2mbGif ?? urls.max1mbGif; // ?? webp url
 
-            if(url) {
-                el("img").attr({
-                    src: url.url,
-                    width: `${url.width}px` as const,
-                    height: `${url.height}px` as const,
-                }).clss("preview-image").adto(resdiv);
-            }else {
-                console.log(gfy_item);
-                el("div").clss("error").atxt("Error bad image uh oh").adto(resdiv);
-            }
-        }
+        const urls = gfy_item.content_urls;
+        const url = urls.max5mbGif ?? urls.max2mbGif ?? urls.max1mbGif;
+        renderBody(client, {
+            kind: "video",
+            w: gfy_item.width,
+            h: gfy_item.height,
+            gifv: false,
+            source:
+                sources.length > 0 ? {
+                    kind: "video",
+                    sources,
+                } :
+                url != null ? {
+                    kind: "img",
+                    url: url.url,
+                } : {
+                    kind: "img",
+                    url: (() => {
+                        console.log("Bad gfy image in", gfy_item);
+                        throw new Error("Bad gfy image");
+                    })(),
+                }
+            ,
+        }, {autoplay: opts.autoplay}).defer(hsc).adto(resdiv);
     }).catch(er => {
         const e = er as Error;
         console.log(e);
@@ -315,20 +291,14 @@ export function previewLink(
             {url: link.replace(".gifv", ".mp4"), type: "video/mp4"},
         ]}};
     }
-    if(link.startsWith("https://v.redd.it/")) return {
-        kind: "vreddit_video",
-        id: link.replace("https://v.redd.it/", ""),
-        gifv: false,
-    };
+    if(link.startsWith("https://v.redd.it/")) return getVredditPreview(link.replace("https://v.redd.it/", ""));
     if(url && (url.host === "reddit.com" || url.host.endsWith(".reddit.com") && url.pathname.startsWith("/link"))) {
         const pathsplit = path.split("/");
         pathsplit.shift();
         // /link/:postname/video/:videoid/player
-        if(pathsplit[0] === "link" && pathsplit[2] === "video" && pathsplit[4] === "player") return {
-            kind: "vreddit_video",
-            id: pathsplit[3] ?? "",
-            gifv: false,
-        };
+        if(pathsplit[0] === "link" && pathsplit[2] === "video" && pathsplit[4] === "player") {
+            return getVredditPreview(pathsplit[3] ?? "");
+        }
     }
     if(url
         && (url.host === "gfycat.com" || url.host.endsWith(".gfycat.com"))
@@ -789,41 +759,17 @@ function renderBodyMayError(
         }).adto(el("div").adto(content));
         if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
     }else if(body.kind === "video") {
-        if(body.source.kind === "img") {
-            zoomableImage(body.source.url, {w: body.w, h: body.h, alt: body.alt}).adto(el("div").adto(content));
-        }else if(body.source.kind === "video") {
-            videoPreview(
-                body.source.sources.map(src => ({src: src.url, type: src.type})),
-                {
-                    autoplay: opts.autoplay,
-                    width: body.w,
-                    height: body.h,
-                    gifv: body.gifv,
-                    alt: body.alt
-                },
-            ).defer(hsc).adto(content);
-        }else if(body.source.kind === "m3u8") {
-            const srcurl = body.source.url;
-            const poster = body.source.poster;
-            fetchPromiseThen(import("./components/video"), vidplayer => {
-                const cframe = el("div");
-                const shsc = hideshow(cframe);
-                vidplayer.playM3U8(srcurl, poster, {autoplay: opts.autoplay}).defer(shsc).adto(cframe);
-                return shsc;
-            }).defer(hsc).adto(content);
-        }
-        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
-    }else if(body.kind === "audio") {
-        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
-        videoPreview([{src: body.url}], {
+        vanillaToSolidBoundary(client, content, PreviewVideo, {
+            video: body,
             autoplay: opts.autoplay,
-            gifv: false,
-            audio: true,
-            alt: body.alt
-        }).defer(hsc).adto(content);
-    }else if(body.kind === "vreddit_video") {
-        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
-        previewVreddit(client, {id: body.id, autoplay: opts.autoplay}).defer(hsc).adto(content);
+        }).defer(hsc);
+    }else if(body.kind === "audio") {
+        const audiov = el("audio").attr({
+            src: body.url,
+            autoplay: opts.autoplay ? "" : undefined,
+            controls: "",
+        }).atxt(body.alt ?? "Audio not supported and no alt text was provided").adto(content);
+        hsc.on("hide", () => audiov.pause());
     }else if(body.kind === "array") {
         for(const v of body.body) {
             if(!v) continue;
@@ -832,13 +778,13 @@ function renderBodyMayError(
     }else if(body.kind === "unknown_size_image") {
         zoomableImage(body.url, {}).adto(el("div").adto(content));
     }else if(body.kind === "gfycat") {
-        gfyLike(body.host, body.id, {autoplay: opts.autoplay}).defer(hsc).adto(content);
+        gfyLike(client, body.host, body.id, {autoplay: opts.autoplay}).defer(hsc).adto(content);
     }else if(body.kind === "imgur") {
         imgurImage(client, body.imgur_kind, body.imgur_id).defer(hsc).adto(content);
     }else if(body.kind === "youtube") {
         youtubeVideo(body.id, body.search, {autoplay: opts.autoplay}).defer(hsc).adto(content);
     }else if(body.kind === "twitch_clip") {
-        twitchClip(body.slug, {autoplay: opts.autoplay}).defer(hsc).adto(content);
+        twitchClip(client, body.slug, {autoplay: opts.autoplay}).defer(hsc).adto(content);
     }else if(body.kind === "reddit_suggested_embed") {
         redditSuggestedEmbed(body.suggested_embed).defer(hsc).adto(content);
     }else if(body.kind === "link_preview") {
@@ -984,7 +930,7 @@ function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
     }
 }
 
-function twitchClip(clipid: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
+function twitchClip(client: ThreadClient, clipid: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
     const frame = el("div");
     const hsc = hideshow(frame);
 
@@ -1091,9 +1037,20 @@ function twitchClip(clipid: string, opts: {autoplay: boolean}): HideShowCleanup<
             return;
         }
         el("h1").clss("text-xl font-bold text-gray-500").adto(frame).atxt(title.data.clip.title);
-        videoPreview(video.data.clip.videoQualities.map(quality => {
-            return {src: quality.sourceURL};
-        }), {autoplay: opts.autoplay, gifv: false}).defer(hsc).adto(frame);
+
+        renderBody(client, {
+            kind: "video",
+            source: {
+                kind: "video",
+                sources: video.data.clip.videoQualities.map(quality => {
+                    return {url: quality.sourceURL
+                        + "?sig="+encodeURIComponent(video.data.clip!.playbackAccessToken.signature)
+                        + "&token="+encodeURIComponent(video.data.clip!.playbackAccessToken.value)
+                    };
+                }),
+            },
+            gifv: false,
+        }, {autoplay: opts.autoplay}).defer(hsc).adto(frame);
 
         () => [chat_card, broadcaster_info, curator, full_video_btn]; 
 
@@ -1322,7 +1279,7 @@ function elImg(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLIm
     return res;
 }
 
-function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLElement {
+export function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLElement {
     return zoomableFrame(elImg(url, opt).clss("preview-image"));
 }
 
@@ -3535,7 +3492,7 @@ function fetchClientThen(
 
 }
 // import { richtextEditor } from "./editors/reddit-richtext"; 
-function fetchPromiseThen<T>(
+export function fetchPromiseThen<T>(
     promise: Promise<T>,
     cb: (v: T) => HideShowCleanup<HTMLDivElement>,
 ): HideShowCleanup<HTMLDivElement> {
