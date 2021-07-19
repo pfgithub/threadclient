@@ -8,7 +8,7 @@ import type * as Generic from "../types/generic";
 import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
-import React from "react";
+import { CounterCount } from "./counter_solid";
 export * from "../util/interop_solid";
 
 export type ClientPostOpts = {
@@ -376,6 +376,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             )}</ShowCond>
             <ShowCond when={props.content.author?.flair}>{flair => <>
                 {" "}<Flair flairs={flair} />
+            </>}</ShowCond>
+            <ShowCond when={props.content.actions?.vote}>{vote_action => <>
+                {" "}<CounterCount counter={vote_action} />
             </>}</ShowCond>
         </div>
         <HideshowProvider visible={selfVisible}>

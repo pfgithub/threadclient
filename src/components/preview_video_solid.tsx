@@ -1,4 +1,3 @@
-import React from "react";
 import { createEffect, createSignal, For, JSX } from "solid-js";
 import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app";
 import type * as Generic from "../types/generic";

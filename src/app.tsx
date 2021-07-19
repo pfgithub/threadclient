@@ -1672,7 +1672,7 @@ function renderReportScreen(
     return hsc;
 }
 
-type CounterState = {
+export type CounterState = {
     loading: boolean,
     pt_count: number | "hidden" | "none",
     your_vote: "increment" | "decrement" | undefined,
@@ -1683,7 +1683,7 @@ type GlobalCounter = {
     users: number,
     update_time: number,
 };
-type WatchableCounterState = {
+export type WatchableCounterState = {
     state: CounterState,
     emit: () => void,
     onupdate: (cb: () => void) => void,
@@ -1691,7 +1691,7 @@ type WatchableCounterState = {
 
 const global_counter_info = new Map<string, GlobalCounter>();
 
-function watchCounterState(
+export function watchCounterState(
     counter_id_raw: string | null,
     updates: {count: number | "hidden" | "none", you: "increment" | "decrement" | undefined, time: number}
 ): HideShowCleanup<WatchableCounterState> {
@@ -1737,6 +1737,14 @@ function watchCounterState(
     return hsc;
 }
 
+export function getPointsText(state: CounterState): {text: string, raw: string} {
+    if(state.pt_count === "hidden" || state.pt_count === "none") return {text: "—", raw: "[score hidden]"};
+    const score_mut = state.pt_count + (
+        state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0
+    );
+    return {text: scoreToString(score_mut), raw: score_mut.toLocaleString()};
+}
+
 function renderCounterAction(
     client: ThreadClient,
     action: Generic.CounterAction,
@@ -1767,16 +1775,8 @@ function renderCounterAction(
         time: action.time
     }).defer(hsc);
 
-    const getPointsText = () => {
-        if(state.pt_count === "hidden" || state.pt_count === "none") return ["—", "[score hidden]"];
-        const score_mut = state.pt_count + (
-            state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0
-        );
-        return [scoreToString(score_mut), score_mut.toLocaleString()] as const;
-    };
-
     onupdate(() => {
-        const [pt_text, pt_raw] = getPointsText();
+        const {text: pt_text, raw: pt_raw} = getPointsText(state);
         btxt.nodeValue = {
             increment: action.incremented_label, 
             decrement: action.decremented_label ?? "ERR",

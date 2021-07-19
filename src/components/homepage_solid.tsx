@@ -1,4 +1,3 @@
-import React from "react";
 import { JSX } from "solid-js";
 import { LinkButton } from "./author_pfp_solid";
 
