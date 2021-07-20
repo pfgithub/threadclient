@@ -141,10 +141,9 @@ export function getVredditSources(id: string): Generic.VideoSource {
 }
 
 function getVredditPreview(id: string): Generic.Video {
-    const link = "https://v.redd.it/"+id;
     const video: Generic.Video = {
         kind: "video",
-        source: getVredditSources(link),
+        source: getVredditSources(id),
         gifv: false,
     };
     return video;
