@@ -758,10 +758,16 @@ table {
     }
 }
 
-.alert {
+.alert-area {
     position: fixed;
     bottom: 0;
     right: 0;
+    overflow-y: auto;
+    max-height: 100vh;
+    z-index: 1000000;
+    -webkit-overflow-scrolling: touch; /* this rule seems to be gone so I guess no scroll bounce anymore */
+}
+.alert {
     background-color: var(--alert-color);
     margin: 10px;
     padding: 10px;
