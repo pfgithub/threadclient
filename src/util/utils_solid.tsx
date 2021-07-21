@@ -1,4 +1,5 @@
-import { createContext, createMemo, JSX, untrack, useContext } from "solid-js";
+import { createContext, createMemo, createSignal, JSX, untrack, useContext } from "solid-js";
+import {render} from "solid-js/web";
 import { ThreadClient } from "../clients/base";
 
 export type Include<T, U> = T extends U ? T : never;
@@ -78,4 +79,102 @@ export function ShowCond<T>(props: {
         }
         return props.fallback;
     });
+}
+
+type ComputeProperty<T> = {
+    value: () => T,
+    compute: {
+        base: () => T,
+        override: () => T | undefined,
+        setOverride(value: T | undefined): void,
+    },
+};
+type ColorScheme = "light" | "dark";
+type AuthorPfp = "on" | "off";
+type Settings = {
+    color_scheme: ComputeProperty<ColorScheme>,
+    author_pfp: ComputeProperty<AuthorPfp>,
+};
+
+type SchemeInfo = [scheme: "light" | "dark" | "system", system: boolean];
+declare function getColorScheme(): SchemeInfo;
+declare function onColorSchemeChange(cb: (...info: SchemeInfo) => void): () => void;
+declare function setColorScheme(ncs: "light" | "dark" | "system"): void;
+const global_settings = ((): Settings => {
+    const color_scheme = ((): ComputeProperty<ColorScheme> => {
+        const initial = getColorScheme();
+
+        const getBase = ([, initial_system]: SchemeInfo): ColorScheme => {
+            return initial_system ? "dark" : "light";
+        };
+        const getOverride = ([initial_scheme]: SchemeInfo): ColorScheme | undefined => {
+            return initial_scheme === "system" ? undefined : initial_scheme;
+        };
+
+        const [base, internalSetBase] = createSignal(getBase(initial));
+        const [override, internalSetOverride] = createSignal(getOverride(initial));
+        const value = () => override() ?? base();
+
+        onColorSchemeChange(() => {
+            const updated = getColorScheme();
+            internalSetBase(getBase(updated));
+            internalSetOverride(getOverride(updated));
+        });
+
+        return {
+            value,
+            compute: {
+                base,
+                override,
+                setOverride: (v) => setColorScheme(v ?? "system"),
+            },
+        };
+    })();
+    const author_pfp = ((): ComputeProperty<AuthorPfp> => {
+        const getOverride = (): AuthorPfp | undefined => {
+            const res = localStorage.getItem("pfp-cfg") as "on" | "off" | undefined;
+            if(res === "on") return "on";
+            if(res === "off") return "off";
+            return undefined;
+        };
+
+        const base = (): AuthorPfp => "on";
+        const [override, internalSetOverride] = createSignal(getOverride());
+
+        window.addEventListener("storage", () => {
+            internalSetOverride(getOverride());
+        });
+
+        const value = () => override() ?? base();
+
+        return {
+            value,
+            compute: {
+                base,
+                override,
+                setOverride: (newv) => {
+                    const lsres: "on" | "off" | undefined = newv;
+                    if(lsres == null) {
+                        localStorage.removeItem("pfp-cfg");
+                    }else{
+                        localStorage.setItem("pfp-cfg", lsres);
+                    }
+                    internalSetOverride(getOverride());
+                },
+            },
+        };
+    })();
+
+    return {
+        color_scheme,
+        author_pfp,
+    };
+})();
+
+render(() => <ShowBool when={getSettings().author_pfp.value() === "off"}>
+    <style>{".cfg-reddit-pfp {display: none;}"}</style>
+</ShowBool>, el("div").adto(document.head));
+
+export function getSettings(): Settings { // TODO getClient: (): ThreadClient =}
+    return global_settings;
 }

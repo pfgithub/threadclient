@@ -596,11 +596,8 @@ function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JS
     </ErrorBoundary>;
 }
 
-// TODO make a custom <Switch> that asserts that all the cases have been handled
-
-// should client be provided by a provider?
 export type ClientContentProps = {listing: Generic.PostContent, opts: ClientPostOpts};
-function ClientContent(props: ClientContentProps): JSX.Element {
+export function ClientContent(props: ClientContentProps): JSX.Element {
     const todosupport = (thing: unknown) => <>
         TODO support. also in the parent list these should probably{" "}
         be one of those navbars with bits like ClientName {">"} PageName {">"} …{" "}
@@ -669,7 +666,7 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
     </WrapParent>;
 }
 
-function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
+export function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
     return <div class="top-level-wrapper object-wrapper bg-postcolor-100">{props.children}</div>;
 }
 
