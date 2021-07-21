@@ -3,6 +3,7 @@ dist/
 zig-cache/
 node_modules/
 coverage/
+yarn-error.log
 
 server/deno
 server/secret.ts

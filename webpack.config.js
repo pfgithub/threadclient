@@ -7,6 +7,8 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const dev = process.env.NODE_ENV === "development";
 
+const variables = require("./src/_variables.js");
+
 module.exports = {
     entry: {
         bundle: "./src/entry.ts",
@@ -56,11 +58,20 @@ module.exports = {
         new webpack.ProgressPlugin(),
         new webpack.DefinePlugin({
             'fakevar.build': JSON.stringify(dev ? "development" : "production"),
-            'fakevar.b_time': JSON.stringify(Date.now()),
+            'fakevar.b_time': JSON.stringify(variables.build_time),
         }),
         new CopyPlugin({
             patterns: [
                 {from: "static", to: ""},
+                {
+                    from: "package.json",
+                    to: "special/update_info.json",
+                    transform: {
+                        transformer: () => {
+                            return JSON.stringify(variables);
+                        },
+                    },
+                }
             ],
         }),
         new HtmlWebpackPlugin({
@@ -72,7 +83,7 @@ module.exports = {
             filename: "404.html",
         }),
         new VirtualModulesPlugin({
-            'node_modules/_variables.js': "module.exports = "+JSON.stringify(require("./src/_variables.js")),
+            'node_modules/_variables.js': "module.exports = "+JSON.stringify(variables),
         }),
         ...(dev ? [] : [new WorkboxPlugin.GenerateSW({
             // clientsClaim: true,
