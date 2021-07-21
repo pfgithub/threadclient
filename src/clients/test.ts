@@ -446,6 +446,41 @@ const sitemap: SitemapEntry[] = [
         },
         replies: [],
     })],
+    ["header", (urlr): SitemapEntryData => ({
+        content: {
+            kind: "page",
+            title: null,
+            wrap_page: {
+                sidebar: {
+                    sort: null,
+                    reply: null,
+                    items: [],
+                },
+                header: {
+                    kind: "bio",
+                    banner: {
+                        desktop: "https://images.sadhguru.org/sites/default/files/media_files/iso/en/"
+                        + "64083-natures-temples.jpg",
+                    },
+                    icon: {
+                        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Flat_tick_icon.svg/"
+                        + "1200px-Flat_tick_icon.svg.png",
+                    },
+                    name: {
+                        display: "Display Name",
+                        link_name: "~sample",
+                    },
+                    body: {kind: "richtext", content: [
+                        rt.p(rt.txt("Some text for the bio")),
+                        rt.p(rt.txt("The bio can have any body for some reason, not sure why")),
+                    ]},
+                    menu: null, // sort replaces this
+                    raw_value: 0,
+                },
+            },
+        },
+        replies: [],
+    })],
     // ["reddit_html", (urlr): SitemapEntryData => ({
     //     content: {
     //         kind: "post",
@@ -674,6 +709,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
                     "/updates",
                     "/markdown",
                     "/reddit",
+                    "/header",
                 ].map(v => rt.li(rt.p(
                     rt.link(v, {}, rt.txt(v)),
                 )))),

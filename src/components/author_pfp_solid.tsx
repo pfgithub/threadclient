@@ -2,7 +2,7 @@ import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match,
 import { createStore, reconcile } from "solid-js/store";
 import {
     clientContent, elButton, link_styles_v, navbar, renderBody, timeAgoText,
-    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink, renderAction
+    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink, renderAction, bioRender
 } from "../app";
 import type * as Generic from "../types/generic";
 import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
@@ -690,7 +690,18 @@ function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_
                             }} />
                         </TopLevelWrapper>
                     ),
-                    page: () => <>TODO page</>,
+                    page: page => (
+                        <TopLevelWrapper>
+                            <SolidToVanillaBoundary getValue={(hsc, client) => {
+                                const frame = el("div").clss("post text-sm").styl({
+                                    margin: "-10px",
+                                    padding: "10px",
+                                });
+                                bioRender(client(), page.wrap_page.header, frame).defer(hsc);
+                                return frame;
+                            }} />
+                        </TopLevelWrapper>
+                    ),
                     legacy: () => <>TODO legacy</>,
                     client: () => <>TODO client</>,
                 }}</SwitchKind>

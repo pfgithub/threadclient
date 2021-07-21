@@ -2061,9 +2061,10 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
     return hsc;
 }
 
-function bioRender(
+export function bioRender(
     client: ThreadClient,
-    listing: Generic.RedditHeader, frame: HTMLDivElement,
+    listing: Generic.RedditHeader,
+    frame: HTMLDivElement,
 ): HideShowCleanup<undefined> {
     const hsc = hideshow();
 

@@ -194,9 +194,9 @@ export type PostContent = ClientPost | {
     title: null | string,
     wrap_page: {
         sidebar: ListingData,
-        header: ListingData,
+        header: RedditHeader,
     },
-    overview: Link<PostData>,
+    // overview: Link<PostData>, // I think this is supposed to be for if rendered below the pivot
 } | PostContentPost | {
     kind: "legacy",
     thread: Thread,
