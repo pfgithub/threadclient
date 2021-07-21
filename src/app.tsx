@@ -13,6 +13,7 @@ import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { Flair, ReplyEditor, RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
 import { PreviewVideo } from "./components/preview_video_solid";
 import { Homepage } from "./components/homepage_solid";
+import { getSettings } from "./util/utils_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -3548,6 +3549,13 @@ export function showAlert(text: string): void {
 
 console.log("ThreadReader built on "+fakevar.b_time);
 
+function showUpdateAvailableAlert() {
+    const settings = getSettings();
+    if(settings.update_notifications.value() === "on") {
+        showAlert("An update to ThreadReader is available.");
+    }
+}
+
 declare const fakevar: {build: "development" | "production" | "test", b_time: string};
 if(fakevar.build === "production" && 'serviceWorker' in navigator) {
     // const updates_channel = new BroadcastChannel("workbox");
@@ -3570,7 +3578,7 @@ if(fakevar.build === "production" && 'serviceWorker' in navigator) {
                         if(navigator.serviceWorker.controller) {
                             waiting_sw = regr.waiting;
                             console.log("New service worker installed. Send SKIP_WAITING to update immediately.!");
-                            showAlert("An update to ThreadReader is available.");
+                            showUpdateAvailableAlert();
                         }else{
                             console.log("SW content cached, ready for offline.");
                         }

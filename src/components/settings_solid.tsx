@@ -1,6 +1,6 @@
 import React from "react";
 import { JSX } from "solid-js";
-import { menuButtonStyle } from "../app";
+import { link_styles_v, menuButtonStyle, showAlert } from "../app";
 import { ClientProvider, getSettings } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./author_pfp_solid";
 export * from "../util/interop_solid";
@@ -17,7 +17,7 @@ function SettingsSection(props: {title: string, children?: JSX.Element}): JSX.El
 }
 
 export function SettingsPage(props: {_?: undefined}): JSX.Element {
-    const {color_scheme, author_pfp} = getSettings();
+    const {color_scheme, author_pfp, update_notifications: update_notices} = getSettings();
 
     return <div class="client-wrapper"><div class="display-comments-view">
         <SettingsSection title="Color Scheme">
@@ -40,7 +40,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
             }}>Off</button>
             <button class={menuButtonStyle(author_pfp.compute.override() === undefined)} onclick={() => {
                 author_pfp.compute.setOverride(undefined);
-            }}>Default (On)</button>
+            }}>Default ({{on: "On", off: "Off"}[author_pfp.compute.base()]})</button>
             <div class="bg-body rounded-xl max-w-xl" style={{'padding': "10px", 'margin-top': "10px"}}>
                 <ClientProvider client={{
                     id: "reddit",
@@ -82,6 +82,28 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     }} />
                 </ClientProvider>
             </div>
+        </SettingsSection>
+        <SettingsSection title="Update Notices">
+            <button class={menuButtonStyle(update_notices.compute.override() === "on")} onclick={() => {
+                update_notices.compute.setOverride("on");
+            }}>On</button>
+            <button class={menuButtonStyle(update_notices.compute.override() === "off")} onclick={() => {
+                update_notices.compute.setOverride("off");
+            }}>Off</button>
+            <button class={menuButtonStyle(update_notices.compute.override() === undefined)} onclick={() => {
+                update_notices.compute.setOverride(undefined);
+            }}>Default ({{on: "On", off: "Off"}[update_notices.compute.base()]})</button>
+            <p class="my-4">
+                Show a notice when an update is available. Updates are installed
+                automatically after closing all ThreadReader tabs and refreshing the
+                page twice, or manually by clicking the Update button on an Update notice.
+            </p>
+            <button
+                class={link_styles_v["outlined-button"]}
+                onclick={() => {
+                    showAlert("An update to ThreadReader is available.");
+                }}
+            >Example notice</button>
         </SettingsSection>
     </div></div>;
 }

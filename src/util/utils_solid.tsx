@@ -91,10 +91,45 @@ type ComputeProperty<T> = {
 };
 type ColorScheme = "light" | "dark";
 type AuthorPfp = "on" | "off";
+type UpdateNotifications = "on" | "off";
 type Settings = {
     color_scheme: ComputeProperty<ColorScheme>,
     author_pfp: ComputeProperty<AuthorPfp>,
+    update_notifications: ComputeProperty<UpdateNotifications>,
 };
+
+function localStorageProperty<T extends string>(ls_key: string, accessBase: () => T): ComputeProperty<T> {
+    const getLocalStorageValue = (): T | undefined => {
+        return (localStorage.getItem(ls_key) ?? undefined) as T | undefined;
+    };
+
+    const [override, internalSetOverride] = createSignal(getLocalStorageValue());
+    const onStorageUpdate = () => {
+        internalSetOverride(getLocalStorageValue() as unknown as undefined);
+        // as unknown as undefined is needed because typescript allows T to be a function
+        // for some reason (no way to restrict it to just string) and set fns are overloaded
+        // using some messy types to allow setCounter(v => v + 1)
+        // also, interestingly this was introduced in a patch update (1.0.3) but listed
+        // as a breaking change.
+    };
+    window.addEventListener("storage", onStorageUpdate);
+
+    return {
+        value: () => override() ?? accessBase(),
+        compute: {
+            base: accessBase,
+            override,
+            setOverride: (value) => {
+                if(value == null) {
+                    localStorage.removeItem(ls_key);
+                }else{
+                    localStorage.setItem(ls_key, value);
+                }
+                onStorageUpdate();
+            },
+        },
+    };
+}
 
 type SchemeInfo = [scheme: "light" | "dark" | "system", system: boolean];
 declare function getColorScheme(): SchemeInfo;
@@ -130,44 +165,11 @@ const global_settings = ((): Settings => {
             },
         };
     })();
-    const author_pfp = ((): ComputeProperty<AuthorPfp> => {
-        const getOverride = (): AuthorPfp | undefined => {
-            const res = localStorage.getItem("pfp-cfg") as "on" | "off" | undefined;
-            if(res === "on") return "on";
-            if(res === "off") return "off";
-            return undefined;
-        };
-
-        const base = (): AuthorPfp => "on";
-        const [override, internalSetOverride] = createSignal(getOverride());
-
-        window.addEventListener("storage", () => {
-            internalSetOverride(getOverride());
-        });
-
-        const value = () => override() ?? base();
-
-        return {
-            value,
-            compute: {
-                base,
-                override,
-                setOverride: (newv) => {
-                    const lsres: "on" | "off" | undefined = newv;
-                    if(lsres == null) {
-                        localStorage.removeItem("pfp-cfg");
-                    }else{
-                        localStorage.setItem("pfp-cfg", lsres);
-                    }
-                    internalSetOverride(getOverride());
-                },
-            },
-        };
-    })();
 
     return {
         color_scheme,
-        author_pfp,
+        author_pfp: localStorageProperty("pfp-cfg", () => "on"),
+        update_notifications: localStorageProperty("update_notices", () => "off"),
     };
 })();
 
