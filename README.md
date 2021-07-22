@@ -118,6 +118,7 @@ all todo:
 -   [x] instead of a ".prose" class, use shadow dom so bodies can be embedded within prose without prose styles leaking (.prose class is gone,
         replaced with normal richtext)
 -   [ ] probably move the styles that used to be in prose back into typography.css but as `.prose-ul` rather than `.prose ul`
+-   [ ] support wikipedia file urls eg `https://en.wikipedia.org/wiki/File:Pixel_geometry_01_Pengo.jpg`
 -   [ ] make it possible for sorting menus to not reload the entire page on click (eg add an option to menu actions no_reload: true that tells
         the renderer to clear the content area, load, and refill it without clearing any of the frame and without pushing a new history item)
 -   [ ] oembed (eg for youtube and other sites)
