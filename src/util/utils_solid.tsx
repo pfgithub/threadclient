@@ -15,10 +15,13 @@ export function SwitchKind<T extends {kind: string}>(props: {
 }): JSX.Element {
     // <Switch children={/*@once*/} />
     return createMemo(() => {
-        const match = props.children[props.item.kind as T["kind"]] as MatchFn<T, T["kind"]> | undefined;
-        if(!match) throw new Error("condition "+props.item.kind+" was not handled");
+        let match = props.children[props.item.kind as T["kind"]] as MatchFn<T, T["kind"]> | undefined;
+        if(!match) {
+            match = props.children["unsupported" as T["kind"]] as MatchFn<T, T["kind"]> | undefined;
+            if(!match) throw new Error("condition "+props.item.kind+" was not handled and no unsupported branch");
+        }
         const arg = props.item as Include<T, {kind: T["kind"]}>;
-        return untrack(() => match(arg)); // untrack in order to treat the function as a widget (dependencies accessed don't cause this to reexec)
+        return untrack(() => match!(arg)); // untrack in order to treat the function as a widget (dependencies accessed don't cause this to reexec)
     });
 }
 
