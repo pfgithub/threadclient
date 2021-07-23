@@ -1,0 +1,31 @@
+{
+    "manifest_version": 2,
+    "name": "ThreadReader",
+    "version": "1.0",
+  
+    "description": "ThreadReader",
+  
+    "icons": {
+        "96": "src/icons/threadreader_96.png"
+    },
+    "browser_action": {
+        "default_icon": {
+            "96": "src/icons/threadreader_96.png"
+        },
+        "default_title": "ThreadReader",
+        "default_popup": "src/index.html?show=settings"
+    },
+  
+    "content_scripts": [
+        {
+            "matches": ["*://*.reddit.com/*"],
+            "js": ["reddit.js"]
+        }
+    ],
+    "permissions": [],
+    "optional_permissions": [
+        "*://*.pfg.pw/*",
+        "*://*.reddit.com/*",
+        "webRequest"
+    ]
+}
