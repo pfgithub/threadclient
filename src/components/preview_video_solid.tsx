@@ -18,6 +18,7 @@ function PreviewRealVideo(props: {
     const [hasSeperateAudio, setHasSeperateAudio] = createSignal<HTMLAudioElement | undefined>();
     const [audioVolume, setAudioVolume] = createSignal(0);
     const [audioMuted, setAudioMuted] = createSignal(false);
+    const [playbackRate, setPlaybackRate] = createSignal(1.0);
 
     const sync = () => {
         const audio_el = hasSeperateAudio();
@@ -33,6 +34,10 @@ function PreviewRealVideo(props: {
             video_el.pause();
             sync();
         }
+    });
+    createEffect(() => {
+        video_el.playbackRate = playbackRate();
+        sync();
     });
     return <div>
         <ShowCond when={props.source.seperate_audio_track}>{audio_track => (
@@ -113,6 +118,15 @@ function PreviewRealVideo(props: {
                 }}
             />
         </div>}</ShowCond>
+        <div class="flex">
+            <For each={[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]}>{speed => (
+                <button
+                    class={link_styles_v["outlined-button"]}
+                    disabled={playbackRate() === speed}
+                    on:click={() => setPlaybackRate(speed)}
+                >{speed}×</button>
+            )}</For>
+        </div>
     </div>;
 }
 
