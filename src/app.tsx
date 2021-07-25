@@ -14,6 +14,8 @@ import { Flair, ReplyEditor, RichtextParagraphs, TimeAgo } from "./components/au
 import { PreviewVideo } from "./components/preview_video_solid";
 import { Homepage } from "./components/homepage_solid";
 import { getSettings } from "./util/utils_solid";
+import { rt } from "./types/generic";
+import { Body } from "./components/body_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -149,7 +151,7 @@ function getVredditPreview(id: string): Generic.Video {
     };
     return video;
 }
-function gfyLike(
+export function gfyLike(
     client: ThreadClient,
     gfy_host: string,
     gfy_link: string,
@@ -290,7 +292,7 @@ export function previewLink(
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
         || path.endsWith(".webp")|| (url?.hostname ?? "") === "pbs.twimg.com"
-    ) return {kind: "unknown_size_image", url: link};
+    ) return {kind: "captioned_image", url: link, w: null, h: null};
     if(path.endsWith(".gifv")) {
         return {kind: "video", gifv: true, source: {kind: "video", sources: [
             {url: link.replace(".gifv", ".webm"), type: "video/webm"},
@@ -421,7 +423,7 @@ function getBound(v: HTMLElement) {
     return {x: rect.left, y: rect.top + (window.pageYOffset ?? document.documentElement.scrollTop), w: rect.width};
 }
 
-function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
+export function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
     if(images.every(img => img.body.kind === "captioned_image")) {
         return fetchPromiseThen(import("./components/gallery"), gallery => {
             const div = el("div");
@@ -614,45 +616,21 @@ export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditM
     }};
 });
 
-function renderText(client: ThreadClient, body: Generic.BodyText): HideShowCleanup<Node> {
-    const container = el("div");
-    const hsc = hideshow(container);
-    
+export async function textToBody(body: Generic.BodyText): Promise<Generic.Body> {
     if(body.markdown_format === "reddit") {
-        const preel = el("div").adto(container).atxt("Loading…");
-        Promise.all([getRedditMarkdownRenderer(), import("./clients/reddit/html_to_richtext")]).then(([mdr, htr]) => {
-            preel.remove();
-            const safe_html = mdr.renderMd(body.content);
-            renderBody(
-                client,
-                {kind: "richtext", content: htr.parseContentHTML(safe_html)},
-                {autoplay: false}
-            ).defer(hsc).adto(container);
-        }).catch(e => {
-            preel.remove();
-            console.log(e);
-            container.textContent = "Got error! Check console!";
-        });
+        const [mdr, htr] = await Promise.all([
+            getRedditMarkdownRenderer(),
+            import("./clients/reddit/html_to_richtext"),
+        ]);
+        const safe_html = mdr.renderMd(body.content);
+        return {kind: "richtext", content: htr.parseContentHTML(safe_html)};
     }else if(body.markdown_format === "none") {
-        container.atxt(body.content);
+        return {kind: "richtext", content: [rt.p(rt.txt(body.content))]};
     }else if(body.markdown_format === "reddit_html") {
-        const preel = el("div").adto(container).atxt("Loading…");
-        import("./clients/reddit/html_to_richtext").then(htr => {
-            preel.remove();
-            console.log(body.content);
-            renderBody(
-                client,
-                {kind: "richtext", content: htr.parseContentHTML(body.content)},
-                {autoplay: false}
-            ).defer(hsc).adto(container);
-        }).catch(e => {
-            preel.remove();
-            console.log(e);
-            container.textContent = "Got error! Check console!";
-        });
+        const htr = await import("./clients/reddit/html_to_richtext");
+        console.log(body.content);
+        return {kind: "richtext", content: htr.parseContentHTML(body.content)};
     }else assertNever(body.markdown_format);
-
-    return hsc;
 }
 
 export function renderBody(
@@ -679,228 +657,89 @@ function renderBodyMayError(
     const content = el("div");
     const hsc = hideshow(content);
 
-    if(body.kind === "text") {
-        const txta = el("div").adto(content);
-        renderText(client, body).defer(hsc).adto(txta);
-    }else if(body.kind === "link") {
-        // TODO fix this link button thing
-        el("div").adto(content).adch(linkButton(client.id, body.url, "normal").atxt(body.url));
-        const renderLinkPreview = canPreview(client, body.url, {
-            autoplay: opts.autoplay,
-            suggested_embed: body.embed_html
-        });
-        if(renderLinkPreview) {
-            renderLinkPreview().defer(hsc).adto(content);
-        }
-    }else if(body.kind === "none") {
-        // content.remove();
-    }else if(body.kind === "gallery") {
-        renderImageGallery(client, body.images).defer(hsc).adto(content);
-    }else if(body.kind === "removed") {
-        const removed_v = el("div").clss("border p-2").adto(content);
-        {
-            el("div").clss("font-bold").adto(removed_v).atxt(body.removal_message.title);
-            el("div").adto(removed_v).atxt(body.removal_message.body);
-        }
-        if(body.fetch_path && client.fetchRemoved) {
-            const fetch_btn = elButton("outlined-button").adto(removed_v).atxt("View");
-            // so this is a place where it would be helpful to update the entire listing
-            // unfortunately, this is not react or uil and that can't be done easily
-            // given how stateful listings are
-            // for now, just update the body.
-            const doClick = async () => {
-                let new_body: Generic.Body;
-                let errored = false;
-                fetch_btn.textContent = "…";
-                fetch_btn.disabled = true;
-                if(!client.fetchRemoved) {
-                    throw new Error("client provided a removal fetch path but has no fetchRemoved");
-                }
-                try {
-                    new_body = await client.fetchRemoved(body.fetch_path!);
-                }catch(error_) {
-                    const error = error_ as Error;
-                    errored = true;
-                    console.log(error);
-                    new_body = {kind: "text", content: "Error! "+error.toString(), markdown_format: "none"};
-                }
-                console.log("Got new body:", new_body);
-                fetch_btn.textContent = errored ? "Retry" : "Loaded";
-                fetch_btn.disabled = false;
-                if(!errored) fetch_btn.remove();
-                renderBody(client, new_body, {autoplay: true}).defer(hsc).adto(removed_v);
-            };
-            fetch_btn.onev("click", e => {
-                e.stopPropagation();
-                void doClick().catch(console.log);
-            });
-        }
-        renderBody(client, body.body, {autoplay: opts.autoplay}).defer(hsc).adto(content);
-    }else if(body.kind === "crosspost") {
-        const parentel = el("div").clss("bg-body rounded-xl max-w-xl").adto(content);
-        clientContent(client, body.source, {clickable: true}).defer(hsc).clss("crosspost-post").adto(parentel);
-    }else if(body.kind === "richtext") {
-        const frame = el("div").adto(content);
-        vanillaToSolidBoundary(client, frame, RichtextParagraphs, {content: body.content}).defer(hsc);
-    }else if(body.kind === "poll") {
-        const pollcontainer = el("ul").adto(content).clss("poll-container");
-        const expires = el("div").adto(pollcontainer).atxt("Expires: ");
-        timeAgo(body.close_time).defer(hsc).adto(expires);
-        for(const choice of body.choices) {
-            const choicebtn = elButton("outlined-button").adto(
-                el("li").adto(pollcontainer).clss("poll-choice-li")
-            ).clss("poll-choice");
-            choicebtn.atxt(choice.name + " ("+(choice.votes === "hidden" ? "hidden" : s(choice.votes, " Votes"))+")");
-            choicebtn.onev("click", (e) => {e.stopPropagation(); alert("TODO voting on polls")});
-        }
-        if(body.select_many) {
-            const submitbtn = elButton("pill-empty").atxt("Vote").adto(content);
-            submitbtn.onclick = () => alert("TODO vote on polls");
-        }
-    }else if(body.kind === "captioned_image") {
-        zoomableImage(body.url, {
-            w: body.w ?? undefined,
-            h: body.h ?? undefined,
-            alt: body.alt
-        }).adto(el("div").adto(content));
-        if(body.caption != null) el("div").adto(content).atxt("Caption: "+body.caption);
-    }else if(body.kind === "video") {
-        vanillaToSolidBoundary(client, content, PreviewVideo, {
-            video: body,
-            autoplay: opts.autoplay,
-        }).defer(hsc);
-    }else if(body.kind === "audio") {
-        const audiov = el("audio").attr({
-            src: body.url,
-            autoplay: opts.autoplay ? "" : undefined,
-            controls: "",
-        }).atxt(body.alt ?? "Audio not supported and no alt text was provided").adto(content);
-        hsc.on("hide", () => audiov.pause());
-    }else if(body.kind === "array") {
-        for(const v of body.body) {
-            if(!v) continue;
-            renderBody(client, v, {autoplay: false}).defer(hsc).adto(content);
-        }
-    }else if(body.kind === "unknown_size_image") {
-        zoomableImage(body.url, {}).adto(el("div").adto(content));
-    }else if(body.kind === "gfycat") {
-        gfyLike(client, body.host, body.id, {autoplay: opts.autoplay}).defer(hsc).adto(content);
-    }else if(body.kind === "imgur") {
-        imgurImage(client, body.imgur_kind, body.imgur_id).defer(hsc).adto(content);
-    }else if(body.kind === "youtube") {
-        youtubeVideo(body.id, body.search, {autoplay: opts.autoplay}).defer(hsc).adto(content);
-    }else if(body.kind === "twitch_clip") {
-        twitchClip(client, body.slug, {autoplay: opts.autoplay}).defer(hsc).adto(content);
-    }else if(body.kind === "reddit_suggested_embed") {
-        redditSuggestedEmbed(body.suggested_embed).defer(hsc).adto(content);
-    }else if(body.kind === "link_preview") {
-        // maybe outline with body background and no shadow?
-        let button_box: HTMLElement;
-        if(body.click_enabled) {
-            button_box = el("div").clss("bg-body rounded-lg block").adto(content);
-        }else{
-            button_box = linkButton(client.id, body.url, "none", {onclick: body.click_enabled ? () => {
-                button_box.remove();
-                renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(content);
-            } : undefined}).clss("bg-body rounded-lg hover:shadow-md hover:bg-gray-100 block").adto(content);
-        }
-        const link_preview_box = el("article")
-            .clss("flex", body.click_enabled ? "flex-col" : "flex-row")
-            .adto(button_box)
-        ;
-        const thumb_box = el("div").clss(
-            body.click_enabled
-                ? "w-full h-auto min-h-10 relative"
-                : "w-24 h-full flex items-center justify-center bg-gray-100"
-            ,
-            "rounded-lg overflow-hidden",
-        )
-            .adto(el("div").adto(link_preview_box))
-        ;
-        if(body.thumb != null) {
-            if(body.click_enabled) {
-                thumb_box.adch(el("img").clss(body.click_enabled ? "w-full h-full" : "").attr({src: body.thumb}));
-            }else{
-                el("div")
-                    .styl({'background-image': `url(${JSON.stringify(body.thumb)})`, 'background-size': "contain",
-                        'background-position': "center", 'background-repeat': "no-repeat"
-                    })
-                    .clss("w-full h-full")
-                    .adto(thumb_box)
-                ;
-            }
-        }else{
-            thumb_box.adch(el("div").atxt("🔗"));
-        }
-        if(body.click_enabled) {
-            const choicearea = el("div").adto(thumb_box);
-            choicearea.clss("flex items-center justify-center absolute top-0 left-0 bottom-0 right-0");
-            const choicebox = el("div").clss("rounded-lg bg-gray-200 p-2 flex shadow-md gap-3").adto(choicearea);
-            el("button").clss("hover:underline").adto(choicebox).atxt("Play").onev("click", e => {
-                e.stopPropagation();
-                thumb_box.innerHTML = "";
-                renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(thumb_box);
-            });
-            choicebox.atxt(" ");
-            linkButton(client.id, body.url, "none").clss("hover:underline").atxt("Open").adto(choicebox);
-        }
-        const meta_box = el("div").clss("flex flex-col p-3 text-sm").adto(link_preview_box);
-        meta_box.adch(el("h1").clss("max-1-line font-black").atxt(body.title));
-        meta_box.adch(el("p").clss("max-2-lines").atxt(body.description));
-        meta_box.adch(el("div").clss("max-1-line font-light").atxt(body.url));
-    }else if(body.kind === "oembed") {
-        fetchPromiseThen(fetch(body.url, {headers: {'Accept': "application/json"}}).then(r => r.json()), resp => {
-            console.log("oembed resp", resp);
-            const outerel = el("div");
-            const ihsc = hideshow(outerel);
-            renderBody(client, oembed(resp as OEmbed), {autoplay: false}).defer(hsc).adto(outerel);
-            return ihsc;
-        }).defer(hsc).adto(content);
-    }else if(body.kind === "mastodon_instance_selector") {
-        const heading = el("h1").clss("text-base font-light").styl({'max-width': "6rem"}).adto(content);
-        heading.innerHTML = `
-            <svg alt="Mastodon" class="preview-image" viewbox="0 0 713.35878 175.8678" style="fill: currentColor;">
-                <use href="/images/mastodon/Logotype (Full).svg#base" width="713.35878" height="175.8678" />
-            </svg>
-        `;
-        el("h2").atxt("Select your instance").clss("text-2xl font-black py-1").adto(content);
-
-        const selxarea = el("div").adto(content).clss("py-1");
-        const label = el("label").atxt("Instance Name: ").adto(selxarea);
-        selxarea.atxt(" ");
-        const go = () => {
-            navigate({path: "/"+client.id+"/"+(inputel.value.replaceAll("/", "-"))});
-        };
-        const inputel = el("input").clss("border rounded-md p-1").attr({
-            placeholder: "instance.site"
-        }).adto(label).onev("keypress", e => {
-            if(e.key === "Enter") go();
-        }).onev("input", () => {
-            updatebtn();
-        });
-        const updatebtn = () => {
-            const value = inputel.value;
-            if(!value.trim()) btnel.disabled = true;
-            else if(value.indexOf("/") > -1) btnel.disabled = true;
-            else btnel.disabled = false;
-            btnel.attr({class: link_styles_v[btnel.disabled ? "pill-empty" : "pill-filled"]});
-        };
-        const btnel = el("button").atxt("Go →").adto(selxarea).onev("click", e => {e.stopPropagation(); go()});
-        updatebtn();
-
-        el("p").atxt("Not on mastodon? Join at ").clss("py-2")
-            .adch(linkButton(client.id, "https://joinmastodon.org", "normal").atxt("joinmastodon.org")).adto(content)
-        ;
-        el("p")
-            .atxt("Note that some instances may require logging in before they let you view timelines.")
-            .clss("py-2").adto(content)
-        ;
-    }else assertNever(body);
+    const frame = el("div").adto(content);
+    vanillaToSolidBoundary(client, frame, Body, {body: body, autoplay: opts.autoplay}).defer(hsc);
 
     return hsc;
 }
 
-function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
+export function linkPreview(client: ThreadClient, body: Generic.LinkPreview): HideShowCleanup<HTMLDivElement> {
+    const content = el("div");
+    const hsc = hideshow(content);
+    // maybe outline with body background and no shadow?
+    let button_box: HTMLElement;
+    if(body.click_enabled) {
+        button_box = el("div").clss("bg-body rounded-lg block").adto(content);
+    }else{
+        button_box = linkButton(client.id, body.url, "none", {onclick: body.click_enabled ? () => {
+            button_box.remove();
+            renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(content);
+        } : undefined}).clss("bg-body rounded-lg hover:shadow-md hover:bg-gray-100 block").adto(content);
+    }
+    const link_preview_box = el("article")
+        .clss("flex", body.click_enabled ? "flex-col" : "flex-row")
+        .adto(button_box)
+    ;
+    const thumb_box = el("div").clss(
+        body.click_enabled
+            ? "w-full h-auto min-h-10 relative"
+            : "w-24 h-full flex items-center justify-center bg-gray-100"
+        ,
+        "rounded-lg overflow-hidden",
+    )
+        .adto(el("div").adto(link_preview_box))
+    ;
+    if(body.thumb != null) {
+        if(body.click_enabled) {
+            thumb_box.adch(el("img").clss(body.click_enabled ? "w-full h-full" : "").attr({src: body.thumb}));
+        }else{
+            el("div")
+                .styl({'background-image': `url(${JSON.stringify(body.thumb)})`, 'background-size': "contain",
+                    'background-position': "center", 'background-repeat': "no-repeat"
+                })
+                .clss("w-full h-full")
+                .adto(thumb_box)
+            ;
+        }
+    }else{
+        thumb_box.adch(el("div").atxt("🔗"));
+    }
+    if(body.click_enabled) {
+        const choicearea = el("div").adto(thumb_box);
+        choicearea.clss("flex items-center justify-center absolute top-0 left-0 bottom-0 right-0");
+        const choicebox = el("div").clss("rounded-lg bg-gray-200 p-2 flex shadow-md gap-3").adto(choicearea);
+        el("button").clss("hover:underline").adto(choicebox).atxt("Play").onev("click", e => {
+            e.stopPropagation();
+            thumb_box.innerHTML = "";
+            renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(thumb_box);
+        });
+        choicebox.atxt(" ");
+        linkButton(client.id, body.url, "none").clss("hover:underline").atxt("Open").adto(choicebox);
+    }
+    const meta_box = el("div").clss("flex flex-col p-3 text-sm").adto(link_preview_box);
+    meta_box.adch(el("h1").clss("max-1-line font-black").atxt(body.title));
+    meta_box.adch(el("p").clss("max-2-lines").atxt(body.description));
+    meta_box.adch(el("div").clss("max-1-line font-light").atxt(body.url));
+
+    return hsc;
+}
+
+export function renderOembed(client: ThreadClient, body: Generic.OEmbedBody): HideShowCleanup<HTMLDivElement> {
+    const content = el("div");
+    const hsc = hideshow(content);
+
+    fetchPromiseThen(fetch(body.url, {headers: {'Accept': "application/json"}}).then(r => r.json()), resp => {
+        console.log("oembed resp", resp);
+        const outerel = el("div");
+        const ihsc = hideshow(outerel);
+        renderBody(client, oembed(resp as OEmbed), {autoplay: false}).defer(hsc).adto(outerel);
+        return ihsc;
+    }).defer(hsc).adto(content);
+
+    return hsc;
+}
+
+export function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
     // TODO?: render a body with markdown type unsafe-html that supports iframes
     try {
         // const parser = new DOMParser();
@@ -936,7 +775,7 @@ function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
     }
 }
 
-function twitchClip(client: ThreadClient, clipid: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
+export function twitchClip(client: ThreadClient, clipid: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
     const frame = el("div");
     const hsc = hideshow(frame);
 
@@ -1080,7 +919,7 @@ function twitchClip(client: ThreadClient, clipid: string, opts: {autoplay: boole
     return hsc;
 }
 
-function youtubeVideo(youtube_video_id: string, search_str: string, opts: {autoplay: boolean}) {
+export function youtubeVideo(youtube_video_id: string, search_str: string, opts: {autoplay: boolean}) {
     const search = new URLSearchParams(search_str);
     const container = el("div");
     const embedv = embedYoutubeVideo(youtube_video_id, {autoplay: opts.autoplay}, search);
@@ -1093,7 +932,7 @@ function youtubeVideo(youtube_video_id: string, search_str: string, opts: {autop
     return hsc;
 }
 
-function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: string): HideShowCleanup<Node> {
+export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: string): HideShowCleanup<Node> {
     const resdiv = el("div");
     const hsc = hideshow(resdiv);
     const loader = loadingSpinner().adto(resdiv);

@@ -359,7 +359,6 @@ const sitemap: SitemapEntry[] = [
                 ],
                 link: [],
                 captioned_image: [],
-                unknown_size_image: [],
                 video: [],
                 gfycat: [],
                 youtube: [],

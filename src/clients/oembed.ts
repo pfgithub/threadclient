@@ -17,8 +17,9 @@ export function oembed(card: OEmbed): Generic.Body {
         kind: "link_preview",
         thumb: card.embed_url || card.image || undefined,
         click: card.embed_url ? {
-            kind: "unknown_size_image",
+            kind: "captioned_image",
             url: card.embed_url,
+            w: null, h: null,
         } : {
             kind: "link",
             url: card.url,

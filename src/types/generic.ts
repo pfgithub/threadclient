@@ -395,9 +395,6 @@ export type Body = BodyText | RichText | {
     alt?: string,
     w: number | null,
     h: number | null,
-} | {
-    kind: "unknown_size_image",
-    url: string,
 } | Video | {
     kind: "gfycat",
     id: string,
@@ -413,10 +410,7 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "twitch_clip",
     slug: string,
-} | {
-    kind: "oembed",
-    url: string,
-} | {
+} | OEmbedBody | {
     kind: "reddit_suggested_embed",
     suggested_embed: string,
 } | {
@@ -449,7 +443,14 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "array",
     body: (Body | undefined)[],
-} | {
+} | LinkPreview | {
+    kind: "mastodon_instance_selector",
+};
+export type OEmbedBody = {
+    kind: "oembed",
+    url: string,
+};
+export type LinkPreview = {
     kind: "link_preview",
     thumb?: string, // thumbnail url
     click: Body,
@@ -457,8 +458,6 @@ export type Body = BodyText | RichText | {
     description: string,
     url: string,
     click_enabled: boolean,
-} | {
-    kind: "mastodon_instance_selector",
 };
 export type RemovalMessage = {
     short: string,

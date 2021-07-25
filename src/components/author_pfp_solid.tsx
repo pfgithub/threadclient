@@ -9,6 +9,7 @@ import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } f
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { CounterCount } from "./counter_solid";
+import { Body } from "./body_solid";
 export * from "../util/interop_solid";
 
 export type ClientPostOpts = {
@@ -74,7 +75,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                 class={link_styles_v["outlined-button"]}
                 on:click={() => setState({kind: "overview"})}
             >Gallery</button>
-            <Body body={props.images[sel.index]!.body} />
+            <Body body={props.images[sel.index]!.body} autoplay={true} />
         </>,
     }}</SwitchKind>;
 }
@@ -164,7 +165,7 @@ export function RichtextSpans(props: {spans: Generic.Richtext.Span[]}): JSX.Elem
 function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.Element {
     return <SwitchKind item={props.paragraph}>{{
         paragraph: (pgph) => <p><RichtextSpans spans={pgph.children} /></p>,
-        body: (body) => <Body body={body.body} />,
+        body: (body) => <Body body={body.body} autoplay={false} />,
         heading: (heading) => {
             // <Dynamic> can work for this. they need different classes though so idk.
             const content = () => <RichtextSpans spans={heading.children} />;
@@ -317,15 +318,6 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
     </>;
 }
 
-function Body(props: {body: Generic.Body, autoplay?: boolean}): JSX.Element {
-    let autoplay = props.autoplay ?? false;
-    return <SolidToVanillaBoundary getValue={(hsc, client) => {
-        const this_autoplay = autoplay;
-        autoplay = false;
-        return renderBody(client(), props.body, {autoplay: this_autoplay}).defer(hsc);
-    }} />;
-}
-
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
     const [selfVisible, setSelfVisible] = createSignal(
@@ -385,7 +377,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             <div class="post-preview">
                 {/*working around a solid bug where !! is used on the lhs of a ??. should be fixed soon*/null}
                 <ShowBool when={(void 0, bodyVisible() ?? defaultBodyVisible())}>
-                    <Body body={props.content.body} />
+                    <Body body={props.content.body} autoplay={false} />
                 </ShowBool>
             </div>
             <div class="post-content-buttons text-xs">
@@ -529,7 +521,6 @@ function PreviewableLink(props: {href: string, children: JSX.Element}): JSX.Elem
         return {visible, setVisible, body};
     });
 
-
     return <>
         <LinkButton href={props.href} style={linkPreview() ? "previewable" : "normal"} onClick={linkPreview() ? () => {
             const lp = linkPreview()!;
@@ -580,7 +571,8 @@ export function LinkButton(props: {
     }}</SwitchKind>;
 }
 
-function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JSX.Element {
+export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JSX.Element {
+    const [showContent, setShowContent] = createSignal(true);
     return <ErrorBoundary fallback={(err: unknown, reset) => {
         console.log(err);
         return <div>
@@ -588,11 +580,25 @@ function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JS
                 ? err.toString() + "\n\n" + err.stack ?? "*no stack*"
                 : "Something went wrong"
             } /></pre>
-            <button on:click={() => console.log(err, props.data)}>Code</button>{" / "}
-            <button on:click={() => reset()}>Retry</button>
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => console.log(err, props.data)}
+            >Code</button>{" / "}
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => {
+                    setShowContent(false);
+                    setTimeout(() => setShowContent(true), 200);
+                    reset();
+                }}
+            >Retry</button>
         </div>;
     }}>
-        {props.children}
+        <ShowBool when={showContent()} fallback={
+            <>Retrying...</>
+        }>
+            {props.children}
+        </ShowBool>
     </ErrorBoundary>;
 }
 
@@ -615,7 +621,7 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
                     // clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
                     // return clientContent()
                     //                             clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
-                    return clientContent(client(), legacy.thread, {clickable: false}).defer(hsc);
+                    return clientContent(client(), legacy.thread, {clickable: props.opts.clickable}).defer(hsc);
                 }}/>,
             }}</SwitchKind>
         </DefaultErrorBoundary>
