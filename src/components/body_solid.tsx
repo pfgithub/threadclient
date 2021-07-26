@@ -1,14 +1,22 @@
-import { createEffect, createMemo, createResource, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Suspense, Switch } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
+import { createEffect, createMemo, createResource, createSignal, For, JSX, Suspense } from "solid-js";
 import {
-    clientContent, elButton, link_styles_v, navbar, renderBody, timeAgoText,
-    unsafeLinkToSafeLink, LinkStyle, navigate, isModifiedEvent, previewLink, renderAction, bioRender, textToBody, renderImageGallery, zoomableImage, gfyLike, imgurImage, youtubeVideo, twitchClip, redditSuggestedEmbed, linkPreview, renderOembed
+    gfyLike,
+    imgurImage,
+    linkPreview,
+    link_styles_v,
+    navigate,
+    previewLink,
+    redditSuggestedEmbed,
+    renderImageGallery,
+    renderOembed,
+    textToBody,
+    twitchClip,
+    youtubeVideo,
+    zoomableImage,
 } from "../app";
 import type * as Generic from "../types/generic";
-import { getClient, getIsVisible, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
-import { CounterCount } from "./counter_solid";
+import { getClient, getIsVisible, ShowCond, SwitchKind } from "../util/utils_solid";
 import { ClientContent, DefaultErrorBoundary, LinkButton, RichtextParagraphs } from "./author_pfp_solid";
 import { PreviewVideo } from "./preview_video_solid";
 export * from "../util/interop_solid";
@@ -30,7 +38,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
         link: link => {
             const client = getClient();
 
-            const linkPreview: () => {
+            const previewBody: () => {
                 body: Generic.Body,
             } | undefined = createMemo(() => {
                 const body = previewLink(client(), link.url, {
@@ -42,7 +50,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             
             return <div>
                 <div><LinkButton href={link.url} style={"normal"}>{link.url}</LinkButton></div>
-                <ShowCond when={linkPreview()}>{preview_opts => (
+                <ShowCond when={previewBody()}>{preview_opts => (
                     <Body body={preview_opts.body} autoplay={props.autoplay} />
                 )}</ShowCond>
             </div>;
@@ -55,7 +63,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
         }} />,
         removed: removed => {
             const [loadState, setLoadState] = createSignal<{
-                kind: "none"
+                kind: "none",
             } | {kind: "loading"} | {kind: "error", body: Generic.Body}
             | {kind: "loaded", body: Generic.Body}>({kind: "none"});
             return <div>
@@ -63,6 +71,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                     <div class="font-bold">{removed.removal_message.title}</div>
                     <div>{removed.removal_message.body}</div>
                     <ShowCond when={
+                        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
                         (loadState().kind !== "loaded" ? true : undefined) && removed.fetch_path
                     }>{path => {
                         const client = getClient();
@@ -95,7 +104,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                                 void doClick().catch(console.log);
                             }}
                             disabled={loadState().kind === "none" || loadState().kind === "error"}
-                        >{{none: "View", loading: "...", error: "Retry", loaded: "never"}[loadState().kind]}</button>
+                        >{{none: "View", loading: "...", error: "Retry", loaded: "never"}[loadState().kind]}</button>;
                     }}</ShowCond>
                 </div>
                 <Body body={removed.body} autoplay={props.autoplay} />

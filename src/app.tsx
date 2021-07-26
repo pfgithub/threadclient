@@ -1,21 +1,20 @@
-import "./_stdlib";
-import "./main.scss";
 import "tailwindcss/tailwind.css";
-import "./typography.pcss";
-
-import * as Generic from "./types/generic";
-import {ThreadClient} from "./clients/base";
-import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
-
-import {escapeHTML} from "./util";
+import { ThreadClient } from "./clients/base";
 import { OEmbed, oembed } from "./clients/oembed";
-import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { Flair, ReplyEditor, RichtextParagraphs, TimeAgo } from "./components/author_pfp_solid";
-import { PreviewVideo } from "./components/preview_video_solid";
-import { Homepage } from "./components/homepage_solid";
-import { getSettings } from "./util/utils_solid";
-import { rt } from "./types/generic";
+import { Flair, ReplyEditor, TimeAgo } from "./components/author_pfp_solid";
 import { Body } from "./components/body_solid";
+import { Homepage } from "./components/homepage_solid";
+import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
+import "./main.scss";
+import * as Generic from "./types/generic";
+import { rt } from "./types/generic";
+import "./typography.pcss";
+import { escapeHTML } from "./util";
+import { vanillaToSolidBoundary } from "./util/interop_solid";
+import { getSettings } from "./util/utils_solid";
+import "./_stdlib";
+
+
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -919,7 +918,11 @@ export function twitchClip(client: ThreadClient, clipid: string, opts: {autoplay
     return hsc;
 }
 
-export function youtubeVideo(youtube_video_id: string, search_str: string, opts: {autoplay: boolean}) {
+export function youtubeVideo(
+    youtube_video_id: string,
+    search_str: string,
+    opts: {autoplay: boolean},
+): HideShowCleanup<HTMLDivElement> {
     const search = new URLSearchParams(search_str);
     const container = el("div");
     const embedv = embedYoutubeVideo(youtube_video_id, {autoplay: opts.autoplay}, search);
