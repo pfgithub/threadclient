@@ -2732,6 +2732,14 @@ function renderClientPage(
         renderAction(client, navbar_action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
         txt(" ").adto(navbar_area);
     }
+    const default_actions: Generic.Action[] = [
+        {kind: "link", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Report Issue"},
+        {kind: "link", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Feature Request"},
+    ];
+    for(const action of default_actions) {
+        renderAction(client, action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
+        navbar_area.atxt(" ");
+    }
     elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(listing));
     txt(" ").adto(navbar_area);
     for(const navbar_inbox of listing.navbar.inboxes) {
