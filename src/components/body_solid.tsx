@@ -103,7 +103,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                             on:click={() => {
                                 void doClick().catch(console.log);
                             }}
-                            disabled={loadState().kind === "none" || loadState().kind === "error"}
+                            disabled={loadState().kind === "loading" || loadState().kind === "loaded"}
                         >{{none: "View", loading: "...", error: "Retry", loaded: "never"}[loadState().kind]}</button>;
                     }}</ShowCond>
                 </div>
