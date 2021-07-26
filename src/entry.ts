@@ -1,3 +1,4 @@
+import "./_stdlib";
 import {showAlert} from "./app";
 
 type HotModule = {

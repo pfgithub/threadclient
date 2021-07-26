@@ -12,7 +12,6 @@ import "./typography.pcss";
 import { escapeHTML } from "./util";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings } from "./util/utils_solid";
-import "./_stdlib";
 
 
 
