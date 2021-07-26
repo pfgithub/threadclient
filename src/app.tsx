@@ -1,14 +1,11 @@
-import "tailwindcss/tailwind.css";
 import { ThreadClient } from "./clients/base";
 import { OEmbed, oembed } from "./clients/oembed";
 import { Flair, ReplyEditor, TimeAgo } from "./components/author_pfp_solid";
 import { Body } from "./components/body_solid";
 import { Homepage } from "./components/homepage_solid";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
-import "./main.scss";
 import * as Generic from "./types/generic";
 import { rt } from "./types/generic";
-import "./typography.pcss";
 import { escapeHTML } from "./util";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings } from "./util/utils_solid";

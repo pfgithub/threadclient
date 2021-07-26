@@ -1,4 +1,7 @@
 import "./_stdlib";
+import "./main.scss";
+import "tailwindcss/tailwind.css";
+import "./typography.pcss";
 import {showAlert} from "./app";
 
 type HotModule = {
