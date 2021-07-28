@@ -118,14 +118,14 @@ export function getVredditSources(id: string): Generic.VideoSource {
     return {
         kind: "video",
         sources: [
-            {url: link+"/DASH_720.mp4", type: "video/mp4"},
-            {url: link+"/DASH_720", type: "video/mp4"},
-            {url: link+"/DASH_480.mp4", type: "video/mp4"},
-            {url: link+"/DASH_480", type: "video/mp4"},
-            {url: link+"/DASH_360.mp4", type: "video/mp4"},
-            {url: link+"/DASH_360", type: "video/mp4"},
-            {url: link+"/DASH_240.mp4", type: "video/mp4"},
-            {url: link+"/DASH_240", type: "video/mp4"},
+            {url: link+"/DASH_720.mp4", type: "video/mp4", quality: 720},
+            {url: link+"/DASH_720", type: "video/mp4", quality: 720},
+            {url: link+"/DASH_480.mp4", type: "video/mp4", quality: 480},
+            {url: link+"/DASH_480", type: "video/mp4", quality: 480},
+            {url: link+"/DASH_360.mp4", type: "video/mp4", quality: 360},
+            {url: link+"/DASH_360", type: "video/mp4", quality: 360},
+            {url: link+"/DASH_240.mp4", type: "video/mp4", quality: 240},
+            {url: link+"/DASH_240", type: "video/mp4", quality: 240},
         ],
         seperate_audio_track: [
             {url: link+"/DASH_audio.mp4", type: "video/mp4"},
@@ -241,7 +241,7 @@ export function gfyLike(
             source:
                 sources.length > 0 ? {
                     kind: "video",
-                    sources,
+                    sources: sources.map(src => ({...src, quality: null})),
                 } :
                 url != null ? {
                     kind: "img",
@@ -281,7 +281,10 @@ export function previewLink(
     const path = url?.pathname ?? link;
     const is_mp4_link_masking_as_gif = url ? path.endsWith(".gif") && url.searchParams.get("format") === "mp4" : false;
     if(is_mp4_link_masking_as_gif) {
-        return {kind: "video", gifv: true, source: {kind: "video", sources: [{url: link, type: "video/mp4"}]}};
+        return {kind: "video", gifv: true, source: {
+            kind: "video",
+            sources: [{url: link, type: "video/mp4", quality: null}],
+        }};
     }
     if((url?.hostname ?? "") === "i.redd.it"
         || path.endsWith(".png") || path.endsWith(".jpg")
@@ -290,8 +293,8 @@ export function previewLink(
     ) return {kind: "captioned_image", url: link, w: null, h: null};
     if(path.endsWith(".gifv")) {
         return {kind: "video", gifv: true, source: {kind: "video", sources: [
-            {url: link.replace(".gifv", ".webm"), type: "video/webm"},
-            {url: link.replace(".gifv", ".mp4"), type: "video/mp4"},
+            {url: link.replace(".gifv", ".webm"), type: "video/webm", quality: null},
+            {url: link.replace(".gifv", ".mp4"), type: "video/mp4", quality: null},
         ]}};
     }
     if(link.startsWith("https://v.redd.it/")) return getVredditPreview(link.replace("https://v.redd.it/", ""));
@@ -324,7 +327,7 @@ export function previewLink(
     }
     if(path.endsWith(".mp4") || path.endsWith(".webm")) {
         return {kind: "video", gifv: false, source: {kind: "video", sources: [
-            {url: link},
+            {url: link, quality: null},
         ]}};
     }
     if(path.endsWith(".mp3")) {
@@ -352,7 +355,11 @@ export function previewLink(
             return {kind: "video", source: {
                 kind: "video",
                 sources: [
-                    {url: "https://media4.giphy.com/media/"+giphy_id+"/giphy.mp4", type: "video/mp4"},
+                    {
+                        url: "https://media4.giphy.com/media/"+giphy_id+"/giphy.mp4",
+                        type: "video/mp4",
+                        quality: null,
+                    },
                 ],
             }, gifv: true};
         }        
@@ -784,7 +791,7 @@ export async function getTwitchClip(
         };
     }
 
-    const res_untyped = await fetch("https://gql.twitch.tv/gql", {
+    const res_untyped: unknown = await fetch("https://gql.twitch.tv/gql", {
         method: "POST",
         headers: {
             'Content-Type': "application/json",
@@ -886,7 +893,8 @@ export async function getTwitchClip(
             sources: video.data.clip.videoQualities.map(quality => {
                 return {url: quality.sourceURL
                     + "?sig="+encodeURIComponent(video.data.clip!.playbackAccessToken.signature)
-                    + "&token="+encodeURIComponent(video.data.clip!.playbackAccessToken.value)
+                    + "&token="+encodeURIComponent(video.data.clip!.playbackAccessToken.value),
+                    quality: +quality.quality,
                 };
             }),
         },
@@ -979,6 +987,7 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
                             sources: [{
                                 url: image.mp4,
                                 type: "video/mp4",
+                                quality: image.height,
                             }],
                         },
                         w: image.width,

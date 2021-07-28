@@ -132,10 +132,15 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
             thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=image",
             w: media.meta?.small?.width,
             h: media.meta?.small?.height,
-            body: media.meta
-                ? {kind: "captioned_image", url: media.url, w: media.meta.original?.width ?? null, h: media.meta.original?.height ?? null, alt: media.description}
-                : {kind: "link", url: media.url}
-            ,
+            body: media.meta ? {
+                kind: "captioned_image",
+                url: media.url,
+                w: media.meta.original?.width ?? null,
+                h: media.meta.original?.height ?? null,
+                alt: media.description,
+            } : (
+                {kind: "link", url: media.url}
+            ),
         };
     } else if((media.type === "video" || media.type === "gifv")) {
         return {
@@ -144,10 +149,21 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
             thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=video",
             w: media.meta?.small?.width,
             h: media.meta?.small?.height,
-            body: media.meta
-                ? {kind: "video", source: {kind: "video", sources: [{url: media.url}]}, w: media.meta.original?.width, h: media.meta.original?.height, gifv: media.type === "gifv"}
-                : {kind: "link", url: media.url}
-            ,
+            body: media.meta ? {
+                kind: "video",
+                source: {
+                    kind: "video",
+                    sources: [{
+                        url: media.url,
+                        quality: media.meta.original?.height ?? null,
+                    }],
+                },
+                w: media.meta.original?.width,
+                h: media.meta.original?.height,
+                gifv: media.type === "gifv"
+            } : (
+                {kind: "link", url: media.url}
+            ),
         };
     }else if(media.type === "audio") {
         return {

@@ -108,7 +108,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Bo
     if(media_meta.e === "AnimatedImage") return {
         kind: "video",
         source: media_meta.s.mp4 != null
-            ? {kind: "video", sources: [{url: media_meta.s.mp4}]}
+            ? {kind: "video", sources: [{url: media_meta.s.mp4, quality: media_meta.s.y}]}
             : {kind: "img", url: media_meta.s.gif}
         ,
         w: media_meta.s.x,
@@ -2679,7 +2679,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                         body: {
                             kind: "video",
                             source: moreinfo.s.mp4 != null
-                                ? {kind: "video", sources: [{url: moreinfo.s.mp4}]}
+                                ? {kind: "video", sources: [{url: moreinfo.s.mp4, quality: moreinfo.s.y}]}
                                 : {kind: "img", url: moreinfo.s.gif}
                             ,
                             w: moreinfo.s.x,
