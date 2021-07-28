@@ -6,6 +6,7 @@
 - vite + https://github.com/antfu/vite-plugin-pwa
 - probably not since the webpack config is kinda messy and I need both react and solid
 - or I can just delete the tiny bit of react for now
+- TODO migrate to pnpm
 
 all todo:
 
@@ -182,6 +183,10 @@ twitter/tumblr todo:
 
 -   [ ] create an oauth 1.0a proxy server
 -   [ ] try some requests
+
+hackernews todo:
+
+https://github.com/cheeaun/node-hnapi node-hnapi.herokuapp.com
 
 mail todo:
 
