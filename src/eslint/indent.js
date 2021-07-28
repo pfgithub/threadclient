@@ -20,11 +20,6 @@ const unsupported_nodes = new Set([
     // it would be nice to support these but I'm not sure how
     "LogicalExpression",
     "BinaryExpression",
-
-    // might be able to support these - just check that the consequent and alternate
-    // are on the same level
-    "TSConditionalType",
-    "ConditionalExpression",
 ]);
 
 module.exports = {
@@ -41,6 +36,7 @@ module.exports = {
 
         messages: {
             indent: "Bad indentation. Start was {{expected}}, but end was {{got}}. On {{node_kind}}",
+            conditional: "Bad conditional formatting. {{lhs}} should end on the same line as {{rhs}} starts.",
         }
     },
 
@@ -55,14 +51,65 @@ module.exports = {
             '*'(node) {
                 if(unsupported_nodes.has(node.type)) return;
 
-                let first_loc = node.type === "CallExpression"
-                    ? source_code.getTokenAfter(node.callee)?.loc.start
-                    : node.loc.start
-                ;
-                let last_loc = node.type === "Identifier"
-                    ? first_loc // identifiers can have type labels on them. this might not be necessary to do though.
-                    : node.loc.end
-                ;
+                if(node.type === "TSConditionalType" || node.type === "ConditionalExpression") {
+                    if(node.type === "ConditionalExpression") return;
+                    // a ? (
+                    //    b
+                    // ) : (
+                    //    c
+                    // )
+                    // is the style I want to force.
+                    // unfortunately, those parenthesis don't show up
+                    // as nodes so I can't actually check this easily
+                    const items = node.type === "TSConditionalType" ? [
+                        {node: node.checkType, name: "condition"},
+                        {node: node.extendsType, name: "extends"},
+                        {node: node.trueType, name: "when true"},
+                        {node: node.falseType, name: "when false"},
+                    ] : [
+                        {node: node.test, name: "condition"},
+                        {node: node.consequent, name: "when true"},
+                        {node: node.alternate, name: "when false"},
+                    ];
+                    for(let i = 0; i < items.length - 1; i++) {
+                        const [left, right] = [items[i], items[i + 1]];
+                        const [start, end] = [left.node.loc.end, right.node.loc.start];
+                        const [sl, el] = [start, end].map(loc => token_info.getFirstTokenOfLine(loc.line));
+                        if(start.line !== end.line) {
+                            context.report({
+                                node: right.node,
+                                messageId: "conditional",
+                                data: {
+                                    lhs: left.name,
+                                    rhs: right.name,
+                                },
+                            });
+                            return;
+                        }else if(sl.loc.start !== el.loc.start) {
+                            context.report({
+                                node: right.node,
+                                messageId: "indent",
+                                data: {
+                                    expected: sl.loc.start.column,
+                                    got: el.loc.start.column,
+                                    node_kind: node.type,
+                                },
+                            });
+                            return;
+                        }
+                    }
+                }
+
+                let first_loc = node.type === "CallExpression" ? (
+                    source_code.getTokenAfter(node.callee)?.loc.start
+                ) : (
+                    node.loc.start
+                );
+                let last_loc = node.type === "Identifier" ? (
+                    first_loc // identifiers can have type labels on them. this might not be necessary to do though.
+                ) : (
+                    node.loc.end
+                );
 
                 if(!first_loc || !last_loc) return;
 

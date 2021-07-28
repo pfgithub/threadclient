@@ -52,26 +52,26 @@ type UnionToIntersection<U> =
     (U extends unknown ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never
 ;
 
-type BitTypeToValType<BitType extends RouteBitType> = BitType extends "any"
-    ? string
-    : BitType extends readonly (string | null)[]
-    ? BitType[number]
-    : BitType extends {kind: "starts-with", text: string}
-    ? string
-    : BitType extends "rest"
-    ? string[]
-    : BitType extends "optional"
-    ? string | null
-    : never
-;
+type BitTypeToValType<BitType extends RouteBitType> = BitType extends "any" ? (
+    string
+) : BitType extends readonly (string | null)[] ? (
+    BitType[number]
+) : BitType extends {kind: "starts-with", text: string} ? (
+    string
+) : BitType extends "rest" ? (
+    string[]
+) : BitType extends "optional" ? (
+    string | null
+) : never;
 
-type BitToOpts<Bit extends RouteBit> = Bit extends string
+type BitToOpts<Bit extends RouteBit> = Bit extends string ? (
 // eslint-disable-next-line @typescript-eslint/ban-types
-    ? {} // {} is okay here because it will get merged ({a: true} & {} & {b: false})
-    : Bit extends {[key: string]: RouteBitType}
-    ? {[key in keyof Bit]: BitTypeToValType<Bit[key]>}
-    : "ERROR BAD"
-;
+    {} // {} is okay here because it will get merged ({a: true} & {} & {b: false})
+) : Bit extends {[key: string]: RouteBitType} ? (
+    {[key in keyof Bit]: BitTypeToValType<Bit[key]>}
+) : (
+    "ERROR BAD"
+);
 type BitsToOpts<Bits extends readonly RouteBit[]> = UnionToIntersection<BitToOpts<Bits[number]>>;
 
 type RouteBitType = "any" | readonly (string | null)[] | {kind: "starts-with", text: string} | "rest" | "optional";

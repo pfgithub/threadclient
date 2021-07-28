@@ -3701,12 +3701,13 @@ export const client: ThreadClient = {
             const resp = await redditRequest<Reddit.Listing>("/message/unread", {
                 method: "GET",
             });
-            const msgs = resp.data.after != null
-                ? {kind: "minimum", min: resp.data.children.length} as const
-                : resp.data.children.length > 0
-                ? {kind: "exact", value: resp.data.children.length} as const
-                : {kind: "zero"} as const
-            ;
+            const msgs = (resp.data.after != null) ? {
+                kind: "minimum",
+                min: resp.data.children.length,
+            } as const : resp.data.children.length > 0 ? {
+                kind: "exact",
+                value: resp.data.children.length,
+            } as const : {kind: "zero"} as const;
             return {
                 messages: msgs,
                 url: msgs.kind === "zero" ? "/message/inbox" : "/message/unread",
@@ -3819,15 +3820,21 @@ async function redditRequest<ResponseType>(path: string, opts: RequestOpts<Respo
             method: opts.method, mode: "cors", credentials: "omit",
             headers: {
                 ...authorization ? {'Authorization': authorization} : {},
-                ...opts.method === "POST" ? {'Content-Type': {json: "application/json", urlencoded: "application/x-www-form-urlencoded"}[opts.mode]} : {},
+                ...opts.method === "POST" ? {
+                    'Content-Type': {
+                        json: "application/json",
+                        urlencoded: "application/x-www-form-urlencoded",
+                    }[opts.mode],
+                } : {},
             },
             ...opts.method === "POST" ? {
-                body: opts.mode === "json"
-                    ? JSON.stringify(opts.body)
-                    : opts.mode === "urlencoded"
-                    ? Object.entries(opts.body).flatMap(([a, b]) => b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]).join("&")
-                    : assertUnreachable(opts)
-                ,
+                body: opts.mode === "json" ? (
+                    JSON.stringify(opts.body)
+                ) : opts.mode === "urlencoded" ? (
+                    Object.entries(opts.body).flatMap(([a, b]) => (
+                        b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]
+                    )).join("&")
+                ) : assertUnreachable(opts),
             } : {},
         };
         const cache_text = JSON.stringify([full_url, fetchopts]);

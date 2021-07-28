@@ -258,10 +258,10 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
     return <span><For each={props.flairs}>{(flair) => <>
         {" "}
         <span
-            class={flair.system != null ? flair.system : "rounded-full px-2"
+            class={flair.system != null ? flair.system : ("rounded-full px-2"
                 + (flair.color != null ? " bg-flair-light dark:bg-flair-dark" : " bg-gray-300 dark:bg-gray-600")
                 + (flair.fg_color != null ? " flair-text-"+flair.fg_color : "")
-            }
+            )}
             style={{
                 '--flair-color': flair.color,
                 '--flair-color-dark': flair.color,
@@ -577,10 +577,9 @@ export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Elemen
     return <ErrorBoundary fallback={(err: unknown, reset) => {
         console.log(err);
         return <div>
-            <pre><code textContent={err instanceof Error 
-                ? err.toString() + "\n\n" + err.stack ?? "*no stack*"
-                : "Something went wrong"
-            } /></pre>
+            <pre><code textContent={err instanceof Error ? (
+                err.toString() + "\n\n" + err.stack ?? "*no stack*"
+            ) : "Something went wrong"} /></pre>
             <button
                 class={link_styles_v["outlined-button"]}
                 on:click={() => console.log(err, props.data)}

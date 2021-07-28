@@ -42,9 +42,11 @@ export function rgbToHSL({r: r255, g: g255, b: b255, a = 1}: RGBA): HSLA {
     }
 
     let h = (
-        max === r ? (((g - b) / c) % 6) :
-            max === g ? ((b - r) / c + 2) :
-                ((r - g) / c + 4)
+        max === r ? (
+            ((g - b) / c) % 6
+        ) : max === g ? (
+            (b - r) / c + 2
+        ) : ((r - g) / c + 4)
     ) * 60;
     if (h < 0) {
         h += 360;
@@ -64,12 +66,17 @@ export function hslToRGB({h, s, l, a = 1}: HSLA): RGBA {
     const x = c * (1 - Math.abs((h / 60) % 2 - 1));
     const m = l - c / 2;
     const [r, g, b] = (
-        h < 60 ? [c, x, 0] :
-            h < 120 ? [x, c, 0] :
-                h < 180 ? [0, c, x] :
-                    h < 240 ? [0, x, c] :
-                        h < 300 ? [x, 0, c] :
-                            [c, 0, x]
+        h < 60 ? (
+            [c, x, 0]
+        ) : h < 120 ? (
+            [x, c, 0]
+        ) : h < 180 ? (
+            [0, c, x]
+        ) : h < 240 ? (
+            [0, x, c]
+        ) : h < 300 ? (
+            [x, 0, c]
+        ) : [c, 0, x]
     ).map((n) => Math.round((n + m) * 255));
 
     return {r: r!, g: g!, b: b!, a};
@@ -186,18 +193,16 @@ export function rgbToHexString({r, g, b, a}: RGBA): string {
 }
 export function darkenColor(mode: "foreground" | "background", rgb: RGBA): RGBA {
     const hsl = rgbToHSL(rgb);
-    const pole = mode === "foreground"
-        ? {h: 36, s: 0.09803921568627463, l: 0.9, a: 1}
-        : mode === "background"
-        ? {h: 200, s: 0.05882352941176472, l: 0.1, a: 1}
-        : assertNever(mode)
-    ;
-    const modified = mode === "foreground"
-        ? modifyFgHSL(hsl, pole)
-        : mode === "background"
-        ? modifyBgHSL(hsl, pole)
-        : assertNever(mode)
-    ;
+    const pole = mode === "foreground" ? (
+        {h: 36, s: 0.09803921568627463, l: 0.9, a: 1}
+    ) : mode === "background" ? (
+        {h: 200, s: 0.05882352941176472, l: 0.1, a: 1}
+    ) : assertNever(mode);
+    const modified = mode === "foreground" ? (
+        modifyFgHSL(hsl, pole)
+    ) : mode === "background" ? (
+        modifyBgHSL(hsl, pole)
+    ) : assertNever(mode);
     const {r, g, b, a} = hslToRGB(modified);
     const matrix = [
         [1, 0, 0, 0, 0],

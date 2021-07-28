@@ -583,7 +583,11 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
                         sort: null,
                         reply: null,
                         ...replyitm.replyopts,
-                        items: replyitm.content.kind === "post" && replyitm.content.show_replies_when_below_pivot !== false ? (
+                        items: (
+                            replyitm.content.kind === "post"
+                            &&
+                            replyitm.content.show_replies_when_below_pivot !== false
+                        ) ? (
                             mapReplies(thispost.post.ref!, replyitm.replies, urlr2)
                         ) : [{kind: "load_more"}],
                     };
