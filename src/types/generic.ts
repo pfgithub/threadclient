@@ -469,7 +469,7 @@ export type VideoSourceVideo = {
     sources: {
         url: string,
         type?: string,
-        quality: number | null,
+        quality: string,
     }[],
     seperate_audio_track?: {
         url: string,

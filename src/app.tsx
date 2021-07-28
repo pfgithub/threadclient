@@ -219,16 +219,16 @@ export function gfyLike(
         if(gfy_item.title != null) resdiv.adch(el("div").atxt("Title: " + gfy_item.title));
         if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
 
-        const sources: {url: string, type?: string}[] = [
-            ...gfy_item.mp4Url != null ? [{url: gfy_item.mp4Url, type: "video/mp4"}] : [],
-            ...gfy_item.webmUrl != null ? [{url: gfy_item.webmUrl, type: "video/webm"}] : [],
-            ...gfy_item.content_urls.webm ? [{url: gfy_item.content_urls.webm.url}] : [],
+        const sources: {url: string, type?: string, quality: string}[] = [
+            ...gfy_item.mp4Url != null ? [{url: gfy_item.mp4Url, type: "video/mp4", quality: "Highest"}] : [],
+            ...gfy_item.webmUrl != null ? [{url: gfy_item.webmUrl, type: "video/webm", quality: "Highest"}] : [],
+            ...gfy_item.content_urls.webm ? [{url: gfy_item.content_urls.webm.url, quality: "Highest"}] : [],
             ...gfy_item.content_urls.mp4 ? [
-                {url: gfy_item.content_urls.mp4.url},
-                {url: gfy_item.content_urls.mp4.url.replace(".mp4", "-mobile.mp4")}, // hack
+                {url: gfy_item.content_urls.mp4.url, quality: "Highest"},
+                {url: gfy_item.content_urls.mp4.url.replace(".mp4", "-mobile.mp4"), quality: "Mobile"}, // hack
             ] : [],
-            ...gfy_item.content_urls.mobile ? [{url: gfy_item.content_urls.mobile.url}] : [],
-            ...gfy_item.mobileUrl != null ? [{url: gfy_item.mobileUrl}] : [],
+            ...gfy_item.content_urls.mobile ? [{url: gfy_item.content_urls.mobile.url, quality: "Mobile"}] : [],
+            ...gfy_item.mobileUrl != null ? [{url: gfy_item.mobileUrl, quality: "Mobile"}] : [],
         ];
 
         const urls = gfy_item.content_urls;
@@ -241,7 +241,7 @@ export function gfyLike(
             source:
                 sources.length > 0 ? {
                     kind: "video",
-                    sources: sources.map(src => ({...src, quality: null})),
+                    sources,
                 } :
                 url != null ? {
                     kind: "img",
@@ -283,7 +283,7 @@ export function previewLink(
     if(is_mp4_link_masking_as_gif) {
         return {kind: "video", gifv: true, source: {
             kind: "video",
-            sources: [{url: link, type: "video/mp4", quality: null}],
+            sources: [{url: link, type: "video/mp4", quality: "Highest"}],
         }};
     }
     if((url?.hostname ?? "") === "i.redd.it"
@@ -293,8 +293,8 @@ export function previewLink(
     ) return {kind: "captioned_image", url: link, w: null, h: null};
     if(path.endsWith(".gifv")) {
         return {kind: "video", gifv: true, source: {kind: "video", sources: [
-            {url: link.replace(".gifv", ".webm"), type: "video/webm", quality: null},
-            {url: link.replace(".gifv", ".mp4"), type: "video/mp4", quality: null},
+            {url: link.replace(".gifv", ".webm"), type: "video/webm", quality: "Highest"},
+            {url: link.replace(".gifv", ".mp4"), type: "video/mp4", quality: "Highest"},
         ]}};
     }
     if(link.startsWith("https://v.redd.it/")) return getVredditPreview(link.replace("https://v.redd.it/", ""));
@@ -327,7 +327,7 @@ export function previewLink(
     }
     if(path.endsWith(".mp4") || path.endsWith(".webm")) {
         return {kind: "video", gifv: false, source: {kind: "video", sources: [
-            {url: link, quality: null},
+            {url: link, quality: "Highest"},
         ]}};
     }
     if(path.endsWith(".mp3")) {
@@ -358,7 +358,7 @@ export function previewLink(
                     {
                         url: "https://media4.giphy.com/media/"+giphy_id+"/giphy.mp4",
                         type: "video/mp4",
-                        quality: null,
+                        quality: "Highest",
                     },
                 ],
             }, gifv: true};
@@ -894,7 +894,7 @@ export async function getTwitchClip(
                 return {url: quality.sourceURL
                     + "?sig="+encodeURIComponent(video.data.clip!.playbackAccessToken.signature)
                     + "&token="+encodeURIComponent(video.data.clip!.playbackAccessToken.value),
-                    quality: +quality.quality,
+                    quality: quality.quality+"p",
                 };
             }),
         },
@@ -987,7 +987,7 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
                             sources: [{
                                 url: image.mp4,
                                 type: "video/mp4",
-                                quality: image.height,
+                                quality: image.width+"×"+image.height,
                             }],
                         },
                         w: image.width,

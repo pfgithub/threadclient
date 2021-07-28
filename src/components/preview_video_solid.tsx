@@ -19,6 +19,32 @@ function PreviewRealVideo(props: {
     const [audioVolume, setAudioVolume] = createSignal(0);
     const [audioMuted, setAudioMuted] = createSignal(false);
     const [playbackRate, setPlaybackRate] = createSignal(1.0);
+    const [quality, setQuality] = createSignal<null | {w: number, h: number}>(null);
+    const [targetQuality, setTargetQuality] = createSignal(0);
+
+    let previous_time: number | null = null;
+    createEffect(() => {
+        targetQuality();
+        setTimeout(() => {
+            previous_time = video_el.currentTime;
+            video_el.load();
+        }, 0);
+    });
+
+    const sources = () => {
+        const target_index = targetQuality();
+        return [
+            ...props.source.sources.filter((_, i) => i >= target_index),
+            ...props.source.sources.filter((_, i) => i < target_index).reverse(),
+        ];
+    };
+    const qualities = (): {index: number, name: string}[] => {
+        const res = new Map<string, {index: number}>();
+        for(const [i, source] of props.source.sources.entries()) {
+            res.set(source.quality, {index: i});
+        }
+        return [...res.entries()].map(([n, v]) => ({name: n, ...v}));
+    };
 
     const sync = () => {
         const audio_el = hasSeperateAudio();
@@ -74,20 +100,35 @@ function PreviewRealVideo(props: {
             }}
             onseeking={() => sync()}
             ontimeupdate={() => {
-                if(!video_el.paused) return;
-                sync();
+                const audio_el = hasSeperateAudio();
+                if(audio_el) {
+                    if(!audio_el.paused) return;
+                    sync();
+                }
             }}
             onpause={() => {
                 const audio_el = hasSeperateAudio();
                 if(audio_el) audio_el.pause();
                 sync();
             }}
-
+            onwaiting={() => {
+                const audio_el = hasSeperateAudio();
+                if(audio_el) audio_el.pause();
+                sync();
+            }}
+            onloadedmetadata={() => {
+                if(previous_time != null) video_el.currentTime = previous_time;
+                setQuality({w: video_el.videoWidth, h: video_el.videoHeight});
+                // todo remove quality options based on currentsrc vs what the expected value is from qualitites()
+            }}
+            onemptied={() => {
+                setQuality(null);
+            }}
         >
             <span>{
                 props.video.alt ?? "Your device does not support video, and alt text was not supplied."
             }</span>
-            <For each={props.source.sources}>{source => (
+            <For each={sources()}>{source => (
                 <source src={source.url} type={source.type} />
             )}</For>
         </video>
@@ -125,6 +166,16 @@ function PreviewRealVideo(props: {
                     disabled={playbackRate() === speed}
                     on:click={() => setPlaybackRate(speed)}
                 >{speed}×</button>
+            )}</For>
+        </div>
+        <div class="flex">
+            Quality: {quality() === null ? "Loading" : quality()!.w+"×"+quality()!.h}
+            <For each={qualities()}>{(quality, i) => (
+                <button
+                    class={link_styles_v["outlined-button"]}
+                    disabled={targetQuality() === i()}
+                    on:click={() => setTargetQuality(quality.index)}
+                >{quality.name}</button>
             )}</For>
         </div>
     </div>;
