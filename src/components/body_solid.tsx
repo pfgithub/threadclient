@@ -10,7 +10,7 @@ import {
     renderImageGallery,
     renderOembed,
     textToBody,
-    twitchClip,
+    getTwitchClip,
     youtubeVideo,
     zoomableImage,
 } from "../app";
@@ -185,11 +185,10 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             youtubeVideo(youtube.id, youtube.search, {autoplay: props.autoplay}).defer(hsc).adto(div);
             return div;
         }} />,
-        twitch_clip: twitch => <SolidToVanillaBoundary getValue={(hsc, client) => {
-            const div = el("div");
-            twitchClip(client(), twitch.slug, {autoplay: props.autoplay}).defer(hsc).adto(div);
-            return div;
-        }} />,
+        twitch_clip: twitch => {
+            const [a] = createResource(twitch.slug, getTwitchClip);
+            return <ShowCond when={a()}>{b => <Body body={b} autoplay={false} />}</ShowCond>;
+        },
         reddit_suggested_embed: se => <SolidToVanillaBoundary getValue={(hsc, client) => {
             const div = el("div");
             redditSuggestedEmbed(se.suggested_embed).defer(hsc).adto(div);

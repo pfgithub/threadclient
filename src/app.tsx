@@ -770,12 +770,12 @@ export function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<N
     }
 }
 
-export function twitchClip(client: ThreadClient, clipid: string, opts: {autoplay: boolean}): HideShowCleanup<Node> {
-    const frame = el("div");
-    const hsc = hideshow(frame);
-
-    const loading = loadingSpinner().adto(frame);
-
+// what if eventually stuff like this returned a Generic.Thread or something
+// and it was displayed like a crosspost
+// that could be interesting maybe
+export async function getTwitchClip(
+    clipid: string,
+): Promise<Generic.Body> {
     function gqlRequest(operation: string, hash: string, variables: unknown) {
         return {
             extensions: {persistedQuery: {sha256Hash: hash, version: 1}},
@@ -784,7 +784,7 @@ export function twitchClip(client: ThreadClient, clipid: string, opts: {autoplay
         };
     }
 
-    fetch("https://gql.twitch.tv/gql", {
+    const res_untyped = await fetch("https://gql.twitch.tv/gql", {
         method: "POST",
         headers: {
             'Content-Type': "application/json",
@@ -817,101 +817,94 @@ export function twitchClip(client: ThreadClient, clipid: string, opts: {autoplay
                 {slug: clipid}
             ),
         ]),
-    }).then(r => r.json()).then(res_untyped => {
-        loading.remove();
-        console.log(res_untyped);
-        const [video, chat_card, broadcaster_info, title, curator, full_video_btn] = res_untyped as [
-            // wow lots of redundant data
-            video: {data: {clip: null | {
-                id: string,
-                playbackAccessToken: {
-                    signature: string,
-                    value: string, // JSON {authorization: {forbidden: false, reason: ""}, clip_url: "", device_id: null, expires: number, user_id: "", version: 2}
-                },
-                videoQualities: {
-                    frameRate: number,
-                    quality: "360" | "480" | "720" | "unsupported",
-                    sourceURL: string,
-                }[],
-            }}},
-            chat_card: {data: {clip: {
-                id: string,
-                videoOffsetSeconds: number,
-                createdAt: string,
-                curator: {id: string, login: string},
-                video: {id: string, login: string},
-            }}},
-            broadcaster_info: {data: {clip: {
-                id: string,
-                game: {name: string, displayName: string},
-                broadcaster: {
-                    id: string,
-                    profileImageURL: string,
-                    displayName: string,
-                    login: string,
-                    stream: null,
-                },
-            }}},
-            title: {data: {clip: {
-                id: string,
-                title: string,
-            }}},
-            curator: {data: {clip: {
-                id: string,
-                curator: {id: string, displayName: string, login: string},
-            }}},
-            full_video_btn: {data: {clip: {
-                id: string,
-                videoOffsetSeconds: number,
-                durationSeconds: number,
-                title: string,
-                broadcaster: {id: string, login: string},
-                video: {id: string, broadcastType: "ARCHIVE" | "unsupported"},
-                game: {id: string, displayName: string},
-            }}},
-        ];
-        if(!video.data.clip) {
-            el("div").clss("text-xl font-bold text-red-500").adto(frame)
-                .atxt("404 clip not found. It might be deleted or otherwise no longer available.")
-            ;
-            return;
-        }
-        el("h1").clss("text-xl font-bold text-gray-500").adto(frame).atxt(title.data.clip.title);
-
-        renderBody(client, {
-            kind: "video",
-            source: {
-                kind: "video",
-                sources: video.data.clip.videoQualities.map(quality => {
-                    return {url: quality.sourceURL
-                        + "?sig="+encodeURIComponent(video.data.clip!.playbackAccessToken.signature)
-                        + "&token="+encodeURIComponent(video.data.clip!.playbackAccessToken.value)
-                    };
-                }),
+    }).then(r => r.json());
+    console.log(res_untyped);
+    const [video, chat_card, broadcaster_info, title, curator, full_video_btn] = res_untyped as [
+        video: {data: {clip: null | {
+            id: string,
+            playbackAccessToken: {
+                signature: string,
+                value: string,
             },
-            gifv: false,
-        }, {autoplay: opts.autoplay}).defer(hsc).adto(frame);
+            videoQualities: {
+                frameRate: number,
+                quality: "360" | "480" | "720" | "unsupported",
+                sourceURL: string,
+            }[],
+        }}},
+        chat_card: {data: {clip: {
+            id: string,
+            videoOffsetSeconds: number,
+            createdAt: string,
+            curator: {id: string, login: string},
+            video: {id: string, login: string},
+        }}},
+        broadcaster_info: {data: {clip: {
+            id: string,
+            game: {name: string, displayName: string},
+            broadcaster: {
+                id: string,
+                profileImageURL: string,
+                displayName: string,
+                login: string,
+                stream: null,
+            },
+        }}},
+        title: {data: {clip: {
+            id: string,
+            title: string,
+        }}},
+        curator: {data: {clip: {
+            id: string,
+            curator: {id: string, displayName: string, login: string},
+        }}},
+        full_video_btn: {data: {clip: {
+            id: string,
+            videoOffsetSeconds: number,
+            durationSeconds: number,
+            title: string,
+            broadcaster: {id: string, login: string},
+            video: {id: string, broadcastType: "ARCHIVE" | "unsupported"},
+            game: {id: string, displayName: string},
+        }}},
+    ];
+    if(!video.data.clip) {
+        return {
+            kind: "richtext",
+            content: [
+                rt.p(rt.txt("The clip could not be found."))
+            ],
+        };
+    }
 
-        () => [chat_card, broadcaster_info, curator, full_video_btn]; 
+    () => [chat_card, broadcaster_info, curator, full_video_btn];
 
-        // TODO ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
-        // variables:
-        // - slug,
-        // - videoOffsetSeconds,
-        // → something that gives a cursor
-        // then
-        // ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
-        // variables:
-        // - slug,
-        // - cursor,
-        // → the chat messages
-    }).catch(e => {
-        console.log(e);
-        try {loading.remove()}catch(er){void er}
-        el("div").clss("error").adto(frame).atxt((e as Error).toString());
-    });
+    return {
+        kind: "video",
+        source: {
+            kind: "video",
+            sources: video.data.clip.videoQualities.map(quality => {
+                return {url: quality.sourceURL
+                    + "?sig="+encodeURIComponent(video.data.clip!.playbackAccessToken.signature)
+                    + "&token="+encodeURIComponent(video.data.clip!.playbackAccessToken.value)
+                };
+            }),
+        },
+        caption: title.data.clip.title,
+        gifv: false,
+    };
 
-    return hsc;
+    // TODO ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
+    // variables:
+    // - slug,
+    // - videoOffsetSeconds,
+    // → something that gives a cursor
+    // then
+    // ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
+    // variables:
+    // - slug,
+    // - cursor,
+    // → the chat messages
 }
 
 export function youtubeVideo(
