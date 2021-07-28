@@ -118,14 +118,14 @@ export function getVredditSources(id: string): Generic.VideoSource {
     return {
         kind: "video",
         sources: [
-            {url: link+"/DASH_720.mp4", type: "video/mp4", quality: 720},
-            {url: link+"/DASH_720", type: "video/mp4", quality: 720},
-            {url: link+"/DASH_480.mp4", type: "video/mp4", quality: 480},
-            {url: link+"/DASH_480", type: "video/mp4", quality: 480},
-            {url: link+"/DASH_360.mp4", type: "video/mp4", quality: 360},
-            {url: link+"/DASH_360", type: "video/mp4", quality: 360},
-            {url: link+"/DASH_240.mp4", type: "video/mp4", quality: 240},
-            {url: link+"/DASH_240", type: "video/mp4", quality: 240},
+            {url: link+"/DASH_720.mp4", type: "video/mp4", quality: "720p"},
+            {url: link+"/DASH_720", type: "video/mp4", quality: "720p"},
+            {url: link+"/DASH_480.mp4", type: "video/mp4", quality: "480p"},
+            {url: link+"/DASH_480", type: "video/mp4", quality: "480p"},
+            {url: link+"/DASH_360.mp4", type: "video/mp4", quality: "360p"},
+            {url: link+"/DASH_360", type: "video/mp4", quality: "360p"},
+            {url: link+"/DASH_240.mp4", type: "video/mp4", quality: "240p"},
+            {url: link+"/DASH_240", type: "video/mp4", quality: "240p"},
         ],
         seperate_audio_track: [
             {url: link+"/DASH_audio.mp4", type: "video/mp4"},

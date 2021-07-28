@@ -155,7 +155,7 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
                     kind: "video",
                     sources: [{
                         url: media.url,
-                        quality: media.meta.original?.height ?? null,
+                        quality: media.meta.original?.width + "×" + media.meta.original?.width,
                     }],
                 },
                 w: media.meta.original?.width,

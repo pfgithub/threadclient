@@ -34,8 +34,8 @@ function PreviewRealVideo(props: {
     const sources = () => {
         const target_index = targetQuality();
         return [
-            ...props.source.sources.filter((_, i) => i >= target_index),
-            ...props.source.sources.filter((_, i) => i < target_index).reverse(),
+            ...props.source.sources.filter((__, i) => i >= target_index),
+            ...props.source.sources.filter((__, i) => i < target_index).reverse(),
         ];
     };
     const qualities = (): {index: number, name: string}[] => {
@@ -169,13 +169,13 @@ function PreviewRealVideo(props: {
             )}</For>
         </div>
         <div class="flex">
-            Quality: {quality() === null ? "Loading" : quality()!.w+"×"+quality()!.h}
-            <For each={qualities()}>{(quality, i) => (
+            Quality: {quality() == null ? "Loading" : quality()!.w+"×"+quality()!.h}
+            <For each={qualities()}>{(qual, i) => (
                 <button
                     class={link_styles_v["outlined-button"]}
                     disabled={targetQuality() === i()}
-                    on:click={() => setTargetQuality(quality.index)}
-                >{quality.name}</button>
+                    on:click={() => setTargetQuality(qual.index)}
+                >{qual.name}</button>
             )}</For>
         </div>
     </div>;
