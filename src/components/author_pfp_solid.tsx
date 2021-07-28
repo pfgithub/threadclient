@@ -259,7 +259,7 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
         {" "}
         <span
             class={flair.system != null ? flair.system : ("rounded-full px-2"
-                + (flair.color != null ? " bg-flair-light dark:bg-flair-dark" : " bg-gray-300 dark:bg-gray-600")
+                + (flair.color != null ? " bg-flair-light dark:bg-flair-dark" : " bg-gray-300")
                 + (flair.fg_color != null ? " flair-text-"+flair.fg_color : "")
             )}
             style={{

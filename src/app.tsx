@@ -2558,7 +2558,7 @@ export const link_styles_v = {
     'unsafe-action-button': "text-red-600 dark:text-red-500 hover:underline",
     'code-button': "text-gray-600 dark:text-gray-500 hover:underline",
     'load-more': "text-blue-600 dark:text-blue-500 hover:underline text-base",
-    'userlink': "text-userlink-color-light dark:text-userlink-color-dark hover:underline",
+    'userlink': "text-$light-color dark:text-$dark-color hover:underline",
     'pill-empty': "text-sm border-2 border-black text-black hover:text-white "
         + "hover:bg-black p-1 px-3 rounded-full transition-colors",
     'pill-transparent': "text-sm border-2 border-transparent text-black "

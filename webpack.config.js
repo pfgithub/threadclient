@@ -4,6 +4,7 @@ const WorkboxPlugin = require("workbox-webpack-plugin");
 const webpack = require("webpack");
 const VirtualModulesPlugin = require("webpack-virtual-modules");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const WindiCSS = require("windicss-webpack-plugin").default;
 
 const dev = process.env.NODE_ENV === "development";
 
@@ -39,14 +40,12 @@ module.exports = {
             use: [
                 "style-loader",
                 {loader: "css-loader", options: {importLoaders: 1}},
-                {loader: "postcss-loader"},
             ],
         }, {
             test: /\.s[ac]ss$/i,
             use: [
                 "style-loader",
                 {loader: "css-loader", options: {importLoaders: 1}},
-                "postcss-loader",
                 "sass-loader"
             ],
         }],
@@ -74,6 +73,7 @@ module.exports = {
                 }
             ],
         }),
+        new WindiCSS(),
         new HtmlWebpackPlugin({
             template: "src/index.html",
             filename: "index.html",

@@ -6,12 +6,12 @@ export function Homepage(props: {_?: undefined}): JSX.Element {
         <div class="w-full max-w-prose">
             <div class="bg-white p-5 sm:m-5 sm:p-10 shadow sm:rounded-xl">
                 <h1 class="text-3xl sm:text-5xl font-black">ThreadReader</h1>
-                <h2 class="text-base font-light text-gray-800 dark:text-gray-500">A client for Reddit and Mastodon</h2>
+                <h2 class="text-base font-light text-gray-800 dark:text-gray-400">A client for Reddit and Mastodon</h2>
                 <div class="mt-10"></div>
                 <p>Try for <LinkButton href="/reddit" style="normal">Reddit</LinkButton></p>
                 <p>Try for <LinkButton href="/mastodon" style="normal">Mastodon</LinkButton></p>
                 <div class="mt-10"></div>
-                <p class="text-gray-800 dark:text-gray-500">
+                <p class="text-gray-800 dark:text-gray-400">
                     <LinkButton href="/settings" style="action-button">Settings</LinkButton> ·{" "}
                     <LinkButton
                         href="https://github.com/pfgithub/threadclient"

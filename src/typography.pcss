@@ -12,12 +12,14 @@
     position: absolute;
     left: -15px;
     top: 4px;
-    @apply bg-postcolor-100;
+    background-color: var(--postcolor-100);
     pointer-events: none;
 }
 
 .hover-outline:hover {
-    @apply from-gray-700;
-    outline: 1px solid var(--tw-gradient-from);
+    outline: 1px solid var(--cool-gray-700);
     cursor: pointer;
+}
+.dark .hover-outline:hover {
+    outline-color: var(--cool-gray-300);
 }

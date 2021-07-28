@@ -1,6 +1,7 @@
 ## todo
 
-- !!! MOVE TO WINDICSS
+- TODO: https://github.com/windicss/plugins/tree/main/packages/icons
+- also check out https://github.com/bradlc/tailwindcss-fluid
 - consider:
 - vite + https://github.com/antfu/vite-plugin-pwa
 - probably not since the webpack config is kinda messy and I need both react and solid

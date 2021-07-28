@@ -1,9 +1,8 @@
-const colors = require("tailwindcss/colors");
+const colors = require("windicss/colors");
 
 module.exports = {
-    purge: process.env.NODE_ENV === "development" ? [] : {
-        enabled: true,
-        content: [
+    extract: {
+        include: [
             "./src/**/*",
             "./static/**/*.html",
         ],
@@ -15,7 +14,18 @@ module.exports = {
             // of the css variables
             'transparent': "transparent",
             'current': "currentColor",
-            'gray': colors.coolGray,
+            'gray': {
+                50: "var(--cool-gray-50)",
+                100: "var(--cool-gray-100)",
+                200: "var(--cool-gray-200)",
+                300: "var(--cool-gray-300)",
+                400: "var(--cool-gray-400)",
+                500: "var(--cool-gray-500)",
+                600: "var(--cool-gray-600)",
+                700: "var(--cool-gray-700)",
+                800: "var(--cool-gray-800)",
+                900: "var(--cool-gray-000)",
+            },
             'blue': colors.blue,
             'green': colors.emerald,
             'red': colors.red,
@@ -25,20 +35,41 @@ module.exports = {
             'flair-light': "var(--flair-color)",
             'flair-dark': "var(--flair-color-dark)",
             'body': "var(--body-color)",
-            'border': "var(--border-color)",
+            // 'border': "var(--border-color)",
             'textc': "var(--text-color)",
-            'userlink-color-light': "var(--light-color)",
-            'userlink-color-dark': "var(--dark-color)",
             'spoiler-color': "var(--spoiler-color)",
             'spoiler-color-hover': "var(--spoiler-color-hover)",
             'spoiler-color-revealed': "var(--spoiler-color-revealed)",
-            'white': "#FFF",
-            'black': "#000",
+            'white': "var(--white)",
+            'black': "var(--black)",
+            'light': {
+                50: "#FFF",
+                100: "#d6dde4",
+                200: "#eee",
+                300: "#ddd",
+                400: "#aaa",
+                500: "#666",
+                600: "#4f4f4f",
+                700: "#444",
+            },
+            'dark': {
+                900: "black",
+                800: "#131516",
+                700: "rgb(34, 36, 38)",
+                600: "rgb(43, 47, 49)",
+                500: "rgb(72, 78, 81)",
+                400: "rgb(168, 160, 149)",
+                300: "rgb(189, 183, 175)"
+            },
             // nightwind doesn't work properly with dahes in names for some reason
-            'postcolor': {100: "#FFF", 800: "#181a1b"}, // TODO add more colors here :: spoiler-color spoiler-color-hover spoiler-color-revealed + those collapse btn colors
+            'postcolor': {100: "var(--postcolor-100)", 800: "#181a1b"}, // TODO add more colors here :: spoiler-color spoiler-color-hover spoiler-color-revealed + those collapse btn colors
         },
     },
     plugins: [
-        require("nightwind"),
+        (args1) => {
+            // was going to try to make something like nightwind
+            // console.log(args1);
+            // fs.writeFileSync("./junk/test.txt", "hi!");
+        },
     ],
 };

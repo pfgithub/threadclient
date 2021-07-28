@@ -1,6 +1,6 @@
 import "./_stdlib";
 import "./main.scss";
-import "tailwindcss/tailwind.css";
+import "windi.css";
 import "./typography.pcss";
 import {showAlert} from "./app";
 
