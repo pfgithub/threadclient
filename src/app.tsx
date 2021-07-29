@@ -12,6 +12,7 @@ import { getSettings } from "./util/utils_solid";
 import { variables } from "virtual:_variables";
 import { render } from "solid-js/web";
 import { registerSW } from "virtual:pwa-register";
+import { createSignal } from "solid-js";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -3331,9 +3332,13 @@ let alertarea: HTMLElement | undefined;
 
 console.log("ThreadReader built on "+variables.build_time);
 
+const [availableForOfflineUse, setAvailableForOfflineUse] = createSignal(false);
+const [updateAvailable, setUpdateAvailable] = createSignal(false);
+export {availableForOfflineUse, updateAvailable};
 export const updateSW = registerSW({
     onNeedRefresh() {
         console.log("An update to ThreadReader is available");
+        setUpdateAvailable(true);
         const settings = getSettings();
         if(settings.update_notifications.value() === "on") {
             const alert = el("div").clss("alert").adto(alertarea!);
@@ -3351,9 +3356,17 @@ export const updateSW = registerSW({
     },
     onOfflineReady() {
         console.log("Ready for offline use.");
+        setAvailableForOfflineUse(true);
     },
 });
 console.log("updateSW", updateSW);
+if(navigator.serviceWorker) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        if(registrations.every(registration => registration.active) && registrations.length !== 0) {
+            setAvailableForOfflineUse(true);
+        }
+    });    
+}
 
 // this is only necessary b/c app.tsx is both an entrypoint for web and contains a bunch of exported stuff.
 if(variables.build_mode !== "test") {

@@ -1,6 +1,6 @@
-import { JSX } from "solid-js";
-import { link_styles_v, menuButtonStyle, updateSW } from "../app";
-import { ClientProvider, getSettings } from "../util/utils_solid";
+import { createSignal, JSX } from "solid-js";
+import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
+import { ClientProvider, getSettings, ShowBool } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./author_pfp";
 import { variables } from "virtual:_variables";
 export * from "../util/interop_solid";
@@ -14,6 +14,34 @@ function SettingsSection(props: {title: string, children?: JSX.Element}): JSX.El
             </TopLevelWrapper>
         </section>
     );
+}
+
+function UpdateStatus(): JSX.Element {
+    const [updating, setUpdating] = createSignal(false);
+
+    return <p class="my-4 whitespace-pre-wrap">
+        Current Version: {variables.version.trim()} ({variables.build_time})
+        {"\n"}
+        Available for Offline Use: {availableForOfflineUse() ? "yes" : "maybe"}
+        {"\n"}
+        <ShowBool when={updateAvailable()}>
+            An update is available.{" "}
+            <button
+                class={link_styles_v["outlined-button"]}
+                disabled={updating()}
+                onclick={() => {
+                    setUpdating(true);
+                    updateSW(true).then(() => {
+                        setUpdating(false);
+                    }).catch(e => {
+                        setUpdating(false);
+                        console.log(e);
+                        alert("Error updating");
+                    });
+                }}
+            >Update Now</button>
+        </ShowBool>
+    </p>;
 }
 
 export function SettingsPage(props: {_?: undefined}): JSX.Element {
@@ -98,15 +126,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 automatically after closing all ThreadReader tabs and refreshing the
                 page twice, or manually by clicking the Update button on an Update notice.
             </p>
-            <p class="my-4">
-                <button
-                    class={link_styles_v["outlined-button"]}
-                    onclick={() => {
-                        void updateSW(true);
-                    }}
-                >Update Now</button>{" "}
-                Current Version: {new Date(variables.build_time).toString()}
-            </p>
+            <UpdateStatus />
         </SettingsSection>
         <SettingsSection title="Custom Video Controls">
             <button class={menuButtonStyle(custom_video_controls.compute.override() === "custom")} onclick={() => {
