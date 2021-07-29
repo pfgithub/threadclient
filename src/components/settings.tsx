@@ -142,6 +142,55 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 Custom video controls are currently work in progress. Once
                 they are complete, they will be enabled by default.
             </p>
+            <div class="bg-body rounded-xl max-w-xl" style={{'padding': "10px", 'margin-top': "10px"}}>
+                <ClientProvider client={{
+                    id: "n/a",
+                    getThread: () => {throw new Error("no")},
+                    act: () => {throw new Error("no")},
+                    previewReply: () => {throw new Error("no")},
+                    sendReply: () => {throw new Error("no")},
+                    loadMore: () => {throw new Error("no")},
+                    loadMoreUnmounted: () => {throw new Error("no")},
+                }}>
+                    <ClientContent listing={{
+                        kind: "post",
+
+                        title: {text: "Video Example", body_collapsible: {default_collapsed: true}},
+                        author: null,
+                        show_replies_when_below_pivot: false,
+                        body: {
+                            kind: "video",
+                            gifv: false,
+                            source: {
+                                kind: "video",
+                                thumbnail: "https://commondatastorage.googleapis.com/"
+                                + "gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+                                sources: [
+                                    {
+                                        url: "https://broken-link/",
+                                        quality: "1080p",
+                                    },
+                                    {
+                                        url: "https://commondatastorage.googleapis.com/"
+                                        + "gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                                        quality: "720p",
+                                    },
+                                    {
+                                        url: "https://broken-link/",
+                                        quality: "480p",
+                                    },
+                                ],
+                            },
+                        },
+                    }} opts={{
+                        clickable: false,
+                        replies: null,
+                        at_or_above_pivot: false,
+                        is_pivot: false,
+                        top_level: true,
+                    }} />
+                </ClientProvider>
+            </div>
         </SettingsSection>
     </div></div>;
     // TODO display:

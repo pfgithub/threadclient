@@ -71,6 +71,7 @@ export function ShowBool(props: {
     });
 }
 export function ShowCond<T>(props: {
+    // if: boolean, // would be nice for this to be optional but not allow undefined
     when: T | undefined | null,
     fallback?: JSX.Element,
     children: (item: T) => JSX.Element,

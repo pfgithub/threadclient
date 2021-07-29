@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Index, JSX } from "solid-js";
+import { createEffect, createSignal, For, Index, JSX, on } from "solid-js";
 import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -52,6 +52,15 @@ function PreviewRealVideo(props: {
     const [buffered, setBuffered] = createSignal<BufferNode[]>([]);
     const [expandControlsRaw, setExpandControls] = createSignal(false);
     const [playing, setPlaying] = createSignal<boolean | "loading">("loading");
+    const [errorOverlay, setErrorOverlay] = createSignal<string | null>(null);
+    const [erroredSources, setErroredSources] = createSignal<{[key: number]: boolean}>({});
+
+    createEffect(on([() => props.source], () => {
+        setTargetQuality(0);
+        setErroredSources({});
+        previous_time = video_el.currentTime;
+        video_el.load();
+    }));
 
     const settings = getSettings();
 
@@ -59,22 +68,22 @@ function PreviewRealVideo(props: {
         if(settings.custom_video_controls.value() === "browser") return false;
         return expandControlsRaw();
     };
-
+ 
     // custom controls todo:
-    // - scrubbing
-    // - hover the scrubber for that preview bar
-    // - click to play/pause
-    // - consider putting a big play button in the
-    //   center of the video when it's paused
-    // - audio controls
-    //   (use mozHasAudio + webkitAudioDecodedBytesCount + audioTracks + ...)
-    // - speed controls
-    // - quality controls
-    // - transitions
-    // - area marked as loaded should be (video) & (audio)
-    // - mobile tap and drag left or right to quick scrub
-    // - mobile support for all the controls and stuff if you tap
-    // - fullscreen
+    // [ ] scrubbing
+    // [ ] hover the scrubber for that preview bar
+    // [ ] click to play/pause
+    // [ ] consider putting a big play button in the
+    //     center of the video when it's paused
+    // [ ] audio controls
+    //     (use mozHasAudio + webkitAudioDecodedBytesCount + audioTracks + ...)
+    // [ ] speed controls
+    // [ ] quality controls
+    // [ ] transitions
+    // [ ] area marked as loaded should be (video) & (audio)
+    // [ ] mobile tap and drag left or right to quick scrub
+    // [ ] mobile support for all the controls and stuff if you tap
+    // [ ] fullscreen
 
     let previous_time: number | null = null;
     createEffect(() => {
@@ -87,14 +96,16 @@ function PreviewRealVideo(props: {
 
     const sources = () => {
         const target_index = targetQuality();
+        const full_sources = props.source.sources.map((s, i) => ({...s, i}));
         return [
-            ...props.source.sources.filter((__, i) => i >= target_index),
-            ...props.source.sources.filter((__, i) => i < target_index).reverse(),
+            ...full_sources.filter(src => src.i >= target_index),
+            ...full_sources.filter(src => src.i < target_index).reverse(),
         ];
     };
     const qualities = (): {index: number, name: string}[] => {
         const res = new Map<string, {index: number}>();
         for(const [i, source] of props.source.sources.entries()) {
+            if(erroredSources()[i] === true) continue;
             res.set(source.quality, {index: i});
         }
         return [...res.entries()].map(([n, v]) => ({name: n, ...v}));
@@ -129,6 +140,9 @@ function PreviewRealVideo(props: {
         setCurrentTime(video_el.currentTime);
         setBuffered(bufres);
         setMaxTime(video_el.duration);
+        if(video_el.error) setErrorOverlay(video_el.error.message);
+        else if(video_el.networkState === video_el.NETWORK_NO_SOURCE) setErrorOverlay("Video could not be loaded.");
+        else setErrorOverlay(null);
     };
     // todo support dragging left and right to seek
     return <div>
@@ -152,8 +166,11 @@ function PreviewRealVideo(props: {
             </audio>
         )}</ShowCond>
         <div
-            class="preview-image relative"
+            class="preview-image relative min-w-50px min-h-50px"
             onmouseenter={() => {
+                setExpandControls(true);
+            }}
+            onmousemove={() => {
                 setExpandControls(true);
             }}
             onmouseleave={() => {
@@ -169,6 +186,7 @@ function PreviewRealVideo(props: {
                 height={props.video.h}
                 loop={props.video.gifv}
 
+                poster={props.source.thumbnail}
                 onplay={() => {
                     sync();
                     setPlaying("loading");
@@ -177,6 +195,13 @@ function PreviewRealVideo(props: {
                     setPlaying(video_el.paused ? false : true);
                     const audio_el = hasSeperateAudio();
                     if(audio_el) void audio_el.play();
+                }}
+                onratechange={() => {
+                    // TODO update playbackRate
+                    sync();
+                }}
+                onvolumechange={() => {
+                    //
                 }}
                 onprogress={() => {
                     updateProgress();
@@ -200,6 +225,13 @@ function PreviewRealVideo(props: {
                     sync();
                 }}
                 onwaiting={() => {
+                    setPlaying("loading");
+                    const audio_el = hasSeperateAudio();
+                    if(audio_el) audio_el.pause();
+                    sync();
+                }}
+                onstalled={() => {
+                    setPlaying("loading");
                     const audio_el = hasSeperateAudio();
                     if(audio_el) audio_el.pause();
                     sync();
@@ -217,17 +249,70 @@ function PreviewRealVideo(props: {
                     setQuality(null);
                     setPlaying("loading");
                 }}
+                oncapture:error={(e) => {
+                    setPlaying(false);
+                    updateProgress();
+                }}
             >
                 <span>{
                     props.video.alt ?? "Your device does not support video, and alt text was not supplied."
                 }</span>
-                <For each={sources()}>{source => (
-                    <source src={source.url} type={source.type} />
-                )}</For>
+                <Index each={sources()}>{source => (
+                    <source
+                        src={source().url}
+                        type={source().type}
+                        onerror={(e) => {
+                            console.log("Source failed load", e);
+                            setErroredSources(es => ({...es, [source().i]: true}));
+                        }}
+                    />
+                )}</Index>
             </video>
+            <div
+                class="absolute top-0 left-0 bottom-0 right-0 items-center justify-center"
+                style={{
+                    display: settings.custom_video_controls.value()
+                    && (playing() !== true || expandControls()) ? "flex" : "none",
+                }}
+            >
+                <button
+                    class="block transform scale-200 hover:scale-300"
+                    onclick={() => {
+                        if(video_el.paused) {
+                            void video_el.play();
+                        }else{
+                            video_el.pause();
+                        }
+                    }}
+                    style={{
+                        'filter': "drop-shadow(0 0 5px rgba(0, 0, 0, 0.5))",
+                    }}
+                >
+                    <Icon size="icon-sm" icon={
+                        playing() === false ? {
+                            class: "icon-play-button",
+                            label: "Play",
+                        } : playing() === true ? {
+                            class: "icon-play-pause",
+                            label: "Pause",
+                        } : {
+                            class: "icon-loadbar",
+                            label: "Loading",
+                        }
+                    } />
+                </button>
+            </div>
+            <ShowCond when={errorOverlay()}>{overlay => (
+                <div
+                    class="absolute top-0 left-0 bottom-0 right-0 p-4 bg-rgray-900 bg-opacity-75"
+                    style={{display: settings.custom_video_controls.value() === "custom" ? "block" : "none"}}
+                >
+                    <p>Error! {overlay}</p>
+                </div>
+            )}</ShowCond>
             <div class="absolute bottom-0 left-0 right-0 flex flex-col bg-rgray-900 bg-opacity-25">
                 <div
-                    class="h-1 w-full relative bg-rgray-300 bg-opacity-50"
+                    class="h-1 w-full relative bg-rgray-100 bg-opacity-50"
                     classList={{
                         'h-1': !expandControls(),
                         'h-2': expandControls(),
@@ -235,12 +320,12 @@ function PreviewRealVideo(props: {
                     }}
                 >
                     <Index each={buffered()}>{(item, i) => (
-                        <div class="absolute h-full bg-rgray-600 bg-opacity-50" style={{
+                        <div class="absolute h-full bg-rgray-500 bg-opacity-75" style={{
                             'width': (item().end - item().start) / maxTime() * 100 + "%",
                             'left': item().start / maxTime() * 100 + "%",
                         }}></div>
                     )}</Index>
-                    <div class="absolute h-full bg-rgray-600" style={{
+                    <div class="absolute h-full bg-rgray-700" style={{
                         'width': (currentTime() / maxTime() * 100) + "%",
                     }}></div>
                 </div>

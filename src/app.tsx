@@ -3360,12 +3360,12 @@ export const updateSW = registerSW({
     },
 });
 console.log("updateSW", updateSW);
-if(navigator.serviceWorker) {
+if(navigator.serviceWorker != null) {
     navigator.serviceWorker.getRegistrations().then(registrations => {
         if(registrations.every(registration => registration.active) && registrations.length !== 0) {
             setAvailableForOfflineUse(true);
         }
-    });    
+    }).catch(e => console.log("Error checking sw registrations", e));    
 }
 
 // this is only necessary b/c app.tsx is both an entrypoint for web and contains a bunch of exported stuff.

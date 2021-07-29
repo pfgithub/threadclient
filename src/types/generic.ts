@@ -479,7 +479,7 @@ export type VideoSourceVideo = {
         url: string,
         type?: string,
     }[],
-    poster?: string, // TODO use the reddit post thumbnail for this
+    thumbnail?: string, // TODO use the reddit post thumbnail for this
 };
 export type VideoSource = VideoSourceVideo | {
     kind: "img",

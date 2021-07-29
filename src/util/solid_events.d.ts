@@ -4,5 +4,8 @@ declare module "solid-js" {
         interface CustomEvents {
             click: MouseEvent;
         }
+        interface CustomCaptureEvents {
+            error: Event;
+        }
     }
 }
