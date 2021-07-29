@@ -1029,56 +1029,6 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
     return hsc;
 }
 
-function getButton(e: PointerEvent) {
-    // ??? what is this why is it weird
-    // I have no idea what this function does
-    return [1, 4, 2, 8, 16][e.button] ?? 32;
-}
-export function startDragWatcher(
-    start_event: PointerEvent,
-    cb: (e: PointerEvent) => void,
-): Promise<PointerEvent> {
-    return new Promise(resolve => {
-        const moveListener = (e: PointerEvent) => {
-            if (e.pointerId !== start_event.pointerId) {
-                return;
-            }
-            if (
-                e.pointerType === "mouse" &&
-                !(e.buttons & getButton(start_event))
-            ) {
-                return;
-            }
-            e.preventDefault();
-            e.stopPropagation();
-            cb(e);
-        };
-        window.addEventListener("pointermove", moveListener, { capture: true });
-        const stopListener = (e: PointerEvent) => {
-            if (e.pointerId !== start_event.pointerId) {
-                return;
-            }
-            if (
-                e.pointerType === "mouse" &&
-                e.buttons & getButton(start_event)
-            ) {
-                // button will be excluded on a mouseup
-                return;
-            }
-            e.preventDefault();
-            e.stopPropagation();
-            window.removeEventListener("pointermove", moveListener, {
-                capture: true,
-            });
-            window.removeEventListener("pointerup", stopListener, {
-                capture: true,
-            });
-            resolve(e);
-        };
-        window.addEventListener("pointerup", stopListener, { capture: true });
-    });
-}
-
 function zoomableFrame(img: HTMLImageElement): HTMLElement {
     const frame = el("button").adch(img);
 
