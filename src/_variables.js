@@ -40,6 +40,7 @@ const out_obj = {
     version: child_process.execSync("git describe --always --tags --dirty").toString(),
     log: git_log,
     build_time: Date.now(),
+    build_mode: process.env.NODE_ENV === "production" ? "production" : "development",
 };
 
 module.exports = out_obj;

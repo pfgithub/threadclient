@@ -4,7 +4,7 @@ import * as Generic from "../types/generic";
 import { rt, Richtext } from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 import * as commonmark from "commonmark";
-import * as variables from "_variables";
+import { LogEntry, variables } from "virtual:_variables";
 import { assertNever } from "../util";
 import * as Reddit from "../types/api/reddit";
 import { IDMap } from "./reddit";
@@ -142,7 +142,7 @@ function richtextPost(path: string, richtext: Generic.Richtext.Paragraph[]): Gen
     return userThread(path, {kind: "richtext", content: richtext}, {layout: "reddit-post"});
 }
 
-function commitThread(path: string, entry: variables.LogEntry): Generic.PostContent {
+function commitThread(path: string, entry: LogEntry): Generic.PostContent {
     return {
         kind: "post",
         title: {text: "" + entry.hash + ": " + entry.commit_title, body_collapsible: {default_collapsed: true}},

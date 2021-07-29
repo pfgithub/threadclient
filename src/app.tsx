@@ -9,8 +9,9 @@ import { rt } from "./types/generic";
 import { escapeHTML } from "./util";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings } from "./util/utils_solid";
-
-
+import { variables } from "virtual:_variables";
+import { render } from "solid-js/web";
+import { registerSW } from "virtual:pwa-register";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -474,7 +475,9 @@ export function renderImageGallery(client: ThreadClient, images: Generic.Gallery
 }
 
 export function renderFlair(flairs: Generic.Flair[]): Node {
-    return el("span").adch(Flair({flairs}) as HTMLElement); // a bit hacky
+    const span = el("span");
+    render(() => <Flair flairs={flairs} />, span);
+    return span;
 }
 
 function s(number: number, text: string) {
@@ -783,11 +786,11 @@ export function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<N
 export async function getTwitchClip(
     clipid: string,
 ): Promise<Generic.Body> {
-    function gqlRequest(operation: string, hash: string, variables: unknown) {
+    function gqlRequest(operation: string, hash: string, gql_vars: unknown) {
         return {
             extensions: {persistedQuery: {sha256Hash: hash, version: 1}},
             operationName: operation,
-            variables,
+            variables: gql_vars,
         };
     }
 
@@ -3362,82 +3365,45 @@ export let navbar: HTMLDivElement; {
     }, {passive: false});
 }
 
-let waiting_sw: ServiceWorker | null;
 let alertarea: HTMLElement | undefined;
-export function showAlert(text: string): void {
-    if(!alertarea) return;
-    const alert = el("div").clss("alert").adto(alertarea);
-    el("div").clss("alert-body").adto(alert).atxt(text);
-    elButton("pill-empty").atxt("🗙 Ignore").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
-    alert.atxt(" ");
-    const update_btn = elButton("pill-empty").atxt("🗘 Update").adto(alert).onev("click", (e) => {
-        e.stopPropagation();
-        if(waiting_sw) {
-            const wsw = waiting_sw;
-            update_btn.disabled = true;
-            waiting_sw.postMessage({type: "SKIP_WAITING"});
-            waiting_sw.addEventListener("statechange", event => {
-                console.log(event);
-                if(wsw.state === "activated") {
-                    location.reload();
-                }
+() => alertarea;
+// export function showAlert(text: string): void {
+//     if(!alertarea) return;
+//     const alert = el("div").clss("alert").adto(alertarea);
+//     el("div").clss("alert-body").adto(alert).atxt(text);
+//     elButton("pill-empty").atxt("🗙 Ignore").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
+//     alert.atxt(" ");
+//     const update_btn = elButton("pill-empty").atxt("🗘 Update").adto(alert).onev("click", (e) => {
+//         e.stopPropagation();
+//         updateSW(true);
+//     });
+// }
+
+console.log("ThreadReader built on "+variables.build_time);
+
+const updateSW = registerSW({
+    onNeedRefresh() {
+        console.log("An update to ThreadReader is available");
+        const settings = getSettings();
+        if(settings.update_notifications.value() === "on") {
+            const alert = el("div").clss("alert").adto(alertarea!);
+            el("div").clss("alert-body").adto(alert).atxt("An update to ThreadReader is available.");
+            elButton("pill-empty").atxt("Ignore").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
+            alert.atxt(" ");
+            elButton("pill-empty").atxt("Update (Refresh)").adto(alert).onev("click", (e) => {
+                e.stopPropagation();
+                updateSW(true);
             });
-            return;
         }
-        location.reload();
-    });
-}
-
-console.log("ThreadReader built on "+fakevar.b_time);
-
-function showUpdateAvailableAlert() {
-    const settings = getSettings();
-    if(settings.update_notifications.value() === "on") {
-        showAlert("An update to ThreadReader is available.");
-    }
-}
-
-declare const fakevar: {build: "development" | "production" | "test", b_time: string};
-if(fakevar.build === "production" && 'serviceWorker' in navigator) {
-    // const updates_channel = new BroadcastChannel("workbox");
-    // updates_channel.addEventListener("message", (event) => {
-    //     console.log("Got sw message1__", event);
-    // });
-    // const updates_channel_2 = new BroadcastChannel("update-available");
-    // updates_channel_2.addEventListener("message", (event) => {
-    //     console.log("Got sw message2_", event);
-    // });
-    window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/service-worker.js").then(regr => {
-            console.log("ServiceWorker registered", regr, regr.scope);
-            regr.onupdatefound = () => {
-                const installing_worker = regr.installing;
-                console.log(installing_worker);
-                if(!installing_worker) return;
-                installing_worker.onstatechange = () => {
-                    if(installing_worker.state === "installed") {
-                        if(navigator.serviceWorker.controller) {
-                            waiting_sw = regr.waiting;
-                            console.log("New service worker installed. Send SKIP_WAITING to update immediately.!");
-                            showUpdateAvailableAlert();
-                        }else{
-                            console.log("SW content cached, ready for offline.");
-                        }
-                    }
-                };
-            };
-        }).catch(e => {
-            console.log("ServiceWorker registration failed", e);
-        });
-        // navigator.serviceWorker.addEventListener("message", event => {
-        //     console.log("GOT sw message", event);
-        //     console.log("!! !");
-        // });
-    });
-}
+    },
+    onOfflineReady() {
+        console.log("Ready for offline use.");
+    },
+});
+console.log("updateSW", updateSW);
 
 // this is only necessary b/c app.tsx is both an entrypoint for web and contains a bunch of exported stuff.
-if(fakevar.build !== "test") {
+if(variables.build_mode !== "test") {
     history.replaceState({index: 0, session_name}, "ThreadReader", location.pathname + location.search + location.hash);
     onNavigate(0, location);
 

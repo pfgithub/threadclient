@@ -1,5 +1,5 @@
 import { JSX } from "solid-js";
-import { link_styles_v, menuButtonStyle, showAlert } from "../app";
+import { link_styles_v, menuButtonStyle } from "../app";
 import { ClientProvider, getSettings } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./author_pfp";
 export * from "../util/interop_solid";
@@ -97,12 +97,6 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 automatically after closing all ThreadReader tabs and refreshing the
                 page twice, or manually by clicking the Update button on an Update notice.
             </p>
-            <button
-                class={link_styles_v["outlined-button"]}
-                onclick={() => {
-                    showAlert("An update to ThreadReader is available.");
-                }}
-            >Example notice</button>
         </SettingsSection>
     </div></div>;
 }

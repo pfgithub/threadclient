@@ -989,3 +989,20 @@ summary {
 .comment-collapsed .post-content-subminfo .cfg-reddit-pfp {
     display: none;
 }
+
+.threaded:before {
+    content: "⤷";
+    position: absolute;
+    left: -15px;
+    top: 4px;
+    background-color: var(--postcolor-100);
+    pointer-events: none;
+}
+
+.hover-outline:hover {
+    outline: 1px solid var(--cool-gray-700);
+    cursor: pointer;
+}
+.dark .hover-outline:hover {
+    outline-color: var(--cool-gray-300);
+}

@@ -1,5 +1,4 @@
-declare module "_variables" {
-    export let version: string;
+declare module "virtual:_variables" {
     export type LogEntry = {
         hash: string,
         hash_full: string,
@@ -9,6 +8,10 @@ declare module "_variables" {
         commit_title: string,
         commit_body: string, // includes title
     };
-    export let log: LogEntry[];
-    export let build_time: number;
+    export const variables: {
+        version: string,
+        log: LogEntry[],
+        build_time: number,
+        build_mode: "production" | "development" | "test",
+    };
 }

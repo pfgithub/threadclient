@@ -5,19 +5,21 @@
 import type * as Generic from "../../types/generic";
 import {rt} from "../../types/generic";
 
+function test(a: string, b: () => Promise<void>) {() => [a, b]}
+function expect<T>(a: T) {return {toEqual: (b: T) => {() => [a, b]}}}
 test("sample", async () => {
     const [htr] = await Promise.all([
         // getRedditMarkdownRenderer(),
         import("./html_to_richtext"),
     ]);
     if(htr == null) throw new Error("??????");
-    for(const test of reddit_html_tests) {
+    for(const test_item of reddit_html_tests) {
         // if(test[0] != null) {
         //     const md_as_html = mdr.renderMd(test[0]);
         //     expect(md_as_html).toEqual(test[1]);
         // }
-        const html_as_rt = htr.parseContentHTML(test[1]);
-        const expected_rt = test[2];
+        const html_as_rt = htr.parseContentHTML(test_item[1]);
+        const expected_rt = test_item[2];
 
         expect(html_as_rt).toEqual(expected_rt);
     }

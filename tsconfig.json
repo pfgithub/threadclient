@@ -14,13 +14,17 @@
             "es2019",
             "dom",
             "DOM.Iterable",
-            "esnext"
+            "esnext",
         ],
+        "skipLibCheck": true,
         "strict": true,
         "sourceMap": true,
-        "types": [],
+        "types": [
+            "vite-plugin-pwa/client"
+        ],
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "vite.config.ts"
     ],
 }
