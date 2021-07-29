@@ -1,4 +1,3 @@
-import React from "react";
 import { JSX } from "solid-js";
 import { link_styles_v, menuButtonStyle, showAlert } from "../app";
 import { ClientProvider, getSettings } from "../util/utils_solid";

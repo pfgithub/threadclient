@@ -24,7 +24,15 @@ module.exports = {
     module: {
         rules: [{
             test: /\.tsx?$/,
-            use: {loader: "babel-loader", options: require("./config/babel-config.js")},
+            use: {loader: "babel-loader", options: {
+                presets: [
+                    "@babel/preset-typescript",
+                    ["@babel/preset-env", {
+                        targets: {browsers: ">10%", node: "14"},
+                    }],
+                    "solid",
+                ],
+            }},
         }, {
             test: /\.(gif|svg|png)$/i,
             use: [
