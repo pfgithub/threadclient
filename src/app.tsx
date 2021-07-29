@@ -3381,18 +3381,21 @@ let alertarea: HTMLElement | undefined;
 
 console.log("ThreadReader built on "+variables.build_time);
 
-const updateSW = registerSW({
+export const updateSW = registerSW({
     onNeedRefresh() {
         console.log("An update to ThreadReader is available");
         const settings = getSettings();
         if(settings.update_notifications.value() === "on") {
             const alert = el("div").clss("alert").adto(alertarea!);
             el("div").clss("alert-body").adto(alert).atxt("An update to ThreadReader is available.");
-            elButton("pill-empty").atxt("Ignore").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
+            elButton("pill-empty").atxt("Ignore").adto(alert).onev("click", (e) => {
+                e.stopPropagation();
+                alert.remove();
+            });
             alert.atxt(" ");
             elButton("pill-empty").atxt("Update (Refresh)").adto(alert).onev("click", (e) => {
                 e.stopPropagation();
-                updateSW(true);
+                void updateSW(true);
             });
         }
     },

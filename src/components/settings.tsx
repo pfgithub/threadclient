@@ -1,7 +1,8 @@
 import { JSX } from "solid-js";
-import { link_styles_v, menuButtonStyle } from "../app";
+import { link_styles_v, menuButtonStyle, updateSW } from "../app";
 import { ClientProvider, getSettings } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./author_pfp";
+import { variables } from "virtual:_variables";
 export * from "../util/interop_solid";
 
 function SettingsSection(props: {title: string, children?: JSX.Element}): JSX.Element {
@@ -96,6 +97,15 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 Show a notice when an update is available. Updates are installed
                 automatically after closing all ThreadReader tabs and refreshing the
                 page twice, or manually by clicking the Update button on an Update notice.
+            </p>
+            <p class="my-4">
+                <button
+                    class={link_styles_v["outlined-button"]}
+                    onclick={() => {
+                        void updateSW(true);
+                    }}
+                >Update Now</button>{" "}
+                Current Version: {new Date(variables.build_time).toString()}
             </p>
         </SettingsSection>
     </div></div>;
