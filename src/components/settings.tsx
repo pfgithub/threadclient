@@ -109,4 +109,8 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
             </p>
         </SettingsSection>
     </div></div>;
+    // TODO display:
+    // - if the app is ready for offline use
+    // - only show the "update now" button if an update is available
+    // - improve the version name (maybe display the latest commit hash or smth)
 }
