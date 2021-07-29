@@ -1,8 +1,8 @@
 import { ThreadClient } from "./clients/base";
 import { OEmbed, oembed } from "./clients/oembed";
-import { Flair, ReplyEditor, TimeAgo } from "./components/author_pfp_solid";
-import { Body } from "./components/body_solid";
-import { Homepage } from "./components/homepage_solid";
+import { Flair, ReplyEditor, TimeAgo } from "./components/author_pfp";
+import { Body } from "./components/body";
+import { Homepage } from "./components/homepage";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import * as Generic from "./types/generic";
 import { rt } from "./types/generic";
@@ -463,7 +463,7 @@ export function renderImageGallery(client: ThreadClient, images: Generic.Gallery
         });
     }
 
-    return fetchPromiseThen(import("./components/author_pfp_solid"), ({ImageGallery}) => {
+    return fetchPromiseThen(import("./components/author_pfp"), ({ImageGallery}) => {
         const frame = el("div");
         const hsc = hideshow(frame);
 
@@ -2916,7 +2916,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             const page2 = await client.getPage(current_path);
             title.setTitle(page2.title); // TODO use the pivot to find the title
 
-            const {ClientPage} = await import("./components/author_pfp_solid");
+            const {ClientPage} = await import("./components/author_pfp");
             loader_area.remove();
 
             frame.classList.remove("client-main-frame");
@@ -3047,7 +3047,7 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
 }
 
 function settingsPage(): HideShowCleanup<HTMLDivElement> {
-    return fetchPromiseThen(import("./components/settings_solid"), ({SettingsPage}) => {
+    return fetchPromiseThen(import("./components/settings"), ({SettingsPage}) => {
         const res = el("div");
         const hsc = hideshow(res);
         vanillaToSolidBoundary(0 as unknown as ThreadClient, res, SettingsPage, {}).defer(hsc);
@@ -3182,7 +3182,6 @@ function fetchClientThen(
     });
 
 }
-// import { richtextEditor } from "./editors/reddit-richtext"; 
 export function fetchPromiseThen<T>(
     promise: Promise<T>,
     cb: (v: T) => HideShowCleanup<HTMLDivElement>,
@@ -3223,12 +3222,6 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
     if(path0 === "login"){
         return fetchClientThen(path[0] ?? "ENOCLIENT", (client) => {
             return clientLoginPage(client, path, new URLSearchParams(search));
-        });
-    }
-
-    if(path0 === "richtext") {
-        return fetchPromiseThen(import("./editors/reddit-richtext"), editor => {
-            return editor.richtextEditor({usernames: []});
         });
     }
 

@@ -17,8 +17,8 @@ import {
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getClient, getIsVisible, ShowCond, SwitchKind } from "../util/utils_solid";
-import { ClientContent, DefaultErrorBoundary, LinkButton, RichtextParagraphs } from "./author_pfp_solid";
-import { PreviewVideo } from "./preview_video_solid";
+import { ClientContent, DefaultErrorBoundary, LinkButton, RichtextParagraphs } from "./author_pfp";
+import { PreviewVideo } from "./preview_video";
 export * from "../util/interop_solid";
 
 export function Body(props: {body: Generic.Body, autoplay: boolean}): JSX.Element {

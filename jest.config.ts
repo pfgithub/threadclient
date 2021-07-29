@@ -178,7 +178,6 @@ export default {
   // A map from regular expressions to paths to transformers
   // transform: undefined,
   transform: {
-    "^.+_solid\\.[jt]sx?$": "./config/babel-transform-solid.js",
     "^.+\\.[jt]sx?$": "./config/babel-transform.js",
   },
 

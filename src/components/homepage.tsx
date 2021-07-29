@@ -1,5 +1,5 @@
 import { JSX } from "solid-js";
-import { LinkButton } from "./author_pfp_solid";
+import { LinkButton } from "./author_pfp";
 
 export function Homepage(props: {_?: undefined}): JSX.Element {
     return <div class="flex justify-center flex-row">

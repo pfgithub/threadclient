@@ -2,7 +2,7 @@ import React from "react";
 import { JSX } from "solid-js";
 import { link_styles_v, menuButtonStyle, showAlert } from "../app";
 import { ClientProvider, getSettings } from "../util/utils_solid";
-import { ClientContent, TopLevelWrapper } from "./author_pfp_solid";
+import { ClientContent, TopLevelWrapper } from "./author_pfp";
 export * from "../util/interop_solid";
 
 function SettingsSection(props: {title: string, children?: JSX.Element}): JSX.Element {

@@ -9,8 +9,8 @@ import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
-import { Body } from "./body_solid";
-import { CounterCount } from "./counter_solid";
+import { Body } from "./body";
+import { CounterCount } from "./counter";
 export * from "../util/interop_solid";
 
 export type ClientPostOpts = {

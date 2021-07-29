@@ -23,12 +23,7 @@ module.exports = {
     ...(dev ? {devtool: "eval-cheap-module-source-map"} : {}),
     module: {
         rules: [{
-            test: /_solid\.tsx$/,
-            exclude: /node_modules/,
-            use: {loader: "babel-loader", options: require("./config/babel-config-solid.js")},
-        }, {
             test: /\.tsx?$/,
-            exclude: /node_modules|_solid\.tsx$/,
             use: {loader: "babel-loader", options: require("./config/babel-config.js")},
         }, {
             test: /\.(gif|svg|png)$/i,
