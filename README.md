@@ -63,22 +63,13 @@ yarn install
 Start build watcher:
 
 ```
-env NODE_ENV=development yarn webpack --watch
-```
-
-> Note that the initial build may take quite some time because it has to build tailwind css. Updates should be much faster.
-
-Run a dev server such as `http-server` (`yarn global add http-server`):
-
-```
-http-server dist -c-1 -p 3004 dist/
+yarn dev
 ```
 
 To log in locally, after giving threadreader access to reddit, edit the url from `https://thread.pfg.pw/…` to `http://localhost:3004/…`.
 
-Check code:
+Check code before commit:
 
 ```
-yarn eslint src
-yarn tsc --noEmit
+yarn lint
 ```
