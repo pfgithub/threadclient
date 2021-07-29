@@ -1131,6 +1131,10 @@
     jiti "^1.11.0"
     windicss "^3.1.6"
 
+"@windicss/plugin-icons@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@windicss/plugin-icons/-/plugin-icons-1.0.2.tgz#8bc4024ebeb516a9d68b013d8a16db4509f4184f"
+
 "@windicss/plugin-utils@1.2.7", "@windicss/plugin-utils@^1.1.1":
   version "1.2.7"
   resolved "https://registry.yarnpkg.com/@windicss/plugin-utils/-/plugin-utils-1.2.7.tgz#aa2c571f66600ce2c916c9c47efe8eafb229908c"

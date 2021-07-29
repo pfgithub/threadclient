@@ -17,7 +17,7 @@ function SettingsSection(props: {title: string, children?: JSX.Element}): JSX.El
 }
 
 export function SettingsPage(props: {_?: undefined}): JSX.Element {
-    const {color_scheme, author_pfp, update_notifications: update_notices} = getSettings();
+    const {color_scheme, author_pfp, update_notifications: update_notices, custom_video_controls} = getSettings();
 
     return <div class="client-wrapper"><div class="display-comments-view">
         <SettingsSection title="Color Scheme">
@@ -106,6 +106,21 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     }}
                 >Update Now</button>{" "}
                 Current Version: {new Date(variables.build_time).toString()}
+            </p>
+        </SettingsSection>
+        <SettingsSection title="Custom Video Controls">
+            <button class={menuButtonStyle(custom_video_controls.compute.override() === "custom")} onclick={() => {
+                custom_video_controls.compute.setOverride("custom");
+            }}>Custom</button>
+            <button class={menuButtonStyle(custom_video_controls.compute.override() === "browser")} onclick={() => {
+                custom_video_controls.compute.setOverride("browser");
+            }}>Browser</button>
+            <button class={menuButtonStyle(custom_video_controls.compute.override() === undefined)} onclick={() => {
+                custom_video_controls.compute.setOverride(undefined);
+            }}>Default ({{custom: "Custom", browser: "Browser"}[custom_video_controls.compute.base()]})</button>
+            <p class="my-4">
+                Custom video controls are currently work in progress. Once
+                they are complete, they will be enabled by default.
             </p>
         </SettingsSection>
     </div></div>;

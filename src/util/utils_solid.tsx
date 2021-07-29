@@ -95,10 +95,12 @@ type ComputeProperty<T> = {
 type ColorScheme = "light" | "dark";
 type AuthorPfp = "on" | "off";
 type UpdateNotifications = "on" | "off";
+type CustomVideoControls = "browser" | "custom";
 type Settings = {
     color_scheme: ComputeProperty<ColorScheme>,
     author_pfp: ComputeProperty<AuthorPfp>,
     update_notifications: ComputeProperty<UpdateNotifications>,
+    custom_video_controls: ComputeProperty<CustomVideoControls>,
 };
 
 function localStorageProperty<T extends string>(ls_key: string, accessBase: () => T): ComputeProperty<T> {
@@ -173,6 +175,7 @@ const global_settings = ((): Settings => {
         color_scheme,
         author_pfp: localStorageProperty("pfp-cfg", () => "on"),
         update_notifications: localStorageProperty("update_notices", () => "off"),
+        custom_video_controls: localStorageProperty("custom_video_controls", () => "browser"),
     };
 })();
 

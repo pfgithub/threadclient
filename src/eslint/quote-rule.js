@@ -82,6 +82,7 @@ function default_rule(context) {
                 if(prop.shorthand) continue;
                 const key = prop.key;
                 if(!anyRequireQuotes && key.type === "Literal" && typeof key.value === "string") {
+                    if(key.raw.startsWith("'")) return; // OK
                     context.report({
                         node: key,
                         message: "Quotes not required",

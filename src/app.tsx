@@ -2123,7 +2123,6 @@ function clientListing(
     if(opts.clickable && listing.link.startsWith("/")) {
         // frame = linkButton(client.id, listing.link, "none").clss("hover:bg-gray-200").adto(frame);
         frame.clss("hover-outline").attr({tabindex: "0"}).onev("click", (e) => {
-            e.stopPropagation();
             console.log("target:", e.target);
             let target_parent = e.target as Node | null;
             while(target_parent && target_parent !== frame) {
@@ -2139,6 +2138,7 @@ function clientListing(
                 )) return;
                 target_parent = target_parent.parentNode;
             }
+            e.stopPropagation();
             navigate({path: "/"+client.id+listing.link});
         });
     }

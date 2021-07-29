@@ -1,14 +1,39 @@
-import { createEffect, createSignal, For, JSX } from "solid-js";
+import { createEffect, createSignal, For, Index, JSX } from "solid-js";
 import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { getIsVisible, ShowCond, SwitchKind } from "../util/utils_solid";
+import { getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
 
 const speaker_icons = {
     mute: "🔇",
     low: "🔈",
     high: "🔊",
 };
+function Icon(props: {
+    size: string,
+    icon: {
+        label: string,
+        class: string,
+    },
+}): JSX.Element {
+    return <div class="block">
+        <div class="w-22px h-22px flex items-center justify-center">
+            <i class={props.icon.class + " " + props.size} aria-label={props.icon.label} />
+        </div>
+    </div>;
+}
+
+function timeSecToString(time: number): string {
+    const hours = time / 60 / 60 |0;
+    const minutes = (time / 60 |0) % 60;
+    const seconds = (time |0) % 60;
+    return (hours ? hours.toString().padStart(2, "0") + ":" : "")
+        + minutes.toString().padStart(hours ? 2 : 1, "0") + ":"
+        + seconds.toString().padStart(2, "0")
+    ;
+}
+
+type BufferNode = {start: number, end: number};
 function PreviewRealVideo(props: {
     video: Generic.Video,
     source: Generic.VideoSourceVideo,
@@ -21,6 +46,35 @@ function PreviewRealVideo(props: {
     const [playbackRate, setPlaybackRate] = createSignal(1.0);
     const [quality, setQuality] = createSignal<null | {w: number, h: number}>(null);
     const [targetQuality, setTargetQuality] = createSignal(0);
+
+    const [maxTime, setMaxTime] = createSignal(0);
+    const [currentTime, setCurrentTime] = createSignal(0);
+    const [buffered, setBuffered] = createSignal<BufferNode[]>([]);
+    const [expandControlsRaw, setExpandControls] = createSignal(false);
+    const [playing, setPlaying] = createSignal<boolean | "loading">("loading");
+
+    const settings = getSettings();
+
+    const expandControls = () => {
+        if(settings.custom_video_controls.value() === "browser") return false;
+        return expandControlsRaw();
+    };
+
+    // custom controls todo:
+    // - scrubbing
+    // - hover the scrubber for that preview bar
+    // - click to play/pause
+    // - consider putting a big play button in the
+    //   center of the video when it's paused
+    // - audio controls
+    //   (use mozHasAudio + webkitAudioDecodedBytesCount + audioTracks + ...)
+    // - speed controls
+    // - quality controls
+    // - transitions
+    // - area marked as loaded should be (video) & (audio)
+    // - mobile tap and drag left or right to quick scrub
+    // - mobile support for all the controls and stuff if you tap
+    // - fullscreen
 
     let previous_time: number | null = null;
     createEffect(() => {
@@ -65,6 +119,18 @@ function PreviewRealVideo(props: {
         video_el.playbackRate = playbackRate();
         sync();
     });
+
+    const updateProgress = () => {
+        const bufres: BufferNode[] = [];
+        for(let i = 0; i < video_el.buffered.length; i++) {
+            bufres.push({start: video_el.buffered.start(i), end: video_el.buffered.end(i)});
+        }
+        console.log("progress", bufres);
+        setCurrentTime(video_el.currentTime);
+        setBuffered(bufres);
+        setMaxTime(video_el.duration);
+    };
+    // todo support dragging left and right to seek
     return <div>
         <ShowCond when={props.source.seperate_audio_track}>{audio_track => (
             <audio
@@ -85,57 +151,129 @@ function PreviewRealVideo(props: {
                 )}</For>
             </audio>
         )}</ShowCond>
-        <video
-            ref={video_el}
-            controls={true}
-            class="preview-image"
-            autoplay={props.autoplay}
-            width={props.video.w}
-            height={props.video.h}
-
-            onplay={() => {sync()}}
-            onplaying={() => {
-                const audio_el = hasSeperateAudio();
-                if(audio_el) void audio_el.play();
+        <div
+            class="preview-image relative"
+            onmouseenter={() => {
+                setExpandControls(true);
             }}
-            onseeking={() => sync()}
-            ontimeupdate={() => {
-                const audio_el = hasSeperateAudio();
-                if(audio_el) {
-                    if(!audio_el.paused) return;
-                    sync();
-                }
-            }}
-            onpause={() => {
-                const audio_el = hasSeperateAudio();
-                if(audio_el) audio_el.pause();
-                sync();
-            }}
-            onwaiting={() => {
-                const audio_el = hasSeperateAudio();
-                if(audio_el) audio_el.pause();
-                sync();
-            }}
-            onloadedmetadata={() => {
-                if(previous_time != null) video_el.currentTime = previous_time;
-                setQuality({w: video_el.videoWidth, h: video_el.videoHeight});
-                // todo remove quality options based on currentsrc vs what the expected value is from qualitites()
-            }}
-            onemptied={() => {
-                setQuality(null);
+            onmouseleave={() => {
+                setExpandControls(false);
             }}
         >
-            <span>{
-                props.video.alt ?? "Your device does not support video, and alt text was not supplied."
-            }</span>
-            <For each={sources()}>{source => (
-                <source src={source.url} type={source.type} />
-            )}</For>
-        </video>
+            <video
+                ref={video_el}
+                controls={settings.custom_video_controls.value() === "browser"}
+                class="max-h-inherit max-w-inherit"
+                autoplay={props.autoplay}
+                width={props.video.w}
+                height={props.video.h}
+                loop={props.video.gifv}
+
+                onplay={() => {
+                    sync();
+                    setPlaying("loading");
+                }}
+                onplaying={() => {
+                    setPlaying(video_el.paused ? false : true);
+                    const audio_el = hasSeperateAudio();
+                    if(audio_el) void audio_el.play();
+                }}
+                onprogress={() => {
+                    updateProgress();
+                }}
+                oncanplaythrough={() => {
+                    updateProgress();
+                }}
+                onseeking={() => sync()}
+                ontimeupdate={() => {
+                    updateProgress();
+                    const audio_el = hasSeperateAudio();
+                    if(audio_el) {
+                        if(!audio_el.paused) return;
+                        sync();
+                    }
+                }}
+                onpause={() => {
+                    setPlaying(false);
+                    const audio_el = hasSeperateAudio();
+                    if(audio_el) audio_el.pause();
+                    sync();
+                }}
+                onwaiting={() => {
+                    const audio_el = hasSeperateAudio();
+                    if(audio_el) audio_el.pause();
+                    sync();
+                }}
+                onloadedmetadata={() => {
+                    if(previous_time != null) video_el.currentTime = previous_time;
+                    setQuality({w: video_el.videoWidth, h: video_el.videoHeight});
+                    setMaxTime(video_el.duration);
+                    // todo remove quality options based on currentsrc vs what the expected value is from qualitites()
+                }}
+                onloadeddata={() => {
+                    setPlaying(video_el.paused ? false : true);
+                }}
+                onemptied={() => {
+                    setQuality(null);
+                    setPlaying("loading");
+                }}
+            >
+                <span>{
+                    props.video.alt ?? "Your device does not support video, and alt text was not supplied."
+                }</span>
+                <For each={sources()}>{source => (
+                    <source src={source.url} type={source.type} />
+                )}</For>
+            </video>
+            <div class="absolute bottom-0 left-0 right-0 flex flex-col bg-rgray-900 bg-opacity-25">
+                <div
+                    class="h-1 w-full relative bg-rgray-300 bg-opacity-50"
+                    classList={{
+                        'h-1': !expandControls(),
+                        'h-2': expandControls(),
+                        'bottom-2': expandControls(),
+                    }}
+                >
+                    <Index each={buffered()}>{(item, i) => (
+                        <div class="absolute h-full bg-rgray-600 bg-opacity-50" style={{
+                            'width': (item().end - item().start) / maxTime() * 100 + "%",
+                            'left': item().start / maxTime() * 100 + "%",
+                        }}></div>
+                    )}</Index>
+                    <div class="absolute h-full bg-rgray-600" style={{
+                        'width': (currentTime() / maxTime() * 100) + "%",
+                    }}></div>
+                </div>
+                <div style={{display: expandControls() ? "flex" : "none"}}>
+                    <button class="block" onclick={() => {
+                        if(video_el.paused) {
+                            void video_el.play();
+                        }else{
+                            video_el.pause();
+                        }
+                    }}>
+                        <Icon size="icon-sm" icon={
+                            playing() === false ? {
+                                class: "icon-play-button",
+                                label: "Play",
+                            } : playing() === true ? {
+                                class: "icon-play-pause",
+                                label: "Pause",
+                            } : {
+                                class: "icon-loadbar",
+                                label: "Loading",
+                            }
+                        } />
+                    </button>
+                    <div class="flex-grow"></div>
+                    <div>{timeSecToString(currentTime())} / {timeSecToString(maxTime())}</div>
+                </div>
+            </div>
+        </div>
         <ShowCond when={hasSeperateAudio()}>{audio_el => <div class="flex">
             <button
                 class={link_styles_v["outlined-button"]}
-                on:click={() => {
+                onclick={() => {
                     setAudioMuted(!audioMuted());
                 }}
             >

@@ -8,6 +8,14 @@ module.exports = {
         ],
     },
     darkMode: "class",
+    shortcuts: {
+        'max-w-inherit': {
+            'max-width': "inherit",
+        },
+        'max-h-inherit': {
+            'max-height': "inherit",
+        },
+    },
     theme: {
         colors: {
             // TODO move these css variables into the tailwind config and get rid
@@ -26,6 +34,7 @@ module.exports = {
                 800: "var(--cool-gray-800)",
                 900: "var(--cool-gray-000)",
             },
+            'rgray': colors.coolGray,
             'blue': colors.blue,
             'green': colors.emerald,
             'red': colors.red,
@@ -66,6 +75,7 @@ module.exports = {
         },
     },
     plugins: [
+        require('@windicss/plugin-icons'),
         (args1) => {
             // was going to try to make something like nightwind
             // console.log(args1);

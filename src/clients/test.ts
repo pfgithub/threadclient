@@ -195,6 +195,11 @@ const sitemap: SitemapEntry[] = [
                     rt.p(rt.txt(spl.expected_result)),
                     rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
                 ]},
+                actions: {
+                    other: [
+                        {kind: "link", text: "View", url: urlr}
+                    ],
+                },
                 show_replies_when_below_pivot: {default_collapsed: false},
             },
         })]),
