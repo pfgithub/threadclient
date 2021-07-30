@@ -1,14 +1,10 @@
-import { createEffect, createSignal, For, Index, JSX, on } from "solid-js";
+import { createEffect, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
 import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
+import shaka from "shaka-player";
 
-const speaker_icons = {
-    mute: "🔇",
-    low: "🔈",
-    high: "🔊",
-};
 function Icon(props: {
     size: string,
     icon: {
@@ -33,6 +29,20 @@ function timeSecToString(time: number): string {
     ;
 }
 
+let shaka_initialized = false;
+function initShaka(): void {
+    if(shaka_initialized) return;
+
+    shaka.polyfill.installAll();
+
+    // Check to see if the browser supports the basic APIs Shaka needs.
+    if (!shaka.Player.isBrowserSupported()) {
+        throw new Error("Shaka player is not supported");
+    }
+
+    shaka_initialized = true;
+}
+
 type BufferNode = {start: number, end: number};
 function PreviewRealVideo(props: {
     video: Generic.Video,
@@ -40,9 +50,6 @@ function PreviewRealVideo(props: {
     autoplay: boolean,
 }): JSX.Element {
     let video_el!: HTMLVideoElement;
-    const [hasSeperateAudio, setHasSeperateAudio] = createSignal<HTMLAudioElement | undefined>();
-    const [audioVolume, setAudioVolume] = createSignal(0);
-    const [audioMuted, setAudioMuted] = createSignal(false);
     const [playbackRate, setPlaybackRate] = createSignal(1.0);
     const [quality, setQuality] = createSignal<null | {w: number, h: number}>(null);
     const [targetQuality, setTargetQuality] = createSignal(0);
@@ -54,13 +61,6 @@ function PreviewRealVideo(props: {
     const [playing, setPlaying] = createSignal<boolean | "loading">("loading");
     const [errorOverlay, setErrorOverlay] = createSignal<string | null>(null);
     const [erroredSources, setErroredSources] = createSignal<{[key: number]: boolean}>({});
-
-    createEffect(on([() => props.source], () => {
-        setTargetQuality(0);
-        setErroredSources({});
-        previous_time = video_el.currentTime;
-        video_el.load();
-    }));
 
     const settings = getSettings();
 
@@ -85,15 +85,6 @@ function PreviewRealVideo(props: {
     // [ ] mobile support for all the controls and stuff if you tap
     // [ ] fullscreen
 
-    let previous_time: number | null = null;
-    createEffect(() => {
-        targetQuality();
-        setTimeout(() => {
-            previous_time = video_el.currentTime;
-            video_el.load();
-        }, 0);
-    });
-
     const sources = () => {
         const target_index = targetQuality();
         const full_sources = props.source.sources.map((s, i) => ({...s, i}));
@@ -106,29 +97,71 @@ function PreviewRealVideo(props: {
         const res = new Map<string, {index: number}>();
         for(const [i, source] of props.source.sources.entries()) {
             if(erroredSources()[i] === true) continue;
-            res.set(source.quality, {index: i});
+            res.set(source.quality ?? "Unknown", {index: i});
         }
         return [...res.entries()].map(([n, v]) => ({name: n, ...v}));
-    };
-
-    const sync = () => {
-        const audio_el = hasSeperateAudio();
-        if(audio_el) {
-            audio_el.currentTime = video_el.currentTime;
-            audio_el.playbackRate = video_el.playbackRate;
-        }
     };
 
     const isVisible = getIsVisible();
     createEffect(() => {
         if(!isVisible()) {
             video_el.pause();
-            sync();
         }
     });
     createEffect(() => {
         video_el.playbackRate = playbackRate();
-        sync();
+    });
+
+    onMount(() => {
+        initShaka();
+        const player = new shaka.Player(video_el);
+        player.addEventListener("error", (e) => {
+            console.log("Error!", e);
+            setErrorOverlay("An error occured. Check console.");
+        });
+
+        createEffect(on([targetQuality], () => {
+            setTimeout(() => {
+                reloadVideo(video_el.currentTime);
+            }, 0);
+        }, {defer: true}));
+        createEffect(on([() => props.source], () => {
+            reloadVideo(0);
+        }, {defer: true}));
+
+        const reloadVideo = (start_time: number) => {
+            // TODO fix race condition when reloading
+            // the video while a reload is already occuring
+            (async () => {
+                console.log("Reloading Video", start_time);
+                let res_error = new Error("No sources");
+                for(const source of sources()) {
+                    try {
+                        setPlaying("loading");
+                        await player.load(source.url, start_time);
+                        break;
+                    }catch(e) {
+                        res_error = e as Error;
+                        setErroredSources(s => ({...s, [source.i]: true}));
+                    }
+                }
+                throw res_error;
+            })().then(() => {
+                console.log("Player loaded");
+            }).catch((e: Error) => {
+                setErrorOverlay(e.stack ?? e.toString());
+                // TODO try other sources
+            });
+        };
+        reloadVideo(0);
+
+        onCleanup(() => {
+            player.destroy().then(() => {
+                console.log("player destroyed");
+            }).catch(e => {
+                console.log("error destroying player", e);
+            });
+        });
     });
 
     const updateProgress = () => {
@@ -145,25 +178,6 @@ function PreviewRealVideo(props: {
     };
     // todo support dragging left and right to seek
     return <div>
-        <ShowCond when={props.source.seperate_audio_track}>{audio_track => (
-            <audio
-                onloadedmetadata={(e) => {
-                    setAudioVolume(e.currentTarget.volume);
-                    setHasSeperateAudio(e.currentTarget);
-                }}
-                ref={audio_el => createEffect(() => {
-                    if(!hasSeperateAudio()) {
-                        return;
-                    }
-                    audio_el.muted = audioMuted();
-                    audio_el.volume = audioVolume();
-                })}
-            >
-                <For each={audio_track}>{track => (
-                    <source src={track.url} type={track.type} />
-                )}</For>
-            </audio>
-        )}</ShowCond>
         <div
             class="preview-image relative min-w-50px min-h-50px overflow-hidden"
             onmouseenter={() => {
@@ -187,17 +201,13 @@ function PreviewRealVideo(props: {
 
                 poster={props.source.thumbnail}
                 onplay={() => {
-                    sync();
                     setPlaying("loading");
                 }}
                 onplaying={() => {
                     setPlaying(video_el.paused ? false : true);
-                    const audio_el = hasSeperateAudio();
-                    if(audio_el) void audio_el.play();
                 }}
                 onratechange={() => {
-                    // TODO update playbackRate
-                    sync();
+                    // TODO playbackRate
                 }}
                 onvolumechange={() => {
                     //
@@ -208,38 +218,21 @@ function PreviewRealVideo(props: {
                 oncanplaythrough={() => {
                     updateProgress();
                 }}
-                onseeking={() => sync()}
                 ontimeupdate={() => {
                     updateProgress();
-                    const audio_el = hasSeperateAudio();
-                    if(audio_el) {
-                        if(!audio_el.paused) return;
-                        sync();
-                    }
                 }}
                 onpause={() => {
                     setPlaying(false);
-                    const audio_el = hasSeperateAudio();
-                    if(audio_el) audio_el.pause();
-                    sync();
                 }}
                 onwaiting={() => {
                     setPlaying("loading");
-                    const audio_el = hasSeperateAudio();
-                    if(audio_el) audio_el.pause();
-                    sync();
                 }}
                 onstalled={() => {
                     setPlaying("loading");
-                    const audio_el = hasSeperateAudio();
-                    if(audio_el) audio_el.pause();
-                    sync();
                 }}
                 onloadedmetadata={() => {
-                    if(previous_time != null) video_el.currentTime = previous_time;
                     setQuality({w: video_el.videoWidth, h: video_el.videoHeight});
                     setMaxTime(video_el.duration);
-                    // todo remove quality options based on currentsrc vs what the expected value is from qualitites()
                 }}
                 onloadeddata={() => {
                     setPlaying(video_el.paused ? false : true);
@@ -256,16 +249,6 @@ function PreviewRealVideo(props: {
                 <span>{
                     props.video.alt ?? "Your device does not support video, and alt text was not supplied."
                 }</span>
-                <Index each={sources()}>{source => (
-                    <source
-                        src={source().url}
-                        type={source().type}
-                        onerror={(e) => {
-                            console.log("Source failed load", e);
-                            setErroredSources(es => ({...es, [source().i]: true}));
-                        }}
-                    />
-                )}</Index>
             </video>
             <div
                 class="absolute top-0 left-0 bottom-0 right-0 items-center justify-center"
@@ -384,33 +367,6 @@ function PreviewRealVideo(props: {
                 </div>
             </div>
         </div>
-        <ShowCond when={hasSeperateAudio()}>{audio_el => <div class="flex">
-            <button
-                class={link_styles_v["outlined-button"]}
-                onclick={() => {
-                    setAudioMuted(!audioMuted());
-                }}
-            >
-                {(() => {
-                    if(audioMuted()) {
-                        return speaker_icons.mute;
-                    }else if(audioVolume() < 0.2) {
-                        return speaker_icons.low;
-                    }else return speaker_icons.high;
-                })()}
-            </button>
-            <input
-                ref={slider => createEffect(() => {
-                    if(audioMuted()) slider.value = "0";
-                    else slider.value = "" + (audioVolume() * 100);
-                })}
-                type="range" min="0" max="100" value="100"
-                oninput={e => {
-                    setAudioVolume(+e.currentTarget.value / 100);
-                    setAudioMuted(false);
-                }}
-            />
-        </div>}</ShowCond>
         <div class="flex">
             <For each={[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]}>{speed => (
                 <button
@@ -433,7 +389,7 @@ function PreviewRealVideo(props: {
     </div>;
 }
 
-export function PreviewVideo(props: {
+export default function PreviewVideo(props: {
     video: Generic.Video,
     autoplay: boolean,
 }): JSX.Element {

@@ -468,12 +468,7 @@ export type VideoSourceVideo = {
     kind: "video",
     sources: {
         url: string,
-        type?: string,
-        quality: string,
-    }[],
-    seperate_audio_track?: {
-        url: string,
-        type?: string,
+        quality?: string,
     }[],
     preview?: { // for the preview scrubber bar thing
         url: string,

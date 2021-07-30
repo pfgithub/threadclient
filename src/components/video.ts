@@ -2,6 +2,8 @@ import { hideshow, HideShowCleanup } from "../app";
 import videojs from "video.js";
 import "video.js/dist/video-js.min.css";
 
+// for some reason shaka isn't playing the m3u8 files
+
 export function playM3U8(
     m3u8: string,
     poster: string | undefined,

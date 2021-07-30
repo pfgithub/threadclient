@@ -119,20 +119,7 @@ export function getVredditSources(id: string): Generic.VideoSource {
     const link = "https://v.redd.it/"+id;
     return {
         kind: "video",
-        sources: [
-            {url: link+"/DASH_720.mp4", type: "video/mp4", quality: "720p"},
-            {url: link+"/DASH_720", type: "video/mp4", quality: "720p"},
-            {url: link+"/DASH_480.mp4", type: "video/mp4", quality: "480p"},
-            {url: link+"/DASH_480", type: "video/mp4", quality: "480p"},
-            {url: link+"/DASH_360.mp4", type: "video/mp4", quality: "360p"},
-            {url: link+"/DASH_360", type: "video/mp4", quality: "360p"},
-            {url: link+"/DASH_240.mp4", type: "video/mp4", quality: "240p"},
-            {url: link+"/DASH_240", type: "video/mp4", quality: "240p"},
-        ],
-        seperate_audio_track: [
-            {url: link+"/DASH_audio.mp4", type: "video/mp4"},
-            {url: link+"/audio", type: "video/mp4"},
-        ],
+        sources: [{url: link+"/DASHPlaylist.mpd"}],
         preview: [
             {url: "/DASH_96.mp4", type: "video/mp4"},
             {url: "/DASH_96", type: "video/mp4"},
@@ -285,7 +272,7 @@ export function previewLink(
     if(is_mp4_link_masking_as_gif) {
         return {kind: "video", gifv: true, source: {
             kind: "video",
-            sources: [{url: link, type: "video/mp4", quality: "Highest"}],
+            sources: [{url: link, quality: "Highest"}],
         }};
     }
     if((url?.hostname ?? "") === "i.redd.it"
@@ -295,8 +282,8 @@ export function previewLink(
     ) return {kind: "captioned_image", url: link, w: null, h: null};
     if(path.endsWith(".gifv")) {
         return {kind: "video", gifv: true, source: {kind: "video", sources: [
-            {url: link.replace(".gifv", ".webm"), type: "video/webm", quality: "Highest"},
-            {url: link.replace(".gifv", ".mp4"), type: "video/mp4", quality: "Highest"},
+            {url: link.replace(".gifv", ".webm"), quality: "Highest"},
+            {url: link.replace(".gifv", ".mp4"), quality: "Highest"},
         ]}};
     }
     if(link.startsWith("https://v.redd.it/")) return getVredditPreview(link.replace("https://v.redd.it/", ""));
@@ -359,7 +346,6 @@ export function previewLink(
                 sources: [
                     {
                         url: "https://media4.giphy.com/media/"+giphy_id+"/giphy.mp4",
-                        type: "video/mp4",
                         quality: "Highest",
                     },
                 ],
@@ -990,7 +976,6 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
                             kind: "video",
                             sources: [{
                                 url: image.mp4,
-                                type: "video/mp4",
                                 quality: image.width+"×"+image.height,
                             }],
                         },
