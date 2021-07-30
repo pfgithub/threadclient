@@ -3,7 +3,6 @@ import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
-import {Transition} from "solid-transition-group";
 
 const speaker_icons = {
     mute: "🔇",

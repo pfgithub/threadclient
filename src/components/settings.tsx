@@ -23,8 +23,8 @@ function UpdateStatus(): JSX.Element {
         Current Version: {variables.version.trim()} ({variables.build_time})
         {"\n"}
         Available for Offline Use: {availableForOfflineUse() ? "yes" : "maybe"}
-        {"\n"}
         <ShowBool when={updateAvailable()}>
+            {"\n"}
             An update is available.{" "}
             <button
                 class={link_styles_v["outlined-button"]}
