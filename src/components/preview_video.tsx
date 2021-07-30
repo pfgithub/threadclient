@@ -3,6 +3,7 @@ import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
+import {Transition} from "solid-transition-group";
 
 const speaker_icons = {
     mute: "🔇",
@@ -136,7 +137,6 @@ function PreviewRealVideo(props: {
         for(let i = 0; i < video_el.buffered.length; i++) {
             bufres.push({start: video_el.buffered.start(i), end: video_el.buffered.end(i)});
         }
-        console.log("progress", bufres);
         setCurrentTime(video_el.currentTime);
         setBuffered(bufres);
         setMaxTime(video_el.duration);
@@ -166,7 +166,7 @@ function PreviewRealVideo(props: {
             </audio>
         )}</ShowCond>
         <div
-            class="preview-image relative min-w-50px min-h-50px"
+            class="preview-image relative min-w-50px min-h-50px overflow-hidden"
             onmouseenter={() => {
                 setExpandControls(true);
             }}
@@ -271,12 +271,12 @@ function PreviewRealVideo(props: {
             <div
                 class="absolute top-0 left-0 bottom-0 right-0 items-center justify-center"
                 style={{
-                    display: settings.custom_video_controls.value()
+                    display: settings.custom_video_controls.value() === "custom"
                     && (playing() !== true || expandControls()) ? "flex" : "none",
                 }}
             >
                 <button
-                    class="block transform scale-200 hover:scale-300"
+                    class="block transform scale-200 hover:scale-300 transition-transform"
                     onclick={() => {
                         if(video_el.paused) {
                             void video_el.play();
@@ -310,14 +310,18 @@ function PreviewRealVideo(props: {
                     <p>Error! {overlay}</p>
                 </div>
             )}</ShowCond>
-            <div class="absolute bottom-0 left-0 right-0 flex flex-col bg-rgray-900 bg-opacity-25">
+            <div
+                class={
+                    "absolute left-0 right-0 bottom-0 flex flex-col bg-rgray-900 bg-opacity-25"
+                    + " transform transition-transform origin-top"
+                }
+                classList={{
+                    'scale-y-0': expandControls(),
+                    'scale-y-100': !expandControls(),
+                }}
+            >
                 <div
                     class="h-1 w-full relative bg-rgray-100 bg-opacity-50"
-                    classList={{
-                        'h-1': !expandControls(),
-                        'h-2': expandControls(),
-                        'bottom-2': expandControls(),
-                    }}
                 >
                     <Index each={buffered()}>{(item, i) => (
                         <div class="absolute h-full bg-rgray-500 bg-opacity-75" style={{
@@ -329,7 +333,33 @@ function PreviewRealVideo(props: {
                         'width': (currentTime() / maxTime() * 100) + "%",
                     }}></div>
                 </div>
-                <div style={{display: expandControls() ? "flex" : "none"}}>
+            </div>
+            <div
+                class={
+                    "absolute left-0 right-0 flex flex-col bg-rgray-900 bottom-0"
+                    + " bg-opacity-25 transform transition-transform origin-bottom"
+                }
+                classList={{
+                    'scale-y-0': !expandControls(),
+                    'scale-y-100': expandControls(),
+                }}
+            >
+                <div
+                    class="h-1 w-full relative bg-rgray-100 bg-opacity-50 h-2"
+                >
+                    <Index each={buffered()}>{(item, i) => (
+                        <div class="absolute h-full bg-rgray-500 bg-opacity-75" style={{
+                            'width': (item().end - item().start) / maxTime() * 100 + "%",
+                            'left': item().start / maxTime() * 100 + "%",
+                        }}></div>
+                    )}</Index>
+                    <div class="absolute h-full bg-rgray-700" style={{
+                        'width': (currentTime() / maxTime() * 100) + "%",
+                    }}></div>
+                </div>
+                <div
+                    class="flex transform transition-transform origin-bottom"
+                >
                     <button class="block" onclick={() => {
                         if(video_el.paused) {
                             void video_el.play();
