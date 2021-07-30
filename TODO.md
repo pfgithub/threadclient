@@ -1,12 +1,16 @@
 ## todo
 
-- TODO: https://github.com/windicss/plugins/tree/main/packages/icons
-- also check out https://github.com/bradlc/tailwindcss-fluid
+- !! v.redd.it isn't cors protected anymore
+- use the DASHPlaylist.mpd
+- maybe even use a default video player
+- just have to merge the audio and video in js
+- [x] TODO: https://github.com/windicss/plugins/tree/main/packages/icons
+- [ ] also check out https://github.com/bradlc/tailwindcss-fluid
 - consider:
-- vite + https://github.com/antfu/vite-plugin-pwa
-- probably not since the webpack config is kinda messy and I need both react and solid
-- or I can just delete the tiny bit of react for now
-- TODO migrate to pnpm
+- [x] vite + https://github.com/antfu/vite-plugin-pwa
+- [x] probably not since the webpack config is kinda messy and I need both react and solid
+- [x] or I can just delete the tiny bit of react for now
+- [ ]TODO migrate to pnpm
 
 all todo:
 
