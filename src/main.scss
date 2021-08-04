@@ -997,6 +997,7 @@ summary {
     top: 4px;
     background-color: var(--postcolor-100);
     pointer-events: none;
+    z-index: 1;
 }
 
 .hover-outline:hover {

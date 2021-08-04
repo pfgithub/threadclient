@@ -11,7 +11,7 @@ import {
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
+import { classes, getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
 import { Body } from "./body";
 import { CounterCount } from "./counter";
 export * from "../util/interop_solid";
@@ -140,11 +140,12 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                     ></button>
                 </ShowBool>
                 <span
-                    class="rounded transition-opacity bg-spoiler-color-revealed"
-                    classList={{
-                        'opacity-0': !opened(),
-                        'invisible': !opened(),
-                    }}
+                    class={classes(
+                        "rounded",
+                        "transition-opacity",
+                        "bg-spoiler-color-revealed",
+                        opened() ? "" : "opacity-0 invisible",
+                    )}
                 >
                     <RichtextSpans spans={spoiler.children} />
                 </span>
@@ -304,11 +305,10 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
     ));
 
     return <>
-        <li classList={{
-            comment: props.reply.kind === "post",
-            relative: props.is_threaded,
-            threaded: props.is_threaded,
-        }}>
+        <li class={classes(
+            props.reply.kind === "post" ? "comment" : [],
+            props.is_threaded ? ["relative", "threaded"] : [],
+        )}>
             <SwitchKind item={props.reply}>{{
                 post: post_link => (
                     <ErrableLink link={post_link.post}>{post => (
@@ -345,17 +345,20 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         return !!props.content.title?.body_collapsible;
     });
     return <div
-        classList={{
-            'post': true,
-            'text-sm': true,
-            'layout-reddit-comment': props.content.show_replies_when_below_pivot !== false,
-            'layout-commentlike': props.content.show_replies_when_below_pivot !== false,
-            'comment-collapsed': !selfVisible(),
-        }}
-        style={{'margin-left': "-10px", ...props.opts.top_level ? {'margin-top': "-10px"} : {}}}
+        class={classes(
+            "post text-sm",
+            props.content.show_replies_when_below_pivot !== false ? [
+                "layout-reddit-comment",
+                "layout-commentlike",
+            ] : [],
+            selfVisible() ? [] : "comment-collapsed",
+
+            "-ml-10px",
+            props.opts.top_level ? "-mt-10px" : [],
+        )}
     >
         <ShowBool when={props.content.show_replies_when_below_pivot !== false}>
-            <button style={{bottom: "0"}} class="collapse-btn" draggable={true} on:click={(e) => {
+            <button style={{bottom: "0"}} class="collapse-btn z-1" draggable={true} on:click={(e) => {
                 const collapsed_button = e.currentTarget;
                 const topv = collapsed_button.getBoundingClientRect().top;
                 const heightv = 5 + navbar.getBoundingClientRect().height;

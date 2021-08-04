@@ -191,6 +191,7 @@ export function getSettings(): Settings { // TODO getClient: (): ThreadClient =}
     return global_settings;
 }
 
-export function classes(...items: string[]): string {
-    return items.join(" ");
+type Classes = string | Classes[];
+export function classes(...items: Classes[]): string {
+    return items.flat().join(" ");
 }
