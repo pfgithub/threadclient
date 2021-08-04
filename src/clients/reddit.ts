@@ -139,6 +139,8 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
             return rt.kind("body", {
                 body: mediaMetaToBody(meta, gif.id.split("|")[0]),
             });
+        } else if(rtd.c.length === 1 && rtd.c[0]?.e === "text" && rtd.c[0].t.match(/^---+$/)) {
+            return rt.hr();
         } else return rt.p(...richtextSpanArray(rtd.c, opt));
         case "img": case "video": case "gif": {
             const data = opt.media_metadata[rtd.id];

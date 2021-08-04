@@ -105,7 +105,7 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             if(heading.level === 5) return <h5 class="text-base text-gray-600 font-normal">{content()}</h5>;
             return <h6 class="text-sm text-gray-600 font-normal underline">{content()}</h6>;
         },
-        horizontal_line: () => <hr class="border-gray-200" />,
+        horizontal_line: () => <div class="py-2"><div class="w-full h-2px bg-gray-400 rounded"></div></div>,
         blockquote: (bquote) => <blockquote class="border-l-2 border-gray-600 text-gray-600 pl-3">
             <RichtextParagraphs content={bquote.children} />
         </blockquote>,
