@@ -8,20 +8,27 @@ export function kindIs<K extends string, T extends {kind: string}>(value: T, key
     return value.kind === key ? value as unknown as null : null;
 }
 
-type MatchFn<T, Key> = (value: Include<T, {kind: Key}>) => JSX.Element;
+function switchKindCB<U>(item: {kind: string}, choices: {[key: string]: (item: any) => U}): () => U {
+    let match = choices[item.kind] ?? choices["unsupported"] ?? (() => {
+        throw new Error("condition "+match+" was not handled and no unsupported branch");
+    });
+    return () => match(item);
+}
+export function switchKind<T extends {kind: string}, U>(
+    item: T,
+    choices: {[Key in T["kind"]]: MatchFn<T, Key, U>},
+): U {
+    return switchKindCB<U>(item, choices)();
+}
+
+type MatchFn<T, Key, R> = (value: Include<T, {kind: Key}>) => R;
 export function SwitchKind<T extends {kind: string}>(props: {
     item: T,
-    children: {[Key in T["kind"]]: MatchFn<T, Key>},
+    children: {[Key in T["kind"]]: MatchFn<T, Key, JSX.Element>},
 }): JSX.Element {
-    // <Switch children={/*@once*/} />
     return createMemo(() => {
-        let match = props.children[props.item.kind as T["kind"]] as MatchFn<T, T["kind"]> | undefined;
-        if(!match) {
-            match = props.children["unsupported" as T["kind"]] as MatchFn<T, T["kind"]> | undefined;
-            if(!match) throw new Error("condition "+props.item.kind+" was not handled and no unsupported branch");
-        }
-        const arg = props.item as Include<T, {kind: T["kind"]}>;
-        return untrack(() => match!(arg)); // untrack in order to treat the function as a widget (dependencies accessed don't cause this to reexec)
+        const match = switchKindCB<JSX.Element>(props.item, props.children);
+        return untrack(() => match());
     });
 }
 
@@ -98,12 +105,14 @@ type AuthorPfp = "on" | "off";
 type UpdateNotifications = "on" | "off";
 type CustomVideoControls = "browser" | "custom";
 type PageVersion = "1" | "2";
+type LinkHelpers = "show" | "hide";
 type Settings = {
     color_scheme: ComputeProperty<ColorScheme>,
     author_pfp: ComputeProperty<AuthorPfp>,
     update_notifications: ComputeProperty<UpdateNotifications>,
     custom_video_controls: ComputeProperty<CustomVideoControls>,
     page_version: ComputeProperty<PageVersion>,
+    link_helpers: ComputeProperty<LinkHelpers>,
 };
 
 function localStorageProperty<T extends string>(ls_key: string, accessBase: () => T): ComputeProperty<T> {
@@ -180,6 +189,8 @@ const global_settings = ((): Settings => {
         update_notifications: localStorageProperty("update_notices", () => "off"),
         custom_video_controls: localStorageProperty("custom_video_controls", () => "browser"),
         page_version: localStorageProperty("page_version", () => "1"),
+        // TODO maybe default to show if there is a touch event?
+        link_helpers: localStorageProperty("link_helpers", () => "hide"),
     };
 })();
 
@@ -194,4 +205,18 @@ export function getSettings(): Settings { // TODO getClient: (): ThreadClient =}
 type Classes = string | Classes[];
 export function classes(...items: Classes[]): string {
     return items.flat().join(" ");
+}
+
+export function Icon(props: {
+    size: string,
+    icon: {
+        label: string,
+        class: string,
+    },
+}): JSX.Element {
+    return <div class="block">
+        <div class="w-22px h-22px flex items-center justify-center">
+            <i class={props.icon.class + " " + props.size} aria-label={props.icon.label} />
+        </div>
+    </div>;
 }

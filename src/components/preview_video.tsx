@@ -2,22 +2,8 @@ import { createEffect, createSignal, For, Index, JSX, on, onCleanup, onMount } f
 import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { classes, getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
+import { classes, getIsVisible, getSettings, Icon, ShowCond, SwitchKind } from "../util/utils_solid";
 import shaka from "shaka-player";
-
-function Icon(props: {
-    size: string,
-    icon: {
-        label: string,
-        class: string,
-    },
-}): JSX.Element {
-    return <div class="block">
-        <div class="w-22px h-22px flex items-center justify-center">
-            <i class={props.icon.class + " " + props.size} aria-label={props.icon.label} />
-        </div>
-    </div>;
-}
 
 function timeSecToString(time: number): string {
     const hours = time / 60 / 60 |0;

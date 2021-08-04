@@ -3,6 +3,8 @@ import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable
 import { ClientProvider, ComputeProperty, getSettings, ShowBool, ShowCond } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./author_pfp";
 import { variables } from "virtual:_variables";
+import { RichtextParagraphs } from "./richtext";
+import { rt } from "../types/generic";
 export * from "../util/interop_solid";
 
 function SettingsSection(props: {title: string, children?: JSX.Element}): JSX.Element {
@@ -150,6 +152,44 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 page twice, or manually by clicking the Update button on an Update notice.
             </p>
             <UpdateStatus />
+        </SettingsSection>
+        <SettingsSection title="Link Helpers">
+            <SettingPicker
+                setting={getSettings().link_helpers}
+                options={["show", "hide", undefined]}
+                name={v => ({
+                    show: "Show",
+                    hide: "Hide",
+                    default: "Default",
+                } as const)[v ?? "default"]}
+            />
+            <ClientProvider client={{
+                id: "",
+                getThread: () => {throw new Error("no")},
+                act: () => {throw new Error("no")},
+                previewReply: () => {throw new Error("no")},
+                sendReply: () => {throw new Error("no")},
+                loadMore: () => {throw new Error("no")},
+                loadMoreUnmounted: () => {throw new Error("no")},
+            }}>
+                <RichtextParagraphs content={[
+                    rt.p(
+                        rt.txt("Optionally show link helpers to make it easier to click small links"),
+                    ),
+                    rt.p(
+                        rt.txt("I put a small link "),
+                        rt.link("/settings", {}, rt.txt("here")),
+                        rt.txt(" to demo the functionality."),
+                    ),
+                    rt.p(
+                        rt.txt("There are some more "),
+                        rt.link("https://i.redd.it/p0y4mrku6xh61.png", {}, rt.txt("small links")),
+                        rt.txt(" in "),
+                        rt.link("https://en.wikipedia.org/wiki/Special:Random", {}, rt.txt("this")),
+                        rt.txt(" paragraph."),
+                    ),
+                ]} />
+            </ClientProvider>
         </SettingsSection>
         <SettingsSection title="Custom Video Controls">
             <SettingPicker

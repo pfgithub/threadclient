@@ -1,11 +1,11 @@
 import { createMemo, createSignal, For, JSX, Match, Switch } from "solid-js";
-import { elButton, LinkStyle } from "../app";
+import { canPreview, elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { classes, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
+import { classes, getClient, getSettings, Icon, ShowBool, ShowCond, switchKind, SwitchKind } from "../util/utils_solid";
 import { Flair, TimeAgo } from "./author_pfp";
 import { Body } from "./body";
-import { LinkButton, PreviewableLink, UserLink } from "./links";
+import { A, LinkButton, PreviewableLink, UserLink } from "./links";
 export * from "../util/interop_solid";
 
 const generic_linkstyle_mappings: {
@@ -163,9 +163,132 @@ export function RichtextParagraphs(props: {
     content: readonly Generic.Richtext.Paragraph[],
     tight?: boolean,
 }): JSX.Element {
-    return <For each={props.content}>{paragraph => (
+    const settings = getSettings();
+    return <For each={props.content}>{paragraph => <>
         <div classList={{'my-2': !(props.tight ?? false)}}>
             <RichtextParagraph paragraph={paragraph} />
         </div>
-    )}</For>;
+        <ShowBool when={settings.link_helpers.value() === "show"}>
+            <For each={extractLinks(paragraph)}>{link => {
+                const client = getClient();
+                const linkPreview: () => {
+                    visible: () => boolean,
+                    toggleVisible: () => void,
+                    body: Generic.Body,
+                } | undefined = createMemo(() => {
+                    const body = previewLink(client(), link.url, {});
+                    if(!body) return undefined;
+                    const [visible, setVisible] = createSignal(false);
+                    return {visible, toggleVisible: () => setVisible(v => !v), body};
+                });
+                const human = createMemo((): {link: string, external: boolean} => {
+                    const res = unsafeLinkToSafeLink(client().id, link.url);
+                    if(res.kind === "link") {
+                        return {link: res.url, external: res.external};
+                    }else return {link: "error", external: true};
+                });
+                return <div class="my-2">
+                    <A
+                        class={classes(
+                            "p-2 px-4",
+                            "block",
+                            "bg-body rounded-xl",
+                            linkPreview()?.visible() ?? false ? "rounded-b-none" : "",
+                        )}
+                        href={link.url}
+                        onClick={linkPreview() ? () => {
+                            linkPreview()!.toggleVisible();
+                        } : undefined}
+                    >
+                        <div class="max-1-line">
+                            <ShowCond when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</ShowCond>
+                            {link.title}
+                        </div>
+                        <ShowBool when={!(linkPreview()?.visible() ?? false)}>
+                            <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400">
+                                <ShowBool when={!linkPreview() && human().external}>
+                                    <ExternalIcon />{" "}
+                                </ShowBool>
+                                {human().link}
+                            </div>
+                        </ShowBool>
+                    </A>
+                    <ShowCond when={linkPreview()}>{preview => <ShowBool when={preview.visible()}>
+                        <div class=""><Body body={preview.body} autoplay={true} /></div>
+                        <A
+                            class={classes(
+                                "p-2 px-4",
+                                "block",
+                                "bg-body rounded-xl rounded-t-none",
+                            )}
+                            href={link.url}
+                        >
+                            <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400">
+                                <ShowBool when={human().external}>
+                                    <ExternalIcon />{" "}
+                                </ShowBool>
+                                {human().link}
+                            </div>
+                        </A>
+                    </ShowBool>}</ShowCond>
+                </div>;
+            }}</For>
+        </ShowBool>
+    </>}</For>;
+}
+
+function ExternalIcon(): JSX.Element {
+    return <div class="inline-block"><Icon size="icon-sm" icon={{class: "icon-external", label: "External"}} /></div>;
+}
+
+type Link = {
+    title: string,
+    url: string,
+};
+function extractLinks(paragraph: Generic.Richtext.Paragraph): Link[] {
+    return switchKind(paragraph, {
+        paragraph: par => extractSpanLinks(par.children),
+        body: () => [],
+        heading: heading => extractSpanLinks(heading.children),
+        horizontal_line: () => [],
+        blockquote: () => [],
+        list: list => list.children.flatMap(child => {
+            if(child.kind === "tight_list_item") return extractSpanLinks(child.children);
+            return [];
+        }),
+        code_block: () => [],
+        table: table => [
+            ...table.headings.flatMap(heading => extractSpanLinks(heading.children)),
+            ...table.children.flatMap(c => c.flatMap(b => extractSpanLinks(b.children))),
+        ],
+    });
+}
+function extractSpanLinks(spans: Generic.Richtext.Span[]): Link[] {
+    return spans.flatMap(span => switchKind(span, {
+        link: (link) => [{
+            title: spansToText(link.children),
+            url: link.url,
+        }],
+        error: () => [],
+        text: () => [],
+        br: () => [],
+        spoiler: spoil => extractSpanLinks(spoil.children),
+        emoji: () => [],
+        flair: () => [],
+        time_ago: () => [],
+        code: () => [],
+    }));
+}
+function spansToText(spans: Generic.Richtext.Span[]): string {
+    return spans.map(span => switchKind(span, {
+        link: lnk => spansToText(lnk.children),
+        error: emsg => "(Error "+emsg.text+")",
+        text: txt => txt.text,
+        br: () => "\n",
+        spoiler: spoil => ">!"+spansToText(spoil.children)+"!<",
+        emoji: emoji => ":"+emoji.name+":",
+        flair: () => "(flair)",
+        time_ago: () => "(time ago)",
+        code: code => code.text,
+    })).join("");
 }

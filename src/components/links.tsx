@@ -1,3 +1,4 @@
+import { link } from "fs";
 import { createMemo, createSignal, JSX } from "solid-js";
 import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsafeLinkToSafeLink } from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
@@ -38,23 +39,23 @@ export function PreviewableLink(props: {href: string, children: JSX.Element}): J
     </>;
 }
 
-export function LinkButton(props: {
+export function A(props: {
     href: string,
-    style: LinkStyle,
+    class: string,
     onClick?: () => void,
     children: JSX.Element,
 }): JSX.Element {
     const client = getClient();
     const linkValue = createMemo(() => unsafeLinkToSafeLink(client().id, props.href));
     return <SwitchKind item={linkValue()}>{{
-        error: (error) => <a class={link_styles_v[props.style] + " error"} title={error.title} on:click={(e) => {
+        error: (error) => <a class={props.class + " error"} title={error.title} on:click={(e) => {
             e.stopPropagation();
             alert(props.href);
         }}>{props.children}</a>,
         mailto: (mailto) => <span title={mailto.title}>{props.children}</span>,
         link: (link) => <a
-            class={link_styles_v[props.style]} href={link.url} target="_blank" rel="noopener noreferrer"
-            on:click={(link.url.startsWith("/") || props.onClick) ? event => {
+            class={props.class} href={link.url} target="_blank" rel="noopener noreferrer"
+            on:click={(!link.external || props.onClick) ? event => {
                 event.stopPropagation();
                 if (
                     !event.defaultPrevented && // onClick prevented default
@@ -68,6 +69,15 @@ export function LinkButton(props: {
             } : undefined}
         >{props.children}</a>,
     }}</SwitchKind>;
+}
+
+export function LinkButton(props: {
+    href: string,
+    style: LinkStyle,
+    onClick?: () => void,
+    children: JSX.Element,
+}): JSX.Element {
+    return <A class={link_styles_v[props.style]} href={props.href} onClick={props.onClick}>{props.children}</A>;
 }
 
 export function UserLink(props: {href: string, color_hash: string, children: JSX.Element}): JSX.Element {

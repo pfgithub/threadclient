@@ -26,7 +26,7 @@ export function isModifiedEvent(event: MouseEvent): boolean {
 export function unsafeLinkToSafeLink(client_id: string, href: string): (
     | {kind: "error", title: string}
     | {kind: "mailto", title: string}
-    | {kind: "link", url: string}
+    | {kind: "link", url: string, external: boolean}
 ) {
     // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
     if(href.startsWith("/") && client_id) {
@@ -55,7 +55,7 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): (
     if(urlparsed && !is_raw && (urlparsed.host === "redd.it")) {
         href = "/reddit/comments"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
     }
-    return {kind: "link", url: href};
+    return {kind: "link", url: href, external: !href.startsWith("/")};
 }
 
 function linkButton(client_id: string, unsafe_href: string, style: LinkStyle, opts: {onclick?: () => void} = {}) {
@@ -710,7 +710,7 @@ export function linkPreview(client: ThreadClient, body: Generic.LinkPreview): Hi
     const meta_box = el("div").clss("flex flex-col p-3 text-sm").adto(link_preview_box);
     meta_box.adch(el("h1").clss("max-1-line font-black").atxt(body.title));
     meta_box.adch(el("p").clss("max-2-lines").atxt(body.description));
-    meta_box.adch(el("div").clss("max-1-line font-light").atxt(body.url));
+    meta_box.adch(el("div").clss("max-1-line font-light break-all").atxt(body.url));
 
     return hsc;
 }
