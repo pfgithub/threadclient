@@ -1,6 +1,7 @@
-const colors = require("windicss/colors");
+import { defineConfig } from 'windicss/helpers'
+import colors from "windicss/colors";
 
-module.exports = {
+export default defineConfig({
     extract: {
         include: [
             "./src/**/*",
@@ -76,10 +77,10 @@ module.exports = {
     },
     plugins: [
         require('@windicss/plugin-icons'),
-        (args1) => {
+        () => {
             // was going to try to make something like nightwind
             // console.log(args1);
             // fs.writeFileSync("./junk/test.txt", "hi!");
         },
     ],
-};
+});
