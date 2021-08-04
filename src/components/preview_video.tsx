@@ -269,7 +269,7 @@ function PreviewRealVideo(props: {
                             class: "icon-play-pause",
                             label: "Pause",
                         } : {
-                            class: "icon-loadbar",
+                            class: "icon-spinner-alt",
                             label: "Loading",
                         }
                     } />
