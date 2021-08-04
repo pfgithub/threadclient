@@ -77,10 +77,5 @@ export default defineConfig({
     },
     plugins: [
         require('@windicss/plugin-icons'),
-        () => {
-            // was going to try to make something like nightwind
-            // console.log(args1);
-            // fs.writeFileSync("./junk/test.txt", "hi!");
-        },
     ],
 });
