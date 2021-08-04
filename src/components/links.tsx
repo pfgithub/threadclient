@@ -1,4 +1,3 @@
-import { link } from "fs";
 import { createMemo, createSignal, JSX } from "solid-js";
 import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsafeLinkToSafeLink } from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";

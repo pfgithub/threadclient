@@ -1,5 +1,5 @@
 import { createContext, createMemo, createSignal, JSX, untrack, useContext } from "solid-js";
-import {render} from "solid-js/web";
+import { render } from "solid-js/web";
 import { ThreadClient } from "../clients/base";
 
 export type Include<T, U> = T extends U ? T : never;
@@ -8,8 +8,9 @@ export function kindIs<K extends string, T extends {kind: string}>(value: T, key
     return value.kind === key ? value as unknown as null : null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function switchKindCB<U>(item: {kind: string}, choices: {[key: string]: (item: any) => U}): () => U {
-    let match = choices[item.kind] ?? choices["unsupported"] ?? (() => {
+    const match = choices[item.kind] ?? choices["unsupported"] ?? (() => {
         throw new Error("condition "+match+" was not handled and no unsupported branch");
     });
     return () => match(item);
@@ -32,7 +33,6 @@ export function SwitchKind<T extends {kind: string}>(props: {
     });
 }
 
-// TODO disable this rule in _solid.tsx files
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const ClientContext = createContext<{client: ThreadClient}>();
 export function ClientProvider(props: {client: ThreadClient, children: JSX.Element}): JSX.Element {

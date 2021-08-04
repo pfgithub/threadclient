@@ -1,5 +1,5 @@
 import { createMemo, createSignal, For, JSX, Match, Switch } from "solid-js";
-import { canPreview, elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
+import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getClient, getSettings, Icon, ShowBool, ShowCond, switchKind, SwitchKind } from "../util/utils_solid";
