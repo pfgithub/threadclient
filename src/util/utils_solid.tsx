@@ -190,3 +190,7 @@ render(() => <ShowBool when={getSettings().author_pfp.value() === "off"}>
 export function getSettings(): Settings { // TODO getClient: (): ThreadClient =}
     return global_settings;
 }
+
+export function classes(...items: string[]): string {
+    return items.join(" ");
+}

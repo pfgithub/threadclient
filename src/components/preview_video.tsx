@@ -2,7 +2,7 @@ import { createEffect, createSignal, For, Index, JSX, on, onCleanup, onMount } f
 import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
+import { classes, getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
 import shaka from "shaka-player";
 
 function Icon(props: {
@@ -61,6 +61,7 @@ function PreviewRealVideo(props: {
     const [playing, setPlaying] = createSignal<boolean | "loading">("loading");
     const [errorOverlay, setErrorOverlay] = createSignal<string | null>(null);
     const [erroredSources, setErroredSources] = createSignal<{[key: number]: boolean}>({});
+    const [hoveringProgress, setHoveringProgress] = createSignal<number | null>(null);
 
     const settings = getSettings();
 
@@ -163,6 +164,10 @@ function PreviewRealVideo(props: {
             });
         });
     });
+    const showOverlay = () => {
+        return settings.custom_video_controls.value() === "custom"
+        && (playing() !== true || expandControls());
+    };
 
     const updateProgress = () => {
         const bufres: BufferNode[] = [];
@@ -251,11 +256,11 @@ function PreviewRealVideo(props: {
                 }</span>
             </video>
             <div
-                class="absolute top-0 left-0 bottom-0 right-0 items-center justify-center"
-                style={{
-                    display: settings.custom_video_controls.value() === "custom"
-                    && (playing() !== true || expandControls()) ? "flex" : "none",
-                }}
+                class={classes(
+                    "absolute top-0 left-0 bottom-0 right-0 items-center justify-center flex",
+                    "transform transition",
+                    showOverlay() ? "scale-100 opacity-100" : "scale-0 opacity-0",
+                )}
             >
                 <button
                     class="block transform scale-200 hover:scale-300 transition-transform"
@@ -286,21 +291,22 @@ function PreviewRealVideo(props: {
             </div>
             <ShowCond when={errorOverlay()}>{overlay => (
                 <div
-                    class="absolute top-0 left-0 bottom-0 right-0 p-4 bg-rgray-900 bg-opacity-75"
+                    class={classes(
+                        "absolute top-0 left-0 bottom-0 right-0 p-4 bg-rgray-900 bg-opacity-75",
+                    )}
                     style={{display: settings.custom_video_controls.value() === "custom" ? "block" : "none"}}
                 >
                     <p>Error! {overlay}</p>
                 </div>
             )}</ShowCond>
             <div
-                class={
-                    "absolute left-0 right-0 bottom-0 flex flex-col bg-rgray-900 bg-opacity-25"
-                    + " transform transition-transform origin-top"
-                }
-                classList={{
-                    'scale-y-0': expandControls(),
-                    'scale-y-100': !expandControls(),
-                }}
+                class={classes(
+                    "absolute left-0 right-0 bottom-0",
+                    "flex flex-col",
+                    "bg-rgray-900 bg-opacity-25",
+                    "transform transition-transform origin-top",
+                    expandControls() ? "scale-y-0" : "scale-y-100",
+                )}
             >
                 <div
                     class="h-1 w-full relative bg-rgray-100 bg-opacity-50"
@@ -317,17 +323,36 @@ function PreviewRealVideo(props: {
                 </div>
             </div>
             <div
-                class={
-                    "absolute left-0 right-0 flex flex-col bg-rgray-900 bottom-0"
-                    + " bg-opacity-25 transform transition-transform origin-bottom"
-                }
-                classList={{
-                    'scale-y-0': !expandControls(),
-                    'scale-y-100': expandControls(),
-                }}
+                class={classes(
+                    "absolute left-0 right-0 bottom-0",
+                    "flex flex-col",
+                    "bg-rgray-900 bg-opacity-25",
+                    "transform transition-transform origin-bottom",
+                    expandControls() ? "scale-y-100" : "scale-y-0",
+                )}
             >
                 <div
-                    class="h-1 w-full relative bg-rgray-100 bg-opacity-50 h-2"
+                    class={classes(
+                        "w-full h-2",
+                        "relative",
+                        "bg-rgray-100 bg-opacity-50",
+                        "transform transition-transform origin-bottom",
+                        hoveringProgress() != null ? "scale-y-150" : "",
+                    )}
+                    onmousemove={e => {
+                        const size = e.currentTarget.getBoundingClientRect();
+                        setHoveringProgress(e.offsetX / size.width);
+                    }}
+                    onmouseleave={() => {
+                        setHoveringProgress(null);
+                    }}
+                    onmouseup={e => {
+                        const size = e.currentTarget.getBoundingClientRect();
+                        const progress = e.offsetX / size.width;
+                        // TODO only if the mouse down started on this element
+                        video_el.currentTime = progress * video_el.duration;
+                        updateProgress();
+                    }}
                 >
                     <Index each={buffered()}>{(item, i) => (
                         <div class="absolute h-full bg-rgray-500 bg-opacity-75" style={{
@@ -338,6 +363,11 @@ function PreviewRealVideo(props: {
                     <div class="absolute h-full bg-rgray-700" style={{
                         'width': (currentTime() / maxTime() * 100) + "%",
                     }}></div>
+                    <ShowCond when={hoveringProgress()}>{hover_progress => (
+                        <div class="absolute h-full bg-rgray-900 bg-opacity-50" style={{
+                            'width': (hover_progress * 100) + "%",
+                        }}></div>
+                    )}</ShowCond>
                 </div>
                 <div
                     class="flex transform transition-transform origin-bottom"
