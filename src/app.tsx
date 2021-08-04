@@ -1,7 +1,7 @@
 import { ThreadClient } from "./clients/base";
 import { OEmbed, oembed } from "./clients/oembed";
 import { Flair, ReplyEditor, TimeAgo } from "./components/author_pfp";
-import { Body } from "./components/body";
+import { Body, ImageGallery } from "./components/body";
 import { Homepage } from "./components/homepage";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import * as Generic from "./types/generic";
@@ -454,14 +454,10 @@ export function renderImageGallery(client: ThreadClient, images: Generic.Gallery
         });
     }
 
-    return fetchPromiseThen(import("./components/author_pfp"), ({ImageGallery}) => {
-        const frame = el("div");
-        const hsc = hideshow(frame);
-
-        vanillaToSolidBoundary(client, frame, ImageGallery, {images});
-
-        return hsc;
-    });
+    const frame = el("div");
+    const hsc = hideshow(frame);
+    vanillaToSolidBoundary(client, frame, ImageGallery, {images}).defer(hsc);
+    return hsc;
 }
 
 export function renderFlair(flairs: Generic.Flair[]): Node {

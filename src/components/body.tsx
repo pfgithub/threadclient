@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, Suspense } from "solid-js";
 import {
-    gfyLike,
+    getTwitchClip, gfyLike,
     imgurImage,
     linkPreview,
     link_styles_v,
@@ -9,15 +9,15 @@ import {
     redditSuggestedEmbed,
     renderImageGallery,
     renderOembed,
-    textToBody,
-    getTwitchClip,
-    youtubeVideo,
-    zoomableImage,
+    textToBody, youtubeVideo,
+    zoomableImage
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { getClient, getIsVisible, ShowCond, SwitchKind } from "../util/utils_solid";
-import { ClientContent, DefaultErrorBoundary, LinkButton, RichtextParagraphs } from "./author_pfp";
+import { ClientContent, DefaultErrorBoundary } from "./author_pfp";
+import { LinkButton } from "./links";
+import { RichtextParagraphs } from "./richtext";
 export * from "../util/interop_solid";
 
 const PreviewVideo = lazy(() => import("./preview_video"));
@@ -48,7 +48,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 if(!body) return undefined;
                 return {body};
             });
-            
+
             return <div>
                 <div><LinkButton href={link.url} style={"normal"}>{link.url}</LinkButton></div>
                 <ShowCond when={previewBody()}>{preview_opts => (
@@ -256,5 +256,42 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 </p>
             </div>;
         },
+    }}</SwitchKind>;
+}
+
+export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Element {
+    const [state, setState] = createSignal<{kind: "overview"} | {kind: "image", index: number}>({kind: "overview"});
+
+    return <SwitchKind item={state()}>{{
+        overview: overview => <>
+            <For each={props.images}>{(image, i) => (
+                <button 
+                    class="m-1 inline-block bg-body rounded-md"
+                    on:click={() => setState({kind: "image", index: i()})}
+                >
+                    <img src={image.thumb} width={image.w+"px"} height={image.h+"px"}
+                        class="w-24 h-24 object-contain"
+                    />
+                </button>
+            )}</For>
+        </>,
+        image: sel => <>
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => setState({kind: "image", index: sel.index - 1})}
+                disabled={sel.index <= 0}
+            >Prev</button>
+            {sel.index + 1}/{props.images.length}
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => setState({kind: "image", index: sel.index + 1})}
+                disabled={sel.index >= props.images.length - 1}
+            >Next</button>
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => setState({kind: "overview"})}
+            >Gallery</button>
+            <Body body={props.images[sel.index]!.body} autoplay={true} />
+        </>,
     }}</SwitchKind>;
 }
