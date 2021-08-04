@@ -708,9 +708,9 @@ export function linkPreview(client: ThreadClient, body: Generic.LinkPreview): Hi
         linkButton(client.id, body.url, "none").clss("hover:underline").atxt("Open").adto(choicebox);
     }
     const meta_box = el("div").clss("flex flex-col p-3 text-sm").adto(link_preview_box);
-    meta_box.adch(el("h1").clss("max-1-line font-black").atxt(body.title));
-    meta_box.adch(el("p").clss("max-2-lines").atxt(body.description));
-    meta_box.adch(el("div").clss("max-1-line font-light break-all").atxt(body.url));
+    meta_box.adch(el("h1").clss("max-lines max-lines-1 font-black").atxt(body.title));
+    meta_box.adch(el("p").clss("max-lines max-lines-2").atxt(body.description));
+    meta_box.adch(el("div").clss("max-lines max-lines-1 font-light break-all").atxt(body.url));
 
     return hsc;
 }

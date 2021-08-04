@@ -200,12 +200,12 @@ export function RichtextParagraphs(props: {
                             linkPreview()!.toggleVisible();
                         } : undefined}
                     >
-                        <div class="max-1-line">
+                        <div class="max-lines max-lines-1">
                             <ShowCond when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</ShowCond>
                             {link.title}
                         </div>
                         <ShowBool when={!(linkPreview()?.visible() ?? false)}>
-                            <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400">
+                            <div class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400">
                                 <ShowBool when={!linkPreview() && human().external}>
                                     <ExternalIcon />{" "}
                                 </ShowBool>

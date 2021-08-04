@@ -1,5 +1,6 @@
-import { defineConfig } from 'windicss/helpers'
+import { defineConfig } from "windicss/helpers";
 import colors from "windicss/colors";
+import plugin from "windicss/plugin";
 
 export default defineConfig({
     extract: {
@@ -77,5 +78,21 @@ export default defineConfig({
     },
     plugins: [
         require('@windicss/plugin-icons'),
+        plugin(({ addDynamic, addUtilities, variants }) => {
+            addUtilities({
+                '.max-lines': {
+                    'overflow': "hidden",
+                    'text-overflow': "ellipsis",
+                    'display': "-webkit-box",
+                    '-webkit-box-orient': "vertical",
+                },
+            });
+            addDynamic('max-lines', ({ Utility, Style }) => {
+                return Utility.handler
+                    .handleNumber(1, undefined, 'int')
+                    .createProperty("-webkit-line-clamp", v => v)
+                ;
+            }, variants('skew'))
+        }),
     ],
 });
