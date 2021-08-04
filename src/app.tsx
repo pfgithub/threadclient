@@ -303,14 +303,14 @@ export function previewLink(
         && url.pathname.split("/").length === 2
     ) return {
         kind: "gfycat",
-        id: url.pathname.replace("/", "").split("-")[0]!.toLowerCase(),
+        id: url.pathname.replace("/", "").split("-")[0]!.split(".")[0]!.toLowerCase(),
         host: "gfycat.com",
     };
     if(url
         && (url.host === "\x72\x65\x64gifs.com" || url.host.endsWith(".\x72\x65\x64gifs.com"))
         && url.pathname.split("/").length === 3 && url.pathname.startsWith("/watch/")
     ) {
-        const gfylink = url.pathname.replace("/watch/", "").split("-")[0]!.toLowerCase();
+        const gfylink = url.pathname.replace("/watch/", "").split("-")[0]!.split(".")[0]!.toLowerCase();
         return {
             kind: "gfycat",
             id: gfylink,
