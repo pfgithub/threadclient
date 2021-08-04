@@ -1,4 +1,7 @@
-import { createEffect, createMemo, createSignal, ErrorBoundary, For, JSX, Match, onCleanup, Switch } from "solid-js";
+import {
+    createEffect, createMemo, createSignal, ErrorBoundary,
+    For, JSX, Match, onCleanup, Switch, untrack,
+} from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import {
     bioRender, clientContent, elButton,
@@ -280,9 +283,17 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
     </>}</For></span>;
 }
 
-function ErrableLink<T,>(props: {link: Generic.Link<T>, children: (link: T) => JSX.Element}) {
-    return <ShowBool when={props.link.err == null} fallback={<div>Error! {props.link.err}</div>}>
-        {props.children(props.link.ref!)}
+function ErrableLink<T,>(props: {
+    link: Generic.Link<T>,
+    fallback?: (err: string) => JSX.Element,
+    children: (link: T) => JSX.Element,
+}) {
+    return <ShowBool when={props.link.err == null} fallback={
+        props.fallback ? (
+            untrack(() => props.fallback!(props.link.err!))
+        ) : <div>Error! {props.link.err}</div>
+    }>
+        {untrack(() => props.children(props.link.ref!))}
     </ShowBool>;
 }
 
@@ -720,7 +731,10 @@ function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_
         <ShowCond when={props.node.parent} fallback={
             content()
         } children={parent_link => {
-            return <ErrableLink link={parent_link} children={parent => (
+            return <ErrableLink link={parent_link} fallback={err_msg => <>
+                <div>Error: {err_msg}</div>
+                <div>{content()}</div>
+            </>} children={parent => (
                 <WrapParent node={parent} children={content()} is_pivot={false} />
             )} />;
         }} />

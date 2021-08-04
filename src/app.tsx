@@ -2854,7 +2854,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        if(client.getPage) {
+        if(client.getPage && getSettings().page_version.value() === "2") {
             const page2 = await client.getPage(current_path);
             title.setTitle(page2.title); // TODO use the pivot to find the title
 

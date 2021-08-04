@@ -854,6 +854,7 @@ export type PostOrComment = {
 
     approved?: boolean,
     pinned?: boolean,
+    stickied?: boolean,
 
     mod_reports: ModReport[],
     mod_reports_dismissed?: ModReport[],
@@ -869,8 +870,6 @@ export type PostOrComment = {
 
 export type PostSubmission = PostOrComment & {
     title: string,
-    
-    stickied: boolean,
 
     // content warnings
     spoiler: boolean,
@@ -994,8 +993,6 @@ export type PostComment = PostOrComment & {
     rtjson: Richtext.Document,
     body: string,
     body_html: string,
-
-    stickied: boolean,
 
     collapsed: boolean,
     // collapsed_reason: ?,

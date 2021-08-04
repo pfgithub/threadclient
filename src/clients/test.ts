@@ -626,7 +626,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
     return this_post;
 }
 
-function clientWrapperAdd(map: Map<Generic.ID<unknown>, unknown>): Generic.PostData {
+function clientWrapperAdd(): Generic.PostData {
     return {
         kind: "post",
         url: null,
@@ -646,8 +646,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     const parsed_path = new URL(path, "http://test/");
     const pathsplit = parsed_path.pathname.split("/").filter(q => q);
 
-    const content = new Map<Generic.ID<unknown>, unknown>();
-    const client_wrapper = clientWrapperAdd(content);
+    const client_wrapper = clientWrapperAdd();
 
     if(pathsplit[0] === "reddit") {
         const reddit_client = await import("./reddit");
@@ -657,11 +656,11 @@ export async function getPage(path: string): Promise<Generic.Page2> {
 
         const comment_map: IDMap = new Map();
         for(const comment of sample_reddit_comments) {
-            reddit_client.setupMap(comment_map, comment, {}, {
+            reddit_client.setUpMap(comment_map, comment, {}, {
                 permalink: "/",
                 sort: "unsupported",
                 is_chat: false,
-            });
+            }, {parent: null, replies: null});
         }
 
         const pivot: Generic.PostData = {
@@ -689,7 +688,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
         return {
             title: "reddit",
             pivot: {ref: pivot, err: undefined},
-            content,
         };
     }
 
@@ -699,7 +697,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
         return {
             title: "«err no title»",
             pivot: {ref: smres, err: undefined},
-            content,
         };
     }
 
@@ -746,7 +743,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     return {
         title: "home",
         pivot: {ref: pivot, err: undefined},
-        content,
     };
 }
 

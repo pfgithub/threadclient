@@ -53,9 +53,7 @@ export type InfoRequestMap = {
 export type Page2 = {
     title: string,
     pivot: Link<PostData>,
-    content: ContentMap,
 };
-export type ContentMap = Map<ID<unknown>, unknown>;
 export type ID<T> = symbol & {__is_id: T};
 export type ParentPost = PostData | PostVerticalLoader;
 export type PostData = {
@@ -121,6 +119,11 @@ export type ClientPost = {
     navbar: Navbar,
 };
 export type Link<T> = {ref: T, err: undefined} | {ref: undefined, err: string};
+export type PostInfo = {
+    creation_date?: number,
+    edited?: {date?: number}, // you can have an edited date w/out a creation date
+    pinned?: boolean,
+};
 export type PostContentPost = {
     /// the thing containing a post. generally post replies
     /// are only shown when it's at or above the pivot.
@@ -142,11 +145,7 @@ export type PostContentPost = {
         kind: "default",
         thumb: ThumbType,
     },
-    info?: {
-        creation_date?: number,
-        edited?: {date?: number}, // you can have an edited date w/out a creation date
-        pinned?: boolean,
-    },
+    info?: PostInfo,
     author: null | InfoAuthor,
     body: Body,
     /// if the item should display replies like

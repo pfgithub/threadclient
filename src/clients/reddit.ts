@@ -1,12 +1,12 @@
 /* eslint-disable max-len */
 
+import { getVredditSources } from "../app";
 import * as Reddit from "../types/api/reddit";
 import * as Generic from "../types/generic";
-import {encoderGenerator, ThreadClient} from "./base";
+import { rt } from "../types/generic";
 import * as util from "../util";
 import { encodeQuery, encodeURL } from "../util";
-import { rt } from "../types/generic";
-import { getVredditSources } from "../app";
+import { encoderGenerator, ThreadClient } from "./base";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -2391,6 +2391,11 @@ type IDMapEntry = {
     listing_raw: Reddit.Post,
     options: ThreadOpts,
     parent_permalink: SortedPermalink,
+
+    refs: {
+        parent: string | null,
+        replies: string[] | null,
+    },
 };
 export type IDMap = Map<string, IDMapEntry>;
 
@@ -2398,7 +2403,13 @@ function createLink<T>(): Generic.Link<T> {
     return {ref: undefined, err: "processing not completed"};
 }
 
-export function setupMap(map: IDMap, listing_raw: Reddit.Post, options: ThreadOpts, parent_permalink: SortedPermalink): void {
+export function setUpMap(
+    map: IDMap,
+    listing_raw: Reddit.Post,
+    options: ThreadOpts,
+    parent_permalink: SortedPermalink,
+    refs: {parent: string | null, replies: string[] | null},
+): void {
     options.force_expand ??= "closed";
 
     const prev_value = map.get(listing_raw.data.name);
@@ -2406,14 +2417,9 @@ export function setupMap(map: IDMap, listing_raw: Reddit.Post, options: ThreadOp
         if(prev_value.listing_raw !== listing_raw) throw new Error("TODO it already exists "+listing_raw.data.name+" but it's different");
         throw new Error("TODO it already exists "+listing_raw.data.name);
     }
-    map.set(listing_raw.data.name, {
-        kind: "unprocessed",
-        link: createLink(),
 
-        listing_raw,
-        options,
-        parent_permalink,
-    });
+    const res_parent = refs.parent;
+    const res_replies = refs.replies;
 
     if(listing_raw.kind === "t1") {
         const listing = listing_raw.data;
@@ -2421,10 +2427,41 @@ export function setupMap(map: IDMap, listing_raw: Reddit.Post, options: ThreadOp
         //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if(listing.replies) {
             for(const reply of listing.replies.data.children) {
-                setupMap(map, reply, options, sortWrap(parent_permalink, listing.permalink));
+                setUpMap(map, reply, options, sortWrap(parent_permalink, listing.permalink), {
+                    parent: listing.name,
+                    replies: null,
+                });
             }
         }
-    }else throw new Error("TODO "+listing_raw.kind);
+    }else if(listing_raw.kind === "t3") {
+        const listing = listing_raw.data;
+        if(listing.crosspost_parent_list) {
+            for(const xpost_parent of listing.crosspost_parent_list) {
+                setUpMap(map, {
+                    kind: "t3",
+                    data: xpost_parent,
+                }, options, sortWrap(parent_permalink, xpost_parent.permalink), {
+                    parent: null,
+                    replies: null,
+                });
+            }
+        }
+    }else if(listing_raw.kind === "more") {
+        // nothing to add.
+    }else {
+        console.log("TODO setUpMap "+listing_raw.kind);
+    }
+
+    map.set(listing_raw.data.name, {
+        kind: "unprocessed",
+        link: createLink(),
+
+        listing_raw,
+        options,
+        parent_permalink,
+
+        refs: {parent: res_parent, replies: res_replies},
+    });
 }
 
 // returns a pointer to the PostData
@@ -2433,12 +2470,12 @@ export function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostD
     const value = map.get(key);
     if(!value) {
         // TODO determine which load more to use
-        return {ref: undefined, err: "post was not found in tree"};
+        return {ref: undefined, err: "post was not found in tree (TODO load more) ("+key+")"};
     }
     if(value.kind === "unprocessed") {
         value.kind = "processing";
 
-        const res = postDataFromListingMayError(map, value.listing_raw, value.options, value.parent_permalink);
+        const res = postDataFromListingMayError(map, value, value.listing_raw, value.options, value.parent_permalink);
         [value.link.ref, value.link.err] = [res, undefined];
 
         value.kind = "processed";
@@ -2449,9 +2486,25 @@ export function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostD
     }else assertNever(value.kind);
 }
 
+function getPostInfo(listing: Reddit.PostOrComment): Generic.PostInfo {
+    return {
+        creation_date: listing.created_utc * 1000,
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        edited: listing.edited ? {date: listing.edited * 1000} : undefined,
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        pinned: listing.pinned || listing.stickied || false,
+    };
+}
+
 /// maybe some kind of map from id to value? so because parent the parent id it needs to give a parent to the Generic.PostData
 /// then fill it as much as possible, add it to the map, evaluate the parent and replies, add those
-function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, options: ThreadOpts, parent_permalink: SortedPermalink): Generic.PostData {
+function postDataFromListingMayError(
+    map: IDMap,
+    entry: IDMapEntry,
+    listing_raw: Reddit.Post,
+    options: ThreadOpts,
+    parent_permalink: SortedPermalink,
+): Generic.PostData {
     options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
         const listing = listing_raw.data;
@@ -2475,7 +2528,9 @@ function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, optio
         return {
             kind: "post",
             url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
-            parent: {ref: {kind: "vloader", parent: null, replies: null}, err: undefined}, // TODO handle this with getPostData or something
+
+            // need to get the parent post here
+            parent: entry.refs.parent != null ? getPostData(map, entry.refs.parent) : null,
             replies,
 
             content: {
@@ -2483,13 +2538,7 @@ function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, optio
                 title: null,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
                 body: getCommentBody(listing),
-                info: {
-                    creation_date: listing.created_utc * 1000,
-                    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-                    edited: listing.edited ? {date: listing.edited * 1000} : undefined,
-                    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-                    pinned: listing.pinned || listing.stickied,
-                },
+                info: getPostInfo(listing),
                 show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
                 actions: {
                     vote: parent_permalink.is_chat
@@ -2507,7 +2556,169 @@ function postDataFromListingMayError(map: IDMap, listing_raw: Reddit.Post, optio
             internal_data: listing_raw,
             display_style: "centered",
         };
-    }else throw new Error("TODO "+listing_raw.kind);
+    }else if(listing_raw.kind === "t3") {
+        const listing = listing_raw.data;
+
+        return {
+            kind: "post",
+            url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
+
+            parent: getPostData(map, listing.subreddit_id),
+            replies: entry.refs.replies ? {
+                sort: null,
+                reply: replyButton(listing.name),
+                locked: listing.locked,
+                items: entry.refs.replies.map(reply_id => {
+                    return {
+                        kind: "post",
+                        post: getPostData(map, reply_id),
+                    };
+                }),
+            } : null,
+
+            content: {
+                kind: "post",
+                title: null,
+                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
+                body: getPostBody(listing, parent_permalink),
+                info: getPostInfo(listing),
+                show_replies_when_below_pivot: false,
+            },
+            internal_data: listing_raw,
+            display_style: "centered",
+        };
+    }else{
+        return {
+            kind: "post",
+            url: null,
+            parent: {ref: {kind: "vloader", parent: null, replies: null}, err: undefined},
+            replies: null,
+            internal_data: listing_raw,
+            display_style: "centered",
+
+            content: {
+                kind: "post",
+                title: {text: "Error! TODO "+listing_raw.kind, body_collapsible: null},
+                body: {kind: "richtext", content: [
+                    rt.p(rt.error("TODO", listing_raw)),
+                ]},
+                author: null,
+                show_replies_when_below_pivot: false,
+            },
+        };
+    }
+}
+
+function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPermalink): Generic.Body {
+    return (
+        listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
+    ) ? {
+        kind: "crosspost",
+        source: threadFromListing(
+            {kind: "t3", data: listing.crosspost_parent_list[0]!},
+            {force_expand: "crosspost"},
+            sortWrap(parent_permalink, listing.permalink),
+        ) as Generic.Thread,
+    } : listing.is_self ? {
+        kind: "array",
+        body: [
+            listing.rtjson.document.length
+                ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
+                : listing.url === "https://www.reddit.com" + listing.permalink // isn't this what is_self is for? why am I doing this check?
+                ? {kind: "none"}
+                : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}, // does this code path ever get used?
+            listing.poll_data
+            ? {kind: "poll",
+                votable: "Cannot vote",
+                total_votes: listing.poll_data.total_vote_count,
+                choices: listing.poll_data.options.map(choice => ({
+                    name: choice.text,
+                    votes: choice.vote_count ?? "hidden",
+                    id: choice.id,
+                })),
+                vote_data: "",
+                select_many: false,
+                your_votes: listing.poll_data.user_selection != null ? [{id: listing.poll_data.user_selection}] : [],
+                close_time: listing.poll_data.voting_end_timestamp,
+            } : undefined,
+        ],
+    } : listing.gallery_data ? {
+        kind: "gallery",
+        images: listing.gallery_data.items.map(gd => {
+            if(!listing.media_metadata) throw new Error("missing media metadata");
+            const moreinfo = listing.media_metadata[gd.media_id];
+            if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
+            if(moreinfo.status !== "valid") {
+                const res: Generic.GalleryItem = {
+                    thumb: "error: "+moreinfo.status,
+                    w: 200,
+                    h: 200,
+                    body: {
+                        kind: "richtext",
+                        content: [rt.p(
+                            rt.error("bad status: "+moreinfo.status, moreinfo)
+                        ), rt.pre(JSON.stringify(moreinfo, null, "\t"))],
+                    },
+                };
+                return res;
+            }
+            if(moreinfo.e === "Image") {
+                const thumb = moreinfo.p[0] ?? moreinfo.s;
+                const res: Generic.GalleryItem = {
+                    thumb: thumb.u ?? "error",
+                    w: thumb.x,
+                    h: thumb.y,
+                    body: {
+                        kind: "captioned_image",
+                        url: moreinfo.s.u ?? "error",
+                        w: moreinfo.s.x,
+                        h: moreinfo.s.y,
+                        caption: gd.caption,
+                    }
+                };
+                return res;
+            }
+            if(moreinfo.e === "AnimatedImage") {
+                const thumb = moreinfo.p?.[0];
+                const res: Generic.GalleryItem = {
+                    thumb: thumb ? thumb.u : "error",
+                    w: thumb?.x,
+                    h: thumb?.y,
+                    body: {
+                        kind: "video",
+                        source: moreinfo.s.mp4 != null ? {
+                            kind: "video",
+                            sources: [{url: moreinfo.s.mp4, quality: moreinfo.s.x + "×" + moreinfo.s.y}],
+                        } : {kind: "img", url: moreinfo.s.gif},
+                        w: moreinfo.s.x,
+                        h: moreinfo.s.y,
+                        caption: gd.caption,
+                        gifv: true,
+                    }
+                };
+                return res;
+            }
+            if(moreinfo.e === "RedditVideo") {
+                throw new Error("TODO gallery item moreinfo video");
+            }
+            expectUnsupported(moreinfo.e);
+            const res: Generic.GalleryItem = {
+                thumb: "error: "+moreinfo.e,
+                w: 200,
+                h: 200,
+                body: {
+                    kind: "richtext",
+                    content: [rt.p(
+                        rt.error("unsupported kind: "+moreinfo.e, moreinfo),
+                    ), rt.pre(JSON.stringify(moreinfo, null, "\t"))],
+                },
+            };
+            return res;
+        })
+    } : listing.rpan_video ? {
+        kind: "video",
+        source: {kind: "m3u8", url: listing.rpan_video.hls_url}, gifv: false,
+    } : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content};
 }
 
 const as = <T>(a: T): T => a;
@@ -2530,7 +2741,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 edited: listing.edited === false ? false : listing.edited * 1000,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-                pinned: listing.pinned || listing.stickied,
+                pinned: listing.pinned || listing.stickied || false,
             },
             actions: [
                 replyButton(listing.name),
@@ -2607,110 +2818,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
             //
         }
 
-        const body_content: Generic.Body = listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
-            ? {kind: "crosspost", source:
-                threadFromListing({kind: "t3", data: listing.crosspost_parent_list[0]!}, {force_expand: "crosspost"}, sortWrap(parent_permalink, listing.permalink)) as Generic.Thread
-            }
-            : listing.is_self
-            ? {kind: "array",
-                body: [
-                    listing.rtjson.document.length
-                        ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
-                        : listing.url === "https://www.reddit.com" + listing.permalink // isn't this what is_self is for? why am I doing this check?
-                        ? {kind: "none"}
-                        : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}, // does this code path ever get used?
-                    listing.poll_data
-                    ? {kind: "poll",
-                        votable: "Cannot vote",
-                        total_votes: listing.poll_data.total_vote_count,
-                        choices: listing.poll_data.options.map(choice => ({
-                            name: choice.text,
-                            votes: choice.vote_count ?? "hidden",
-                            id: choice.id,
-                        })),
-                        vote_data: "",
-                        select_many: false,
-                        your_votes: listing.poll_data.user_selection != null ? [{id: listing.poll_data.user_selection}] : [],
-                        close_time: listing.poll_data.voting_end_timestamp,
-                    } : undefined,
-                ],
-            }
-            : listing.gallery_data
-            ? {kind: "gallery", images: listing.gallery_data.items.map(gd => {
-                if(!listing.media_metadata) throw new Error("missing media metadata");
-                const moreinfo = listing.media_metadata[gd.media_id];
-                if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
-                if(moreinfo.status !== "valid") {
-                    const res: Generic.GalleryItem = {
-                        thumb: "error: "+moreinfo.status,
-                        w: 200,
-                        h: 200,
-                        body: {
-                            kind: "richtext",
-                            content: [rt.p(
-                                rt.error("bad status: "+moreinfo.status, moreinfo)
-                            ), rt.pre(JSON.stringify(moreinfo, null, "\t"))],
-                        },
-                    };
-                    return res;
-                }
-                if(moreinfo.e === "Image") {
-                    const thumb = moreinfo.p[0] ?? moreinfo.s;
-                    const res: Generic.GalleryItem = {
-                        thumb: thumb.u ?? "error",
-                        w: thumb.x,
-                        h: thumb.y,
-                        body: {
-                            kind: "captioned_image",
-                            url: moreinfo.s.u ?? "error",
-                            w: moreinfo.s.x,
-                            h: moreinfo.s.y,
-                            caption: gd.caption,
-                        }
-                    };
-                    return res;
-                }
-                if(moreinfo.e === "AnimatedImage") {
-                    const thumb = moreinfo.p?.[0];
-                    const res: Generic.GalleryItem = {
-                        thumb: thumb ? thumb.u : "error",
-                        w: thumb?.x,
-                        h: thumb?.y,
-                        body: {
-                            kind: "video",
-                            source: moreinfo.s.mp4 != null ? {
-                                kind: "video",
-                                sources: [{url: moreinfo.s.mp4, quality: moreinfo.s.x + "×" + moreinfo.s.y}],
-                            } : {kind: "img", url: moreinfo.s.gif},
-                            w: moreinfo.s.x,
-                            h: moreinfo.s.y,
-                            caption: gd.caption,
-                            gifv: true,
-                        }
-                    };
-                    return res;
-                }
-                if(moreinfo.e === "RedditVideo") {
-                    throw new Error("TODO gallery item moreinfo video");
-                }
-                expectUnsupported(moreinfo.e);
-                const res: Generic.GalleryItem = {
-                    thumb: "error: "+moreinfo.e,
-                    w: 200,
-                    h: 200,
-                    body: {
-                        kind: "richtext",
-                        content: [rt.p(
-                            rt.error("unsupported kind: "+moreinfo.e, moreinfo),
-                        ), rt.pre(JSON.stringify(moreinfo, null, "\t"))],
-                    },
-                };
-                return res;
-            })}
-            : listing.rpan_video
-            ? {kind: "video", source: {kind: "m3u8", url: listing.rpan_video.hls_url}, gifv: false}
-            : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}
-        ;
+        const body_content: Generic.Body = getPostBody(listing, parent_permalink);
 
         const result: Generic.Node = {
             kind: "thread",
@@ -2759,7 +2867,8 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                     link: "/"+listing.subreddit_name_prefixed,
                     name: listing.subreddit_name_prefixed,
                 },
-                pinned: listing.stickied,
+                // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+                pinned: listing.stickied || false,
             },
             actions: [...options.show_post_reply_button ?? false ? [replyButton(listing.name)] : [], {
                 kind: "link",
@@ -3082,6 +3191,63 @@ function parseLink(path: string) {
 export const client: ThreadClient = {
     id: "reddit",
     // loginURL: getLoginURL(),
+    async getPage(pathraw_in): Promise<Generic.Page2> {
+        try {
+            const [parsed, ] = parseLink(pathraw_in);
+
+            console.log("PARSED URL:", parsed);
+
+            if(parsed.kind === "comments") {
+                // ?comment=… ?context=… ?depth=… ?limit=… ?showedits=true ?showmedia=true ?showmore=true ?showtitle=true ?sort=confidence|top|new|controversial|old|random|qa|live
+                // ?sr_detail=… // passes the subreddit about page with the result
+                const link = "/comments/"+parsed.post_id_unprefixed+"?"+encodeQuery({
+                    sort: parsed.sort_override, comment: parsed.focus_comment, context: parsed.context,
+                });
+                // the plan is a getSkeleton() that suggests what should be loaded immediately
+                // and what should be loaded as needed
+                const page = await redditRequest<Reddit.Page>(link, {method: "GET"});
+
+                const comment_map: IDMap = new Map();
+
+                for(const reply of [...page[0].data.children]) {
+                    setUpMap(comment_map, reply, {}, {
+                        permalink: "TODO",
+                        sort: "unsupported",
+                        is_chat: false,
+                    }, {
+                        parent: null,
+                        replies: page[1].data.children.map(r => r.data.name),
+                    });
+                }
+                const first_page = page[0].data.children[0]!.data;
+                for(const reply of [...page[1].data.children]) {
+                    setUpMap(comment_map, reply, {}, {
+                        permalink: "TODO",
+                        sort: "unsupported",
+                        is_chat: false,
+                    }, {
+                        parent: first_page.name,
+                        replies: [],
+                    });
+                }
+                
+                return {
+                    title: "TODO",
+                    pivot: getPostData(comment_map, first_page.name),
+                };
+            }else{
+                throw new Error("TODO "+parsed.kind);
+            }
+        }catch(e) {
+            const err = e as Error;
+            console.log(err);
+            throw new Error("Error"
+                + ". If you're on firefox, try disabling Advanced Tracker Protection for this site."
+                + " Also, try going to v1 in settings (v2 is WIP and incomplete)"
+                + ". " + err.toString() + "\n" + err.stack,
+            );
+        }
+    },
     async getThread(pathraw_in): Promise<Generic.Page> {
         try {
             const [parsed, pathraw] = parseLink(pathraw_in);

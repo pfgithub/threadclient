@@ -1,6 +1,6 @@
-import { createSignal, JSX } from "solid-js";
+import { createSignal, For, JSX } from "solid-js";
 import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
-import { ClientProvider, getSettings, ShowBool } from "../util/utils_solid";
+import { ClientProvider, ComputeProperty, getSettings, ShowBool, ShowCond } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./author_pfp";
 import { variables } from "virtual:_variables";
 export * from "../util/interop_solid";
@@ -44,31 +44,54 @@ function UpdateStatus(): JSX.Element {
     </p>;
 }
 
-export function SettingsPage(props: {_?: undefined}): JSX.Element {
-    const {color_scheme, author_pfp, update_notifications: update_notices, custom_video_controls} = getSettings();
+function SettingPicker<T extends string>(props: {
+    setting: ComputeProperty<T>,
+    options: (T | undefined)[],
+    name: (a: T | undefined) => string,
+}): JSX.Element {
+    return <div>
+        <For each={props.options}>{option => <>
+            <button
+                class={menuButtonStyle(props.setting.compute.override() === option)}
+                onclick={() => {
+                    props.setting.compute.setOverride(option);
+                }}
+            >
+                <ShowCond when={option}
+                    fallback={
+                        <>{props.name(undefined)} ({props.name(props.setting.compute.base())})</>
+                    }
+                >{opt => <>
+                    {props.name(opt)}
+                </>}</ShowCond>
+            </button>
+        </>}</For>
+    </div>;
+}
 
+export function SettingsPage(props: {_?: undefined}): JSX.Element {
     return <div class="client-wrapper"><div class="display-comments-view">
         <SettingsSection title="Color Scheme">
-            <button class={menuButtonStyle(color_scheme.compute.override() === "light")} onclick={() => {
-                color_scheme.compute.setOverride("light");
-            }}>Light</button>
-            <button class={menuButtonStyle(color_scheme.compute.override() === "dark")} onclick={() => {
-                color_scheme.compute.setOverride("dark");
-            }}>Dark</button>
-            <button class={menuButtonStyle(color_scheme.compute.override() === undefined)} onclick={() => {
-                color_scheme.compute.setOverride(undefined);
-            }}>System Default ({{light: "Light", dark: "Dark"}[color_scheme.compute.base()]})</button>
+            <SettingPicker
+                setting={getSettings().color_scheme}
+                options={["light", "dark", undefined]}
+                name={v => ({
+                    light: "Light",
+                    dark: "Dark",
+                    default: "System Default",
+                } as const)[v ?? "default"]}
+            />
         </SettingsSection>
         <SettingsSection title="Profile Images">
-            <button class={menuButtonStyle(author_pfp.compute.override() === "on")} onclick={() => {
-                author_pfp.compute.setOverride("on");
-            }}>On</button>
-            <button class={menuButtonStyle(author_pfp.compute.override() === "off")} onclick={() => {
-                author_pfp.compute.setOverride("off");
-            }}>Off</button>
-            <button class={menuButtonStyle(author_pfp.compute.override() === undefined)} onclick={() => {
-                author_pfp.compute.setOverride(undefined);
-            }}>Default ({{on: "On", off: "Off"}[author_pfp.compute.base()]})</button>
+            <SettingPicker
+                setting={getSettings().author_pfp}
+                options={["on", "off", undefined]}
+                name={v => ({
+                    on: "On",
+                    off: "Off",
+                    default: "Default",
+                } as const)[v ?? "default"]}
+            />
             <div class="bg-body rounded-xl max-w-xl" style={{'padding': "10px", 'margin-top': "10px"}}>
                 <ClientProvider client={{
                     id: "reddit",
@@ -112,15 +135,15 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
             </div>
         </SettingsSection>
         <SettingsSection title="Update Notices">
-            <button class={menuButtonStyle(update_notices.compute.override() === "on")} onclick={() => {
-                update_notices.compute.setOverride("on");
-            }}>On</button>
-            <button class={menuButtonStyle(update_notices.compute.override() === "off")} onclick={() => {
-                update_notices.compute.setOverride("off");
-            }}>Off</button>
-            <button class={menuButtonStyle(update_notices.compute.override() === undefined)} onclick={() => {
-                update_notices.compute.setOverride(undefined);
-            }}>Default ({{on: "On", off: "Off"}[update_notices.compute.base()]})</button>
+            <SettingPicker
+                setting={getSettings().update_notifications}
+                options={["on", "off", undefined]}
+                name={v => ({
+                    on: "On",
+                    off: "Off",
+                    default: "Default",
+                } as const)[v ?? "default"]}
+            />
             <p class="my-4">
                 Show a notice when an update is available. Updates are installed
                 automatically after closing all ThreadReader tabs and refreshing the
@@ -129,15 +152,15 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
             <UpdateStatus />
         </SettingsSection>
         <SettingsSection title="Custom Video Controls">
-            <button class={menuButtonStyle(custom_video_controls.compute.override() === "custom")} onclick={() => {
-                custom_video_controls.compute.setOverride("custom");
-            }}>Custom</button>
-            <button class={menuButtonStyle(custom_video_controls.compute.override() === "browser")} onclick={() => {
-                custom_video_controls.compute.setOverride("browser");
-            }}>Browser</button>
-            <button class={menuButtonStyle(custom_video_controls.compute.override() === undefined)} onclick={() => {
-                custom_video_controls.compute.setOverride(undefined);
-            }}>Default ({{custom: "Custom", browser: "Browser"}[custom_video_controls.compute.base()]})</button>
+            <SettingPicker
+                setting={getSettings().custom_video_controls}
+                options={["browser", "custom", undefined]}
+                name={v => ({
+                    browser: "Browser",
+                    custom: "Custom",
+                    default: "Default",
+                } as const)[v ?? "default"]}
+            />
             <p class="my-4">
                 Custom video controls are currently work in progress. Once
                 they are complete, they will be enabled by default.
@@ -191,6 +214,18 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     }} />
                 </ClientProvider>
             </div>
+        </SettingsSection>
+        <SettingsSection title="Developer Options">
+            <h3 class="text-md font-light text-gray-600">Page Version</h3>
+            <SettingPicker
+                setting={getSettings().page_version}
+                options={["1", "2", undefined]}
+                name={v => ({
+                    '1': "V1",
+                    '2': "V2",
+                    'default': "Default",
+                } as const)[v ?? "default"]}
+            />
         </SettingsSection>
     </div></div>;
     // TODO display:

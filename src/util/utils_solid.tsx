@@ -85,7 +85,7 @@ export function ShowCond<T>(props: {
     });
 }
 
-type ComputeProperty<T> = {
+export type ComputeProperty<T> = {
     value: () => T,
     compute: {
         base: () => T,
@@ -97,11 +97,13 @@ type ColorScheme = "light" | "dark";
 type AuthorPfp = "on" | "off";
 type UpdateNotifications = "on" | "off";
 type CustomVideoControls = "browser" | "custom";
+type PageVersion = "1" | "2";
 type Settings = {
     color_scheme: ComputeProperty<ColorScheme>,
     author_pfp: ComputeProperty<AuthorPfp>,
     update_notifications: ComputeProperty<UpdateNotifications>,
     custom_video_controls: ComputeProperty<CustomVideoControls>,
+    page_version: ComputeProperty<PageVersion>,
 };
 
 function localStorageProperty<T extends string>(ls_key: string, accessBase: () => T): ComputeProperty<T> {
@@ -177,6 +179,7 @@ const global_settings = ((): Settings => {
         author_pfp: localStorageProperty("pfp-cfg", () => "on"),
         update_notifications: localStorageProperty("update_notices", () => "off"),
         custom_video_controls: localStorageProperty("custom_video_controls", () => "browser"),
+        page_version: localStorageProperty("page_version", () => "1"),
     };
 })();
 
