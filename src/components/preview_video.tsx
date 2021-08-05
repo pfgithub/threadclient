@@ -101,7 +101,7 @@ function PreviewRealVideo(props: {
 
     onMount(() => {
         initShaka();
-        const player = new shaka.Player(video_el);
+        const player = new shaka.Player();
         player.addEventListener("error", (e) => {
             console.log("Error!", e);
             setErrorOverlay("An error occured. Check console.");
@@ -123,19 +123,37 @@ function PreviewRealVideo(props: {
                 console.log("Reloading Video", start_time);
                 let res_error = new Error("No sources");
                 for(const source of sources()) {
-                    try {
-                        setPlaying("loading");
-                        await player.load(source.url, start_time);
-                        break;
-                    }catch(e) {
-                        res_error = e as Error;
-                        setErroredSources(s => ({...s, [source.i]: true}));
+                    player.detach();
+                    video_el.src = "";
+                    video_el.onerror = () => {};
+                    // shaka requires cors access to videos the browser supports eg .mp4, so
+                    // it cannot be used to play mp4 videos.
+                    // TODO: don't load shaka at all if it's not required.
+                    if(source.url.endsWith(".m3u8") || source.url.endsWith(".mpd")) {
+                        try {
+                            setPlaying("loading");
+                            player.attach(video_el);
+                            await player.load(source.url, start_time);
+                            break;
+                        }catch(e) {
+                            res_error = e as Error;
+                            setErroredSources(s => ({...s, [source.i]: true}));
+                        }
+                    }else{
+                        video_el.onerror = (e) => {
+                            console.log(e);
+                            res_error = new Error("error " + e);
+                            setErroredSources(s => ({...s, [source.i]: true}));
+                        };
+                        video_el.src = source.url;
+                        video_el.load();
                     }
                 }
                 throw res_error;
             })().then(() => {
                 console.log("Player loaded");
             }).catch((e: Error) => {
+                console.log(e);
                 setErrorOverlay(e.stack ?? e.toString());
                 // TODO try other sources
             });
