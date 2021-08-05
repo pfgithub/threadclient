@@ -123,16 +123,17 @@ function PreviewRealVideo(props: {
                 console.log("Reloading Video", start_time);
                 let res_error = new Error("No sources");
                 for(const source of sources()) {
-                    player.detach();
+                    await player.detach();
                     video_el.src = "";
-                    video_el.onerror = () => {};
+                    video_el.onerror = () => {/**/};
+                    video_el.onload = () => {/**/};
                     // shaka requires cors access to videos the browser supports eg .mp4, so
                     // it cannot be used to play mp4 videos.
                     // TODO: don't load shaka at all if it's not required.
                     if(source.url.endsWith(".m3u8") || source.url.endsWith(".mpd")) {
                         try {
                             setPlaying("loading");
-                            player.attach(video_el);
+                            await player.attach(video_el);
                             await player.load(source.url, start_time);
                             break;
                         }catch(e) {
@@ -140,13 +141,19 @@ function PreviewRealVideo(props: {
                             setErroredSources(s => ({...s, [source.i]: true}));
                         }
                     }else{
-                        video_el.onerror = (e) => {
-                            console.log(e);
-                            res_error = new Error("error " + e);
-                            setErroredSources(s => ({...s, [source.i]: true}));
-                        };
-                        video_el.src = source.url;
-                        video_el.load();
+                        await new Promise<void>((r, re) => {
+                            video_el.onerror = (e) => {
+                                console.log(e);
+                                res_error = new Error("error " + e);
+                                setErroredSources(s => ({...s, [source.i]: true}));
+                                r();
+                            };
+                            video_el.onload = () => {
+                                r();
+                            };
+                            video_el.src = source.url;
+                            video_el.load();
+                        });
                     }
                 }
                 throw res_error;
