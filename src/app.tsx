@@ -257,6 +257,12 @@ export function gfyLike(
     return hsc;
 }
 
+function replaceExtension(path: string, ext: string): string {
+    const split = path.split(".");
+    split.pop();
+    split.push(ext);
+    return split.join(".");
+}
 
 export function previewLink(
     client: ThreadClient,
@@ -278,17 +284,21 @@ export function previewLink(
             sources: [{url: link, quality: "Highest"}],
         }};
     }
+    if((url?.hostname ?? "") === "i.imgur.com" && path.endsWith(".gif")
+        || path.endsWith(".gifv")
+    ) {
+        const res = link.split(".");
+        return {kind: "video", gifv: true, source: {kind: "video", sources: [
+            {url: replaceExtension(link, "webm"), quality: "Highest"},
+            {url: replaceExtension(link, "mp4"), quality: "Highest"},
+            {url: link, quality: "Highest"},
+        ]}};
+    }
     if((url?.hostname ?? "") === "i.redd.it"
         || path.endsWith(".png") || path.endsWith(".jpg")
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
         || path.endsWith(".webp")|| (url?.hostname ?? "") === "pbs.twimg.com"
     ) return {kind: "captioned_image", url: link, w: null, h: null};
-    if(path.endsWith(".gifv")) {
-        return {kind: "video", gifv: true, source: {kind: "video", sources: [
-            {url: link.replace(".gifv", ".webm"), quality: "Highest"},
-            {url: link.replace(".gifv", ".mp4"), quality: "Highest"},
-        ]}};
-    }
     if(link.startsWith("https://v.redd.it/")) return getVredditPreview(link.replace("https://v.redd.it/", ""));
     if(url && (url.host === "reddit.com" || url.host.endsWith(".reddit.com") && url.pathname.startsWith("/link"))) {
         const pathsplit = path.split("/");
