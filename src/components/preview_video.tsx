@@ -54,7 +54,7 @@ function debugVideo(video_el: HTMLMediaElement) {
 
 let shaka_initialized = false;
 async function initShaka(shaka: typeof shaka_types): Promise<void> {
-    if(!(window.muxjs as unknown)) window.muxjs = (await import("mux.js")).default;
+    if(!(window.muxjs as undefined | {_?: undefined})) window.muxjs = (await import("mux.js")).default;
 
     if(shaka_initialized) return;
 
