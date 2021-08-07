@@ -3,7 +3,7 @@ import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getIsVisible, getSettings, Icon, ShowCond, SwitchKind } from "../util/utils_solid";
-import shaka from "shaka-player";
+import type shaka_types from "shaka-player";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 
 function timeSecToString(time: number): string {
@@ -49,7 +49,7 @@ function debugVideo(video_el: HTMLMediaElement) {
 }
 
 let shaka_initialized = false;
-function initShaka(): void {
+function initShaka(shaka: typeof shaka_types): void {
     if(shaka_initialized) return;
 
     shaka.polyfill.installAll();
@@ -74,6 +74,19 @@ function NativeVideoElement(props: {
 }): JSX.Element {
     let video_el!: HTMLVideoElement;
 
+    let shaka_player: shaka_types.Player | undefined = undefined;
+    const initShakaPlayer = async (): Promise<shaka_types.Player> => {
+        if(shaka_player) return shaka_player;
+        const {default: shaka} = await import("shaka-player");
+        initShaka(shaka);
+        shaka_player = new shaka.Player();
+        shaka_player.addEventListener("error", e => {
+            console.log("Error!", e);
+            props.setState("error_overlay", "An error occured. Check console.");
+        });
+        return shaka_player;
+    };
+
     onMount(() => {
         debugVideo(video_el);
 
@@ -93,13 +106,6 @@ function NativeVideoElement(props: {
             },
         });
 
-        initShaka();
-        const player = new shaka.Player();
-        player.addEventListener("error", (e) => {
-            console.log("Error!", e);
-            props.setState("error_overlay", "An error occured. Check console.");
-        });
-
         createEffect(on([() => props.source], () => {
             reloadVideo(0);
         }, {defer: true}));
@@ -112,7 +118,7 @@ function NativeVideoElement(props: {
                 let res_error = new Error("No sources");
                 for(const source of props.sources) {
                     try {
-                        await player.detach();
+                        if(shaka_player) await shaka_player.detach();
                         video_el.src = "";
                         video_el.onerror = () => {/**/};
                         video_el.onload = () => {/**/};
@@ -120,6 +126,7 @@ function NativeVideoElement(props: {
                         // it cannot be used to play mp4 videos.
                         // TODO: don't load shaka at all if it's not required.
                         if(source.url.endsWith(".m3u8") || source.url.endsWith(".mpd")) {
+                            const player = await initShakaPlayer();
                             props.setState("playing", "loading");
                             await player.attach(video_el);
                             console.log("trying to load", source.url);
@@ -157,7 +164,7 @@ function NativeVideoElement(props: {
         reloadVideo(0);
 
         onCleanup(() => {
-            player.destroy().then(() => {
+            if(shaka_player) shaka_player.destroy().then(() => {
                 console.log("player destroyed");
             }).catch(e => {
                 console.log("error destroying player", e);
