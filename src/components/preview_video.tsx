@@ -389,10 +389,10 @@ function PreviewRealVideo(props: {
                 <button
                     class="block transform scale-200 hover:scale-300 transition-transform"
                     onclick={() => {
-                        if(state.playing === true) {
-                            video_ref.pause();
-                        }else{
+                        if(state.playing === false) {
                             video_ref.play();
+                        }else{
+                            video_ref.pause();
                         }
                     }}
                     style={{
@@ -496,10 +496,10 @@ function PreviewRealVideo(props: {
                     class="flex transform transition-transform origin-bottom"
                 >
                     <button class="block" onclick={() => {
-                        if(state.playing === true) {
-                            video_ref.pause();
-                        }else{
+                        if(state.playing === false) {
                             video_ref.play();
+                        }else{
+                            video_ref.pause();
                         }
                     }}>
                         <Icon size="icon-sm" icon={
