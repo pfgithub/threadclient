@@ -2719,7 +2719,8 @@ function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPer
         })
     } : listing.rpan_video ? {
         kind: "video",
-        source: {kind: "m3u8", url: listing.rpan_video.hls_url}, gifv: false,
+        source: {kind: "video", sources: [{url: listing.rpan_video.hls_url}]},
+        gifv: false,
     } : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content};
 }
 

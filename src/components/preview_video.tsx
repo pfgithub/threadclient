@@ -1,10 +1,14 @@
 import { createEffect, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
-import { fetchPromiseThen, hideshow, link_styles_v, zoomableImage } from "../app";
+import { link_styles_v, zoomableImage } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getIsVisible, getSettings, Icon, ShowCond, SwitchKind } from "../util/utils_solid";
 import type shaka_types from "shaka-player";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
+
+// Note, on firefox some rpan vods fail to play. Example:
+// https://shaka-player-demo.appspot.com/demo/#audiolang=en-US;textlang=en-US;uilang=en-US;asset=
+//   https://watch.redd.it/hls/4fbb0f02-356f-414e-90e9-f5f7cf2b6902/index.m3u8;panel=CUSTOM%20CONTENT;build=debug_compiled
 
 function timeSecToString(time: number): string {
     const hours = time / 60 / 60 |0;
@@ -49,7 +53,9 @@ function debugVideo(video_el: HTMLMediaElement) {
 }
 
 let shaka_initialized = false;
-function initShaka(shaka: typeof shaka_types): void {
+async function initShaka(shaka: typeof shaka_types): Promise<void> {
+    if(!(window.muxjs as unknown)) window.muxjs = (await import("mux.js")).default;
+
     if(shaka_initialized) return;
 
     shaka.polyfill.installAll();
@@ -71,6 +77,7 @@ function NativeVideoElement(props: {
     source: Generic.VideoSourceVideo,
     sources: VideoSourceI[],
     autoplay: boolean,
+    custom_controls: boolean,
 }): JSX.Element {
     let video_el!: HTMLVideoElement;
 
@@ -78,8 +85,9 @@ function NativeVideoElement(props: {
     const initShakaPlayer = async (): Promise<shaka_types.Player> => {
         if(shaka_player) return shaka_player;
         const {default: shaka} = await import("shaka-player");
-        initShaka(shaka);
+        await initShaka(shaka);
         shaka_player = new shaka.Player();
+        console.log(shaka_player.getConfiguration());
         shaka_player.addEventListener("error", e => {
             console.log("Error!", e);
             props.setState("error_overlay", "An error occured. Check console.");
@@ -98,11 +106,20 @@ function NativeVideoElement(props: {
                 updateProgress();
             },
             seek: target => {
-                video_el.currentTime = target;
+                if(shaka_player && shaka_player.isLive()) {
+                    video_el.currentTime = target + shaka_player.seekRange().start;
+                }else{
+                    video_el.currentTime = target;
+                }
                 updateProgress();
             },
             reload: () => {
                 reloadVideo(video_el.currentTime);
+            },
+            goToLive() {
+                if(shaka_player && shaka_player.isLive()) {
+                    shaka_player.goToLive(); // just sets currentTime to the end of the seekable range
+                }
             },
         });
 
@@ -131,6 +148,9 @@ function NativeVideoElement(props: {
                             await player.attach(video_el);
                             console.log("trying to load", source.url);
                             await player.load(source.url, start_time);
+                            if(player.isLive()) {
+                                player.goToLive();
+                            }
                         }else{
                             await new Promise<void>((r, re) => {
                                 video_el.onerror = (e) => {
@@ -178,9 +198,25 @@ function NativeVideoElement(props: {
             bufres.push({start: video_el.buffered.start(i), end: video_el.buffered.end(i)});
         }
         props.setState(produce<VideoState>(s => {
-            s.current_time = video_el.currentTime;
-            s.buffered = bufres;
-            s.max_time = video_el.duration;
+            console.log(shaka_player?.seekRange());
+            if(shaka_player && shaka_player.isLive()) {
+                const seek_range = shaka_player.seekRange();
+                s.current_time = video_el.currentTime - seek_range.start;
+                s.max_time = seek_range.end - seek_range.start;
+                s.live = {
+                    start: shaka_player.getPresentationStartTimeAsDate()!.getTime(),
+                    current: shaka_player.getPlayheadTimeAsDate()!.getTime(),
+                };
+                s.buffered = bufres.map(i => ({
+                    start: i.start - seek_range.start,
+                    end: i.end - seek_range.start,
+                }));
+            }else{
+                s.current_time = video_el.currentTime;
+                s.max_time = video_el.duration;
+                s.live = null;
+                s.buffered = bufres;
+            }
             s.playing = (
                 (video_el.paused || video_el.ended) ? (
                     false
@@ -201,11 +237,9 @@ function NativeVideoElement(props: {
         } else props.setState("error_overlay", null);
     };
 
-    const settings = getSettings();
-
     return <video
         ref={video_el}
-        controls={settings.custom_video_controls.value() === "browser"}
+        controls={!props.custom_controls}
         class="max-h-inherit max-w-inherit"
         autoplay={props.autoplay}
         width={props.video.w}
@@ -246,6 +280,9 @@ function NativeVideoElement(props: {
         onloadedmetadata={() => {
             updateProgress();
         }}
+        ondurationchange={() => {
+            updateProgress();
+        }}
         onloadeddata={() => {
             updateProgress();
         }}
@@ -271,6 +308,10 @@ type VideoState = {
     error_overlay: string | null,
     errored_sources: {[key: number]: boolean},
     playback_rate: number,
+    live: {
+        start: number,
+        current: number,
+    } | null,
 };
 type VideoRef = {
     play(): void,
@@ -278,6 +319,7 @@ type VideoRef = {
     setPlaybackRate(rate: number): void,
     seek(target: number): void,
     reload(): void,
+    goToLive(): void,
 };
 
 type VideoSourceI = {i: number, url: string, quality?: string};
@@ -299,6 +341,7 @@ function PreviewRealVideo(props: {
         error_overlay: null,
         errored_sources: {},
         playback_rate: 1,
+        live: null,
     });
 
     const [expandControlsRaw, setExpandControls] = createSignal(false);
@@ -306,8 +349,12 @@ function PreviewRealVideo(props: {
 
     const settings = getSettings();
 
+    const customControls = () => {
+        return settings.custom_video_controls.value() === "custom" || !!state.live;
+    };
+
     const expandControls = () => {
-        if(settings.custom_video_controls.value() === "browser") return false;
+        if(!customControls()) return false;
         return expandControlsRaw();
     };
  
@@ -351,7 +398,7 @@ function PreviewRealVideo(props: {
         }
     });
     const showOverlay = () => {
-        return settings.custom_video_controls.value() === "custom"
+        return customControls()
         && (state.playing !== true || expandControls());
     };
 
@@ -378,7 +425,18 @@ function PreviewRealVideo(props: {
                 source={props.source}
                 sources={sources()}
                 autoplay={props.autoplay}
+                custom_controls={customControls()}
             />
+            <ShowCond when={state.error_overlay}>{overlay => (
+                <div
+                    class={classes(
+                        "absolute top-0 left-0 bottom-0 right-0 p-4 bg-rgray-900 bg-opacity-75",
+                    )}
+                    style={{display: customControls() ? "block" : "none"}}
+                >
+                    <p>Error! {overlay}</p>
+                </div>
+            )}</ShowCond>
             <div
                 class={classes(
                     "absolute top-0 left-0 bottom-0 right-0 items-center justify-center flex",
@@ -413,16 +471,6 @@ function PreviewRealVideo(props: {
                     } />
                 </button>
             </div>
-            <ShowCond when={state.error_overlay}>{overlay => (
-                <div
-                    class={classes(
-                        "absolute top-0 left-0 bottom-0 right-0 p-4 bg-rgray-900 bg-opacity-75",
-                    )}
-                    style={{display: settings.custom_video_controls.value() === "custom" ? "block" : "none"}}
-                >
-                    <p>Error! {overlay}</p>
-                </div>
-            )}</ShowCond>
             <div
                 class={classes(
                     "absolute left-0 right-0 bottom-0",
@@ -516,7 +564,27 @@ function PreviewRealVideo(props: {
                         } />
                     </button>
                     <div class="flex-grow"></div>
-                    <div>{timeSecToString(state.current_time)} / {timeSecToString(state.max_time)}</div>
+                    <div class={classes(
+                        state.live ? "hover:cursor-pointer" : "",
+                    )} onclick={() => {
+                        if(state.live) {
+                            video_ref.goToLive();
+                        }
+                    }}>{
+                        state.live ? (
+                            // Consider "LIVE" when less than 1 second behind the live-edge.
+                            // https://shaka-player-demo.appspot.com/docs/api/ui_presentation_time.js.html
+                            // (using 2 because 1 occasionally ticked to not showing as live anymore)
+                            state.current_time + 2 > state.max_time ? (
+                                timeSecToString((Date.now() - state.live.current) / 1000)+" delay"
+                            ) : (
+                                timeSecToString((state.live.current - state.live.start) / 1000) + " / " +
+                                "Live"
+                            )
+                        ) : (
+                            timeSecToString(state.current_time) + " / " + timeSecToString(state.max_time)
+                        )
+                    }</div>
                 </div>
             </div>
         </div>
@@ -560,16 +628,6 @@ export default function PreviewVideo(props: {
                 zoomableImage(img.url, {w: props.video.w, h: props.video.h, alt: props.video.alt}).adto(content);
                 return content;
             }} />,
-            m3u8: m3u8 => <SolidToVanillaBoundary getValue={(hsc, client) => {
-                const srcurl = m3u8.url;
-                const poster = m3u8.poster;
-                return fetchPromiseThen(import("./video"), vidplayer => {
-                    const cframe = el("div");
-                    const shsc = hideshow(cframe);
-                    vidplayer.playM3U8(srcurl, poster, {autoplay: props.autoplay}).defer(shsc).adto(cframe);
-                    return shsc;
-                }).defer(hsc);
-            }}/>,
         }}</SwitchKind>
     </div>;
 }

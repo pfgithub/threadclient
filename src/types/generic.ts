@@ -478,10 +478,6 @@ export type VideoSourceVideo = {
 export type VideoSource = VideoSourceVideo | {
     kind: "img",
     url: string,
-} | {
-    kind: "m3u8",
-    url: string,
-    poster?: string,
 };
 export type GalleryItem = {body: Body, thumb: string, w: number | null | undefined, h: number | null | undefined};
 export type ThumbType = "self" | "default" | "image" | "spoiler" | "error" | "nsfw" | "account";
