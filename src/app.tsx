@@ -287,7 +287,6 @@ export function previewLink(
     if((url?.hostname ?? "") === "i.imgur.com" && path.endsWith(".gif")
         || path.endsWith(".gifv")
     ) {
-        const res = link.split(".");
         return {kind: "video", gifv: true, source: {kind: "video", sources: [
             {url: replaceExtension(link, "webm"), quality: "Highest"},
             {url: replaceExtension(link, "mp4"), quality: "Highest"},
