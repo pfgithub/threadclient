@@ -4,6 +4,7 @@ import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getIsVisible, getSettings, Icon, ShowCond, SwitchKind } from "../util/utils_solid";
 import shaka from "shaka-player";
+import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 
 function timeSecToString(time: number): string {
     const hours = time / 60 / 60 |0;
@@ -26,17 +27,17 @@ function debugVideo(video_el: HTMLMediaElement) {
         "contextmenu", "cuechange", "dblclick", "drag", "dragend",
         "dragenter", "dragexit", "dragleave", "dragover",
         "dragstart", "drop", "durationchange", "emptied", "ended",
-        "error", "focus", "focusin", "focusout", "gotpointercapture",
-        "input", "invalid", "keydown", "keypress", "keyup", "load",
+        "error", "focus", "focusin", "focusout", "gotpointercapture",
+        "input", "invalid", "keydown", "keypress", "keyup", "load",
         "loadeddata", "loadedmetadata", "loadstart", "lostpointercapture",
         "mousedown", "mouseenter", "mouseleave", "mousemove", "mouseout",
         "mouseover", "mouseup", "pause", "play", "playing", "pointercancel",
-        "pointerdown", "pointerenter", "pointerleave", "pointermove",
+        "pointerdown", "pointerenter", "pointerleave", "pointermove",
         "pointerout", "pointerover", "pointerup", "progress", "ratechange",
         "reset", "resize", "scroll", "securitypolicyviolation", "seeked",
         "seeking", "select", "selectionchange", "selectstart", "stalled",
         "submit", "suspend", "timeupdate", "toggle", "touchcancel",
-        "touchend", "touchmove", "touchstart", "transitioncancel",
+        "touchend", "touchmove", "touchstart", "transitioncancel",
         "transitionend", "transitionrun", "transitionstart", "volumechange",
         "waiting", "wheel", "copy", "cut", "paste",
     ];
@@ -61,25 +62,240 @@ function initShaka(): void {
     shaka_initialized = true;
 }
 
+function NativeVideoElement(props: {
+    state: Store<VideoState>,
+    setState: SetStoreFunction<VideoState>,
+    videoRef: (v: VideoRef) => void,
+
+    video: Generic.Video,
+    source: Generic.VideoSourceVideo,
+    sources: VideoSourceI[],
+    autoplay: boolean,
+}): JSX.Element {
+    let video_el!: HTMLVideoElement;
+
+    onMount(() => {
+        debugVideo(video_el);
+
+        props.videoRef({
+            play: () => void video_el.play(),
+            pause: () => video_el.pause(),
+            setPlaybackRate: target => {
+                video_el.playbackRate = target;
+                updateProgress();
+            },
+            seek: target => {
+                video_el.currentTime = target;
+                updateProgress();
+            },
+            reload: () => {
+                reloadVideo(video_el.currentTime);
+            },
+        });
+
+        initShaka();
+        const player = new shaka.Player();
+        player.addEventListener("error", (e) => {
+            console.log("Error!", e);
+            props.setState("error_overlay", "An error occured. Check console.");
+        });
+
+        createEffect(on([() => props.source], () => {
+            reloadVideo(0);
+        }, {defer: true}));
+
+        const reloadVideo = (start_time: number) => {
+            // TODO fix race condition when reloading
+            // the video while a reload is already occuring
+            (async () => {
+                console.log("Reloading Video", start_time);
+                let res_error = new Error("No sources");
+                for(const source of props.sources) {
+                    try {
+                        await player.detach();
+                        video_el.src = "";
+                        video_el.onerror = () => {/**/};
+                        video_el.onload = () => {/**/};
+                        // shaka requires cors access to videos the browser supports eg .mp4, so
+                        // it cannot be used to play mp4 videos.
+                        // TODO: don't load shaka at all if it's not required.
+                        if(source.url.endsWith(".m3u8") || source.url.endsWith(".mpd")) {
+                            props.setState("playing", "loading");
+                            await player.attach(video_el);
+                            console.log("trying to load", source.url);
+                            await player.load(source.url, start_time);
+                        }else{
+                            await new Promise<void>((r, re) => {
+                                video_el.onerror = (e) => {
+                                    console.log(e);
+                                    res_error = new Error("error " + e);
+                                    props.setState("errored_sources", s => ({...s, [source.i]: true}));
+                                    re(res_error);
+                                };
+                                video_el.onload = () => {
+                                    r();
+                                };
+                                video_el.src = source.url;
+                                video_el.load();
+                            });
+                        }
+                        return;
+                    }catch(e) {
+                        res_error = e as Error;
+                        props.setState("errored_sources", s => ({...s, [source.i]: true}));
+                    }
+                }
+                throw res_error;
+            })().then(() => {
+                console.log("Player loaded");
+            }).catch((e: Error) => {
+                console.log(e);
+                props.setState("error_overlay", e.stack ?? e.toString());
+                // TODO try other sources
+            });
+        };
+        reloadVideo(0);
+
+        onCleanup(() => {
+            player.destroy().then(() => {
+                console.log("player destroyed");
+            }).catch(e => {
+                console.log("error destroying player", e);
+            });
+        });
+    });
+
+    const updateProgress = () => {
+        const bufres: BufferNode[] = [];
+        for(let i = 0; i < video_el.buffered.length; i++) {
+            bufres.push({start: video_el.buffered.start(i), end: video_el.buffered.end(i)});
+        }
+        props.setState(produce<VideoState>(s => {
+            s.current_time = video_el.currentTime;
+            s.buffered = bufres;
+            s.max_time = video_el.duration;
+            s.playing = (
+                (video_el.paused || video_el.ended) ? (
+                    false
+                ) : (video_el.readyState < video_el.HAVE_FUTURE_DATA || video_el.currentTime === 0) ? (
+                    "loading"
+                ) : true
+            );
+            s.quality = video_el.videoWidth === 0 ? null : {
+                w: video_el.videoWidth,
+                h: video_el.videoHeight,
+            };
+            if(video_el.playbackRate !== 0) s.playback_rate = video_el.playbackRate;
+        }));
+        
+        if(video_el.error) props.setState("error_overlay", video_el.error.message);
+        else if(video_el.networkState === video_el.NETWORK_NO_SOURCE) {
+            props.setState("error_overlay", "Video could not be loaded.");
+        } else props.setState("error_overlay", null);
+    };
+
+    const settings = getSettings();
+
+    return <video
+        ref={video_el}
+        controls={settings.custom_video_controls.value() === "browser"}
+        class="max-h-inherit max-w-inherit"
+        autoplay={props.autoplay}
+        width={props.video.w}
+        height={props.video.h}
+        loop={props.video.gifv}
+
+        poster={props.source.thumbnail}
+        onplay={() => {
+            updateProgress();
+        }}
+        onplaying={() => {
+            updateProgress();
+        }}
+        onratechange={() => {
+            updateProgress();
+        }}
+        onvolumechange={() => {
+            updateProgress();
+        }}
+        onprogress={() => {
+            updateProgress();
+        }}
+        oncanplaythrough={() => {
+            updateProgress();
+        }}
+        ontimeupdate={() => {
+            updateProgress();
+        }}
+        onpause={() => {
+            updateProgress();
+        }}
+        onwaiting={() => {
+            updateProgress();
+        }}
+        onstalled={() => {
+            updateProgress();
+        }}
+        onloadedmetadata={() => {
+            updateProgress();
+        }}
+        onloadeddata={() => {
+            updateProgress();
+        }}
+        onemptied={() => {
+            updateProgress();
+        }}
+        oncapture:error={(e) => {
+            updateProgress();
+        }}
+    >
+        <span>{
+            props.video.alt ?? "Your device does not support video, and alt text was not supplied."
+        }</span>
+    </video>;
+}
+
+type VideoState = {
+    max_time: number, // 0 | "loading"?
+    current_time: number,
+    quality: {w: number, h: number} | null,
+    buffered: BufferNode[],
+    playing: boolean | "loading",
+    error_overlay: string | null,
+    errored_sources: {[key: number]: boolean},
+    playback_rate: number,
+};
+type VideoRef = {
+    play(): void,
+    pause(): void,
+    setPlaybackRate(rate: number): void,
+    seek(target: number): void,
+    reload(): void,
+};
+
+type VideoSourceI = {i: number, url: string, quality?: string};
 type BufferNode = {start: number, end: number};
 function PreviewRealVideo(props: {
     video: Generic.Video,
     source: Generic.VideoSourceVideo,
     autoplay: boolean,
 }): JSX.Element {
-    let video_el!: HTMLVideoElement;
-    const [playbackRate, setPlaybackRate] = createSignal(1.0);
-    const [quality, setQuality] = createSignal<null | {w: number, h: number}>(null);
     const [targetQuality, setTargetQuality] = createSignal(0);
 
-    const [maxTime, setMaxTime] = createSignal(0);
-    const [currentTime, setCurrentTime] = createSignal(0);
-    const [buffered, setBuffered] = createSignal<BufferNode[]>([]);
+    let video_ref!: VideoRef;
+    const [state, setState] = createStore<VideoState>({
+        max_time: 0,
+        current_time: 0,
+        quality: null,
+        buffered: [],
+        playing: "loading",
+        error_overlay: null,
+        errored_sources: {},
+        playback_rate: 1,
+    });
+
     const [expandControlsRaw, setExpandControls] = createSignal(false);
-    const [playing, setPlaying] = createSignal<boolean | "loading">("loading");
-    const [errorOverlay, setErrorOverlay] = createSignal<string | null>(null);
-    const [erroredSources, setErroredSources] = createSignal<{[key: number]: boolean}>({});
-    const [hoveringProgress, setHoveringProgress] = createSignal<number | null>(null);
+    const [hoveringPercent, setHoveringPercent] = createSignal<number | null>(null);
 
     const settings = getSettings();
 
@@ -104,7 +320,7 @@ function PreviewRealVideo(props: {
     // [ ] mobile support for all the controls and stuff if you tap
     // [ ] fullscreen
 
-    const sources = () => {
+    const sources = (): VideoSourceI[] => {
         const target_index = targetQuality();
         const full_sources = props.source.sources.map((s, i) => ({...s, i}));
         return [
@@ -115,7 +331,7 @@ function PreviewRealVideo(props: {
     const qualities = (): {index: number, name: string}[] => {
         const res = new Map<string, {index: number}>();
         for(const [i, source] of props.source.sources.entries()) {
-            if(erroredSources()[i] === true) continue;
+            if(state.errored_sources[i] === true) continue;
             res.set(source.quality ?? "Unknown", {index: i});
         }
         return [...res.entries()].map(([n, v]) => ({name: n, ...v}));
@@ -124,109 +340,14 @@ function PreviewRealVideo(props: {
     const isVisible = getIsVisible();
     createEffect(() => {
         if(!isVisible()) {
-            video_el.pause();
+            video_ref.pause();
         }
-    });
-    createEffect(() => {
-        video_el.playbackRate = playbackRate();
-    });
-
-    onMount(() => {
-        debugVideo(video_el);
-
-        initShaka();
-        const player = new shaka.Player();
-        player.addEventListener("error", (e) => {
-            console.log("Error!", e);
-            setErrorOverlay("An error occured. Check console.");
-        });
-
-        createEffect(on([targetQuality], () => {
-            setTimeout(() => {
-                reloadVideo(video_el.currentTime);
-            }, 0);
-        }, {defer: true}));
-        createEffect(on([() => props.source], () => {
-            reloadVideo(0);
-        }, {defer: true}));
-
-        const reloadVideo = (start_time: number) => {
-            // TODO fix race condition when reloading
-            // the video while a reload is already occuring
-            (async () => {
-                console.log("Reloading Video", start_time);
-                let res_error = new Error("No sources");
-                for(const source of sources()) {
-                    try {
-                        await player.detach();
-                        video_el.src = "";
-                        video_el.onerror = () => {/**/};
-                        video_el.onload = () => {/**/};
-                        // shaka requires cors access to videos the browser supports eg .mp4, so
-                        // it cannot be used to play mp4 videos.
-                        // TODO: don't load shaka at all if it's not required.
-                        if(source.url.endsWith(".m3u8") || source.url.endsWith(".mpd")) {
-                            setPlaying("loading");
-                            await player.attach(video_el);
-                            console.log("trying to load", source.url);
-                            await player.load(source.url, start_time);
-                        }else{
-                            await new Promise<void>((r, re) => {
-                                video_el.onerror = (e) => {
-                                    console.log(e);
-                                    res_error = new Error("error " + e);
-                                    setErroredSources(s => ({...s, [source.i]: true}));
-                                    re(res_error);
-                                };
-                                video_el.onload = () => {
-                                    r();
-                                };
-                                video_el.src = source.url;
-                                video_el.load();
-                            });
-                        }
-                        return;
-                    }catch(e) {
-                        res_error = e as Error;
-                        setErroredSources(s => ({...s, [source.i]: true}));
-                    }
-                }
-                throw res_error;
-            })().then(() => {
-                console.log("Player loaded");
-            }).catch((e: Error) => {
-                console.log(e);
-                setErrorOverlay(e.stack ?? e.toString());
-                // TODO try other sources
-            });
-        };
-        reloadVideo(0);
-
-        onCleanup(() => {
-            player.destroy().then(() => {
-                console.log("player destroyed");
-            }).catch(e => {
-                console.log("error destroying player", e);
-            });
-        });
     });
     const showOverlay = () => {
         return settings.custom_video_controls.value() === "custom"
-        && (playing() !== true || expandControls());
+        && (state.playing !== true || expandControls());
     };
 
-    const updateProgress = () => {
-        const bufres: BufferNode[] = [];
-        for(let i = 0; i < video_el.buffered.length; i++) {
-            bufres.push({start: video_el.buffered.start(i), end: video_el.buffered.end(i)});
-        }
-        setCurrentTime(video_el.currentTime);
-        setBuffered(bufres);
-        setMaxTime(video_el.duration);
-        if(video_el.error) setErrorOverlay(video_el.error.message);
-        else if(video_el.networkState === video_el.NETWORK_NO_SOURCE) setErrorOverlay("Video could not be loaded.");
-        else setErrorOverlay(null);
-    };
     // todo support dragging left and right to seek
     return <div class="handles-clicks">
         <div
@@ -241,66 +362,16 @@ function PreviewRealVideo(props: {
                 setExpandControls(false);
             }}
         >
-            <video
-                ref={video_el}
-                controls={settings.custom_video_controls.value() === "browser"}
-                class="max-h-inherit max-w-inherit"
-                autoplay={props.autoplay}
-                width={props.video.w}
-                height={props.video.h}
-                loop={props.video.gifv}
+            <NativeVideoElement
+                state={state}
+                setState={setState}
+                videoRef={v => video_ref = v}
 
-                poster={props.source.thumbnail}
-                onplay={() => {
-                    setPlaying("loading");
-                }}
-                onplaying={() => {
-                    setPlaying(video_el.paused ? false : true);
-                }}
-                onratechange={() => {
-                    // TODO playbackRate
-                }}
-                onvolumechange={() => {
-                    //
-                }}
-                onprogress={() => {
-                    updateProgress();
-                }}
-                oncanplaythrough={() => {
-                    updateProgress();
-                }}
-                ontimeupdate={() => {
-                    updateProgress();
-                }}
-                onpause={() => {
-                    setPlaying(false);
-                }}
-                onwaiting={() => {
-                    setPlaying("loading");
-                }}
-                onstalled={() => {
-                    setPlaying("loading");
-                }}
-                onloadedmetadata={() => {
-                    setQuality({w: video_el.videoWidth, h: video_el.videoHeight});
-                    setMaxTime(video_el.duration);
-                }}
-                onloadeddata={() => {
-                    setPlaying(video_el.paused ? false : true);
-                }}
-                onemptied={() => {
-                    setQuality(null);
-                    setPlaying("loading");
-                }}
-                oncapture:error={(e) => {
-                    setPlaying(false);
-                    updateProgress();
-                }}
-            >
-                <span>{
-                    props.video.alt ?? "Your device does not support video, and alt text was not supplied."
-                }</span>
-            </video>
+                video={props.video}
+                source={props.source}
+                sources={sources()}
+                autoplay={props.autoplay}
+            />
             <div
                 class={classes(
                     "absolute top-0 left-0 bottom-0 right-0 items-center justify-center flex",
@@ -311,10 +382,10 @@ function PreviewRealVideo(props: {
                 <button
                     class="block transform scale-200 hover:scale-300 transition-transform"
                     onclick={() => {
-                        if(video_el.paused) {
-                            void video_el.play();
+                        if(state.playing === true) {
+                            video_ref.pause();
                         }else{
-                            video_el.pause();
+                            video_ref.play();
                         }
                     }}
                     style={{
@@ -322,10 +393,10 @@ function PreviewRealVideo(props: {
                     }}
                 >
                     <Icon size="icon-sm" icon={
-                        playing() === false ? {
+                        state.playing === false ? {
                             class: "icon-play-button",
                             label: "Play",
-                        } : playing() === true ? {
+                        } : state.playing === true ? {
                             class: "icon-play-pause",
                             label: "Pause",
                         } : {
@@ -335,7 +406,7 @@ function PreviewRealVideo(props: {
                     } />
                 </button>
             </div>
-            <ShowCond when={errorOverlay()}>{overlay => (
+            <ShowCond when={state.error_overlay}>{overlay => (
                 <div
                     class={classes(
                         "absolute top-0 left-0 bottom-0 right-0 p-4 bg-rgray-900 bg-opacity-75",
@@ -357,14 +428,14 @@ function PreviewRealVideo(props: {
                 <div
                     class="h-1 w-full relative bg-rgray-100 bg-opacity-50"
                 >
-                    <Index each={buffered()}>{(item, i) => (
+                    <Index each={state.buffered}>{(item, i) => (
                         <div class="absolute h-full bg-rgray-500 bg-opacity-75" style={{
-                            'width': (item().end - item().start) / maxTime() * 100 + "%",
-                            'left': item().start / maxTime() * 100 + "%",
+                            'width': (item().end - item().start) / state.max_time * 100 + "%",
+                            'left': item().start / state.max_time * 100 + "%",
                         }}></div>
                     )}</Index>
                     <div class="absolute h-full bg-rgray-700" style={{
-                        'width': (currentTime() / maxTime() * 100) + "%",
+                        'width': (state.current_time / state.max_time * 100) + "%",
                     }}></div>
                 </div>
             </div>
@@ -383,33 +454,32 @@ function PreviewRealVideo(props: {
                         "relative",
                         "bg-rgray-100 bg-opacity-50",
                         "transform transition-transform origin-bottom",
-                        hoveringProgress() != null ? "scale-y-150" : "",
+                        hoveringPercent() != null ? "scale-y-150" : "",
                     )}
                     onmousemove={e => {
                         const size = e.currentTarget.getBoundingClientRect();
-                        setHoveringProgress(e.offsetX / size.width);
+                        setHoveringPercent((e.clientX - size.left) / size.width);
                     }}
                     onmouseleave={() => {
-                        setHoveringProgress(null);
+                        setHoveringPercent(null);
                     }}
                     onmouseup={e => {
                         const size = e.currentTarget.getBoundingClientRect();
-                        const progress = e.offsetX / size.width;
+                        const progress = (e.clientX - size.left) / size.width;
                         // TODO only if the mouse down started on this element
-                        video_el.currentTime = progress * video_el.duration;
-                        updateProgress();
+                        video_ref.seek(progress * state.max_time);
                     }}
                 >
-                    <Index each={buffered()}>{(item, i) => (
+                    <Index each={state.buffered}>{(item, i) => (
                         <div class="absolute h-full bg-rgray-500 bg-opacity-75" style={{
-                            'width': (item().end - item().start) / maxTime() * 100 + "%",
-                            'left': item().start / maxTime() * 100 + "%",
+                            'width': (item().end - item().start) / state.max_time * 100 + "%",
+                            'left': item().start / state.max_time * 100 + "%",
                         }}></div>
                     )}</Index>
                     <div class="absolute h-full bg-rgray-700" style={{
-                        'width': (currentTime() / maxTime() * 100) + "%",
+                        'width': (state.current_time / state.max_time * 100) + "%",
                     }}></div>
-                    <ShowCond when={hoveringProgress()}>{hover_progress => (
+                    <ShowCond when={hoveringPercent()}>{hover_progress => (
                         <div class="absolute h-full bg-rgray-900 bg-opacity-50" style={{
                             'width': (hover_progress * 100) + "%",
                         }}></div>
@@ -419,17 +489,17 @@ function PreviewRealVideo(props: {
                     class="flex transform transition-transform origin-bottom"
                 >
                     <button class="block" onclick={() => {
-                        if(video_el.paused) {
-                            void video_el.play();
+                        if(state.playing === true) {
+                            video_ref.pause();
                         }else{
-                            video_el.pause();
+                            video_ref.play();
                         }
                     }}>
                         <Icon size="icon-sm" icon={
-                            playing() === false ? {
+                            state.playing === false ? {
                                 class: "icon-play-button",
                                 label: "Play",
-                            } : playing() === true ? {
+                            } : state.playing === true ? {
                                 class: "icon-play-pause",
                                 label: "Pause",
                             } : {
@@ -439,7 +509,7 @@ function PreviewRealVideo(props: {
                         } />
                     </button>
                     <div class="flex-grow"></div>
-                    <div>{timeSecToString(currentTime())} / {timeSecToString(maxTime())}</div>
+                    <div>{timeSecToString(state.current_time)} / {timeSecToString(state.max_time)}</div>
                 </div>
             </div>
         </div>
@@ -447,18 +517,21 @@ function PreviewRealVideo(props: {
             <For each={[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]}>{speed => (
                 <button
                     class={link_styles_v["outlined-button"]}
-                    disabled={playbackRate() === speed}
-                    on:click={() => setPlaybackRate(speed)}
+                    disabled={state.playback_rate === speed}
+                    on:click={() => video_ref.setPlaybackRate(speed)}
                 >{speed}×</button>
             )}</For>
         </div>
         <div class="flex">
-            Quality: {quality() == null ? "Loading" : quality()!.w+"×"+quality()!.h}
+            Quality: {state.quality == null ? "Loading" : state.quality.w+"×"+state.quality.h}
             <For each={qualities()}>{(qual, i) => (
                 <button
                     class={link_styles_v["outlined-button"]}
                     disabled={targetQuality() === i()}
-                    on:click={() => setTargetQuality(qual.index)}
+                    on:click={() => {
+                        setTargetQuality(qual.index);
+                        video_ref.reload();
+                    }}
                 >{qual.name}</button>
             )}</For>
         </div>
