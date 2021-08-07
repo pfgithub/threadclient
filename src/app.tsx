@@ -549,8 +549,26 @@ function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
 export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdownRenderer> => {
     const enc = new TextEncoder();
     const dec = new TextDecoder();
-    const getMem = () => obj.instance.exports.memory as WebAssembly.Memory;
-    const obj = await WebAssembly.instantiate(await fetch("/snudown.wasm").then(v => v.arrayBuffer()), {
+    const exports = await (await import("./snudown.wasm")).default<{
+        memory: WebAssembly.Memory,
+
+        // (len: usize) => [*]u8
+        //   creates a u8 array of specified length
+        allocString: (len: number) => number,
+
+        // (ptr: [*]u8, len: usize)
+        //   frees a u8 array of specified length
+        freeText: (ptr: number, len: number) => void,
+
+        // (strptr: [*]u8, len: usize) => [*:0]u8 (caller must free!)
+        //   converts markdown to html. panics on oom. returns
+        //   a null-terminated utf-8 string the caller must free.
+        markdownToHTML: (strptr: number, len: number) => number,
+
+        // (strptr: [*:0]u8) => usize
+        //   gets the byte length of a null-terminated string.
+        strlen: (strptr: number) => number,
+    }>({
         env: {
             __assert_fail: (assertion: number, file: number, line: number, fn: number) => {
                 console.log(assertion, file, line, fn);
@@ -560,7 +578,7 @@ export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditM
                 throw new Error("stack overflow");
             },
             debugprints: (text: number, len: number) => {
-                console.log("print text:",dec.decode(new Uint8Array(getMem().buffer, text, len)));
+                console.log("print text:",dec.decode(new Uint8Array(exports.memory.buffer, text, len)));
             },
             debugprinti: (intv: number) => {
                 console.log("print int:", intv);
@@ -569,39 +587,19 @@ export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditM
                 console.log("print char:", String.fromCodePoint(intv));
             },
             debugpanic: (text: number, len: number) => {
-                throw new Error("Panic: "+ dec.decode(new Uint8Array(getMem().buffer, text, len)));
+                throw new Error("Panic: "+ dec.decode(new Uint8Array(exports.memory.buffer, text, len)));
             }
         },
     });
     return {renderMd(md: string) {
-        const exports = obj.instance.exports as {
-            memory: WebAssembly.Memory,
-
-            // (len: usize) => [*]u8
-            //   creates a u8 array of specified length
-            allocString: (len: number) => number,
-
-            // (ptr: [*]u8, len: usize)
-            //   frees a u8 array of specified length
-            freeText: (ptr: number, len: number) => void,
-
-            // (strptr: [*]u8, len: usize) => [*:0]u8 (caller must free!)
-            //   converts markdown to html. panics on oom. returns
-            //   a null-terminated utf-8 string the caller must free.
-            markdownToHTML: (strptr: number, len: number) => number,
-
-            // (strptr: [*:0]u8) => usize
-            //   gets the byte length of a null-terminated string.
-            strlen: (strptr: number) => number,
-        };
         try{
             const utf8 = enc.encode(md);
             const strptr = exports.allocString(utf8.byteLength);
-            const inmem = new Uint8Array(getMem().buffer, strptr, utf8.byteLength);
+            const inmem = new Uint8Array(exports.memory.buffer, strptr, utf8.byteLength);
             inmem.set(utf8);
             const res = exports.markdownToHTML(strptr, utf8.byteLength);
             const outlen = exports.strlen(res);
-            const outarr = new Uint8Array(getMem().buffer, res, outlen);
+            const outarr = new Uint8Array(exports.memory.buffer, res, outlen);
             const decoded = dec.decode(outarr);
             exports.freeText(strptr, utf8.byteLength);
             exports.freeText(res, outlen);
