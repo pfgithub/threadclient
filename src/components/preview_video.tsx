@@ -299,6 +299,45 @@ function NativeVideoElement(props: {
     </video>;
 }
 
+// function YoutubeVideoElement(props: {
+//     state: Store<VideoState>,
+//     setState: SetStoreFunction<VideoState>,
+//     videoRef: (v: VideoRef) => void,
+
+//     video: Generic.Video,
+//     source: Generic.VideoSourceVideo,
+//     sources: VideoSourceI[],
+//     autoplay: boolean,
+//     custom_controls: boolean,
+// }): JSX.Element {
+//     // https://stackoverflow.com/a/62183919
+//     // there's a hack you can do with yt videos in frames
+//     // TODO:
+//     // - &controls=0
+//     // - &disablekb=1
+//     // - &enablejsapi=1
+//     // - &playsinline=1 :: for ios
+//     // - &loop={props.source.gifv}
+//     // relevant docs:
+//     // - https://developers.google.com/youtube/player_parameters
+//     // - https://developers.google.com/youtube/iframe_api_reference
+//     // TODO: after the video has finished playing, hide it to
+//     //       prevent showing related videos
+//     //       (onstatechange will tell you if the video is ended
+//     //        or a new video is queued and you can cancel it somehow)
+//     // notes:
+//     // - setting video quality manually is not supported
+//     onMount(() => {
+//         // props.videoRef({
+
+//         // });
+//     });
+//     // ok this is a fun idea and I might do it
+//     // but also I'd probably rather view yt videos directly on the site
+//     // than in a custom player here.
+//     return <div></div>
+// }
+
 type VideoState = {
     max_time: number, // 0 | "loading"?
     current_time: number,
