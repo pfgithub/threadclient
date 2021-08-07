@@ -1,6 +1,7 @@
 import { hideshow, HideShowCleanup } from "../app";
 import videojs from "video.js";
 import "video.js/dist/video-js.min.css";
+import "./videojs_fix.scss";
 
 // for some reason shaka isn't playing the m3u8 files
 
@@ -12,7 +13,7 @@ export function playM3U8(
     const container_outer = el("div");
     const hsc = hideshow(container_outer);
 
-    const container = container_outer;
+    const container = container_outer.clss("handles-clicks");
     // const container = container_outer.attachShadow({mode: "open"}); // video-js does not work within a shadow dom
     // el("style").atxt(css).adto(container);
 
