@@ -2129,6 +2129,7 @@ function clientListing(
                     || target_parent.nodeName === "TEXTAREA"
                     || target_parent.nodeName === "IFRAME"
                     || target_parent.classList.contains("resizable-iframe")
+                    || target_parent.classList.contains("handles-clicks")
                 )) return;
                 target_parent = target_parent.parentNode;
             }

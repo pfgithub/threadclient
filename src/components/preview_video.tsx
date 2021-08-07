@@ -193,7 +193,7 @@ function PreviewRealVideo(props: {
         else setErrorOverlay(null);
     };
     // todo support dragging left and right to seek
-    return <div>
+    return <div class="handles-clicks">
         <div
             class="preview-image relative min-w-50px min-h-50px overflow-hidden"
             onmouseenter={() => {
