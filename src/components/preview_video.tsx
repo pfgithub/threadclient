@@ -15,6 +15,38 @@ function timeSecToString(time: number): string {
     ;
 }
 
+function debugVideo(video_el: HTMLMediaElement) {
+    if(true as false) return;
+    const video_event_types: (keyof HTMLMediaElementEventMap)[] = [
+        "encrypted", "waitingforkey", "fullscreenchange", "fullscreenerror",
+        "abort", "animationcancel", "animationend", "animationiteration",
+        "animationstart", "auxclick", "beforeinput", "blur", "cancel",
+        "canplay", "canplaythrough", "change", "click", "close",
+        "compositionend", "compositionstart", "compositionupdate",
+        "contextmenu", "cuechange", "dblclick", "drag", "dragend",
+        "dragenter", "dragexit", "dragleave", "dragover",
+        "dragstart", "drop", "durationchange", "emptied", "ended",
+        "error", "focus", "focusin", "focusout", "gotpointercapture",
+        "input", "invalid", "keydown", "keypress", "keyup", "load",
+        "loadeddata", "loadedmetadata", "loadstart", "lostpointercapture",
+        "mousedown", "mouseenter", "mouseleave", "mousemove", "mouseout",
+        "mouseover", "mouseup", "pause", "play", "playing", "pointercancel",
+        "pointerdown", "pointerenter", "pointerleave", "pointermove",
+        "pointerout", "pointerover", "pointerup", "progress", "ratechange",
+        "reset", "resize", "scroll", "securitypolicyviolation", "seeked",
+        "seeking", "select", "selectionchange", "selectstart", "stalled",
+        "submit", "suspend", "timeupdate", "toggle", "touchcancel",
+        "touchend", "touchmove", "touchstart", "transitioncancel",
+        "transitionend", "transitionrun", "transitionstart", "volumechange",
+        "waiting", "wheel", "copy", "cut", "paste",
+    ];
+    for(const video_ev of video_event_types) {
+        video_el.addEventListener(video_ev, e => {
+            console.log("video on"+video_ev, e);
+        });
+    }
+}
+
 let shaka_initialized = false;
 function initShaka(): void {
     if(shaka_initialized) return;
@@ -100,6 +132,8 @@ function PreviewRealVideo(props: {
     });
 
     onMount(() => {
+        debugVideo(video_el);
+
         initShaka();
         const player = new shaka.Player();
         player.addEventListener("error", (e) => {
@@ -123,37 +157,38 @@ function PreviewRealVideo(props: {
                 console.log("Reloading Video", start_time);
                 let res_error = new Error("No sources");
                 for(const source of sources()) {
-                    await player.detach();
-                    video_el.src = "";
-                    video_el.onerror = () => {/**/};
-                    video_el.onload = () => {/**/};
-                    // shaka requires cors access to videos the browser supports eg .mp4, so
-                    // it cannot be used to play mp4 videos.
-                    // TODO: don't load shaka at all if it's not required.
-                    if(source.url.endsWith(".m3u8") || source.url.endsWith(".mpd")) {
-                        try {
+                    try {
+                        await player.detach();
+                        video_el.src = "";
+                        video_el.onerror = () => {/**/};
+                        video_el.onload = () => {/**/};
+                        // shaka requires cors access to videos the browser supports eg .mp4, so
+                        // it cannot be used to play mp4 videos.
+                        // TODO: don't load shaka at all if it's not required.
+                        if(source.url.endsWith(".m3u8") || source.url.endsWith(".mpd")) {
                             setPlaying("loading");
                             await player.attach(video_el);
+                            console.log("trying to load", source.url);
                             await player.load(source.url, start_time);
-                            break;
-                        }catch(e) {
-                            res_error = e as Error;
-                            setErroredSources(s => ({...s, [source.i]: true}));
+                        }else{
+                            await new Promise<void>((r, re) => {
+                                video_el.onerror = (e) => {
+                                    console.log(e);
+                                    res_error = new Error("error " + e);
+                                    setErroredSources(s => ({...s, [source.i]: true}));
+                                    re(res_error);
+                                };
+                                video_el.onload = () => {
+                                    r();
+                                };
+                                video_el.src = source.url;
+                                video_el.load();
+                            });
                         }
-                    }else{
-                        await new Promise<void>((r, re) => {
-                            video_el.onerror = (e) => {
-                                console.log(e);
-                                res_error = new Error("error " + e);
-                                setErroredSources(s => ({...s, [source.i]: true}));
-                                r();
-                            };
-                            video_el.onload = () => {
-                                r();
-                            };
-                            video_el.src = source.url;
-                            video_el.load();
-                        });
+                        return;
+                    }catch(e) {
+                        res_error = e as Error;
+                        setErroredSources(s => ({...s, [source.i]: true}));
                     }
                 }
                 throw res_error;
