@@ -183,7 +183,6 @@ export function CodeBlock(props: {
     const [menuOpen, setMenuOpen] = createSignal(false);
 
     createEffect(() => {
-        console.log(prism());
         if(language() != null || menuOpen()) {
             fetchPrism();
         }
@@ -194,7 +193,12 @@ export function CodeBlock(props: {
         setHighlighted(null);
         if(prism() && language() != null) {
             prism()!.highlight(props.text, language() ?? "plaintext").then(r => {
-                if(active) setHighlighted(r);
+                if(active) {
+                    setHighlighted(r);
+                    if(r == null) {
+                        console.log("syn hl language not supported", language());
+                    }
+                }
             }).catch(e => {
                 console.log(e);
                 alert("error highlighting");

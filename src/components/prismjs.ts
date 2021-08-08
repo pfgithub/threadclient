@@ -281,11 +281,14 @@ const languages_raw: {[key: string]: () => Promise<{_?: undefined}>} = {
 export function listLanguages(): string[] {
     return Object.keys(languages_raw);
 }
-export async function highlight(text: string, language_name: string): Promise<string> {
+export async function highlight(text: string, language_name: string): Promise<string | null> {
     if(!refractor.registered(language_name)) {
         if(languages_raw[language_name]) {
             await languages_raw[language_name]!();
         }
+    }
+    if(!refractor.registered("language_name")) {
+        return null;
     }
 
     return toHtml(refractor.highlight(text, language_name));
