@@ -871,7 +871,7 @@ export type PostOrComment = {
 type VariantSource = {
     source: {url: string, width: number, height: number},
     resolutions: {url: string, width: number, height: number}[],
-}
+};
 
 export type PostSubmission = PostOrComment & {
     title: string,

@@ -2725,7 +2725,7 @@ function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPer
         source: {kind: "video", sources: [{url: listing.rpan_video.hls_url}]},
         gifv: false,
     };
-    if(listing.preview && listing.preview.images && listing.preview.images.length === 1) {
+    if(listing.preview && listing.preview.images.length === 1) {
         const image = listing.preview.images[0]!;
         if(image.variants.mp4) {
             const mp4 = image.variants.mp4;

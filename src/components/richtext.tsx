@@ -1,4 +1,5 @@
-import { createEffect, createMemo, createResource, createSignal, For, JSX, Match, Switch } from "solid-js";
+import "prism-themes/themes/prism-vsc-dark-plus.css";
+import { createEffect, createMemo, createSignal, For, JSX, Match, Switch } from "solid-js";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -154,22 +155,21 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
     }}</SwitchKind>;
 }
 
-import "prism-themes/themes/prism-vsc-dark-plus.css";
 
 // I'm sure there's a better way to handle this
 // it's not quite something I can do with a suspense
 const [prism, setPrism] = createSignal<undefined | typeof import("./prismjs")>(undefined);
 let prism_loading = false;
-const fetchPrism = () => {
+function fetchPrism() {
     if(!prism() || prism_loading) {
         prism_loading = true;
         import("./prismjs").then(r => setPrism(r)).catch(e => {
             alert("error loading syntax highlighter");
             prism_loading = false;
             console.log(e);
-        })
+        });
     }
-};
+}
 
 export function CodeBlock(props: {
     text: string,
@@ -233,9 +233,10 @@ export function CodeBlock(props: {
                 </select>
             </ShowBool>
         </div>
-            {/* (void 0, ) is required because for optimization, solid
-            js converts a && b to !!a && b which does not have exactly the
-            same semantics.*/}
+        {/* (void 0, ) is required because for optimization, solid
+        js converts a && b to !!a && b which does not have exactly the
+        same semantics.*/
+        }
         <ShowCond when={(void 0, prism() && language())} fallback={
             /* !whitespace-pre-wrap is required here due to a weird issue
             in the browser where somehow the less important white-space: pre
