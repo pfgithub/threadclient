@@ -139,6 +139,7 @@ function NativeVideoElement(props: {
                         video_el.src = "";
                         video_el.onerror = () => {/**/};
                         video_el.onload = () => {/**/};
+                        video_el.onloadedmetadata = () => {/**/};
                         // shaka requires cors access to videos the browser supports eg .mp4, so
                         // it cannot be used to play mp4 videos.
                         // TODO: don't load shaka at all if it's not required.
@@ -161,6 +162,9 @@ function NativeVideoElement(props: {
                                 };
                                 video_el.onload = () => {
                                     r();
+                                };
+                                video_el.onloadedmetadata = () => {
+                                    video_el.currentTime = start_time;
                                 };
                                 video_el.src = source.url;
                                 video_el.load();

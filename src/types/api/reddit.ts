@@ -868,6 +868,11 @@ export type PostOrComment = {
     depth: number, // use this to determine the number for "load x more" when going up
 };
 
+type VariantSource = {
+    source: {url: string, width: number, height: number},
+    resolutions: {url: string, width: number, height: number}[],
+}
+
 export type PostSubmission = PostOrComment & {
     title: string,
 
@@ -893,12 +898,13 @@ export type PostSubmission = PostOrComment & {
     }[]},
 
     preview?: {
-        images: {
+        images: ({
             id: string,
-            source: {url: string, width: number, height: number},
-            resolutions: {url: string, width: number, height: number}[],
-            variants: unknown,
-        }[],
+            variants: {
+                gif?: VariantSource,
+                mp4?: VariantSource,
+            },
+        } & VariantSource)[],
         enabled: boolean,
     },
     

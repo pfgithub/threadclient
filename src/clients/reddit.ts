@@ -2612,16 +2612,17 @@ function postDataFromListingMayError(
 }
 
 function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPermalink): Generic.Body {
-    return (
+    if(
         listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
-    ) ? {
+    ) return {
         kind: "crosspost",
         source: threadFromListing(
             {kind: "t3", data: listing.crosspost_parent_list[0]!},
             {force_expand: "crosspost"},
             sortWrap(parent_permalink, listing.permalink),
         ) as Generic.Thread,
-    } : listing.is_self ? {
+    };
+    if(listing.is_self) return {
         kind: "array",
         body: [
             listing.rtjson.document.length
@@ -2644,7 +2645,8 @@ function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPer
                 close_time: listing.poll_data.voting_end_timestamp,
             } : undefined,
         ],
-    } : listing.gallery_data ? {
+    };
+    if(listing.gallery_data) return {
         kind: "gallery",
         images: listing.gallery_data.items.map(gd => {
             if(!listing.media_metadata) throw new Error("missing media metadata");
@@ -2717,11 +2719,30 @@ function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPer
             };
             return res;
         })
-    } : listing.rpan_video ? {
+    };
+    if(listing.rpan_video) return {
         kind: "video",
         source: {kind: "video", sources: [{url: listing.rpan_video.hls_url}]},
         gifv: false,
-    } : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content};
+    };
+    if(listing.preview && listing.preview.images && listing.preview.images.length === 1) {
+        const image = listing.preview.images[0]!;
+        if(image.variants.mp4) {
+            const mp4 = image.variants.mp4;
+            return {
+                kind: "video",
+                source: {
+                    kind: "video",
+                    sources: [...mp4.resolutions, mp4.source].sort((a, b) => b.width - a.width).map(source => ({
+                        url: source.url,
+                        quality: source.width + "×" + source.height,
+                    })),
+                },
+                gifv: true,
+            };
+        }
+    }
+    return {kind: "link", url: listing.url, embed_html: listing.media_embed?.content};
 }
 
 const as = <T>(a: T): T => a;
