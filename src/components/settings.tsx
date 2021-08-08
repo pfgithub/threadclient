@@ -72,6 +72,8 @@ function SettingPicker<T extends string>(props: {
 }
 
 export function SettingsPage(props: {_?: undefined}): JSX.Element {
+    const [showDevSettings, setShowDevSettings] = createSignal(false);
+
     return <div class="client-wrapper"><div class="display-comments-view">
         <SettingsSection title="Color Scheme">
             <SettingPicker
@@ -256,16 +258,45 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
             </div>
         </SettingsSection>
         <SettingsSection title="Developer Options">
-            <h3 class="text-md font-light text-gray-600">Page Version</h3>
-            <SettingPicker
-                setting={getSettings().page_version}
-                options={["1", "2", undefined]}
-                name={v => ({
-                    '1': "V1",
-                    '2': "V2",
-                    'default': "Default",
-                } as const)[v ?? "default"]}
-            />
+            <p class="my-2">
+                Leave all these default. Changing these will break things.{" "}
+            </p>
+            <ShowBool
+                when={showDevSettings()}
+                fallback={<button
+                    class={link_styles_v["outlined-button"]}
+                    onclick={() => setShowDevSettings(true)}
+                >Show Anyway</button>}
+            >
+                <h3 class="text-lg font-light text-gray-600">Page Version</h3>
+                <SettingPicker
+                    setting={getSettings().page_version}
+                    options={["1", "2", undefined]}
+                    name={v => ({
+                        '1': "V1",
+                        '2': "V2",
+                        'default': "Default",
+                    } as const)[v ?? "default"]}
+                />
+                <p class="my-2">
+                    Uses the new page2 renderer.
+                </p>
+                <h3 class="text-lg font-light text-gray-600">Cors Proxy</h3>
+                <SettingPicker
+                    setting={getSettings().cors_proxy}
+                    options={["on", "off", undefined]}
+                    name={v => ({
+                        'on': "On",
+                        'off': "Off",
+                        'default': "Default",
+                    } as const)[v ?? "default"]}
+                />
+                <p class="my-2">
+                    Uses a proxy to bypass CORS restrictions. This will allow
+                    for improved rendering of twitter link previews and enable
+                    scrubbing in animated gifs.
+                </p>
+            </ShowBool>
         </SettingsSection>
     </div></div>;
     // TODO display:

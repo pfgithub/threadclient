@@ -106,6 +106,7 @@ type UpdateNotifications = "on" | "off";
 type CustomVideoControls = "browser" | "custom";
 type PageVersion = "1" | "2";
 type LinkHelpers = "show" | "hide";
+type CorsProxy = "on" | "off";
 type Settings = {
     color_scheme: ComputeProperty<ColorScheme>,
     author_pfp: ComputeProperty<AuthorPfp>,
@@ -113,6 +114,7 @@ type Settings = {
     custom_video_controls: ComputeProperty<CustomVideoControls>,
     page_version: ComputeProperty<PageVersion>,
     link_helpers: ComputeProperty<LinkHelpers>,
+    cors_proxy: ComputeProperty<CorsProxy>,
 };
 
 function localStorageProperty<T extends string>(ls_key: string, accessBase: () => T): ComputeProperty<T> {
@@ -191,6 +193,7 @@ const global_settings = ((): Settings => {
         page_version: localStorageProperty("page_version", () => "1"),
         // TODO maybe default to show if there is a touch event?
         link_helpers: localStorageProperty("link_helpers", () => "hide"),
+        cors_proxy: localStorageProperty("cors_proxy", () => "off"),
     };
 })();
 
