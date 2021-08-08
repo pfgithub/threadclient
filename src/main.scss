@@ -958,7 +958,7 @@ summary {
     grid-column: icon / end;
 }
 
-.outline-default {
+.outline-default:focus {
     outline: 1px dotted var(--outline-color);
 }
 

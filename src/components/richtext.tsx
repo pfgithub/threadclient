@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, JSX, Match, Switch } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, JSX, Match, Switch } from "solid-js";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -138,12 +138,7 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             if(list.ordered) return <ol class="list-decimal pl-4">{listContent()}</ol>;
             return <ul class="list-disc pl-4">{listContent()}</ul>;
         },
-        code_block: (code) => <pre class="bg-gray-200 p-2 rounded text-gray-800">
-            <ShowCond when={code.lang}>{lang => <div class="font-sans">
-                <span class="bg-gray-100 p-1 inline-block rounded-sm">lang={lang}</span>
-            </div>}</ShowCond>
-            <code>{code.text}</code>
-        </pre>,
+        code_block: (code) => <CodeBlock text={code.text} default_language={code.lang ?? null} />,
         table: (table) => <table>
             <thead><tr>
                 <For each={table.headings}>{heading => (
@@ -157,6 +152,101 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             </tr>}</For></tbody>
         </table>,
     }}</SwitchKind>;
+}
+
+import "prism-themes/themes/prism-vsc-dark-plus.css";
+
+// I'm sure there's a better way to handle this
+// it's not quite something I can do with a suspense
+const [prism, setPrism] = createSignal<undefined | typeof import("./prismjs")>(undefined);
+let prism_loading = false;
+const fetchPrism = () => {
+    if(!prism() || prism_loading) {
+        prism_loading = true;
+        import("./prismjs").then(r => setPrism(r)).catch(e => {
+            alert("error loading syntax highlighter");
+            prism_loading = false;
+            console.log(e);
+        })
+    }
+};
+
+export function CodeBlock(props: {
+    text: string,
+    default_language: string | null,
+}): JSX.Element {
+    const [language, setLanguage] = createSignal(props.default_language);
+    createEffect(() => setLanguage(props.default_language));
+
+    const [menuOpen, setMenuOpen] = createSignal(false);
+
+    createEffect(() => {
+        console.log(prism());
+        if(language() != null || menuOpen()) {
+            fetchPrism();
+        }
+    });
+
+    return <pre tabindex="0" class={classes([
+        "bg-gray-200 p-2 rounded text-gray-800",
+        "relative",
+        "group",
+        "outline-default",
+        "language-"+(language() ?? "none"),
+        "!whitespace-pre-wrap",
+    ])}>
+        <div class={classes([
+            "absolute",
+            "top-0 right-0",
+            "transition-opacity",
+            "opacity-0",
+            "group-hover:opacity-100",
+            "group-focus:opacity-100",
+            "focus:opacity-100",
+            "bg-gray-100 rounded",
+            "p-2 px-3",
+        ])}>
+            <ShowBool when={!!prism() && menuOpen()} fallback={
+                <button
+                    class={classes([
+                        "font-sans",
+                    ])}
+                    onclick={() => {
+                        setMenuOpen(v => !v);
+                    }}
+                >
+                    {language() ?? "None"} {menuOpen() ? "▴" : "▾"}
+                </button>
+            }>
+                {/*The <></> wrapper is required to work around that firefox whitesoace-pre bug*/}
+                <select class="block" oninput={e => {
+                    const value = e.currentTarget.value;
+                    if(value === "null") setLanguage(null);
+                    else setLanguage(value);
+                }}>
+                    <option value="null">None</option>
+                    <For each={
+                        prism()!.refractor.listLanguages().sort((a, b) => a.localeCompare(b))
+                    }>{lang => (
+                        <option value={lang}>{lang}</option>
+                    )}</For>
+                </select>
+            </ShowBool>
+        </div>
+            {/* (void 0, ) is required because for optimization, solid
+            js converts a && b to !!a && b which does not have exactly the
+            same semantics.*/}
+        <ShowCond when={(void 0, prism() && language())} fallback={
+            /* !whitespace-pre-wrap is required here due to a weird issue
+            in the browser where somehow the less important white-space: pre
+            that in devtools is striked out is somehow used instead of
+            the pre-wrap. this occurs in both firefox and chrome so it
+            might be some weird spec thing? */
+            <code class="!whitespace-pre-wrap">{props.text}</code>
+        }>{lang => <>
+            <div innerHTML={prism()!.toHtml(prism()!.refractor.highlight(props.text, lang))} />
+        </>}</ShowCond>
+    </pre>;
 }
 
 export function RichtextParagraphs(props: {
