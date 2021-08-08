@@ -188,11 +188,10 @@ const global_settings = ((): Settings => {
     return {
         color_scheme,
         author_pfp: localStorageProperty("pfp-cfg", () => "on"),
-        update_notifications: localStorageProperty("update_notices", () => "off"),
+        update_notifications: localStorageProperty("update_notices", () => "on"),
         custom_video_controls: localStorageProperty("custom_video_controls", () => "browser"),
         page_version: localStorageProperty("page_version", () => "1"),
-        // TODO maybe default to show if there is a touch event?
-        link_helpers: localStorageProperty("link_helpers", () => "hide"),
+        link_helpers: localStorageProperty("link_helpers", () => "show"),
         cors_proxy: localStorageProperty("cors_proxy", () => "off"),
     };
 })();
