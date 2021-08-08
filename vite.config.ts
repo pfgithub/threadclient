@@ -20,6 +20,13 @@ export default defineConfig({
     build: {
         target: "esnext",
         polyfillDynamicImport: false,
+        // rollupOptions: {
+        //     treeshake: {
+        //         moduleSideEffects: [
+        //             "/node_modules/refractor/*"
+        //         ],
+        //     },
+        // },
     },
     publicDir: "static",
 });

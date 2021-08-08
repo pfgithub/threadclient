@@ -1,5 +1,5 @@
 import "prism-themes/themes/prism-vsc-dark-plus.css";
-import { createEffect, createMemo, createSignal, For, JSX, Match, Switch } from "solid-js";
+import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch } from "solid-js";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -178,12 +178,27 @@ export function CodeBlock(props: {
     const [language, setLanguage] = createSignal(props.default_language);
     createEffect(() => setLanguage(props.default_language));
 
+    const [highlighted, setHighlighted] = createSignal<null | string>(null);
+
     const [menuOpen, setMenuOpen] = createSignal(false);
 
     createEffect(() => {
         console.log(prism());
         if(language() != null || menuOpen()) {
             fetchPrism();
+        }
+    });
+    createEffect(() => {
+        let active = true;
+        onCleanup(() => active = false);
+        setHighlighted(null);
+        if(prism() && language() != null) {
+            prism()!.highlight(props.text, language() ?? "plaintext").then(r => {
+                if(active) setHighlighted(r);
+            }).catch(e => {
+                console.log(e);
+                alert("error highlighting");
+            });
         }
     });
 
@@ -226,26 +241,22 @@ export function CodeBlock(props: {
                 }}>
                     <option value="null">None</option>
                     <For each={
-                        prism()!.refractor.listLanguages().sort((a, b) => a.localeCompare(b))
+                        prism()!.listLanguages().sort((a, b) => a.localeCompare(b))
                     }>{lang => (
                         <option value={lang}>{lang}</option>
                     )}</For>
                 </select>
             </ShowBool>
         </div>
-        {/* (void 0, ) is required because for optimization, solid
-        js converts a && b to !!a && b which does not have exactly the
-        same semantics.*/
-        }
-        <ShowCond when={(void 0, prism() && language())} fallback={
+        <ShowCond when={highlighted()} fallback={
             /* !whitespace-pre-wrap is required here due to a weird issue
             in the browser where somehow the less important white-space: pre
             that in devtools is striked out is somehow used instead of
             the pre-wrap. this occurs in both firefox and chrome so it
             might be some weird spec thing? */
             <code class="!whitespace-pre-wrap">{props.text}</code>
-        }>{lang => <>
-            <div innerHTML={prism()!.toHtml(prism()!.refractor.highlight(props.text, lang))} />
+        }>{hl => <>
+            <div innerHTML={hl} />
         </>}</ShowCond>
     </pre>;
 }
