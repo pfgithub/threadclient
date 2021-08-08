@@ -2,7 +2,7 @@
 // export {refractor} from "refractor/lib/all";
 // export {toHtml} from "hast-util-to-html";
 
-import {Syntax, refractor} from "refractor/lib/core";
+import {refractor} from "refractor/lib/core";
 import {toHtml} from "hast-util-to-html";
 
 // https://github.com/wooorm/refractor/blob/main/lib/common.js
@@ -278,9 +278,7 @@ const languages_raw: {[key: string]: () => Promise<{_?: undefined}>} = {
     'zig': () => import("./prismjs_other"),
 };
 
-const registered_languages = new Set<string>();
-
-export function listLanguages() {
+export function listLanguages(): string[] {
     return Object.keys(languages_raw);
 }
 export async function highlight(text: string, language_name: string): Promise<string> {
