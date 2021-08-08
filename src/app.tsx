@@ -334,7 +334,11 @@ export function previewLink(
     if(path.endsWith(".mp3")) {
         return {kind: "audio", url: link};
     }
-    if(url && (url.host === "www.youtube.com" || url.host === "youtube.com") && url.pathname === "/watch") {
+    if(url && (
+        url.host === "www.youtube.com"
+        || url.host === "youtube.com"
+        || url.host === "m.youtube.com"
+    ) && url.pathname === "/watch") {
         const ytvid_id = url.searchParams.get("v");
         if(ytvid_id != null) return {kind: "youtube", id: ytvid_id, search: url.searchParams.toString()};
     }
