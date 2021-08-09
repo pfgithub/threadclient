@@ -5,6 +5,7 @@
         "noUncheckedIndexedAccess": true,
         "noImplicitAny": true,
         "noImplicitReturns": true,
+        "importsNotUsedAsValues": "error",
 
         "baseUrl": ".",
         "outDir": "./dist",

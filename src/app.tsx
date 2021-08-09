@@ -1,10 +1,10 @@
-import { ThreadClient } from "./clients/base";
+import type { ThreadClient } from "./clients/base";
 import { OEmbed, oembed } from "./clients/oembed";
 import { Flair, ReplyEditor, TimeAgo } from "./components/author_pfp";
 import { Body, ImageGallery } from "./components/body";
 import { Homepage } from "./components/homepage";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
-import * as Generic from "./types/generic";
+import type * as Generic from "./types/generic";
 import { rt } from "./types/generic";
 import { escapeHTML } from "./util";
 import { vanillaToSolidBoundary } from "./util/interop_solid";

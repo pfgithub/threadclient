@@ -1,4 +1,4 @@
-import { JSX } from "solid-js";
+import type { JSX } from "solid-js";
 import { LinkButton } from "./links";
 
 export function Homepage(props: {_?: undefined}): JSX.Element {

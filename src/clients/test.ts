@@ -1,13 +1,13 @@
 /* eslint-disable max-len */
 
-import * as Generic from "../types/generic";
+import type * as Generic from "../types/generic";
 import { rt, Richtext } from "../types/generic";
 import {encoderGenerator, ThreadClient} from "./base";
 import * as commonmark from "commonmark";
 import { LogEntry, variables } from "virtual:_variables";
 import { assertNever } from "../util";
-import * as Reddit from "../types/api/reddit";
-import { IDMap } from "./reddit";
+import type * as Reddit from "../types/api/reddit";
+import type { IDMap } from "./reddit";
 
 function childrenOf(node: commonmark.Node): commonmark.Node[] {
     const res: commonmark.Node[] = [];

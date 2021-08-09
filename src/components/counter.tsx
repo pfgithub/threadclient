@@ -1,5 +1,5 @@
 import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
-import * as Generic from "../types/generic";
+import type * as Generic from "../types/generic";
 import { CounterState, getPointsText, watchCounterState } from "../app";
 
 export function CounterCount(props: {counter: Generic.CounterAction}): JSX.Element {

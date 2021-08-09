@@ -1,6 +1,6 @@
 import { createContext, createMemo, createSignal, JSX, untrack, useContext } from "solid-js";
 import { render } from "solid-js/web";
-import { ThreadClient } from "../clients/base";
+import type { ThreadClient } from "../clients/base";
 
 export type Include<T, U> = T extends U ? T : never;
 
