@@ -550,7 +550,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
     const urlr = "/" + path.filter((unused, i) => i <= index).join("/");
     
     const found_value = replies.find(([name, cb]) => {
-        if(current_bit === name) return current_bit;
+        return current_bit === name;
     });
 
     if(found_value) {

@@ -4,6 +4,7 @@
         "noPropertyAccessFromIndexSignature": true,
         "noUncheckedIndexedAccess": true,
         "noImplicitAny": true,
+        "noImplicitReturns": true,
 
         "baseUrl": ".",
         "outDir": "./dist",
