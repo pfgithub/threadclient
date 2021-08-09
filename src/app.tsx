@@ -2119,7 +2119,11 @@ function clientListing(
     if(opts.clickable && listing.link.startsWith("/")) {
         // frame = linkButton(client.id, listing.link, "none").clss("hover:bg-gray-200").adto(frame);
         frame.clss("hover-outline").attr({tabindex: "0"}).onev("click", (e) => {
+            // don't click if any text is selected
+            const selection = document.getSelection();
+            if(selection?.isCollapsed === false) return;
             console.log("target:", e.target);
+            // don't accept click if any of the click target parent nodes look like they might be clickable
             let target_parent = e.target as Node | null;
             while(target_parent && target_parent !== frame) {
                 if(target_parent instanceof HTMLElement && (false
@@ -2136,7 +2140,12 @@ function clientListing(
                 target_parent = target_parent.parentNode;
             }
             e.stopPropagation();
-            navigate({path: "/"+client.id+listing.link});
+            // support ctrl click
+            if(e.ctrlKey || e.metaKey || e.altKey) {
+                window.open("/"+client.id+listing.link)
+            }else{
+                navigate({path: "/"+client.id+listing.link});
+            }
         });
     }
 
