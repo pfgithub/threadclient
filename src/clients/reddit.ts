@@ -1627,10 +1627,10 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
         kind: "subreddit",
         sub: getSub(opts),
         is_user_page: false,
-        current_sort: {v: opts.sort ?? "hot", t: opts.query.t ?? "all"},
+        current_sort: {v: opts.sort ?? "hot", t: opts.query["t"] ?? "all"},
 
-        before: opts.query.before ?? null,
-        after: opts.query.after ?? null,
+        before: opts.query["before"] ?? null,
+        after: opts.query["after"] ?? null,
     }));
 
     if(kind === "subreddit" || kind === "user") {
@@ -1653,10 +1653,10 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
             sub: getSub(opts),
             post_id_unprefixed: opts.post_id_unprefixed,
 
-            after: opts.query.after ?? null,
-            before: opts.query.before ?? null,
-            crossposts_only: (opts.query.crossposts_only as string | null) === "true",
-            sort: opts.query.sort ?? "num_comments",
+            after: opts.query["after"] ?? null,
+            before: opts.query["before"] ?? null,
+            crossposts_only: (opts.query["crossposts_only"] as string | null) === "true",
+            sort: opts.query["sort"] ?? "num_comments",
         }));
 
         marked_routes.push(rpfx+"/comments/:partialPostId/:urlSafePostTitle?");
@@ -1664,9 +1664,9 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
             kind: "comments",
             sub: getSub(opts),
             post_id_unprefixed: opts.post_id_unprefixed,
-            focus_comment: opts.query.comment ?? null,
-            sort_override: opts.query.sort ?? null,
-            context: opts.query.context ?? null,
+            focus_comment: opts.query["comment"] ?? null,
+            sort_override: opts.query["sort"] ?? null,
+            context: opts.query["context"] ?? null,
         }));
         
         marked_routes.push(rpfx+"/comments/:partialPostId/:urlSafePostTitle/:partialCommentId");
@@ -1675,8 +1675,8 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: s
             sub: getSub(opts),
             post_id_unprefixed: opts.post_id_unprefixed,
             focus_comment: opts.partial_comment_id,
-            sort_override: opts.query.sort ?? null,
-            context: opts.query.context ?? null,
+            sort_override: opts.query["sort"] ?? null,
+            context: opts.query["context"] ?? null,
         }));
     }
 }
@@ -1699,8 +1699,8 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
         kind: "user",
         username: opts.user,
         current: {kind: "sorted-tab", tab: opts.tab ?? "overview", sort: {
-            sort: opts.query.sort ?? (opts.tab === "submitted" ? "hot" : "new"),
-            t: opts.query.t ?? "all",
+            sort: opts.query["sort"] ?? (opts.tab === "submitted" ? "hot" : "new"),
+            t: opts.query["t"] ?? "all",
         }},
     }));
     marked_routes.push("/user/:profileName/posts");
@@ -1721,7 +1721,7 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
     urlr.route(["gilded", {by: ["received", "given", null]}] as const, opts => ({
         kind: "user",
         username: opts.user,
-        current: {kind: "gild-tab", tab: "gilded", by: opts.by ?? opts.query.show ?? "received"},
+        current: {kind: "gild-tab", tab: "gilded", by: opts.by ?? opts.query["show"] ?? "received"},
     }));
     urlr.route(["given"] as const, opts => ({
         kind: "user",
@@ -1786,9 +1786,9 @@ path_router.with(["message"] as const, urlr => {
         kind: "inbox",
         current: {
             tab: "compose",
-            to: opts.query.to,
-            subject: opts.query.subject,
-            message: opts.query.message,
+            to: opts.query["to"],
+            subject: opts.query["subject"],
+            message: opts.query["message"],
         },
     }));
     urlr.route(["sent"] as const, opts => ({
@@ -1849,7 +1849,7 @@ path_router.catchall(todo("not supported"));
 //     urlr.route([{sort: [...sort_modes, null]}] as const, opts => ({
 //         kind: "subreddit",
 //         base: ["r", opts.subreddit],
-//         current_sort: {v: opts.sort ?? "hot", t: opts.query.t ?? "all"},
+//         current_sort: {v: opts.sort ?? "hot", t: opts.query["t"] ?? "all"},
 //         is_user_page: false,
 //     }));
 //     urlr.catchall(opts => ({
@@ -1867,8 +1867,8 @@ path_router.catchall(todo("not supported"));
 //         kind: "user",
 //         base: ["u", opts.username],
 //         current: {tab: opts.tab ?? "overview", sort: {
-//             sort: opts.query.sort ?? (opts.tab === "submitted" ? "hot" : "new"),
-//             t: opts.query.t ?? "all",
+//             sort: opts.query["sort"] ?? (opts.tab === "submitted" ? "hot" : "new"),
+//             t: opts.query["t"] ?? "all",
 //         }},
 //     }));
 //     urlr.route(["gilded", {by: ["received", "given", null]}] as const, opts => ({
@@ -1912,7 +1912,7 @@ path_router.catchall(todo("not supported"));
 // path_router.route([{sort: [...sort_modes, null]}] as const, opts => ({
 //     kind: "subreddit",
 //     base: [],
-//     current_sort: {v: opts.sort ?? "hot", t: opts.query.time ?? "all"},
+//     current_sort: {v: opts.sort ?? "hot", t: opts.query["time"] ?? "all"},
 //     is_user_page: false,
 // }));
 
