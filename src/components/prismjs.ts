@@ -287,7 +287,7 @@ export async function highlight(text: string, language_name: string): Promise<st
             await languages_raw[language_name]!();
         }
     }
-    if(!refractor.registered("language_name")) {
+    if(!refractor.registered(language_name)) {
         return null;
     }
 
