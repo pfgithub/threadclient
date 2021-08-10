@@ -2141,10 +2141,11 @@ function clientListing(
             }
             e.stopPropagation();
             // support ctrl click
+            const target_url = "/"+client.id+listing.link;
             if(e.ctrlKey || e.metaKey || e.altKey) {
-                window.open("/"+client.id+listing.link)
+                window.open(target_url);
             }else{
-                navigate({path: "/"+client.id+listing.link});
+                navigate({path: target_url});
             }
         });
     }
