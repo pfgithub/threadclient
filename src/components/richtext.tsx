@@ -143,17 +143,26 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
         table: (table) => <table>
             <thead><tr>
                 <For each={table.headings}>{heading => (
-                    <th align={heading.align}><RichtextSpans spans={heading.children} /></th>
+                    <th class={alignment[heading.align ?? "none"]}><RichtextSpans spans={heading.children} /></th>
                 )}</For>
             </tr></thead>
             <tbody><For each={table.children}>{child => <tr>
                 <For each={child}>{(col, i) => (
-                    <td align={table.headings[i()]?.align}><RichtextSpans spans={col.children} /></td>
+                    <td class={alignment[table.headings[i()]?.align ?? "none"]}>
+                        <RichtextSpans spans={col.children} />
+                    </td>
                 )}</For>
             </tr>}</For></tbody>
         </table>,
     }}</SwitchKind>;
 }
+
+const alignment = {
+    left: "text-left",
+    center: "text-center",
+    right: "text-right",
+    none: "",
+} as const;
 
 
 // I'm sure there's a better way to handle this
