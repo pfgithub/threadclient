@@ -40,6 +40,6 @@
         "refractor": "^4.1.0",
         "sass": "^1.36.0",
         "shaka-player": "^3.2.0",
-        "solid-js": "^1.0.0"
+        "solid-js": "^1.1.0"
     }
 }

@@ -2550,13 +2550,13 @@ slice-ansi@^4.0.0:
     astral-regex "^2.0.0"
     is-fullwidth-code-point "^3.0.0"
 
-solid-js@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.0.0.tgz#4bbc3f3932c604e2bfcd35d5a7f20408d208288e"
-
 solid-js@^1.0.3:
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.0.6.tgz#a34dbd3fe485b7e8a857c52bc82f4f3f3f8e7921"
+
+solid-js@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.1.0.tgz#fe53d3c128832131ed41ee3a44df7e1d2b69378f"
 
 solid-refresh@^0.2.1:
   version "0.2.2"
