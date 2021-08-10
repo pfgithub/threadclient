@@ -19,37 +19,6 @@ Demo:
     [threadreader](https://i.imgur.com/Hxix93m.png))
 -   ability to easily view comment markdown ([screenshot](https://i.imgur.com/zwGtAkV.png))
 
-## why this instead of new.reddit?
-
--   new.reddit is really slow and buggy. everything about the ui feels sluggish and bad.
-    -   loading videos causes them to play like 3 times before they can be paused
-    -   collapsing any comment causes the entire page to rerender in react, which is quite slow
-    -   collapsing comments doesn't interact with the page scroll properly. only top level comments update the scroll when collapsed.
-    -   clicking the expand button on a post image causes my cpu to spike for a second
-    -   moving my mouse around the page causes my cpu to spike
--   when you get a message it shows up in the icons on all the tabs, but if you view the message it only goes away on the current tab (notifications are TODO in threadreader)
-
-## why this instead of old.reddit?
-
--   old.reddit is missing many features including
-    -   the ability to collapse a comment from anywhere in a comment (I have a [userscript](https://github.com/pfgithub/customizations/blob/master/userscripts/reddit/userscript.user.js) to add this)
-    -   sidebar widgets
-    -   profile pictures
-    -   replying with richtext (TODO in threadreader)
-    -   removal reasons (TODO in threadreader)
--   old.reddit takes a while to go back/forwards in the browser, so you have to use tabs instead
--   threadreader has dark mode support
-
-## why this instead of m.reddit
-
--   m.reddit was turned from a mostly-working mobile site into an unusable ad to get the reddit app in 2019
--   threadreader already has better mobile support than both new.reddit and old.reddit
-
-## why this instead of mastodon
-
--   it has a tree view which is more intuitive to me
--   it doesn't constantly link out to other sites with completely different ui and a non-functioning follow button
-
 ## building
 
 Requires:
