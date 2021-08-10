@@ -1030,10 +1030,12 @@ export type PostCommentLike = {
     data: PostMore,
 };
 
-export type Post = {
+export type T3 = {
     kind: "t3",
     data: PostSubmission,
-} | PostCommentLike | {
+};
+
+export type Post = T3 | PostCommentLike | {
     kind: "unknown",
     data: {name: string},
 };

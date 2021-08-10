@@ -1438,7 +1438,7 @@ export type ParsedPath = {
     query: {[key: string]: string},
 };
 
-type SubrInfo = {
+export type SubrInfo = {
     kind: "homepage",
     base: string[],
 } | {
@@ -2393,7 +2393,7 @@ export function getCommentBody(listing: Reddit.PostComment): Generic.Body {
 
 export type { IDMap } from "./reddit/page2_from_listing";
 
-export function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPermalink): Generic.Body {
+export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
     if(
         listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
     ) return {
@@ -2401,7 +2401,11 @@ export function getPostBody(listing: Reddit.PostSubmission, parent_permalink: So
         source: threadFromListing(
             {kind: "t3", data: listing.crosspost_parent_list[0]!},
             {force_expand: "crosspost"},
-            sortWrap(parent_permalink, listing.permalink),
+            sortWrap({
+                permalink: listing.permalink,
+                sort: "unsupported",
+                is_chat: false,
+            }, listing.permalink),
         ) as Generic.Thread,
     };
     if(listing.is_self) return {
@@ -2624,7 +2628,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
             //
         }
 
-        const body_content: Generic.Body = getPostBody(listing, parent_permalink);
+        const body_content: Generic.Body = getPostBody(listing);
 
         const result: Generic.Node = {
             kind: "thread",

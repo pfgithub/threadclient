@@ -1,12 +1,14 @@
-import * as Reddit from "../../types/api/reddit";
-import * as Generic from "../../types/generic";
+import type * as Reddit from "../../types/api/reddit";
+import type * as Generic from "../../types/generic";
 import { rt } from "../../types/generic";
 import { assertNever } from "../../util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
-    getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SortedPermalink, sortWrap,
-    ThreadOpts, updateQuery, urlNotSupportedYet
+    getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo, urlNotSupportedYet
 } from "../reddit";
+
+// in the future this might be changed to hold data. then to insert into
+// the id map it'll have to be serialized or something
 export type ID = string;
 export type IDMap = Map<ID, IDMapEntry>;
 
@@ -17,14 +19,31 @@ type IDMapEntry = {
     kind: "unprocessed" | "processing" | "processed",
     link: Generic.Link<Generic.PostData>,
 
-    listing_raw: Reddit.Post,
-    options: ThreadOpts,
-    parent_permalink: SortedPermalink,
+    data: IDMapData,
+};
+// we should not need a parent_permalink
+// eg a load more may be a parent_permalink style load more
+// in which case info can be in {kind: "load_more"} here
+// the other thing parent_permalink is used for is to find the
+// sort mode but comments have access to the .parent_submission property
+type IDMapData = {
+    kind: "comment",
+    comment: Reddit.Post,
 
-    refs: {
-        parent: string | null,
-        replies: string[] | null,
-    },
+    // comments have a property .link_id
+    // I can just get the value out from the id map, no need to save it here.
+    parent_submission: "not_loaded" | Reddit.T3,
+} | {
+    kind: "post",
+    post: Reddit.T3,
+    replies: "not_loaded" | Reddit.Listing,
+} | {
+    // when a subreddit is needed but only the replies are known,
+    // nothing else about the subreddit. if nothing at all is known,
+    // just use the id directly and getPostData will(todo) handle it.
+    kind: "subreddit_unloaded",
+    listing: Reddit.Listing,
+    details: "unknown" | SubrInfo,
 };
 
 export function page2FromListing(
@@ -37,18 +56,18 @@ export function page2FromListing(
         if(page[0].data.children.length !== 1) {
             return unsupportedPage(pathraw, page);
         }
-        const firstchild = page[0].data.children[0]!;
-        if(firstchild.kind !== "t3") {
+        const parent_post = page[0].data.children[0]!;
+        if(parent_post.kind !== "t3") {
             return unsupportedPage(pathraw, page);
         }
 
-        const link_fullname = firstchild.data.name;
-        const default_sort: Reddit.Sort = firstchild.data.suggested_sort ?? "confidence";
+        const link_fullname = parent_post.data.name;
+        // const default_sort: Reddit.Sort = parent_post.data.suggested_sort ?? "confidence";
         // const is_contest_mode = firstchild.data.contest_mode;
         // const can_mod_post = firstchild.data.can_mod_post;
-        const permalink: string = firstchild.data.permalink;
+        // const permalink: string = parent_post.data.permalink;
         // const is_locked = firstchild.data.locked;
-        const is_chat = firstchild.data.discussion_type === "CHAT";
+        // const is_chat = parent_post.data.discussion_type === "CHAT";
 
         const children_root = page[1].data.children;
         const root0 = children_root[0];
@@ -64,39 +83,70 @@ export function page2FromListing(
             // ));
         }
 
-        for(const reply of [...page[0].data.children]) {
-            setUpMap(id_map, reply, {}, {
-                permalink,
-                sort: default_sort,
-                is_chat: is_chat,
-            }, {
-                parent: null,
-                replies: page[1].data.children.map(r => r.data.name),
-            });
-        }
-        const first_page = page[0].data.children[0]!.data;
+        setUpMap(id_map, {
+            kind: "post",
+            post: parent_post,
+            replies: page[1],
+        });
         for(const reply of [...page[1].data.children]) {
-            setUpMap(id_map, reply, {}, {
-                permalink,
-                sort: default_sort,
-                is_chat: is_chat,
-            }, {
-                parent: first_page.name,
-                replies: [],
+            setUpMap(id_map, {
+                kind: "comment",
+                comment: reply,
+                parent_submission: parent_post,
             });
         }
 
-        let focus = first_page.name;
+        let focus: string = parent_post.data.name;
         if(path.kind === "comments" && path.focus_comment != null) {
             focus = "t1_"+path.focus_comment.toLowerCase();
-            if(!id_map.has(focus)) focus = first_page.name;
+            if(!id_map.has(focus)) focus = parent_post.data.name;
         }
 
         return getPostData(id_map, focus);
+    }else if(page.kind === "Listing") {
+        const sr_entry: IDMapData = {
+            kind: "subreddit_unloaded",
+            listing: page,
+            details: path.kind === "subreddit" ? path.sub : "unknown",
+        };
+        const pivot_id = getEntryFullname(sr_entry);
+        for(const post of page.data.children) {
+            if(post.kind === "t3") {
+                setUpMap(id_map, {
+                    kind: "post",
+                    post: post,
+                    replies: "not_loaded",
+                });
+            }else{
+                setUpMap(id_map, {
+                    kind: "comment",
+                    comment: post,
+                    parent_submission: "not_loaded",
+                });
+            }
+        }
+        setUpMap(id_map, sr_entry);
+
+        return getPostData(id_map, pivot_id);
     }
-    //expectUnsupported(page.kind);
+    //else {
+    //  expectUnsupported(page.kind);
 
     return unsupportedPage(pathraw, page);
+}
+
+function getSrId(sub: SubrInfo): string {
+    if(sub.kind === "homepage") {
+        return "SR_home";
+    }else if(sub.kind === "mod") {
+        return "SR_mod";
+    }else if(sub.kind === "multireddit") {
+        return "SR_multi/u:"+sub.user.toLowerCase()+"/m:"+sub.multireddit.toLowerCase();
+    }else if(sub.kind === "userpage") {
+        return "SR_user/"+sub.user.toLowerCase();
+    }else if(sub.kind === "subreddit") {
+        return "SR_sub/"+sub.subreddit.toLowerCase();
+    }else assertNever(sub);
 }
 
 function unsupportedPage(pathraw: string, page: unknown): Generic.Link<Generic.PostData> {
@@ -123,66 +173,72 @@ function unsupportedPage(pathraw: string, page: unknown): Generic.Link<Generic.P
     }, err: undefined};
 }
 
+function getEntryFullname(entry: IDMapData): string {
+    if(entry.kind === "comment") {
+        return entry.comment.data.name;
+    }else if(entry.kind === "post") {
+        return entry.post.data.name;
+    }else if(entry.kind === "subreddit_unloaded") {
+        return entry.details === "unknown" ? "__UNKNOWN_LISTING_ROOT" : getSrId(entry.details);
+    }else assertNever(entry);
+}
+
 export function setUpMap(
     map: IDMap,
-    listing_raw: Reddit.Post,
-    options: ThreadOpts,
-    parent_permalink: SortedPermalink,
-    refs: {parent: string | null, replies: string[] | null},
+    data: IDMapData,
 ): void {
-    options.force_expand ??= "closed";
-
-    const prev_value = map.get(listing_raw.data.name);
+    const entry_fullname = getEntryFullname(data);
+    const prev_value = map.get(entry_fullname);
     if(prev_value) {
-        if(prev_value.listing_raw !== listing_raw) {
-            throw new Error("TODO it already exists "+listing_raw.data.name+" but it's different");
+        if(prev_value.data !== data) {
+            throw new Error("ERROR it already exists "+entry_fullname+" but it's different");
         }
-        throw new Error("TODO it already exists "+listing_raw.data.name);
+        throw new Error("ERROR it already exists "+entry_fullname);
     }
 
-    const res_parent = refs.parent;
-    const res_replies = refs.replies;
+    if(data.kind === "comment") {
+        const listing_raw = data.comment;
+        if(listing_raw.kind === "t1") {
+            const listing = listing_raw.data;
 
-    if(listing_raw.kind === "t1") {
-        const listing = listing_raw.data;
-
-        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        if(listing.replies) {
-            for(const reply of listing.replies.data.children) {
-                setUpMap(map, reply, options, sortWrap(parent_permalink, listing.permalink), {
-                    parent: listing.name,
-                    replies: null,
-                });
+            //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+            if(listing.replies) {
+                for(const reply of listing.replies.data.children) {
+                    // TODO if it's load more it might need a parent_permalink
+                    // pass that in here or something
+                    // or make a fn to do this
+                    setUpMap(map, {
+                        kind: "comment",
+                        comment: reply,
+                        parent_submission: data.parent_submission,
+                    });
+                }
             }
+        }else if(listing_raw.kind === "more") {
+            // TODO this doesn't belong here
+            if(listing_raw.data.name === "t1__") return; // depth-based
+        }else {
+            console.log("TODO setUpMap "+listing_raw.kind);
         }
-    }else if(listing_raw.kind === "t3") {
-        const listing = listing_raw.data;
+    }else if(data.kind === "post") {
+        const listing = data.post.data;
         if(listing.crosspost_parent_list) {
             for(const xpost_parent of listing.crosspost_parent_list) {
                 setUpMap(map, {
-                    kind: "t3",
-                    data: xpost_parent,
-                }, options, sortWrap(parent_permalink, xpost_parent.permalink), {
-                    parent: null,
-                    replies: null,
+                    kind: "post",
+                    post: {kind: "t3", data: xpost_parent},
+                    replies: "not_loaded",
                 });
             }
         }
-    }else if(listing_raw.kind === "more") {
-        // nothing to add.
-    }else {
-        console.log("TODO setUpMap "+listing_raw.kind);
-    }
+    }else if(data.kind === "subreddit_unloaded") {
+        // nothing to load
+    }else assertNever(data);
 
-    map.set(listing_raw.data.name, {
+    map.set(entry_fullname, {
         kind: "unprocessed",
         link: createLink(),
-
-        listing_raw,
-        options,
-        parent_permalink,
-
-        refs: {parent: res_parent, replies: res_replies},
+        data,
     });
 }
 
@@ -197,7 +253,7 @@ export function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostD
     if(value.kind === "unprocessed") {
         value.kind = "processing";
 
-        const res = postDataFromListingMayError(map, value, value.listing_raw, value.options, value.parent_permalink);
+        const res = postDataFromListingMayError(map, value);
         [value.link.ref, value.link.err] = [res, undefined];
 
         value.kind = "processed";
@@ -221,18 +277,34 @@ function getPostInfo(listing: Reddit.PostOrComment): Generic.PostInfo {
 function postDataFromListingMayError(
     map: IDMap,
     entry: IDMapEntry,
-    listing_raw: Reddit.Post,
-    options: ThreadOpts,
-    parent_permalink: SortedPermalink,
 ): Generic.PostData {
-    options.force_expand ??= "closed";
-    if(listing_raw.kind === "t1") {
-        const listing = listing_raw.data;
+    if(entry.data.kind === "comment") {
+        if(entry.data.comment.kind !== "t1") {
+            return {
+                kind: "post",
+                url: null,
+                parent: {ref: {kind: "vloader", parent: null, replies: null}, err: undefined},
+                replies: null,
+                internal_data: entry.data,
+                display_style: "centered",
+
+                content: {
+                    kind: "post",
+                    title: {text: "Error! TODO "+entry.data.comment.kind, body_collapsible: null},
+                    body: {kind: "richtext", content: [
+                        rt.p(rt.error("TODO", entry.data)),
+                    ]},
+                    author: null,
+                    show_replies_when_below_pivot: false,
+                },
+            };
+        }
+        const listing = entry.data.comment.data;
 
         const replies: Generic.ListingData = {
             sort: null,
             reply: replyButton(listing.name),
-            locked: listing.locked,
+            locked: listing.locked, // || parent_post.locked? not sure
             items: [],
         };
         //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
@@ -245,12 +317,14 @@ function postDataFromListingMayError(
             }
         }
 
+        const parent_post = entry.data.parent_submission === "not_loaded" ? null : entry.data.parent_submission;
+
         return {
             kind: "post",
-            url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
+            // url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
+            url: null, // TODO pass in sort
 
-            // need to get the parent post here
-            parent: entry.refs.parent != null ? getPostData(map, entry.refs.parent) : null,
+            parent: getPostData(map, listing.parent_id),
             replies,
 
             content: {
@@ -261,7 +335,7 @@ function postDataFromListingMayError(
                 info: getPostInfo(listing),
                 show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
                 actions: {
-                    vote: parent_permalink.is_chat
+                    vote: parent_post?.data.discussion_type === "CHAT"
                         ? undefined
                         : getPointsOn(listing)
                     ,
@@ -273,60 +347,75 @@ function postDataFromListingMayError(
                     ],
                 },
             },
-            internal_data: listing_raw,
+            internal_data: entry.data,
             display_style: "centered",
         };
-    }else if(listing_raw.kind === "t3") {
-        const listing = listing_raw.data;
+    }else if(entry.data.kind === "post") {
+        const listing = entry.data.post.data;
 
         return {
             kind: "post",
-            url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
+            // url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
+            url: null, // TODO pass in sort
 
-            parent: getPostData(map, listing.subreddit_id),
-            replies: entry.refs.replies ? {
+            parent: getPostData(map, getSrId({
+                kind: "subreddit",
+                subreddit: listing.subreddit,
+                base: ["r", listing.subreddit],
+            })),
+            replies: entry.data.replies !== "not_loaded" ? {
                 sort: null,
                 reply: replyButton(listing.name),
                 locked: listing.locked,
-                items: entry.refs.replies.map(reply_id => {
+                // I don't think before and after are used here
+                items: entry.data.replies.data.children.map(reply => {
                     return {
                         kind: "post",
-                        post: getPostData(map, reply_id),
+                        post: getPostData(map, reply.data.name),
                     };
                 }),
-            } : null,
+            } : null, // TODO load_more instead of null
 
             content: {
                 kind: "post",
-                title: null,
+                title: {text: listing.title, body_collapsible: {default_collapsed: true}},
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
-                body: getPostBody(listing, parent_permalink),
+                body: getPostBody(listing),
                 info: getPostInfo(listing),
                 show_replies_when_below_pivot: false,
             },
-            internal_data: listing_raw,
+            internal_data: entry.data,
             display_style: "centered",
         };
-    }else{
+    }else if(entry.data.kind === "subreddit_unloaded") {
         return {
             kind: "post",
             url: null,
-            parent: {ref: {kind: "vloader", parent: null, replies: null}, err: undefined},
-            replies: null,
-            internal_data: listing_raw,
-            display_style: "centered",
-
+            parent: null,
+            replies: {
+                sort: null,
+                reply: null,
+                items: [
+                    ...entry.data.listing.data.children.map((child): Generic.ListingEntry => {
+                        return {kind: "post", post: getPostData(map, child.data.name)};
+                    }),
+                    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+                    ...entry.data.listing.data.after ? [
+                        {kind: "post" as const, post: getPostData(map, "TODO next")},
+                    ] : [],
+                ],
+            },
             content: {
                 kind: "post",
-                title: {text: "Error! TODO "+listing_raw.kind, body_collapsible: null},
-                body: {kind: "richtext", content: [
-                    rt.p(rt.error("TODO", listing_raw)),
-                ]},
+                title: {text: getEntryFullname(entry.data), body_collapsible: null},
                 author: null,
+                body: {kind: "none"},
                 show_replies_when_below_pivot: false,
             },
+            internal_data: entry.data,
+            display_style: "fullscreen",
         };
-    }
+    } else assertNever(entry.data);
 }
 
 function createLink<T>(): Generic.Link<T> {
