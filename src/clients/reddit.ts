@@ -7,6 +7,7 @@ import { rt } from "../types/generic";
 import * as util from "../util";
 import { encodeQuery, encodeURL } from "../util";
 import { encoderGenerator, ThreadClient } from "./base";
+import { IDMap, page2FromListing } from "./reddit/page2_from_listing";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -41,7 +42,7 @@ function flairToGenericFlair(
     }];
 }
 
-function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
+export function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
     const resitems: Generic.RichTextItem[] = [];
     for(const awarding of awardings.sort((a1, a2) => a2.count - a1.count)) {
         if(resitems.length > 0) resitems.push({kind: "text", text: " "});
@@ -88,7 +89,9 @@ function richtextParagraphArray(
 ): Generic.Richtext.Paragraph[] {
     return rtd.map(v => richtextParagraph(v, opt));
 }
-function expectUnsupported(text: "unsupported"): void {/*no runtime error!*/}
+export function expectUnsupported(text: "unsupported"): void {
+    console.log("Expected unsupported", text);
+}
 
 // TODO use this for galleries and gifs? make it return Generic.GalleryItem? idk only image has a thumbnail
 function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Body {
@@ -475,7 +478,7 @@ function splitURL(path: string): [string, URLSearchParams] {
     const [pathname, ...query] = path.split("?");
     return [pathname ?? "", new URLSearchParams(query.join("?"))];
 }
-function updateQuery(path: string, update: {[key: string]: string | undefined}) {
+export function updateQuery(path: string, update: {[key: string]: string | undefined}): string {
     const [pathname, query] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
         if(v != null) query.set(k, v);
@@ -1323,7 +1326,7 @@ export function pageFromListing(pathraw: string, parsed_path_in: ParsedPath, lis
     return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: urlNotSupportedYet(pathraw)});
 }
 
-function urlNotSupportedYet(pathraw: string) {
+export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[] {
     const ismod = pathraw.startsWith("/mod/") || pathraw.startsWith("/mod?") || pathraw.startsWith("/mod#") || pathraw === "/mod"; // kinda hack
     if(ismod) {
         pathraw = pathraw.replace("/mod", "");
@@ -1349,7 +1352,7 @@ function urlNotSupportedYet(pathraw: string) {
 type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded";
 type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
 
-type ParsedPath = {
+export type ParsedPath = {
     kind: "subreddit",
     sub: SubrInfo,
     current_sort: {v: SortMode, t: SortTime},
@@ -1975,7 +1978,7 @@ type LoadMoreData = {
     // all the query params + after: string
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
-function getPointsOn(listing: {
+export function getPointsOn(listing: {
     name: string,
     score_hidden?: boolean,
     hide_score?: boolean,
@@ -2176,7 +2179,7 @@ function threadFromListing(listing_raw: Reddit.Post, options: ThreadOpts = {}, p
         };
     }
 }
-function deleteButton(fullname: string): Generic.Action {
+export function deleteButton(fullname: string): Generic.Action {
     return {
         kind: "delete",
         data: encodeDeleteAction(fullname),
@@ -2187,20 +2190,20 @@ type ReportInfo = {
     fullname: string,
 };
 const report_encoder = encoderGenerator<ReportInfo, "report">("report");
-function reportButton(fullname: string, subreddit: string): Generic.Action {
+export function reportButton(fullname: string, subreddit: string): Generic.Action {
     return {
         kind: "report",
         data: report_encoder.encode({subreddit, fullname}),
     };
 }
-function replyButton(fullname: string): Generic.ReplyAction {
+export function replyButton(fullname: string): Generic.ReplyAction {
     return {
         kind: "reply",
         text: "Reply",
         reply_info: reply_encoder.encode({parent_id: fullname}),
     };
 }
-function saveButton(fullname: string, saved: boolean): Generic.Action {
+export function saveButton(fullname: string, saved: boolean): Generic.Action {
     return {
         kind: "counter",
 
@@ -2274,7 +2277,7 @@ function authorFromInfo(opts: {
         } : undefined,
     };
 }
-function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.PostComment, additional_flairs?: Generic.Flair[]): Generic.Info["author"] {
+export function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.PostComment, additional_flairs?: Generic.Flair[]): Generic.Info["author"] {
     return authorFromInfo({
         author: listing.author,
         flair_bits: {
@@ -2293,14 +2296,14 @@ function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.PostCom
 
 const fetch_path = encoderGenerator<{path: string}, "fetch_removed_path">("fetch_removed_path");
 
-type SortedPermalink = {
+export type SortedPermalink = {
     permalink: string, // with sort param
     sort: Reddit.Sort,
     is_chat: boolean,
 };
 
 // TODO instead of this, make a function to get the permalink from a SortedPermalink object
-function sortWrap(parent: SortedPermalink, next: string): SortedPermalink {
+export function sortWrap(parent: SortedPermalink, next: string): SortedPermalink {
     return {
         permalink: updateQuery(next, {sort: parent.sort}),
         sort: parent.sort,
@@ -2361,13 +2364,13 @@ const removal_reasons: {[key in Reddit.RemovedByCategory]: (raw_name: string, su
     }),
 };
 
-function getCodeButton(markdown: string): Generic.Action {
+export function getCodeButton(markdown: string): Generic.Action {
     return {kind: "code", body: {kind: "richtext", content: [
         rt.pre(markdown, "markdown"),
     ]}};
 }
 
-function getCommentBody(listing: Reddit.PostComment): Generic.Body {
+export function getCommentBody(listing: Reddit.PostComment): Generic.Body {
     let is_deleted: Generic.RemovalMessage | undefined;
     if(listing.author === "[deleted]") {
         if(JSON.stringify(listing.rtjson) === JSON.stringify({document: [{c: [{e: "text", t: "[deleted]"}], e: "par"}]})) {
@@ -2388,235 +2391,9 @@ function getCommentBody(listing: Reddit.PostComment): Generic.Body {
     return comment_body;
 }
 
-// // needs to be able to tell you if it's a thing or load more or whatever
-// // also it should like update in the future
-// // idk
-type IDMapEntry = {
-    kind: "unprocessed" | "processing" | "processed",
-    link: Generic.Link<Generic.PostData>,
+export type { IDMap } from "./reddit/page2_from_listing";
 
-    listing_raw: Reddit.Post,
-    options: ThreadOpts,
-    parent_permalink: SortedPermalink,
-
-    refs: {
-        parent: string | null,
-        replies: string[] | null,
-    },
-};
-export type IDMap = Map<string, IDMapEntry>;
-
-function createLink<T>(): Generic.Link<T> {
-    return {ref: undefined, err: "processing not completed"};
-}
-
-export function setUpMap(
-    map: IDMap,
-    listing_raw: Reddit.Post,
-    options: ThreadOpts,
-    parent_permalink: SortedPermalink,
-    refs: {parent: string | null, replies: string[] | null},
-): void {
-    options.force_expand ??= "closed";
-
-    const prev_value = map.get(listing_raw.data.name);
-    if(prev_value) {
-        if(prev_value.listing_raw !== listing_raw) throw new Error("TODO it already exists "+listing_raw.data.name+" but it's different");
-        throw new Error("TODO it already exists "+listing_raw.data.name);
-    }
-
-    const res_parent = refs.parent;
-    const res_replies = refs.replies;
-
-    if(listing_raw.kind === "t1") {
-        const listing = listing_raw.data;
-
-        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        if(listing.replies) {
-            for(const reply of listing.replies.data.children) {
-                setUpMap(map, reply, options, sortWrap(parent_permalink, listing.permalink), {
-                    parent: listing.name,
-                    replies: null,
-                });
-            }
-        }
-    }else if(listing_raw.kind === "t3") {
-        const listing = listing_raw.data;
-        if(listing.crosspost_parent_list) {
-            for(const xpost_parent of listing.crosspost_parent_list) {
-                setUpMap(map, {
-                    kind: "t3",
-                    data: xpost_parent,
-                }, options, sortWrap(parent_permalink, xpost_parent.permalink), {
-                    parent: null,
-                    replies: null,
-                });
-            }
-        }
-    }else if(listing_raw.kind === "more") {
-        // nothing to add.
-    }else {
-        console.log("TODO setUpMap "+listing_raw.kind);
-    }
-
-    map.set(listing_raw.data.name, {
-        kind: "unprocessed",
-        link: createLink(),
-
-        listing_raw,
-        options,
-        parent_permalink,
-
-        refs: {parent: res_parent, replies: res_replies},
-    });
-}
-
-// returns a pointer to the PostData
-// TODO support load more in both parents and replies
-export function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostData> {
-    const value = map.get(key);
-    if(!value) {
-        // TODO determine which load more to use
-        return {ref: undefined, err: "post was not found in tree (TODO load more) ("+key+")"};
-    }
-    if(value.kind === "unprocessed") {
-        value.kind = "processing";
-
-        const res = postDataFromListingMayError(map, value, value.listing_raw, value.options, value.parent_permalink);
-        [value.link.ref, value.link.err] = [res, undefined];
-
-        value.kind = "processed";
-
-        return value.link;
-    }else if(value.kind === "processing" || value.kind === "processed") {
-        return value.link;
-    }else assertNever(value.kind);
-}
-
-function getPostInfo(listing: Reddit.PostOrComment): Generic.PostInfo {
-    return {
-        creation_date: listing.created_utc * 1000,
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        edited: listing.edited ? {date: listing.edited * 1000} : undefined,
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        pinned: listing.pinned || listing.stickied || false,
-    };
-}
-
-/// maybe some kind of map from id to value? so because parent the parent id it needs to give a parent to the Generic.PostData
-/// then fill it as much as possible, add it to the map, evaluate the parent and replies, add those
-function postDataFromListingMayError(
-    map: IDMap,
-    entry: IDMapEntry,
-    listing_raw: Reddit.Post,
-    options: ThreadOpts,
-    parent_permalink: SortedPermalink,
-): Generic.PostData {
-    options.force_expand ??= "closed";
-    if(listing_raw.kind === "t1") {
-        const listing = listing_raw.data;
-
-        const replies: Generic.ListingData = {
-            sort: null,
-            reply: replyButton(listing.name),
-            locked: listing.locked,
-            items: [],
-        };
-        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        if(listing.replies) {
-            for(const reply of listing.replies.data.children) {
-                replies.items.push({
-                    kind: "post",
-                    post: getPostData(map, reply.data.name),
-                });
-            }
-        }
-
-        return {
-            kind: "post",
-            url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
-
-            // need to get the parent post here
-            parent: entry.refs.parent != null ? getPostData(map, entry.refs.parent) : null,
-            replies,
-
-            content: {
-                kind: "post",
-                title: null,
-                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
-                body: getCommentBody(listing),
-                info: getPostInfo(listing),
-                show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
-                actions: {
-                    vote: parent_permalink.is_chat
-                        ? undefined
-                        : getPointsOn(listing)
-                    ,
-                    other: [
-                        deleteButton(listing.name),
-                        saveButton(listing.name, listing.saved),
-                        reportButton(listing.name, listing.subreddit),
-                        getCodeButton(listing.body),
-                    ],
-                },
-            },
-            internal_data: listing_raw,
-            display_style: "centered",
-        };
-    }else if(listing_raw.kind === "t3") {
-        const listing = listing_raw.data;
-
-        return {
-            kind: "post",
-            url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
-
-            parent: getPostData(map, listing.subreddit_id),
-            replies: entry.refs.replies ? {
-                sort: null,
-                reply: replyButton(listing.name),
-                locked: listing.locked,
-                items: entry.refs.replies.map(reply_id => {
-                    return {
-                        kind: "post",
-                        post: getPostData(map, reply_id),
-                    };
-                }),
-            } : null,
-
-            content: {
-                kind: "post",
-                title: null,
-                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
-                body: getPostBody(listing, parent_permalink),
-                info: getPostInfo(listing),
-                show_replies_when_below_pivot: false,
-            },
-            internal_data: listing_raw,
-            display_style: "centered",
-        };
-    }else{
-        return {
-            kind: "post",
-            url: null,
-            parent: {ref: {kind: "vloader", parent: null, replies: null}, err: undefined},
-            replies: null,
-            internal_data: listing_raw,
-            display_style: "centered",
-
-            content: {
-                kind: "post",
-                title: {text: "Error! TODO "+listing_raw.kind, body_collapsible: null},
-                body: {kind: "richtext", content: [
-                    rt.p(rt.error("TODO", listing_raw)),
-                ]},
-                author: null,
-                show_replies_when_below_pivot: false,
-            },
-        };
-    }
-}
-
-function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPermalink): Generic.Body {
+export function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPermalink): Generic.Body {
     if(
         listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
     ) return {
@@ -2751,7 +2528,7 @@ function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPer
 }
 
 const as = <T>(a: T): T => a;
-type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
+export type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node {
     options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
@@ -3221,8 +2998,10 @@ export const client: ThreadClient = {
     id: "reddit",
     // loginURL: getLoginURL(),
     async getPage(pathraw_in): Promise<Generic.Page2> {
+        const id_map: IDMap = new Map();
+
         try {
-            const [parsed, ] = parseLink(pathraw_in);
+            const [parsed, pathraw] = parseLink(pathraw_in);
 
             console.log("PARSED URL:", parsed);
 
@@ -3236,33 +3015,18 @@ export const client: ThreadClient = {
                 // and what should be loaded as needed
                 const page = await redditRequest<Reddit.Page>(link, {method: "GET"});
 
-                const comment_map: IDMap = new Map();
-
-                for(const reply of [...page[0].data.children]) {
-                    setUpMap(comment_map, reply, {}, {
-                        permalink: "TODO",
-                        sort: "unsupported",
-                        is_chat: false,
-                    }, {
-                        parent: null,
-                        replies: page[1].data.children.map(r => r.data.name),
-                    });
-                }
-                const first_page = page[0].data.children[0]!.data;
-                for(const reply of [...page[1].data.children]) {
-                    setUpMap(comment_map, reply, {}, {
-                        permalink: "TODO",
-                        sort: "unsupported",
-                        is_chat: false,
-                    }, {
-                        parent: first_page.name,
-                        replies: [],
-                    });
-                }
-                
                 return {
                     title: "TODO",
-                    pivot: getPostData(comment_map, first_page.name),
+                    pivot: page2FromListing(id_map, pathraw, parsed, page),
+                };
+            }else if(parsed.kind === "subreddit") {
+                const link = "/"+[...parsed.sub.base, parsed.current_sort.v].join("/")
+                +"?"+encodeQuery({t: parsed.current_sort.t, before: parsed.before, after: parsed.after});
+                const page = await redditRequest<Reddit.Listing>(link, {method: "GET"});
+
+                return {
+                    title: "TODO",
+                    pivot: page2FromListing(id_map, pathraw, parsed, page),
                 };
             }else{
                 throw new Error("TODO "+parsed.kind);

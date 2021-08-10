@@ -1,13 +1,11 @@
 /* eslint-disable max-len */
 
-import type * as Generic from "../types/generic";
-import { rt, Richtext } from "../types/generic";
-import {encoderGenerator, ThreadClient} from "./base";
 import * as commonmark from "commonmark";
 import { LogEntry, variables } from "virtual:_variables";
+import type * as Generic from "../types/generic";
+import { Richtext, rt } from "../types/generic";
 import { assertNever } from "../util";
-import type * as Reddit from "../types/api/reddit";
-import type { IDMap } from "./reddit";
+import { encoderGenerator, ThreadClient } from "./base";
 
 function childrenOf(node: commonmark.Node): commonmark.Node[] {
     const res: commonmark.Node[] = [];
@@ -649,48 +647,48 @@ export async function getPage(path: string): Promise<Generic.Page2> {
 
     const client_wrapper = clientWrapperAdd();
 
-    if(pathsplit[0] === "reddit") {
-        const reddit_client = await import("./reddit");
-        const reddit_comments = await import("./test/sample_comment");
+    // if(pathsplit[0] === "reddit") {
+    //     const reddit_client = await import("./reddit");
+    //     const reddit_comments = await import("./test/sample_comment");
 
-        const sample_reddit_comments: Reddit.Post[] = [reddit_comments.sample_comment];
+    //     const sample_reddit_comments: Reddit.Post[] = [reddit_comments.sample_comment];
 
-        const comment_map: IDMap = new Map();
-        for(const comment of sample_reddit_comments) {
-            reddit_client.setUpMap(comment_map, comment, {}, {
-                permalink: "/",
-                sort: "unsupported",
-                is_chat: false,
-            }, {parent: null, replies: null});
-        }
+    //     const comment_map: IDMap = new Map();
+    //     for(const comment of sample_reddit_comments) {
+    //         reddit_client.setUpMap(comment_map, comment, {}, {
+    //             permalink: "/",
+    //             sort: "unsupported",
+    //             is_chat: false,
+    //         }, {parent: null, replies: null});
+    //     }
 
-        const pivot: Generic.PostData = {
-            kind: "post",
-            url: path,
-            parent: {ref: client_wrapper, err: undefined},
-            replies: {
-                sort: null,
-                reply: null, // this can be the reddit reply button
-                items: sample_reddit_comments.map(comment => {
-                    return {kind: "post", post: reddit_client.getPostData(comment_map, comment.data.name)};
-                }),
-            },
+    //     const pivot: Generic.PostData = {
+    //         kind: "post",
+    //         url: path,
+    //         parent: {ref: client_wrapper, err: undefined},
+    //         replies: {
+    //             sort: null,
+    //             reply: null, // this can be the reddit reply button
+    //             items: sample_reddit_comments.map(comment => {
+    //                 return {kind: "post", post: reddit_client.getPostData(comment_map, comment.data.name)};
+    //             }),
+    //         },
 
-            display_style: "centered",
-            content: {
-                kind: "post",
-                title: null,
-                author: null,
-                body: {kind: "none"},
-                show_replies_when_below_pivot: false,
-            },
-            internal_data: 0,
-        };
-        return {
-            title: "reddit",
-            pivot: {ref: pivot, err: undefined},
-        };
-    }
+    //         display_style: "centered",
+    //         content: {
+    //             kind: "post",
+    //             title: null,
+    //             author: null,
+    //             body: {kind: "none"},
+    //             show_replies_when_below_pivot: false,
+    //         },
+    //         internal_data: 0,
+    //     };
+    //     return {
+    //         title: "reddit",
+    //         pivot: {ref: pivot, err: undefined},
+    //     };
+    // }
 
     const smres = getFromSitemap(pathsplit, 0, sitemap, client_wrapper);
 
