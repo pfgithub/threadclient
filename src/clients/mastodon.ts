@@ -944,7 +944,7 @@ export const client: ThreadClient = {
                         parents: [{
                             kind: "thread",
                             raw_value: result,
-                            body: {kind: "richtext", content: [rt.pre(JSON.stringify(result, null, "\t"))]},
+                            body: {kind: "richtext", content: [rt.pre(JSON.stringify(result, null, "\t"), "json")]},
                             display_mode: {body: "visible", comments: "visible"},
                             link: parsed.path,
                             layout: "error",

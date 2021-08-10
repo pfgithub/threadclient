@@ -563,7 +563,9 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
                 expectUnsupported(sub.type);
                 return {
                     name: {kind: "text", text: "ERROR UNSUPPORTED" + sub.type},
-                    click: {kind: "body", body: {kind: "richtext", content: [rt.pre(JSON.stringify(sub, null, "\t"))]}},
+                    click: {kind: "body", body: {kind: "richtext", content: [
+                        rt.pre(JSON.stringify(sub, null, "\t"), "json"),
+                    ]}},
                 };
             }),
         },
@@ -907,7 +909,10 @@ function pathFromListingRaw(
                 parents: [{
                     kind: "thread",
                     raw_value: listing,
-                    body: {kind: "richtext", content: [...rtitems, rt.pre(JSON.stringify(listing, null, "\t"))]},
+                    body: {kind: "richtext", content: [
+                        ...rtitems,
+                        rt.pre(JSON.stringify(listing, null, "\t"), "json"),
+                    ]},
                     display_mode: {body: "visible", comments: "visible"},
                     link: path,
                     layout: "error",
@@ -2358,7 +2363,7 @@ const removal_reasons: {[key in Reddit.RemovedByCategory]: (raw_name: string, su
 
 function getCodeButton(markdown: string): Generic.Action {
     return {kind: "code", body: {kind: "richtext", content: [
-        rt.pre(markdown),
+        rt.pre(markdown, "markdown"),
     ]}};
 }
 
@@ -2661,7 +2666,7 @@ function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPer
                         kind: "richtext",
                         content: [rt.p(
                             rt.error("bad status: "+moreinfo.status, moreinfo)
-                        ), rt.pre(JSON.stringify(moreinfo, null, "\t"))],
+                        ), rt.pre(JSON.stringify(moreinfo, null, "\t"), "json")],
                     },
                 };
                 return res;
@@ -2714,7 +2719,7 @@ function getPostBody(listing: Reddit.PostSubmission, parent_permalink: SortedPer
                     kind: "richtext",
                     content: [rt.p(
                         rt.error("unsupported kind: "+moreinfo.e, moreinfo),
-                    ), rt.pre(JSON.stringify(moreinfo, null, "\t"))],
+                    ), rt.pre(JSON.stringify(moreinfo, null, "\t"), "json")],
                 },
             };
             return res;
