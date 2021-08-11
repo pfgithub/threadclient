@@ -785,6 +785,8 @@ export type Media = (BaseMedia & ({
 
     p: ImageMeta[], // alternate sizes, small → large
     s: ImageMeta, // source size
+
+    t: "emoji" | "unsupported",
 } | {
     e: "AnimatedImage",
     ext?: string, // external link, eg giphy.com/…
@@ -1162,6 +1164,9 @@ export declare namespace Richtext {
         t: string,
     } | {
         e: "gif",
+        id: string, // information is provided in media_metadata
+    } | {
+        e: "img",
         id: string, // information is provided in media_metadata
     } | {
         e: "unsupported",

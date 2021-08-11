@@ -135,7 +135,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Bo
 }
 function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph {
     switch(rtd.e) {
-        case "par": if(rtd.c.length === 1 && rtd.c[0]?.e === "gif") {
+        case "par": if(rtd.c.length === 1 && (rtd.c[0]?.e === "gif" || rtd.c[0]?.e === "img")) {
             const gif = rtd.c[0];
             const meta = opt.media_metadata[gif.id];
             if(!meta) return rt.p(rt.error("Missing media id "+gif.id, meta));
@@ -270,14 +270,27 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
         case "br": return [rt.br()];
         case "spoilertext": return [rt.spoiler(...richtextSpanArray(rtd.c, opt))];
         case "raw": return [rt.txt(rtd.t)];
-        case "gif": {
+        case "gif": case "img": {
             const meta = opt.media_metadata[rtd.id];
             if(!meta) return [rt.error("Missing media id "+rtd.id, meta)];
             if(meta.status !== "valid") return [rt.error("Bad status "+meta.status, meta)];
-            if(meta.e !== "AnimatedImage") return [rt.error("Unsupported "+meta.e, meta)];
-            return [
-                rt.link(meta.s.mp4 ?? meta.s.gif, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
-            ];
+            if(meta.e === "AnimatedImage") {
+                return [
+                    rt.link(meta.s.mp4 ?? meta.s.gif, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
+                ];
+            }else if(meta.e === "Image") {
+                if(meta.t === "emoji") {
+                    return [
+                        {kind: "emoji", url: meta.s.u, name: ":"+rtd.id.split("|")[2]+":"},
+                    ];
+                }else {
+                    return [
+                        rt.link(meta.s.u, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
+                    ];
+                }
+            }else {
+                return [rt.error("Unsupported "+meta.e, meta)];
+            }
         }
     }
     expectUnsupported(rtd.e);
