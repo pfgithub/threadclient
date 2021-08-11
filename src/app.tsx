@@ -124,8 +124,8 @@ export function getVredditSources(id: string): Generic.VideoSource {
             {url: link+"/HLSPlaylist.m3u8"},
         ],
         preview: [
-            {url: "/DASH_96.mp4", type: "video/mp4"},
-            {url: "/DASH_96", type: "video/mp4"},
+            {url: link+"/DASH_96.mp4", type: "video/mp4"},
+            {url: link+"/DASH_96", type: "video/mp4"},
         ],
     };
 }

@@ -5,6 +5,7 @@ import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getIsVisible, getSettings, Icon, ShowCond, SwitchKind } from "../util/utils_solid";
 import type shaka_types from "shaka-player";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
+import { Portal } from "solid-js/web";
 
 // Note, on firefox some rpan vods fail to play. Example:
 // https://shaka-player-demo.appspot.com/demo/#audiolang=en-US;textlang=en-US;uilang=en-US;asset=
@@ -365,6 +366,12 @@ type VideoRef = {
     goToLive(): void,
 };
 
+type SeekState = {
+    seeking: boolean, // when clicking and dragging, this is true. just hovering, it's false
+    percent: number, // 0..1
+    preview: [x: number, y: number],
+};
+
 type VideoSourceI = {i: number, url: string, quality?: string};
 type BufferNode = {start: number, end: number};
 function PreviewRealVideo(props: {
@@ -388,7 +395,7 @@ function PreviewRealVideo(props: {
     });
 
     const [expandControlsRaw, setExpandControls] = createSignal(false);
-    const [hoveringPercent, setHoveringPercent] = createSignal<number | null>(null);
+    const [seek, setSeek] = createSignal<SeekState | null>(null);
 
     const settings = getSettings();
 
@@ -447,6 +454,53 @@ function PreviewRealVideo(props: {
 
     // todo support dragging left and right to seek
     return <div class="handles-clicks">
+        <Portal mount={document.body}>
+            <div
+                class="absolute pointer-events-none transition-opacity"
+                ontransitionend={(e) => {
+                    if(!seek()) {
+                        e.currentTarget.style.visibility = "hidden";
+                    }
+                }}
+                ref={container => {
+                    createEffect(() => {
+                        const hp = seek();
+                        if(hp) {
+                            container.style.top = hp.preview[1] + "px";
+                            container.style.left = hp.preview[0] + "px";
+                            container.style.visibility = "visible";
+                        }
+                        container.style.opacity = hp ? "1" : "0";
+                    });
+                }}
+            >
+                <ShowCond when={props.source.preview}>{preview_sources => (
+                    <video
+                        ref={video_el => {
+                            createEffect(() => {
+                                const hp = seek();
+                                const v_len = video_el.duration;
+                                if(hp && v_len) {
+                                    video_el.currentTime = hp.percent * v_len;
+                                }
+                            });
+                        }}
+                    >
+                        <For each={preview_sources}>{preview_source => (
+                            <source src={preview_source.url} />
+                        )}</For>
+                    </video>
+                )}</ShowCond>
+                <div ref={div => {
+                    createEffect(() => {
+                        const hp = seek();
+                        if(hp) {
+                            div.textContent = timeSecToString(hp.percent * state.max_time);
+                        }
+                    });
+                }} />
+            </div>
+        </Portal>
         <div
             class="preview-image relative min-w-50px min-h-50px overflow-hidden"
             onmouseenter={() => {
@@ -552,14 +606,19 @@ function PreviewRealVideo(props: {
                         "relative",
                         "bg-rgray-100 bg-opacity-50",
                         "transform transition-transform origin-bottom",
-                        hoveringPercent() != null ? "scale-y-150" : "",
+                        seek() != null ? "scale-y-150" : "",
                     )}
                     onmousemove={e => {
                         const size = e.currentTarget.getBoundingClientRect();
-                        setHoveringPercent((e.clientX - size.left) / size.width);
+                        size.top
+                        setSeek({
+                            seeking: false,
+                            percent: (e.clientX - size.left) / size.width,
+                            preview: [e.pageX + document.body.scrollLeft, e.pageY + document.body.scrollTop],
+                        });
                     }}
                     onmouseleave={() => {
-                        setHoveringPercent(null);
+                        setSeek(null);
                     }}
                     onmouseup={e => {
                         const size = e.currentTarget.getBoundingClientRect();
@@ -577,9 +636,9 @@ function PreviewRealVideo(props: {
                     <div class="absolute h-full bg-rgray-700" style={{
                         'width': (state.current_time / state.max_time * 100) + "%",
                     }}></div>
-                    <ShowCond when={hoveringPercent()}>{hover_progress => (
+                    <ShowCond when={seek()}>{seek_state => (
                         <div class="absolute h-full bg-rgray-900 bg-opacity-50" style={{
-                            'width': (hover_progress * 100) + "%",
+                            'width': (seek_state.percent * 100) + "%",
                         }}></div>
                     )}</ShowCond>
                 </div>
