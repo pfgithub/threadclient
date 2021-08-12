@@ -93,7 +93,7 @@ It's a separate element, as animating opacity is faster than rgba(). -->
             src: img.body.url,
             w: img.body.w ?? undefined,
             h: img.body.h ?? undefined,
-            msrc: img.thumb,
+            msrc: img.thumb ?? "error",
             title: img.body.caption,
             alt: img.body.alt,
         };

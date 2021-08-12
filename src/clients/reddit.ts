@@ -93,44 +93,78 @@ export function expectUnsupported(text: "unsupported"): void {
     console.log("Expected unsupported", text);
 }
 
-// TODO use this for galleries and gifs? make it return Generic.GalleryItem? idk only image has a thumbnail
-function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Body {
+function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.GalleryItem {
     if(media_meta.status !== "valid") {
         return {
-            kind: "richtext",
-            content: [rt.p(rt.error("Bad Status "+media_meta.status, media_meta))],
+            thumb: null,
+            w: null,
+            h: null,
+            body: {
+                kind: "richtext",
+                content: [rt.p(rt.error("Bad Status "+media_meta.status+", "+caption, media_meta))],
+            },
         };
     }
-    if(media_meta.e === "Image") return {
-        kind: "captioned_image",
-        url: media_meta.s.u,
-        w: media_meta.s.x,
-        h: media_meta.s.y,
-        caption: caption,
-    };
-    if(media_meta.e === "AnimatedImage") return {
-        kind: "video",
-        source: media_meta.s.mp4 != null
-            ? {kind: "video", sources: [{url: media_meta.s.mp4, quality: media_meta.s.x + "×" + media_meta.s.y}]}
-            : {kind: "img", url: media_meta.s.gif}
-        ,
-        w: media_meta.s.x,
-        h: media_meta.s.y,
-        gifv: true,
-        caption: caption,
-    };
-    if(media_meta.e === "RedditVideo") return {
-        kind: "video",
-        source: getVredditSources(media_meta.id),
-        w: media_meta.x,
-        h: media_meta.y,
-        gifv: media_meta.isGif ?? false,
-        caption: caption,
-    };
+    if(media_meta.e === "Image") {
+        const thumb = media_meta.p[0] ?? media_meta.s;
+        return {
+            thumb: thumb.u ?? "error",
+            w: thumb.x,
+            h: thumb.y,
+            body: {
+                kind: "captioned_image",
+                url: media_meta.s.u,
+                w: media_meta.s.x,
+                h: media_meta.s.y,
+                caption: caption,
+            }
+        };
+    }
+    if(media_meta.e === "AnimatedImage") {
+        const thumb = media_meta.p?.[0];
+        return {
+            thumb: thumb ? thumb.u : "error",
+            w: thumb?.x,
+            h: thumb?.y,
+            body: {
+                kind: "video",
+                source: media_meta.s.mp4 != null
+                    ? {kind: "video", sources: [{url: media_meta.s.mp4, quality: media_meta.s.x + "×" + media_meta.s.y}]}
+                    : {kind: "img", url: media_meta.s.gif}
+                ,
+                // unfortunately, other qualities only contain resized static images so additional
+                // qualities or a seekbar track cannot be provided.
+                w: media_meta.s.x,
+                h: media_meta.s.y,
+                gifv: true,
+                caption: caption,
+            },
+        };
+    }
+    if(media_meta.e === "RedditVideo") {
+        return {
+            thumb: null, // I didn't find an example of
+            w: null, // this one so I couldn't check
+            h: null, // if there was a way to get the thumbnail
+            body: {
+                kind: "video",
+                source: getVredditSources(media_meta.id),
+                w: media_meta.x,
+                h: media_meta.y,
+                gifv: media_meta.isGif ?? false,
+                caption: caption,
+            },
+        };
+    }
     expectUnsupported(media_meta.e);
     return {
-        kind: "richtext",
-        content: [rt.p(rt.error("TODO "+media_meta.e, media_meta))],
+        thumb: null,
+        w: null,
+        h: null,
+        body: {
+            kind: "richtext",
+            content: [rt.p(rt.error("TODO "+media_meta.e+", "+caption, media_meta))],
+        },
     };
 }
 function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph {
@@ -140,7 +174,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
             const meta = opt.media_metadata[gif.id];
             if(!meta) return rt.p(rt.error("Missing media id "+gif.id, meta));
             return rt.kind("body", {
-                body: mediaMetaToBody(meta, gif.id.split("|")[0]),
+                body: mediaMetaToBody(meta, gif.id.split("|")[0]).body,
             });
         } else if(rtd.c.length === 1 && rtd.c[0]?.e === "text" && rtd.c[0].t.match(/^---+$/)) {
             return rt.hr();
@@ -149,7 +183,7 @@ function richtextParagraph(rtd: Reddit.Richtext.Paragraph, opt: RichtextFormatti
             const data = opt.media_metadata[rtd.id];
             if(!data) return rt.p(rt.error("unknown id "+rtd.id, opt));
             return rt.kind("body", {
-                body: mediaMetaToBody(data, rtd.c),
+                body: mediaMetaToBody(data, rtd.c).body,
             });
         }
         case "h": return rt.hn(rtd.l, ...richtextSpanArray(rtd.c, opt));
@@ -2451,72 +2485,7 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
             if(!listing.media_metadata) throw new Error("missing media metadata");
             const moreinfo = listing.media_metadata[gd.media_id];
             if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
-            if(moreinfo.status !== "valid") {
-                const res: Generic.GalleryItem = {
-                    thumb: "error: "+moreinfo.status,
-                    w: 200,
-                    h: 200,
-                    body: {
-                        kind: "richtext",
-                        content: [rt.p(
-                            rt.error("bad status: "+moreinfo.status, moreinfo)
-                        ), rt.pre(JSON.stringify(moreinfo, null, "\t"), "json")],
-                    },
-                };
-                return res;
-            }
-            if(moreinfo.e === "Image") {
-                const thumb = moreinfo.p[0] ?? moreinfo.s;
-                const res: Generic.GalleryItem = {
-                    thumb: thumb.u ?? "error",
-                    w: thumb.x,
-                    h: thumb.y,
-                    body: {
-                        kind: "captioned_image",
-                        url: moreinfo.s.u ?? "error",
-                        w: moreinfo.s.x,
-                        h: moreinfo.s.y,
-                        caption: gd.caption,
-                    }
-                };
-                return res;
-            }
-            if(moreinfo.e === "AnimatedImage") {
-                const thumb = moreinfo.p?.[0];
-                const res: Generic.GalleryItem = {
-                    thumb: thumb ? thumb.u : "error",
-                    w: thumb?.x,
-                    h: thumb?.y,
-                    body: {
-                        kind: "video",
-                        source: moreinfo.s.mp4 != null ? {
-                            kind: "video",
-                            sources: [{url: moreinfo.s.mp4, quality: moreinfo.s.x + "×" + moreinfo.s.y}],
-                        } : {kind: "img", url: moreinfo.s.gif},
-                        w: moreinfo.s.x,
-                        h: moreinfo.s.y,
-                        caption: gd.caption,
-                        gifv: true,
-                    }
-                };
-                return res;
-            }
-            if(moreinfo.e === "RedditVideo") {
-                throw new Error("TODO gallery item moreinfo video");
-            }
-            expectUnsupported(moreinfo.e);
-            const res: Generic.GalleryItem = {
-                thumb: "error: "+moreinfo.e,
-                w: 200,
-                h: 200,
-                body: {
-                    kind: "richtext",
-                    content: [rt.p(
-                        rt.error("unsupported kind: "+moreinfo.e, moreinfo),
-                    ), rt.pre(JSON.stringify(moreinfo, null, "\t"), "json")],
-                },
-            };
-            return res;
+            return mediaMetaToBody(moreinfo, gd.caption);
         })
     };
     if(listing.rpan_video) return {

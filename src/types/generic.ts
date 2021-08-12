@@ -479,7 +479,12 @@ export type VideoSource = VideoSourceVideo | {
     kind: "img",
     url: string,
 };
-export type GalleryItem = {body: Body, thumb: string, w: number | null | undefined, h: number | null | undefined};
+export type GalleryItem = {
+    body: Body,
+    thumb: string | null,
+    w: number | null | undefined,
+    h: number | null | undefined,
+};
 export type ThumbType = "self" | "default" | "image" | "spoiler" | "error" | "nsfw" | "account";
 export type Thread = {
     kind: "thread",
