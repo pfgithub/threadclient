@@ -469,7 +469,7 @@ export type VideoSourceVideo = {
         url: string,
         quality?: string,
     }[],
-    preview?: { // for the preview scrubber bar thing
+    preview?: { // for the seekbar
         url: string,
         type?: string,
     }[],

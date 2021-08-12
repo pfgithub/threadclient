@@ -2528,14 +2528,16 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
         const image = listing.preview.images[0]!;
         if(image.variants.mp4) {
             const mp4 = image.variants.mp4;
+            const sources = [...mp4.resolutions, mp4.source].sort((a, b) => b.width - a.width).map(source => ({
+                url: source.url,
+                quality: source.width + "×" + source.height,
+            }));
             return {
                 kind: "video",
                 source: {
                     kind: "video",
-                    sources: [...mp4.resolutions, mp4.source].sort((a, b) => b.width - a.width).map(source => ({
-                        url: source.url,
-                        quality: source.width + "×" + source.height,
-                    })),
+                    sources: sources,
+                    preview: [...sources].reverse(),
                 },
                 gifv: true,
             };
