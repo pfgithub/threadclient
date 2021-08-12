@@ -610,7 +610,6 @@ function PreviewRealVideo(props: {
                     )}
                     onmousemove={e => {
                         const size = e.currentTarget.getBoundingClientRect();
-                        size.top
                         setSeek({
                             seeking: false,
                             percent: (e.clientX - size.left) / size.width,
