@@ -305,6 +305,8 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
         case "spoilertext": return [rt.spoiler(...richtextSpanArray(rtd.c, opt))];
         case "raw": return [rt.txt(rtd.t)];
         case "gif": case "img": {
+            // TODO return a collapsible body segment containing the actual content
+            // rather than doing this (excl. for emojis)
             const meta = opt.media_metadata[rtd.id];
             if(!meta) return [rt.error("Missing media id "+rtd.id, meta)];
             if(meta.status !== "valid") return [rt.error("Bad status "+meta.status, meta)];
