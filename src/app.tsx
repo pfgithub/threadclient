@@ -2342,7 +2342,6 @@ function clientListing(
 
             if(content_warnings.length) {
                 const cws = content_warnings;
-                content_warnings = [];
                 const cwbox = el("div").adto(body_container);
                 cwbox.atxt("Content Warning"+(cws.length === 1 ? "" : "s")+": ");
                 cwbox.adch(renderFlair(cws));
@@ -2350,6 +2349,7 @@ function clientListing(
                 elButton("pill-filled").adto(cwbox).atxt("Show Content").onev("click", e => {
                     e.stopPropagation();
                     cwbox.remove();
+                    content_warnings = [];
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
                     renderBody(client, body, {...bodyopts}).defer(body_hsc).adto(body_container);
                 });
