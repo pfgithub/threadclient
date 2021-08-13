@@ -135,7 +135,7 @@ export type PostContentPost = {
 
     title: null | {
         text: string,
-        body_collapsible: null | {default_collapsed: boolean},
+        body_collapsible: false | {default_collapsed: boolean},
     },
     flair?: Flair[], // maybe content warnings should be seperate
     thumbnail?: {
@@ -146,7 +146,7 @@ export type PostContentPost = {
         thumb: ThumbType,
     },
     info?: PostInfo,
-    author: null | InfoAuthor,
+    author?: InfoAuthor,
     body: Body,
     /// if the item should display replies like
     /// item

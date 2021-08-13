@@ -221,7 +221,6 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                         kind: "post",
 
                         title: {text: "Video Example", body_collapsible: {default_collapsed: true}},
-                        author: null,
                         show_replies_when_below_pivot: false,
                         body: {
                             kind: "video",

@@ -9,6 +9,8 @@ import {
 
 // in the future this might be changed to hold data. then to insert into
 // the id map it'll have to be serialized or something
+// that shouldn't be necessary - loaders could be inserted
+// during setup and then there would be no issue
 export type ID = string;
 export type IDMap = Map<ID, IDMapEntry>;
 
@@ -157,8 +159,7 @@ function unsupportedPage(pathraw: string, page: unknown): Generic.Link<Generic.P
         replies: null,
         content: {
             kind: "post",
-            title: {text: "Error!", body_collapsible: null},
-            author: null,
+            title: {text: "Error!", body_collapsible: false},
             body: {
                 kind: "richtext",
                 content: [
@@ -290,11 +291,10 @@ function postDataFromListingMayError(
 
                 content: {
                     kind: "post",
-                    title: {text: "Error! TODO "+entry.data.comment.kind, body_collapsible: null},
+                    title: {text: "Error! TODO "+entry.data.comment.kind, body_collapsible: false},
                     body: {kind: "richtext", content: [
                         rt.p(rt.error("TODO", entry.data)),
                     ]},
-                    author: null,
                     show_replies_when_below_pivot: false,
                 },
             };
@@ -330,7 +330,7 @@ function postDataFromListingMayError(
             content: {
                 kind: "post",
                 title: null,
-                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
+                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getCommentBody(listing),
                 info: getPostInfo(listing),
                 show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
@@ -379,7 +379,7 @@ function postDataFromListingMayError(
             content: {
                 kind: "post",
                 title: {text: listing.title, body_collapsible: {default_collapsed: true}},
-                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])) ?? null,
+                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getPostBody(listing),
                 info: getPostInfo(listing),
                 show_replies_when_below_pivot: false,
@@ -407,8 +407,7 @@ function postDataFromListingMayError(
             },
             content: {
                 kind: "post",
-                title: {text: getEntryFullname(entry.data), body_collapsible: null},
-                author: null,
+                title: {text: getEntryFullname(entry.data), body_collapsible: false},
                 body: {kind: "none"},
                 show_replies_when_below_pivot: false,
             },

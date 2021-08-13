@@ -126,11 +126,16 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         : true
     );
     const [bodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
-    const defaultBodyVisible = createMemo(() => {
-        return props.opts.is_pivot ? true : !(props.content.title?.body_collapsible?.default_collapsed ?? false);
+    const defaultBodyVisible = createMemo((): boolean => {
+        if(props.opts.is_pivot) return true;
+        const collapsible = props.content.title?.body_collapsible;
+        if(collapsible == null || collapsible === false) return false;
+        return collapsible.default_collapsed;
     });
     const bodyToggleable = createMemo(() => {
-        return !!props.content.title?.body_collapsible;
+        const body_collapsible = props.content.title?.body_collapsible;
+        if(body_collapsible == null || body_collapsible === false) return false;
+        return true;
     });
     return <div
         class={classes(

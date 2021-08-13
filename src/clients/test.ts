@@ -173,7 +173,6 @@ const sitemap: SitemapEntry[] = [
         content: {
             kind: "post",
             title: null,
-            author: null,
             body: {kind: "richtext", content: [
                 rt.h1(rt.txt("Testing Link Preview")),
                 rt.p(rt.txt("Check each link and make sure:")),
@@ -189,7 +188,6 @@ const sitemap: SitemapEntry[] = [
             content: {
                 kind: "post",
                 title: null,
-                author: null,
                 body: {kind: "richtext", content: [
                     rt.p(rt.txt(spl.expected_result)),
                     rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
@@ -206,8 +204,7 @@ const sitemap: SitemapEntry[] = [
     ["body-preview", (urlr): SitemapEntryData => ({
         content: {
             kind: "post",
-            title: {text: "Body Preview", body_collapsible: null},
-            author: null,
+            title: {text: "Body Preview", body_collapsible: false},
             body: {kind: "none"},
             show_replies_when_below_pivot: false,
         },
@@ -395,8 +392,7 @@ const sitemap: SitemapEntry[] = [
                 (urlr): SitemapEntryData => ({
                     content: {
                         kind: "post",
-                        title: {text: key, body_collapsible: null},
-                        author: null,
+                        title: {text: key, body_collapsible: false},
                         body: {kind: "none"},
                         show_replies_when_below_pivot: {default_collapsed: false},
                     },
@@ -406,7 +402,6 @@ const sitemap: SitemapEntry[] = [
                             content: {
                                 kind: "post",
                                 title: {text: desc, body_collapsible: {default_collapsed: true}},
-                                author: null,
                                 body,
                                 show_replies_when_below_pivot: {default_collapsed: false},
                             },
@@ -420,7 +415,6 @@ const sitemap: SitemapEntry[] = [
         content: {
             kind: "post",
             title: null,
-            author: null,
             body: {kind: "richtext", content: [
                 rt.h1(rt.txt("Version "+variables.version)),
                 rt.p(rt.txt("Built "), rt.timeAgo(variables.build_time)),
@@ -436,7 +430,6 @@ const sitemap: SitemapEntry[] = [
         content: {
             kind: "post",
             title: null,
-            author: null,
             body: {kind: "richtext", content: [rt.p(rt.txt("Press 'Reply'"))]},
             show_replies_when_below_pivot: false,
         },
@@ -612,8 +605,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         replies: null,
         content: {
             kind: "post",
-            title: {text: "404", body_collapsible: null},
-            author: null,
+            title: {text: "404", body_collapsible: false},
             body: {kind: "richtext", content: [
                 rt.p(rt.txt("404 not found "+path)),
             ]},
@@ -702,7 +694,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     const home_page: Generic.PostContent = {
         kind: "post",
         title: null,
-        author: null,
         body: {
             kind: "richtext",
             content: [
@@ -785,7 +776,6 @@ export const client: ThreadClient = {
             return {
                 kind: "post",
                 title: null,
-                author: null,
                 body: {kind: "richtext", content: markdownToRichtext(body)},
                 show_replies_when_below_pivot: false,
             };
