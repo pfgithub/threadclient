@@ -4,7 +4,8 @@ import { rt } from "../../types/generic";
 import { assertNever } from "../../util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
-    getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo, urlNotSupportedYet
+    getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
+    getPostThumbnail, urlNotSupportedYet
 } from "../reddit";
 
 // in the future this might be changed to hold data. then to insert into
@@ -381,6 +382,7 @@ function postDataFromListingMayError(
                 title: {text: listing.title, body_collapsible: {default_collapsed: true}},
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getPostBody(listing),
+                thumbnail: getPostThumbnail(listing, "open"),
                 info: getPostInfo(listing),
                 show_replies_when_below_pivot: false,
             },

@@ -138,13 +138,7 @@ export type PostContentPost = {
         body_collapsible: false | {default_collapsed: boolean},
     },
     flair?: Flair[], // maybe content warnings should be seperate
-    thumbnail?: {
-        kind: "image",
-        url: string,
-    } | {
-        kind: "default",
-        thumb: ThumbType,
-    },
+    thumbnail?: Thumbnail,
     info?: PostInfo,
     author?: InfoAuthor,
     body: Body,
@@ -486,17 +480,18 @@ export type GalleryItem = {
     h: number | null | undefined,
 };
 export type ThumbType = "self" | "default" | "image" | "spoiler" | "error" | "nsfw" | "account";
+export type Thumbnail = {
+    kind: "image",
+    url: string,
+} | {
+    kind: "default",
+    thumb: ThumbType,
+};
 export type Thread = {
     kind: "thread",
 
     body: Body,
-    thumbnail?: {
-        kind: "image",
-        url: string,
-    } | {
-        kind: "default",
-        thumb: ThumbType,
-    },
+    thumbnail?: Thumbnail,
     display_mode: { // todo revamp, this is useless
         body: "visible" | "collapsed",
         body_default?: "open" | "closed",

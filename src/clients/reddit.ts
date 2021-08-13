@@ -2517,6 +2517,31 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
     return {kind: "link", url: listing.url, embed_html: listing.media_embed?.content};
 }
 
+export function getPostThumbnail(
+    listing: Reddit.PostSubmission,
+    force_expand: ThreadOpts["force_expand"],
+): Generic.Thumbnail | undefined {
+    if(force_expand === "crosspost") return undefined;
+    return (
+        listing.preview?.images?.[0]?.resolutions?.[0]?.url != null
+        ? {kind: "image", url: listing.preview.images[0].resolutions[0].url}
+        : listing.thumbnail == null
+        ? undefined
+        : listing.rpan_video
+        ? {kind: "image", url: listing.rpan_video.scrubber_media_url}
+        : listing.thumbnail.includes("/")
+        ? {kind: "image", url: listing.thumbnail}
+        // : listing.gallery_data // new.reddit has this but old.reddit doesn't
+        // ? {kind: "default", thumb: "gallery"}
+        : listing.thumbnail == null || listing.thumbnail === ""
+        ? undefined
+        : {kind: "default", thumb: (as<{[key: string]: Generic.ThumbType}>({
+            self: "self", default: "default", image: "image",
+            spoiler: "spoiler", nsfw: "nsfw", account: "account",
+        }))[listing.thumbnail] ?? "error"}
+    );
+}
+
 const as = <T>(a: T): T => a;
 export type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node {
@@ -2635,25 +2660,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
             ,
             raw_value: listing_raw,
             link: listing.permalink,
-            thumbnail: options.force_expand === "crosspost"
-                ? undefined
-                : listing.preview?.images?.[0]?.resolutions?.[0]?.url != null
-                ? {kind: "image", url: listing.preview.images[0].resolutions[0].url}
-                : listing.thumbnail == null
-                ? undefined
-                : listing.rpan_video
-                ? {kind: "image", url: listing.rpan_video.scrubber_media_url}
-                : listing.thumbnail.includes("/")
-                ? {kind: "image", url: listing.thumbnail}
-                // : listing.gallery_data // new.reddit has this but old.reddit doesn't
-                // ? {kind: "default", thumb: "gallery"}
-                : listing.thumbnail == null || listing.thumbnail === ""
-                ? undefined
-                : {kind: "default", thumb: (as<{[key: string]: Generic.ThumbType}>({
-                    self: "self", default: "default", image: "image",
-                    spoiler: "spoiler", nsfw: "nsfw", account: "account",
-                }))[listing.thumbnail] ?? "error"}
-            ,
+            thumbnail: getPostThumbnail(listing, options.force_expand),
             layout: "reddit-post",
             info: {
                 time: listing.created_utc * 1000,
