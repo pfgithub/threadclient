@@ -130,6 +130,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                         },
                     }} opts={{
                         clickable: false,
+                        frame: null,
                         replies: null,
                         at_or_above_pivot: false,
                         is_pivot: false,
@@ -248,6 +249,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                         },
                     }} opts={{
                         clickable: false,
+                        frame: null,
                         replies: null,
                         at_or_above_pivot: false,
                         is_pivot: false,

@@ -11,11 +11,12 @@ import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
 import { Body } from "./body";
 import { CounterCount } from "./counter";
-import { UserLink } from "./links";
+import { A, LinkButton, UserLink } from "./links";
 export * from "../util/interop_solid";
 
 export type ClientPostOpts = {
     clickable: boolean,
+    frame: Generic.PostData | null,
     replies: Generic.ListingData | null,
     at_or_above_pivot: boolean,
     is_pivot: boolean,
@@ -104,6 +105,7 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
                             clickable: false,
                             at_or_above_pivot: false,
                             is_pivot: false,
+                            frame: post,
                             replies: isThreaded()?.length === 1 ? null : post.replies, // TODO support threading
                             top_level: false,
                         }} />
@@ -164,7 +166,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         </ShowBool>
         <div class="post-content-subminfo">
             <ShowCond when={props.content.title}>{title => (
-                <div>{title.text}</div>   
+                <div><ShowCond when={props.opts.frame?.url} fallback={(
+                    title.text
+                )}>{url => (
+                    <A href={url} class="hover:underline">{title.text}</A>
+                )}</ShowCond></div>
             )}</ShowCond>
             <ShowCond when={props.content.author?.pfp}>{pfp => <>
                 <AuthorPfp src_url={pfp.url} />{" "}
@@ -197,6 +203,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <button on:click={() => {
                     console.log(props.content, props.opts);
                 }}>Code</button>
+                <ShowCond when={props.opts.frame?.url}>{url => (
+                    <LinkButton href={url} style="action-button">View</LinkButton>
+                )}</ShowCond>
                 <ShowCond when={props.opts.replies?.reply}>{(reply_action) => {
                     const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
 
@@ -308,7 +317,8 @@ export function ReplyEditor(props: {
                     replies: null,
                     at_or_above_pivot: true,
                     is_pivot: true,
-                    top_level: true,   
+                    top_level: true,
+                    frame: null,
                 }}/>
             </div>;
         }}</ShowCond>
@@ -399,6 +409,7 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
                         <TopLevelWrapper>
                             <ClientContent listing={post.post.ref!.content} opts={{
                                 clickable: false, // TODO
+                                frame: post.post.ref!,
                                 replies: post.post.ref!.replies,
                                 at_or_above_pivot: false,
                                 top_level: true,
@@ -432,6 +443,7 @@ function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_
                         <TopLevelWrapper>
                             <ClientContent listing={post} opts={{
                                 clickable: !props.is_pivot,
+                                frame: post_root,
                                 replies: post_root.replies,
                                 at_or_above_pivot: true,
                                 top_level: true,

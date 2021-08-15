@@ -356,8 +356,7 @@ function postDataFromListingMayError(
 
         return {
             kind: "post",
-            // url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
-            url: null, // TODO pass in sort
+            url: listing.permalink,
 
             parent: getPostData(map, getSrId({
                 kind: "subreddit",
