@@ -4,7 +4,7 @@ import {
 } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import {
-    bioRender, clientContent, link_styles_v, navbar, renderAction, timeAgoText
+    bioRender, clientContent, imgurImage, link_styles_v, navbar, renderAction, timeAgoText
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -127,6 +127,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         ? !props.content.show_replies_when_below_pivot.default_collapsed
         : true
     );
+    const [contentWarning, setContentWarning] = createSignal(false); // TODO
+    () => setContentWarning;
     const [bodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
     const defaultBodyVisible = createMemo((): boolean => {
         if(props.opts.is_pivot) return true;
@@ -139,24 +141,29 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         if(body_collapsible == null || body_collapsible === false) return false;
         return true;
     });
+    const collapseButton = () => {
+        return props.content.show_replies_when_below_pivot !== false;
+    };
+    const hasThumbnail = () => {
+        return !!props.content.thumbnail;
+    }
     return <div
         class={classes(
             "text-sm",
             // selfVisible()
             // props.content.show_replies_when_below_pivot !== false
             "pt-10px",
-            "pl-25px",
-            "relative",
+            collapseButton() ? (props.opts.top_level ? "pl-1" : "") : "pl-15px",
+            "flex flex-row",
 
-            "-ml-10px",
-            props.opts.top_level ? "-mt-10px" : [],
+            props.opts.top_level ? "-mt-10px -ml-10px" : [],
         )}
         style={{
             "--left-v": "8px",
         }}
     >
-        <ShowBool when={props.content.show_replies_when_below_pivot !== false}>
-            <button style={{bottom: "0"}} class="collapse-btn z-1" classList={{
+        <ShowBool when={collapseButton()}>
+            <button style={{bottom: "0"}} class="collapse-btn z-1 static mr-1" classList={{
                 "collapsed": !selfVisible(),
              }} draggable={true} on:click={(e) => {
                 const collapsed_button = e.currentTarget;
@@ -169,7 +176,25 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <div class="collapse-btn-inner"></div>
             </button>
         </ShowBool>
+        <ShowCond when={props.content.thumbnail}>{thumb_any => (
+            <button class="w-70px h-70px mr-4" onClick={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
+                <SwitchKind item={thumb_any}>{{
+                    image: img => <img
+                        // TODO based on the img content, display eg a play button or something
+                        src={img.url}
+                        alt=""
+                        class={classes(
+                            contentWarning() ? "thumbnail-content-warning" : "",
+                            "w-full h-full object-contain"
+                        )}
+                    />,
+                    default: def => <>TODO {def.kind}</>,
+                }}</SwitchKind>
+            </button>
+        )}</ShowCond>
+        <div>
         <div class={classes(
+            hasThumbnail() ? "" : "text-xs",
             selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
         )}>
             <ShowCond when={props.content.title}>{title => (
@@ -201,7 +226,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     <Body body={props.content.body} autoplay={false} />
                 </ShowBool>
             </div>
-            <div class="text-xs">
+            <div class={hasThumbnail() ? "" : "text-xs"}>
                 <ShowBool when={bodyToggleable()}>
                     <button on:click={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
                         {bodyVisible() ?? defaultBodyVisible() ? "Hide" : "Show"}
@@ -242,7 +267,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <ShowCond when={props.opts.replies}>{replies => <ShowBool
                     when={props.content.show_replies_when_below_pivot !== false}
                 >
-                    <ul>
+                    <ul class="-ml-3px">
                         <For each={replies.items}>{reply => (
                             // - if replies.items is 1, maybe thread replies?
                             <ClientPostReply reply={reply} is_threaded={replies.items.length === 1} />
@@ -251,6 +276,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 </ShowBool>}</ShowCond>
             </ShowBool>
         </HideshowProvider></div>
+        </div>
     </div>;
 }
 
