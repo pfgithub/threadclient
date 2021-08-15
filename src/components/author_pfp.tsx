@@ -127,15 +127,18 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         ? !props.content.show_replies_when_below_pivot.default_collapsed
         : true
     );
-    const [contentWarning, setContentWarning] = createSignal(false); // TODO
+    const [contentWarning, setContentWarning] = createSignal(
+        !!(props.content.flair ?? []).find(flair => flair.content_warning),
+    );
     () => setContentWarning;
-    const [bodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
+    const [overlayBodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
     const defaultBodyVisible = createMemo((): boolean => {
         if(props.opts.is_pivot) return true;
         const collapsible = props.content.title?.body_collapsible;
         if(collapsible == null || collapsible === false) return true;
         return !collapsible.default_collapsed;
     });
+    const bodyVisible = () => overlayBodyVisible() ?? defaultBodyVisible();
     const bodyToggleable = createMemo(() => {
         const body_collapsible = props.content.title?.body_collapsible;
         if(body_collapsible == null || body_collapsible === false) return false;
@@ -177,14 +180,16 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             </button>
         </ShowBool>
         <ShowCond when={props.content.thumbnail}>{thumb_any => (
-            <button class="w-70px h-70px mr-4" onClick={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
+            <button class={classes(
+                "w-70px h-70px mr-4",
+                contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
+            )} onClick={() => setBodyVisible(!bodyVisible())}>
                 <SwitchKind item={thumb_any}>{{
                     image: img => <img
                         // TODO based on the img content, display eg a play button or something
                         src={img.url}
                         alt=""
                         class={classes(
-                            contentWarning() ? "thumbnail-content-warning" : "",
                             "w-full h-full object-contain"
                         )}
                     />,
@@ -197,13 +202,16 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             hasThumbnail() ? "" : "text-xs",
             selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
         )}>
-            <ShowCond when={props.content.title}>{title => (
-                <div><ShowCond when={props.opts.frame?.url} fallback={(
-                    title.text
-                )}>{url => (
-                    <A href={url} class="hover:underline">{title.text}</A>
-                )}</ShowCond></div>
-            )}</ShowCond>
+            <div>
+                <ShowCond when={props.content.title}>{title => (
+                    <ShowCond when={props.opts.frame?.url} fallback={(
+                        title.text
+                    )}>{url => (
+                        <A href={url} class="hover:underline">{title.text}</A>
+                    )}</ShowCond>
+                )}</ShowCond>
+                <Flair flairs={props.content.flair ?? []} />
+            </div>
             <ShowCond if={[selfVisible()]} when={props.content.author?.pfp}>{pfp => <>
                 <AuthorPfp src_url={pfp.url} />{" "}
             </>}</ShowCond>
@@ -221,15 +229,25 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         </div>
         <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={selfVisible}>
             <div>
-                {/*working around a solid bug where !! is used on the lhs of a ??. should be fixed soon*/null}
-                <ShowBool when={(void 0, bodyVisible() ?? defaultBodyVisible())}>
-                    <Body body={props.content.body} autoplay={false} />
+                <ShowBool when={bodyVisible()}>
+                    <ShowBool when={!contentWarning()} fallback={
+                        <>
+                            Content Warning:{" "}
+                            <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}
+                            <button
+                                class={link_styles_v["pill-filled"]}
+                                onClick={() => setContentWarning(false)}
+                            >Show Anyway</button>
+                        </>
+                    }>
+                        <Body body={props.content.body} autoplay={false} />
+                    </ShowBool>
                 </ShowBool>
             </div>
             <div class={hasThumbnail() ? "" : "text-xs"}>
                 <ShowBool when={bodyToggleable()}>
-                    <button on:click={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
-                        {bodyVisible() ?? defaultBodyVisible() ? "Hide" : "Show"}
+                    <button on:click={() => setBodyVisible(!bodyVisible())}>
+                        {bodyVisible() ? "Hide" : "Show"}
                     </button>
                 </ShowBool>
                 <button on:click={() => {

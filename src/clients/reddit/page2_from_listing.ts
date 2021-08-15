@@ -5,7 +5,7 @@ import { assertNever } from "../../util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
-    getPostThumbnail, urlNotSupportedYet
+    getPostThumbnail, urlNotSupportedYet, getPostFlair
 } from "../reddit";
 
 // in the future this might be changed to hold data. then to insert into
@@ -379,6 +379,7 @@ function postDataFromListingMayError(
             content: {
                 kind: "post",
                 title: {text: listing.title, body_collapsible: {default_collapsed: true}},
+                flair: getPostFlair(listing),
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getPostBody(listing),
                 thumbnail: getPostThumbnail(listing, "open"),

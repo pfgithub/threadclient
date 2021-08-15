@@ -2554,6 +2554,31 @@ export function getPostThumbnail(
     );
 }
 
+export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
+    const flairs: Generic.Flair[] = [];
+    flairs.push(
+        ...flairToGenericFlair({
+            type: listing.link_flair_type, text: listing.link_flair_text,
+            text_color: listing.link_flair_text_color,
+            background_color: listing.link_flair_background_color,
+            richtext: listing.link_flair_richtext,
+        })
+    );
+    if(listing.spoiler) flairs.push({elems: [{kind: "text", text: "Spoiler"}], content_warning: true});
+    if(listing.over_18) flairs.push({elems: [{kind: "text", text: "NSFW"}], content_warning: true});
+    if(listing.is_original_content) flairs.push({elems: [{kind: "text", text: "OC"}], content_warning: false});
+    flairs.push(...awardingsToFlair(listing.all_awardings ?? []));
+
+    if(listing.approved === true) {
+        flairs.push({
+            elems: [{kind: "text", text: "✓ Approved"}],
+            content_warning: false,
+            system: "text-green-500",
+        });
+    }
+    return flairs;
+}
+
 const as = <T>(a: T): T => a;
 export type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
 function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node {
@@ -2626,27 +2651,6 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
         );
         const post_id_no_pfx = listing.name.substring(3);
 
-        const flairs: Generic.Flair[] = [];
-        flairs.push(
-            ...flairToGenericFlair({
-                type: listing.link_flair_type, text: listing.link_flair_text,
-                text_color: listing.link_flair_text_color,
-                background_color: listing.link_flair_background_color,
-                richtext: listing.link_flair_richtext,
-            })
-        );
-        if(listing.spoiler) flairs.push({elems: [{kind: "text", text: "Spoiler"}], content_warning: true});
-        if(listing.over_18) flairs.push({elems: [{kind: "text", text: "NSFW"}], content_warning: true});
-        if(listing.is_original_content) flairs.push({elems: [{kind: "text", text: "OC"}], content_warning: false});
-        flairs.push(...awardingsToFlair(listing.all_awardings ?? []));
-
-        if(listing.approved === true) {
-            flairs.push({
-                elems: [{kind: "text", text: "✓ Approved"}],
-                content_warning: false,
-                system: "text-green-500",
-            });
-        }
         if(listing.mod_reports.length + listing.user_reports.length > 0) {
             //
         }
@@ -2658,7 +2662,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
             title: {
                 text: listing.title,
             },
-            flair: flairs,
+            flair: getPostFlair(listing),
             body: is_deleted != null
                 ? {kind: "removed", removal_message: is_deleted,
                     fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx}),
