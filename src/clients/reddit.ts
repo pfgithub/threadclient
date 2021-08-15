@@ -2513,6 +2513,18 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
                 gifv: true,
             };
         }
+        if(listing.preview.enabled) {
+            // not used on videos
+            // TODO have sources on images that specify resolutions
+            // in order to use lower quality versions when not in fullscreen
+            // preview
+            return {
+                kind: "captioned_image",
+                url: image.source.url,
+                w: image.source.width,
+                h: image.source.height,
+            };
+        }
     }
     return {kind: "link", url: listing.url, embed_html: listing.media_embed?.content};
 }
