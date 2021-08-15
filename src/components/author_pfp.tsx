@@ -130,7 +130,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         if(props.opts.is_pivot) return true;
         const collapsible = props.content.title?.body_collapsible;
         if(collapsible == null || collapsible === false) return true;
-        return collapsible.default_collapsed;
+        return !collapsible.default_collapsed;
     });
     const bodyToggleable = createMemo(() => {
         const body_collapsible = props.content.title?.body_collapsible;
