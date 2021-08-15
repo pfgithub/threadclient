@@ -79,12 +79,13 @@ export function ShowBool(props: {
 }
 export function ShowCond<T>(props: {
     // if: boolean, // would be nice for this to be optional but not allow undefined
+    if?: [boolean],
     when: T | undefined | null,
     fallback?: JSX.Element,
     children: (item: T) => JSX.Element,
 }): JSX.Element {
     return createMemo(() => {
-        if (props.when != null) {
+        if ((props.if?.[0] ?? true) && props.when != null) {
             const child = props.children;
             return untrack(() => child(props.when!));
         }

@@ -483,13 +483,13 @@ html {
 .collapse-btn:hover .collapse-btn-inner {
     background: var(--collapse-line-color-hover);
 }
-.comment-collapsed > .collapse-btn > .collapse-btn-inner {
+.comment-collapsed > .collapse-btn > .collapse-btn-inner, .collapse-btn.collapsed > .collapse-btn-inner {
     display: none;
 }
 .replies > .comment > .post.layout-commentlike > .collapse-btn {
     bottom: 0;
 }
-.post.layout-commentlike.comment-collapsed > .collapse-btn {
+.post.layout-commentlike.comment-collapsed > .collapse-btn, .collapse-btn.collapsed {
     background-color: rgba(0, 0, 0, 0);
     // prettier-ignore
     background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAA"

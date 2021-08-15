@@ -141,19 +141,24 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     });
     return <div
         class={classes(
-            "post text-sm",
-            props.content.show_replies_when_below_pivot !== false ? [
-                "layout-reddit-comment",
-                "layout-commentlike",
-            ] : [],
-            selfVisible() ? [] : "comment-collapsed",
+            "text-sm",
+            // selfVisible()
+            // props.content.show_replies_when_below_pivot !== false
+            "pt-10px",
+            "pl-25px",
+            "relative",
 
             "-ml-10px",
             props.opts.top_level ? "-mt-10px" : [],
         )}
+        style={{
+            "--left-v": "8px",
+        }}
     >
         <ShowBool when={props.content.show_replies_when_below_pivot !== false}>
-            <button style={{bottom: "0"}} class="collapse-btn z-1" draggable={true} on:click={(e) => {
+            <button style={{bottom: "0"}} class="collapse-btn z-1" classList={{
+                "collapsed": !selfVisible(),
+             }} draggable={true} on:click={(e) => {
                 const collapsed_button = e.currentTarget;
                 const topv = collapsed_button.getBoundingClientRect().top;
                 const heightv = 5 + navbar.getBoundingClientRect().height;
@@ -164,7 +169,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <div class="collapse-btn-inner"></div>
             </button>
         </ShowBool>
-        <div class="post-content-subminfo">
+        <div class={classes(
+            selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
+        )}>
             <ShowCond when={props.content.title}>{title => (
                 <div><ShowCond when={props.opts.frame?.url} fallback={(
                     title.text
@@ -172,7 +179,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     <A href={url} class="hover:underline">{title.text}</A>
                 )}</ShowCond></div>
             )}</ShowCond>
-            <ShowCond when={props.content.author?.pfp}>{pfp => <>
+            <ShowCond if={[selfVisible()]} when={props.content.author?.pfp}>{pfp => <>
                 <AuthorPfp src_url={pfp.url} />{" "}
             </>}</ShowCond>
             <ShowCond when={props.content.author}>{author => (
@@ -187,14 +194,14 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 {" "}<CounterCount counter={vote_action} />
             </>}</ShowCond>
         </div>
-        <HideshowProvider visible={selfVisible}>
-            <div class="post-preview">
+        <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={selfVisible}>
+            <div>
                 {/*working around a solid bug where !! is used on the lhs of a ??. should be fixed soon*/null}
                 <ShowBool when={(void 0, bodyVisible() ?? defaultBodyVisible())}>
                     <Body body={props.content.body} autoplay={false} />
                 </ShowBool>
             </div>
-            <div class="post-content-buttons text-xs">
+            <div class="text-xs">
                 <ShowBool when={bodyToggleable()}>
                     <button on:click={() => setBodyVisible(!(bodyVisible() ?? defaultBodyVisible()))}>
                         {bodyVisible() ?? defaultBodyVisible() ? "Hide" : "Show"}
@@ -235,7 +242,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <ShowCond when={props.opts.replies}>{replies => <ShowBool
                     when={props.content.show_replies_when_below_pivot !== false}
                 >
-                    <ul class="post-replies">
+                    <ul>
                         <For each={replies.items}>{reply => (
                             // - if replies.items is 1, maybe thread replies?
                             <ClientPostReply reply={reply} is_threaded={replies.items.length === 1} />
@@ -243,7 +250,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     </ul>
                 </ShowBool>}</ShowCond>
             </ShowBool>
-        </HideshowProvider>
+        </HideshowProvider></div>
     </div>;
 }
 

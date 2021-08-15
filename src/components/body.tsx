@@ -127,6 +127,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 thread: xpost.source,
             }} opts={{
                 clickable: true,
+                frame: null,
                 replies: null,
                 at_or_above_pivot: false,
                 is_pivot: false,
