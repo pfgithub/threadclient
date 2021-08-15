@@ -225,7 +225,7 @@ function NativeVideoElement(props: {
             s.playing = (
                 (video_el.paused || video_el.ended) ? (
                     false
-                ) : (video_el.readyState < video_el.HAVE_FUTURE_DATA || video_el.currentTime === 0) ? (
+                ) : (video_el.readyState < video_el.HAVE_FUTURE_DATA) ? (
                     "loading"
                 ) : true
             );
