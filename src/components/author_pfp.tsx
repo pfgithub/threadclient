@@ -4,7 +4,7 @@ import {
 } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import {
-    bioRender, clientContent, imgurImage, link_styles_v, navbar, renderAction, timeAgoText
+    bioRender, clientContent, link_styles_v, navbar, renderAction, timeAgoText
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -149,7 +149,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     };
     const hasThumbnail = () => {
         return !!props.content.thumbnail;
-    }
+    };
     return <div
         class={classes(
             "text-sm",
@@ -167,8 +167,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     >
         <ShowBool when={collapseButton()}>
             <button style={{bottom: "0"}} class="collapse-btn z-1 static mr-1" classList={{
-                "collapsed": !selfVisible(),
-             }} draggable={true} on:click={(e) => {
+                'collapsed': !selfVisible(),
+            }} draggable={true} on:click={(e) => {
                 const collapsed_button = e.currentTarget;
                 const topv = collapsed_button.getBoundingClientRect().top;
                 const heightv = 5 + navbar.getBoundingClientRect().height;
