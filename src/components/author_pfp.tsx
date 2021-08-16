@@ -198,11 +198,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             </button>
         )}</ShowCond>
         <div>
-        <div class={classes(
-            hasThumbnail() ? "" : "text-xs",
-            selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
-        )}>
-            <div>
+            <div class={classes(
+                hasThumbnail() ? "text-base" : "text-xs",
+            )}>
                 <ShowCond when={props.content.title}>{title => (
                     <ShowCond when={props.opts.frame?.url} fallback={(
                         title.text
@@ -212,88 +210,92 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 )}</ShowCond>
                 <Flair flairs={props.content.flair ?? []} />
             </div>
-            <ShowCond if={[selfVisible()]} when={props.content.author?.pfp}>{pfp => <>
-                <AuthorPfp src_url={pfp.url} />{" "}
-            </>}</ShowCond>
-            <ShowCond when={props.content.author}>{author => (
-                <UserLink href={author.link} color_hash={author.color_hash}>
-                    {author.name}
-                </UserLink>
-            )}</ShowCond>
-            <ShowCond when={props.content.author?.flair}>{flair => <>
-                {" "}<Flair flairs={flair} />
-            </>}</ShowCond>
-            <ShowCond when={props.content.actions?.vote}>{vote_action => <>
-                {" "}<CounterCount counter={vote_action} />
-            </>}</ShowCond>
-        </div>
-        <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={selfVisible}>
-            <div>
-                <ShowBool when={bodyVisible()}>
-                    <ShowBool when={!contentWarning()} fallback={
-                        <>
-                            Content Warning:{" "}
-                            <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}
-                            <button
-                                class={link_styles_v["pill-filled"]}
-                                onClick={() => setContentWarning(false)}
-                            >Show Anyway</button>
-                        </>
-                    }>
-                        <Body body={props.content.body} autoplay={false} />
-                    </ShowBool>
-                </ShowBool>
-            </div>
-            <div class={hasThumbnail() ? "" : "text-xs"}>
-                <ShowBool when={bodyToggleable()}>
-                    <button on:click={() => setBodyVisible(!bodyVisible())}>
-                        {bodyVisible() ? "Hide" : "Show"}
-                    </button>
-                </ShowBool>
-                <button on:click={() => {
-                    console.log(props.content, props.opts);
-                }}>Code</button>
-                <ShowCond when={props.opts.frame?.url}>{url => (
-                    <LinkButton href={url} style="action-button">View</LinkButton>
+            <div class={classes(
+                hasThumbnail() ? "" : "text-xs",
+                selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
+            )}>
+                <ShowCond if={[selfVisible()]} when={props.content.author?.pfp}>{pfp => <>
+                    <AuthorPfp src_url={pfp.url} />{" "}
+                </>}</ShowCond>
+                <ShowCond when={props.content.author}>{author => (
+                    <UserLink href={author.link} color_hash={author.color_hash}>
+                        {author.name}
+                    </UserLink>
                 )}</ShowCond>
-                <ShowCond when={props.opts.replies?.reply}>{(reply_action) => {
-                    const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
-
-                    return <>
-                        <button disabled={replyWindowOpen()} on:click={() => {
-                            setReplyWindowOpen(true);
-                        }}>{reply_action.text}</button>
-                        <ShowBool when={replyWindowOpen()}>
-                            <ReplyEditor
-                                action={reply_action} 
-                                onCancel={() => setReplyWindowOpen(false)}
-                                onAddReply={() => {
-                                    setReplyWindowOpen(false);
-                                    //
-                                }}
-                            />
-                        </ShowBool>
-                    </>;
-                }}</ShowCond>
-                <ShowCond when={props.content.actions && props.content.actions.other}>{other_actions => <>
-                    <For each={other_actions}>{(item, i) => <>
-                        <Action action={item} />
-                    </>}</For>
+                <ShowCond when={props.content.author?.flair}>{flair => <>
+                    {" "}<Flair flairs={flair} />
+                </>}</ShowCond>
+                <ShowCond when={props.content.actions?.vote}>{vote_action => <>
+                    {" "}<CounterCount counter={vote_action} />
                 </>}</ShowCond>
             </div>
-            <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
-                <ShowCond when={props.opts.replies}>{replies => <ShowBool
-                    when={props.content.show_replies_when_below_pivot !== false}
-                >
-                    <ul class="-ml-3px">
-                        <For each={replies.items}>{reply => (
-                            // - if replies.items is 1, maybe thread replies?
-                            <ClientPostReply reply={reply} is_threaded={replies.items.length === 1} />
-                        )}</For>
-                    </ul>
-                </ShowBool>}</ShowCond>
-            </ShowBool>
-        </HideshowProvider></div>
+            <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={selfVisible}>
+                <div>
+                    <ShowBool when={bodyVisible()}>
+                        <ShowBool when={!contentWarning()} fallback={
+                            <>
+                                Content Warning:{" "}
+                                <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}
+                                <button
+                                    class={link_styles_v["pill-filled"]}
+                                    onClick={() => setContentWarning(false)}
+                                >Show Anyway</button>
+                            </>
+                        }>
+                            <Body body={props.content.body} autoplay={false} />
+                        </ShowBool>
+                    </ShowBool>
+                </div>
+                <div class={hasThumbnail() ? "" : "text-xs"}>
+                    <ShowBool when={bodyToggleable()}>
+                        <button on:click={() => setBodyVisible(!bodyVisible())}>
+                            {bodyVisible() ? "Hide" : "Show"}
+                        </button>
+                    </ShowBool>
+                    <button on:click={() => {
+                        console.log(props.content, props.opts);
+                    }}>Code</button>
+                    <ShowCond when={props.opts.frame?.url}>{url => (
+                        <LinkButton href={url} style="action-button">View</LinkButton>
+                    )}</ShowCond>
+                    <ShowCond when={props.opts.replies?.reply}>{(reply_action) => {
+                        const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
+
+                        return <>
+                            <button disabled={replyWindowOpen()} on:click={() => {
+                                setReplyWindowOpen(true);
+                            }}>{reply_action.text}</button>
+                            <ShowBool when={replyWindowOpen()}>
+                                <ReplyEditor
+                                    action={reply_action} 
+                                    onCancel={() => setReplyWindowOpen(false)}
+                                    onAddReply={() => {
+                                        setReplyWindowOpen(false);
+                                        //
+                                    }}
+                                />
+                            </ShowBool>
+                        </>;
+                    }}</ShowCond>
+                    <ShowCond when={props.content.actions && props.content.actions.other}>{other_actions => <>
+                        <For each={other_actions}>{(item, i) => <>
+                            <Action action={item} />
+                        </>}</For>
+                    </>}</ShowCond>
+                </div>
+                <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
+                    <ShowCond when={props.opts.replies}>{replies => <ShowBool
+                        when={props.content.show_replies_when_below_pivot !== false}
+                    >
+                        <ul class="-ml-3px">
+                            <For each={replies.items}>{reply => (
+                                // - if replies.items is 1, maybe thread replies?
+                                <ClientPostReply reply={reply} is_threaded={replies.items.length === 1} />
+                            )}</For>
+                        </ul>
+                    </ShowBool>}</ShowCond>
+                </ShowBool>
+            </HideshowProvider></div>
         </div>
     </div>;
 }
