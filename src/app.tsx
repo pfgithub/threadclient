@@ -444,8 +444,8 @@ export function renderImageGallery(client: ThreadClient, images: Generic.Gallery
             const buttons = images.map((img, i) => {
                 const imgv = el("img").attr({
                     src: img.thumb,
-                    width: img.w != null ? `${img.w}px` as const : undefined,
-                    height: img.h != null ? `${img.h}px` as const : undefined,
+                    width: img.w != null ? `${img.w}` as const : undefined,
+                    height: img.h != null ? `${img.h}` as const : undefined,
                 }).clss("w-auto h-auto max-w-full max-h-full");
                 el("button").clss(
                     "m-1 w-24 h-24 flex items-center justify-center inline-block bg-body rounded-md"
@@ -1064,8 +1064,8 @@ function elImg(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLIm
     const res = el("img").clss("image-loading")
         .attr({
             src: url,
-            width: opt.w != null ? `${opt.w}px` as const : undefined,
-            height: opt.h != null ? `${opt.h}px` as const : undefined,
+            width: opt.w != null ? `${opt.w}` as const : undefined,
+            height: opt.h != null ? `${opt.h}` as const : undefined,
             alt: opt.alt, title: opt.alt
         })
     ;
@@ -1961,8 +1961,8 @@ function widgetRender(
                 name_node = el("img").clss("w-fill h-auto").attr({
                     src: item.name.src,
                     alt: item.name.alt,
-                    width: `${item.name.w}px` as const,
-                    height: `${item.name.h}px` as const
+                    width: `${item.name.w}` as const,
+                    height: `${item.name.h}` as const
                 });
             }else assertNever(item.name);
 
@@ -1989,8 +1989,8 @@ function widgetRender(
         outest_el.replaceChild(alt_frame, outer_el);
         outest_el.clss("widget-fullscreen-content");
         const iframe = el("iframe").adto(alt_frame).styl({width: "312px"}).attr({
-            width: "312px",
-            height: content.height as unknown as `${number}px`,
+            width: "312",
+            height: content.height as unknown as `${number}`,
             srcdoc: content.srcdoc,
         });
         iframe.onload = () => {

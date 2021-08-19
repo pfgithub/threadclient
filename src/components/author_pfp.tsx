@@ -65,7 +65,7 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
                 emoji: (emoji) => <img
                     title={emoji.name}
                     src={emoji.url}
-                    width={emoji.w + "px"} height={emoji.h + "px"}
+                    width={emoji.w} height={emoji.h}
                     class="inline-block w-4 h-4 align-middle object-contain"
                 />,
             }}</SwitchKind>}</For>

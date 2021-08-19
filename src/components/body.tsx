@@ -270,7 +270,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                     class="m-1 inline-block bg-body rounded-md"
                     on:click={() => setState({kind: "image", index: i()})}
                 >
-                    <img src={image.thumb ?? "error"} width={image.w+"px"} height={image.h+"px"}
+                    <img src={image.thumb ?? "error"} width={image.w ?? undefined} height={image.h ?? undefined}
                         class="w-24 h-24 object-contain"
                     />
                 </button>
