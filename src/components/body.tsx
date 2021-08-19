@@ -1,4 +1,5 @@
-import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, Suspense } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup, Suspense } from "solid-js";
+import { createStore } from "solid-js/store";
 import {
     getTwitchClip, gfyLike,
     imgurImage,
@@ -7,14 +8,13 @@ import {
     navigate,
     previewLink,
     redditSuggestedEmbed,
-    renderImageGallery,
     renderOembed,
     textToBody, youtubeVideo,
     zoomableImage
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { getClient, getIsVisible, ShowCond, SwitchKind } from "../util/utils_solid";
+import { classes, getClient, getIsVisible, ShowCond, SwitchKind } from "../util/utils_solid";
 import { ClientContent, DefaultErrorBoundary } from "./author_pfp";
 import { LinkButton } from "./links";
 import { RichtextParagraphs } from "./richtext";
@@ -57,11 +57,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             </div>;
         },
         none: () => <></>,
-        gallery: gallery => <SolidToVanillaBoundary getValue={(hsc, client) => {
-            const div = el("div");
-            renderImageGallery(client(), gallery.images).defer(hsc).adto(div);
-            return div;
-        }} />,
+        gallery: gallery => <ImageGallery images={gallery.images} />,
         removed: removed => {
             const [loadState, setLoadState] = createSignal<{
                 kind: "none",
@@ -260,18 +256,76 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
     }}</SwitchKind>;
 }
 
-export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Element {
-    const [state, setState] = createSignal<{kind: "overview"} | {kind: "image", index: number}>({kind: "overview"});
+function getBound(v: HTMLElement) {
+    const rect = v.getBoundingClientRect();
+    return {x: rect.left, y: rect.top + (window.pageYOffset ?? document.documentElement.scrollTop), w: rect.width};
+}
 
-    return <SwitchKind item={state()}>{{
+export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Element {
+    const [state, setState] = createStore<{
+        kind: "overview",
+        fullscreen_index?: number,
+    } | {
+        kind: "image",
+        index: number,
+    }>({kind: "overview"});
+
+    const supportsFullscreen = createMemo(() => props.images.every(img => img.body.kind === "captioned_image"));
+
+    let div!: HTMLDivElement;
+
+    const boundfn = (index: number) => {
+        setState({kind: "overview", fullscreen_index: index});
+        const boundi = div.querySelector(".img-"+index);
+        if(!boundi) return {x: 0, y: 0, w: 0};
+        return getBound(boundi as HTMLImageElement);
+    };
+
+    let destroyGallery: (() => void) | undefined;
+    onCleanup(() => {
+        if(destroyGallery) destroyGallery();
+    });
+    const visible = getIsVisible();
+    createEffect(() => {
+        if(!visible()) {
+            if(destroyGallery) destroyGallery();
+        }
+    });
+
+    return <div ref={div}><SwitchKind item={state}>{{
         overview: overview => <>
             <For each={props.images}>{(image, i) => (
                 <button 
-                    class="m-1 inline-block bg-body rounded-md"
-                    on:click={() => setState({kind: "image", index: i()})}
+                    class={classes(
+                        "m-1 inline-block bg-body rounded-md",
+                        overview.fullscreen_index === i() ? "opacity-0" : "",
+                    )}
+                    on:click={() => {
+                        if(supportsFullscreen()) {
+                            setState({kind: "overview", fullscreen_index: i()});
+                            import("../components/gallery").then(gallery => {
+                                if(destroyGallery) destroyGallery();
+                                setState({kind: "overview", fullscreen_index: i()});
+
+                                const visible_gallery = gallery.showGallery(props.images, i(), boundfn, () => {
+                                    // closed
+                                    setState({kind: "overview", fullscreen_index: undefined});
+                                });
+                                destroyGallery = () => {
+                                    visible_gallery.cleanup();
+                                    setState({kind: "overview", fullscreen_index: undefined});
+                                };
+                            }).catch(e => {
+                                console.log("Error loading gallery component", e);
+                                setState({kind: "image", index: i()});
+                            });
+                        }else{
+                            setState({kind: "image", index: i()});
+                        }
+                    }}
                 >
                     <img src={image.thumb ?? "error"} width={image.w ?? undefined} height={image.h ?? undefined}
-                        class="w-24 h-24 object-contain"
+                        class={"w-24 h-24 object-contain img-"+i()}
                     />
                 </button>
             )}</For>
@@ -294,5 +348,5 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
             >Gallery</button>
             <Body body={props.images[sel.index]!.body} autoplay={true} />
         </>,
-    }}</SwitchKind>;
+    }}</SwitchKind></div>;
 }

@@ -93,7 +93,7 @@ const sample_preview_links: {
     {expected_result: "youtube video, starts 30sec in", url: "https://youtube.com/watch?v=JM-NqFX2jU8&t=30"},
     {expected_result: "youtube video, starts 30sec in", url: "https://youtu.be/JM-NqFX2jU8?t=30"},
     {expected_result: "(!localhost) single image", url: "https://imgur.com/gallery/HFoOCeg"},
-    {expected_result: "(!localhost) image gallery (fullscreenable)", url: "https://imgur.com/gallery/clWTb"},
+    {expected_result: "(!localhost) image gallery (!fullscreenable)", url: "https://imgur.com/gallery/clWTb"},
     {expected_result: "(!localhost) image gallery (fullscreenable)", url: "https://www.imgur.com/a/HJ80Ds9"},
     {expected_result: "(!localhost) image gallery with long captions (fullscreenable)", url: "https://imgur.com/a/YsYb4Gk"},
     {expected_result: "(!localhost) image gallery with mixed in videos (!fullscreenable)", url: "https://imgur.com/gallery/ljoJeal"},

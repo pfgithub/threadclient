@@ -430,43 +430,6 @@ function getBound(v: HTMLElement) {
 }
 
 export function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
-    if(images.every(img => img.body.kind === "captioned_image")) {
-        return fetchPromiseThen(import("./components/gallery"), gallery => {
-            const div = el("div");
-            const hsco = hideshow(div);
-            let showing: undefined | (() => void);
-            const boundfn = (index: number) => {
-                const boundi = buttons[index]!;
-                buttons.forEach(button => button.style.opacity = "1");
-                boundi.style.opacity = "0";
-                return getBound(boundi);
-            };
-            const buttons = images.map((img, i) => {
-                const imgv = el("img").attr({
-                    src: img.thumb,
-                    width: img.w != null ? `${img.w}` as const : undefined,
-                    height: img.h != null ? `${img.h}` as const : undefined,
-                }).clss("w-auto h-auto max-w-full max-h-full");
-                el("button").clss(
-                    "m-1 w-24 h-24 flex items-center justify-center inline-block bg-body rounded-md"
-                ).adto(el("div").clss("inline-block").adto(div)).adch(
-                    imgv,
-                ).onev("click", (e) => {
-                    e.stopPropagation();
-                    if(showing) showing();
-                    const hsc = hideshow();
-                    showing = () => hsc.cleanup();
-                    gallery.showGallery(images, i, boundfn, () => {
-                        buttons.forEach(button => button.style.opacity = "1");
-                    }).defer(hsc);
-                });
-                return imgv;
-            });
-            hsco.on("cleanup", () => {if(showing) showing();});
-            return hsco;
-        });
-    }
-
     const frame = el("div");
     const hsc = hideshow(frame);
     vanillaToSolidBoundary(client, frame, ImageGallery, {images}).defer(hsc);
