@@ -258,7 +258,12 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
 
 function getBound(v: HTMLElement) {
     const rect = v.getBoundingClientRect();
-    return {x: rect.left, y: rect.top + (window.pageYOffset ?? document.documentElement.scrollTop), w: rect.width};
+    return {
+        x: rect.left,
+        y: rect.top + (window.pageYOffset ?? document.documentElement.scrollTop),
+        w: rect.width,
+        h: rect.height,
+    };
 }
 
 export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Element {
@@ -278,7 +283,21 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
         setState({kind: "overview", fullscreen_index: index});
         const boundi = div.querySelector(".img-"+index);
         if(!boundi) return {x: 0, y: 0, w: 0};
-        return getBound(boundi as HTMLImageElement);
+        const bound = getBound(boundi as HTMLImageElement);
+
+        const target = props.images[index];
+        if(target && target.aspect != null) {
+            if(target.aspect > 1) {
+                const ph = bound.h;
+                bound.h = bound.w * (1 / target.aspect);                
+                bound.y += (ph - bound.h) / 2;
+            }else{
+                const pw = bound.w;
+                bound.w = bound.h * target.aspect;
+                bound.x += (pw - bound.w) / 2;
+            }
+        }
+        return bound;
     };
 
     let destroyGallery: (() => void) | undefined;
@@ -324,7 +343,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                         }
                     }}
                 >
-                    <img src={image.thumb ?? "error"} width={image.w ?? undefined} height={image.h ?? undefined}
+                    <img src={image.thumb ?? "error"}
                         class={"w-24 h-24 object-contain img-"+i()}
                     />
                 </button>

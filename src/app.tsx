@@ -964,9 +964,8 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
                         h: image.height,
                     };
                     const res: Generic.GalleryItem = {
-                        thumb: "https://i.imgur.com/"+image.id+"s.jpg",
-                        w: 90,
-                        h: 90,
+                        thumb: "https://i.imgur.com/"+image.id+"t.jpg",
+                        aspect: image.width / image.height,
                         body,
                     };
                     return res;
@@ -1000,8 +999,7 @@ function zoomableFrame(img: HTMLImageElement): HTMLElement {
             frame.style.opacity = "0";
             component.showGallery([{
                 thumb: img.src,
-                w: img.naturalWidth,
-                h: img.naturalHeight,
+                aspect: img.naturalWidth / img.naturalHeight,
                 body: {kind: "captioned_image",
                     w: img.naturalWidth,
                     h: img.naturalHeight,

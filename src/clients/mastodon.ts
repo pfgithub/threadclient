@@ -130,8 +130,7 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
     if(media.type === "image") {
         return {
             thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=image",
-            w: media.meta?.small?.width,
-            h: media.meta?.small?.height,
+            aspect: media.meta?.small ? media.meta.small.width / media.meta.small.height : undefined,
             body: media.meta ? {
                 kind: "captioned_image",
                 url: media.url,
@@ -147,8 +146,7 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
             // instead of w and h for thumb, just use the ratio
             // from the original.
             thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=video",
-            w: media.meta?.small?.width,
-            h: media.meta?.small?.height,
+            aspect: media.meta?.small ? media.meta.small.width / media.meta.small.height : undefined,
             body: media.meta ? {
                 kind: "video",
                 source: {
@@ -168,15 +166,13 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
     }else if(media.type === "audio") {
         return {
             thumb: media.preview_url ?? "https://winaero.com/blog/wp-content/uploads/2017/12/speaker-sound-audio-icon-256-big.png",
-            w: 256,
-            h: 256,
+            aspect: 1,
             body: {kind: "audio", url: media.url, alt: media.description},
         };
     }else if(media.type === "unknown") {
         return {
             thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=unknown",
-            w: 100,
-            h: 100,
+            aspect: 1,
             body: {kind: "array", body: [
                 {kind: "text", content: "alt: " + media.description, markdown_format: "none"},
                 {kind: "link", url: media.url},
@@ -187,8 +183,7 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
     expectUnsupported(media.type);
     return {
         thumb: "https://dummyimage.com/100x100/ff0000/000000&text="+encodeURIComponent(media.type),
-        w: 100,
-        h: 100,
+        aspect: 1,
         body: {kind: "link", url: media.url},
     };
     

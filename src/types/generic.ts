@@ -476,8 +476,7 @@ export type VideoSource = VideoSourceVideo | {
 export type GalleryItem = {
     body: Body,
     thumb: string | null,
-    w: number | null | undefined,
-    h: number | null | undefined,
+    aspect: number | undefined, // w / h
 };
 export type ThumbType = "self" | "default" | "image" | "spoiler" | "error" | "nsfw" | "account";
 export type Thumbnail = {

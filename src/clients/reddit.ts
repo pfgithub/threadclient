@@ -97,8 +97,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Ga
     if(media_meta.status !== "valid") {
         return {
             thumb: null,
-            w: null,
-            h: null,
+            aspect: undefined,
             body: {
                 kind: "richtext",
                 content: [rt.p(rt.error("Bad Status "+media_meta.status+", "+caption, media_meta))],
@@ -109,8 +108,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Ga
         const thumb = media_meta.p[0] ?? media_meta.s;
         return {
             thumb: thumb.u ?? "error",
-            w: thumb.x,
-            h: thumb.y,
+            aspect: thumb.x / thumb.y,
             body: {
                 kind: "captioned_image",
                 url: media_meta.s.u,
@@ -124,8 +122,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Ga
         const thumb = media_meta.p?.[0];
         return {
             thumb: thumb ? thumb.u : "error",
-            w: thumb?.x,
-            h: thumb?.y,
+            aspect: thumb ? thumb.x / thumb.y : undefined,
             body: {
                 kind: "video",
                 source: media_meta.s.mp4 != null
@@ -144,8 +141,9 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Ga
     if(media_meta.e === "RedditVideo") {
         return {
             thumb: null, // I didn't find an example of
-            w: null, // this one so I couldn't check
-            h: null, // if there was a way to get the thumbnail
+            aspect: undefined, // this one so I couldn't check
+            // if there was a way to get the thumbnail
+            // it's probably for embedded videos in posts.
             body: {
                 kind: "video",
                 source: getVredditSources(media_meta.id),
@@ -159,8 +157,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Ga
     expectUnsupported(media_meta.e);
     return {
         thumb: null,
-        w: null,
-        h: null,
+        aspect: undefined,
         body: {
             kind: "richtext",
             content: [rt.p(rt.error("TODO "+media_meta.e+", "+caption, media_meta))],
