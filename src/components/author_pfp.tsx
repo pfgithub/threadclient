@@ -246,7 +246,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 }}</SwitchKind>
             </button>
         )}</ShowCond>
-        <div>
+        <div class="flex-1">
             <div class={classes(
                 hasThumbnail() ? "text-base" : "text-xs",
             )}>
