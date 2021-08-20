@@ -13,7 +13,10 @@ export function showGallery(
     images: Generic.GalleryItem[],
     index: number,
     getThumbBoundsFn: (index: number) => {x: number, y: number, w: number},
-    onclose?: () => void,
+    cb: {
+        onclose: () => void,
+        setIndex: (i: number) => void,
+    },
 ): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
@@ -127,7 +130,10 @@ It's a separate element, as animating opacity is faster than rgba(). -->
 
     gallery.listen("destroy", () => {
         destroy();
-        if(onclose) onclose();
+        cb.onclose();
+    });
+    gallery.listen("beforeChange", () => {
+        cb.setIndex(gallery.getCurrentIndex());
     });
 
     hsc.on("cleanup", () => {

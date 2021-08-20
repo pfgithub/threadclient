@@ -101,14 +101,15 @@ export type ComputeProperty<T> = {
         setOverride(value: T | undefined): void,
     },
 };
-type ColorScheme = "light" | "dark";
-type AuthorPfp = "on" | "off";
-type UpdateNotifications = "on" | "off";
-type CustomVideoControls = "browser" | "custom";
-type PageVersion = "1" | "2";
-type LinkHelpers = "show" | "hide";
-type CorsProxy = "on" | "off";
-type Settings = {
+export type ColorScheme = "light" | "dark";
+export type AuthorPfp = "on" | "off";
+export type UpdateNotifications = "on" | "off";
+export type CustomVideoControls = "browser" | "custom";
+export type PageVersion = "1" | "2";
+export type LinkHelpers = "show" | "hide";
+export type CorsProxy = "on" | "off";
+export type GalleryDisplay = "fullscreen" | "inline"; // if the gallery view prefers fullscreen when available
+export type Settings = {
     color_scheme: ComputeProperty<ColorScheme>,
     author_pfp: ComputeProperty<AuthorPfp>,
     update_notifications: ComputeProperty<UpdateNotifications>,
@@ -116,6 +117,7 @@ type Settings = {
     page_version: ComputeProperty<PageVersion>,
     link_helpers: ComputeProperty<LinkHelpers>,
     cors_proxy: ComputeProperty<CorsProxy>,
+    gallery_display: ComputeProperty<GalleryDisplay>,
 };
 
 function localStorageProperty<T extends string>(ls_key: string, accessBase: () => T): ComputeProperty<T> {
@@ -194,6 +196,7 @@ const global_settings = ((): Settings => {
         page_version: localStorageProperty("page_version", () => "1"),
         link_helpers: localStorageProperty("link_helpers", () => "show"),
         cors_proxy: localStorageProperty("cors_proxy", () => "off"),
+        gallery_display: localStorageProperty("gallery_display", () => "fullscreen"),
     };
 })();
 

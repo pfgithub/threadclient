@@ -14,7 +14,7 @@ import {
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { classes, getClient, getIsVisible, ShowCond, SwitchKind } from "../util/utils_solid";
+import { classes, getClient, getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
 import { ClientContent, DefaultErrorBoundary } from "./author_pfp";
 import { LinkButton } from "./links";
 import { RichtextParagraphs } from "./richtext";
@@ -269,13 +269,24 @@ function getBound(v: HTMLElement) {
 export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Element {
     const [state, setState] = createStore<{
         kind: "overview",
-        fullscreen_index?: number,
     } | {
         kind: "image",
         index: number,
     }>({kind: "overview"});
 
+    const [fullscreenState, setFullscreenState] = createSignal<{
+        enabled: boolean,
+        index: number,
+        loading: boolean,
+    }>({
+        enabled: false,
+        index: 0,
+        loading: false,
+    });
+
+    const settings = getSettings();
     const supportsFullscreen = createMemo(() => props.images.every(img => img.body.kind === "captioned_image"));
+    const usesFullscreen = () => supportsFullscreen() && settings.gallery_display.value() === "fullscreen";
 
     let div!: HTMLDivElement;
 
@@ -317,18 +328,38 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                 <button 
                     class={classes(
                         "m-1 inline-block bg-body rounded-md",
-                        overview.fullscreen_index === i() ? "opacity-0" : "",
                     )}
                     on:click={() => {
-                        if(supportsFullscreen()) {
-                            setState({kind: "overview", fullscreen_index: i()});
+                        if(usesFullscreen()) {
+                            setFullscreenState({
+                                enabled: true,
+                                index: i(),
+                                loading: true,
+                            });
                             import("../components/gallery").then(gallery => {
+                                setFullscreenState({
+                                    enabled: true,
+                                    index: i(),
+                                    loading: false,
+                                });
                                 if(destroyGallery) destroyGallery();
-                                setState({kind: "overview", fullscreen_index: i()});
 
-                                const visible_gallery = gallery.showGallery(props.images, i(), boundfn, () => {
-                                    // closed
-                                    setState({kind: "overview", fullscreen_index: undefined});
+                                const visible_gallery = gallery.showGallery(props.images, i(), boundfn, {
+                                    onclose: () => {
+                                        // closed
+                                        console.log("gallery closed");
+                                        setFullscreenState(f => ({
+                                            ...f,
+                                            enabled: false,
+                                        }));
+                                    },
+                                    setIndex: (index) => {
+                                        setFullscreenState({
+                                            enabled: true,
+                                            index,
+                                            loading: false,
+                                        });
+                                    },
                                 });
                                 destroyGallery = () => {
                                     visible_gallery.cleanup();
@@ -344,7 +375,12 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                     }}
                 >
                     <img src={image.thumb ?? "error"}
-                        class={"w-24 h-24 object-contain img-"+i()}
+                        class={classes(
+                            "w-24 h-24 object-contain img-"+i(),
+                            fullscreenState().enabled && fullscreenState().index === i() ? (
+                                fullscreenState().loading ? "opacity-50" : "opacity-0"
+                            ) : "",
+                        )}
                     />
                 </button>
             )}</For>
