@@ -1,4 +1,8 @@
-import { Accessor, createContext, createMemo, createSignal, JSX, onCleanup, untrack, useContext } from "solid-js";
+import {
+    Accessor, createContext, createEffect, createMemo,
+    createRoot,
+    createSignal, JSX, onCleanup, untrack, useContext,
+} from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "../clients/base";
 
@@ -171,43 +175,11 @@ function signalFromMatchMedia<True extends string, False extends string>(
     return motionBase;
 }
 
-type SchemeInfo = [scheme: "light" | "dark" | "system", system: boolean];
-declare function getColorScheme(): SchemeInfo;
-declare function onColorSchemeChange(cb: (...info: SchemeInfo) => void): () => void;
-declare function setColorScheme(ncs: "light" | "dark" | "system"): void;
-const global_settings = ((): Settings => {
-    const color_scheme = ((): ComputeProperty<ColorScheme> => {
-        const initial = getColorScheme();
-
-        const getBase = ([, initial_system]: SchemeInfo): ColorScheme => {
-            return initial_system ? "dark" : "light";
-        };
-        const getOverride = ([initial_scheme]: SchemeInfo): ColorScheme | undefined => {
-            return initial_scheme === "system" ? undefined : initial_scheme;
-        };
-
-        const [base, internalSetBase] = createSignal(getBase(initial));
-        const [override, internalSetOverride] = createSignal(getOverride(initial));
-        const value = () => override() ?? base();
-
-        onColorSchemeChange(() => {
-            const updated = getColorScheme();
-            internalSetBase(getBase(updated));
-            internalSetOverride(getOverride(updated));
-        });
-
-        return {
-            value,
-            compute: {
-                base,
-                override,
-                setOverride: (v) => setColorScheme(v ?? "system"),
-            },
-        };
-    })();
-
-    return {
-        color_scheme,
+const global_settings = createRoot((): Settings => {
+    const res: Settings = {
+        color_scheme: localStorageProperty("color-scheme",
+            signalFromMatchMedia("(prefers-color-scheme: dark)", "dark", "light"),
+        ),
         author_pfp: localStorageProperty("pfp-cfg", () => "on"),
         update_notifications: localStorageProperty("update_notices", () => "on"),
         custom_video_controls: localStorageProperty("custom_video_controls", () => "browser"),
@@ -217,9 +189,15 @@ const global_settings = ((): Settings => {
         gallery_display: localStorageProperty("gallery_display", () => "fullscreen"),
         motion: localStorageProperty("motion",
             signalFromMatchMedia("(prefers-reduced-motion: reduce)", "reduce", "full"),
-        ),
+        ), // can do a hacky * {transition-duration: 0s !important} if I want to
     };
-})();
+
+    createEffect(() => {
+        document.documentElement.classList.toggle("dark", res.color_scheme.value() === "dark");
+    });
+
+    return res;
+});
 
 render(() => <ShowBool when={getSettings().author_pfp.value() === "off"}>
     <style>{".cfg-reddit-pfp {display: none;}"}</style>
