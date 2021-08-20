@@ -274,6 +274,79 @@ export function CodeBlock(props: {
     </pre>;
 }
 
+export function MobileLinkPreview(props: {link: Link}): JSX.Element {
+    const settings = getSettings();
+    const client = getClient();
+    const linkPreview: () => {
+        visible: () => boolean,
+        toggleVisible: () => void,
+        body: Generic.Body,
+    } | undefined = createMemo(() => {
+        const body = previewLink(client(), props.link.url, {});
+        if(!body) return undefined;
+        const [visible, setVisible] = createSignal(false);
+        return {visible, toggleVisible: () => setVisible(v => !v), body};
+    });
+    const human = createMemo((): {link: string, external: boolean} => {
+        const res = unsafeLinkToSafeLink(client().id, props.link.url);
+        if(res.kind === "link") {
+            return {link: res.url, external: res.external};
+        }else return {link: "error", external: true};
+    });
+
+    const [previewOpen, setPreviewOpen] = createSignal(false);
+    return <div class="my-2">
+        <A
+            class={classes(
+                "p-2 px-4",
+                "block",
+                "bg-body rounded-xl",
+                previewOpen() ? "rounded-b-none" : "",
+            )}
+            href={props.link.url}
+            onClick={linkPreview() ? () => {
+                linkPreview()!.toggleVisible();
+            } : undefined}
+        >
+            <div class="max-lines max-lines-1">
+                <ShowCond when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</ShowCond>
+                {props.link.title}
+            </div>
+            <ShowBool when={!previewOpen()}>
+                <div class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400">
+                    <ShowBool when={!linkPreview() && human().external}>
+                        <ExternalIcon />{" "}
+                    </ShowBool>
+                    {human().link}
+                </div>
+            </ShowBool>
+        </A>
+        <ShowCond when={linkPreview()}>{preview => <><div ref={v => animateHeight(
+            v, settings, preview.visible, (state, rising) => {
+                setPreviewOpen(state || rising);
+            },
+        )}>
+            <ShowBool when={previewOpen()}><Body body={preview.body} autoplay={true} /></ShowBool>
+        </div><ShowBool when={previewOpen()}>
+            <A
+                class={classes(
+                    "p-2 px-4",
+                    "block",
+                    "bg-body rounded-xl rounded-t-none",
+                )}
+                href={props.link.url}
+            >
+                <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400">
+                    <ShowBool when={human().external}>
+                        <ExternalIcon />{" "}
+                    </ShowBool>
+                    {human().link}
+                </div>
+            </A>
+        </ShowBool></>}</ShowCond>
+    </div>;
+}
+
 export function RichtextParagraphs(props: {
     content: readonly Generic.Richtext.Paragraph[],
     tight?: boolean,
@@ -284,77 +357,9 @@ export function RichtextParagraphs(props: {
             <RichtextParagraph paragraph={paragraph} />
         </div>
         <ShowBool when={settings.link_helpers.value() === "show"}>
-            <For each={extractLinks(paragraph)}>{link => {
-                const client = getClient();
-                const linkPreview: () => {
-                    visible: () => boolean,
-                    toggleVisible: () => void,
-                    body: Generic.Body,
-                } | undefined = createMemo(() => {
-                    const body = previewLink(client(), link.url, {});
-                    if(!body) return undefined;
-                    const [visible, setVisible] = createSignal(false);
-                    return {visible, toggleVisible: () => setVisible(v => !v), body};
-                });
-                const human = createMemo((): {link: string, external: boolean} => {
-                    const res = unsafeLinkToSafeLink(client().id, link.url);
-                    if(res.kind === "link") {
-                        return {link: res.url, external: res.external};
-                    }else return {link: "error", external: true};
-                });
-
-                const [previewOpen, setPreviewOpen] = createSignal(false);
-                return <div class="my-2">
-                    <A
-                        class={classes(
-                            "p-2 px-4",
-                            "block",
-                            "bg-body rounded-xl",
-                            previewOpen() ? "rounded-b-none" : "",
-                        )}
-                        href={link.url}
-                        onClick={linkPreview() ? () => {
-                            linkPreview()!.toggleVisible();
-                        } : undefined}
-                    >
-                        <div class="max-lines max-lines-1">
-                            <ShowCond when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</ShowCond>
-                            {link.title}
-                        </div>
-                        <ShowBool when={!previewOpen()}>
-                            <div class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400">
-                                <ShowBool when={!linkPreview() && human().external}>
-                                    <ExternalIcon />{" "}
-                                </ShowBool>
-                                {human().link}
-                            </div>
-                        </ShowBool>
-                    </A>
-                    <ShowCond when={linkPreview()}>{preview => <><div ref={v => animateHeight(
-                        v, settings, preview.visible, (state, rising) => {
-                            setPreviewOpen(state || rising);
-                        },
-                    )}>
-                        <ShowBool when={previewOpen()}><Body body={preview.body} autoplay={true} /></ShowBool>
-                    </div><ShowBool when={previewOpen()}>
-                        <A
-                            class={classes(
-                                "p-2 px-4",
-                                "block",
-                                "bg-body rounded-xl rounded-t-none",
-                            )}
-                            href={link.url}
-                        >
-                            <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400">
-                                <ShowBool when={human().external}>
-                                    <ExternalIcon />{" "}
-                                </ShowBool>
-                                {human().link}
-                            </div>
-                        </A>
-                    </ShowBool></>}</ShowCond>
-                </div>;
-            }}</For>
+            <For each={extractLinks(paragraph)}>{link => (
+                <MobileLinkPreview link={link} />
+            )}</For>
         </ShowBool>
     </>}</For>;
 }
