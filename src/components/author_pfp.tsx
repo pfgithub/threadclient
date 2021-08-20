@@ -136,6 +136,20 @@ export function animateHeight(
         setState(transitionTarget(), false, false);
     });
     createEffect(on([transitionTarget], () => {
+
+        const initial_size = comment_root.getBoundingClientRect();
+        const navbar_size = navbar.getBoundingClientRect();
+        const navbar_y = 5 + navbar_size.bottom;
+
+        let scroll_offset: number | null = null;
+        if(initial_size.top < navbar_y && initial_size.bottom > navbar_y) {
+            const start_scroll = document.documentElement.scrollTop;
+            comment_root.scrollIntoView();
+            document.documentElement.scrollTop -= navbar_y;
+            const end_scroll = document.documentElement.scrollTop;
+            scroll_offset = start_scroll - end_scroll;
+        }
+
         const target = transitionTarget();
         if(settings.motion.value() === "reduce") {
             setState(target, false, false);
@@ -143,9 +157,7 @@ export function animateHeight(
         }
 
         const window_height = window.innerHeight;
-
-        const initial_size = comment_root.getBoundingClientRect();
-        const initial_height = Math.min(initial_size.bottom, window_height) - initial_size.top;
+        const initial_height = Math.min(initial_size.bottom, window_height) - initial_size.top - (scroll_offset ?? 0);
 
         setAnimating(null);
         setState(target, false, true);
@@ -157,6 +169,9 @@ export function animateHeight(
 
             setAnimating(initial_height);
             requestAnimationFrame(() => {
+                if(scroll_offset != null) comment_root.scrollTop = scroll_offset;
+                console.log(scroll_offset, comment_root.scrollTop);
+
                 setAnimating(final_height);
             });
         });
@@ -252,11 +267,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             <button style={{bottom: "0"}} class="collapse-btn z-1 static mr-1" classList={{
                 'collapsed': !selfVisible(),
             }} draggable={true} onClick={(e) => {
-                const collapsed_button = e.currentTarget;
-                const topv = collapsed_button.getBoundingClientRect().top;
-                const heightv = 5 + navbar.getBoundingClientRect().height;
-                if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv}
-
                 setTransitionTarget(t => !t);
             }}>
                 <div class="collapse-btn-inner"></div>
