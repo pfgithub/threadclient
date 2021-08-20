@@ -1007,9 +1007,12 @@ function zoomableFrame(img: HTMLImageElement): HTMLElement {
                 },
             }], 0, () => {
                 return getBound(img);
-            }, () => {
-                frame.disabled = false;
-                frame.style.opacity = "1";
+            }, {
+                onclose: () => {
+                    frame.disabled = false;
+                    frame.style.opacity = "1";
+                },
+                setIndex: () => {/**/},
             }).defer(hsc);
         }).catch(err => {
             console.log(err);
