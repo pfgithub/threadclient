@@ -1,4 +1,4 @@
-import { createContext, createMemo, createSignal, JSX, untrack, useContext } from "solid-js";
+import { Accessor, createContext, createMemo, createSignal, JSX, onCleanup, untrack, useContext } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "../clients/base";
 
@@ -109,6 +109,7 @@ export type PageVersion = "1" | "2";
 export type LinkHelpers = "show" | "hide";
 export type CorsProxy = "on" | "off";
 export type GalleryDisplay = "fullscreen" | "inline"; // if the gallery view prefers fullscreen when available
+export type Motion = "full" | "reduce";
 export type Settings = {
     color_scheme: ComputeProperty<ColorScheme>,
     author_pfp: ComputeProperty<AuthorPfp>,
@@ -118,9 +119,10 @@ export type Settings = {
     link_helpers: ComputeProperty<LinkHelpers>,
     cors_proxy: ComputeProperty<CorsProxy>,
     gallery_display: ComputeProperty<GalleryDisplay>,
+    motion: ComputeProperty<Motion>,
 };
 
-function localStorageProperty<T extends string>(ls_key: string, accessBase: () => T): ComputeProperty<T> {
+function localStorageProperty<T extends string>(ls_key: string, accessBase: Accessor<T>): ComputeProperty<T> {
     const getLocalStorageValue = (): T | undefined => {
         return (localStorage.getItem(ls_key) ?? undefined) as T | undefined;
     };
@@ -151,6 +153,22 @@ function localStorageProperty<T extends string>(ls_key: string, accessBase: () =
             },
         },
     };
+}
+
+function signalFromMatchMedia<True extends string, False extends string>(
+    query: string, when_true: True, when_false: False,
+): Accessor<True | False> {
+    const reduce_motion = window.matchMedia(query);
+    const [motionBase, setMotionBase] = createSignal<True | False>(reduce_motion.matches ? when_true : when_false);
+    const evtl = () => {
+        setMotionBase(() => reduce_motion.matches ? when_true : when_false);
+    };
+    reduce_motion.addEventListener("change", evtl);
+    onCleanup(() => {
+        reduce_motion.removeEventListener("change", evtl);
+    });
+
+    return motionBase;
 }
 
 type SchemeInfo = [scheme: "light" | "dark" | "system", system: boolean];
@@ -197,6 +215,9 @@ const global_settings = ((): Settings => {
         link_helpers: localStorageProperty("link_helpers", () => "show"),
         cors_proxy: localStorageProperty("cors_proxy", () => "off"),
         gallery_display: localStorageProperty("gallery_display", () => "fullscreen"),
+        motion: localStorageProperty("motion",
+            signalFromMatchMedia("(prefers-reduced-motion: reduce)", "reduce", "full"),
+        ),
     };
 })();
 

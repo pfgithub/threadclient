@@ -258,6 +258,48 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 </ClientProvider>
             </div>
         </SettingsSection>
+        <SettingsSection title="Reduce Motion">
+            <SettingPicker
+                setting={getSettings().motion}
+                options={["full", "reduce", undefined]}
+                name={v => ({
+                    full: "All Motion",
+                    reduce: "Reduce Motion",
+                    default: "System Default",
+                } as const)[v ?? "default"]}
+            />
+            <div class="bg-body rounded-xl max-w-xl" style={{'padding': "10px", 'margin-top': "10px"}}>
+                <ClientProvider client={{
+                    id: "",
+                    getThread: () => {throw new Error("no")},
+                    act: () => {throw new Error("no")},
+                    previewReply: () => {throw new Error("no")},
+                    sendReply: () => {throw new Error("no")},
+                    loadMore: () => {throw new Error("no")},
+                    loadMoreUnmounted: () => {throw new Error("no")},
+                }}>
+                    <ClientContent listing={{
+                        kind: "post",
+
+                        title: {text: "Motion Example", body_collapsible: false},
+                        show_replies_when_below_pivot: {default_collapsed: false},
+                        body: {
+                            kind: "richtext",
+                            content: [
+                                rt.p(rt.txt("Click the collapse button to the left to see an example")),
+                            ],
+                        },
+                    }} opts={{
+                        clickable: false,
+                        frame: null,
+                        replies: null,
+                        at_or_above_pivot: false,
+                        is_pivot: false,
+                        top_level: true,
+                    }} />
+                </ClientProvider>
+            </div>
+        </SettingsSection>
         <SettingsSection title="Developer Options">
             <p class="my-2">
                 Leave all these default. Changing these will break things.{" "}

@@ -8,7 +8,10 @@ import {
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { classes, getClient, HideshowProvider, kindIs, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
+import {
+    classes, getClient, getSettings, HideshowProvider,
+    kindIs, ShowBool, ShowCond, SwitchKind,
+} from "../util/utils_solid";
 import { Body } from "./body";
 import { CounterCount } from "./counter";
 import { A, LinkButton, UserLink } from "./links";
@@ -150,7 +153,44 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const hasThumbnail = () => {
         return !!props.content.thumbnail;
     };
+
+    const settings = getSettings();
+
+    const [animating, setAnimating] = createSignal<number | null>(null);
+    let end_of_transition_target: boolean = selfVisible();
+    let comment_root!: HTMLDivElement;
+    const transition = (target: boolean) => {
+        end_of_transition_target = target;
+        if(settings.motion.value() === "reduce") {
+            setSelfVisible(target);
+            return;
+        }
+
+        const window_height = window.innerHeight;
+
+        const initial_size = comment_root.getBoundingClientRect();
+        const initial_height = Math.min(initial_size.bottom, window_height) - initial_size.top;
+
+        clearTransition();
+        setSelfVisible(target);
+        const final_size = comment_root.getBoundingClientRect();
+        const final_height = Math.min(final_size.bottom, window_height) - final_size.top;
+        setSelfVisible(true);
+
+        setAnimating(initial_height);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                setAnimating(final_height);
+            });
+        });
+    };
+    const clearTransition = () => {
+        setAnimating(null);
+    };
+    
     return <div
+        ref={comment_root}
         class={classes(
             "text-sm",
             // selfVisible()
@@ -163,18 +203,27 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         )}
         style={{
             "--left-v": "8px",
+            ...animating() != null ? {
+                height: animating()! + "px",
+                overflow: "hidden",
+                transition: "0.2s height",
+            } : {},
+        }}
+        onTransitionEnd={() => {
+            clearTransition();
+            setSelfVisible(end_of_transition_target);
         }}
     >
         <ShowBool when={collapseButton()}>
             <button style={{bottom: "0"}} class="collapse-btn z-1 static mr-1" classList={{
                 'collapsed': !selfVisible(),
-            }} draggable={true} on:click={(e) => {
+            }} draggable={true} onClick={(e) => {
                 const collapsed_button = e.currentTarget;
                 const topv = collapsed_button.getBoundingClientRect().top;
                 const heightv = 5 + navbar.getBoundingClientRect().height;
                 if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv}
 
-                setSelfVisible(!selfVisible());
+                transition(!end_of_transition_target);
             }}>
                 <div class="collapse-btn-inner"></div>
             </button>
