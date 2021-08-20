@@ -4,7 +4,7 @@ import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getClient, getSettings, Icon, ShowBool, ShowCond, switchKind, SwitchKind } from "../util/utils_solid";
-import { Flair, TimeAgo } from "./author_pfp";
+import { Flair, ShowAnimate, TimeAgo } from "./author_pfp";
 import { Body } from "./body";
 import { A, LinkButton, PreviewableLink, UserLink } from "./links";
 export * from "../util/interop_solid";
@@ -302,6 +302,9 @@ export function RichtextParagraphs(props: {
                         return {link: res.url, external: res.external};
                     }else return {link: "error", external: true};
                 });
+                // this animation is not quite correct:
+                // the animation is used to show the content, but it must
+                // also be used to know if the bottom link thing should be displayed
                 return <div class="my-2">
                     <A
                         class={classes(
@@ -328,8 +331,9 @@ export function RichtextParagraphs(props: {
                             </div>
                         </ShowBool>
                     </A>
-                    <ShowCond when={linkPreview()}>{preview => <ShowBool when={preview.visible()}>
+                    <ShowCond when={linkPreview()}>{preview => <><ShowAnimate when={preview.visible()}>
                         <div class=""><Body body={preview.body} autoplay={true} /></div>
+                    </ShowAnimate><ShowBool when={preview.visible()}>
                         <A
                             class={classes(
                                 "p-2 px-4",
@@ -345,7 +349,7 @@ export function RichtextParagraphs(props: {
                                 {human().link}
                             </div>
                         </A>
-                    </ShowBool>}</ShowCond>
+                    </ShowBool></>}</ShowCond>
                 </div>;
             }}</For>
         </ShowBool>

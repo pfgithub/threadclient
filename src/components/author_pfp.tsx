@@ -314,8 +314,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             </div>
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={selfVisible}>
                 <div>
-                    <ShowBool when={bodyVisible()}>
-                        <ShowBool when={!contentWarning()} fallback={
+                    <ShowAnimate when={bodyVisible()}>
+                        <ShowAnimate when={!contentWarning()} fallback={
                             <>
                                 Content Warning:{" "}
                                 <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}
@@ -326,8 +326,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             </>
                         }>
                             <Body body={props.content.body} autoplay={false} />
-                        </ShowBool>
-                    </ShowBool>
+                        </ShowAnimate>
+                    </ShowAnimate>
                 </div>
                 <div class={hasThumbnail() ? "" : "text-xs"}>
                     <ShowBool when={bodyToggleable()}>
