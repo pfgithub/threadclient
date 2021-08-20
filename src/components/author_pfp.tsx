@@ -141,7 +141,7 @@ export function animateHeight(
         const navbar_size = navbar.getBoundingClientRect();
         const navbar_y = 5 + navbar_size.bottom;
 
-        let scroll_offset: number | null = null;
+        let scroll_offset = 0;
         if(initial_size.top < navbar_y && initial_size.bottom > navbar_y) {
             const start_scroll = document.documentElement.scrollTop;
             comment_root.scrollIntoView();
@@ -157,7 +157,7 @@ export function animateHeight(
         }
 
         const window_height = window.innerHeight;
-        const initial_height = Math.min(initial_size.bottom, window_height) - initial_size.top - (scroll_offset ?? 0);
+        const initial_height = Math.min(initial_size.bottom, window_height) - initial_size.top - scroll_offset;
 
         setAnimating(null);
         setState(target, false, true);
@@ -168,9 +168,9 @@ export function animateHeight(
             setState(target, true, true);
 
             setAnimating(initial_height);
+            comment_root.scrollTop = scroll_offset;
             requestAnimationFrame(() => {
-                if(scroll_offset != null) comment_root.scrollTop = scroll_offset;
-                console.log(scroll_offset, comment_root.scrollTop);
+                comment_root.scrollTop = scroll_offset;
 
                 setAnimating(final_height);
             });
