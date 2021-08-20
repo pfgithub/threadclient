@@ -274,6 +274,9 @@ export function CodeBlock(props: {
     </pre>;
 }
 
+// TODO support thumbnails
+// previewLink should give a thumbnail back somehow
+// eg for youtube videos, it's an image `https://img.youtube.com/vi/${id}/default.jpg`
 export function MobileLinkPreview(props: {link: Link}): JSX.Element {
     const settings = getSettings();
     const client = getClient();
