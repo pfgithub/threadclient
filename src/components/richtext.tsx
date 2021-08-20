@@ -4,7 +4,7 @@ import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getClient, getSettings, Icon, ShowBool, ShowCond, switchKind, SwitchKind } from "../util/utils_solid";
-import { Flair, ShowAnimate, TimeAgo } from "./author_pfp";
+import { animateHeight, Flair, TimeAgo } from "./author_pfp";
 import { Body } from "./body";
 import { A, LinkButton, PreviewableLink, UserLink } from "./links";
 export * from "../util/interop_solid";
@@ -302,16 +302,15 @@ export function RichtextParagraphs(props: {
                         return {link: res.url, external: res.external};
                     }else return {link: "error", external: true};
                 });
-                // this animation is not quite correct:
-                // the animation is used to show the content, but it must
-                // also be used to know if the bottom link thing should be displayed
+
+                const [previewOpen, setPreviewOpen] = createSignal(false);
                 return <div class="my-2">
                     <A
                         class={classes(
                             "p-2 px-4",
                             "block",
                             "bg-body rounded-xl",
-                            linkPreview()?.visible() ?? false ? "rounded-b-none" : "",
+                            previewOpen() ? "rounded-b-none" : "",
                         )}
                         href={link.url}
                         onClick={linkPreview() ? () => {
@@ -322,7 +321,7 @@ export function RichtextParagraphs(props: {
                             <ShowCond when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</ShowCond>
                             {link.title}
                         </div>
-                        <ShowBool when={!(linkPreview()?.visible() ?? false)}>
+                        <ShowBool when={!previewOpen()}>
                             <div class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400">
                                 <ShowBool when={!linkPreview() && human().external}>
                                     <ExternalIcon />{" "}
@@ -331,9 +330,13 @@ export function RichtextParagraphs(props: {
                             </div>
                         </ShowBool>
                     </A>
-                    <ShowCond when={linkPreview()}>{preview => <><ShowAnimate when={preview.visible()}>
-                        <div class=""><Body body={preview.body} autoplay={true} /></div>
-                    </ShowAnimate><ShowBool when={preview.visible()}>
+                    <ShowCond when={linkPreview()}>{preview => <><div ref={v => animateHeight(
+                        v, settings, preview.visible, (state, rising) => {
+                            setPreviewOpen(state || rising);
+                        },
+                    )}>
+                        <ShowBool when={previewOpen()}><Body body={preview.body} autoplay={true} /></ShowBool>
+                    </div><ShowBool when={previewOpen()}>
                         <A
                             class={classes(
                                 "p-2 px-4",
