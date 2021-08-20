@@ -1,7 +1,7 @@
 import { createSignal, For, JSX } from "solid-js";
 import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
 import { ClientProvider, ComputeProperty, getSettings, ShowBool, ShowCond } from "../util/utils_solid";
-import { ClientContent, TopLevelWrapper } from "./author_pfp";
+import { ClientContent, ShowAnimate, TopLevelWrapper } from "./author_pfp";
 import { variables } from "virtual:_variables";
 import { RichtextParagraphs } from "./richtext";
 import { rt } from "../types/generic";
@@ -304,7 +304,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
             <p class="my-2">
                 Leave all these default. Changing these will break things.{" "}
             </p>
-            <ShowBool
+            <ShowAnimate
                 when={showDevSettings()}
                 fallback={<button
                     class={link_styles_v["outlined-button"]}
@@ -339,7 +339,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     for improved rendering of twitter link previews and enable
                     scrubbing in animated gifs.
                 </p>
-            </ShowBool>
+            </ShowAnimate>
         </SettingsSection>
     </div></div>;
     // TODO display:
