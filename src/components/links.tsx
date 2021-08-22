@@ -2,7 +2,8 @@ import { createMemo, createSignal, JSX } from "solid-js";
 import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsafeLinkToSafeLink } from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import type * as Generic from "../types/generic";
-import { getClient, ShowBool, ShowCond, SwitchKind } from "../util/utils_solid";
+import { getClient, ShowCond, SwitchKind } from "../util/utils_solid";
+import { ShowAnimate } from "./author_pfp";
 import { Body } from "./body";
 export * from "../util/interop_solid";
 
@@ -31,9 +32,9 @@ export function PreviewableLink(props: {href: string, children: JSX.Element}): J
             </>}</ShowCond>
         </LinkButton>
         <ShowCond when={linkPreview()}>{preview_opts => (
-            <ShowBool when={preview_opts.visible()}>
+            <ShowAnimate when={preview_opts.visible()}>
                 <Body autoplay={true} body={preview_opts.body} />
-            </ShowBool>
+            </ShowAnimate>
         )}</ShowCond>
     </>;
 }

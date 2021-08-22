@@ -193,9 +193,15 @@ export function animateHeight(
 export function ShowAnimate(props: {when: boolean, fallback?: JSX.Element, children: JSX.Element}): JSX.Element {
     const settings = getSettings();
     const [show, setShow] = createSignal({main: props.when, animating: false});
-    return <div ref={v => animateHeight(v, settings, () => props.when, (state, rising, temporary) => {
-        setShow({main: state || rising, animating: temporary});
-    })}>
+    return <div ref={v => {
+        animateHeight(v, settings, () => props.when, (state, rising, temporary) => {
+            setShow({main: state || rising, animating: temporary});
+        });
+        createEffect(() => {
+            v.style.display = show().main || (props.fallback != null) ? "block" : "none";
+            console.log(v.style.display);
+        });
+    }}>
         <ShowBool when={show().main || show().animating}>
             <div class={show().animating && !show().main ? "hidden" : ""}>
                 {props.children}
