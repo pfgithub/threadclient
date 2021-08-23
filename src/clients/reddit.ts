@@ -2546,7 +2546,7 @@ export function getPostThumbnail(
             spoiler: "spoiler", nsfw: "nsfw", account: "account",
         }))[listing.thumbnail] ?? "error"};
     }
-    return undefined;
+    return {kind: "default", thumb: "default"};
 }
 
 export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
