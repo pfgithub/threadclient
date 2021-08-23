@@ -2537,16 +2537,16 @@ export function getPostThumbnail(
     if(listing.rpan_video) {
         return {kind: "image", url: listing.rpan_video.scrubber_media_url};
     }
-    if(listing.thumbnail == null || listing.thumbnail === "") {
-        return undefined;
+    if(listing.thumbnail != null && listing.thumbnail !== "") {
+        if(listing.thumbnail.includes("/")) {
+            return {kind: "image", url: listing.thumbnail};
+        }
+        return {kind: "default", thumb: (as<{[key: string]: Generic.ThumbType}>({
+            self: "self", default: "default", image: "image",
+            spoiler: "spoiler", nsfw: "nsfw", account: "account",
+        }))[listing.thumbnail] ?? "error"};
     }
-    if(listing.thumbnail.includes("/")) {
-        return {kind: "image", url: listing.thumbnail};
-    }
-    return {kind: "default", thumb: (as<{[key: string]: Generic.ThumbType}>({
-        self: "self", default: "default", image: "image",
-        spoiler: "spoiler", nsfw: "nsfw", account: "account",
-    }))[listing.thumbnail] ?? "error"};
+    return undefined;
 }
 
 export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
