@@ -3024,7 +3024,6 @@ export const client: ThreadClient = {
                 const page = await redditRequest<Reddit.Page>(link, {method: "GET"});
 
                 return {
-                    title: "TODO",
                     pivot: page2FromListing(id_map, pathraw, parsed, page),
                 };
             }else if(parsed.kind === "subreddit") {
@@ -3033,7 +3032,6 @@ export const client: ThreadClient = {
                 const page = await redditRequest<Reddit.Listing>(link, {method: "GET"});
 
                 return {
-                    title: "TODO",
                     pivot: page2FromListing(id_map, pathraw, parsed, page),
                 };
             }else{

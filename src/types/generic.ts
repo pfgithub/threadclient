@@ -51,7 +51,6 @@ export type InfoRequestMap = {
 /// note that this includes cyclic references
 /// when stringifying, it's necessary to keep maps of what has been added
 export type Page2 = {
-    title: string,
     pivot: Link<PostData>,
 };
 export type ID<T> = symbol & {__is_id: T};
@@ -743,8 +742,8 @@ export type CounterAction = {
     you: "increment" | "decrement" | undefined,
 
     actions: {
-        increment: Opaque<"act">,
-        reset: Opaque<"act">,
+        increment?: Opaque<"act">,
+        reset?: Opaque<"act">,
         decrement?: Opaque<"act">,
     } | {error: string},
 

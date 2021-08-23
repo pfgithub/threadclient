@@ -6,18 +6,18 @@ export type ThreadClient = {
     getLoginURL?: ((path: Generic.Opaque<"login_url">) => Promise<string>),
     login?: (path: string[], query: URLSearchParams) => Promise<void>,
     getPage?: (path: string) => Promise<Generic.Page2>,
-    getThread: (path: string) => Promise<Generic.Page>,
+    getThread?: (path: string) => Promise<Generic.Page>,
     fetchRemoved?: (fetch_removed_path: Generic.Opaque<"fetch_removed_path">) => Promise<Generic.Body>,
     //v I guess this should return the updated action state. mastodon returns an entire updated post, reddit returns nothing.
     //v since this isn't uil, I don't have any easy way to update an entire post at once so that wouldn't be very useful
-    act: (action: Generic.Opaque<"act">) => Promise<void>,
+    act?: (action: Generic.Opaque<"act">) => Promise<void>,
     fetchReportScreen?: (report: Generic.Opaque<"report">) => Promise<Generic.ReportFlow>,
     sendReport?: (action: Generic.Opaque<"send_report">, text?: string) => Promise<Generic.SentReport>,
-    previewReply: (body: string, reply_info: Generic.Opaque<"reply">) => Generic.PostContent,
-    sendReply: (body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>,
+    previewReply?: (body: string, reply_info: Generic.Opaque<"reply">) => Generic.PostContent,
+    sendReply?: (body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>,
 
-    loadMore: (action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>,
-    loadMoreUnmounted: (
+    loadMore?: (action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>,
+    loadMoreUnmounted?: (
         action: Generic.Opaque<"load_more_unmounted">
     ) => Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}>,
 

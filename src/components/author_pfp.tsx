@@ -242,8 +242,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const collapseButton = () => {
         return props.content.show_replies_when_below_pivot !== false;
     };
-    const hasThumbnail = () => {
-        return !!props.content.thumbnail;
+    const hasTitleOrThumbnail = () => {
+        return !!props.content.thumbnail || !!props.content.title;
     };
 
     const settings = getSettings();
@@ -298,7 +298,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         )}</ShowCond>
         <div class="flex-1">
             <div class={classes(
-                hasThumbnail() ? "text-base" : "text-xs",
+                hasTitleOrThumbnail() ? "text-base" : "text-xs",
             )}>
                 <ShowCond when={props.content.title}>{title => (
                     <ShowCond when={props.opts.frame?.url} fallback={(
@@ -310,7 +310,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <Flair flairs={props.content.flair ?? []} />
             </div>
             <div class={classes(
-                hasThumbnail() ? "" : "text-xs",
+                hasTitleOrThumbnail() ? "" : "text-xs",
                 selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
             )}>
                 <ShowCond if={[selfVisible()]} when={props.content.author?.pfp}>{pfp => <>
@@ -345,7 +345,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </ShowAnimate>
                     </ShowAnimate>
                 </div>
-                <div class={hasThumbnail() ? "" : "text-xs"}>
+                <div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
                     <ShowBool when={bodyToggleable()}>
                         <button on:click={() => setBodyVisible(!bodyVisible())}>
                             {bodyVisible() ? "Hide" : "Show"}
@@ -421,7 +421,7 @@ export function ReplyEditor(props: {
 
     const [diffable, setDiffable] = createStore<StoreTypeValue>({value: null});
     createEffect(() => {
-        const resv: Generic.PostContent = client().previewReply(content(), props.action.reply_info);
+        const resv: Generic.PostContent = client().previewReply!(content(), props.action.reply_info);
         setDiffable(reconcile<StoreTypeValue>({value: resv}, {merge: true}));
         // this does well but unfortunately it doesn't know what to use as keys for lists and it can't really know
         // because it's text → (opaque parser) → richtext
@@ -437,7 +437,7 @@ export function ReplyEditor(props: {
             <button disabled={isSending()} class={link_styles_v["pill-filled"]} on:click={(e) => {
                 setSending(true);
 
-                client().sendReply(content(), props.action.reply_info).then((r) => {
+                client().sendReply!(content(), props.action.reply_info).then((r) => {
                     console.log("Got response", r);
                     props.onAddReply(r);
                 }).catch((error) => {

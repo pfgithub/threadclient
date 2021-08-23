@@ -1207,7 +1207,7 @@ export function renderAction(
         confirmbtn.onev("click", (e) => {
             e.stopPropagation();
             setv("load");
-            client.act(action.data).then(r => {
+            client.act!(action.data).then(r => {
                 setv("deleted");
             }).catch(err => {
                 console.log("Got error:", err);
@@ -1277,7 +1277,7 @@ export function renderAction(
             e.stopPropagation();
             btn.disabled = true;
             btn.textContent = "…";
-            client.act(action.action).then(() => {
+            client.act!(action.action).then(() => {
                 btn.remove();
                 txt("✓").adto(frame);
             }).catch(err => {
@@ -1576,7 +1576,7 @@ function renderCounterAction(
         emit();
         const action_v = action.actions[vote ?? "reset"];
         if(action_v == null) throw new Error("downvote label available but downvote action not provided");
-        client.act(action_v).then(() => {
+        client.act!(action_v).then(() => {
             state.your_vote = vote;
             state.loading = false;
             emit();
@@ -2520,7 +2520,7 @@ function loadMoreButton(
         current_node.remove();
         current_node = loading_txt;
 
-        client.loadMore(load_more_node.load_more).then(res => {
+        client.loadMore!(load_more_node.load_more).then(res => {
             current_node.remove();
             addChildren(res);
             removeSelf();
@@ -2557,7 +2557,7 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
         if(current_node) current_node.remove();
         current_node = loading_txt;
 
-        client.loadMoreUnmounted(lmnode.load_more_unmounted).then(res => {
+        client.loadMoreUnmounted!(lmnode.load_more_unmounted).then(res => {
             if(current_node) current_node.remove();
             addChildren(res.children);
             if(res.next) {
@@ -2836,9 +2836,22 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        if(client.getPage && getSettings().page_version.value() === "2") {
-            const page2 = await client.getPage(current_path);
-            title.setTitle(page2.title); // TODO use the pivot to find the title
+        if(!client.getThread || client.getPage && getSettings().page_version.value() === "2") {
+            const page2 = await client.getPage!(current_path);
+            // if(dev mode) error if no title is set;
+            
+            let p2title = "«err no title»";
+            let focus: Generic.ParentPost | undefined = page2.pivot.ref;
+            while(focus) {
+                if(focus.kind === "post" && focus.content.kind === "post") {
+                    if(focus.content.title) {
+                        p2title = focus.content.title.text;
+                        break;
+                    }
+                }
+                focus = focus.parent?.ref;
+            }
+            title.setTitle(p2title);
 
             const {ClientPage} = await import("./components/author_pfp");
             loader_area.remove();
@@ -2922,9 +2935,11 @@ const client_cache: {[key: string]: ThreadClient} = {};
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     reddit: () => import("./clients/reddit").then(client => client.client),
     mastodon: () =>  import("./clients/mastodon").then(client => client.client),
+    hackernews: () =>  import("./clients/hackernews").then(client => client.client),
     test: () =>  import("./clients/test").then(client => client.client),
 };
-async function getClient(name: string) {
+async function getClient(name_any: string) {
+    const name = name_any.toLowerCase();
     const clientInitializer = client_initializers[name];
     if(!clientInitializer) return undefined;
     if(!client_cache[name]) client_cache[name] = await clientInitializer();

@@ -686,7 +686,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
 
     if(smres) {
         return {
-            title: "«err no title»",
             pivot: {ref: smres, err: undefined},
         };
     }
@@ -731,7 +730,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
         internal_data: 0,
     };
     return {
-        title: "home",
         pivot: {ref: pivot, err: undefined},
     };
 }
@@ -764,12 +762,6 @@ export async function getPage(path: string): Promise<Generic.Page2> {
 export const client: ThreadClient = {
     id: "test",
     getPage,
-    async getThread(path): Promise<Generic.Page> {
-        throw new Error("Not supported.");
-    },
-    async act(action) {
-        throw new Error("act not supported");
-    },
     previewReply(body, reply_info): Generic.PostContent {
         const decoded = reply_encoder.decode(reply_info);
         if(decoded.kind === "markdown") {
@@ -798,6 +790,4 @@ export const client: ThreadClient = {
             throw new Error("Other not supported");
         }else assertNever(decoded);
     },
-    async loadMore() {throw new Error("load more not supported")},
-    async loadMoreUnmounted() {throw new Error("load more unmounted not supported")},
 };

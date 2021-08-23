@@ -205,9 +205,9 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
             return noClasses(rt.br());
         }else if(node.nodeName === "SUP") {
             return noClasses(...contentSpansToRichtextSpans(meta, node.childNodes, {...styles, superscript: true}));
-        }else if(node.nodeName === "STRONG") {
+        }else if(node.nodeName === "STRONG" || node.nodeName === "B") {
             return noClasses(...contentSpansToRichtextSpans(meta, node.childNodes, {...styles, strong: true}));
-        }else if(node.nodeName === "EM") {
+        }else if(node.nodeName === "EM" || node.nodeName === "I") {
             return noClasses(...contentSpansToRichtextSpans(meta, node.childNodes, {...styles, emphasis: true}));
         }else if(node.nodeName === "DEL") {
             return noClasses(...contentSpansToRichtextSpans(meta, node.childNodes, {...styles, strikethrough: true}));

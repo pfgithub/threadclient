@@ -201,3 +201,7 @@ mail todo:
 github todo:
 
 https://github.com/octokit/octokit.js/ it has issues support
+
+hackernews todo:
+
+-   use the official api for everything, only use the unofficial one for getting lists of things in eg /newest

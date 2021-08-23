@@ -255,7 +255,7 @@ export function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostD
     if(value.kind === "unprocessed") {
         value.kind = "processing";
 
-        const res = postDataFromListingMayError(map, value);
+        const res = postDataFromListingMayError(map, value); // uuh… this is mayerror… should handle errors here
         [value.link.ref, value.link.err] = [res, undefined];
 
         value.kind = "processed";
