@@ -2531,24 +2531,22 @@ export function getPostThumbnail(
     force_expand: ThreadOpts["force_expand"],
 ): Generic.Thumbnail | undefined {
     if(force_expand === "crosspost") return undefined;
-    return (
-        listing.preview?.images?.[0]?.resolutions?.[0]?.url != null
-        ? {kind: "image", url: listing.preview.images[0].resolutions[0].url}
-        : listing.thumbnail == null
-        ? undefined
-        : listing.rpan_video
-        ? {kind: "image", url: listing.rpan_video.scrubber_media_url}
-        : listing.thumbnail.includes("/")
-        ? {kind: "image", url: listing.thumbnail}
-        // : listing.gallery_data // new.reddit has this but old.reddit doesn't
-        // ? {kind: "default", thumb: "gallery"}
-        : listing.thumbnail == null || listing.thumbnail === ""
-        ? undefined
-        : {kind: "default", thumb: (as<{[key: string]: Generic.ThumbType}>({
-            self: "self", default: "default", image: "image",
-            spoiler: "spoiler", nsfw: "nsfw", account: "account",
-        }))[listing.thumbnail] ?? "error"}
-    );
+    if(listing.preview?.images?.[0]?.resolutions?.[0]?.url != null) {
+        return {kind: "image", url: listing.preview.images[0].resolutions[0].url};
+    }
+    if(listing.rpan_video) {
+        return {kind: "image", url: listing.rpan_video.scrubber_media_url};
+    }
+    if(listing.thumbnail == null || listing.thumbnail === "") {
+        return undefined;
+    }
+    if(listing.thumbnail.includes("/")) {
+        return {kind: "image", url: listing.thumbnail};
+    }
+    return {kind: "default", thumb: (as<{[key: string]: Generic.ThumbType}>({
+        self: "self", default: "default", image: "image",
+        spoiler: "spoiler", nsfw: "nsfw", account: "account",
+    }))[listing.thumbnail] ?? "error"};
 }
 
 export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
