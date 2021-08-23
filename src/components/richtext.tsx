@@ -297,14 +297,16 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
         }else return {link: "error", external: true};
     });
 
-    const [previewOpen, setPreviewOpen] = createSignal(false);
+    const [previewOpen, setPreviewOpen] = createSignal<{open: boolean, temporary: boolean}>(
+        {open: false, temporary: false},
+    );
     return <div class="my-2">
         <A
             class={classes(
                 "p-2 px-4",
                 "block",
                 "bg-body rounded-xl",
-                previewOpen() ? "rounded-b-none" : "",
+                previewOpen().open ? "rounded-b-none" : "",
             )}
             href={props.link.url}
             onClick={linkPreview() ? () => {
@@ -315,37 +317,45 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                 <ShowCond when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</ShowCond>
                 {props.link.title}
             </div>
-            <ShowBool when={!previewOpen()}>
-                <div class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400">
-                    <ShowBool when={!linkPreview() && human().external}>
-                        <ExternalIcon />{" "}
-                    </ShowBool>
-                    {human().link}
+            <ShowBool when={!previewOpen().open || previewOpen().temporary}>
+                <div style={{display: previewOpen().open ? "none" : "block"}}>
+                    <div class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400">
+                        <ShowBool when={!linkPreview() && human().external}>
+                            <ExternalIcon />{" "}
+                        </ShowBool>
+                        {human().link}
+                    </div>
                 </div>
             </ShowBool>
         </A>
         <ShowCond when={linkPreview()}>{preview => <><div ref={v => animateHeight(
-            v, settings, preview.visible, (state, rising) => {
-                setPreviewOpen(state || rising);
+            v, settings, preview.visible, (state, rising, temporary) => {
+                setPreviewOpen({open: state || rising, temporary});
             },
         )}>
-            <ShowBool when={previewOpen()}><Body body={preview.body} autoplay={true} /></ShowBool>
-        </div><ShowBool when={previewOpen()}>
-            <A
-                class={classes(
-                    "p-2 px-4",
-                    "block",
-                    "bg-body rounded-xl rounded-t-none",
-                )}
-                href={props.link.url}
-            >
-                <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400">
-                    <ShowBool when={human().external}>
-                        <ExternalIcon />{" "}
-                    </ShowBool>
-                    {human().link}
+            <ShowBool when={previewOpen().open || previewOpen().temporary}>
+                <div style={{display: previewOpen().open ? "block" : "none"}}>
+                    <Body body={preview.body} autoplay={true} />
                 </div>
-            </A>
+            </ShowBool>
+        </div><ShowBool when={previewOpen().open || previewOpen().temporary}>
+            <div style={{display: previewOpen().open ? "block" : "none"}}>
+                <A
+                    class={classes(
+                        "p-2 px-4",
+                        "block",
+                        "bg-body rounded-xl rounded-t-none",
+                    )}
+                    href={props.link.url}
+                >
+                    <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400">
+                        <ShowBool when={human().external}>
+                            <ExternalIcon />{" "}
+                        </ShowBool>
+                        {human().link}
+                    </div>
+                </A>
+            </div>
         </ShowBool></>}</ShowCond>
     </div>;
 }
