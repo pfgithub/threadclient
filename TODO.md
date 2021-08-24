@@ -22,14 +22,15 @@ reddit post page2:
 -   [ ] vote count, vote buttons, % upvoted
 -   [x] time ago
 -   [ ] code button should give code of the selected post
--   [ ] author flair should not inherit post award flair
+-   [x] author flair should not inherit post award flair
 -   [x] post body should display below action bar. (possibly: two action bars? one for above and one for below body)
 -   [x] posted in subreddit
 -   [ ] actions: comment count, domain, delete, save, duplicates, report
--   [ ] reply action, when at pivot (because show replies when below pivot is false)
+-   [x] reply action, when at pivot (because show replies when below pivot is false)
+-   [ ] reply action should add the posted comment to the tree
 -   [ ] click to focus
 -   [ ] when a post has no body, it shouldn't collapse/uncollapse. eg r/askreddit.
--   [ ] choose between displaying a top level wrapper or an inner wrapper of toggling colors using a resource. have
+-   [x] choose between displaying a top level wrapper or an inner wrapper of toggling colors using a resource. have
         just one component used to draw the wrapper
 
 reddit comment todo:

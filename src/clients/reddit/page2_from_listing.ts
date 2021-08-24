@@ -392,7 +392,7 @@ function postDataFromListingMayError(
                 title: {text: listing.title},
                 collapsible: {default_collapsed: true},
                 flair: getPostFlair(listing),
-                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
+                author: authorFromPostOrComment(listing),
                 body: getPostBody(listing),
                 thumbnail: getPostThumbnail(listing, "open"),
                 info: getPostInfo(listing_raw),
