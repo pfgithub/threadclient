@@ -424,11 +424,6 @@ export function canPreview(
     return undefined;
 }
 
-function getBound(v: HTMLElement) {
-    const rect = v.getBoundingClientRect();
-    return {x: rect.left, y: rect.top + (window.pageYOffset ?? document.documentElement.scrollTop), w: rect.width};
-}
-
 export function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
     const frame = el("div");
     const hsc = hideshow(frame);
@@ -995,18 +990,24 @@ function zoomableFrame(img: HTMLImageElement): HTMLElement {
         e.stopPropagation();
         frame.disabled = true;
         import("./components/gallery").then(component => {
+            const aspect = img.naturalWidth / img.naturalHeight;
             const hsc = hideshow(); // it deletes itself so who cares :: the answer is if you try to go back after opening this it doesn't work
             frame.style.opacity = "0";
             component.showGallery([{
                 thumb: img.src,
-                aspect: img.naturalWidth / img.naturalHeight,
+                aspect,
                 body: {kind: "captioned_image",
                     w: img.naturalWidth,
                     h: img.naturalHeight,
                     url: img.src,
                 },
             }], 0, () => {
-                return getBound(img);
+                const rect = frame.getBoundingClientRect();
+                return {
+                    x: rect.left,
+                    y: rect.top + (window.pageYOffset ?? document.documentElement.scrollTop),
+                    w: rect.height * aspect,
+                };
             }, {
                 onclose: () => {
                     frame.disabled = false;

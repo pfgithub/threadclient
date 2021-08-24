@@ -252,9 +252,9 @@ ul.replies {
 .preview-image {
     max-width: min(100%, 800px);
     max-height: min(90vh, 500px);
-    width: auto;
+    object-fit: contain;
+    object-position: left;
     height: auto;
-    display: inline-block;
 }
 
 button:disabled {

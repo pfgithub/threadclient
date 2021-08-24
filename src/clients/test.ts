@@ -363,7 +363,22 @@ const sitemap: SitemapEntry[] = [
                     ]})
                 ],
                 link: [],
-                captioned_image: [],
+                captioned_image: [
+                    item("image that loads with specified height", {
+                        kind: "captioned_image",
+                        url: "https://i.redd.it/handl2uwf5j71.jpg",
+                        caption: "Sample Caption",
+                        w: 1080,
+                        h: 621,
+                    }),
+                    item("image that does not load, with specified height", {
+                        kind: "captioned_image",
+                        url: "error:no-image",
+                        caption: "Sample Caption",
+                        w: 1080,
+                        h: 621,
+                    }),
+                ],
                 video: [],
                 gfycat: [],
                 youtube: [],
