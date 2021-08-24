@@ -12,6 +12,29 @@
 - [x] or I can just delete the tiny bit of react for now
 - [ ]TODO migrate to pnpm
 
+page2 todo:
+
+-   [ ] load more
+
+reddit post page2:
+
+-   [ ] vote count, vote buttons, % upvoted
+-   [ ] time ago
+-   [ ] code button should give code of the selected post
+-   [ ] author flair should not inherit post award flair
+-   [ ] post body should display below action bar. (possibly: two action bars? one for above and one for below body)
+-   [ ] posted in subreddit
+-   [ ] actions: comment count, domain, delete, save, duplicates, report
+-   [ ] reply action, when at pivot
+-   [ ] click to focus
+
+reddit comment todo:
+
+-   [ ] a single reply should not be shown as threaded
+-   [ ] post voting
+-   [ ] post time ago
+-   [ ] post reply button
+
 all todo:
 
 -   [x] dark mode for people without darkreader
