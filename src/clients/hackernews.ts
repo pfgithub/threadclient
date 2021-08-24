@@ -102,7 +102,7 @@ function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.Pos
             },
             content: {
                 kind: "post",
-                title: item.title != null ? {text: item.title, body_collapsible: {default_collapsed: true}} : null,
+                title: item.title != null ? {text: item.title} : null,
                 thumbnail: item.title != null ? {kind: "default", thumb: "default"} : undefined,
                 author: item.user != null ? {
                     name: item.user,
@@ -134,7 +134,8 @@ function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.Pos
                         actions: {},
                     } : undefined,
                 },
-                show_replies_when_below_pivot: item.title != null ? false : {default_collapsed: false},
+                collapsible: {default_collapsed: item.title != null ? true : false},
+                show_replies_when_below_pivot: item.title != null ? false : true,
             },
             internal_data: value,
             display_style: "centered",

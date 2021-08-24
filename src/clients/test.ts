@@ -144,7 +144,8 @@ function richtextPost(path: string, richtext: Generic.Richtext.Paragraph[]): Gen
 function commitThread(path: string, entry: LogEntry): Generic.PostContent {
     return {
         kind: "post",
-        title: {text: "" + entry.hash + ": " + entry.commit_title, body_collapsible: {default_collapsed: true}},
+        title: {text: "" + entry.hash + ": " + entry.commit_title},
+        collapsible: {default_collapsed: true},
         author: {
             name: entry.author_name,
             flair: [{
@@ -157,7 +158,7 @@ function commitThread(path: string, entry: LogEntry): Generic.PostContent {
         body: {kind: "richtext", content: [
             rt.pre(entry.commit_body),
         ]},
-        show_replies_when_below_pivot: {default_collapsed: false},
+        show_replies_when_below_pivot: true,
     };
 }
 
@@ -182,6 +183,7 @@ const sitemap: SitemapEntry[] = [
                     rt.li(rt.p(rt.txt("When closing the preview, it functions as expected"))),
                 ),
             ]},
+            collapsible: false,
             show_replies_when_below_pivot: false,
         },
         replies: sample_preview_links.map((spl, i) => ["" + i, (urlr): SitemapEntryData => ({
@@ -197,15 +199,17 @@ const sitemap: SitemapEntry[] = [
                         {kind: "link", text: "View", url: urlr}
                     ],
                 },
-                show_replies_when_below_pivot: {default_collapsed: false},
+                collapsible: {default_collapsed: false},
+                show_replies_when_below_pivot: true,
             },
         })]),
     })],
     ["body-preview", (urlr): SitemapEntryData => ({
         content: {
             kind: "post",
-            title: {text: "Body Preview", body_collapsible: false},
+            title: {text: "Body Preview"},
             body: {kind: "none"},
+            collapsible: false,
             show_replies_when_below_pivot: false,
         },
         replies: ((): SitemapEntry[] => {
@@ -392,18 +396,20 @@ const sitemap: SitemapEntry[] = [
                 (urlr): SitemapEntryData => ({
                     content: {
                         kind: "post",
-                        title: {text: key, body_collapsible: false},
+                        title: {text: key},
                         body: {kind: "none"},
-                        show_replies_when_below_pivot: {default_collapsed: false},
+                        collapsible: {default_collapsed: false},
+                        show_replies_when_below_pivot: true,
                     },
                     replies: items.map(({body, desc}, i): SitemapEntry => [
                         "" + i,
                         (urlr): SitemapEntryData => ({
                             content: {
                                 kind: "post",
-                                title: {text: desc, body_collapsible: {default_collapsed: true}},
+                                title: {text: desc},
                                 body,
-                                show_replies_when_below_pivot: {default_collapsed: false},
+                                collapsible: {default_collapsed: false},
+                                show_replies_when_below_pivot: true,
                             },
                         }),
                     ])
@@ -419,6 +425,7 @@ const sitemap: SitemapEntry[] = [
                 rt.h1(rt.txt("Version "+variables.version)),
                 rt.p(rt.txt("Built "), rt.timeAgo(variables.build_time)),
             ]},
+            collapsible: false,
             show_replies_when_below_pivot: false,
         },
         replies: variables.log.map((entry, i): SitemapEntry => [
@@ -431,6 +438,7 @@ const sitemap: SitemapEntry[] = [
             kind: "post",
             title: null,
             body: {kind: "richtext", content: [rt.p(rt.txt("Press 'Reply'"))]},
+            collapsible: false,
             show_replies_when_below_pivot: false,
         },
         replyopts: {
@@ -605,10 +613,11 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         replies: null,
         content: {
             kind: "post",
-            title: {text: "404", body_collapsible: false},
+            title: {text: "404"},
             body: {kind: "richtext", content: [
                 rt.p(rt.txt("404 not found "+path)),
             ]},
+            collapsible: false,
             show_replies_when_below_pivot: false,
         },
         internal_data: 0,
@@ -717,6 +726,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
                 )
             ],
         },
+        collapsible: false,
         show_replies_when_below_pivot: false,
     };
     const pivot: Generic.PostData = {
@@ -769,6 +779,7 @@ export const client: ThreadClient = {
                 kind: "post",
                 title: null,
                 body: {kind: "richtext", content: markdownToRichtext(body)},
+                collapsible: false,
                 show_replies_when_below_pivot: false,
             };
             // return richtextPost("/", markdownToRichtext(body));
