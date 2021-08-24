@@ -15,15 +15,16 @@
 page2 todo:
 
 -   [ ] load more
+-   [ ] possibly allow the post to specify the format of its info bar?
 
 reddit post page2:
 
 -   [ ] vote count, vote buttons, % upvoted
--   [ ] time ago
+-   [x] time ago
 -   [ ] code button should give code of the selected post
 -   [ ] author flair should not inherit post award flair
 -   [ ] post body should display below action bar. (possibly: two action bars? one for above and one for below body)
--   [ ] posted in subreddit
+-   [x] posted in subreddit
 -   [ ] actions: comment count, domain, delete, save, duplicates, report
 -   [ ] reply action, when at pivot
 -   [ ] click to focus
@@ -32,7 +33,7 @@ reddit comment todo:
 
 -   [ ] a single reply should not be shown as threaded
 -   [ ] post voting
--   [ ] post time ago
+-   [x] post time ago
 -   [ ] post reply button
 
 all todo:

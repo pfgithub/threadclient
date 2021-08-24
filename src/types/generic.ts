@@ -122,6 +122,7 @@ export type PostInfo = {
     creation_date?: number,
     edited?: {date?: number}, // you can have an edited date w/out a creation date
     pinned?: boolean,
+    in?: {name: string, link: string},
 };
 export type PostContentPost = {
     /// the thing containing a post. generally post replies

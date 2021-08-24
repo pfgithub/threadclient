@@ -313,22 +313,38 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 hasTitleOrThumbnail() ? "" : "text-xs",
                 selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
             )}>
-                <ShowCond if={[selfVisible()]} when={props.content.author?.pfp}>{pfp => <>
+                <ShowCond if={[selfVisible()]} when={props.content.author?.pfp} fallback={"By "}>{pfp => <>
                     <AuthorPfp src_url={pfp.url} />{" "}
                 </>}</ShowCond>
-                <ShowCond when={props.content.author}>{author => (
+                <ShowCond when={props.content.author}>{author => <>
                     <UserLink href={author.link} color_hash={author.color_hash}>
                         {author.name}
                     </UserLink>
-                )}</ShowCond>
-                <ShowCond when={props.content.author?.flair}>{flair => <>
-                    {" "}<Flair flairs={flair} />
+                    <ShowCond when={author.flair}>{flair => <>
+                        {" "}<Flair flairs={flair} />
+                    </>}</ShowCond>
+                </>}</ShowCond>
+                <ShowCond when={props.content.info?.in}>{in_sr => <>
+                    {" in "}<LinkButton href={in_sr.link} style="normal">{in_sr.name}</LinkButton>
                 </>}</ShowCond>
                 <ShowCond when={props.content.actions?.vote}>{vote_action => <>
                     {" "}<CounterCount counter={vote_action} />
                 </>}</ShowCond>
+                <ShowCond when={props.content.info}>{content_info => <>
+                    <ShowCond when={content_info.creation_date}>{created => <>
+                        {" "}<TimeAgo start={created} />
+                    </>}</ShowCond>
+                    <ShowCond when={content_info.edited}>{edited => <>
+                        {", Edited"}<ShowCond when={edited.date}>{edited_date => <>
+                            {" "}<TimeAgo start={edited_date} />
+                        </>}</ShowCond>
+                    </>}</ShowCond>
+                    <ShowBool when={content_info.pinned ?? false}>{<>
+                        {", "}<span class="text-green-600 dark:text-green-500">Pinned</span>
+                    </>}</ShowBool>
+                </>}</ShowCond>
             </div>
-            <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={selfVisible}>
+            <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={transitionTarget}>
                 <div>
                     <ShowAnimate when={bodyVisible()}>
                         <ShowAnimate when={!contentWarning()} fallback={

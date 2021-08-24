@@ -266,13 +266,19 @@ export function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostD
     }else assertNever(value.kind);
 }
 
-function getPostInfo(listing: Reddit.PostOrComment): Generic.PostInfo {
+function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
+    const listing = listing_raw.data;
     return {
         creation_date: listing.created_utc * 1000,
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         edited: listing.edited ? {date: listing.edited * 1000} : undefined,
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         pinned: listing.pinned || listing.stickied || false,
+
+        in: listing_raw.kind === "t3" ? {
+            name: listing.subreddit_name_prefixed,
+            link: "/"+listing.subreddit_name_prefixed,
+        } : undefined, // don't show on comments
     };
 }
 
@@ -300,7 +306,8 @@ function postDataFromListingMayError(
                 },
             };
         }
-        const listing = entry.data.comment.data;
+        const listing_raw = entry.data.comment;
+        const listing = listing_raw.data;
 
         const replies: Generic.ListingData = {
             sort: null,
@@ -333,7 +340,7 @@ function postDataFromListingMayError(
                 title: null,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getCommentBody(listing),
-                info: getPostInfo(listing),
+                info: getPostInfo(listing_raw),
                 show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
                 actions: {
                     vote: parent_post?.data.discussion_type === "CHAT"
@@ -352,7 +359,8 @@ function postDataFromListingMayError(
             display_style: "centered",
         };
     }else if(entry.data.kind === "post") {
-        const listing = entry.data.post.data;
+        const listing_raw = entry.data.post;
+        const listing = listing_raw.data;
 
         return {
             kind: "post",
@@ -383,7 +391,7 @@ function postDataFromListingMayError(
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getPostBody(listing),
                 thumbnail: getPostThumbnail(listing, "open"),
-                info: getPostInfo(listing),
+                info: getPostInfo(listing_raw),
                 show_replies_when_below_pivot: false,
             },
             internal_data: entry.data,

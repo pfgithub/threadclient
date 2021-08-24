@@ -1024,10 +1024,12 @@ export type PostMore = {
     children: string[],
 };
 
-export type PostCommentLike = {
+export type T1 = {
     kind: "t1",
     data: PostComment,
-} | {
+};
+
+export type PostCommentLike = T1 | {
     kind: "more",
     data: PostMore,
 };
