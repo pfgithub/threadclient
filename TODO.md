@@ -44,7 +44,6 @@ unrelated:
 
 -   upgrade timeAgo to support weeks/months. "last month", "two months ago", …
 -   do this using the local timezone? not like https://github.com/hustcc/timeago.js/blob/master/src/utils/date.ts
--   move animation.tsx animation time to settings
 
 all todo:
 
