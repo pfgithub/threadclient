@@ -160,7 +160,8 @@ function unsupportedPage(pathraw: string, page: unknown): Generic.Link<Generic.P
         replies: null,
         content: {
             kind: "post",
-            title: {text: "Error!", body_collapsible: false},
+            title: {text: "Error!"},
+            collapsible: false,
             body: {
                 kind: "richtext",
                 content: [
@@ -298,7 +299,8 @@ function postDataFromListingMayError(
 
                 content: {
                     kind: "post",
-                    title: {text: "Error! TODO "+entry.data.comment.kind, body_collapsible: false},
+                    title: {text: "Error! TODO "+entry.data.comment.kind},
+                    collapsible: false,
                     body: {kind: "richtext", content: [
                         rt.p(rt.error("TODO", entry.data)),
                     ]},
@@ -341,7 +343,8 @@ function postDataFromListingMayError(
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getCommentBody(listing),
                 info: getPostInfo(listing_raw),
-                show_replies_when_below_pivot: {default_collapsed: listing.collapsed ?? false},
+                collapsible: {default_collapsed: listing.collapsed ?? false},
+                show_replies_when_below_pivot: true,
                 actions: {
                     vote: parent_post?.data.discussion_type === "CHAT"
                         ? undefined
@@ -386,7 +389,8 @@ function postDataFromListingMayError(
 
             content: {
                 kind: "post",
-                title: {text: listing.title, body_collapsible: {default_collapsed: true}},
+                title: {text: listing.title},
+                collapsible: {default_collapsed: true},
                 flair: getPostFlair(listing),
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getPostBody(listing),
@@ -417,7 +421,8 @@ function postDataFromListingMayError(
             },
             content: {
                 kind: "post",
-                title: {text: getEntryFullname(entry.data), body_collapsible: false},
+                title: {text: getEntryFullname(entry.data)},
+                collapsible: false,
                 body: {kind: "none"},
                 show_replies_when_below_pivot: false,
             },

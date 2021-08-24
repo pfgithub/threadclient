@@ -119,9 +119,8 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                                 hover: "https://www.redditstatic.com/avatars/avatar_default_02_FF8717.png",
                             },
                         },
-                        show_replies_when_below_pivot: {
-                            default_collapsed: false,
-                        },
+                        collapsible: {default_collapsed: false},
+                        show_replies_when_below_pivot: true,
                         body: {
                             kind: "richtext",
                             content: [{kind: "paragraph", children: [
@@ -221,7 +220,8 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     <ClientContent listing={{
                         kind: "post",
 
-                        title: {text: "Video Example", body_collapsible: {default_collapsed: true}},
+                        title: {text: "Video Example"},
+                        collapsible: {default_collapsed: true},
                         show_replies_when_below_pivot: false,
                         body: {
                             kind: "video",
@@ -281,8 +281,9 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     <ClientContent listing={{
                         kind: "post",
 
-                        title: {text: "Motion Example", body_collapsible: false},
-                        show_replies_when_below_pivot: {default_collapsed: false},
+                        title: {text: "Motion Example"},
+                        collapsible: {default_collapsed: false},
+                        show_replies_when_below_pivot: true,
                         body: {
                             kind: "richtext",
                             content: [

@@ -135,7 +135,6 @@ export type PostContentPost = {
 
     title: null | {
         text: string,
-        body_collapsible: false | {default_collapsed: boolean},
     },
     flair?: Flair[], // maybe content warnings should be seperate
     thumbnail?: Thumbnail,
@@ -146,7 +145,8 @@ export type PostContentPost = {
     /// item
     /// | reply
     /// | | reply
-    show_replies_when_below_pivot: false | {default_collapsed: boolean},
+    show_replies_when_below_pivot: boolean,
+    collapsible: false | {default_collapsed: boolean},
     // actions?: {
     //     collapse_line?: Action[],
     //     content_buttons?: Action[],

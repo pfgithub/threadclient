@@ -33,7 +33,7 @@ export function AuthorPfp(props: {src_url: string}): JSX.Element {
     return <img
         src={props.src_url}
         alt={decorative_alt}
-        class="w-8 h-8 object-center inline-block cfg-reddit-pfp rounded-full"
+        class="w-8 h-8 object-center inline-block rounded-full"
     />;
 }
 
@@ -224,29 +224,15 @@ export function ShowAnimate(props: {when: boolean, fallback?: JSX.Element, child
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
     const [selfVisible, setSelfVisible] = createSignal(
-        props.content.show_replies_when_below_pivot !== false
-        ? !props.content.show_replies_when_below_pivot.default_collapsed
-        : true
+        props.opts.is_pivot ? true :
+        props.content.collapsible !== false ? !props.content.collapsible.default_collapsed :
+        true,
     );
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
     );
-    () => setContentWarning;
-    const [overlayBodyVisible, setBodyVisible] = createSignal<boolean | undefined>(undefined);
-    const defaultBodyVisible = createMemo((): boolean => {
-        if(props.opts.is_pivot) return true;
-        const collapsible = props.content.title?.body_collapsible;
-        if(collapsible == null || collapsible === false) return true;
-        return !collapsible.default_collapsed;
-    });
-    const bodyVisible = () => overlayBodyVisible() ?? defaultBodyVisible();
-    const bodyToggleable = createMemo(() => {
-        const body_collapsible = props.content.title?.body_collapsible;
-        if(body_collapsible == null || body_collapsible === false) return false;
-        return true;
-    });
     const collapseButton = () => {
-        return props.content.show_replies_when_below_pivot !== false;
+        return props.content.collapsible === false ? false : true;
     };
     const hasTitleOrThumbnail = () => {
         return !!props.content.thumbnail || !!props.content.title;
@@ -255,11 +241,15 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const settings = getSettings();
 
     const [transitionTarget, setTransitionTarget] = createSignal(selfVisible());
+    const [animState, setAnimState] = createSignal<{visible: boolean, animating: boolean}>({
+        visible: selfVisible(),
+        animating: false,
+    });
     
     return <div
-        ref={node => animateHeight(node, settings, transitionTarget, (state, rising) => {
-            if(rising) setSelfVisible(true);
-            else setSelfVisible(state);
+        ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
+            setAnimState({visible: rising || state, animating});
+            setSelfVisible(state || rising);
         })}
         class={classes(
             "text-sm",
@@ -288,7 +278,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             <button class={classes(
                 "w-70px h-70px mr-4",
                 contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
-            )} onClick={() => setBodyVisible(!bodyVisible())}>
+            )} onClick={() => setTransitionTarget(t => !t)}>
                 <SwitchKind item={thumb_any}>{{
                     image: img => <img
                         // TODO based on the img content, display eg a play button or something
@@ -319,10 +309,12 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 hasTitleOrThumbnail() ? "" : "text-xs",
                 selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
             )}>
-                <ShowCond if={[selfVisible()]} when={props.content.author?.pfp} fallback={"By "}>{pfp => <>
-                    <AuthorPfp src_url={pfp.url} />{" "}
-                </>}</ShowCond>
                 <ShowCond when={props.content.author}>{author => <>
+                    <ShowCond if={[
+                        selfVisible() && settings.author_pfp.value() === "on",
+                    ]} when={author.pfp} fallback={"By "}>{pfp => <>
+                        <AuthorPfp src_url={pfp.url} />{" "}
+                    </>}</ShowCond>
                     <UserLink href={author.link} color_hash={author.color_hash}>
                         {author.name}
                     </UserLink>
@@ -352,7 +344,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             </div>
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={transitionTarget}>
                 <div>
-                    <ShowAnimate when={bodyVisible()}>
+                    <ShowBool when={animState().visible || animState().animating}>
                         <ShowAnimate when={!contentWarning()} fallback={
                             <>
                                 Content Warning:{" "}
@@ -365,14 +357,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         }>
                             <Body body={props.content.body} autoplay={false} />
                         </ShowAnimate>
-                    </ShowAnimate>
+                    </ShowBool>
                 </div>
                 <div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
-                    <ShowBool when={bodyToggleable()}>
-                        <button on:click={() => setBodyVisible(!bodyVisible())}>
-                            {bodyVisible() ? "Hide" : "Show"}
-                        </button>
-                    </ShowBool>
                     <button on:click={() => {
                         console.log(props.content, props.opts);
                     }}>Code</button>
