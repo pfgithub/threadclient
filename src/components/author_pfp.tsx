@@ -165,6 +165,12 @@ export function animateHeight(
         requestAnimationFrame(() => {
             const final_size = comment_root.getBoundingClientRect();
             const final_height = Math.min(final_size.bottom, window_height) - final_size.top;
+
+            if(final_height === initial_height) {
+                setState(target, false, false);
+                return;
+            }
+
             setState(target, true, true);
 
             setAnimating(initial_height);
