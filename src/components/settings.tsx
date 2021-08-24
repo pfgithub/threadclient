@@ -228,23 +228,16 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                         body: {
                             kind: "video",
                             gifv: false,
+                            aspect: 16 / 9,
                             source: {
                                 kind: "video",
                                 thumbnail: "https://commondatastorage.googleapis.com/"
                                 + "gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
                                 sources: [
                                     {
-                                        url: "https://broken-link/",
-                                        quality: "1080p",
-                                    },
-                                    {
                                         url: "https://commondatastorage.googleapis.com/"
                                         + "gtv-videos-bucket/sample/BigBuckBunny.mp4",
                                         quality: "720p",
-                                    },
-                                    {
-                                        url: "https://broken-link/",
-                                        quality: "480p",
                                     },
                                 ],
                             },

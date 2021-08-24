@@ -101,7 +101,6 @@ export function ShowAnimate(props: {when: boolean, fallback?: JSX.Element, child
         });
         createEffect(() => {
             v.style.display = show().main || (props.fallback != null) ? "block" : "none";
-            console.log(v.style.display);
         });
     }}>
         <ShowBool when={show().main || show().animating}>

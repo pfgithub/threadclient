@@ -371,8 +371,7 @@ export type RichText = {
 export type Video = {
     kind: "video",
     source: VideoSource,
-    w?: number,
-    h?: number,
+    aspect?: number,
     gifv: boolean,
     caption?: string,
     alt?: string,

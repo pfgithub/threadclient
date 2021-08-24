@@ -228,8 +228,7 @@ export function gfyLike(
         const url = urls.max5mbGif ?? urls.max2mbGif ?? urls.max1mbGif;
         renderBody(client, {
             kind: "video",
-            w: gfy_item.width,
-            h: gfy_item.height,
+            aspect: gfy_item.width / gfy_item.height,
             gifv: false,
             source:
                 sources.length > 0 ? {
@@ -924,8 +923,7 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
                                 quality: image.width+"×"+image.height,
                             }],
                         },
-                        w: image.width,
-                        h: image.height,
+                        aspect: image.width / image.height,
                         gifv: image.looping,
                         caption: image.description,
                     } : {

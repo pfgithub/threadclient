@@ -245,10 +245,8 @@ function NativeVideoElement(props: {
     return <video
         ref={video_el}
         controls={!props.custom_controls}
-        class="max-h-inherit max-w-inherit"
+        class="object-contain w-full h-full"
         autoplay={props.autoplay}
-        width={props.video.w}
-        height={props.video.h}
         loop={props.video.gifv}
 
         poster={props.source.thumbnail}
@@ -452,57 +450,22 @@ function PreviewRealVideo(props: {
         && (state.playing !== true || expandControls());
     };
 
+    let root_elem!: HTMLDivElement;
+    const [fullscreen, setFullscreen] = createSignal(false);
+
     // todo support dragging left and right to seek
-    return <div class="handles-clicks">
-        <Portal mount={document.body}>
-            <div
-                class="absolute pointer-events-none transition-opacity"
-                ontransitionend={(e) => {
-                    if(!seek()) {
-                        e.currentTarget.style.visibility = "hidden";
-                    }
-                }}
-                ref={container => {
-                    createEffect(() => {
-                        const hp = seek();
-                        if(hp) {
-                            container.style.top = hp.preview[1] + "px";
-                            container.style.left = hp.preview[0] + "px";
-                            container.style.visibility = "visible";
-                        }
-                        container.style.opacity = hp ? "1" : "0";
-                    });
-                }}
-            >
-                <ShowCond when={props.source.preview}>{preview_sources => (
-                    <video
-                        ref={video_el => {
-                            createEffect(() => {
-                                const hp = seek();
-                                const v_len = video_el.duration;
-                                if(hp && v_len) {
-                                    video_el.currentTime = hp.percent * v_len;
-                                }
-                            });
-                        }}
-                    >
-                        <For each={preview_sources}>{preview_source => (
-                            <source src={preview_source.url} />
-                        )}</For>
-                    </video>
-                )}</ShowCond>
-                <div ref={div => {
-                    createEffect(() => {
-                        const hp = seek();
-                        if(hp) {
-                            div.textContent = timeSecToString(hp.percent * state.max_time);
-                        }
-                    });
-                }} />
-            </div>
-        </Portal>
+    return <div class="handles-clicks relative" ref={root_elem}>
         <div
-            class="preview-image relative min-w-50px min-h-50px overflow-hidden"
+            class="w-full h-full relative overflow-hidden"
+            style={{
+                'max-width': fullscreen() ? "" : "min(100%, 800px)",
+                'max-height': fullscreen() ? "" : "min(90vh, 500px)",
+                'aspect-ratio': state.quality
+                ? (state.quality.w + " / " + state.quality.h)
+                : props.video.aspect != null
+                ? "" + props.video.aspect
+                : "16 / 9",
+            }}
             onmouseenter={() => {
                 setExpandControls(true);
             }}
@@ -610,10 +573,11 @@ function PreviewRealVideo(props: {
                     )}
                     onmousemove={e => {
                         const size = e.currentTarget.getBoundingClientRect();
+                        const root_size = root_elem.getBoundingClientRect();
                         setSeek({
                             seeking: false,
                             percent: (e.clientX - size.left) / size.width,
-                            preview: [e.pageX + document.body.scrollLeft, e.pageY + document.body.scrollTop],
+                            preview: [e.clientX - root_size.left, root_size.bottom - size.top],
                         });
                     }}
                     onmouseleave={() => {
@@ -642,7 +606,7 @@ function PreviewRealVideo(props: {
                     )}</ShowCond>
                 </div>
                 <div
-                    class="flex transform transition-transform origin-bottom"
+                    class="flex flex-wrap items-center transform transition-transform origin-bottom"
                 >
                     <button class="block" onclick={() => {
                         if(state.playing === false) {
@@ -664,7 +628,6 @@ function PreviewRealVideo(props: {
                             }
                         } />
                     </button>
-                    <div class="flex-grow"></div>
                     <div class={classes(
                         state.live ? "hover:cursor-pointer" : "",
                     )} onclick={() => {
@@ -686,6 +649,42 @@ function PreviewRealVideo(props: {
                             timeSecToString(state.current_time) + " / " + timeSecToString(state.max_time)
                         )
                     }</div>
+                    <div class="flex-grow"></div>
+                    <button class="block" onclick={() => {
+                        alert("TODO");
+                        // enter picture in picture mode, if available for the video element type
+                    }}>
+                        <Icon size="icon-sm" icon={{class: "icon-inpicture", label: "Picture in Picture"}} />
+                    </button>
+                    <button class="block" onclick={() => {
+                        alert("TODO");
+                        // show a menu of all the sources
+                        // each item is
+                        // <a download href="…"></a>
+                        // note: hls/dash sources cannot be downloaded.
+                    }}>
+                        <Icon size="icon-sm" icon={{class: "icon-software-download", label: "Download Video"}} />
+                    </button>
+                    <button class="block" onclick={() => {
+                        if(document.fullscreenElement) {
+                            document.exitFullscreen().then(r => {
+                                setFullscreen(false);
+                            }).catch(e => {
+                                setFullscreen(false);
+                            });
+                            return;
+                        }
+                        root_elem.requestFullscreen().then(r => {
+                            setFullscreen(true);
+                        }).catch(e => {
+                            setFullscreen(false);
+                        });
+                    }}>
+                        <Icon size="icon-sm" icon={fullscreen()
+                            ? {class: "icon-shape-square", label: "Exit Fullscreen"}
+                            : {class: "icon-square", label: "Enter Fullscreen"}
+                        } />
+                    </button>
                 </div>
             </div>
         </div>
@@ -711,6 +710,51 @@ function PreviewRealVideo(props: {
                 >{qual.name}</button>
             )}</For>
         </div>
+        <div
+            class="absolute pointer-events-none transition-opacity"
+            ontransitionend={(e) => {
+                if(!seek()) {
+                    e.currentTarget.style.visibility = "hidden";
+                }
+            }}
+            ref={container => {
+                createEffect(() => {
+                    const hp = seek();
+                    if(hp) {
+                        container.style.bottom = hp.preview[1] + "px";
+                        container.style.left = hp.preview[0] + "px";
+                        container.style.visibility = "visible";
+                    }
+                    container.style.opacity = hp ? "1" : "0";
+                });
+            }}
+        >
+            <ShowCond when={props.source.preview}>{preview_sources => (
+                <video
+                    ref={video_el => {
+                        createEffect(() => {
+                            const hp = seek();
+                            const v_len = video_el.duration;
+                            if(hp && v_len) {
+                                video_el.currentTime = hp.percent * v_len;
+                            }
+                        });
+                    }}
+                >
+                    <For each={preview_sources}>{preview_source => (
+                        <source src={preview_source.url} />
+                    )}</For>
+                </video>
+            )}</ShowCond>
+            <div ref={div => {
+                createEffect(() => {
+                    const hp = seek();
+                    if(hp) {
+                        div.textContent = timeSecToString(hp.percent * state.max_time);
+                    }
+                });
+            }} />
+        </div>
     </div>;
 }
 
@@ -726,7 +770,7 @@ export default function PreviewVideo(props: {
             video: video => <PreviewRealVideo video={props.video} source={video} autoplay={props.autoplay} />,
             img: img => <SolidToVanillaBoundary getValue={(hsc, client) => {
                 const content = el("div");
-                zoomableImage(img.url, {w: props.video.w, h: props.video.h, alt: props.video.alt}).adto(content);
+                zoomableImage(img.url, {alt: props.video.alt}).adto(content);
                 return content;
             }} />,
         }}</SwitchKind>
