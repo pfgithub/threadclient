@@ -173,7 +173,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         </ShowBool>
         <div class="flex-1">
             <div
-                class={(postIsClickable() ? "hover-outline" : "") + " flex flex-row"}
+                class={"flex flex-row"}
                 // note: screenreader or keyboard users must click the 'view' button
                 // or the title if there is one.
                 // I considered making the "x points x hours ago" a link but it's harder
@@ -209,7 +209,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         }}</SwitchKind>
                     </button>
                 )}</ShowCond>
-                <div class="flex-1">
+                <div class={(postIsClickable() ? "hover-outline" : "") + " flex-1"}>
                     <div class={classes(
                         hasTitleOrThumbnail() ? "text-base" : "text-xs",
                     )}>
@@ -264,7 +264,14 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             content={props.content}
                             opts={props.opts}
                             replyWindowOpen={[replyWindowOpen, setReplyWindowOpen]}
-                        />
+                        >
+                            <div><button
+                                class={link_styles_v["outlined-button"]}
+                                onclick={() => setTransitionTarget(t => !t)}
+                            >
+                                {transitionTarget() ? "Hide" : "Show"}
+                            </button></div>
+                        </PostActions>
                     </div></ShowBool>
                 </div>
             </div>

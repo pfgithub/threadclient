@@ -12,8 +12,10 @@ import type { ClientPostProps } from "./page2";
 
 export function PostActions(props: ClientPostProps & {
     replyWindowOpen: [Accessor<Generic.ReplyAction | null>, Setter<Generic.ReplyAction | null>],
+    children?: JSX.Element,
 }): JSX.Element {
-    return <><span class="flex flex-wrap gap-2">
+    return <><span class="flex flex-wrap gap-2 items-center">
+        {props.children}
         <button on:click={() => {
             console.log(props.content, props.opts);
         }}>Code</button>
