@@ -1,11 +1,12 @@
 import { createMemo, createSignal, For, JSX, untrack } from "solid-js";
 import {
-    bioRender, clientContent, link_styles_v
+    allowedToAcceptClick,
+    bioRender, clientContent, link_styles_v, navigate
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, DefaultErrorBoundary, getSettings, HideshowProvider,
+    classes, DefaultErrorBoundary, getClient, getSettings, HideshowProvider,
     kindIs, ShowBool, ShowCond, SwitchKind, TimeAgo, ToggleColor
 } from "../util/utils_solid";
 import { PostActions } from "./action";
@@ -130,12 +131,17 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const [replyWindowOpen, setReplyWindowOpen] = createSignal<Generic.ReplyAction | null>(null);
 
     const settings = getSettings();
+    const client = getClient();
 
     const [transitionTarget, setTransitionTarget] = createSignal(selfVisible());
     const [animState, setAnimState] = createSignal<{visible: boolean, animating: boolean}>({
         visible: selfVisible(),
         animating: false,
     });
+
+    const postIsClickable = () => {
+        return props.opts.frame?.url != null && !props.opts.is_pivot;
+    };
     
     return <div
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
@@ -166,7 +172,25 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             </button>
         </ShowBool>
         <div class="flex-1">
-            <div class="flex flex-row">
+            <div
+                class={(postIsClickable() ? "hover-outline" : "") + " flex flex-row"}
+                // note: screenreader or keyboard users must click the 'view' button
+                // or the title if there is one.
+                // I considered making the "x points x hours ago" a link but it's harder
+                // to do than it should be because of the {" "} and {", "} those get underlined
+                onclick={e => {
+                    if(!postIsClickable()) return;
+                    if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
+                    e.stopPropagation();
+                    // support ctrl click
+                    const target_url = "/"+client().id+props.opts.frame?.url;
+                    if(e.ctrlKey || e.metaKey || e.altKey) {
+                        window.open(target_url);
+                    }else{
+                        navigate({path: target_url});
+                    }
+                }}
+            >
                 <ShowCond when={props.content.thumbnail}>{thumb_any => (
                     <button class={classes(
                         "w-70px h-70px mr-4",
@@ -209,29 +233,29 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                 <AuthorPfp src_url={pfp.url} />{" "}
                             </>}</ShowCond>
                             <UserLink href={author.link} color_hash={author.color_hash}>
-                                {author.name}
+                                {author.name}{" "}
                             </UserLink>
                             <ShowCond when={author.flair}>{flair => <>
-                                {" "}<Flair flairs={flair} />
+                                <Flair flairs={flair} />{" "}
                             </>}</ShowCond>
                         </>}</ShowCond>
                         <ShowCond when={props.content.info?.in}>{in_sr => <>
-                            {" in "}<LinkButton href={in_sr.link} style="normal">{in_sr.name}</LinkButton>
+                            {" in "}<LinkButton href={in_sr.link} style="normal">{in_sr.name}</LinkButton>{" "}
                         </>}</ShowCond>
                         <ShowCond when={props.content.actions?.vote}>{vote_action => <>
-                            {" "}<CounterCount counter={vote_action} />
+                            <CounterCount counter={vote_action} />{" "}
                         </>}</ShowCond>
                         <ShowCond when={props.content.info}>{content_info => <>
                             <ShowCond when={content_info.creation_date}>{created => <>
-                                {" "}<TimeAgo start={created} />
+                                <TimeAgo start={created} />{" "}
                             </>}</ShowCond>
                             <ShowCond when={content_info.edited}>{edited => <>
-                                {", Edited"}<ShowCond when={edited.date}>{edited_date => <>
+                                {"Edited"}<ShowCond when={edited.date}>{edited_date => <>
                                     {" "}<TimeAgo start={edited_date} />
-                                </>}</ShowCond>
+                                </>}</ShowCond>{" "}
                             </>}</ShowCond>
                             <ShowBool when={content_info.pinned ?? false}>{<>
-                                {", "}<span class="text-green-600 dark:text-green-500">Pinned</span>
+                                <span class="text-green-600 dark:text-green-500">Pinned</span>{" "}
                             </>}</ShowBool>
                         </>}</ShowCond>
                     </div>

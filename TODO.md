@@ -28,7 +28,7 @@ reddit post page2:
 -   [ ] actions: comment count, domain, delete, save, duplicates, report
 -   [x] reply action, when at pivot (because show replies when below pivot is false)
 -   [ ] reply action should add the posted comment to the tree
--   [ ] click to focus
+-   [x] click to focus
 -   [ ] when a post has no body, it shouldn't collapse/uncollapse. eg r/askreddit.
 -   [x] choose between displaying a top level wrapper or an inner wrapper of toggling colors using a resource. have
         just one component used to draw the wrapper
