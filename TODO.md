@@ -29,6 +29,8 @@ reddit post page2:
 -   [ ] reply action, when at pivot (because show replies when below pivot is false)
 -   [ ] click to focus
 -   [ ] when a post has no body, it shouldn't collapse/uncollapse. eg r/askreddit.
+-   [ ] choose between displaying a top level wrapper or an inner wrapper of toggling colors using a resource. have
+        just one component used to draw the wrapper
 
 reddit comment todo:
 

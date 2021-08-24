@@ -1,7 +1,7 @@
 import {
     Accessor,
     createEffect, createMemo, createSignal, ErrorBoundary,
-    For, JSX, on, onCleanup, untrack
+    For, JSX, on, onCleanup, Setter, untrack
 } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import {
@@ -221,9 +221,9 @@ export function ShowAnimate(props: {when: boolean, fallback?: JSX.Element, child
     </div>;
 }
 
-function PostActions(props: ClientPostProps): JSX.Element {
-    const [replyWindowOpen, setReplyWindowOpen] = createSignal<Generic.ReplyAction | null>(null);
-
+function PostActions(props: ClientPostProps & {
+    replyWindowOpen: [Accessor<Generic.ReplyAction | null>, Setter<Generic.ReplyAction | null>],
+}): JSX.Element {
     return <><span class="flex flex-wrap gap-2">
         <button on:click={() => {
             console.log(props.content, props.opts);
@@ -234,11 +234,14 @@ function PostActions(props: ClientPostProps): JSX.Element {
         <ShowCond when={props.opts.frame?.url}>{url => (
             <LinkButton href={url} style="action-button">View</LinkButton>
         )}</ShowCond>
-        <ShowCond when={props.opts.replies?.reply}>{(reply_action) => {
+        <ShowCond
+            if={[props.content.show_replies_when_below_pivot]}
+            when={props.opts.replies?.reply}
+        >{(reply_action) => {
 
             return <>
-                <button disabled={replyWindowOpen() != null} on:click={() => {
-                    setReplyWindowOpen(reply_action);
+                <button disabled={props.replyWindowOpen[0]() != null} on:click={() => {
+                    props.replyWindowOpen[1](reply_action);
                 }}>{reply_action.text}</button>
             </>;
         }}</ShowCond>
@@ -247,16 +250,7 @@ function PostActions(props: ClientPostProps): JSX.Element {
                 <Action action={item} />
             </>}</For>
         </>}</ShowCond>
-    </span><ShowCond when={replyWindowOpen()}>{reply_editor => (
-        <ReplyEditor
-            action={reply_editor} 
-            onCancel={() => setReplyWindowOpen(null)}
-            onAddReply={() => {
-                setReplyWindowOpen(null);
-                // TODO show the reply in the tree
-            }}
-        />
-    )}</ShowCond></>;
+    </span></>;
 }
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
@@ -278,6 +272,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const hasThumbnail = () => {
         return !!props.content.thumbnail;
     };
+    const [replyWindowOpen, setReplyWindowOpen] = createSignal<Generic.ReplyAction | null>(null);
 
     const settings = getSettings();
 
@@ -386,7 +381,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </>}</ShowCond>
                     </div>
                     <ShowBool when={hasThumbnail()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
-                        <PostActions content={props.content} opts={props.opts} />
+                        <PostActions
+                            content={props.content}
+                            opts={props.opts}
+                            replyWindowOpen={[replyWindowOpen, setReplyWindowOpen]}
+                        />
                     </div></ShowBool>
                 </div>
             </div>
@@ -409,8 +408,22 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     </ShowBool>
                 </div>
                 <ShowBool when={!hasThumbnail()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
-                    <PostActions content={props.content} opts={props.opts} />
+                    <PostActions
+                        content={props.content}
+                        opts={props.opts}
+                        replyWindowOpen={[replyWindowOpen, setReplyWindowOpen]}
+                    />
                 </div></ShowBool>
+                <ShowCond when={replyWindowOpen()}>{reply_editor => (
+                    <ReplyEditor
+                        action={reply_editor} 
+                        onCancel={() => setReplyWindowOpen(null)}
+                        onAddReply={() => {
+                            setReplyWindowOpen(null);
+                            // TODO show the reply in the tree
+                        }}
+                    />
+                )}</ShowCond>
                 <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
                     <ShowCond when={props.opts.replies}>{replies => <ShowBool
                         when={props.content.show_replies_when_below_pivot !== false}
@@ -444,6 +457,7 @@ export function ReplyEditor(props: {
 }): JSX.Element {
     const client = getClient();
     const [content, setContent] = createSignal("");
+    const empty = () => content().trim() === "";
 
     const [isSending, setSending] = createSignal(false);
     const [sendError, setSendError] = createSignal<string | undefined>(undefined);
@@ -463,18 +477,22 @@ export function ReplyEditor(props: {
             setContent(e.currentTarget.value);
         }} />
         <div class="flex space-x-1">
-            <button disabled={isSending()} class={link_styles_v["pill-filled"]} on:click={(e) => {
-                setSending(true);
+            <button
+                disabled={empty() || isSending()}
+                class={link_styles_v[empty() ? "pill-empty" : "pill-filled"]}
+                onClick={(e) => {
+                    setSending(true);
 
-                client().sendReply!(content(), props.action.reply_info).then((r) => {
-                    console.log("Got response", r);
-                    props.onAddReply(r);
-                }).catch((error) => {
-                    const err = error as Error;
-                    console.log("Got error", err);
-                    setSendError(err.stack ?? err.toString() ?? "Unknown error");
-                });
-            }}>{isSending() ? "…" : "Reply"}</button>
+                    client().sendReply!(content(), props.action.reply_info).then((r) => {
+                        console.log("Got response", r);
+                        props.onAddReply(r);
+                    }).catch((error) => {
+                        const err = error as Error;
+                        console.log("Got error", err);
+                        setSendError(err.stack ?? err.toString() ?? "Unknown error");
+                    });
+                }}
+            >{isSending() ? "…" : "Reply"}</button>
             <button disabled={isSending()} class={link_styles_v["pill-empty"]} on:click={(e) => {
                 console.log("Cancel button clicked");
 
@@ -488,7 +506,7 @@ export function ReplyEditor(props: {
             <pre class="error"><code>There was an error! {errv}</code></pre>
             <button on:click={() => setSendError(undefined)}>Hide error</button>
         </>}</ShowCond>
-        <ShowCond when={diffable.value}>{value => {
+        <ShowCond if={[!empty()]} when={diffable.value}>{value => {
             console.log("Value changed", value);
             return <div
                 class="bg-body rounded-xl max-w-xl object-wrapper shadow-none"
@@ -564,6 +582,7 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
 
 export type ClientPageProps = {page: Generic.Page2};
 export function ClientPage(props: ClientPageProps): JSX.Element {
+    const [showReplyEditor, setShowReplyEditor] = createSignal(false);
     // TODO set page title
     // using a store or something
 
@@ -582,7 +601,24 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
     // it should be index for replies right? actually should be for jk
     return <WrapParent node={props.page.pivot.ref!} is_pivot={true}>
         <ShowCond when={props.page.pivot.ref!.replies}>{replies => <>
-            <hr class="my-2 border-t-2 mb-8" style={{'border-top-color': "var(--collapse-line-color)"}} />
+            <hr class="my-2 border-t-2" style={{'border-top-color': "var(--collapse-line-color)"}} />
+            <ShowCond when={replies.reply}>{reply_action => (
+                <ShowAnimate when={showReplyEditor()} fallback={
+                    <div>
+                        <button
+                            class={link_styles_v["pill-empty"]} onClick={() => setShowReplyEditor(true)}
+                        >Write Reply</button>
+                    </div>
+                }>
+                    <ReplyEditor action={reply_action} onCancel={() => {
+                        setShowReplyEditor(false);
+                    }} onAddReply={() => {
+                        setShowReplyEditor(false);
+                        // TODO
+                    }} />
+                </ShowAnimate>
+            )}</ShowCond>
+            <div class="mb-6"></div>
             {/*TODO put the sorting options here*/null}
             <For each={replies.items} fallback={<div>*There are no replies*</div>}>{reply => (
                 <SwitchKind item={reply}>{{
