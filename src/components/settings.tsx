@@ -74,11 +74,12 @@ function SettingPicker<T extends string>(props: {
 
 export function SettingsPage(props: {_?: undefined}): JSX.Element {
     const [showDevSettings, setShowDevSettings] = createSignal(false);
+    const settings = getSettings();
 
     return <div class="client-wrapper"><div class="display-comments-view">
         <SettingsSection title="Color Scheme">
             <SettingPicker
-                setting={getSettings().color_scheme}
+                setting={settings.color_scheme}
                 options={["light", "dark", undefined]}
                 name={v => ({
                     light: "Light",
@@ -89,7 +90,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Profile Images">
             <SettingPicker
-                setting={getSettings().author_pfp}
+                setting={settings.author_pfp}
                 options={["on", "off", undefined]}
                 name={v => ({
                     on: "On",
@@ -141,7 +142,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Update Notices">
             <SettingPicker
-                setting={getSettings().update_notifications}
+                setting={settings.update_notifications}
                 options={["on", "off", undefined]}
                 name={v => ({
                     on: "On",
@@ -158,7 +159,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Link Helpers">
             <SettingPicker
-                setting={getSettings().link_helpers}
+                setting={settings.link_helpers}
                 options={["show", "hide", undefined]}
                 name={v => ({
                     show: "Show",
@@ -196,7 +197,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Custom Video Controls">
             <SettingPicker
-                setting={getSettings().custom_video_controls}
+                setting={settings.custom_video_controls}
                 options={["browser", "custom", undefined]}
                 name={v => ({
                     browser: "Browser",
@@ -259,9 +260,9 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 </ClientProvider>
             </TopLevelWrapper>
         </SettingsSection>
-        <SettingsSection title="Reduce Motion">
+        <SettingsSection title="Animations">
             <SettingPicker
-                setting={getSettings().motion}
+                setting={settings.motion}
                 options={["full", "reduce", undefined]}
                 name={v => ({
                     full: "All Motion",
@@ -269,6 +270,27 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "System Default",
                 } as const)[v ?? "default"]}
             />
+            <div><For each={[0, 0.1, 0.2, 3, undefined]}>{option => {
+                const setting = settings.animation_time;
+                const name = (v: number | undefined) => {
+                    if(v == null) return "Default";
+                    return "" + v + "s";
+                };
+                return <button
+                    class={menuButtonStyle(setting.compute.override() === option)}
+                    onclick={() => {
+                        setting.compute.setOverride(option);
+                    }}
+                >
+                    <ShowCond when={option}
+                        fallback={
+                            <>{name(undefined)} ({name(setting.compute.base())})</>
+                        }
+                    >{opt => <>
+                        {name(opt)}
+                    </>}</ShowCond>
+                </button>;
+            }}</For></div>
             <TopLevelWrapper restrict_w>
                 <ClientProvider client={{
                     id: "",
@@ -315,7 +337,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
             >
                 <h3 class="text-lg font-light text-gray-600">Page Version</h3>
                 <SettingPicker
-                    setting={getSettings().page_version}
+                    setting={settings.page_version}
                     options={["1", "2", undefined]}
                     name={v => ({
                         '1': "V1",
@@ -328,7 +350,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 </p>
                 <h3 class="text-lg font-light text-gray-600">Cors Proxy</h3>
                 <SettingPicker
-                    setting={getSettings().cors_proxy}
+                    setting={settings.cors_proxy}
                     options={["on", "off", undefined]}
                     name={v => ({
                         'on': "On",

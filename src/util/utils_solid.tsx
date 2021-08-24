@@ -138,11 +138,19 @@ export type Settings = {
     cors_proxy: ComputeProperty<CorsProxy>,
     gallery_display: ComputeProperty<GalleryDisplay>,
     motion: ComputeProperty<Motion>,
+    animation_time: ComputeProperty<number>,
 };
 
-function localStorageProperty<T extends string>(ls_key: string, accessBase: Accessor<T>): ComputeProperty<T> {
+type SerializerDeserializer<T> = {
+    serialize(v: T): string,
+    deserialize(v: string | undefined): T | undefined,
+};
+function localStorageProperty<
+    T, Serializer extends (T extends string ? Partial<SerializerDeserializer<T>> : SerializerDeserializer<T>),
+>(ls_key: string, accessBase: Accessor<T>, serializer: Serializer): ComputeProperty<T> {
     const getLocalStorageValue = (): T | undefined => {
-        return (localStorage.getItem(ls_key) ?? undefined) as T | undefined;
+        const lsv = localStorage.getItem(ls_key) ?? undefined;
+        return serializer.deserialize ? serializer.deserialize(lsv) : lsv as unknown as T;
     };
 
     const [override, internalSetOverride] = createSignal(getLocalStorageValue());
@@ -165,7 +173,11 @@ function localStorageProperty<T extends string>(ls_key: string, accessBase: Acce
                 if(value == null) {
                     localStorage.removeItem(ls_key);
                 }else{
-                    localStorage.setItem(ls_key, value);
+                    localStorage.setItem(ls_key,
+                        serializer.serialize
+                        ? serializer.serialize(value)
+                        : value as unknown as string,
+                    );
                 }
                 onStorageUpdate();
             },
@@ -193,17 +205,21 @@ const global_settings = createRoot((): Settings => {
     const res: Settings = {
         color_scheme: localStorageProperty("color-scheme",
             signalFromMatchMedia("(prefers-color-scheme: dark)", "dark", "light"),
-        ),
-        author_pfp: localStorageProperty("pfp-cfg", () => "on"),
-        update_notifications: localStorageProperty("update_notices", () => "on"),
-        custom_video_controls: localStorageProperty("custom_video_controls", () => "browser"),
-        page_version: localStorageProperty("page_version", () => "1"),
-        link_helpers: localStorageProperty("link_helpers", () => "show"),
-        cors_proxy: localStorageProperty("cors_proxy", () => "off"),
-        gallery_display: localStorageProperty("gallery_display", () => "fullscreen"),
+        {}),
+        author_pfp: localStorageProperty("pfp-cfg", () => "on", {}),
+        update_notifications: localStorageProperty("update_notices", () => "on", {}),
+        custom_video_controls: localStorageProperty("custom_video_controls", () => "browser", {}),
+        page_version: localStorageProperty("page_version", () => "1", {}),
+        link_helpers: localStorageProperty("link_helpers", () => "show", {}),
+        cors_proxy: localStorageProperty("cors_proxy", () => "off", {}),
+        gallery_display: localStorageProperty("gallery_display", () => "fullscreen", {}),
         motion: localStorageProperty("motion",
             signalFromMatchMedia("(prefers-reduced-motion: reduce)", "reduce", "full"),
-        ), // can do a hacky * {transition-duration: 0s !important} if I want to
+        {}), // can do a hacky * {transition-duration: 0s !important} if I want to
+        animation_time: localStorageProperty("animation_time", () => 0.2, {
+            serialize: (value) => JSON.stringify(value),
+            deserialize: (str) => str != null && str !== "" ? JSON.parse(str) as number : undefined,
+        }),
     };
 
     createEffect(() => {

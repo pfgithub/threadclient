@@ -1,6 +1,6 @@
 import {
     Accessor,
-    createEffect, createSignal, JSX, on
+    createEffect, createSignal, JSX, on, untrack
 } from "solid-js";
 import { navbar } from "../app";
 import { getSettings, Settings, ShowBool } from "../util/utils_solid";
@@ -32,7 +32,7 @@ export function animateHeight(
         }
 
         const target = transitionTarget();
-        if(settings.motion.value() === "reduce") {
+        if(settings.motion.value() === "reduce" || settings.animation_time.value() === 0) {
             setState(target, false, false);
             return;
         }
@@ -67,7 +67,7 @@ export function animateHeight(
         if(animating() != null) {
             comment_root.style.height = animating() + "px";
             comment_root.style.overflow = "hidden";
-            comment_root.style.transition = "0.2s height";
+            comment_root.style.transition = untrack(() => settings.animation_time.value()) + "s height";
         }else{
             comment_root.style.removeProperty("height");
             comment_root.style.removeProperty("overflow");
