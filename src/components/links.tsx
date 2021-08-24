@@ -3,7 +3,7 @@ import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsaf
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import type * as Generic from "../types/generic";
 import { getClient, ShowCond, SwitchKind } from "../util/utils_solid";
-import { ShowAnimate } from "./author_pfp";
+import { ShowAnimate } from "./animation";
 import { Body } from "./body";
 export * from "../util/interop_solid";
 

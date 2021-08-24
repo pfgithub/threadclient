@@ -1,9 +1,10 @@
 import {
     Accessor, createContext, createEffect, createMemo,
     createRoot,
-    createSignal, JSX, onCleanup, untrack, useContext,
+    createSignal, ErrorBoundary, JSX, onCleanup, untrack, useContext,
 } from "solid-js";
 import { render } from "solid-js/web";
+import { link_styles_v } from "../app";
 import type { ThreadClient } from "../clients/base";
 
 export type Include<T, U> = T extends U ? T : never;
@@ -237,4 +238,81 @@ export function Icon(props: {
             <i class={props.icon.class + " " + props.size} aria-label={props.icon.label} />
         </div>
     </div>;
+}
+
+export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JSX.Element {
+    const [showContent, setShowContent] = createSignal(true);
+    return <ErrorBoundary fallback={(err: unknown, reset) => {
+        console.log(err);
+        return <div>
+            <pre><code textContent={err instanceof Error ? (
+                err.toString() + "\n\n" + err.stack ?? "*no stack*"
+            ) : "Something went wrong"} /></pre>
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => console.log(err, props.data)}
+            >Code</button>{" / "}
+            <button
+                class={link_styles_v["outlined-button"]}
+                on:click={() => {
+                    setShowContent(false);
+                    setTimeout(() => setShowContent(true), 200);
+                    reset();
+                }}
+            >Retry</button>
+        </div>;
+    }}>
+        <ShowBool when={showContent()} fallback={
+            <>Retrying...</>
+        }>
+            {props.children}
+        </ShowBool>
+    </ErrorBoundary>;
+}
+
+function s(number: number, text: string) {
+    if(!text.endsWith("s")) throw new Error("!s");
+    if(number === 1) return number + text.substring(0, text.length - 1);
+    return number + text;
+}
+
+// TODO replace this with a proper thing that can calculate actual "months ago" values
+// returns [time_string, time_until_update]
+export function timeAgoText(start_ms: number, now: number): [string, number] {
+    const ms = now - start_ms;
+    if(ms < 0) return ["in the future "+new Date(start_ms).toISOString(), -ms];
+    if(ms < 60 * 1000) return ["just now", 60 * 1000 - ms];
+
+    let step = 60 * 1000;
+    let next_step = 60;
+    if(ms < next_step * step) {
+        const minutes = ms / step |0;
+        return [s(minutes, " minutes")+" ago", step - (ms - minutes * step)];
+    }
+    step *= next_step;
+    next_step = 24;
+    if(ms < next_step * step) {
+        const hours = ms / step |0;
+        return [s(hours, " hours")+" ago", step - (ms - hours * step)];
+    }
+    step *= next_step;
+    next_step = 30;
+    if(ms < next_step * step) {
+        const days = ms / step |0;
+        return [s(days, " days")+" ago", step - (ms - days * step)];
+    }
+    return [new Date(start_ms).toISOString(), -1];
+}
+
+export function TimeAgo(props: {start: number}): JSX.Element {
+    const [now, setNow] = createSignal(Date.now());
+    const label = createMemo(() => {
+        const res_text = timeAgoText(props.start, now());
+        if(res_text[1] > 0) {
+            const timeout = setTimeout(() => setNow(Date.now()), Math.min(res_text[1] + 10, 0x7fffffff));
+            onCleanup(() => clearTimeout(timeout));
+        }
+        return res_text[0];
+    });
+    return <span title={"" + new Date(props.start)}>{label}</span>;
 }

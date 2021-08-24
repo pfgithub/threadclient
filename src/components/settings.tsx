@@ -1,10 +1,11 @@
 import { createSignal, For, JSX } from "solid-js";
 import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
 import { ClientProvider, ComputeProperty, getSettings, ShowBool, ShowCond } from "../util/utils_solid";
-import { ClientContent, ShowAnimate, TopLevelWrapper } from "./author_pfp";
+import { ClientContent, TopLevelWrapper } from "./page2";
 import { variables } from "virtual:_variables";
 import { RichtextParagraphs } from "./richtext";
 import { rt } from "../types/generic";
+import { ShowAnimate } from "./animation";
 export * from "../util/interop_solid";
 
 function SettingsSection(props: {title: string, children?: JSX.Element}): JSX.Element {

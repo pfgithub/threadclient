@@ -5,9 +5,10 @@ import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, getClient, getSettings, Icon, ShowBool,
-    ShowCond, switchKind, SwitchKind, ToggleColor,
+    ShowCond, switchKind, SwitchKind, TimeAgo, ToggleColor,
 } from "../util/utils_solid";
-import { animateHeight, Flair, TimeAgo } from "./author_pfp";
+import { animateHeight } from "./animation";
+import { Flair } from "./page2";
 import { Body } from "./body";
 import { A, LinkButton, PreviewableLink, UserLink } from "./links";
 export * from "../util/interop_solid";

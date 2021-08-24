@@ -1,6 +1,5 @@
 import type { ThreadClient } from "./clients/base";
 import { OEmbed, oembed } from "./clients/oembed";
-import { Flair, ReplyEditor, TimeAgo } from "./components/author_pfp";
 import { Body, ImageGallery } from "./components/body";
 import { Homepage } from "./components/homepage";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
@@ -8,11 +7,13 @@ import type * as Generic from "./types/generic";
 import { rt } from "./types/generic";
 import { escapeHTML } from "./util";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { getSettings } from "./util/utils_solid";
+import { getSettings, TimeAgo } from "./util/utils_solid";
 import { variables } from "virtual:_variables";
 import { render } from "solid-js/web";
 import { registerSW } from "virtual:pwa-register";
 import { createSignal } from "solid-js";
+import { Flair } from "./components/page2";
+import { ReplyEditor } from "./components/reply";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -435,40 +436,6 @@ export function renderFlair(flairs: Generic.Flair[]): Node {
     const span = el("span");
     render(() => <Flair flairs={flairs} />, span);
     return span;
-}
-
-function s(number: number, text: string) {
-    if(!text.endsWith("s")) throw new Error("!s");
-    if(number === 1) return number + text.substring(0, text.length - 1);
-    return number + text;
-}
-
-// TODO replace this with a proper thing that can calculate actual "months ago" values
-// returns [time_string, time_until_update]
-export function timeAgoText(start_ms: number, now: number): [string, number] {
-    const ms = now - start_ms;
-    if(ms < 0) return ["in the future "+new Date(start_ms).toISOString(), -ms];
-    if(ms < 60 * 1000) return ["just now", 60 * 1000 - ms];
-
-    let step = 60 * 1000;
-    let next_step = 60;
-    if(ms < next_step * step) {
-        const minutes = ms / step |0;
-        return [s(minutes, " minutes")+" ago", step - (ms - minutes * step)];
-    }
-    step *= next_step;
-    next_step = 24;
-    if(ms < next_step * step) {
-        const hours = ms / step |0;
-        return [s(hours, " hours")+" ago", step - (ms - hours * step)];
-    }
-    step *= next_step;
-    next_step = 30;
-    if(ms < next_step * step) {
-        const days = ms / step |0;
-        return [s(days, " days")+" ago", step - (ms - days * step)];
-    }
-    return [new Date(start_ms).toISOString(), -1];
 }
 
 export function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
@@ -2864,7 +2831,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             }
             title.setTitle(p2title);
 
-            const {ClientPage} = await import("./components/author_pfp");
+            const {ClientPage} = await import("./components/page2");
             loader_area.remove();
 
             frame.classList.remove("client-main-frame");

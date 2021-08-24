@@ -14,8 +14,11 @@ import {
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { classes, getClient, getIsVisible, getSettings, ShowCond, SwitchKind, ToggleColor } from "../util/utils_solid";
-import { ClientContent, DefaultErrorBoundary, TopLevelWrapper } from "./author_pfp";
+import {
+    classes, DefaultErrorBoundary, getClient, getIsVisible,
+    getSettings, ShowCond, SwitchKind, ToggleColor,
+} from "../util/utils_solid";
+import { ClientContent, TopLevelWrapper } from "./page2";
 import { LinkButton } from "./links";
 import { RichtextParagraphs } from "./richtext";
 export * from "../util/interop_solid";

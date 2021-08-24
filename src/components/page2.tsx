@@ -1,22 +1,19 @@
+import { createMemo, createSignal, For, JSX, untrack } from "solid-js";
 import {
-    Accessor,
-    createEffect, createMemo, createSignal, ErrorBoundary,
-    For, JSX, on, onCleanup, Setter, untrack
-} from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
-import {
-    bioRender, clientContent, link_styles_v, navbar, renderAction, timeAgoText
+    bioRender, clientContent, link_styles_v
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, getClient, getSettings, HideshowProvider,
-    kindIs, Settings, ShowBool, ShowCond, SwitchKind, ToggleColor,
+    classes, DefaultErrorBoundary, getSettings, HideshowProvider,
+    kindIs, ShowBool, ShowCond, SwitchKind, TimeAgo, ToggleColor
 } from "../util/utils_solid";
+import { PostActions } from "./action";
+import { animateHeight, ShowAnimate } from "./animation";
 import { Body } from "./body";
-import { Counter, CounterCount } from "./counter";
+import { CounterCount } from "./counter";
 import { A, LinkButton, UserLink } from "./links";
-export * from "../util/interop_solid";
+import { ReplyEditor } from "./reply";
 
 export type ClientPostOpts = {
     clickable: boolean,
@@ -35,19 +32,6 @@ export function AuthorPfp(props: {src_url: string}): JSX.Element {
         alt={decorative_alt}
         class="w-8 h-8 object-center inline-block rounded-full"
     />;
-}
-
-export function TimeAgo(props: {start: number}): JSX.Element {
-    const [now, setNow] = createSignal(Date.now());
-    const label = createMemo(() => {
-        const res_text = timeAgoText(props.start, now());
-        if(res_text[1] > 0) {
-            const timeout = setTimeout(() => setNow(Date.now()), res_text[1] + 10);
-            onCleanup(() => clearTimeout(timeout));
-        }
-        return res_text[0];
-    });
-    return <span title={"" + new Date(props.start)}>{label}</span>;
 }
 
 export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
@@ -122,135 +106,6 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
             <ClientPostReply reply={isThreaded()![0]!} is_threaded={true} />
         }</ShowBool>
     </>;
-}
-
-export function animateHeight(
-    comment_root: HTMLElement,
-    settings: Settings,
-    transitionTarget: Accessor<boolean>,
-    setState: (state: boolean, rising: boolean, temporary: boolean) => void,
-): void {
-    const [animating, setAnimating] = createSignal<number | null>(null);
-    comment_root.addEventListener("transitionend", () => {
-        setAnimating(null);
-        setState(transitionTarget(), false, false);
-    });
-    createEffect(on([transitionTarget], () => {
-
-        const initial_size = comment_root.getBoundingClientRect();
-        const navbar_size = navbar.getBoundingClientRect();
-        const navbar_y = 5 + navbar_size.bottom;
-
-        let scroll_offset = 0;
-        if(initial_size.top < navbar_y && initial_size.bottom > navbar_y) {
-            const start_scroll = document.documentElement.scrollTop;
-            comment_root.scrollIntoView();
-            document.documentElement.scrollTop -= navbar_y;
-            const end_scroll = document.documentElement.scrollTop;
-            scroll_offset = start_scroll - end_scroll;
-        }
-
-        const target = transitionTarget();
-        if(settings.motion.value() === "reduce") {
-            setState(target, false, false);
-            return;
-        }
-
-        const window_height = window.innerHeight;
-        const initial_height = Math.min(initial_size.bottom, window_height) - initial_size.top - scroll_offset;
-
-        setAnimating(null);
-        setState(target, false, true);
-
-        requestAnimationFrame(() => {
-            const final_size = comment_root.getBoundingClientRect();
-            const final_height = Math.min(final_size.bottom, window_height) - final_size.top;
-
-            if(final_height === initial_height) {
-                setState(target, false, false);
-                return;
-            }
-
-            setState(target, true, true);
-
-            setAnimating(initial_height);
-            comment_root.scrollTop = scroll_offset;
-            requestAnimationFrame(() => {
-                comment_root.scrollTop = scroll_offset;
-
-                setAnimating(final_height);
-            });
-        });
-    }, {defer: true}));
-    createEffect(() => {
-        if(animating() != null) {
-            comment_root.style.height = animating() + "px";
-            comment_root.style.overflow = "hidden";
-            comment_root.style.transition = "0.2s height";
-        }else{
-            comment_root.style.removeProperty("height");
-            comment_root.style.removeProperty("overflow");
-            comment_root.style.removeProperty("transition");
-        }
-    });
-}
-
-// if={[condition]} when={[condition]}
-export function ShowAnimate(props: {when: boolean, fallback?: JSX.Element, children: JSX.Element}): JSX.Element {
-    const settings = getSettings();
-    const [show, setShow] = createSignal({main: props.when, animating: false});
-    return <div ref={v => {
-        animateHeight(v, settings, () => props.when, (state, rising, temporary) => {
-            setShow({main: state || rising, animating: temporary});
-        });
-        createEffect(() => {
-            v.style.display = show().main || (props.fallback != null) ? "block" : "none";
-            console.log(v.style.display);
-        });
-    }}>
-        <ShowBool when={show().main || show().animating}>
-            <div class={show().animating && !show().main ? "hidden" : ""}>
-                {props.children}
-            </div>
-        </ShowBool>
-        <ShowBool when={!show().main || show().animating}>
-            <div class={show().animating && show().main ? "hidden" : ""}>
-                {props.fallback}
-            </div>
-        </ShowBool>
-    </div>;
-}
-
-function PostActions(props: ClientPostProps & {
-    replyWindowOpen: [Accessor<Generic.ReplyAction | null>, Setter<Generic.ReplyAction | null>],
-}): JSX.Element {
-    return <><span class="flex flex-wrap gap-2">
-        <button on:click={() => {
-            console.log(props.content, props.opts);
-        }}>Code</button>
-        <ShowCond when={props.content.actions?.vote}>{vote => (
-            <Counter counter={vote} />
-        )}</ShowCond>
-        <ShowCond when={props.opts.frame?.url}>{url => (
-            <LinkButton href={url} style="action-button">View</LinkButton>
-        )}</ShowCond>
-        <ShowCond
-            if={[props.content.show_replies_when_below_pivot]}
-            when={props.opts.replies?.reply}
-        >{(reply_action) => {
-
-            return <>
-                <button disabled={props.replyWindowOpen[0]() != null} on:click={() => {
-                    props.replyWindowOpen[1](reply_action);
-                }}>{reply_action.text}</button>
-            </>;
-        }}</ShowCond>
-        <ShowCond when={props.content.actions?.other}>{other_actions => <>
-            <For each={other_actions}>{(item, i) => <>
-                <Action action={item} />
-            </>}</For>
-        </>}</ShowCond>
-    </span></>;
 }
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
@@ -441,117 +296,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     </div>;
 }
 
-export function Action(props: {action: Generic.Action}): JSX.Element {
-    return <SolidToVanillaBoundary getValue={(hsc, client) => {
-        const span = el("span");
-        renderAction(client(), props.action, span, {value_for_code_btn: 0}).defer(hsc);
-        return span;
-    }} />;
-}
-
-type StoreTypeValue = {value: null | Generic.PostContent};
-export function ReplyEditor(props: {
-    action: Generic.ReplyAction,
-    onCancel: () => void,
-    onAddReply: (response: Generic.Node) => void,
-}): JSX.Element {
-    const client = getClient();
-    const [content, setContent] = createSignal("");
-    const empty = () => content().trim() === "";
-
-    const [isSending, setSending] = createSignal(false);
-    const [sendError, setSendError] = createSignal<string | undefined>(undefined);
-
-    const [diffable, setDiffable] = createStore<StoreTypeValue>({value: null});
-    createEffect(() => {
-        const resv: Generic.PostContent = client().previewReply!(content(), props.action.reply_info);
-        setDiffable(reconcile<StoreTypeValue>({value: resv}, {merge: true}));
-        // this does well but unfortunately it doesn't know what to use as keys for lists and it can't really know
-        // because it's text → (opaque parser) → richtext
-        // there's no way to set a custom key function so idk how to do a heuristic for this. a heuristic would be
-        // matching links or stateful components idk
-    });
-
-    return <div>
-        <textarea disabled={isSending()} class="border my-3 w-full resize-y" value={content()} onInput={(e) => {
-            setContent(e.currentTarget.value);
-        }} />
-        <div class="flex space-x-1">
-            <button
-                disabled={empty() || isSending()}
-                class={link_styles_v[empty() ? "pill-empty" : "pill-filled"]}
-                onClick={(e) => {
-                    setSending(true);
-
-                    client().sendReply!(content(), props.action.reply_info).then((r) => {
-                        console.log("Got response", r);
-                        props.onAddReply(r);
-                    }).catch((error) => {
-                        const err = error as Error;
-                        console.log("Got error", err);
-                        setSendError(err.stack ?? err.toString() ?? "Unknown error");
-                    });
-                }}
-            >{isSending() ? "…" : "Reply"}</button>
-            <button disabled={isSending()} class={link_styles_v["pill-empty"]} on:click={(e) => {
-                console.log("Cancel button clicked");
-
-                if(content()) {
-                    if(!confirm("delete draft?")) return;
-                }
-                props.onCancel();
-            }}>Cancel<div /></button>
-        </div>
-        <ShowCond when={sendError()}>{errv => <>
-            <pre class="error"><code>There was an error! {errv}</code></pre>
-            <button on:click={() => setSendError(undefined)}>Hide error</button>
-        </>}</ShowCond>
-        <ShowCond if={[!empty()]} when={diffable.value}>{value => {
-            console.log("Value changed", value);
-            return <TopLevelWrapper restrict_w>
-                <ClientContent listing={value} opts={{
-                    clickable: false,
-                    replies: null,
-                    at_or_above_pivot: true,
-                    is_pivot: true,
-                    top_level: true,
-                    frame: null,
-                }}/>
-            </TopLevelWrapper>;
-        }}</ShowCond>
-    </div>;
-}
-
-export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JSX.Element {
-    const [showContent, setShowContent] = createSignal(true);
-    return <ErrorBoundary fallback={(err: unknown, reset) => {
-        console.log(err);
-        return <div>
-            <pre><code textContent={err instanceof Error ? (
-                err.toString() + "\n\n" + err.stack ?? "*no stack*"
-            ) : "Something went wrong"} /></pre>
-            <button
-                class={link_styles_v["outlined-button"]}
-                on:click={() => console.log(err, props.data)}
-            >Code</button>{" / "}
-            <button
-                class={link_styles_v["outlined-button"]}
-                on:click={() => {
-                    setShowContent(false);
-                    setTimeout(() => setShowContent(true), 200);
-                    reset();
-                }}
-            >Retry</button>
-        </div>;
-    }}>
-        <ShowBool when={showContent()} fallback={
-            <>Retrying...</>
-        }>
-            {props.children}
-        </ShowBool>
-    </ErrorBoundary>;
-}
-
 export type ClientContentProps = {listing: Generic.PostContent, opts: ClientPostOpts};
 export function ClientContent(props: ClientContentProps): JSX.Element {
     const todosupport = (thing: unknown) => <>
@@ -703,8 +447,3 @@ function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_
         }} />
     </>;
 }
-
-// solidToVanillaBoundary needs to uuh
-// idk do something but it needs to link hideshow and cleanup and return the threadclient or something
-
-// TODO export const render() should return a HSC and provide <HideshowProvider> and <ClientProvider> to the content nodes
