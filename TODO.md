@@ -23,10 +23,10 @@ reddit post page2:
 -   [x] time ago
 -   [ ] code button should give code of the selected post
 -   [ ] author flair should not inherit post award flair
--   [ ] post body should display below action bar. (possibly: two action bars? one for above and one for below body)
+-   [x] post body should display below action bar. (possibly: two action bars? one for above and one for below body)
 -   [x] posted in subreddit
 -   [ ] actions: comment count, domain, delete, save, duplicates, report
--   [ ] reply action, when at pivot
+-   [ ] reply action, when at pivot (because show replies when below pivot is false)
 -   [ ] click to focus
 
 reddit comment todo:

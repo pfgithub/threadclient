@@ -408,7 +408,7 @@ const sitemap: SitemapEntry[] = [
                                 kind: "post",
                                 title: {text: desc},
                                 body,
-                                collapsible: {default_collapsed: false},
+                                collapsible: {default_collapsed: true},
                                 show_replies_when_below_pivot: true,
                             },
                         }),

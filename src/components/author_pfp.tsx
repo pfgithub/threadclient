@@ -221,6 +221,41 @@ export function ShowAnimate(props: {when: boolean, fallback?: JSX.Element, child
     </div>;
 }
 
+function PostActions(props: ClientPostProps): JSX.Element {
+    return <>
+        <button on:click={() => {
+            console.log(props.content, props.opts);
+        }}>Code</button>
+        <ShowCond when={props.opts.frame?.url}>{url => (
+            <LinkButton href={url} style="action-button">View</LinkButton>
+        )}</ShowCond>
+        <ShowCond when={props.opts.replies?.reply}>{(reply_action) => {
+            const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
+
+            return <>
+                <button disabled={replyWindowOpen()} on:click={() => {
+                    setReplyWindowOpen(true);
+                }}>{reply_action.text}</button>
+                <ShowBool when={replyWindowOpen()}>
+                    <ReplyEditor
+                        action={reply_action} 
+                        onCancel={() => setReplyWindowOpen(false)}
+                        onAddReply={() => {
+                            setReplyWindowOpen(false);
+                            //
+                        }}
+                    />
+                </ShowBool>
+            </>;
+        }}</ShowCond>
+        <ShowCond when={props.content.actions && props.content.actions.other}>{other_actions => <>
+            <For each={other_actions}>{(item, i) => <>
+                <Action action={item} />
+            </>}</For>
+        </>}</ShowCond>
+    </>;
+}
+
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
     const [selfVisible, setSelfVisible] = createSignal(
@@ -236,6 +271,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     };
     const hasTitleOrThumbnail = () => {
         return !!props.content.thumbnail || !!props.content.title;
+    };
+    const hasThumbnail = () => {
+        return !!props.content.thumbnail;
     };
 
     const settings = getSettings();
@@ -274,77 +312,85 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <div class="collapse-btn-inner"></div>
             </button>
         </ShowBool>
-        <ShowCond when={props.content.thumbnail}>{thumb_any => (
-            <button class={classes(
-                "w-70px h-70px mr-4",
-                contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
-            )} onClick={() => setTransitionTarget(t => !t)}>
-                <SwitchKind item={thumb_any}>{{
-                    image: img => <img
-                        // TODO based on the img content, display eg a play button or something
-                        src={img.url}
-                        alt=""
-                        class={classes(
-                            "w-full h-full object-contain"
-                        )}
-                    />,
-                    default: def => <>TODO {def.kind}</>,
-                }}</SwitchKind>
-            </button>
-        )}</ShowCond>
         <div class="flex-1">
-            <div class={classes(
-                hasTitleOrThumbnail() ? "text-base" : "text-xs",
-            )}>
-                <ShowCond when={props.content.title}>{title => (
-                    <ShowCond when={props.opts.frame?.url} fallback={(
-                        title.text
-                    )}>{url => (
-                        <A href={url} class="hover:underline">{title.text}</A>
-                    )}</ShowCond>
+            <div class="flex flex-row">
+                <ShowCond when={props.content.thumbnail}>{thumb_any => (
+                    <button class={classes(
+                        "w-70px h-70px mr-4",
+                        contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
+                    )} onClick={() => setTransitionTarget(t => !t)}>
+                        <SwitchKind item={thumb_any}>{{
+                            image: img => <img
+                                // TODO based on the img content, display eg a play button or something
+                                src={img.url}
+                                alt=""
+                                class={classes(
+                                    "w-full h-full object-contain"
+                                )}
+                            />,
+                            default: def => <>TODO {def.kind}</>,
+                        }}</SwitchKind>
+                    </button>
                 )}</ShowCond>
-                <Flair flairs={props.content.flair ?? []} />
-            </div>
-            <div class={classes(
-                hasTitleOrThumbnail() ? "" : "text-xs",
-                selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
-            )}>
-                <ShowCond when={props.content.author}>{author => <>
-                    <ShowCond if={[
-                        selfVisible() && settings.author_pfp.value() === "on",
-                    ]} when={author.pfp} fallback={"By "}>{pfp => <>
-                        <AuthorPfp src_url={pfp.url} />{" "}
-                    </>}</ShowCond>
-                    <UserLink href={author.link} color_hash={author.color_hash}>
-                        {author.name}
-                    </UserLink>
-                    <ShowCond when={author.flair}>{flair => <>
-                        {" "}<Flair flairs={flair} />
-                    </>}</ShowCond>
-                </>}</ShowCond>
-                <ShowCond when={props.content.info?.in}>{in_sr => <>
-                    {" in "}<LinkButton href={in_sr.link} style="normal">{in_sr.name}</LinkButton>
-                </>}</ShowCond>
-                <ShowCond when={props.content.actions?.vote}>{vote_action => <>
-                    {" "}<CounterCount counter={vote_action} />
-                </>}</ShowCond>
-                <ShowCond when={props.content.info}>{content_info => <>
-                    <ShowCond when={content_info.creation_date}>{created => <>
-                        {" "}<TimeAgo start={created} />
-                    </>}</ShowCond>
-                    <ShowCond when={content_info.edited}>{edited => <>
-                        {", Edited"}<ShowCond when={edited.date}>{edited_date => <>
-                            {" "}<TimeAgo start={edited_date} />
+                <div class="flex-1">
+                    <div class={classes(
+                        hasTitleOrThumbnail() ? "text-base" : "text-xs",
+                    )}>
+                        <ShowCond when={props.content.title}>{title => (
+                            <ShowCond when={props.opts.frame?.url} fallback={(
+                                title.text
+                            )}>{url => (
+                                <A href={url} class="hover:underline">{title.text}</A>
+                            )}</ShowCond>
+                        )}</ShowCond>
+                        <Flair flairs={props.content.flair ?? []} />
+                    </div>
+                    <div class={classes(
+                        hasTitleOrThumbnail() ? "" : "text-xs",
+                        selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
+                    )}>
+                        <ShowCond when={props.content.author}>{author => <>
+                            <ShowCond if={[
+                                selfVisible() && settings.author_pfp.value() === "on",
+                            ]} when={author.pfp} fallback={"By "}>{pfp => <>
+                                <AuthorPfp src_url={pfp.url} />{" "}
+                            </>}</ShowCond>
+                            <UserLink href={author.link} color_hash={author.color_hash}>
+                                {author.name}
+                            </UserLink>
+                            <ShowCond when={author.flair}>{flair => <>
+                                {" "}<Flair flairs={flair} />
+                            </>}</ShowCond>
                         </>}</ShowCond>
-                    </>}</ShowCond>
-                    <ShowBool when={content_info.pinned ?? false}>{<>
-                        {", "}<span class="text-green-600 dark:text-green-500">Pinned</span>
-                    </>}</ShowBool>
-                </>}</ShowCond>
+                        <ShowCond when={props.content.info?.in}>{in_sr => <>
+                            {" in "}<LinkButton href={in_sr.link} style="normal">{in_sr.name}</LinkButton>
+                        </>}</ShowCond>
+                        <ShowCond when={props.content.actions?.vote}>{vote_action => <>
+                            {" "}<CounterCount counter={vote_action} />
+                        </>}</ShowCond>
+                        <ShowCond when={props.content.info}>{content_info => <>
+                            <ShowCond when={content_info.creation_date}>{created => <>
+                                {" "}<TimeAgo start={created} />
+                            </>}</ShowCond>
+                            <ShowCond when={content_info.edited}>{edited => <>
+                                {", Edited"}<ShowCond when={edited.date}>{edited_date => <>
+                                    {" "}<TimeAgo start={edited_date} />
+                                </>}</ShowCond>
+                            </>}</ShowCond>
+                            <ShowBool when={content_info.pinned ?? false}>{<>
+                                {", "}<span class="text-green-600 dark:text-green-500">Pinned</span>
+                            </>}</ShowBool>
+                        </>}</ShowCond>
+                    </div>
+                    <ShowBool when={hasThumbnail()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
+                        <PostActions content={props.content} opts={props.opts} />
+                    </div></ShowBool>
+                </div>
             </div>
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={transitionTarget}>
                 <div>
                     <ShowBool when={animState().visible || animState().animating}>
+                        <ShowBool when={selfVisible() && hasThumbnail()}><div class="mt-2"></div></ShowBool>
                         <ShowAnimate when={!contentWarning()} fallback={
                             <>
                                 Content Warning:{" "}
@@ -359,38 +405,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </ShowAnimate>
                     </ShowBool>
                 </div>
-                <div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
-                    <button on:click={() => {
-                        console.log(props.content, props.opts);
-                    }}>Code</button>
-                    <ShowCond when={props.opts.frame?.url}>{url => (
-                        <LinkButton href={url} style="action-button">View</LinkButton>
-                    )}</ShowCond>
-                    <ShowCond when={props.opts.replies?.reply}>{(reply_action) => {
-                        const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
-
-                        return <>
-                            <button disabled={replyWindowOpen()} on:click={() => {
-                                setReplyWindowOpen(true);
-                            }}>{reply_action.text}</button>
-                            <ShowBool when={replyWindowOpen()}>
-                                <ReplyEditor
-                                    action={reply_action} 
-                                    onCancel={() => setReplyWindowOpen(false)}
-                                    onAddReply={() => {
-                                        setReplyWindowOpen(false);
-                                        //
-                                    }}
-                                />
-                            </ShowBool>
-                        </>;
-                    }}</ShowCond>
-                    <ShowCond when={props.content.actions && props.content.actions.other}>{other_actions => <>
-                        <For each={other_actions}>{(item, i) => <>
-                            <Action action={item} />
-                        </>}</For>
-                    </>}</ShowCond>
-                </div>
+                <ShowBool when={!hasThumbnail()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
+                    <PostActions content={props.content} opts={props.opts} />
+                </div></ShowBool>
                 <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
                     <ShowCond when={props.opts.replies}>{replies => <ShowBool
                         when={props.content.show_replies_when_below_pivot !== false}
