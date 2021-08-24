@@ -291,6 +291,15 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     </>}</ShowCond>
                 </button>;
             }}</For></div>
+            <SettingPicker
+                setting={settings.animation_dev_mode}
+                options={["none", "shift_slow", undefined]}
+                name={v => ({
+                    none: "None",
+                    shift_slow: "Shift to Slow Animation",
+                    default: "Default",
+                } as const)[v ?? "default"]}
+            />
             <TopLevelWrapper restrict_w>
                 <ClientProvider client={{
                     id: "",

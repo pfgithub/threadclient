@@ -128,6 +128,7 @@ export type LinkHelpers = "show" | "hide";
 export type CorsProxy = "on" | "off";
 export type GalleryDisplay = "fullscreen" | "inline"; // if the gallery view prefers fullscreen when available
 export type Motion = "full" | "reduce";
+export type AnimationDevMode = "none" | "shift_slow";
 export type Settings = {
     color_scheme: ComputeProperty<ColorScheme>,
     author_pfp: ComputeProperty<AuthorPfp>,
@@ -139,6 +140,7 @@ export type Settings = {
     gallery_display: ComputeProperty<GalleryDisplay>,
     motion: ComputeProperty<Motion>,
     animation_time: ComputeProperty<number>,
+    animation_dev_mode: ComputeProperty<AnimationDevMode>,
 };
 
 type SerializerDeserializer<T> = {
@@ -220,6 +222,7 @@ const global_settings = createRoot((): Settings => {
             serialize: (value) => JSON.stringify(value),
             deserialize: (str) => str != null && str !== "" ? JSON.parse(str) as number : undefined,
         }),
+        animation_dev_mode: localStorageProperty("animation_dev_mode", () => "none", {}),
     };
 
     createEffect(() => {

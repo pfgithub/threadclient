@@ -5,6 +5,17 @@ import {
 import { navbar } from "../app";
 import { getSettings, Settings, ShowBool } from "../util/utils_solid";
 
+let shift_pressed = false;
+window.addEventListener("keydown", e => {
+    if(e.key === "Shift") shift_pressed = true;
+});
+window.addEventListener("keyup", e => {
+    if(e.key === "Shift") shift_pressed = false;
+});
+window.addEventListener("focus", e => {
+    shift_pressed = false;
+});
+
 export function animateHeight(
     comment_root: HTMLElement,
     settings: Settings,
@@ -67,7 +78,9 @@ export function animateHeight(
         if(animating() != null) {
             comment_root.style.height = animating() + "px";
             comment_root.style.overflow = "hidden";
-            comment_root.style.transition = untrack(() => settings.animation_time.value()) + "s height";
+            comment_root.style.transition = untrack(() => (
+                shift_pressed ? 3 : settings.animation_time.value()
+            )) + "s height";
         }else{
             comment_root.style.removeProperty("height");
             comment_root.style.removeProperty("overflow");
