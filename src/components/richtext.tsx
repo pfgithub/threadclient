@@ -3,7 +3,10 @@ import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Swi
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { classes, getClient, getSettings, Icon, ShowBool, ShowCond, switchKind, SwitchKind } from "../util/utils_solid";
+import {
+    classes, getClient, getSettings, Icon, ShowBool,
+    ShowCond, switchKind, SwitchKind, ToggleColor,
+} from "../util/utils_solid";
 import { animateHeight, Flair, TimeAgo } from "./author_pfp";
 import { Body } from "./body";
 import { A, LinkButton, PreviewableLink, UserLink } from "./links";
@@ -301,11 +304,11 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
         {open: false, temporary: false},
     );
     return <div class="my-2">
-        <A
+        <ToggleColor>{color => <A
             class={classes(
                 "p-2 px-4",
                 "block",
-                "bg-body rounded-xl",
+                color, "rounded-xl",
                 previewOpen().open ? "rounded-b-none" : "",
             )}
             href={props.link.url}
@@ -327,7 +330,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                     </div>
                 </div>
             </ShowBool>
-        </A>
+        </A>}</ToggleColor>
         <ShowCond when={linkPreview()}>{preview => <><div ref={v => animateHeight(
             v, settings, preview.visible, (state, rising, temporary) => {
                 setPreviewOpen({open: state || rising, temporary});
@@ -340,11 +343,11 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
             </ShowBool>
         </div><ShowBool when={previewOpen().open || previewOpen().temporary}>
             <div style={{display: previewOpen().open ? "block" : "none"}}>
-                <A
+                <ToggleColor>{color => <A
                     class={classes(
                         "p-2 px-4",
                         "block",
-                        "bg-body rounded-xl rounded-t-none",
+                        color, "rounded-xl rounded-t-none",
                     )}
                     href={props.link.url}
                 >
@@ -354,7 +357,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                         </ShowBool>
                         {human().link}
                     </div>
-                </A>
+                </A>}</ToggleColor>
             </div>
         </ShowBool></>}</ShowCond>
     </div>;

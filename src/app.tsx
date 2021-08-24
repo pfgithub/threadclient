@@ -427,7 +427,7 @@ export function canPreview(
 export function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
     const frame = el("div");
     const hsc = hideshow(frame);
-    vanillaToSolidBoundary(client, frame, ImageGallery, {images}).defer(hsc);
+    vanillaToSolidBoundary(client, frame, () => <ImageGallery images={images} />, {color_level: 1}).defer(hsc);
     return hsc;
 }
 
@@ -474,7 +474,12 @@ export function timeAgoText(start_ms: number, now: number): [string, number] {
 export function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
     const frame = el("span");
     const hsc = hideshow(frame);
-    vanillaToSolidBoundary(0 as unknown as ThreadClient, frame, TimeAgo, {start: start_ms}).defer(hsc);
+    vanillaToSolidBoundary(
+        0 as unknown as ThreadClient,
+        frame,
+        () => <TimeAgo start={start_ms} />,
+        {color_level: 1},
+    ).defer(hsc);
     return hsc;
 }
 
@@ -618,7 +623,12 @@ function renderBodyMayError(
     const hsc = hideshow(content);
 
     const frame = el("div").adto(content);
-    vanillaToSolidBoundary(client, frame, Body, {body: body, autoplay: opts.autoplay}).defer(hsc);
+    vanillaToSolidBoundary(
+        client,
+        frame,
+        () => <Body body={body} autoplay={opts.autoplay} />,
+        {color_level: 1},
+    ).defer(hsc);
 
     return hsc;
 }
@@ -1122,10 +1132,10 @@ function renderReplyAction(
                     const div = el("div").adto(content_buttons_line);
                     reply_container = hideshow(div);
 
-                    vanillaToSolidBoundary(client, div, ReplyEditor, {action, onCancel: () => {
+                    vanillaToSolidBoundary(client, div, () => <ReplyEditor action={action} onCancel={() => {
                         reply_state = "none";
                         update();
-                    }, onAddReply: (r: Generic.Node) => {
+                    }} onAddReply={(r: Generic.Node) => {
                         console.log("Got response", r);
                         reply_state = "none";
                         update();
@@ -1136,7 +1146,7 @@ function renderReplyAction(
                         clientContent(client, r, {clickable: false}).defer(hsc)
                             .adto(el("div").adto(content_buttons_line))
                         ;
-                    }}).defer(reply_container);
+                    }} />, {color_level: 1}).defer(reply_container);
                 }
             }
         };
@@ -2861,7 +2871,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             frame.classList.add(
                 "display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[page2.pivot.ref!.display_style]
             );
-            vanillaToSolidBoundary(client, frame, ClientPage, {page: page2}).defer(hsc);
+            vanillaToSolidBoundary(client, frame, () => <ClientPage page={page2} />, {color_level: 0}).defer(hsc);
             // renderClientPage2(client, page2, frame, title).defer(hsc);
         }else{
             const listing = await client.getThread(current_path);
@@ -2981,7 +2991,7 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
 
-    vanillaToSolidBoundary(0 as unknown as ThreadClient, res, Homepage, {}).defer(hsc);
+    vanillaToSolidBoundary(0 as unknown as ThreadClient, res, () => <Homepage />, {color_level: 0}).defer(hsc);
 
     return hsc;
 }
@@ -2990,7 +3000,7 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
     return fetchPromiseThen(import("./components/settings"), ({SettingsPage}) => {
         const res = el("div");
         const hsc = hideshow(res);
-        vanillaToSolidBoundary(0 as unknown as ThreadClient, res, SettingsPage, {}).defer(hsc);
+        vanillaToSolidBoundary(0 as unknown as ThreadClient, res, () => <SettingsPage />, {color_level: 0}).defer(hsc);
         return hsc;
     });
 }

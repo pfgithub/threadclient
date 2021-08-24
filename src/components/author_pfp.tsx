@@ -11,7 +11,7 @@ import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, getClient, getSettings, HideshowProvider,
-    kindIs, Settings, ShowBool, ShowCond, SwitchKind,
+    kindIs, Settings, ShowBool, ShowCond, SwitchKind, ToggleColor,
 } from "../util/utils_solid";
 import { Body } from "./body";
 import { Counter, CounterCount } from "./counter";
@@ -508,9 +508,7 @@ export function ReplyEditor(props: {
         </>}</ShowCond>
         <ShowCond if={[!empty()]} when={diffable.value}>{value => {
             console.log("Value changed", value);
-            return <div
-                class="bg-body rounded-xl max-w-xl object-wrapper shadow-none"
-            >
+            return <TopLevelWrapper restrict_w>
                 <ClientContent listing={value} opts={{
                     clickable: false,
                     replies: null,
@@ -519,7 +517,7 @@ export function ReplyEditor(props: {
                     top_level: true,
                     frame: null,
                 }}/>
-            </div>;
+            </TopLevelWrapper>;
         }}</ShowCond>
     </div>;
 }
@@ -643,8 +641,12 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
     </WrapParent>;
 }
 
-export function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
-    return <div class="top-level-wrapper object-wrapper bg-postcolor-100">{props.children}</div>;
+export function TopLevelWrapper(props: {children: JSX.Element, restrict_w?: boolean}): JSX.Element {
+    return <ToggleColor>{(color, i) => <div class={
+        (i === 0 ? "object-wrapper" : "p-10px mt-10px rounded-xl")
+        + " " + color
+        + " " + (props.restrict_w ?? false ? "max-w-xl" : "")
+    }>{props.children}</div>}</ToggleColor>;
 }
 
 // you know what'd be interesting?

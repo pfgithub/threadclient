@@ -38,6 +38,19 @@ export function SwitchKind<T extends {kind: string}>(props: {
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
+export const ColorDepthContext = createContext<{i: number}>();
+
+// !! TODO test in page1, make sure link previews work !!!!
+export function ToggleColor(props: {children: (color: string, i: number) => JSX.Element}): JSX.Element {
+    const parent_color = useContext(ColorDepthContext);
+    const this_color = parent_color?.i ?? 0;
+    const next_color = this_color + 1;
+    return <ColorDepthContext.Provider value={{i: next_color}}>
+        {props.children(this_color % 2 === 0 ? "bg-postcolor-100" : "bg-body", this_color)}
+    </ColorDepthContext.Provider>;
+}
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const ClientContext = createContext<{client: ThreadClient}>();
 export function ClientProvider(props: {client: ThreadClient, children: JSX.Element}): JSX.Element {
     return <ClientContext.Provider value={{client: props.client}}>{props.children}</ClientContext.Provider>;

@@ -14,8 +14,8 @@ import {
 } from "../app";
 import type * as Generic from "../types/generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { classes, getClient, getIsVisible, getSettings, ShowCond, SwitchKind } from "../util/utils_solid";
-import { ClientContent, DefaultErrorBoundary } from "./author_pfp";
+import { classes, getClient, getIsVisible, getSettings, ShowCond, SwitchKind, ToggleColor } from "../util/utils_solid";
+import { ClientContent, DefaultErrorBoundary, TopLevelWrapper } from "./author_pfp";
 import { LinkButton } from "./links";
 import { RichtextParagraphs } from "./richtext";
 export * from "../util/interop_solid";
@@ -117,7 +117,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 }}</SwitchKind>
             </div>;
         },
-        crosspost: xpost => <div class="bg-body rounded-xl max-w-xl">
+        crosspost: xpost => <TopLevelWrapper restrict_w>
             <ClientContent listing={{
                 kind: "legacy",
                 thread: xpost.source,
@@ -129,7 +129,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 is_pivot: false,
                 top_level: false,
             }} />
-        </div>,
+        </TopLevelWrapper>,
         richtext: richtext => <div>
             <RichtextParagraphs content={richtext.content} />
         </div>,
@@ -323,11 +323,12 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
     });
 
     return <div ref={div}><SwitchKind item={state}>{{
-        overview: overview => <>
+        overview: overview => <ToggleColor>{color => (
             <For each={props.images}>{(image, i) => (
                 <button 
                     class={classes(
-                        "m-1 inline-block bg-body rounded-md",
+                        "m-1 inline-block rounded-md",
+                        color,
                     )}
                     on:click={() => {
                         if(usesFullscreen()) {
@@ -384,7 +385,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                     />
                 </button>
             )}</For>
-        </>,
+        )}</ToggleColor>,
         image: sel => <>
             <button
                 class={link_styles_v["outlined-button"]}

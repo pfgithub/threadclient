@@ -96,7 +96,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "Default",
                 } as const)[v ?? "default"]}
             />
-            <div class="bg-body rounded-xl max-w-xl" style={{'padding': "10px", 'margin-top': "10px"}}>
+            <TopLevelWrapper restrict_w>
                 <ClientProvider client={{
                     id: "reddit",
                     getThread: () => {throw new Error("no")},
@@ -136,7 +136,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                         top_level: true,
                     }} />
                 </ClientProvider>
-            </div>
+            </TopLevelWrapper>
         </SettingsSection>
         <SettingsSection title="Update Notices">
             <SettingPicker
@@ -207,7 +207,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 Custom video controls are currently work in progress. Once
                 they are complete, they will be enabled by default.
             </p>
-            <div class="bg-body rounded-xl max-w-xl" style={{'padding': "10px", 'margin-top': "10px"}}>
+            <TopLevelWrapper restrict_w>
                 <ClientProvider client={{
                     id: "n/a",
                     getThread: () => {throw new Error("no")},
@@ -256,7 +256,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                         top_level: true,
                     }} />
                 </ClientProvider>
-            </div>
+            </TopLevelWrapper>
         </SettingsSection>
         <SettingsSection title="Reduce Motion">
             <SettingPicker
@@ -268,7 +268,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "System Default",
                 } as const)[v ?? "default"]}
             />
-            <div class="bg-body rounded-xl max-w-xl" style={{'padding': "10px", 'margin-top': "10px"}}>
+            <TopLevelWrapper restrict_w>
                 <ClientProvider client={{
                     id: "",
                     getThread: () => {throw new Error("no")},
@@ -299,7 +299,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                         top_level: true,
                     }} />
                 </ClientProvider>
-            </div>
+            </TopLevelWrapper>
         </SettingsSection>
         <SettingsSection title="Developer Options">
             <p class="my-2">

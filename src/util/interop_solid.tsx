@@ -1,11 +1,14 @@
 import { createEffect, createSignal, JSX, onCleanup } from "solid-js";
-import {HideshowProvider, ClientProvider, getClient, getIsVisible} from "./utils_solid";
+import {HideshowProvider, ClientProvider, getClient, getIsVisible, ColorDepthContext} from "./utils_solid";
 import { render } from "solid-js/web";
 import { hideshow, HideShowCleanup } from "../app";
 import type { ThreadClient } from "../clients/base";
 
-export function vanillaToSolidBoundary<U, T extends (props: U) => JSX.Element>(
-    client: ThreadClient, frame: HTMLElement, SolidNode: T, props: U,
+export function vanillaToSolidBoundary(
+    client: ThreadClient,
+    frame: HTMLElement,
+    solidNode: () => JSX.Element,
+    opts: {color_level: number},
 ): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
@@ -16,7 +19,9 @@ export function vanillaToSolidBoundary<U, T extends (props: U) => JSX.Element>(
 
         return <HideshowProvider visible={cvisible}>
             <ClientProvider client={client}>
-                <SolidNode {...props} />
+                <ColorDepthContext.Provider value={{i: opts.color_level}}>
+                    {solidNode()}
+                </ColorDepthContext.Provider>
             </ClientProvider>
         </HideshowProvider>;
     }, frame);
