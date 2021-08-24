@@ -347,7 +347,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     </div>
                     <div class={classes(
                         hasTitleOrThumbnail() ? "" : "text-xs",
-                        selfVisible() ? "" : "filter grayscale text-$collapsed-header-color italic",
+                        selfVisible() || hasThumbnail() ? "" : "filter grayscale text-$collapsed-header-color italic",
                     )}>
                         <ShowCond when={props.content.author}>{author => <>
                             <ShowCond if={[
