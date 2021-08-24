@@ -280,6 +280,8 @@ function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
             name: listing.subreddit_name_prefixed,
             link: "/"+listing.subreddit_name_prefixed,
         } : undefined, // don't show on comments
+
+        comments: listing_raw.kind === "t3" ? listing_raw.data.num_comments : undefined,
     };
 }
 
@@ -350,11 +352,11 @@ function postDataFromListingMayError(
                         ? undefined
                         : getPointsOn(listing)
                     ,
+                    code: getCodeButton(listing.body),
                     other: [
                         deleteButton(listing.name),
                         saveButton(listing.name, listing.saved),
                         reportButton(listing.name, listing.subreddit),
-                        getCodeButton(listing.body),
                     ],
                 },
             },
@@ -397,6 +399,22 @@ function postDataFromListingMayError(
                 thumbnail: getPostThumbnail(listing, "open"),
                 info: getPostInfo(listing_raw),
                 show_replies_when_below_pivot: false,
+
+                actions: {
+                    vote: getPointsOn(listing),
+                    code: getCodeButton(listing.is_self ? listing.selftext : listing.url),
+                    other: [
+                        {
+                            kind: "link",
+                            url: "/domain/"+listing.domain,
+                            text: listing.domain,
+                        }, deleteButton(listing.name), saveButton(listing.name, listing.saved), {
+                            kind: "link",
+                            url: listing.permalink.replace("/comments/", "/duplicates/"),
+                            text: "Duplicates"
+                        }, reportButton(listing.name, listing.subreddit),
+                    ],
+                },
             },
             internal_data: entry.data,
             display_style: "centered",

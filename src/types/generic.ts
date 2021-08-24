@@ -123,6 +123,7 @@ export type PostInfo = {
     edited?: {date?: number}, // you can have an edited date w/out a creation date
     pinned?: boolean,
     in?: {name: string, link: string},
+    comments?: number,
 };
 export type PostContentPost = {
     /// the thing containing a post. generally post replies
@@ -154,6 +155,7 @@ export type PostContentPost = {
     // },
     actions?: {
         vote?: CounterAction, // puts the up and down arrow in the gutter and points/% voted in the info line. could do something similar but with a star for mastodon.
+        code?: CodeAction,
         // delete?: DeleteAction
         // save?: SaveAction
         // report?: ReportAction
@@ -700,7 +702,9 @@ export type Action = {
     kind: "flair",
     flair_list: Opaque<"flair_list">, // → FlairList
     current: Flair | null,
-} | {
+} | CodeAction;
+
+export type CodeAction = {
     kind: "code",
     body: Body,
 };

@@ -156,8 +156,7 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
                         quality: media.meta.original?.width + "×" + media.meta.original?.width,
                     }],
                 },
-                w: media.meta.original?.width,
-                h: media.meta.original?.height,
+                aspect: media.meta.original ? media.meta.original.width / media.meta.original.height : undefined,
                 gifv: media.type === "gifv"
             } : (
                 {kind: "link", url: media.url}

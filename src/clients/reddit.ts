@@ -131,8 +131,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Ga
                 ,
                 // unfortunately, other qualities only contain resized static images so additional
                 // qualities or a seekbar track cannot be provided.
-                w: media_meta.s.x,
-                h: media_meta.s.y,
+                aspect: media_meta.s.x / media_meta.s.y,
                 gifv: true,
                 caption: caption,
             },
@@ -147,8 +146,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Ga
             body: {
                 kind: "video",
                 source: getVredditSources(media_meta.id),
-                w: media_meta.x,
-                h: media_meta.y,
+                aspect: media_meta.x / media_meta.y,
                 gifv: media_meta.isGif ?? false,
                 caption: caption,
             },
@@ -2410,7 +2408,7 @@ const removal_reasons: {[key in Reddit.RemovedByCategory]: (raw_name: string, su
     }),
 };
 
-export function getCodeButton(markdown: string): Generic.Action {
+export function getCodeButton(markdown: string): Generic.CodeAction {
     return {kind: "code", body: {kind: "richtext", content: [
         rt.pre(markdown, "markdown"),
     ]}};
@@ -2596,7 +2594,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
                 pinned: listing.pinned || listing.stickied || false,
             },
-            actions: [
+            actions: ((): Generic.Action[] => [
                 replyButton(listing.name),
                 {
                     kind: "link",
@@ -2608,7 +2606,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 reportButton(listing.name, listing.subreddit),
                 ...parent_permalink.is_chat ? [] : [getPointsOn(listing)],
                 getCodeButton(listing.body),
-            ],
+            ])(),
             default_collapsed: listing.collapsed,
             replies: [
                 ...listing.locked ? [((): Generic.Thread => ({

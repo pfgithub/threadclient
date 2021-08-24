@@ -128,7 +128,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const hasThumbnail = () => {
         return !!props.content.thumbnail;
     };
-    const [replyWindowOpen, setReplyWindowOpen] = createSignal<Generic.ReplyAction | null>(null);
 
     const settings = getSettings();
     const client = getClient();
@@ -263,7 +262,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         <PostActions
                             content={props.content}
                             opts={props.opts}
-                            replyWindowOpen={[replyWindowOpen, setReplyWindowOpen]}
                         >
                             <div><button
                                 class={link_styles_v["outlined-button"]}
@@ -297,19 +295,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     <PostActions
                         content={props.content}
                         opts={props.opts}
-                        replyWindowOpen={[replyWindowOpen, setReplyWindowOpen]}
                     />
                 </div></ShowBool>
-                <ShowCond when={replyWindowOpen()}>{reply_editor => (
-                    <ReplyEditor
-                        action={reply_editor} 
-                        onCancel={() => setReplyWindowOpen(null)}
-                        onAddReply={() => {
-                            setReplyWindowOpen(null);
-                            // TODO show the reply in the tree
-                        }}
-                    />
-                )}</ShowCond>
                 <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
                     <ShowCond when={props.opts.replies}>{replies => <ShowBool
                         when={props.content.show_replies_when_below_pivot !== false}
