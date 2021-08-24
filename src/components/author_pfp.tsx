@@ -14,7 +14,7 @@ import {
     kindIs, Settings, ShowBool, ShowCond, SwitchKind,
 } from "../util/utils_solid";
 import { Body } from "./body";
-import { CounterCount } from "./counter";
+import { Counter, CounterCount } from "./counter";
 import { A, LinkButton, UserLink } from "./links";
 export * from "../util/interop_solid";
 
@@ -222,38 +222,41 @@ export function ShowAnimate(props: {when: boolean, fallback?: JSX.Element, child
 }
 
 function PostActions(props: ClientPostProps): JSX.Element {
-    return <>
+    const [replyWindowOpen, setReplyWindowOpen] = createSignal<Generic.ReplyAction | null>(null);
+
+    return <><span class="flex flex-wrap gap-2">
         <button on:click={() => {
             console.log(props.content, props.opts);
         }}>Code</button>
+        <ShowCond when={props.content.actions?.vote}>{vote => (
+            <Counter counter={vote} />
+        )}</ShowCond>
         <ShowCond when={props.opts.frame?.url}>{url => (
             <LinkButton href={url} style="action-button">View</LinkButton>
         )}</ShowCond>
         <ShowCond when={props.opts.replies?.reply}>{(reply_action) => {
-            const [replyWindowOpen, setReplyWindowOpen] = createSignal(false);
 
             return <>
-                <button disabled={replyWindowOpen()} on:click={() => {
-                    setReplyWindowOpen(true);
+                <button disabled={replyWindowOpen() != null} on:click={() => {
+                    setReplyWindowOpen(reply_action);
                 }}>{reply_action.text}</button>
-                <ShowBool when={replyWindowOpen()}>
-                    <ReplyEditor
-                        action={reply_action} 
-                        onCancel={() => setReplyWindowOpen(false)}
-                        onAddReply={() => {
-                            setReplyWindowOpen(false);
-                            //
-                        }}
-                    />
-                </ShowBool>
             </>;
         }}</ShowCond>
-        <ShowCond when={props.content.actions && props.content.actions.other}>{other_actions => <>
+        <ShowCond when={props.content.actions?.other}>{other_actions => <>
             <For each={other_actions}>{(item, i) => <>
                 <Action action={item} />
             </>}</For>
         </>}</ShowCond>
-    </>;
+    </span><ShowCond when={replyWindowOpen()}>{reply_editor => (
+        <ReplyEditor
+            action={reply_editor} 
+            onCancel={() => setReplyWindowOpen(null)}
+            onAddReply={() => {
+                setReplyWindowOpen(null);
+                // TODO show the reply in the tree
+            }}
+        />
+    )}</ShowCond></>;
 }
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
