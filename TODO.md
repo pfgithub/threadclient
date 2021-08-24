@@ -28,6 +28,7 @@ reddit post page2:
 -   [ ] actions: comment count, domain, delete, save, duplicates, report
 -   [ ] reply action, when at pivot (because show replies when below pivot is false)
 -   [ ] click to focus
+-   [ ] when a post has no body, it shouldn't collapse/uncollapse. eg r/askreddit.
 
 reddit comment todo:
 
