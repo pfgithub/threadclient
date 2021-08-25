@@ -26,6 +26,8 @@ page2 todo:
         -   use text-sm font size for titles
         -   use smaller thumbnails
         -   compress info bar and actions
+-   [ ] implement sort in a way that it doesn't require all comments to store their own sorts. ideally
+        when you click a comment to focus it, the sort from the pivot could be used.
 
 reddit post page2:
 

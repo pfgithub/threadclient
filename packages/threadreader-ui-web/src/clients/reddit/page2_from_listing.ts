@@ -5,7 +5,7 @@ import { assertNever } from "../../util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
-    getPostThumbnail, urlNotSupportedYet, getPostFlair
+    getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery
 } from "../reddit";
 
 export type ID = string;
@@ -331,8 +331,7 @@ function postDataFromListingMayError(
 
         return {
             kind: "post",
-            // url: updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}),
-            url: null, // TODO pass in sort
+            url: updateQuery(listing.permalink, {context: "3"}),
 
             parent: getPostData(map, listing.parent_id),
             replies,
