@@ -44,12 +44,19 @@ todo:
 
 - switch to a monorepo structure
 - packages/
-  - threadreader-web-ui/
-  - threadreader-client-reddit
-  - threadreader-client-test
-  - threadreader-client-hackernews
-  - threadreader-webextension
-  - eslint-plugin-custom-rules
+  - [x] api-types-reddit/
+  - [ ] api-types-mastodon/
+  - [ ] api-types-hacker/
+  - [x] threadreader-web-ui/
+  - [ ] threadreader-client-common/
+  - [ ] threadreader-client-reddit/
+  - [ ] threadreader-client-mastodon/
+  - [ ] threadreader-client-test/
+  - [ ] threadreader-client-hackernews/
+  - [ ] threadreader-webextension/
+  - [x] eslint-plugin-custom-rules/
+  - a config helper thing so you don't have to make a `lint` script in every package and add a `tsconfig.json` and
+    `.eslintrc.js` / or it does it automatically
 
 unrelated:
 
