@@ -405,6 +405,29 @@ html {
     left: var(--left-v);
     top: 10px;
 }
+
+.reddit-vote-button {
+    background-image: url("https://www.redditstatic.com/sprite-reddit.e1D0120k5y4.png");
+    background-repeat: no-repeat;
+    width: 15px;
+    height: 14px;
+    & > span {
+        display: none;
+    }
+}
+.reddit-upvote-button {
+    background-position: -106px -1654px;
+}
+.reddit-upvote-button.vote-icon-voted {
+    background-position: 0px -1676px;
+}
+.reddit-downvote-button {
+    background-position: -64px -1654px;
+}
+.reddit-downvote-button.vote-icon-voted {
+    background-position: -85px -1654px;
+}
+
 .post-voting > .counter {
     display: flex;
     flex-direction: column;

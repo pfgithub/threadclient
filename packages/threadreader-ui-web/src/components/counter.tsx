@@ -108,3 +108,43 @@ export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
         </ShowBool>
     </span>;
 }
+
+export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JSX.Element {
+    const [state, setState] = getCounterState(() => props.counter);
+    const client = getClient();
+
+    return <div class={"flex flex-col items-center gap-2px"}>
+        <button
+            class="reddit-vote-button reddit-upvote-button"
+            classList={{"vote-icon-voted": state().your_vote === "increment"}}
+            disabled={state().loading}
+            onclick={() => {
+                void actAuto(
+                    state().your_vote === "increment" ? undefined : "increment",
+                    client(),
+                    state(),
+                    setState,
+                    props.counter,
+                );
+            }}
+        >
+            <span>⯅ Vote</span>
+        </button>
+        <button
+            class="reddit-vote-button reddit-downvote-button"
+            classList={{"vote-icon-voted": state().your_vote === "decrement"}}
+            disabled={state().loading}
+            onclick={() => {
+                void actAuto(
+                    state().your_vote === "decrement" ? undefined : "decrement",
+                    client(),
+                    state(),
+                    setState,
+                    props.counter,
+                );
+            }}
+        >
+            <span>⯆</span>
+        </button>
+    </div>;
+}

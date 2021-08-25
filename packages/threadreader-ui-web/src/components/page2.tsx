@@ -12,7 +12,7 @@ import {
 import { PostActions } from "./action";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body } from "./body";
-import { CounterCount } from "./counter";
+import { CounterCount, VerticalIconCounter } from "./counter";
 import { A, LinkButton, UserLink } from "./links";
 import { ReplyEditor } from "./reply";
 
@@ -119,9 +119,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
     );
-    const collapseButton = () => {
-        return props.content.collapsible === false ? false : true;
-    };
     const hasTitleOrThumbnail = () => {
         return !!props.content.thumbnail || !!props.content.title;
     };
@@ -152,7 +149,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             // selfVisible()
             // props.content.show_replies_when_below_pivot !== false
             "pt-10px",
-            collapseButton() ? (props.opts.top_level ? "pl-1" : "") : "pl-15px",
+            props.content.collapsible !== false ? (
+                props.opts.top_level ? "pl-1" : ""
+            ) : "pl-15px",
             "flex flex-row",
 
             props.opts.top_level ? "-mt-10px -ml-10px" : [],
@@ -161,14 +160,21 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             "--left-v": "8px",
         }}
     >
-        <ShowBool when={collapseButton()}>
-            <button style={{bottom: "0"}} class="collapse-btn z-1 static mr-1" classList={{
-                'collapsed': !selfVisible(),
-            }} draggable={true} onClick={(e) => {
-                setTransitionTarget(t => !t);
-            }}>
-                <div class="collapse-btn-inner"></div>
-            </button>
+        <ShowBool when={props.content.collapsible !== false}>
+            <div class={"flex flex-col items-center mr-1 gap-2 "+(props.opts.top_level ? "sm:px-1" : "sm:pr-1")}>
+                <ShowCond when={props.content.actions?.vote}>{vote_action => (
+                    <div class={selfVisible() || hasThumbnail() ? "" : " hidden"}>
+                        <VerticalIconCounter counter={vote_action} />
+                    </div>
+                )}</ShowCond>
+                <button class="flex-1 collapse-btn z-1 static" classList={{
+                    'collapsed': !selfVisible(),
+                }} draggable={true} onClick={(e) => {
+                    setTransitionTarget(t => !t);
+                }}>
+                    <div class="collapse-btn-inner"></div>
+                </button>
+            </div>
         </ShowBool>
         <div class="flex-1">
             <div

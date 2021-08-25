@@ -25,7 +25,7 @@ export function PostActions(props: ClientPostProps & {
                 )}</ShowCond>
             </LinkButton>
         )}</ShowCond>
-        <ShowCond when={props.content.actions?.vote}>{vote => (
+        <ShowCond if={[props.content.collapsible === false]} when={props.content.actions?.vote}>{vote => (
             <Counter counter={vote} />
         )}</ShowCond>
         <ShowCond

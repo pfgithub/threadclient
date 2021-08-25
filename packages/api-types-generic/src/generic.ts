@@ -732,6 +732,9 @@ export type CounterAction = {
     unique_id: string | null, // identifier that refers to this counter, unique per-client
     time: number, // when this was found
 
+    // TODO: maybe just allow any 15×ANY icon?
+    icon_style?: "reddit-upvote-downvote" | "mastodon-star" | "other",
+
     special?: "reddit-points",
 
     label: ActionLabel,

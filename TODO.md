@@ -49,7 +49,7 @@ reddit post page2:
 reddit comment todo:
 
 -   [ ] a single reply should not be shown as threaded
--   [ ] post voting
+-   [x] post voting
 -   [x] post time ago
 -   [ ] post reply button
 -   [ ] when you click reply and then close it, make sure clicking the reply button again
