@@ -240,6 +240,21 @@ export function getSettings(): Settings { // TODO getClient: (): ThreadClient =}
     return global_settings;
 }
 
+const [screenWidth, setScreenWidth] = createSignal(window.innerWidth);
+window.addEventListener("resize", () => {
+    setScreenWidth(window.innerWidth);
+});
+export {screenWidth};
+
+// https://windicss.org/utilities/variants.html
+export const screen_size = {
+    sm: 640,
+    md: 768,
+    lg: 1024,
+    xl: 1280,
+    xl2: 1536,
+} as const;
+
 type Classes = string | Classes[];
 export function classes(...items: Classes[]): string {
     return items.flat().join(" ");

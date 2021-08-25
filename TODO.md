@@ -28,6 +28,10 @@ page2 todo:
         -   compress info bar and actions
 -   [ ] implement sort in a way that it doesn't require all comments to store their own sorts. ideally
         when you click a comment to focus it, the sort from the pivot could be used.
+-   [ ] for TimeAgo instead of "2y ago" write like "2019" or "Mar"
+-   [ ] for TimeAgo, provide an option for an even more compact version that's just "5d" instead of "5 days ago"
+-   [ ] mobile: compress the info bar. eg "\[by] · \[in] · ↑3k · 2d · ✎6h". maybe even hide the \[by] if there is
+        an \[in] and the post is above the pivot, then put a longer info bar at the bottom of the post like apollo.
 
 reddit post page2:
 

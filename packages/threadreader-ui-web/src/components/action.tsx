@@ -2,7 +2,7 @@ import { createSignal, For, JSX } from "solid-js";
 import { link_styles_v, renderAction } from "../app";
 import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { ShowCond } from "../util/utils_solid";
+import { screenWidth, screen_size, ShowCond } from "../util/utils_solid";
 import { Body } from "./body";
 import { Counter } from "./counter";
 import { LinkButton } from "./links";
@@ -14,7 +14,9 @@ export function PostActions(props: ClientPostProps & {
 }): JSX.Element {
     const [showingWindowBelow, setShowingWindowBelow] = createSignal<null | (() => JSX.Element)>(null);
 
-    return <><div class="flex flex-wrap gap-2 items-center">
+    const mobile = () => screenWidth() < screen_size.sm;
+
+    return <><div class={"flex flex-wrap gap-2 "+(mobile() ? "flex-col" : "items-center")}>
         {props.children}
         <ShowCond when={props.opts.frame?.url}>{url => (
             <LinkButton href={url} style="action-button">

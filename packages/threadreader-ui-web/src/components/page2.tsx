@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, JSX, untrack } from "solid-js";
+import { createEffect, createMemo, createSignal, For, JSX, untrack } from "solid-js";
 import {
     allowedToAcceptClick,
     bioRender, clientContent, link_styles_v, navigate
@@ -7,7 +7,7 @@ import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getClient, getSettings, HideshowProvider,
-    kindIs, ShowBool, ShowCond, SwitchKind, TimeAgo, ToggleColor
+    kindIs, screenWidth, screen_size, ShowBool, ShowCond, SwitchKind, TimeAgo, ToggleColor
 } from "../util/utils_solid";
 import { PostActions } from "./action";
 import { animateHeight, ShowAnimate } from "./animation";
@@ -133,6 +133,12 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const [animState, setAnimState] = createSignal<{visible: boolean, animating: boolean}>({
         visible: selfVisible(),
         animating: false,
+    });
+
+    const [showActions, setShowActions] = createSignal(false);
+    const mobile = () => screenWidth() < screen_size.sm;
+    createEffect(() => {
+        if(!mobile()) setShowActions(false);
     });
 
     const postIsClickable = () => {
@@ -263,8 +269,14 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                 <span class="text-green-600 dark:text-green-500">Pinned</span>{" "}
                             </>}</ShowBool>
                         </>}</ShowCond>
+                        <ShowBool when={mobile()}>
+                            <button
+                                class={link_styles_v["outlined-button"]}
+                                onclick={() => setShowActions(v => !v)}
+                            >{showActions() ? "▾" : "▸"}</button>
+                        </ShowBool>
                     </div>
-                    <ShowBool when={hasThumbnail()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
+                    <ShowBool when={hasThumbnail() && !mobile()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
                         <PostActions
                             content={props.content}
                             opts={props.opts}
@@ -279,6 +291,12 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     </div></ShowBool>
                 </div>
             </div>
+            <ShowAnimate when={mobile() && showActions()}>
+                <PostActions
+                    content={props.content}
+                    opts={props.opts}
+                />
+            </ShowAnimate>
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={transitionTarget}>
                 <div>
                     <ShowBool when={animState().visible || animState().animating}>
@@ -297,7 +315,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </ShowAnimate>
                     </ShowBool>
                 </div>
-                <ShowBool when={!hasThumbnail()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
+                <ShowBool when={!hasThumbnail() && !mobile()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
                     <PostActions
                         content={props.content}
                         opts={props.opts}
