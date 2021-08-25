@@ -8,10 +8,6 @@ import {
     getPostThumbnail, urlNotSupportedYet, getPostFlair
 } from "../reddit";
 
-// in the future this might be changed to hold data. then to insert into
-// the id map it'll have to be serialized or something
-// that shouldn't be necessary - loaders could be inserted
-// during setup and then there would be no issue
 export type ID = string;
 export type IDMap = Map<ID, IDMapEntry>;
 
@@ -91,13 +87,6 @@ export function page2FromListing(
             post: parent_post,
             replies: page[1],
         });
-        for(const reply of [...page[1].data.children]) {
-            setUpMap(id_map, {
-                kind: "comment",
-                comment: reply,
-                parent_submission: parent_post,
-            });
-        }
 
         let focus: string = parent_post.data.name;
         if(path.kind === "comments" && path.focus_comment != null) {
@@ -112,23 +101,9 @@ export function page2FromListing(
             listing: page,
             details: path.kind === "subreddit" ? path.sub : "unknown",
         };
-        const pivot_id = getEntryFullname(sr_entry);
-        for(const post of page.data.children) {
-            if(post.kind === "t3") {
-                setUpMap(id_map, {
-                    kind: "post",
-                    post: post,
-                    replies: "not_loaded",
-                });
-            }else{
-                setUpMap(id_map, {
-                    kind: "comment",
-                    comment: post,
-                    parent_submission: "not_loaded",
-                });
-            }
-        }
         setUpMap(id_map, sr_entry);
+
+        const pivot_id = getEntryFullname(sr_entry);
 
         return getPostData(id_map, pivot_id);
     }
@@ -193,10 +168,12 @@ export function setUpMap(
     const entry_fullname = getEntryFullname(data);
     const prev_value = map.get(entry_fullname);
     if(prev_value) {
-        if(prev_value.data !== data) {
-            throw new Error("ERROR it already exists "+entry_fullname+" but it's different");
-        }
-        throw new Error("ERROR it already exists "+entry_fullname);
+        console.log("Note: Two objects with the same id were created. ID: `"+entry_fullname+"`");
+        // Note: In the future, consider reconciling both into one data entry that has data from both.
+        return;
+
+        // there are many reasons two things with the same id might get added
+        // eg: adding a post and then a crosspost of that post, both on the same listing
     }
 
     if(data.kind === "comment") {
@@ -234,8 +211,29 @@ export function setUpMap(
                 });
             }
         }
+        if(data.replies !== "not_loaded") for(const reply of data.replies.data.children) {
+            setUpMap(map, {
+                kind: "comment",
+                comment: reply,
+                parent_submission: data.post,
+            });
+        }
     }else if(data.kind === "subreddit_unloaded") {
-        // nothing to load
+        for(const post of data.listing.data.children) {
+            if(post.kind === "t3") {
+                setUpMap(map, {
+                    kind: "post",
+                    post: post,
+                    replies: "not_loaded",
+                });
+            }else{
+                setUpMap(map, {
+                    kind: "comment",
+                    comment: post,
+                    parent_submission: "not_loaded",
+                });
+            }
+        }
     }else assertNever(data);
 
     map.set(entry_fullname, {
