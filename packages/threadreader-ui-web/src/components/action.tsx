@@ -20,7 +20,7 @@ export function PostActions(props: ClientPostProps & {
         {props.children}
         <ShowCond when={props.opts.frame?.url}>{url => (
             <LinkButton href={url} style="action-button">
-                <ShowCond when={props.content.info?.comments} fallback={"View"}>{num_comments => (
+                <ShowCond when={props.content.info?.comments} fallback={"Focus"}>{num_comments => (
                     num_comments.toLocaleString() + " comment"+(
                         num_comments === 1 ? "" : "s"
                     )
