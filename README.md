@@ -32,13 +32,16 @@ yarn install
 Start build watcher:
 
 ```
-yarn dev
+yarn workspace threadreader-ui-web dev
 ```
 
 To log in locally, after giving threadreader access to reddit, edit the url from `https://thread.pfg.pw/…` to `http://localhost:3004/…`.
 
+Note: it is recommended to add an entry to your /etc/hosts file eg `127.0.0.1 threadreader`, and access
+threadreader during development from `http://threadreader`, otherwise imgur support will fail due to cors errors.
+
 Check code before commit:
 
 ```
-yarn lint
+yarn workspaces run lint
 ```

@@ -40,6 +40,17 @@ reddit comment todo:
 -   [x] post time ago
 -   [ ] post reply button
 
+todo:
+
+- switch to a monorepo structure
+- packages/
+  - threadreader-web-ui/
+  - threadreader-client-reddit
+  - threadreader-client-test
+  - threadreader-client-hackernews
+  - threadreader-webextension
+  - eslint-plugin-custom-rules
+
 unrelated:
 
 -   upgrade timeAgo to support weeks/months. "last month", "two months ago", …

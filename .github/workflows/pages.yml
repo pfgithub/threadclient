@@ -15,13 +15,13 @@ jobs:
       - name: Install and Build 🔧
         run: |
           yarn install
-          yarn lint
-          yarn test
-          env node_env=PRODUCTION yarn build
+          yarn workspaces run lint
+          yarn workspaces run test
+          yarn workspace threadreader-ui-web build
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.0.0
         with:
           branch: gh-pages # The branch the action should deploy to.
-          folder: dist # The folder the action should deploy.
+          folder: packages/threadreader-ui-web/dist # The folder the action should deploy.
           clean: true # Automatically remove deleted files from the deploy branch

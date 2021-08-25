@@ -31,6 +31,6 @@ jobs:
             # Runs a set of commands using the runners shell
             - name: Check
               run: |
-                  yarn install
-                  yarn lint
-                  yarn test
+                yarn install
+                yarn workspaces run lint
+                yarn workspaces run test
