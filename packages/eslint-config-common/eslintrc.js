@@ -49,6 +49,7 @@ module.exports = {
     }, {
         files: ["*.ts", "*.tsx"],
         parserOptions: {
+            // this is required in order to support editor extensions for eslint
             project: global.branch_dirname + "/tsconfig.json",
         },
         extends: [
