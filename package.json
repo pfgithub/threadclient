@@ -1,6 +1,11 @@
 {
-    "private": true,
-    "workspaces": [
-        "packages/*"
-    ]
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "yarn workspaces run lint",
+    "test": "yarn workspaces run test",
+    "create-package": "yarn workspace create-tmeta-package run ts-node src/create.ts"
+  }
 }

@@ -15,8 +15,8 @@ jobs:
       - name: Install and Build 🔧
         run: |
           yarn install
-          yarn workspaces run lint
-          yarn workspaces run test
+          yarn lint
+          yarn test
           yarn workspace threadreader-ui-web build
 
       - name: Deploy 🚀

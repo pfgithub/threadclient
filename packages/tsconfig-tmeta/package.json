@@ -5,6 +5,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "lint": "true"
+    "lint": "true",
+    "test": "true"
   }
 }

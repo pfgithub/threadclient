@@ -11,6 +11,7 @@
     "eslint": "^7.32.0"
   },
   "scripts": {
-    "lint": "true"
+    "lint": "true",
+    "test": "true"
   }
 }

@@ -12,6 +12,7 @@
     "tsconfig-tmeta": "^1.0.0"
   },
   "scripts": {
-    "lint": "eslint src --max-warnings 0 && tsc --noEmit"
+    "lint": "eslint src --max-warnings 0 && tsc --noEmit",
+    "test": "true"
   }
 }

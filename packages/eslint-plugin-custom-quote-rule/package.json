@@ -4,6 +4,7 @@
   "main": "src/quote-rule.js",
   "license": "MIT",
   "scripts": {
-    "lint": "true"
+    "lint": "true",
+    "test": "true"
   }
 }

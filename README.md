@@ -43,5 +43,17 @@ threadreader during development from `http://threadreader`, otherwise imgur supp
 Check code before commit:
 
 ```
-yarn workspaces run lint
+yarn lint
+```
+
+Test before commit:
+
+```
+yarn test
+```
+
+Create a new package:
+
+```
+yarn create-package package-name
 ```

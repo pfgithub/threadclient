@@ -32,5 +32,5 @@ jobs:
             - name: Check
               run: |
                 yarn install
-                yarn workspaces run lint
-                yarn workspaces run test
+                yarn lint
+                yarn test
