@@ -37,4 +37,9 @@ export default defineConfig({
         },
     },
     publicDir: "static",
+
+    server: {
+        port: 3004,
+        hmr: false, // it's really annoying
+    },
 });
