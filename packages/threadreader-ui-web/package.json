@@ -31,7 +31,8 @@
         "workbox-build": "^6.1.5",
         "workbox-window": "^6.1.5",
         "api-types-reddit": "^1.0.0",
-        "common-config": "^1.0.0"
+        "common-config": "^1.0.0",
+        "eslint-config-common": "^1.0.0"
     },
     "dependencies": {
         "commonmark": "^0.30.0",

@@ -1,0 +1,9 @@
+{
+  "name": "eslint-plugin-custom-quote-rule",
+  "version": "1.0.0",
+  "main": "src/quote-rule.js",
+  "license": "MIT",
+  "scripts": {
+    "lint": "true"
+  }
+}

@@ -12,6 +12,6 @@
     "common-config": "^1.0.0"
   },
   "scripts": {
-    "lint": "tsc --noEmit"
+    "lint": "eslint src --max-warnings 0 && tsc --noEmit"
   }
 }
