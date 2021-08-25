@@ -9,7 +9,7 @@
     "typescript": "^4.3.5"
   },
   "devDependencies": {
-    "common-config": "^1.0.0"
+    "tsconfig-tmeta": "^1.0.0"
   },
   "scripts": {
     "lint": "eslint src --max-warnings 0 && tsc --noEmit"
