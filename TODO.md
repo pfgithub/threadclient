@@ -16,6 +16,16 @@ page2 todo:
 
 -   [ ] load more
 -   [ ] possibly allow the post to specify the format of its info bar?
+-   [ ] mobile fixes:
+    -   [ ] the transition thing is based on the position of the navbar but on mobile the position
+            of that changes because of translateY. TODO max(viewport top, translateY) or just go
+            back to the previous top of screen + height or delete --mobile-transform for now because
+            it's not very good
+    -   [ ] top level objects should go edge to edge on the screen
+    -   [ ] thumbnails take up wayy too much space, consider:
+        -   use text-sm font size for titles
+        -   use smaller thumbnails
+        -   compress info bar and actions
 
 reddit post page2:
 
