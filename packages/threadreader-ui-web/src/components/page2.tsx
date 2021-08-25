@@ -204,7 +204,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             >
                 <ShowCond when={props.content.thumbnail}>{thumb_any => (
                     <button class={classes(
-                        "w-70px h-70px mr-4",
+                        "w-50px h-50px sm:w-70px sm:h-70px mr-4",
                         contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
                     )} onClick={() => setTransitionTarget(t => !t)}>
                         <SwitchKind item={thumb_any}>{{
