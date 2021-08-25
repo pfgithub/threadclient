@@ -1,0 +1,10 @@
+{
+  "name": "common-config",
+  "version": "1.0.0",
+  "main": "tsconfig.json",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "lint": "true"
+  }
+}

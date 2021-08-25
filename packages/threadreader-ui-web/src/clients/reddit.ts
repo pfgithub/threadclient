@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 
 import { getVredditSources } from "../app";
-import type * as Reddit from "../types/api/reddit";
+import type * as Reddit from "api-types-reddit";
 import type * as Generic from "../types/generic";
 import { rt } from "../types/generic";
 import * as util from "../util";

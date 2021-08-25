@@ -1,0 +1,9 @@
+{
+    "extends": "common-config",
+    "compilerOptions": {
+        "outDir": "./dist",
+    },
+    "include": [
+        "src/**/*",
+    ],
+}

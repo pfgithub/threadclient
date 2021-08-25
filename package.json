@@ -1,4 +1,8 @@
 {
     "private": true,
-    "workspaces": ["packages/threadreader-ui-web"]
+    "workspaces": [
+        "packages/api-types-reddit",
+        "packages/common-config",
+        "packages/threadreader-ui-web"
+    ]
 }

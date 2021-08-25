@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "importsNotUsedAsValues": "error",
+        "target": "es2019",
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "jsx": "preserve",
+        "jsxImportSource": "solid-js",
+        "lib": [
+            "esnext",
+        ],
+        "skipLibCheck": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true
+    },
+}

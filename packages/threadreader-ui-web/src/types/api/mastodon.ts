@@ -1,4 +1,4 @@
-import type { OEmbed } from "src/clients/oembed";
+import type { OEmbed } from "../../clients/oembed";
 
 export type ImageMeta = {
     width: number,

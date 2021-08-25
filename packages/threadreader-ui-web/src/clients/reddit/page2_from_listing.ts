@@ -1,4 +1,4 @@
-import type * as Reddit from "../../types/api/reddit";
+import type * as Reddit from "api-types-reddit";
 import type * as Generic from "../../types/generic";
 import { rt } from "../../types/generic";
 import { assertNever } from "../../util";

@@ -1,6 +1,6 @@
 /* eslint-disable max-len */
 
-import type * as Reddit from "../../types/api/reddit";
+import type * as Reddit from "api-types-reddit";
 
 function extendsc<T extends Reddit.Post>(v: T): Reddit.Post {
     return v;
