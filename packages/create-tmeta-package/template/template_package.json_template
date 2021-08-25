@@ -1,15 +1,14 @@
 {
-  "name": "api-types-reddit",
+  "name": "{{PROJECT_NAME}}",
   "version": "1.0.0",
-  "main": "src/reddit_types.ts",
-  "types": "src/reddit_types.ts",
+  "main": "index.js",
   "license": "MIT",
   "private": true,
   "devDependencies": {
     "eslint": "^7.29.0",
     "eslint-config-tmeta": "^1.0.0",
-    "typescript": "^4.3.5",
-    "tsconfig-tmeta": "^1.0.0"
+    "tsconfig-tmeta": "^1.0.0",
+    "typescript": "^4.3.5"
   },
   "scripts": {
     "lint": "eslint src --max-warnings 0 && tsc --noEmit"
