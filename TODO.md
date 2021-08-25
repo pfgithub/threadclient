@@ -32,6 +32,9 @@ page2 todo:
 -   [ ] for TimeAgo, provide an option for an even more compact version that's just "5d" instead of "5 days ago"
 -   [ ] mobile: compress the info bar. eg "\[by] · \[in] · ↑3k · 2d · ✎6h". maybe even hide the \[by] if there is
         an \[in] and the post is above the pivot, then put a longer info bar at the bottom of the post like apollo.
+-   [ ] this still looks very bad, but here is an example of some things that could be done: 
+    -   https://i.imgur.com/ji1G657.png
+    -   it might help to use an actual interface design program to make mockups and then try to replicate those
 
 reddit post page2:
 
