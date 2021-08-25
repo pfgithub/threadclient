@@ -31,11 +31,12 @@ reddit post page2:
 
 -   [ ] vote count, vote buttons, % upvoted
 -   [x] time ago
--   [ ] code button should give code of the selected post
+-   [x] code button should give code of the selected post
 -   [x] author flair should not inherit post award flair
 -   [x] post body should display below action bar. (possibly: two action bars? one for above and one for below body)
 -   [x] posted in subreddit
--   [ ] actions: comment count, domain, delete, save, duplicates, report
+-   [x] actions: comment count, domain, delete, save, duplicates, report
+    -   [ ] rewrite the report action in solid and make it appear in the right place
 -   [x] reply action, when at pivot (because show replies when below pivot is false)
 -   [ ] reply action should add the posted comment to the tree
 -   [x] click to focus
@@ -49,6 +50,9 @@ reddit comment todo:
 -   [ ] post voting
 -   [x] post time ago
 -   [ ] post reply button
+-   [ ] when you click reply and then close it, make sure clicking the reply button again
+        will give you the same text you just typed. and also future: TODO make it so you
+        get a prompt before navigating away from a page you started typing a reply in
 
 todo:
 

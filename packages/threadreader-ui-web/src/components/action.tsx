@@ -12,8 +12,7 @@ import { ReplyEditor } from "./reply";
 export function PostActions(props: ClientPostProps & {
     children?: JSX.Element,
 }): JSX.Element {
-    const [showingCode, setShowingCode] = createSignal<null | Generic.Body>(null);
-    const [replyWindowOpen, setReplyWindowOpen] = createSignal<Generic.ReplyAction | null>(null);
+    const [showingWindowBelow, setShowingWindowBelow] = createSignal<null | (() => JSX.Element)>(null);
 
     return <><div class="flex flex-wrap gap-2 items-center">
         {props.children}
@@ -32,19 +31,25 @@ export function PostActions(props: ClientPostProps & {
         <ShowCond
             if={[props.content.show_replies_when_below_pivot]}
             when={props.opts.replies?.reply}
-        >{(reply_action) => {
-
+        >{reply_action => {
+            const action = () => <ReplyEditor
+                action={reply_action} 
+                onCancel={() => setShowingWindowBelow(null)}
+                onAddReply={() => {
+                    setShowingWindowBelow(null);
+                    // TODO show the reply in the tree
+                }}
+            />;
             return <>
                 <button
                     class={link_styles_v[
-                        replyWindowOpen() === reply_action ? "action-button-active" : "action-button"
+                        showingWindowBelow() === action ? "action-button-active" : "action-button"
                     ]}
-                    disabled={replyWindowOpen() != null}
                     on:click={() => {
-                        if(replyWindowOpen() != null) {
-                            setReplyWindowOpen(null);
+                        if(showingWindowBelow() === action) {
+                            setShowingWindowBelow(null);
                         }else{
-                            setReplyWindowOpen(reply_action);
+                            setShowingWindowBelow(() => action);
                         }
                     }}
                 >{reply_action.text}</button>
@@ -55,27 +60,32 @@ export function PostActions(props: ClientPostProps & {
                 <Action action={item} />
             </>}</For>
         </>}</ShowCond>
-        <button
-            class={link_styles_v[
-                props.content.actions?.code?.body != null ? showingCode() === props.content.actions?.code?.body
-                ? "action-button-active" : "action-button" : "code-button"
-            ]}
-            on:click={() => {
-                console.log(props.opts.frame);
-                setShowingCode(c => c == null ? props.content?.actions?.code?.body ?? null : null);
-            }}
-        >Code</button>
-    </div><ShowCond when={showingCode()}>{code => (
-        <Body body={code} autoplay={true} />
-    )}</ShowCond><ShowCond when={replyWindowOpen()}>{reply_editor => (
-        <ReplyEditor
-            action={reply_editor} 
-            onCancel={() => setReplyWindowOpen(null)}
-            onAddReply={() => {
-                setReplyWindowOpen(null);
-                // TODO show the reply in the tree
-            }}
-        />
+        <ShowCond when={props.content?.actions?.code?.body} fallback={
+            <button
+                class={link_styles_v["code-button"]}
+                on:click={() => {
+                    console.log(props.opts.frame);
+                }}
+            >Code</button>
+        }>{code_action => {
+            const action = () => <Body body={code_action} autoplay={true} />;
+            return <button
+                class={link_styles_v[
+                    showingWindowBelow() === action
+                    ? "action-button-active" : "action-button"
+                ]}
+                on:click={() => {
+                    console.log(props.opts.frame);
+                    if(showingWindowBelow() === action) {
+                        setShowingWindowBelow(null);
+                    }else{
+                        setShowingWindowBelow(() => action);
+                    }
+                }}
+            >Code</button>;
+        }}</ShowCond>
+    </div><ShowCond when={showingWindowBelow()}>{windowBelow => (
+        windowBelow()
     )}</ShowCond></>;
 }
 
