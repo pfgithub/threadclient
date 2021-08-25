@@ -32,7 +32,10 @@
         "workbox-window": "^6.1.5",
         "api-types-reddit": "^1.0.0",
         "tsconfig-tmeta": "^1.0.0",
-        "eslint-config-tmeta": "^1.0.0"
+        "eslint-config-tmeta": "^1.0.0",
+        "api-types-generic": "^1.0.0",
+        "api-types-mastodon": "^1.0.0",
+        "api-types-oembed": "^1.0.0"
     },
     "dependencies": {
         "commonmark": "^0.30.0",

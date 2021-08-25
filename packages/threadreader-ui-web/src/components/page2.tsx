@@ -3,7 +3,7 @@ import {
     allowedToAcceptClick,
     bioRender, clientContent, link_styles_v, navigate
 } from "../app";
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getClient, getSettings, HideshowProvider,

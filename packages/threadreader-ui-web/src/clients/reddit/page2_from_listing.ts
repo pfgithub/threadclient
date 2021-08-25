@@ -1,6 +1,6 @@
 import type * as Reddit from "api-types-reddit";
-import type * as Generic from "../../types/generic";
-import { rt } from "../../types/generic";
+import type * as Generic from "api-types-generic";
+import { rt } from "api-types-generic";
 import { assertNever } from "../../util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,

@@ -1,5 +1,5 @@
 import { hideshow, HideShowCleanup } from "../app";
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 
 import PhotoSwipe from "photoswipe";
 import PhotoSwipeUI_Default from "photoswipe/dist/photoswipe-ui-default";

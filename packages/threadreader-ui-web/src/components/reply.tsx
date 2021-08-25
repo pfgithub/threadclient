@@ -3,7 +3,7 @@ import {
 } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { link_styles_v } from "../app";
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 import { getClient, ShowCond } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./page2";
 

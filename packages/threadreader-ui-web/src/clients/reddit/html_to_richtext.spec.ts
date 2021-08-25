@@ -2,8 +2,8 @@
 /* eslint-disable custom-quote-rule/indent */
 
 // import { getRedditMarkdownRenderer } from "../../app";
-import type * as Generic from "../../types/generic";
-import {rt} from "../../types/generic";
+import type * as Generic from "api-types-generic";
+import {rt} from "api-types-generic";
 
 function test(a: string, b: () => Promise<void>) {() => [a, b]}
 function expect<T>(a: T) {return {toEqual: (b: T) => {() => [a, b]}}}

@@ -1,4 +1,4 @@
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 import type * as HN from "./hackernews/hn_types";
 import { assertNever } from "../util";
 import type { ThreadClient } from "./base";

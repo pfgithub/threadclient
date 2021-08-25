@@ -1,7 +1,7 @@
 import "prism-themes/themes/prism-atom-dark.css"; // vsc dark is missing markdown styles
 import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch } from "solid-js";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, getClient, getSettings, Icon, ShowBool,

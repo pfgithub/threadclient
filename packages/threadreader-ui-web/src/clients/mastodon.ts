@@ -1,10 +1,10 @@
 /* eslint-disable max-len */
 
 import { assertNever, encodeQuery, router } from "../util";
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 import {encoderGenerator, ThreadClient} from "./base";
-import type * as Mastodon from "../types/api/mastodon";
-import { mnu, rt } from "../types/generic";
+import type * as Mastodon from "api-types-mastodon";
+import { mnu, rt } from "api-types-generic";
 import { oembed } from "./oembed";
 
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm

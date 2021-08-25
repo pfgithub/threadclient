@@ -44,9 +44,10 @@ todo:
 
 - switch to a monorepo structure
 - packages/
+  - [x] api-types-generic/
   - [x] api-types-reddit/
-  - [ ] api-types-mastodon/
-  - [ ] api-types-hacker/
+  - [x] api-types-mastodon/
+  - [ ] api-types-hackernews/
   - [x] threadreader-web-ui/
   - [ ] threadreader-client-common/
   - [ ] threadreader-client-reddit/

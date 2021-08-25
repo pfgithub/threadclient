@@ -2,8 +2,8 @@
 
 import * as commonmark from "commonmark";
 import { LogEntry, variables } from "virtual:_variables";
-import type * as Generic from "../types/generic";
-import { Richtext, rt } from "../types/generic";
+import type * as Generic from "api-types-generic";
+import { Richtext, rt } from "api-types-generic";
 import { assertNever } from "../util";
 import { encoderGenerator, ThreadClient } from "./base";
 

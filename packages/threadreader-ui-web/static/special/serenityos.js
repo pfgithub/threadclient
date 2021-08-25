@@ -30,7 +30,7 @@ function linkButton(href) {
     return el("span").attr({class: "error", title: href});
 }
 
-/** @typedef {import("../../src/types/generic").Body} Generic_Body */
+/** @typedef {import("api-types-generic").Body} Generic_Body */
 /**
  * @param {Generic_Body} body
  */
@@ -59,7 +59,7 @@ function renderBody(body) {
     return frame;
 }
 
-/** @typedef {import("../../src/types/generic").Node} Generic_Node */
+/** @typedef {import("api-types-generic").Node} Generic_Node */
 /**
  * @param {Generic_Node} node
  */
@@ -116,7 +116,7 @@ function renderNode(node) {
     return frame;
 }
 
-/** @typedef {import("../../src/types/generic").Page} Generic_Page */
+/** @typedef {import("api-types-generic").Page} Generic_Page */
 /**
  * @param {Generic_Page} page
  */

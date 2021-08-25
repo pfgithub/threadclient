@@ -1,6 +1,6 @@
 import { createSignal, For, JSX } from "solid-js";
 import { link_styles_v, renderAction } from "../app";
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { ShowCond } from "../util/utils_solid";
 import { Body } from "./body";

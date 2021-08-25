@@ -12,7 +12,7 @@ import {
     textToBody, youtubeVideo,
     zoomableImage
 } from "../app";
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getClient, getIsVisible,

@@ -1,5 +1,5 @@
-import type * as Generic from "../../types/generic";
-import {rt} from "../../types/generic";
+import type * as Generic from "api-types-generic";
+import {rt} from "api-types-generic";
 
 // note: a full set of tests is available here
 // https://pfg.pw/snudown/test

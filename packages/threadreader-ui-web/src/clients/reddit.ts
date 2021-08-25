@@ -2,8 +2,8 @@
 
 import { getVredditSources } from "../app";
 import type * as Reddit from "api-types-reddit";
-import type * as Generic from "../types/generic";
-import { rt } from "../types/generic";
+import type * as Generic from "api-types-generic";
+import { rt } from "api-types-generic";
 import * as util from "../util";
 import { encodeQuery, encodeURL } from "../util";
 import { encoderGenerator, ThreadClient } from "./base";

@@ -4,7 +4,7 @@ import { ClientProvider, ComputeProperty, getSettings, ShowBool, ShowCond } from
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { variables } from "virtual:_variables";
 import { RichtextParagraphs } from "./richtext";
-import { rt } from "../types/generic";
+import { rt } from "api-types-generic";
 import { ShowAnimate } from "./animation";
 export * from "../util/interop_solid";
 

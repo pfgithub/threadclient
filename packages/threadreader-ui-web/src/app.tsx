@@ -1,10 +1,11 @@
 import type { ThreadClient } from "./clients/base";
-import { OEmbed, oembed } from "./clients/oembed";
+import type {OEmbed} from "api-types-oembed";
+import { oembed } from "./clients/oembed";
 import { Body, ImageGallery } from "./components/body";
 import { Homepage } from "./components/homepage";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
-import type * as Generic from "./types/generic";
-import { rt } from "./types/generic";
+import type * as Generic from "api-types-generic";
+import { rt } from "api-types-generic";
 import { escapeHTML } from "./util";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings, TimeAgo } from "./util/utils_solid";

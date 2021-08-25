@@ -1,5 +1,5 @@
 
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 
 export type ThreadClient = {
     id: string,

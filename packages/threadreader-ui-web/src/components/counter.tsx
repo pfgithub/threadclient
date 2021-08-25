@@ -1,5 +1,5 @@
 import { Accessor, createMemo, createSignal, JSX, onCleanup } from "solid-js";
-import type * as Generic from "../types/generic";
+import type * as Generic from "api-types-generic";
 import { CounterState, getPointsText, link_styles_v, WatchableCounterState, watchCounterState } from "../app";
 import { getClient, ShowBool } from "../util/utils_solid";
 import type { ThreadClient } from "../clients/base";
