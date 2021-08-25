@@ -13,6 +13,7 @@ export default defineConfig({
             },
         }),
         virtual({
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
             'virtual:_variables': "export const variables = " + JSON.stringify(require("./src/_variables.js")) + ";",
         }),
         VitePWA(),
@@ -27,6 +28,13 @@ export default defineConfig({
         //         ],
         //     },
         // },
+    },
+    esbuild: {
+        tsconfigRaw: {
+            compilerOptions: {
+                importsNotUsedAsValues: "remove"
+            },
+        },
     },
     publicDir: "static",
 });
