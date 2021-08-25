@@ -1,7 +1,7 @@
 import { Accessor, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import type * as Generic from "api-types-generic";
 import { CounterState, getPointsText, link_styles_v, WatchableCounterState, watchCounterState } from "../app";
-import { getClient, ShowBool } from "../util/utils_solid";
+import { getClient, ShowBool, ShowCond } from "../util/utils_solid";
 import type { ThreadClient } from "../clients/base";
 
 export function getCounterState(
@@ -38,7 +38,12 @@ export function CounterCount(props: {counter: Generic.CounterAction}): JSX.Eleme
     const ptTxt = () => {
         return getPointsText(state());
     };
-    return <span title={ptTxt().raw}>{ptTxt().text} {"point" + "s"}</span>;
+    return <>
+        <span title={ptTxt().raw}>{ptTxt().text} {"point" + "s"}</span>
+        <ShowCond when={props.counter.percent}>{percent => (
+            " " + percent.toLocaleString(undefined, {style: "percent"}) + " upvoted"
+        )}</ShowCond>
+    </>;
     // TODO make that "points" text customizable
     // eg in mastodon this would be for a star
     // counter thing
