@@ -366,7 +366,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
 
 export function RichtextParagraphs(props: {
     content: readonly Generic.Richtext.Paragraph[],
-    tight?: boolean,
+    tight?: undefined | boolean,
 }): JSX.Element {
     const settings = getSettings();
     return <For each={props.content}>{paragraph => <>

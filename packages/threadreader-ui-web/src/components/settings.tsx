@@ -8,7 +8,7 @@ import { rt } from "api-types-generic";
 import { ShowAnimate } from "./animation";
 export * from "../util/interop_solid";
 
-function SettingsSection(props: {title: string, children?: JSX.Element}): JSX.Element {
+function SettingsSection(props: {title: string, children?: undefined | JSX.Element}): JSX.Element {
     return (
         <section>
             <TopLevelWrapper>

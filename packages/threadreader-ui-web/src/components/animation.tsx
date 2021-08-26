@@ -92,7 +92,11 @@ export function animateHeight(
 // if={[condition]} when={[condition]}
 // it's hard to have a when= in showAnimate because if the thing
 // is removed you probably don't want to keep around a copy of it
-export function ShowAnimate(props: {when: boolean, fallback?: JSX.Element, children: JSX.Element}): JSX.Element {
+export function ShowAnimate(props: {
+    when: boolean,
+    fallback?: undefined | JSX.Element,
+    children: JSX.Element,
+}): JSX.Element {
     const settings = getSettings();
     const [show, setShow] = createSignal({main: props.when, animating: false});
     return <div ref={v => {

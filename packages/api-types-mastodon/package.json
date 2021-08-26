@@ -8,7 +8,6 @@
     "eslint": "^7.29.0",
     "eslint-config-tmeta": "^1.0.0",
     "tsconfig-tmeta": "^1.0.0",
-    "typescript": "^4.3.5",
     "api-types-oembed": "^1.0.0"
   },
   "scripts": {

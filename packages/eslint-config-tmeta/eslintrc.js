@@ -20,6 +20,7 @@ module.exports = {
         // stricter linting rules:
         "@typescript-eslint/no-shadow": ["warn", {allow: ["urlr"]}],
         "eqeqeq": ["warn", "always", {null: "never"}],
+        "custom-quote-rule/explicit-optional-key": ["warn"],
 
         // style rules:
         // "indent": ["warn", 4, {'SwitchCase': 1, 'offsetTernaryExpressions': true, 'ignoredNodes': ["ConditionalExpression"]}],

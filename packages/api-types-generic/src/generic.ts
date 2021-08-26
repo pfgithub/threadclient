@@ -99,7 +99,7 @@ export type ListingData = {
     // pinned: …
     // items: …
     reply: ReplyAction | null,
-    locked?: boolean, // only moderators can comment
+    locked?: boolean | undefined, // only moderators can comment
     items: ListingEntry[],
 };
 export type ListingEntry = {
@@ -119,11 +119,11 @@ export type ClientPost = {
 };
 export type Link<T> = {ref: T, err: undefined} | {ref: undefined, err: string};
 export type PostInfo = {
-    creation_date?: number,
-    edited?: {date?: number}, // you can have an edited date w/out a creation date
-    pinned?: boolean,
-    in?: {name: string, link: string},
-    comments?: number,
+    creation_date?: number | undefined,
+    edited?: {date?: number | undefined} | undefined, // you can have an edited date w/out a creation date
+    pinned?: boolean | undefined,
+    in?: {name: string, link: string} | undefined,
+    comments?: number | undefined,
 };
 export type PostContentPost = {
     /// the thing containing a post. generally post replies
@@ -137,10 +137,10 @@ export type PostContentPost = {
     title: null | {
         text: string,
     },
-    flair?: Flair[], // maybe content warnings should be seperate
-    thumbnail?: Thumbnail,
-    info?: PostInfo,
-    author?: InfoAuthor,
+    flair?: Flair[] | undefined, // maybe content warnings should be seperate
+    thumbnail?: Thumbnail | undefined,
+    info?: PostInfo | undefined,
+    author?: InfoAuthor | undefined,
     body: Body,
     /// if the item should display replies like
     /// item
@@ -148,18 +148,20 @@ export type PostContentPost = {
     /// | | reply
     show_replies_when_below_pivot: boolean,
     collapsible: false | {default_collapsed: boolean},
-    // actions?: {
-    //     collapse_line?: Action[],
-    //     content_buttons?: Action[],
-    //     info_line?: Action[], // should only be for info eg the points on a counter
+    // actions?: undefined | {
+    //     collapse_line?: Action[] | undefined,
+    //     content_buttons?: Action[] | undefined,
+    //     info_line?: Action[] | undefined, // should only be for info eg the points on a counter
     // },
-    actions?: {
-        vote?: CounterAction, // puts the up and down arrow in the gutter and points/% voted in the info line. could do something similar but with a star for mastodon.
-        code?: CodeAction,
-        // delete?: DeleteAction
-        // save?: SaveAction
-        // report?: ReportAction
-        other?: Action[],
+    actions?: undefined | {
+        // puts the up and down arrow in the gutter and points/% voted in the info line. could do
+        // something similar but with a star for mastodon.
+        vote?: CounterAction | undefined,
+        code?: CodeAction | undefined,
+        // delete?: DeleteAction | undefined,
+        // save?: SaveAction | undefined,
+        // report?: ReportAction | undefined,
+        other?: Action[] | undefined,
 
         // note, on mobile all of these
         // should appear in a … menu too
@@ -168,7 +170,7 @@ export type PostContentPost = {
         // stuff in js I need to complete
         // the solid migration
         
-        moderator?: RedditModState,
+        moderator?: RedditModState | undefined,
     },
 };
 
@@ -228,14 +230,14 @@ export type SortData = {
 export type Page = {
     title: string,
     navbar: Navbar,
-    sidebar?: ContentNode[],
+    sidebar?: ContentNode[] | undefined,
     body: {
         kind: "listing",
         header: ContentNode,
-        menu?: Menu,
-        previous?: LoadMore,
+        menu?: Menu | undefined,
+        previous?: LoadMore | undefined,
         items: UnmountedNode[],
-        next?: LoadMoreUnmounted,
+        next?: LoadMoreUnmounted | undefined,
     } | {
         kind: "one",
         item: UnmountedNode,
@@ -262,7 +264,7 @@ export type InboxData = {
 export type UnmountedNode = {
     // [...Node[], ContentNode] // requires a newer version of typescript
     parents: Node[], // might contain load_more. the last item in parents is this_node.
-    menu?: Menu,
+    menu?: Menu | undefined,
     replies: Node[],
 };
 export type BodyText = {
@@ -273,10 +275,10 @@ export type BodyText = {
 export declare namespace Richtext {
 
     export type Style = {
-        strong?: boolean,
-        emphasis?: boolean,
-        strikethrough?: boolean,
-        superscript?: boolean,
+        strong?: boolean | undefined,
+        emphasis?: boolean | undefined,
+        strikethrough?: boolean | undefined,
+        superscript?: boolean | undefined,
     };
     export type Paragraph = {
         kind: "paragraph",
@@ -300,7 +302,7 @@ export declare namespace Richtext {
     } | {
         kind: "code_block",
         text: string,
-        lang?: string,
+        lang?: string | undefined,
     } | {
         kind: "table",
         headings: TableHeading[],
@@ -353,16 +355,16 @@ export declare namespace Richtext {
         text: string,
     };
     export type TableHeading = {
-        align?: "left" | "center" | "right",
+        align?: "left" | "center" | "right" | undefined,
         children: Span[],
     };
     export type TableItem = {
         children: Span[],
     };
     export type LinkOpts = {
-        is_user_link?: string,
-        title?: string,
-        style?: LinkStyle,
+        is_user_link?: string | undefined,
+        title?: string | undefined,
+        style?: LinkStyle | undefined,
     };
     export type LinkStyle = "link" | "pill-empty";
 }
@@ -373,20 +375,20 @@ export type RichText = {
 export type Video = {
     kind: "video",
     source: VideoSource,
-    aspect?: number,
+    aspect?: number | undefined,
     gifv: boolean,
-    caption?: string,
-    alt?: string,
+    caption?: string | undefined,
+    alt?: string | undefined,
 };
 export type Body = BodyText | RichText | {
     kind: "link",
     url: string,
-    embed_html?: string,
+    embed_html?: string | undefined,
 } | {
     kind: "captioned_image",
     url: string,
-    caption?: string,
-    alt?: string,
+    caption?: string | undefined,
+    alt?: string | undefined,
     w: number | null,
     h: number | null,
 } | Video | {
@@ -410,8 +412,8 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "audio",
     url: string,
-    caption?: string,
-    alt?: string,
+    caption?: string | undefined,
+    alt?: string | undefined,
 } | {
     kind: "gallery",
     images: GalleryItem[],
@@ -429,7 +431,7 @@ export type Body = BodyText | RichText | {
 } | {
     kind: "removed",
     removal_message: RemovalMessage,
-    fetch_path?: Opaque<"fetch_removed_path">,
+    fetch_path?: Opaque<"fetch_removed_path"> | undefined,
     body: Body,
 } | {
     kind: "crosspost",
@@ -446,7 +448,7 @@ export type OEmbedBody = {
 };
 export type LinkPreview = {
     kind: "link_preview",
-    thumb?: string, // thumbnail url
+    thumb?: string | undefined, // thumbnail url
     click: Body,
     title: string,
     description: string,
@@ -462,13 +464,13 @@ export type VideoSourceVideo = {
     kind: "video",
     sources: {
         url: string,
-        quality?: string,
+        quality?: string | undefined,
     }[],
-    preview?: { // for the seekbar
+    preview?: undefined | { // for the seekbar
         url: string,
-        type?: string,
+        type?: string | undefined,
     }[],
-    thumbnail?: string, // TODO use the reddit post thumbnail for this
+    thumbnail?: string | undefined, // TODO use the reddit post thumbnail for this
 };
 export type VideoSource = VideoSourceVideo | {
     kind: "img",
@@ -491,31 +493,31 @@ export type Thread = {
     kind: "thread",
 
     body: Body,
-    thumbnail?: Thumbnail,
+    thumbnail?: Thumbnail | undefined,
     display_mode: { // todo revamp, this is useless
         body: "visible" | "collapsed",
-        body_default?: "open" | "closed",
+        body_default?: "open" | "closed" | undefined,
         comments: "visible" | "collapsed",
     },
-    replies?: Node[],
+    replies?: Node[] | undefined,
     raw_value: unknown,
 
     link: string,
 
     layout: "reddit-post" | "reddit-comment" | "mastodon-post" | "error",
 
-    title?: {
+    title?: undefined | {
         text: string,
     },
 
-    info?: Info,
+    info?: Info | undefined,
     actions: Action[],
     
     default_collapsed: boolean,
 
-    flair?: Flair[],
+    flair?: Flair[] | undefined,
 
-    moderator?: RedditModState,
+    moderator?: RedditModState | undefined,
 };
 
 type Report = {
@@ -539,19 +541,19 @@ export type InfoAuthor = {
     name: string,
     color_hash: string,
     link: string,
-    flair?: Flair[],
-    pfp?: {
+    flair?: Flair[] | undefined,
+    pfp?: undefined | {
         url: string,
         hover: string,
     },
-    // system_perms?: {moderator?: …, admin?: …}, or something idk
+    // system_perms?: {moderator?: …, admin?: …} | undefined, or something idk
 };
 export type Info = {
     time: false | number, // null | number
     edited: false | number, // null | false | number
-    author?: InfoAuthor,
-    in?: {name: string, link: string},
-    reblogged_by?: RebloggedBy,
+    author?: InfoAuthor | undefined,
+    in?: {name: string, link: string} | undefined,
+    reblogged_by?: RebloggedBy | undefined,
     pinned: boolean,
 };
 export type RebloggedBy = Info;
@@ -559,7 +561,7 @@ export type LoadMore = {
     kind: "load_more",
     load_more: Opaque<"load_more">,
     url: string, // right click, open in new tab
-    count?: number,
+    count?: number | undefined,
 
     raw_value: unknown,
 };
@@ -567,7 +569,7 @@ export type LoadMoreUnmounted = {
     kind: "load_more_unmounted",
     load_more_unmounted: Opaque<"load_more_unmounted">,
     url: string,
-    count?: number,
+    count?: number | undefined,
     
     raw_value: unknown,
 };
@@ -583,18 +585,18 @@ export type RedditHeader = {
     kind: "bio",
     banner: {
         desktop: string,
-        mobile?: string,
+        mobile?: string | undefined,
     } | null,
     icon: {
         url: string,
     } | null,
     name: {
-        display?: string,
+        display?: string | undefined,
         link_name: string,
     },
     body: Body | null,
-    subscribe?: Action,
-    more_actions?: Action[],
+    subscribe?: Action | undefined,
+    more_actions?: Action[] | undefined,
     menu: Menu | null,
     raw_value: unknown,
 };
@@ -616,25 +618,25 @@ export type MenuItem = {
 };
 
 export type WidgetListItem = {
-    icon?: string,
+    icon?: string | undefined,
     name:
         | {kind: "text", text: string}
         | {kind: "username", username: string}
         | {kind: "flair", flair: Flair}
-        | {kind: "image", src: string, w: number, h: number, alt?: string}
+        | {kind: "image", src: string, w: number, h: number, alt?: string | undefined}
     ,
     click: {kind: "link", url: string} | {kind: "body", body: Body},
-    action?: Action,
+    action?: Action | undefined,
 };
 
 export type Widget = {
     kind: "widget",
     title: string,
-    actions_top?: Action[],
-    actions_bottom?: Action[],
+    actions_top?: Action[] | undefined,
+    actions_bottom?: Action[] | undefined,
     widget_content: {
         kind: "list",
-        above_text?: Body,
+        above_text?: Body | undefined,
         items: WidgetListItem[],
     } | {
         kind: "community-details",
@@ -651,7 +653,7 @@ export type Widget = {
         width: number,
         height: number,
         src: string,
-        link_url?: string,
+        link_url?: string | undefined,
     },
     raw_value: unknown,
 };
@@ -669,11 +671,11 @@ export type RichTextItem = {
     h: number,
 };
 export type Flair = {
-    color?: string,
-    fg_color?: "light" | "dark",
+    color?: string | undefined,
+    fg_color?: "light" | "dark" | undefined,
     elems: RichTextItem[], // TODO → Richtext.Span[]
     content_warning: boolean,
-    system?: string, // tailwind css color class
+    system?: string | undefined, // tailwind css color class
 };
 export type ActionLabel = string;
 export type ReplyAction = {
@@ -733,28 +735,29 @@ export type CounterAction = {
     time: number, // when this was found
 
     // TODO: maybe just allow any 15×ANY icon?
-    icon_style?: "reddit-upvote-downvote" | "mastodon-star" | "other",
+    icon_style?: never | "reddit-upvote-downvote" | "mastodon-star" | "other",
 
-    special?: "reddit-points",
+    // TODO: delete
+    special?: undefined | "reddit-points",
 
     label: ActionLabel,
     incremented_label: ActionLabel,
-    decremented_label?: ActionLabel,
+    decremented_label?: undefined | ActionLabel,
 
-    style?: ButtonStyle,
-    incremented_style?: ButtonStyle,
-    decremented_style?: ButtonStyle,
+    style?: undefined | ButtonStyle,
+    incremented_style?: undefined | ButtonStyle,
+    decremented_style?: undefined | ButtonStyle,
 
     count_excl_you: number | "hidden" | "none",
     you: "increment" | "decrement" | undefined,
 
     actions: {
-        increment?: Opaque<"act">,
-        reset?: Opaque<"act">,
-        decrement?: Opaque<"act">,
+        increment?: undefined | Opaque<"act">,
+        reset?: undefined | Opaque<"act">,
+        decrement?: undefined | Opaque<"act">,
     } | {error: string},
 
-    percent?: number,
+    percent?: undefined | number,
 };
 
 type ButtonStyle = "action-button" | "save-button-saved" | "pill-empty" | "pill-filled";
@@ -762,7 +765,7 @@ type ButtonStyle = "action-button" | "save-button-saved" | "pill-empty" | "pill-
 export type ReportFlow = ReportScreen[];
 export type ReportScreen = {
     title: string,
-    description?: Body,
+    description?: undefined | Body,
     report: ReportAction,
 };
 

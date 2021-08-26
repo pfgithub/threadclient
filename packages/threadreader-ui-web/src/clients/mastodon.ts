@@ -105,7 +105,7 @@ function postArrayToReparentedTimeline(host: string, posts: Mastodon.Post[]): Ge
     });
 }
 function postArrayToReparentedThread(host: string, root_id: string, posts: Mastodon.Post[]): Generic.Node[] {
-    const id_map = new Map<string, {replies?: Generic.Node[]}>();
+    const id_map = new Map<string, {replies?: undefined | Generic.Node[]}>();
 
     const root: {replies: Generic.Node[]} = {replies: []};
     id_map.set(root_id, root);
@@ -352,7 +352,14 @@ function parseContentSpanHTML(host: string, content: string, meta: ParseContentM
     const [genmeta, children] = setupGenMeta(host, content, meta);
     return contentSpansToRichtextSpans(genmeta, children);
 }
-function postToThread(host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread {
+function postToThread(
+    host: string,
+    post: Mastodon.Post,
+    opts: {
+        replies?: undefined | Generic.Thread[],
+        reblogged_by?: undefined | Generic.RebloggedBy,
+    } = {},
+): Generic.Thread {
     try {
         return postToThreadCanError(host, post, opts);
     } catch(e) {
@@ -369,7 +376,14 @@ function postToThread(host: string, post: Mastodon.Post, opts: {replies?: Generi
         };
     }
 }
-function postToThreadCanError(host: string, post: Mastodon.Post, opts: {replies?: Generic.Thread[], reblogged_by?: Generic.RebloggedBy} = {}): Generic.Thread {
+function postToThreadCanError(
+    host: string,
+    post: Mastodon.Post,
+    opts: {
+        replies?: undefined | Generic.Thread[],
+        reblogged_by?: undefined | Generic.RebloggedBy,
+    } = {},
+): Generic.Thread {
     const info: Generic.Info = {
         time: new Date(post.created_at).getTime(),
         edited: false,

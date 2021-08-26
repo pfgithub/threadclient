@@ -60,7 +60,12 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): (
     return {kind: "link", url: href, external: !href.startsWith("/")};
 }
 
-function linkButton(client_id: string, unsafe_href: string, style: LinkStyle, opts: {onclick?: () => void} = {}) {
+function linkButton(
+    client_id: string,
+    unsafe_href: string,
+    style: LinkStyle,
+    opts: {onclick?: undefined | (() => void)} = {},
+) {
     const link_type = unsafeLinkToSafeLink(client_id, unsafe_href);
     if(link_type.kind === "error") {
         return el("a").clss(...linkAppearence(style), "error").attr({title: link_type.title}).clss("error")
@@ -91,7 +96,7 @@ function embedYoutubeVideo(
     youtube_video_id: string,
     opts: {autoplay: boolean},
     search: URLSearchParams
-): {node: Node, onhide?: () => void, onshow?: () => void} {
+): {node: Node, onhide?: undefined | (() => void), onshow?: undefined | (() => void)} {
     const start_code = search.get("t") ?? search.get("start") ?? undefined;
     const yt_player = el("iframe").attr({
         allow: "fullscreen",
@@ -164,10 +169,10 @@ export function gfyLike(
             .onev("click", (e) => {e.stopPropagation(); console.log(r)})
         ));
         const error_v = r as {
-            logged?: boolean,
+            logged?: undefined | boolean,
             message: string,
             errorMessage: {code: string, description: string} | string,
-            reported?: boolean,
+            reported?: undefined | boolean,
         };
         if('message' in error_v || 'errorMessage' in error_v) {
             el("div").clss("error").adto(resdiv).atxt("Error: "
@@ -188,32 +193,32 @@ export function gfyLike(
                     mobilePoster: GfyContentUrl,
 
                     // gifs
-                    max1mbGif?: GfyContentUrl,
-                    max2mbGif?: GfyContentUrl,
-                    max5mbGif?: GfyContentUrl,
+                    max1mbGif?: undefined | GfyContentUrl,
+                    max2mbGif?: undefined | GfyContentUrl,
+                    max5mbGif?: undefined | GfyContentUrl,
                     
                     // videos
-                    mp4?: GfyContentUrl,
-                    mobile?: GfyContentUrl,
-                    webm?: GfyContentUrl,
-                    webp?: GfyContentUrl,
+                    mp4?: undefined | GfyContentUrl,
+                    mobile?: undefined | GfyContentUrl,
+                    webm?: undefined | GfyContentUrl,
+                    webp?: undefined | GfyContentUrl,
                 },
                 createDate: number,
-                description?: string,
-                title?: string,
+                description?: undefined | string,
+                title?: undefined | string,
                 width: number,
                 height: number,
 
-                mobileUrl?: string,
-                webmUrl?: string,
-                webpUrl?: string,
-                mp4Url?: string,
+                mobileUrl?: undefined | string,
+                webmUrl?: undefined | string,
+                webpUrl?: undefined | string,
+                mp4Url?: undefined | string,
             },
         };
         if(gfy_item.title != null) resdiv.adch(el("div").atxt("Title: " + gfy_item.title));
         if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
 
-        const sources: {url: string, type?: string, quality: string}[] = [
+        const sources: {url: string, type?: undefined | string, quality: string}[] = [
             ...gfy_item.mp4Url != null ? [{url: gfy_item.mp4Url, type: "video/mp4", quality: "Highest"}] : [],
             ...gfy_item.webmUrl != null ? [{url: gfy_item.webmUrl, type: "video/webm", quality: "Highest"}] : [],
             ...gfy_item.content_urls.webm ? [{url: gfy_item.content_urls.webm.url, quality: "Highest"}] : [],
@@ -268,7 +273,7 @@ function replaceExtension(path: string, ext: string): string {
 export function previewLink(
     client: ThreadClient,
     link: string,
-    opts: {suggested_embed?: string},
+    opts: {suggested_embed?: undefined | string},
 ): undefined | Generic.Body {
     let url_mut: URL | undefined;
     try { 
@@ -416,7 +421,7 @@ export function previewLink(
 export function canPreview(
     client: ThreadClient,
     link: string,
-    opts: {autoplay: boolean, suggested_embed?: string},
+    opts: {autoplay: boolean, suggested_embed?: undefined | string},
 ): undefined | (() => HideShowCleanup<HTMLElement>) {
     const preview_body = previewLink(client, link, {suggested_embed: opts.suggested_embed});
     if(preview_body) {
@@ -906,8 +911,8 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
             animated: true,
             looping: boolean,
 
-            gifv?: string,
-            mp4?: string,
+            gifv?: undefined | string,
+            mp4?: undefined | string,
         });
         console.log("imgur result", typed);
         if(typed.success) {
@@ -1001,7 +1006,11 @@ function zoomableFrame(img: HTMLImageElement): HTMLElement {
     return frame;
 }
 
-function elImg(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLImageElement {
+function elImg(url: string, opt: {
+    w?: undefined | number,
+    h?: undefined | number,
+    alt?: undefined | string,
+}): HTMLImageElement {
     const res = el("img").clss("image-loading")
         .attr({
             src: url,
@@ -1015,7 +1024,11 @@ function elImg(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLIm
     return res;
 }
 
-export function zoomableImage(url: string, opt: {w?: number, h?: number, alt?: string}): HTMLElement {
+export function zoomableImage(url: string, opt: {
+    w?: undefined | number,
+    h?: undefined | number,
+    alt?: undefined | string,
+}): HTMLElement {
     return zoomableFrame(elImg(url, opt).clss("preview-image"));
 }
 
@@ -2499,13 +2512,14 @@ function loadMoreButton(
         current_node.remove();
         current_node = loading_txt;
 
+        const cn = current_node;
         client.loadMore!(load_more_node.load_more).then(res => {
-            current_node.remove();
+            cn.remove();
             addChildren(res);
             removeSelf();
         }).catch(e => {
             console.log("error loading more:", e);
-            if(current_node.parentNode) current_node.remove();
+            if(cn.parentNode) cn.remove();
             current_node = el("span").atxt("Error. ").adch(makeButton().atxt("🗘 Retry")).adto(container);
         });
     }});
@@ -2546,7 +2560,7 @@ function loadMoreUnmountedButton(client: ThreadClient, load_more_node_initial: G
             }
         }).catch(e => {
             console.log("error loading more:", e);
-            if(current_node && current_node.parentNode) current_node.remove();
+            if(current_node && current_node.parentNode != null) current_node.remove();
             current_node = el("span").atxt("Error. ").adch(makeButton(lmnode).atxt("🗘 Retry")).adto(container);
         });
     }});
@@ -2937,7 +2951,7 @@ const session_name = "" + Math.random();
 
 type HistoryState = {index: number, session_name: string};
 
-export function navigate({path, replace}: {path: string, replace?: boolean}): void {
+export function navigate({path, replace}: {path: string, replace?: undefined | boolean}): void {
     replace ??= false;
     if(replace) {
         console.log("Replacing history item", current_history_index, path);

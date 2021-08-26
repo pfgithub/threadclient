@@ -17,7 +17,7 @@ export type Emoji = {
     static_url: string,
     url: string,
     visible_in_picker: boolean,
-    category?: string,
+    category?: undefined | string,
 };
 // https://docs.joinmastodon.org/entities/attachment
 export type Media = {
@@ -30,19 +30,19 @@ export type Media = {
     remote_url: string | null,
     preview_url: string | null,
     preview_remote_url: string | null, // undocumented but exists
-    description?: string,
+    description?: undefined | string,
 } & ({
     type: "image",
 
-    meta?: {
-        original?: ImageMeta | VideoMeta,
-        small?: ImageMeta,
-        focus?: {x: number, y: number}, // where the image should focus
+    meta?: undefined | {
+        original?: undefined | ImageMeta | VideoMeta,
+        small?: undefined | ImageMeta,
+        focus?: undefined | {x: number, y: number}, // where the image should focus
     },
 } | {
     type: "gifv" | "video",
 
-    meta?: {
+    meta?: undefined | {
         length: string,
         duration: number,
         fps: number,
@@ -50,11 +50,11 @@ export type Media = {
         width: number,
         height: number,
         aspect: number,
-        audio_encode?: string, // video only
-        audio_bitrate?: string, // video only
-        audio_channels?: string, // video only
-        original?: VideoMeta,
-        small?: ImageMeta,
+        audio_encode?: undefined | string, // video only
+        audio_bitrate?: undefined | string, // video only
+        audio_channels?: undefined | string, // video only
+        original?: undefined | VideoMeta,
+        small?: undefined | ImageMeta,
     },
 } | {
     type: "audio",
@@ -64,7 +64,7 @@ export type Media = {
     text_url: string,
     remote_url: string | null,
 
-    meta?: {
+    meta?: undefined | {
         length: string,
         duration: number,
         audio_encode: string,
@@ -116,9 +116,9 @@ export type Account = {
     avatar: string,
     avatar_static: string,
 
-    mentions?: Mention[],
-    emojis?: Emoji[],
-    tags?: Tag[],
+    mentions?: undefined | Mention[],
+    emojis?: undefined | Emoji[],
+    tags?: undefined | Tag[],
 };
 export type AccountRelation = {
     id: string,
@@ -155,7 +155,7 @@ export type Post = {
     favourites_count: number,
     favourited: boolean,
     content: string, // unsafe html
-    reblog?: Post,
+    reblog?: undefined | Post,
     account: Account,
     media_attachments: Media[],
     mentions: Mention[],
@@ -172,5 +172,5 @@ export type Notification = {
     type: "follow" | "follow_request" | "mention" | "reblog" | "favourite" | "poll" | "status" | "unsupported",
     created_at: string,
     account: Account,
-    status?: Post,
+    status?: undefined | Post,
 };

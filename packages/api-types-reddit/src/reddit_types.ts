@@ -207,7 +207,7 @@ type ModPerm = "all" | "wiki" | "mail" | "posts" | "flair" | "access" | "unsuppo
 export type Rule = {
     kind: "link" | "comment" | "all" | "unsupported",
     description: Markdown, // optional, might be empty
-    description_html?: HTML,
+    description_html?: undefined | HTML,
     short_name: string, // send this one as the rule_reason
     violation_reason: string, // show this one when submitting a report
     created_utc: Date.Sec,
@@ -258,15 +258,15 @@ export type FlowRule = {
     } | {
         canWriteNotes: true,
         notesInputTitle: string,
-        isAbuseOfReportButton?: true,
+        isAbuseOfReportButton?: undefined | true,
     } | {
         // when reporting a specific post or comment, automatically fill in the username
         // and don't show the prompt to pick a username
         canSpecifyUsernames: true,
         usernamesInputTitle: string,
         
-        requestCrisisSupport?: boolean,
-        oneUsername?: boolean,
+        requestCrisisSupport?: undefined | boolean,
+        oneUsername?: undefined | boolean,
     }
 );
 
@@ -347,7 +347,7 @@ export type Widget = {
     kind: "image",
     data: {
         url: string,
-        linkUrl?: string,
+        linkUrl?: undefined | string,
         width: number,
         height: number,
     }[], // only contains one item unless progressive_images is enabled
@@ -391,9 +391,9 @@ export type Widget = {
         text: string,
         url: string,
 
-        color?: string,
-        textColor?: string,
-        fillColor?: string,
+        color?: undefined | string,
+        textColor?: undefined | string,
+        fillColor?: undefined | string,
     } | {
         kind: "image",
         linkUrl: string,
@@ -603,7 +603,7 @@ export type T5Data = { // T5_Data? pascal_underscore case?
 
     community_icon: "" | string,
     banner_background_image: "" | string,
-    banner_img?: "" | string,
+    banner_img?: undefined | "" | string,
     mobile_banner_image: "" | string,
     banner_size: null | [w: number, h: number],
 } & {
@@ -769,7 +769,7 @@ export type ImageMeta = BaseMediaMeta & {
 };
 export type AnimatedImageMeta = BaseMediaMeta & {
     gif: string,
-    mp4?: string,
+    mp4?: undefined | string,
 };
 export type BaseMedia = {
     m: string, // eg image/png or image/gif
@@ -789,10 +789,10 @@ export type Media = (BaseMedia & ({
     t: "emoji" | "unsupported",
 } | {
     e: "AnimatedImage",
-    ext?: string, // external link, eg giphy.com/…
+    ext?: undefined | string, // external link, eg giphy.com/…
     m: string, // eg image/gif
 
-    p?: ImageMeta[], // alternate sizes
+    p?: undefined | ImageMeta[], // alternate sizes
     s: AnimatedImageMeta, // source size
 } | {
     e: "RedditVideo",
@@ -814,8 +814,8 @@ export type PostOrComment = {
 
     author: string,
     author_fullname: `t2_${string}`,
-    author_cakeday?: boolean,
-    profile_img?: string,
+    author_cakeday?: undefined | boolean,
+    profile_img?: undefined | string,
     
     likes: true | false | null,
 
@@ -831,10 +831,10 @@ export type PostOrComment = {
 
     score_hidden: boolean,
 
-    upvote_ratio?: number, // on posts
-    controversiality?: 0 | 1, // on comments
+    upvote_ratio?: undefined | number, // on posts
+    controversiality?: undefined | 0 | 1, // on comments
 
-    archived?: boolean,
+    archived?: undefined | boolean,
 
     author_flair_type: FlairBits.Type,
     author_flair_text: FlairBits.Text,
@@ -842,7 +842,7 @@ export type PostOrComment = {
     author_flair_background_color: FlairBits.BackgroundColor,
     author_flair_text_color: FlairBits.TextColor,
 
-    media_metadata?: MediaMetadata,
+    media_metadata?: undefined | MediaMetadata,
 
     saved: boolean,
     edited: false | number,
@@ -854,12 +854,12 @@ export type PostOrComment = {
 
     locked: boolean,
 
-    approved?: boolean,
-    pinned?: boolean,
-    stickied?: boolean,
+    approved?: undefined | boolean,
+    pinned?: undefined | boolean,
+    stickied?: undefined | boolean,
 
     mod_reports: ModReport[],
-    mod_reports_dismissed?: ModReport[],
+    mod_reports_dismissed?: undefined | ModReport[],
     user_reports: UserReport[],
 
     // moderator stuff. always null unless you're moderator
@@ -888,23 +888,23 @@ export type PostSubmission = PostOrComment & {
     is_self: boolean,
     rtjson: Richtext.Document, // deleted comments are <p>[deleted]</p>.
     // I don't see any other field in the api for this. if author == u/[deleted] then check body.
-    thumbnail?: string,
+    thumbnail?: undefined | string,
 
     selftext: Markdown | "",
     selftext_html: HTML | null,
 
-    gallery_data?: {items: {
-        caption?: string,
+    gallery_data?: undefined | {items: {
+        caption?: undefined | string,
         media_id: string, // →media_metadata
         id: number,
     }[]},
 
-    preview?: {
+    preview?: undefined | {
         images: ({
             id: string,
             variants: {
-                gif?: VariantSource,
-                mp4?: VariantSource,
+                gif?: undefined | VariantSource,
+                mp4?: undefined | VariantSource,
             },
         } & VariantSource)[],
         enabled: boolean,
@@ -918,19 +918,19 @@ export type PostSubmission = PostOrComment & {
 
     num_comments: number,
 
-    crosspost_parent_list?: PostSubmission[],
+    crosspost_parent_list?: undefined | PostSubmission[],
 
-    media_embed?: {content?: string},
+    media_embed?: undefined | {content?: undefined | string},
 
     can_mod_post: boolean,
     contest_mode: boolean,
 
     domain: string,
 
-    poll_data?: {
+    poll_data?: undefined | {
         options: {
             text: string, id: string,
-            vote_count?: number,
+            vote_count?: undefined | number,
         }[],
         resolved_option_id: null,
         total_vote_count: number,
@@ -949,9 +949,9 @@ export type PostSubmission = PostOrComment & {
     // https://thread.pfg.pw/reddit/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/gjpjyw3/?context=3&sort=confidence
     removed_by_category: null | RemovedByCategory,
 
-    suggested_sort?: Sort | null,
+    suggested_sort?: undefined | Sort | null,
 
-    rpan_video?: {
+    rpan_video?: undefined | {
         hls_url: string, // https://watch.redd.it/hls/…/index.m3u8 // note this can be fetched, it allows cross-origin requests
         scrubber_media_url: string, // https://watch.redd.it/hls/…/thumbnail.jpg // not sure why this would be a jpg file
     },
@@ -1079,14 +1079,14 @@ export type Award = {
     days_of_drip_extension: number, // ??
     days_of_premium: number, // # days premium reciever gets
 
-    start_date?: unknown,
-    end_date?: unknown,
+    start_date?: undefined | unknown,
+    end_date?: undefined | unknown,
 
     award_type: "global" | "unsupported",
     award_sub_type: "GLOBAL" | "PREMIUM" | "APPRECIATION" | "unsupported",
-    awardings_required_to_grant_benefits?: unknown,
+    awardings_required_to_grant_benefits?: undefined | unknown,
 
-    tiers_by_required_awardings?: unknown,
+    tiers_by_required_awardings?: undefined | unknown,
 };
 
 export type RichtextFlair = ({
@@ -1141,7 +1141,7 @@ export declare namespace Richtext {
     export type Span = {
         e: "text",
         t: string,
-        f?: FormatRange[],
+        f?: undefined | FormatRange[],
     } | {
         e: "r/",
         t: string, // subreddit name unprefixed
@@ -1154,8 +1154,8 @@ export declare namespace Richtext {
         e: "link",
         u: string, // url
         t: string, // link text
-        a?: string, // tooltip text
-        f?: FormatRange[],
+        a?: undefined | string, // tooltip text
+        f?: undefined | FormatRange[],
     } | {
         e: "br", // <br />, a line break within a paragraph
     } | {
@@ -1174,8 +1174,8 @@ export declare namespace Richtext {
         e: "unsupported",
     };
     export type TableHeading = {
-        a?: "L" | "C" | "R", // align
-        c?: Span[],
+        a?: undefined | "L" | "C" | "R", // align
+        c?: undefined | Span[],
     };
     export type TableItem = {
         c: Span[],

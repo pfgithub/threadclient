@@ -7,8 +7,8 @@
 export {};
 
 type AttrsSet = {
-	"width"?: `${number}`,
-	"height"?: `${number}`,
+	"width"?: undefined | `${number}`,
+	"height"?: undefined | `${number}`,
 	[key: string]: string | null | undefined,
 };
 
