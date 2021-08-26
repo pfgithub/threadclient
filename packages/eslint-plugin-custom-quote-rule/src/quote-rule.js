@@ -107,6 +107,7 @@ module.exports = {
         'member-delimiter-style': require("./member-delimiter-style").default,
         'func-style': require("./func-style"),
         'indent': require("./indent"),
+        'explicit-optional-key': require("./explicit-optional-key"),
     },
     configs: {
         recommended: {
