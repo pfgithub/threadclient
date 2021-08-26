@@ -76,16 +76,34 @@ function ErrableLink<T,>(props: {
     </ShowBool>;
 }
 
-type ClientPostReplyProps = {reply: Generic.ListingEntry, is_threaded: boolean};
+type ClientPostReplyProps = {reply: Generic.ListingEntry, is_threaded: boolean, parent_is_threaded?: boolean};
 function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
-    const isThreaded = createMemo(() => (
-        (props.is_threaded || undefined) && kindIs(props.reply, "post")?.post.ref?.replies?.items
-    ));
+    const isThreaded = createMemo((): Generic.ListingEntry | undefined => {
+        if(!props.is_threaded) return undefined;
+        const res = kindIs(props.reply, "post")?.post.ref?.replies?.items;
+        if(res && res.length === 1) {
+            return res[0]!;
+        }
+        return undefined;
+    });
+    // this threading logic is a bit complicated and it requires
+    // hiding the replies from the ClientPost that gets rendered.
+    // if you can find a way to improve the threading logic or
+    // maybe have the ClientPost render its replies threaded
+    // if it is threaded itself, that would probably be an
+    // improvement.
+    // eg: it would make it easier to do the onreplied function
+    // of the reply action because a post could just keep a state
+    // of "your replies" and then when it's rendering replies,
+    // render [...yours, ...post's] and this wouldn't run into
+    // issues when the post is threaded.
 
     return <>
         <li class={classes(
             props.reply.kind === "post" ? "comment" : [],
-            props.is_threaded ? ["relative", "threaded"] : [],
+            props.is_threaded && (
+                isThreaded() != null || (props.parent_is_threaded ?? false)
+            ) ? ["relative", "threaded"] : [],
         )}>
             <SwitchKind item={props.reply}>{{
                 post: post_link => (
@@ -95,7 +113,7 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
                             at_or_above_pivot: false,
                             is_pivot: false,
                             frame: post,
-                            replies: isThreaded()?.length === 1 ? null : post.replies, // TODO support threading
+                            replies: isThreaded() != null ? null : post.replies,
                             top_level: false,
                         }} />
                     )}</ErrableLink>
@@ -103,9 +121,9 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
                 load_more: () => <>TODO load more</>
             }}</SwitchKind>
         </li>
-        <ShowBool when={isThreaded()?.length === 1}>{
-            <ClientPostReply reply={isThreaded()![0]!} is_threaded={true} />
-        }</ShowBool>
+        <ShowCond when={isThreaded()}>{thread => (
+            <ClientPostReply reply={thread} is_threaded={true} parent_is_threaded={true} />
+        )}</ShowCond>
     </>;
 }
 
