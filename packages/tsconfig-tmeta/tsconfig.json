@@ -5,7 +5,7 @@
         "noUncheckedIndexedAccess": true,
         "noImplicitAny": true,
         "noImplicitReturns": true,
-        "exactOptionalPropertyTypes": true,
+        //"exactOptionalPropertyTypes": true, // TODO
         "importsNotUsedAsValues": "remove",
         "target": "es2019",
         "module": "ESNext",
