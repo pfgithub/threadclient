@@ -107,6 +107,7 @@ function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.Pos
                 } : undefined,
                 info: {
                     creation_date: item.time * 1000,
+                    comments: item.comments_count,
                 },
                 body: item.content != null ? {
                     kind: "text",
