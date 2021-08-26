@@ -1,4 +1,4 @@
-import type { ThreadClient } from "./clients/base";
+import type { ThreadClient } from "threadreader-client-base";
 import type {OEmbed} from "api-types-oembed";
 import { oembed } from "./clients/oembed";
 import { Body, ImageGallery } from "./components/body";
@@ -6,7 +6,7 @@ import { Homepage } from "./components/homepage";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { escapeHTML } from "./util";
+import { escapeHTML } from "tmeta-util";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings, TimeAgo } from "./util/utils_solid";
 import { variables } from "virtual:_variables";
@@ -2929,7 +2929,7 @@ const client_cache: {[key: string]: ThreadClient} = {};
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     reddit: () => import("./clients/reddit").then(client => client.client),
     mastodon: () =>  import("./clients/mastodon").then(client => client.client),
-    hackernews: () =>  import("./clients/hackernews").then(client => client.client),
+    hackernews: () =>  import("threadreader-client-hackernews").then(client => client.client),
     test: () =>  import("./clients/test").then(client => client.client),
 };
 async function getClient(name_any: string) {

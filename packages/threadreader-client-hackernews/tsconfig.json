@@ -2,10 +2,12 @@
     "extends": "tsconfig-tmeta",
     "compilerOptions": {
         "outDir": "./dist",
-
-        "module": "CommonJS"
+        "lib": [
+            "dom",
+            "DOM.Iterable",
+        ]
     },
     "include": [
-        "src/**/*",
-    ]
+        "src/**/*"
+    ],
 }

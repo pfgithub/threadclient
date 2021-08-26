@@ -4,8 +4,8 @@ import * as commonmark from "commonmark";
 import { LogEntry, variables } from "virtual:_variables";
 import type * as Generic from "api-types-generic";
 import { Richtext, rt } from "api-types-generic";
-import { assertNever } from "../util";
-import { encoderGenerator, ThreadClient } from "./base";
+import { assertNever } from "tmeta-util";
+import { encoderGenerator, ThreadClient } from "threadreader-client-base";
 
 function childrenOf(node: commonmark.Node): commonmark.Node[] {
     const res: commonmark.Node[] = [];

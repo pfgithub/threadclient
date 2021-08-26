@@ -4,9 +4,9 @@ import { getVredditSources } from "../app";
 import type * as Reddit from "api-types-reddit";
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import * as util from "../util";
-import { encodeQuery, encodeURL } from "../util";
-import { encoderGenerator, ThreadClient } from "./base";
+import * as util from "tmeta-util";
+import { encodeQuery, encodeURL } from "tmeta-util";
+import { encoderGenerator, ThreadClient } from "threadreader-client-base";
 import { IDMap, page2FromListing } from "./reddit/page2_from_listing";
 
 const client_id = "biw1k0YZmDUrjg";

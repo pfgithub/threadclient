@@ -1,7 +1,7 @@
 import type * as Reddit from "api-types-reddit";
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { assertNever } from "../../util";
+import { assertNever } from "tmeta-util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,

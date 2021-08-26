@@ -1,8 +1,8 @@
 import type * as Generic from "api-types-generic";
-import type * as HN from "./hackernews/hn_types";
-import { assertNever } from "../util";
-import type { ThreadClient } from "./base";
-import { ParsedPath, parseLink } from "./hackernews/hn_router";
+import type * as HN from "api-types-hackernews";
+import { assertNever } from "tmeta-util";
+import type { ThreadClient } from "threadreader-client-base";
+import { ParsedPath, parseLink } from "./hn_router";
 
 export type ID = string;
 export type IDMap = Map<ID, IDMapEntry>;

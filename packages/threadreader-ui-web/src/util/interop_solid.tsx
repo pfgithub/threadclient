@@ -2,7 +2,7 @@ import { createEffect, createSignal, JSX, onCleanup } from "solid-js";
 import {HideshowProvider, ClientProvider, getClient, getIsVisible, ColorDepthContext} from "./utils_solid";
 import { render } from "solid-js/web";
 import { hideshow, HideShowCleanup } from "../app";
-import type { ThreadClient } from "../clients/base";
+import type { ThreadClient } from "threadreader-client-base";
 
 export function vanillaToSolidBoundary(
     client: ThreadClient,

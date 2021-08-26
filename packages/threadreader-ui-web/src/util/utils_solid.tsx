@@ -5,7 +5,7 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { link_styles_v } from "../app";
-import type { ThreadClient } from "../clients/base";
+import type { ThreadClient } from "threadreader-client-base";
 
 export type Include<T, U> = T extends U ? T : never;
 

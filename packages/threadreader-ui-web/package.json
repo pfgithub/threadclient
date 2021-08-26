@@ -34,7 +34,10 @@
         "eslint-config-tmeta": "^1.0.0",
         "api-types-generic": "^1.0.0",
         "api-types-mastodon": "^1.0.0",
-        "api-types-oembed": "^1.0.0"
+        "api-types-oembed": "^1.0.0",
+        "threadreader-client-base": "^1.0.0",
+        "threadreader-client-hackernews": "^1.0.0",
+        "tmeta-util": "^1.0.0"
     },
     "dependencies": {
         "commonmark": "^0.30.0",

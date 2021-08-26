@@ -1,4 +1,4 @@
-import * as util from "../../util";
+import * as util from "tmeta-util";
 
 // all of these : ?page=…
 // News · /news (/ → /news) (TODO redirects)

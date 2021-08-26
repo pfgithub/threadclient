@@ -1,8 +1,8 @@
 /* eslint-disable max-len */
 
-import { assertNever, encodeQuery, router } from "../util";
+import { assertNever, encodeQuery, router } from "tmeta-util";
 import type * as Generic from "api-types-generic";
-import {encoderGenerator, ThreadClient} from "./base";
+import {encoderGenerator, ThreadClient} from "threadreader-client-base";
 import type * as Mastodon from "api-types-mastodon";
 import { mnu, rt } from "api-types-generic";
 import { oembed } from "./oembed";
