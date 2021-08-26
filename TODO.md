@@ -86,6 +86,8 @@ unrelated:
 
 -   upgrade timeAgo to support weeks/months. "last month", "two months ago", …
 -   do this using the local timezone? not like https://github.com/hustcc/timeago.js/blob/master/src/utils/date.ts
+-   a post on reddit with 0 points actually has ≤0 points, so upvoting or downvoting it should not change
+    the point count
 
 all todo:
 
