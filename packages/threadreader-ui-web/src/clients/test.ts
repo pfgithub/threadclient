@@ -458,9 +458,12 @@ const sitemap: SitemapEntry[] = [
         },
         replyopts: {
             reply: {
-                kind: "reply",
-                text: "Reply",
-                reply_info: reply_encoder.encode({kind: "markdown"}),
+                action: {
+                    kind: "reply",
+                    text: "Reply",
+                    reply_info: reply_encoder.encode({kind: "markdown"}),
+                },
+                locked: false,
             },
         },
         replies: [],
@@ -471,8 +474,6 @@ const sitemap: SitemapEntry[] = [
             title: null,
             wrap_page: {
                 sidebar: {
-                    sort: null,
-                    reply: null,
                     items: [],
                 },
                 header: {
@@ -574,7 +575,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
             kind: "post",
             url: urlr,
             parent: parent ? {ref: parent, err: undefined} : null,
-            replies: {sort: null, reply: null, ...called.replyopts, items: [{kind: "load_more"}]},
+            replies: {...called.replyopts, items: [{ref: {kind: "loader", parent: null, replies: null, url: null}}]},
             content: called.content,
             internal_data: 0,
             display_style: "centered",
@@ -582,39 +583,40 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         if(called.replies) {
             const subv = getFromSitemap(path, index + 1, called.replies, this_post);
             if(subv) return subv;
-            const mapReplies = (parentv: Generic.PostData, nreplies: SitemapEntry[], urlr: string): Generic.ListingEntry[] => (
-                nreplies.map((reply): Generic.ListingEntry => {
+            const mapReplies = (
+                parentv: Generic.PostData,
+                nreplies: SitemapEntry[],
+                urlr: string,
+            ): Generic.Link<Generic.Post>[] => (
+                nreplies.map((reply): Generic.Link<Generic.Post> => {
                     const urlr2 = urlr + "/" + reply[0];
                     const replyitm = reply[1](urlr2);
                     // reply count estimate: replyitm.replies.length
-                    const thispost: Generic.ListingEntry = {
+                    const thispost: Generic.Link<Generic.Post> = {ref: {
                         kind: "post",
-                        post: {ref: {
-                            kind: "post",
-                            url: urlr2,
-                            parent: {ref: parentv, err: undefined},
-                            replies: null,
-                            content: replyitm.content,
-                            internal_data: 0,
-                            display_style: "centered",
-                        }, err: undefined},
-                    };
-                    if(replyitm.replies) thispost.post.ref!.replies = {
-                        sort: null,
-                        reply: null,
+                        url: urlr2,
+                        parent: {ref: parentv, err: undefined},
+                        replies: null,
+                        content: replyitm.content,
+                        internal_data: 0,
+                        display_style: "centered",
+                    }, err: undefined};
+                    if(replyitm.replies) thispost.ref.replies = {
                         ...replyitm.replyopts,
                         items: (
                             replyitm.content.kind === "post"
                             &&
                             replyitm.content.show_replies_when_below_pivot !== false
                         ) ? (
-                            mapReplies(thispost.post.ref!, replyitm.replies, urlr2)
-                        ) : [{kind: "load_more"}],
+                            mapReplies(thispost.ref as Generic.PostData, replyitm.replies, urlr2)
+                        ) : [{ref: {kind: "loader", parent: null, replies: null, url: null}}],
                     };
                     return thispost;
                 })
             );
-            this_post.replies = {sort: null, reply: null, ...called.replyopts, items: mapReplies(this_post, called.replies, urlr)};
+            this_post.replies = {
+                ...called.replyopts, items: mapReplies(this_post, called.replies, urlr),
+            };
         }else{
             this_post.replies = null;
         }

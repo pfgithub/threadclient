@@ -816,6 +816,8 @@ export type PostOrComment = {
     author_fullname: `t2_${string}`,
     author_cakeday?: undefined | boolean,
     profile_img?: undefined | string,
+
+    link_id: string,
     
     likes: true | false | null,
 
@@ -1029,10 +1031,12 @@ export type T1 = {
     data: PostComment,
 };
 
-export type PostCommentLike = T1 | {
+export type More = {
     kind: "more",
     data: PostMore,
 };
+
+export type PostCommentLike = T1 | More;
 
 export type T3 = {
     kind: "t3",
@@ -1040,7 +1044,7 @@ export type T3 = {
 };
 
 export type Post = T3 | PostCommentLike | {
-    kind: "unknown",
+    kind: "unsupported",
     data: {name: string},
 };
 

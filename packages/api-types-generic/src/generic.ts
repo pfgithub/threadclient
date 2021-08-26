@@ -1,137 +1,55 @@
-// types that clients return
-
-/// export namespace generic<InternalDataType>?
-
-export type ContentFrame = {
-    // clients should provide a method to bundle requests. requestAll([above, content, below])
-    // the recommended request order returns the best order and grouping to perform the needed requests
-    // eg do a request for [above, content, below] followed by [sidebar, header]
-    recommended_request_order: InfoRequest[][],
-};
-export type InfoRequest = keyof InfoRequestMap;
-export type InfoRequestMap = {
-    body: Page,
-};
-
-// ok "load more"
-// situations this may occur:
-// - comments:
-//   - comment one
-//   - load more…
-//   - comment two
-// here, the load more can load multiple items
-//
-// - comment one
-//   - load more…
-//     - comment four
-// here, the load more is filling in parent/replies
-// like after loading more, you might end up with
-// - comment one
-//   - comment two
-//     - comment three
-//       - comment four
-// to represent this
-// like uuh
-// comment four needs to have a parent comment that's a load more
-// and that should have the identifier or whatever it is
-// are these the same thing or are they different in some fundamental way?
-// they seem different
-
-// ok an interesting one
-// sometimes, replies→a reply→parent is not the original thing
-// eg the reddit homepage
-// replies has a bunch of posts but the posts each have subreddit parents
-
-// ok here's something
-// rather than returning a filled in content map,
-// how about providing functions to rehydrate uuh
-// nah provide a content map that's as filled as it
-// can be and then use loaders I think.
-
-/// note that this includes cyclic references
-/// when stringifying, it's necessary to keep maps of what has been added
 export type Page2 = {
-    pivot: Link<PostData>,
+    pivot: Link<Post>,
 };
-export type ID<T> = symbol & {__is_id: T};
-export type ParentPost = PostData | PostVerticalLoader;
-export type PostData = {
+
+export type Link<T> = {ref: T, err?: undefined} | {ref: undefined, err: string};
+
+export type Post = PostData | Loader;
+
+export type PostData = BasePost & {
     kind: "post",
-    url: string | null, // if a thing does not have a url, it cannot be the pivot
-    parent: Link<ParentPost> | null,
-    replies: ListingData | null,
 
     content: PostContent, // content should always be in a PostData. eg: crossposts that are embedded in a body also need parent, replies.
     internal_data: unknown,
     display_style: "fullscreen" | "centered",
 };
-// two posts with the same url should be
-// the same.
-// this property should be used when
-// a partial update is recieved. eg:
-//   you're browsing a thread and
-//   focus a comment. threadreader
-//   can refocus immediately and
-//   display a load more, but then
-//   it should fetch updated content
-//   and diff with existing content.
-//   when diffing, things with the
-//   same url can be used as "anchor
-//   points" if eg you know some
-//   content hidden behind a load
-//   more button already
 
+export type Loader = BasePost & {
+    kind: "loader",
+    // note: horizontal loaders are not allowed to have replies
+};
 
-// loads like :: a parent might be known and a replies might be known.
-// returns an array of PostData | PostVerticalLoader to place between
-// the parent and replies in the node tree.
-export type PostVerticalLoader = {
-    kind: "vloader",
-    parent: Link<ParentPost> | null,
+export type BasePost = {
+    parent: Link<Post> | null,
     replies: ListingData | null,
+    
+    url: string | null, // if a thing does not have a url, it cannot be the pivot
 };
-export type PostHorizontalLoader = {
-    kind: "load_more",
-    // TODO
-};
-export type ListingData = {
-    sort: ID<SortData> | null,
-    // pinned: …
-    // items: …
-    reply: ReplyAction | null,
-    locked?: boolean | undefined, // only moderators can comment
-    items: ListingEntry[],
-};
-export type ListingEntry = {
-    kind: "post",
-    post: Link<PostData>,
-} | PostHorizontalLoader;
 
-// ok dealing with sidebars
-// so take eg twxtter
-// sidebars often contain info relative to the pivoted content
-// maybe anything should be able to specify a sidebar and it should only
-// be used if it's at or above the pivot?
+export type ListingData = {
+    // TODO redo sort. sort should be preserved when loading more comments
+    sort?: undefined | SortData,
+    reply?: undefined | {
+        action: ReplyAction,
+        locked: boolean, // only moderators can comment
+    },
+
+    // pinned: Post[],
+    items: Link<Post>[],
+};
 
 export type ClientPost = {
     kind: "client",
     navbar: Navbar,
 };
-export type Link<T> = {ref: T, err: undefined} | {ref: undefined, err: string};
 export type PostInfo = {
     creation_date?: number | undefined,
-    edited?: {date?: number | undefined} | undefined, // you can have an edited date w/out a creation date
-    pinned?: boolean | undefined,
+    edited?: {date?: number | undefined} | undefined,
+    pinned?: boolean | undefined, // TODO remove this, use the "pinned" section in a ListingData instead
     in?: {name: string, link: string} | undefined,
     comments?: number | undefined,
 };
 export type PostContentPost = {
-    /// the thing containing a post. generally post replies
-    /// are only shown when it's at or above the pivot.
-    /// this should be clickable if:
-    /// - this is below the pivot and show_replies_when… is false
-    /// - this is above the pivot
-    /// - in the future, probably everything should be clickable
     kind: "post",
 
     title: null | {
@@ -148,11 +66,6 @@ export type PostContentPost = {
     /// | | reply
     show_replies_when_below_pivot: boolean,
     collapsible: false | {default_collapsed: boolean},
-    // actions?: undefined | {
-    //     collapse_line?: Action[] | undefined,
-    //     content_buttons?: Action[] | undefined,
-    //     info_line?: Action[] | undefined, // should only be for info eg the points on a counter
-    // },
     actions?: undefined | {
         // puts the up and down arrow in the gutter and points/% voted in the info line. could do
         // something similar but with a star for mastodon.
@@ -163,26 +76,9 @@ export type PostContentPost = {
         // report?: ReportAction | undefined,
         other?: Action[] | undefined,
 
-        // note, on mobile all of these
-        // should appear in a … menu too
-        // maybe on desktop too, why not
-        // to do mobile viewport targeted
-        // stuff in js I need to complete
-        // the solid migration
-        
         moderator?: RedditModState | undefined,
     },
 };
-
-// if you have a url, you should call like getFrame or something which gives you
-// an empty frame and then you should fetch from there. that might be nice to implement now.
-
-// basically: call getFrame() which returns a Page2
-// - title will get moved to a property of the pivot
-// - the pivot will be updated to be a single-item loader,
-//   likely with a vertical loader above and a horizontal
-//   loader below
-// - the highest post with a title is used for the title
 
 export type PostContent = ClientPost | {
     /// the thing containing the header and sidebar. when rendered below
@@ -193,15 +89,11 @@ export type PostContent = ClientPost | {
         sidebar: ListingData,
         header: RedditHeader,
     },
-    // overview: Link<PostData>, // I think this is supposed to be for if rendered below the pivot
+    // overview: ClientPost, // I think this is supposed to be for if rendered below the pivot
 } | PostContentPost | {
     kind: "legacy",
     thread: Thread,
 };
-/// in case the body contains a loader. it should also be supported to have a loader in richtext content.
-// export type BodyData = {
-//     body: Body,
-// };
 export type SortData = {
     sort_methods: "TODO",
     current_method: number,
@@ -210,22 +102,10 @@ export type SortData = {
     // to have stuff like post duplicates and subreddit
     // navbars.
 };
-// take an example comment
-// - client (root)
-// - subreddit ("page")
-// - link post and comments up to pivot ("")
-// - comments below pivot
-//
-// take an example subreddit view
-// - client
-// - subreddit (pivot)
-// - threads
-//
-// take an example wiki page
-// - client
-// - subreddit
-// - the wiki page (pivot)
 
+// /---------------\
+// |---- page1 ----|
+// \---------------/
 
 export type Page = {
     title: string,

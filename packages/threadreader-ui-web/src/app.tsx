@@ -2833,25 +2833,26 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             const page2 = await client.getPage!(current_path);
             // if(dev mode) error if no title is set;
             
-            let p2title = "«err no title»";
-            let focus: Generic.ParentPost | undefined = page2.pivot.ref;
+            let p2title: undefined | string;
+            let display_style: "centered" | "fullscreen" | undefined;
+            let focus = page2.pivot.ref;
             while(focus) {
                 if(focus.kind === "post" && focus.content.kind === "post") {
                     if(focus.content.title) {
-                        p2title = focus.content.title.text;
-                        break;
+                        if(p2title == null) p2title = focus.content.title.text;
                     }
+                    if(display_style == null) display_style = focus.display_style;
                 }
                 focus = focus.parent?.ref;
             }
-            title.setTitle(p2title);
+            title.setTitle(p2title ?? "«err no title»");
 
             const {ClientPage} = await import("./components/page2");
             loader_area.remove();
 
             frame.classList.remove("client-main-frame");
             frame.classList.add(
-                "display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[page2.pivot.ref!.display_style]
+                "display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[display_style ?? "centered"]
             );
             vanillaToSolidBoundary(client, frame, () => <ClientPage page={page2} />, {color_level: 0}).defer(hsc);
             // renderClientPage2(client, page2, frame, title).defer(hsc);

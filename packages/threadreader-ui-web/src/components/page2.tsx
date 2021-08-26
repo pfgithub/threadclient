@@ -7,7 +7,7 @@ import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getClient, getSettings, HideshowProvider,
-    kindIs, screenWidth, screen_size, ShowBool, ShowCond, SwitchKind, TimeAgo, ToggleColor
+    screenWidth, screen_size, ShowBool, ShowCond, SwitchKind, TimeAgo, ToggleColor
 } from "../util/utils_solid";
 import { PostActions } from "./action";
 import { animateHeight, ShowAnimate } from "./animation";
@@ -77,14 +77,14 @@ function ErrableLink<T,>(props: {
 }
 
 type ClientPostReplyProps = {
-    reply: Generic.ListingEntry,
+    reply: Generic.Link<Generic.Post>,
     is_threaded: boolean,
     parent_is_threaded?: undefined | boolean,
 };
 function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
-    const isThreaded = createMemo((): Generic.ListingEntry | undefined => {
+    const isThreaded = createMemo((): Generic.Link<Generic.Post> | undefined => {
         if(!props.is_threaded) return undefined;
-        const res = kindIs(props.reply, "post")?.post.ref?.replies?.items;
+        const res = props.reply.ref?.replies?.items;
         if(res && res.length === 1) {
             return res[0]!;
         }
@@ -104,31 +104,42 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
 
     return <>
         <li class={classes(
-            props.reply.kind === "post" ? "comment" : [],
+            // "comment",
             props.is_threaded && (
                 isThreaded() != null || (props.parent_is_threaded ?? false)
             ) ? ["relative", "threaded"] : [],
         )}>
-            <SwitchKind item={props.reply}>{{
-                post: post_link => (
-                    <ErrableLink link={post_link.post}>{post => (
-                        <ClientPost content={post.content as Generic.PostContentPost} opts={{
+            <ErrableLink link={props.reply}>{post => (
+                <SwitchKind item={post}>{{
+                    post: content_post => (
+                        <ClientContentAny content={content_post.content} opts={{
                             clickable: false,
                             at_or_above_pivot: false,
                             is_pivot: false,
-                            frame: post,
+                            frame: content_post,
                             replies: isThreaded() != null ? null : post.replies,
                             top_level: false,
                         }} />
-                    )}</ErrableLink>
-                ),
-                load_more: () => <>TODO load more</>
-            }}</SwitchKind>
+                    ),
+                    loader: () => <>TODO load more TODO load more may have replies</>
+                }}</SwitchKind>
+            )}</ErrableLink>
         </li>
         <ShowCond when={isThreaded()}>{thread => (
             <ClientPostReply reply={thread} is_threaded={true} parent_is_threaded={true} />
         )}</ShowCond>
     </>;
+}
+
+export function ClientContentAny(props: {content: Generic.PostContent, opts: ClientPostOpts}): JSX.Element {
+    return <SwitchKind item={props.content}>{{
+        post: content => (
+            <ClientPost content={content} opts={props.opts} />
+        ),
+        page: () => <>TODO page</>,
+        legacy: () => <>TODO legacy</>,
+        client: () => <>TODO client</>,
+    }}</SwitchKind>;
 }
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
@@ -412,11 +423,14 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
                 <ShowAnimate when={showReplyEditor()} fallback={
                     <div>
                         <button
-                            class={link_styles_v["pill-empty"]} onClick={() => setShowReplyEditor(true)}
-                        >Write Reply</button>
+                            class={link_styles_v["pill-empty"]} onClick={() => {
+                                setShowReplyEditor(true);
+                            }}
+                            disabled={reply_action.locked}
+                        >Write Reply{reply_action.locked ? " (Locked)" : ""}</button>
                     </div>
                 }>
-                    <ReplyEditor action={reply_action} onCancel={() => {
+                    <ReplyEditor action={reply_action.action} onCancel={() => {
                         setShowReplyEditor(false);
                     }} onAddReply={() => {
                         setShowReplyEditor(false);
@@ -426,24 +440,26 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
             )}</ShowCond>
             <div class="mb-6"></div>
             {/*TODO put the sorting options here*/null}
-            <For each={replies.items} fallback={<div>*There are no replies*</div>}>{reply => (
-                <SwitchKind item={reply}>{{
-                    post: post => (
-                        <TopLevelWrapper>
-                            <ClientContent listing={post.post.ref!.content} opts={{
-                                clickable: false, // TODO
-                                frame: post.post.ref!,
-                                replies: post.post.ref!.replies,
-                                at_or_above_pivot: false,
-                                top_level: true,
-                                is_pivot: false,
-                            }} />
-                        </TopLevelWrapper>
-                    ),
-                    load_more: () => {
-                        throw new Error("todo load more");
-                    },
-                }}</SwitchKind>
+            <For each={replies.items} fallback={<div>*There are no replies*</div>}>{reply_link => (
+                <ErrableLink link={reply_link}>{reply => (
+                    <SwitchKind item={reply}>{{
+                        post: post => (
+                            <TopLevelWrapper>
+                                <ClientContentAny content={post.content} opts={{
+                                    clickable: false, // TODO
+                                    frame: post,
+                                    replies: post.replies,
+                                    at_or_above_pivot: false,
+                                    top_level: true,
+                                    is_pivot: false,
+                                }} />
+                            </TopLevelWrapper>
+                        ),
+                        loader: () => <>
+                            TODO load more
+                        </>,
+                    }}</SwitchKind>
+                )}</ErrableLink>
             )}</For>
         </>}</ShowCond>
     </WrapParent>;
@@ -463,7 +479,7 @@ export function TopLevelWrapper(props: {
 // you know what'd be interesting?
 // what if the Client post in a post's parent list actually contained the client to use to render it
 // not going to do that but it could be interesting
-function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_pivot: boolean}): JSX.Element {
+function WrapParent(props: {node: Generic.Post, children: JSX.Element, is_pivot: boolean}): JSX.Element {
     // () => in order to capture any .Provider nodes in a parent
     const content = () => <>
         <SwitchKind item={props.node}>{{
@@ -497,7 +513,7 @@ function WrapParent(props: {node: Generic.ParentPost, children: JSX.Element, is_
                     client: () => <>TODO client</>,
                 }}</SwitchKind>
             ),
-            vloader: () => <>TODO vloader</>,
+            loader: () => <>TODO loader</>,
         }}</SwitchKind>
         {props.children}
     </>;

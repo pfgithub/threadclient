@@ -84,9 +84,7 @@ function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostData> {
 function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.PostData {
     if(value.data.kind === "header") {
         return getPageHeader(value.data.parsed, {
-            sort: null,
-            reply: null,
-            items: value.data.replies.map(reply => ({kind: "post", post: getPostData(map, getID(reply))})),
+            items: value.data.replies.map(reply => getPostData(map, getID(reply))),
         });
     }else if(value.data.kind === "item") {
         const item = value.data.item;
@@ -96,9 +94,7 @@ function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.Pos
 
             parent: getPostData(map, value.data.parent),
             replies: {
-                sort: null,
-                reply: null,
-                items: (item.comments ?? []).map(reply => ({kind: "post", post: getPostData(map, getID(reply))})),
+                items: (item.comments ?? []).map(reply => getPostData(map, getID(reply))),
             },
             content: {
                 kind: "post",
@@ -200,8 +196,6 @@ function getPageHeader(parsed: ParsedPath, replies: Generic.ListingData): Generi
             }[parsed.tab] : parsed.kind,
             wrap_page: {
                 sidebar: {
-                    sort: null,
-                    reply: null,
                     items: [],
                 },
                 header: {

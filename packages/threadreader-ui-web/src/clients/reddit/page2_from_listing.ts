@@ -5,18 +5,22 @@ import { assertNever } from "../../util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
-    getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery
+    getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery, expectUnsupported
 } from "../reddit";
 
-export type ID = string;
-export type IDMap = Map<ID, IDMapEntry>;
+function warn(...message: unknown[]) {
+    console.log(...message);
+    // TODO display this visually somewhere if dev mode is enabled
+}
 
+export type ID = string; // TODO string & {__is_id: true}
+export type IDMap = Map<ID, IDMapEntry>;
 // // needs to be able to tell you if it's a thing or load more or whatever
 // // also it should like update in the future
 // // idk
 type IDMapEntry = {
     kind: "unprocessed" | "processing" | "processed",
-    link: Generic.Link<Generic.PostData>,
+    link: Generic.Link<Generic.Post>,
 
     data: IDMapData,
 };
@@ -27,11 +31,7 @@ type IDMapEntry = {
 // sort mode but comments have access to the .parent_submission property
 type IDMapData = {
     kind: "comment",
-    comment: Reddit.Post,
-
-    // comments have a property .link_id
-    // I can just get the value out from the id map, no need to save it here.
-    parent_submission: "not_loaded" | Reddit.T3,
+    comment: Reddit.T1,
 } | {
     kind: "post",
     post: Reddit.T3,
@@ -43,6 +43,14 @@ type IDMapData = {
     kind: "subreddit_unloaded",
     listing: Reddit.Listing,
     details: "unknown" | SubrInfo,
+} | {
+    kind: "depth_more",
+    // a Reddit.More with 0 children
+    item: Reddit.More,
+    parent_permalink: string,
+} | {
+    kind: "more",
+    item: Reddit.More,
 };
 
 export function page2FromListing(
@@ -50,7 +58,7 @@ export function page2FromListing(
     pathraw: string,
     path: ParsedPath,
     page: Reddit.AnyResult,
-): Generic.Link<Generic.PostData> {
+): Generic.Link<Generic.Post> {
     if(Array.isArray(page)) {
         if(page[0].data.children.length !== 1) {
             return unsupportedPage(pathraw, page);
@@ -158,15 +166,18 @@ function getEntryFullname(entry: IDMapData): string {
         return entry.post.data.name;
     }else if(entry.kind === "subreddit_unloaded") {
         return entry.details === "unknown" ? "__UNKNOWN_LISTING_ROOT" : getSrId(entry.details);
+    }else if(entry.kind === "depth_more") {
+        return "DEPTH_MORE_"+entry.parent_permalink;
+    }else if(entry.kind === "more") {
+        return "MORE_"+entry.item.data.children.join(",");
     }else assertNever(entry);
 }
 
-function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_submission: Reddit.T3 | "not_loaded"): void {
+function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_permalink: string | undefined): void {
     if(item.kind === "t1") {
         setUpMap(map, {
             kind: "comment",
             comment: item,
-            parent_submission,
         });
     }else if(item.kind === "t3") {
         setUpMap(map, {
@@ -174,9 +185,28 @@ function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_submissio
             post: item,
             replies: "not_loaded",
         });
+    }else if(item.kind === "more") {
+        if(item.data.children.length === 0) {
+            if(parent_permalink == null) {
+                warn(
+                    "TODO setUpCommentOrUnmounted was called with not loaded parent but req. parent submission",
+                );
+                return; // TODO add an error node?
+            }
+            setUpMap(map, {
+                kind: "depth_more",
+                item,
+                parent_permalink,
+            });
+        }else{
+            setUpMap(map, {
+                kind: "more",
+                item,
+            });
+        }
     }else{
-        console.log("TODO setUpCommentOrUnmounted", item.kind, item);
-        // TODO
+        expectUnsupported(item.kind);
+        warn("TODO setUpCommentOrUnmounted", item.kind, item);
     }
 }
 
@@ -206,7 +236,7 @@ export function setUpMap(
                     // TODO if it's load more it might need a parent_permalink
                     // pass that in here or something
                     // or make a fn to do this
-                    setUpCommentOrUnmounted(map, reply, data.parent_submission);
+                    setUpCommentOrUnmounted(map, reply, listing.permalink);
                 }
             }
         }else if(listing_raw.kind === "more") {
@@ -227,12 +257,16 @@ export function setUpMap(
             }
         }
         if(data.replies !== "not_loaded") for(const reply of data.replies.data.children) {
-            setUpCommentOrUnmounted(map, reply, data.post);
+            setUpCommentOrUnmounted(map, reply, listing.permalink);
         }
     }else if(data.kind === "subreddit_unloaded") {
         for(const post of data.listing.data.children) {
             setUpCommentOrUnmounted(map, post, "not_loaded");
         }
+    }else if(data.kind === "more") {
+        // nothing to do
+    }else if(data.kind === "depth_more") {
+        // nothing to do
     }else assertNever(data);
 
     map.set(entry_fullname, {
@@ -244,7 +278,7 @@ export function setUpMap(
 
 // returns a pointer to the PostData
 // TODO support load more in both parents and replies
-export function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostData> {
+export function getPostData(map: IDMap, key: string): Generic.Link<Generic.Post> {
     const value = map.get(key);
     if(!value) {
         // TODO determine which load more to use
@@ -285,48 +319,23 @@ function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
 function postDataFromListingMayError(
     map: IDMap,
     entry: IDMapEntry,
-): Generic.PostData {
+): Generic.Post {
     if(entry.data.kind === "comment") {
-        if(entry.data.comment.kind !== "t1") {
-            return {
-                kind: "post",
-                url: null,
-                parent: {ref: {kind: "vloader", parent: null, replies: null}, err: undefined},
-                replies: null,
-                internal_data: entry.data,
-                display_style: "centered",
-
-                content: {
-                    kind: "post",
-                    title: {text: "Error! TODO "+entry.data.comment.kind},
-                    collapsible: false,
-                    body: {kind: "richtext", content: [
-                        rt.p(rt.error("TODO", entry.data)),
-                    ]},
-                    show_replies_when_below_pivot: false,
-                },
-            };
-        }
         const listing_raw = entry.data.comment;
         const listing = listing_raw.data;
 
         const replies: Generic.ListingData = {
-            sort: null,
-            reply: replyButton(listing.name),
-            locked: listing.locked, // || parent_post.locked? not sure
+            reply: {action: replyButton(listing.name), locked: listing.locked},
             items: [],
         };
         //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if(listing.replies) {
             for(const reply of listing.replies.data.children) {
-                replies.items.push({
-                    kind: "post",
-                    post: getPostData(map, reply.data.name),
-                });
+                replies.items.push(getPostData(map, reply.data.name));
             }
         }
 
-        const parent_post = entry.data.parent_submission === "not_loaded" ? null : entry.data.parent_submission;
+        const parent_post = map.get(listing.link_id);
 
         return {
             kind: "post",
@@ -344,7 +353,7 @@ function postDataFromListingMayError(
                 collapsible: {default_collapsed: listing.collapsed ?? false},
                 show_replies_when_below_pivot: true,
                 actions: {
-                    vote: parent_post?.data.discussion_type === "CHAT"
+                    vote: parent_post?.data.kind === "post" && parent_post.data.post.data.discussion_type === "CHAT"
                         ? undefined
                         : getPointsOn(listing)
                     ,
@@ -373,16 +382,14 @@ function postDataFromListingMayError(
                 base: ["r", listing.subreddit],
             })),
             replies: entry.data.replies !== "not_loaded" ? {
-                sort: null,
-                reply: replyButton(listing.name),
-                locked: listing.locked,
+                reply: {
+                    action: replyButton(listing.name),
+                    locked: listing.locked,
+                },
                 // I don't think before and after are used here
-                items: entry.data.replies.data.children.map(reply => {
-                    return {
-                        kind: "post",
-                        post: getPostData(map, reply.data.name),
-                    };
-                }),
+                items: entry.data.replies.data.children.map(reply => (
+                    getPostData(map, reply.data.name)
+                )),
             } : null, // TODO load_more instead of null
 
             content: {
@@ -416,22 +423,21 @@ function postDataFromListingMayError(
             display_style: "centered",
         };
     }else if(entry.data.kind === "subreddit_unloaded") {
+        const replies: Generic.Link<Generic.Post>[] = [];
+
+        for(const child of entry.data.listing.data.children) {
+            replies.push(getPostData(map, child.data.name));
+        }
+        if(entry.data.listing.data.after != null) {
+            replies.push(getPostData(map, "TODO next"));
+        }
+
         return {
             kind: "post",
             url: null,
             parent: null,
             replies: {
-                sort: null,
-                reply: null,
-                items: [
-                    ...entry.data.listing.data.children.map((child): Generic.ListingEntry => {
-                        return {kind: "post", post: getPostData(map, child.data.name)};
-                    }),
-                    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-                    ...entry.data.listing.data.after ? [
-                        {kind: "post" as const, post: getPostData(map, "TODO next")},
-                    ] : [],
-                ],
+                items: replies,
             },
             content: {
                 kind: "post",
@@ -443,8 +449,30 @@ function postDataFromListingMayError(
             internal_data: entry.data,
             display_style: "fullscreen",
         };
+    }else if(entry.data.kind === "depth_more") {
+        const listing = entry.data.item.data;
+        return {
+            kind: "loader",
+            parent: getPostData(map, listing.parent_id),
+            replies: null,
+            url: null,
+        };
+    }else if(entry.data.kind === "more") {
+        const listing = entry.data.item.data;
+        return {
+            kind: "loader",
+            parent: getPostData(map, listing.parent_id),
+            replies: null,
+            url: null,
+        };
     } else assertNever(entry.data);
 }
+
+// Two examples of load more:
+// - /comments/omvrb7 - a horizontal loader is needed for the pinned post
+// - /comments/omvrb7/a/h6yus3q/?context=3 - a vertical loader is needed above the highest post
+// TO FIND:
+// - a depth-based horizontal loader
 
 function createLink<T>(): Generic.Link<T> {
     return {ref: undefined, err: "processing not completed"};

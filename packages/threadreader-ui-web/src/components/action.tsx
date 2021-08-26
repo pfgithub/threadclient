@@ -35,7 +35,7 @@ export function PostActions(props: ClientPostProps & {
             when={props.opts.replies?.reply}
         >{reply_action => {
             const action = () => <ReplyEditor
-                action={reply_action} 
+                action={reply_action.action} 
                 onCancel={() => setShowingWindowBelow(null)}
                 onAddReply={() => {
                     setShowingWindowBelow(null);
@@ -47,6 +47,7 @@ export function PostActions(props: ClientPostProps & {
                     class={link_styles_v[
                         showingWindowBelow() === action ? "action-button-active" : "action-button"
                     ]}
+                    disabled={reply_action.locked}
                     on:click={() => {
                         if(showingWindowBelow() === action) {
                             setShowingWindowBelow(null);
@@ -54,7 +55,7 @@ export function PostActions(props: ClientPostProps & {
                             setShowingWindowBelow(() => action);
                         }
                     }}
-                >{reply_action.text}</button>
+                >{reply_action.action.text + (reply_action.locked ? " (Locked)" : "")}</button>
             </>;
         }}</ShowCond>
         <ShowCond when={props.content.actions?.other}>{other_actions => <>
