@@ -1,7 +1,7 @@
 // https://docs.joinmastodon.org/entities/card/
 // https://oembed.com/
 export type OEmbed = {
-    url?: string,
+    url?: undefined | string,
     title: string,
     description: string,
     blurhash: string | null,

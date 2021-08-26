@@ -10,7 +10,7 @@ import type { ClientPostProps } from "./page2";
 import { ReplyEditor } from "./reply";
 
 export function PostActions(props: ClientPostProps & {
-    children?: JSX.Element,
+    children?: undefined | JSX.Element,
 }): JSX.Element {
     const [showingWindowBelow, setShowingWindowBelow] = createSignal<null | (() => JSX.Element)>(null);
 

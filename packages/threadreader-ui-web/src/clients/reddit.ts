@@ -336,7 +336,7 @@ type StyleRes = {
     strike: boolean,
     super: boolean,
     code: boolean,
-    error?: string,
+    error?: undefined | string,
 };
 function richtextStyle(style: number): StyleRes {
     return {
@@ -359,7 +359,7 @@ function baseURL(oauth: boolean) {
     const base = oauth ? "oauth.reddit.com" : "www.reddit.com";
     return "https://"+base;
 }
-function pathURL(oauth: boolean, path: string, opts: {override?: boolean}) {
+function pathURL(oauth: boolean, path: string, opts: {override?: undefined | boolean}) {
     const [pathname, query] = splitURL(path);
     if(!pathname.startsWith("/")) {
         throw new Error("path didn't start with `/` : `"+path+"`");
@@ -485,7 +485,7 @@ async function getAccessTokenInternal() {
         }).then(async (res) => {
             return [res.status, await res.json() as {
                 access_token: string,
-                refresh_token?: string,
+                refresh_token?: undefined | string,
                 expires_in: number,
                 scope: string,
             } | {error: string}] as const;
@@ -930,7 +930,7 @@ function pathFromListingRaw(
     path: string,
     listing: unknown,
     opts: {
-        warning?: Generic.Richtext.Paragraph[],
+        warning?: undefined | Generic.Richtext.Paragraph[],
         sidebar: Generic.ContentNode[] | null,
     },
 ): Generic.Page {
@@ -975,7 +975,15 @@ function pathFromListingRaw(
 }
 
 // TODO pass in menu rather than generating it here
-export function pageFromListing(pathraw: string, parsed_path_in: ParsedPath, listing: Reddit.AnyResult, opts: {header?: Generic.ContentNode, sidebar: Generic.ContentNode[] | null}): Generic.Page {
+export function pageFromListing(
+    pathraw: string,
+    parsed_path_in: ParsedPath,
+    listing: Reddit.AnyResult,
+    opts: {
+        header?: undefined | Generic.ContentNode,
+        sidebar: Generic.ContentNode[] | null,
+    },
+): Generic.Page {
     const page = parsed_path_in;
     if(Array.isArray(listing)) {
         if(listing[0].data.children.length !== 1) {
@@ -1653,8 +1661,16 @@ path_router.route(["web", "community-points"] as const, linkout);
 // /user/me · /user/me/:rest(.*)
 // fetch the current user then redirect to /user/…/… with query
 
-function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {user?: string, subreddit?: string, multireddit?: string}, ParsedPath>, kind: "home" | "subreddit" | "user" | "multireddit") {
-    const getSub = (opts: {user?: string, subreddit?: string, multireddit?: string}): SubrInfo => ((opts.multireddit != null && opts.user != null)
+function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {
+    user?: undefined | string,
+    subreddit?: undefined | string,
+    multireddit?: undefined | string,
+}, ParsedPath>, kind: "home" | "subreddit" | "user" | "multireddit") {
+    const getSub = (opts: {
+        user?: undefined | string,
+        subreddit?: undefined | string,
+        multireddit?: undefined | string,
+    }): SubrInfo => ((opts.multireddit != null && opts.user != null)
         ? {kind: "multireddit", multireddit: opts.multireddit, user: opts.user, base: ["user", opts.user, "m", opts.multireddit]}
         : opts.user != null
         ? {kind: "userpage", user: opts.user, base: ["user", opts.user]}
@@ -2024,12 +2040,12 @@ type LoadMoreData = {
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 export function getPointsOn(listing: {
     name: string,
-    score_hidden?: boolean,
-    hide_score?: boolean,
+    score_hidden?: undefined | boolean,
+    hide_score?: undefined | boolean,
     score: number,
     likes: true | false | null,
-    upvote_ratio?: number,
-    archived?: boolean,
+    upvote_ratio?: undefined | number,
+    archived?: undefined | boolean,
 }): Generic.CounterAction {
     // not sure what rank is for
     const vote_data = {id: listing.name, rank: "2"};
@@ -2272,7 +2288,7 @@ export function saveButton(fullname: string, saved: boolean): Generic.Action {
 function authorFromInfo(opts: {
     author: string,
     flair_bits: FlairBits,
-    additional_flairs?: Generic.Flair[],
+    additional_flairs?: undefined | Generic.Flair[],
     distinguished: Reddit.UserDistinguished | null,
     is_submitter: boolean,
     author_cakeday: boolean | undefined,
@@ -2573,7 +2589,11 @@ export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
 }
 
 const as = <T>(a: T): T => a;
-export type ThreadOpts = {force_expand?: "open" | "crosspost" | "closed", link_fullname?: string, show_post_reply_button?: boolean};
+export type ThreadOpts = {
+    force_expand?: undefined | "open" | "crosspost" | "closed",
+    link_fullname?: undefined | string,
+    show_post_reply_button?: undefined | boolean,
+};
 function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node {
     options.force_expand ??= "closed";
     if(listing_raw.kind === "t1") {
@@ -2760,7 +2780,10 @@ function getLoginURL() {
     return url;
 }
 
-async function fetchSubInfo(sub: SubrInfo): Promise<{sidebar: Generic.ContentNode[] | null, header?: Generic.ContentNode}> {
+async function fetchSubInfo(sub: SubrInfo): Promise<{
+    sidebar: Generic.ContentNode[] | null,
+    header?: undefined | Generic.ContentNode,
+}> {
     if(sub.kind === "homepage") return {sidebar: null};
     if(sub.kind === "userpage") return {sidebar: null};
     if(sub.kind === "mod") return {sidebar: null};
@@ -3274,7 +3297,7 @@ export const client: ThreadClient = {
     },
     async fetchRemoved(frmlink_raw: Generic.Opaque<"fetch_removed_path">): Promise<Generic.Body> {
         const frmlink = fetch_path.decode(frmlink_raw);
-        type PushshiftResult = {data: {selftext?: string, body?: string}[]};
+        type PushshiftResult = {data: {selftext?: undefined | string, body?: undefined | string}[]};
         const [status, restext] = await fetch(frmlink.path).then(async (v) => {
             return [v.status, await v.text()] as const;
         });
@@ -3436,9 +3459,9 @@ export const client: ThreadClient = {
         const body: {
             api_type: "json",
             thing_id: string,
-            return_rtjson?: "true" | "false",
-            richtext_json?: string,//Reddit.Richtext.Document,
-            text?: string,
+            return_rtjson?: undefined | "true" | "false",
+            richtext_json?: undefined | string,//Reddit.Richtext.Document,
+            text?: undefined | string,
         } = {
             api_type: "json",
             thing_id: reply_info.parent_id,
@@ -3643,7 +3666,12 @@ export const client: ThreadClient = {
             throw new Error("TODO load more duplicates");
         }else assertNever(act);
     },
-    async loadMoreUnmounted(action: Generic.Opaque<"load_more_unmounted">): Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}> {
+    async loadMoreUnmounted(
+        action: Generic.Opaque<"load_more_unmounted">,
+    ): Promise<{
+        children: Generic.UnmountedNode[],
+        next?: undefined | Generic.LoadMoreUnmounted,
+    }> {
         const act = load_more_unmounted_encoder.decode(action);
         if(act.kind === "listing") {
             const resp = await redditRequest<Reddit.Listing>(act.url, {
@@ -3756,7 +3784,7 @@ function siteRuleToReportScreen(data: ReportInfo, site_rule: Reddit.FlowRule): G
 type ReportAction = {
     fullname: string,
     subreddit: string,
-    text_max?: number,
+    text_max?: undefined | number,
     reason: {kind: "sub", id: string} | {kind: "site", id: string} | {kind: "sub_other"},
 };
 // note: sub_other should pass the text through the other_reason field when reporting
@@ -3767,10 +3795,10 @@ type RequestOpts<ResponseType> = (
     | {method: "POST", mode: "urlencoded", body: {[key: string]: string | undefined}}
     | {method: "POST", mode: "json", body: unknown}
 ) & {
-    onerror?: (e: Error) => ResponseType,
-    onstatus?: (status: number, res: ResponseType) => ResponseType,
-    cache?: boolean,
-    override?: boolean,
+    onerror?: undefined | ((e: Error) => ResponseType),
+    onstatus?: undefined | ((status: number, res: ResponseType) => ResponseType),
+    cache?: undefined | boolean,
+    override?: undefined | boolean,
 };
 // note: TODO reset caches on a few occasions
 // : if you send any requests to edit the subreddit about text or anything like that, clear all caches containing /r/:subname/ or ending with /r/:subname

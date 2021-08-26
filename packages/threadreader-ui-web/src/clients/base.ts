@@ -3,25 +3,25 @@ import type * as Generic from "api-types-generic";
 
 export type ThreadClient = {
     id: string,
-    getLoginURL?: ((path: Generic.Opaque<"login_url">) => Promise<string>),
-    login?: (path: string[], query: URLSearchParams) => Promise<void>,
-    getPage?: (path: string) => Promise<Generic.Page2>,
-    getThread?: (path: string) => Promise<Generic.Page>,
-    fetchRemoved?: (fetch_removed_path: Generic.Opaque<"fetch_removed_path">) => Promise<Generic.Body>,
+    getLoginURL?: undefined | ((path: Generic.Opaque<"login_url">) => Promise<string>),
+    login?: undefined | ((path: string[], query: URLSearchParams) => Promise<void>),
+    getPage?: undefined | ((path: string) => Promise<Generic.Page2>),
+    getThread?: undefined | ((path: string) => Promise<Generic.Page>),
+    fetchRemoved?: undefined | ((fetch_removed_path: Generic.Opaque<"fetch_removed_path">) => Promise<Generic.Body>),
     //v I guess this should return the updated action state. mastodon returns an entire updated post, reddit returns nothing.
     //v since this isn't uil, I don't have any easy way to update an entire post at once so that wouldn't be very useful
-    act?: (action: Generic.Opaque<"act">) => Promise<void>,
-    fetchReportScreen?: (report: Generic.Opaque<"report">) => Promise<Generic.ReportFlow>,
-    sendReport?: (action: Generic.Opaque<"send_report">, text?: string) => Promise<Generic.SentReport>,
-    previewReply?: (body: string, reply_info: Generic.Opaque<"reply">) => Generic.PostContent,
-    sendReply?: (body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>,
+    act?: undefined | ((action: Generic.Opaque<"act">) => Promise<void>),
+    fetchReportScreen?: undefined | ((report: Generic.Opaque<"report">) => Promise<Generic.ReportFlow>),
+    sendReport?: undefined | ((action: Generic.Opaque<"send_report">, text?: string) => Promise<Generic.SentReport>),
+    previewReply?: undefined | ((body: string, reply_info: Generic.Opaque<"reply">) => Generic.PostContent),
+    sendReply?: undefined | ((body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>),
 
-    loadMore?: (action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>,
-    loadMoreUnmounted?: (
+    loadMore?: undefined | ((action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>),
+    loadMoreUnmounted?: undefined | ((
         action: Generic.Opaque<"load_more_unmounted">
-    ) => Promise<{children: Generic.UnmountedNode[], next?: Generic.LoadMoreUnmounted}>,
+    ) => Promise<{children: Generic.UnmountedNode[], next?: undefined | Generic.LoadMoreUnmounted}>),
 
-    hydrateInbox?: (inbox: Generic.Opaque<"deferred_inbox">) => Promise<Generic.InboxData>,
+    hydrateInbox?: undefined | ((inbox: Generic.Opaque<"deferred_inbox">) => Promise<Generic.InboxData>),
 };
 
 //eslint-disable-next-line @typescript-eslint/ban-types

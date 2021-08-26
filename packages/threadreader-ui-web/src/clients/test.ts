@@ -114,12 +114,12 @@ const sample_preview_links: {
 ];
 
 type UserThreadOpts = {
-    content_warning?: string,
+    content_warning?: undefined | string,
     layout: Generic.Thread["layout"],
-    collapse_body?: boolean,
-    title?: string,
-    info?: Generic.Info,
-    actions?: Generic.Action[],
+    collapse_body?: undefined | boolean,
+    title?: undefined | string,
+    info?: undefined | Generic.Info,
+    actions?: undefined | Generic.Action[],
 };
 function userThread(path: string, body: Generic.Body, opts: UserThreadOpts): Generic.Thread {
     return {
@@ -164,8 +164,8 @@ function commitThread(path: string, entry: LogEntry): Generic.PostContent {
 
 type SitemapEntryData = {
     content: Generic.PostContent,
-    replies?: SitemapEntry[],
-    replyopts?: Partial<Exclude<Generic.ListingData, "reply">>,
+    replies?: undefined | SitemapEntry[],
+    replyopts?: undefined | Partial<Exclude<Generic.ListingData, "reply">>,
 };
 type SitemapEntry = [string, (path: string) => SitemapEntryData];
 

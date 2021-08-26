@@ -7,5 +7,8 @@
   "scripts": {
     "lint": "true",
     "test": "true"
+  },
+  "dependencies": {
+    "typescript": "^4.3.5"
   }
 }

@@ -369,7 +369,7 @@ type SeekState = {
     preview: [x: number, y: number],
 };
 
-type VideoSourceI = {i: number, url: string, quality?: string};
+type VideoSourceI = {i: number, url: string, quality?: undefined | string};
 type BufferNode = {start: number, end: number};
 function PreviewRealVideo(props: {
     video: Generic.Video,

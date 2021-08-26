@@ -84,7 +84,7 @@ export function getIsVisible(): (() => boolean) {
 
 export function ShowBool(props: {
     when: boolean,
-    fallback?: JSX.Element,
+    fallback?: undefined | JSX.Element,
     children: JSX.Element,
 }): JSX.Element {
     const condition = createMemo(() => props.when, undefined, {
@@ -97,9 +97,9 @@ export function ShowBool(props: {
 }
 export function ShowCond<T>(props: {
     // if: boolean, // would be nice for this to be optional but not allow undefined
-    if?: [boolean],
+    if?: undefined | [boolean],
     when: T | undefined | null,
-    fallback?: JSX.Element,
+    fallback?: undefined | JSX.Element,
     children: (item: T) => JSX.Element,
 }): JSX.Element {
     return createMemo(() => {

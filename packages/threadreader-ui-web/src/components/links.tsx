@@ -42,7 +42,7 @@ export function PreviewableLink(props: {href: string, children: JSX.Element}): J
 export function A(props: {
     href: string,
     class: string,
-    onClick?: () => void,
+    onClick?: undefined | (() => void),
     children: JSX.Element,
 }): JSX.Element {
     const client = getClient();
@@ -74,7 +74,7 @@ export function A(props: {
 export function LinkButton(props: {
     href: string,
     style: LinkStyle,
-    onClick?: () => void,
+    onClick?: undefined | (() => void),
     children: JSX.Element,
 }): JSX.Element {
     return <A class={link_styles_v[props.style]} href={props.href} onClick={props.onClick}>{props.children}</A>;

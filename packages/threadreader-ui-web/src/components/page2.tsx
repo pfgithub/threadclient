@@ -64,7 +64,7 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
 
 function ErrableLink<T,>(props: {
     link: Generic.Link<T>,
-    fallback?: (err: string) => JSX.Element,
+    fallback?: undefined | ((err: string) => JSX.Element),
     children: (link: T) => JSX.Element,
 }) {
     return <ShowBool when={props.link.err == null} fallback={
@@ -76,7 +76,11 @@ function ErrableLink<T,>(props: {
     </ShowBool>;
 }
 
-type ClientPostReplyProps = {reply: Generic.ListingEntry, is_threaded: boolean, parent_is_threaded?: boolean};
+type ClientPostReplyProps = {
+    reply: Generic.ListingEntry,
+    is_threaded: boolean,
+    parent_is_threaded?: undefined | boolean,
+};
 function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
     const isThreaded = createMemo((): Generic.ListingEntry | undefined => {
         if(!props.is_threaded) return undefined;
@@ -445,7 +449,10 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
     </WrapParent>;
 }
 
-export function TopLevelWrapper(props: {children: JSX.Element, restrict_w?: boolean}): JSX.Element {
+export function TopLevelWrapper(props: {
+    children: JSX.Element,
+    restrict_w?: undefined | boolean,
+}): JSX.Element {
     return <ToggleColor>{(color, i) => <div class={
         (i === 0 ? "object-wrapper top-level-wrapper" : "p-10px mt-10px rounded-xl")
         + " " + color
