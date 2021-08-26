@@ -3011,30 +3011,32 @@ export const client: ThreadClient = {
 
             console.log("PARSED URL:", parsed);
 
+            let link: string | undefined;
             if(parsed.kind === "comments") {
-                // ?comment=… ?context=… ?depth=… ?limit=… ?showedits=true ?showmedia=true ?showmore=true ?showtitle=true ?sort=confidence|top|new|controversial|old|random|qa|live
-                // ?sr_detail=… // passes the subreddit about page with the result
-                const link = "/comments/"+parsed.post_id_unprefixed+"?"+encodeQuery({
+                link = "/comments/"+parsed.post_id_unprefixed+"?"+encodeQuery({
                     sort: parsed.sort_override, comment: parsed.focus_comment, context: parsed.context,
                 });
                 // the plan is a getSkeleton() that suggests what should be loaded immediately
                 // and what should be loaded as needed
-                const page = await redditRequest<Reddit.Page>(link, {method: "GET"});
-
-                return {
-                    pivot: page2FromListing(id_map, pathraw, parsed, page),
-                };
+            }else if(parsed.kind === "duplicates") {
+                link = "/duplicates/"+parsed.post_id_unprefixed+"?"+encodeQuery({
+                    after: parsed.after, before: parsed.before, sort: parsed.sort, crossposts_only: "" + parsed.crossposts_only,
+                });
             }else if(parsed.kind === "subreddit") {
-                const link = "/"+[...parsed.sub.base, parsed.current_sort.v].join("/")
+                link = "/"+[...parsed.sub.base, parsed.current_sort.v].join("/")
                 +"?"+encodeQuery({t: parsed.current_sort.t, before: parsed.before, after: parsed.after});
-                const page = await redditRequest<Reddit.Listing>(link, {method: "GET"});
-
-                return {
-                    pivot: page2FromListing(id_map, pathraw, parsed, page),
-                };
+            }else if(parsed.kind === "wiki") {
+                link = "/"+[...parsed.sub.base, "wiki", ...parsed.path].join("/") + "?" + encodeQuery(parsed.query);
             }else{
                 throw new Error("TODO "+parsed.kind);
+                // assertNever(parsed)
             }
+
+            const page = await redditRequest<Reddit.Page>(link, {method: "GET"});
+
+            return {
+                pivot: page2FromListing(id_map, pathraw, parsed, page),
+            };
         }catch(e) {
             const err = e as Error;
             console.log(err);

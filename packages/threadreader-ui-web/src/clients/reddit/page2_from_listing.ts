@@ -161,6 +161,25 @@ function getEntryFullname(entry: IDMapData): string {
     }else assertNever(entry);
 }
 
+function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_submission: Reddit.T3 | "not_loaded"): void {
+    if(item.kind === "t1") {
+        setUpMap(map, {
+            kind: "comment",
+            comment: item,
+            parent_submission,
+        });
+    }else if(item.kind === "t3") {
+        setUpMap(map, {
+            kind: "post",
+            post: item,
+            replies: "not_loaded",
+        });
+    }else{
+        console.log("TODO setUpCommentOrUnmounted", item.kind, item);
+        // TODO
+    }
+}
+
 export function setUpMap(
     map: IDMap,
     data: IDMapData,
@@ -187,11 +206,7 @@ export function setUpMap(
                     // TODO if it's load more it might need a parent_permalink
                     // pass that in here or something
                     // or make a fn to do this
-                    setUpMap(map, {
-                        kind: "comment",
-                        comment: reply,
-                        parent_submission: data.parent_submission,
-                    });
+                    setUpCommentOrUnmounted(map, reply, data.parent_submission);
                 }
             }
         }else if(listing_raw.kind === "more") {
@@ -212,27 +227,11 @@ export function setUpMap(
             }
         }
         if(data.replies !== "not_loaded") for(const reply of data.replies.data.children) {
-            setUpMap(map, {
-                kind: "comment",
-                comment: reply,
-                parent_submission: data.post,
-            });
+            setUpCommentOrUnmounted(map, reply, data.post);
         }
     }else if(data.kind === "subreddit_unloaded") {
         for(const post of data.listing.data.children) {
-            if(post.kind === "t3") {
-                setUpMap(map, {
-                    kind: "post",
-                    post: post,
-                    replies: "not_loaded",
-                });
-            }else{
-                setUpMap(map, {
-                    kind: "comment",
-                    comment: post,
-                    parent_submission: "not_loaded",
-                });
-            }
+            setUpCommentOrUnmounted(map, post, "not_loaded");
         }
     }else assertNever(data);
 
