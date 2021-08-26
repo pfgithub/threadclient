@@ -244,8 +244,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                 <AuthorPfp src_url={pfp.url} />{" "}
                             </>}</ShowCond>
                             <UserLink href={author.link} color_hash={author.color_hash}>
-                                {author.name}{" "}
-                            </UserLink>
+                                {author.name}
+                            </UserLink>{" "}
                             <ShowCond when={author.flair}>{flair => <>
                                 <Flair flairs={flair} />{" "}
                             </>}</ShowCond>
