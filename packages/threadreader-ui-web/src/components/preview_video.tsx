@@ -25,11 +25,11 @@ function debugVideo(video_el: HTMLMediaElement) {
     const video_event_types: (keyof HTMLMediaElementEventMap)[] = [
         "encrypted", "waitingforkey", "fullscreenchange", "fullscreenerror",
         "abort", "animationcancel", "animationend", "animationiteration",
-        "animationstart", "auxclick", "beforeinput", "blur", "cancel",
+        "animationstart", "auxclick", "beforeinput", "blur",
         "canplay", "canplaythrough", "change", "click", "close",
         "compositionend", "compositionstart", "compositionupdate",
         "contextmenu", "cuechange", "dblclick", "drag", "dragend",
-        "dragenter", "dragexit", "dragleave", "dragover",
+        "dragenter", "dragleave", "dragover",
         "dragstart", "drop", "durationchange", "emptied", "ended",
         "error", "focus", "focusin", "focusout", "gotpointercapture",
         "input", "invalid", "keydown", "keypress", "keyup", "load",

@@ -1540,7 +1540,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/commonmark@npm:^0.27.4":
+"@types/commonmark@npm:^0.27.5":
   version: 0.27.5
   resolution: "@types/commonmark@npm:0.27.5"
   checksum: dd59b7e6d0d0c4d714fd38794dcbe6034a1a4a8297b6bef4be994ad98afc4458e277f25c278e0f12fa67c143a474704a91f5e9ec8f4989cd4421d9997f182db0
@@ -1570,21 +1570,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^16.7.1":
+"@types/node@npm:*":
   version: 16.7.1
   resolution: "@types/node@npm:16.7.1"
   checksum: fcf1a2c7b1f19c2201574b2110176b49c6efd824a39b2ed8ac3e6688740e2a35bef95a3334dfa345f4bd4873fd8b79d8ac8cfcc9fcd3d2f4f8f993c2c37ce4ab
   languageName: node
   linkType: hard
 
-"@types/node@npm:^14.14.28":
-  version: 14.17.11
-  resolution: "@types/node@npm:14.17.11"
-  checksum: 94192a5f6f5da51a10dfa959049a5cfcff440fbeeefbf98084083c1370a107872fc7f4a2df42f100989dea873cb4128f376d5e4af6be43fec21273359d9dbdb0
+"@types/node@npm:^16.7.2":
+  version: 16.7.2
+  resolution: "@types/node@npm:16.7.2"
+  checksum: aef77c109e2fd93b5dc6ec0a57a0878aaaa58adf0e63d9618d67b116ad3f2a3eb2589a99deaf9fda4a0805068b2533e3d2cf8e8dc3572251c498ec3dc929a76c
   languageName: node
   linkType: hard
 
-"@types/photoswipe@npm:^4.1.1":
+"@types/photoswipe@npm:^4.1.2":
   version: 4.1.2
   resolution: "@types/photoswipe@npm:4.1.2"
   checksum: 58f9b85171b5d24a70dea8b7cd68eaaef29159f05130f2284320ef438874c538f00e81763d4025d79fb03366180cff12e01c4a40d04a0c823ca4df656ee8b912
@@ -1628,7 +1628,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/eslint-plugin@npm:^4.28.1, @typescript-eslint/eslint-plugin@npm:^4.29.3":
+"@typescript-eslint/eslint-plugin@npm:^4.29.3":
   version: 4.29.3
   resolution: "@typescript-eslint/eslint-plugin@npm:4.29.3"
   dependencies:
@@ -1665,7 +1665,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/parser@npm:^4.28.1, @typescript-eslint/parser@npm:^4.29.3":
+"@typescript-eslint/parser@npm:^4.29.3":
   version: 4.29.3
   resolution: "@typescript-eslint/parser@npm:4.29.3"
   dependencies:
@@ -1923,10 +1923,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "api-types-generic@workspace:packages/api-types-generic"
   dependencies:
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -1934,10 +1934,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "api-types-hackernews@workspace:packages/api-types-hackernews"
   dependencies:
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -1946,10 +1946,10 @@ __metadata:
   resolution: "api-types-mastodon@workspace:packages/api-types-mastodon"
   dependencies:
     api-types-oembed: ^1.0.0
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -1957,10 +1957,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "api-types-oembed@workspace:packages/api-types-oembed"
   dependencies:
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -1968,10 +1968,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "api-types-reddit@workspace:packages/api-types-reddit"
   dependencies:
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -2470,7 +2470,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"core-js@npm:3":
+"core-js@npm:3.16.3":
   version: 3.16.3
   resolution: "core-js@npm:3.16.3"
   checksum: f44f73655b3e24a8b0c66d2cdf71549c07d90d63548081bb869e09661f57c5f68b84adf3a169023bda1861f0561159b75acc6d533e5e96fca4f24e88634276ff
@@ -2495,13 +2495,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "create-tmeta-package@workspace:packages/create-tmeta-package"
   dependencies:
-    "@types/node": ^16.7.1
+    "@types/node": ^16.7.2
     enquirer: ^2.3.6
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     ts-node: ^10.2.1
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -2859,7 +2859,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^7.29.0, eslint@npm:^7.32.0":
+"eslint@npm:^7.32.0":
   version: 7.32.0
   resolution: "eslint@npm:7.32.0"
   dependencies:
@@ -3000,7 +3000,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fast-glob@npm:^3.1.1, fast-glob@npm:^3.2.5, fast-glob@npm:^3.2.6, fast-glob@npm:^3.2.7":
+"fast-glob@npm:^3.1.1, fast-glob@npm:^3.2.6, fast-glob@npm:^3.2.7":
   version: 3.2.7
   resolution: "fast-glob@npm:3.2.7"
   dependencies:
@@ -4107,7 +4107,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"mux.js@npm:^5.12.2":
+"mux.js@npm:^5.13.0":
   version: 5.13.0
   resolution: "mux.js@npm:5.13.0"
   dependencies:
@@ -4547,7 +4547,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"refractor@npm:^4.1.0":
+"refractor@npm:^4.1.1":
   version: 4.1.1
   resolution: "refractor@npm:4.1.1"
   dependencies:
@@ -4711,7 +4711,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"rollup@npm:^2.38.5, rollup@npm:^2.43.1, rollup@npm:^2.51.2, rollup@npm:^2.56.1":
+"rollup@npm:^2.38.5, rollup@npm:^2.43.1, rollup@npm:^2.56.1":
   version: 2.56.3
   resolution: "rollup@npm:2.56.3"
   dependencies:
@@ -4761,7 +4761,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"sass@npm:^1.36.0":
+"sass@npm:^1.38.1":
   version: 1.38.1
   resolution: "sass@npm:1.38.1"
   dependencies:
@@ -4906,7 +4906,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"solid-js@npm:^1.0.3, solid-js@npm:^1.1.0":
+"solid-js@npm:^1.0.3, solid-js@npm:^1.1.1":
   version: 1.1.1
   resolution: "solid-js@npm:1.1.1"
   checksum: 464e46b269067df8e7426306250a97cc6b709e5d4265f770463cf4a8fe37c2c2902f78786173f47060917b19f9ba08facd5bce5cfddf540b9506e8bcdebe37a5
@@ -5255,10 +5255,10 @@ fsevents@~2.3.2:
   resolution: "threadreader-client-base@workspace:packages/threadreader-client-base"
   dependencies:
     api-types-generic: ^1.0.0
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -5267,10 +5267,10 @@ fsevents@~2.3.2:
   resolution: "threadreader-client-hackernews@workspace:packages/threadreader-client-hackernews"
   dependencies:
     api-types-hackernews: ^1.0.0
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -5279,41 +5279,41 @@ fsevents@~2.3.2:
   resolution: "threadreader-ui-web@workspace:packages/threadreader-ui-web"
   dependencies:
     "@types/babel__core": ^7.1.15
-    "@types/commonmark": ^0.27.4
-    "@types/node": ^14.14.28
-    "@types/photoswipe": ^4.1.1
-    "@typescript-eslint/eslint-plugin": ^4.28.1
-    "@typescript-eslint/parser": ^4.28.1
+    "@types/commonmark": ^0.27.5
+    "@types/node": ^16.7.2
+    "@types/photoswipe": ^4.1.2
+    "@typescript-eslint/eslint-plugin": ^4.29.3
+    "@typescript-eslint/parser": ^4.29.3
     "@windicss/plugin-icons": ^1.0.2
     api-types-generic: ^1.0.0
     api-types-mastodon: ^1.0.0
     api-types-oembed: ^1.0.0
     api-types-reddit: ^1.0.0
     commonmark: ^0.30.0
-    core-js: 3
-    eslint: ^7.29.0
+    core-js: 3.16.3
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     hast-util-to-html: ^8.0.1
-    mux.js: ^5.12.2
+    mux.js: ^5.13.0
     photoswipe: ^4.1.3
     prism-themes: ^1.8.0
-    refractor: ^4.1.0
-    sass: ^1.36.0
+    refractor: ^4.1.1
+    sass: ^1.38.1
     shaka-player: ^3.2.0
-    solid-js: ^1.1.0
+    solid-js: ^1.1.1
     threadreader-client-base: ^1.0.0
     threadreader-client-hackernews: ^1.0.0
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
-    vite: ^2.4.2
-    vite-plugin-pwa: ^0.8.2
-    vite-plugin-solid: ^2.0.0
+    typescript: ^4.4.2
+    vite: ^2.5.1
+    vite-plugin-pwa: ^0.11.2
+    vite-plugin-solid: ^2.0.1
     vite-plugin-virtual: ^0.1.1
-    vite-plugin-windicss: ^1.2.4
+    vite-plugin-windicss: ^1.3.0
     windicss-analysis: ^0.3.4
-    workbox-build: ^6.1.5
-    workbox-window: ^6.1.5
+    workbox-build: ^6.2.4
+    workbox-window: ^6.2.4
   languageName: unknown
   linkType: soft
 
@@ -5321,10 +5321,10 @@ fsevents@~2.3.2:
   version: 0.0.0-use.local
   resolution: "tmeta-util@workspace:packages/tmeta-util"
   dependencies:
-    eslint: ^7.29.0
+    eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 
@@ -5502,23 +5502,23 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-typescript@^4.3.5:
-  version: 4.3.5
-  resolution: "typescript@npm:4.3.5"
+typescript@^4.4.2:
+  version: 4.4.2
+  resolution: "typescript@npm:4.4.2"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: bab033b5e2b0790dd35b77fd005df976ef80b8d84fd2c6e63cc31808151875beae9216e5a315fe7068e8499905c3c354248fe83272cdfc13b7705635f0c66c97
+  checksum: 194e08e9d1971d667d6fd1a0554616b7022312a2319d70e81a64e502a265992061ee7817ed9a69b52bbabe7a9b85e7938cb8c11c433e40a516b277f8c4dacd51
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^4.3.5#~builtin<compat/typescript>":
-  version: 4.3.5
-  resolution: "typescript@patch:typescript@npm%3A4.3.5#~builtin<compat/typescript>::version=4.3.5&hash=d8b4e7"
+"typescript@patch:typescript@^4.4.2#~builtin<compat/typescript>":
+  version: 4.4.2
+  resolution: "typescript@patch:typescript@npm%3A4.4.2#~builtin<compat/typescript>::version=4.4.2&hash=d8b4e7"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: bc2c4fdf0f1557fdafe4ef74848c72ebd9c8c60829568248f869121aea2bb20e16649a252431d0acb185ec118143be22bed73d08f64379557810d82756afedde
+  checksum: 11d6ab6e868117908c388401e2ac06d503c5c8709115ab80ee69a1a6352c1f98471d1e595636bfe6a2d6b20b03a44df6bb2d3d198cea97c0c328968cd18d2b70
   languageName: node
   linkType: hard
 
@@ -5638,25 +5638,25 @@ typescript@^4.3.5:
   languageName: node
   linkType: hard
 
-"vite-plugin-pwa@npm:^0.8.2":
-  version: 0.8.2
-  resolution: "vite-plugin-pwa@npm:0.8.2"
+"vite-plugin-pwa@npm:^0.11.2":
+  version: 0.11.2
+  resolution: "vite-plugin-pwa@npm:0.11.2"
   dependencies:
     debug: ^4.3.2
-    fast-glob: ^3.2.5
+    fast-glob: ^3.2.7
     pretty-bytes: ^5.6.0
-    rollup: ^2.51.2
-    workbox-build: ^6.1.5
-    workbox-window: ^6.1.5
+    rollup: ^2.56.1
+    workbox-build: ^6.2.2
+    workbox-window: ^6.2.2
   peerDependencies:
     vite: ^2.0.0
-    workbox-build: ^6.1.5
-    workbox-window: ^6.1.5
-  checksum: 6a88483555aab1abb88777c92dd4f3034d6b898ae5f35ed518a286fba6fe14e138155d7d412de7a29510adb4bdf7c848dfef341d2c5b1af27e32ee61d9b2ca3c
+    workbox-build: ^6.2.2
+    workbox-window: ^6.2.2
+  checksum: 34c41266c49a2678ebdd3e0dd776a2e2132d81f9ead8f28cc9e59e9eb48671e7d22ef5c9fca9097b21eef7e2969ef226eacb9e8315ac1207d2ab2fff49d6b86b
   languageName: node
   linkType: hard
 
-"vite-plugin-solid@npm:^2.0.0":
+"vite-plugin-solid@npm:^2.0.1":
   version: 2.0.1
   resolution: "vite-plugin-solid@npm:2.0.1"
   dependencies:
@@ -5680,7 +5680,7 @@ typescript@^4.3.5:
   languageName: node
   linkType: hard
 
-"vite-plugin-windicss@npm:^1.2.4":
+"vite-plugin-windicss@npm:^1.3.0":
   version: 1.3.0
   resolution: "vite-plugin-windicss@npm:1.3.0"
   dependencies:
@@ -5694,7 +5694,7 @@ typescript@^4.3.5:
   languageName: node
   linkType: hard
 
-"vite@npm:^2.4.2":
+"vite@npm:^2.4.2, vite@npm:^2.5.1":
   version: 2.5.1
   resolution: "vite@npm:2.5.1"
   dependencies:
@@ -5802,7 +5802,7 @@ typescript@^4.3.5:
   languageName: node
   linkType: hard
 
-"workbox-build@npm:^6.1.5":
+"workbox-build@npm:^6.2.2, workbox-build@npm:^6.2.4":
   version: 6.2.4
   resolution: "workbox-build@npm:6.2.4"
   dependencies:
@@ -5964,7 +5964,7 @@ typescript@^4.3.5:
   languageName: node
   linkType: hard
 
-"workbox-window@npm:6.2.4, workbox-window@npm:^6.1.5":
+"workbox-window@npm:6.2.4, workbox-window@npm:^6.2.2, workbox-window@npm:^6.2.4":
   version: 6.2.4
   resolution: "workbox-window@npm:6.2.4"
   dependencies:

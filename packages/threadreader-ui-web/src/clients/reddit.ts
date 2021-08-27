@@ -3845,7 +3845,7 @@ async function redditRequest<ResponseType>(path: string, opts: RequestOpts<Respo
         return res;
     }catch(e) {
         console.log("Got error", e);
-        if(opts.onerror) return opts.onerror(e);
+        if(opts.onerror) return opts.onerror(e as Error);
         throw e;
     }
 }
