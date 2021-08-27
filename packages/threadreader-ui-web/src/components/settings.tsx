@@ -56,6 +56,7 @@ function SettingPicker<T extends string>(props: {
         <For each={props.options}>{option => <>
             <button
                 class={menuButtonStyle(props.setting.compute.override() === option)}
+                aria-checked={props.setting.compute.override() === option}
                 onclick={() => {
                     props.setting.compute.setOverride(option);
                 }}
@@ -76,7 +77,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
     const [showDevSettings, setShowDevSettings] = createSignal(false);
     const settings = getSettings();
 
-    return <div class="client-wrapper"><div class="display-comments-view">
+    return <main class="client-wrapper"><div class="display-comments-view">
         <SettingsSection title="Color Scheme">
             <SettingPicker
                 setting={settings.color_scheme}
@@ -367,7 +368,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 </p>
             </ShowAnimate>
         </SettingsSection>
-    </div></div>;
+    </div></main>;
     // TODO display:
     // - if the app is ready for offline use
     // - only show the "update now" button if an update is available

@@ -160,15 +160,6 @@ body {
     --cool-gray-50: #111827;
 }
 
-// normalization
-button,
-input,
-textarea {
-    // border: 1px solid var(--collapse-line-color-hover);
-    &:focus {
-        outline: 1px dotted var(--outline-color);
-    }
-}
 input,
 textarea {
     border-radius: 5px;
@@ -244,7 +235,7 @@ ul.replies {
 .post-thumbnail {
     all: unset;
     cursor: pointer;
-    &:focus {
+    &:focus-visible {
         outline: 1px dotted var(--outline-color);
     }
 }
@@ -383,7 +374,7 @@ html {
     margin-right: 2px;
 }
 
-.post-content-buttons > button:focus {
+.post-content-buttons > button:focus-visible {
     outline: 1px dotted var(--outline-color);
 }
 
@@ -445,7 +436,7 @@ html {
             display: none;
         }
     }
-    & > button:focus {
+    & > button:focus-visible {
         outline: 1px dotted var(--outline-color);
     }
     & > .counter-increment-btn {
@@ -490,18 +481,12 @@ html {
     min-height: 13px;
     padding-left: 6px;
     padding-right: 6px;
-    &:focus {
-        outline: none;
-    }
 }
 .collapse-btn-inner {
     background: var(--collapse-line-color);
     width: 3px;
     height: 100%;
     border-radius: 3px;
-}
-.collapse-btn:focus .collapse-btn-inner {
-    background: var(--collapse-line-color-focus);
 }
 .collapse-btn:hover .collapse-btn-inner {
     background: var(--collapse-line-color-hover);
@@ -524,10 +509,6 @@ html {
     background-repeat: no-repeat;
     background-position: center;
     top: 10px;
-    &:focus {
-        // TODO: only enable this on tab key
-        outline: 1px dotted var(--outline-color);
-    }
     .dark & {
         // prettier-ignore
         background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA"
@@ -981,7 +962,7 @@ summary {
     grid-column: icon / end;
 }
 
-.outline-default:focus {
+.outline-default:focus-visible {
     outline: 1px dotted var(--outline-color);
 }
 

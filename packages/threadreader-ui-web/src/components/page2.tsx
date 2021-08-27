@@ -178,7 +178,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         return props.opts.frame?.url != null && !props.opts.is_pivot;
     };
     
-    return <div
+    return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
             setAnimState({visible: rising || state, animating});
             setSelfVisible(state || rising);
@@ -206,11 +206,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         <VerticalIconCounter counter={vote_action} />
                     </div>
                 )}</ShowCond>
-                <button class="flex-1 collapse-btn z-1 static" classList={{
+                <button class="flex-1 collapse-btn z-1 static outline-default" classList={{
                     'collapsed': !selfVisible(),
                 }} draggable={true} onClick={(e) => {
                     setTransitionTarget(t => !t);
-                }}>
+                }} aria-label="Collapse" aria-pressed={!transitionTarget()}>
                     <div class="collapse-btn-inner"></div>
                 </button>
             </div>
@@ -258,11 +258,13 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         hasTitleOrThumbnail() ? "text-base" : "text-xs",
                     )}>
                         <ShowCond when={props.content.title}>{title => (
-                            <ShowCond when={props.opts.frame?.url} fallback={(
-                                title.text
-                            )}>{url => (
-                                <A href={url} class="hover:underline">{title.text}</A>
-                            )}</ShowCond>
+                            <span role="heading">
+                                <ShowCond when={props.opts.frame?.url} fallback={(
+                                    title.text
+                                )}>{url => (
+                                    <A href={url} class="hover:underline">{title.text}</A>
+                                )}</ShowCond>
+                            </span>
                         )}</ShowCond>
                         <Flair flairs={props.content.flair ?? []} />
                     </div>
@@ -331,7 +333,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 />
             </ShowAnimate>
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={transitionTarget}>
-                <div>
+                <section>
                     <ShowBool when={animState().visible || animState().animating}>
                         <ShowBool when={selfVisible() && hasThumbnail()}><div class="mt-2"></div></ShowBool>
                         <ShowAnimate when={!contentWarning()} fallback={
@@ -347,7 +349,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             <Body body={props.content.body} autoplay={false} />
                         </ShowAnimate>
                     </ShowBool>
-                </div>
+                </section>
                 <ShowBool when={!hasThumbnail() && !mobile()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
                     <PostActions
                         content={props.content}
@@ -368,7 +370,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 </ShowBool>
             </HideshowProvider></div>
         </div>
-    </div>;
+    </article>;
 }
 
 export type ClientContentProps = {listing: Generic.PostContent, opts: ClientPostOpts};

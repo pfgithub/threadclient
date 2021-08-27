@@ -2155,7 +2155,10 @@ function clientListing(
                 collapsed_button.setAttribute("aria-pressed", "false");
             }
         };
-        const collapsed_button = el("button").clss("collapse-btn").attr({draggable: "true"}).adch(
+        const collapsed_button = el("button").clss("collapse-btn outline-default").attr({
+            'draggable': "true",
+            'aria-label': "Collapse",
+        }).adch(
             el("div").clss("collapse-btn-inner")
         ).onev("click", (e) => {
             e.stopPropagation();
@@ -3243,27 +3246,27 @@ function onNavigate(to_index: number, url: URLLike) {
 // on the top that don't use history or whatever
 
 export const bodytop = el("div").adto(document.body);
-export let navbar: HTMLDivElement; {
-    const frame = el("div").clss("navbar", "bg-postcolor-100").adto(document.body);
+export let navbar: HTMLElement; {
+    const frame = el("nav").clss("navbar", "bg-postcolor-100").adto(document.body);
     navbar = frame;
 
     const navbar_button = ["px-2"];
 
-    el("button").adto(frame).atxt("←").clss(...navbar_button).onev("click", e => {
+    el("button").adto(frame).attr({'aria-label': "Back"}).atxt("←").clss(...navbar_button).onev("click", e => {
         e.stopPropagation();
         history.back();
     });
-    el("button").adto(frame).atxt("→").clss(...navbar_button).onev("click", e => {
+    el("button").adto(frame).attr({'aria-label': "Forward"}).atxt("→").clss(...navbar_button).onev("click", e => {
         e.stopPropagation();
         history.forward();
     });
 
-    const nav_path = el("input").adto(frame)
+    const nav_path = el("input").attr({'aria-label': "URL"}).adto(frame)
         .clss("bg-transparent text-center border border-gray-600 dark:border-gray-500")
     ;
 
-    const nav_go = el("button").clss(...navbar_button).atxt("⏎").adto(frame);
-    const nav_reload = el("button").clss(...navbar_button).atxt("🗘").adto(frame);
+    const nav_go = el("button").attr({'aria-label': "Go"}).clss(...navbar_button).atxt("⏎").adto(frame);
+    const nav_reload = el("button").attr({'aria-label': "Reload"}).clss(...navbar_button).atxt("🗘").adto(frame);
 
     const go = () => navigate({path: nav_path.value});
     nav_go.onclick = () => go();

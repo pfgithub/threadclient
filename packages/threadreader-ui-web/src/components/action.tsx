@@ -16,7 +16,7 @@ export function PostActions(props: ClientPostProps & {
 
     const mobile = () => screenWidth() < screen_size.sm;
 
-    return <><div class={"flex flex-wrap gap-2 "+(mobile() ? "flex-col" : "items-center")}>
+    return <><section class={"flex flex-wrap gap-2 "+(mobile() ? "flex-col" : "items-center")}>
         {props.children}
         <ShowCond when={props.opts.frame?.url}>{url => (
             <LinkButton href={url} style="action-button">
@@ -87,7 +87,7 @@ export function PostActions(props: ClientPostProps & {
                 }}
             >Code</button>;
         }}</ShowCond>
-    </div><ShowCond when={showingWindowBelow()}>{windowBelow => (
+    </section><ShowCond when={showingWindowBelow()}>{windowBelow => (
         windowBelow()
     )}</ShowCond></>;
 }

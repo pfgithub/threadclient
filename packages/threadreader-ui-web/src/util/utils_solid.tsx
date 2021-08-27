@@ -348,5 +348,7 @@ export function TimeAgo(props: {start: number}): JSX.Element {
         }
         return res_text[0];
     });
-    return <span title={"" + new Date(props.start)}>{label}</span>;
+    return <time datetime={new Date(props.start).toString()} title={"" + new Date(props.start)}>
+        {label}
+    </time>;
 }

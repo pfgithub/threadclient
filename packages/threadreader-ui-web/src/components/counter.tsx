@@ -123,6 +123,8 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
             class="reddit-vote-button reddit-upvote-button"
             classList={{"vote-icon-voted": state().your_vote === "increment"}}
             disabled={state().loading}
+            aria-label="Vote Up"
+            aria-pressed={state().your_vote === "increment"}
             onclick={() => {
                 void actAuto(
                     state().your_vote === "increment" ? undefined : "increment",
@@ -139,6 +141,8 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
             class="reddit-vote-button reddit-downvote-button"
             classList={{"vote-icon-voted": state().your_vote === "decrement"}}
             disabled={state().loading}
+            aria-label="Vote Down"
+            aria-pressed={state().your_vote === "decrement"}
             onclick={() => {
                 void actAuto(
                     state().your_vote === "decrement" ? undefined : "decrement",

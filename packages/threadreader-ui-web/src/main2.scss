@@ -1,0 +1,12 @@
+// normalization
+button,
+input,
+textarea {
+    // border: 1px solid var(--collapse-line-color-hover);
+    &:focus {
+        outline: none;
+    }
+    &:focus-visible {
+        outline: 1px dotted var(--outline-color);
+    }
+}
