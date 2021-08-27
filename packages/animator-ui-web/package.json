@@ -1,0 +1,26 @@
+{
+  "name": "animator-ui-web",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "eslint": "^7.29.0",
+    "eslint-config-tmeta": "^1.0.0",
+    "tsconfig-tmeta": "^1.0.0",
+    "typescript": "^4.3.5",
+    "vite": "^2.5.1",
+    "vite-plugin-solid": "^2.0.1",
+    "vite-plugin-windicss": "^1.3.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && cp dist/index.html dist/404.html && touch dist/.nojekyll",
+    "serve": "vite preview",
+    "lint": "eslint src --max-warnings 0 && tsc --noEmit",
+    "test": "true"
+  },
+  "dependencies": {
+    "solid-js": "^1.1.1"
+  }
+}

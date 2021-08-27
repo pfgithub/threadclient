@@ -6,7 +6,7 @@ export default defineConfig({
     extract: {
         include: [
             "./src/**/*",
-            "./static/**/*.html",
+            "./index.html",
         ],
     },
     darkMode: "class",
