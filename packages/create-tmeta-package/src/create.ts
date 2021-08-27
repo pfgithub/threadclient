@@ -38,6 +38,7 @@ void (async () => {
 // and then there's one dependency it's `tmeta` that depends on
 // "eslint": "^7.29.0",
 // "eslint-config-tmeta": "^1.0.0",
-// "tsconfig-tmeta": "^1.0.0"
+// "tsconfig-tmeta": "^1.0.0",
+// "typescript": "^4.3.5"
 // and you still need to have .eslintrc.js and tsconfig.json files in the root
 // of all the reops unfortunately
