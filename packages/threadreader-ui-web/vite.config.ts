@@ -41,5 +41,8 @@ export default defineConfig({
     server: {
         port: 3004,
         hmr: false, // it's really annoying
+        fs: {
+            strict: true,
+        },
     },
 });
