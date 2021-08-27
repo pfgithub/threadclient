@@ -13,7 +13,7 @@ function warn(...message: unknown[]) {
     // TODO display this visually somewhere if dev mode is enabled
 }
 
-export type ID = string; // TODO string & {__is_id: true}
+export type ID = string & {__is_id: true}; // TODO string & {__is_id: true}
 export type IDMap = Map<ID, IDMapEntry>;
 // // needs to be able to tell you if it's a thing or load more or whatever
 // // also it should like update in the future
@@ -90,16 +90,16 @@ export function page2FromListing(
             // ));
         }
 
-        setUpMap(id_map, {
+        let focus = setUpMap(id_map, {
             kind: "post",
             post: parent_post,
             replies: page[1],
         });
 
-        let focus: string = parent_post.data.name;
         if(path.kind === "comments" && path.focus_comment != null) {
-            focus = "t1_"+path.focus_comment.toLowerCase();
-            if(!id_map.has(focus)) focus = parent_post.data.name;
+            const new_focus = "t1_"+path.focus_comment.toLowerCase() as ID;
+            if(id_map.has(new_focus)) focus = new_focus;
+            else warn("focused comment not found in tree `"+new_focus+"`");
         }
 
         return getPostData(id_map, focus);
@@ -121,17 +121,17 @@ export function page2FromListing(
     return unsupportedPage(pathraw, page);
 }
 
-function getSrId(sub: SubrInfo): string {
+function getSrId(sub: SubrInfo): ID {
     if(sub.kind === "homepage") {
-        return "SR_home";
+        return "SR_home" as ID;
     }else if(sub.kind === "mod") {
-        return "SR_mod";
+        return "SR_mod" as ID;
     }else if(sub.kind === "multireddit") {
-        return "SR_multi/u:"+sub.user.toLowerCase()+"/m:"+sub.multireddit.toLowerCase();
+        return "SR_multi/u:"+sub.user.toLowerCase()+"/m:"+sub.multireddit.toLowerCase() as ID;
     }else if(sub.kind === "userpage") {
-        return "SR_user/"+sub.user.toLowerCase();
+        return "SR_user/"+sub.user.toLowerCase() as ID;
     }else if(sub.kind === "subreddit") {
-        return "SR_sub/"+sub.subreddit.toLowerCase();
+        return "SR_sub/"+sub.subreddit.toLowerCase() as ID;
     }else assertNever(sub);
 }
 
@@ -159,67 +159,79 @@ function unsupportedPage(pathraw: string, page: unknown): Generic.Link<Generic.P
     }, err: undefined};
 }
 
-function getEntryFullname(entry: IDMapData): string {
+function getPostFullname(post: Reddit.Post): ID {
+    const value = commentOrUnmountedData(post, undefined);
+    if(!value) return "__ERROR_FULLNAME__" as ID;
+    return getEntryFullname(value);
+}
+function getEntryFullname(entry: IDMapData): ID {
     if(entry.kind === "comment") {
-        return entry.comment.data.name;
+        return entry.comment.data.name as ID;
     }else if(entry.kind === "post") {
-        return entry.post.data.name;
+        return entry.post.data.name as ID;
     }else if(entry.kind === "subreddit_unloaded") {
-        return entry.details === "unknown" ? "__UNKNOWN_LISTING_ROOT" : getSrId(entry.details);
+        return (entry.details === "unknown" ? "__UNKNOWN_LISTING_ROOT" as ID : getSrId(entry.details));
     }else if(entry.kind === "depth_more") {
-        return "DEPTH_MORE_"+entry.parent_permalink;
+        return "DEPTH_MORE_"+entry.parent_permalink as ID;
     }else if(entry.kind === "more") {
-        return "MORE_"+entry.item.data.children.join(",");
+        return "MORE_"+entry.item.data.children.join(",") as ID;
     }else assertNever(entry);
 }
 
-function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_permalink: string | undefined): void {
+function commentOrUnmountedData(item: Reddit.Post, parent_permalink: string | undefined): IDMapData | undefined {
     if(item.kind === "t1") {
-        setUpMap(map, {
+        return {
             kind: "comment",
             comment: item,
-        });
+        };
     }else if(item.kind === "t3") {
-        setUpMap(map, {
+        return {
             kind: "post",
             post: item,
             replies: "not_loaded",
-        });
+        };
     }else if(item.kind === "more") {
         if(item.data.children.length === 0) {
             if(parent_permalink == null) {
                 warn(
                     "TODO setUpCommentOrUnmounted was called with not loaded parent but req. parent submission",
                 );
-                return; // TODO add an error node?
+                return undefined;
             }
-            setUpMap(map, {
+            return {
                 kind: "depth_more",
                 item,
                 parent_permalink,
-            });
+            };
         }else{
-            setUpMap(map, {
+            return {
                 kind: "more",
                 item,
-            });
+            };
         }
     }else{
         expectUnsupported(item.kind);
         warn("TODO setUpCommentOrUnmounted", item.kind, item);
+        return undefined;
     }
+}
+
+function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_permalink: string | undefined): void {
+    const data = commentOrUnmountedData(item, parent_permalink);
+    if(data == null) return;
+    setUpMap(map, data);
 }
 
 export function setUpMap(
     map: IDMap,
     data: IDMapData,
-): void {
+): ID {
     const entry_fullname = getEntryFullname(data);
     const prev_value = map.get(entry_fullname);
     if(prev_value) {
         console.log("Note: Two objects with the same id were created. ID: `"+entry_fullname+"`");
         // Note: In the future, consider reconciling both into one data entry that has data from both.
-        return;
+        return entry_fullname;
 
         // there are many reasons two things with the same id might get added
         // eg: adding a post and then a crosspost of that post, both on the same listing
@@ -241,7 +253,7 @@ export function setUpMap(
             }
         }else if(listing_raw.kind === "more") {
             // TODO this doesn't belong here
-            if(listing_raw.data.name === "t1__") return; // depth-based
+            if(listing_raw.data.name === "t1__") return entry_fullname; // depth-based
         }else {
             console.log("TODO setUpMap "+listing_raw.kind);
         }
@@ -274,11 +286,13 @@ export function setUpMap(
         link: createLink(),
         data,
     });
+
+    return entry_fullname;
 }
 
 // returns a pointer to the PostData
 // TODO support load more in both parents and replies
-export function getPostData(map: IDMap, key: string): Generic.Link<Generic.Post> {
+export function getPostData(map: IDMap, key: ID): Generic.Link<Generic.Post> {
     const value = map.get(key);
     if(!value) {
         // TODO determine which load more to use
@@ -331,17 +345,17 @@ function postDataFromListingMayError(
         //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if(listing.replies) {
             for(const reply of listing.replies.data.children) {
-                replies.items.push(getPostData(map, reply.data.name));
+                replies.items.push(getPostData(map, getPostFullname(reply)));
             }
         }
 
-        const parent_post = map.get(listing.link_id);
+        const parent_post = map.get(listing.parent_id as ID);
 
         return {
             kind: "post",
             url: updateQuery(listing.permalink, {context: "3"}),
 
-            parent: getPostData(map, listing.parent_id),
+            parent: getPostData(map, listing.parent_id as ID),
             replies,
 
             content: {
@@ -388,7 +402,7 @@ function postDataFromListingMayError(
                 },
                 // I don't think before and after are used here
                 items: entry.data.replies.data.children.map(reply => (
-                    getPostData(map, reply.data.name)
+                    getPostData(map, getPostFullname(reply))
                 )),
             } : null, // TODO load_more instead of null
 
@@ -426,10 +440,10 @@ function postDataFromListingMayError(
         const replies: Generic.Link<Generic.Post>[] = [];
 
         for(const child of entry.data.listing.data.children) {
-            replies.push(getPostData(map, child.data.name));
+            replies.push(getPostData(map, getPostFullname(child)));
         }
         if(entry.data.listing.data.after != null) {
-            replies.push(getPostData(map, "TODO next"));
+            replies.push(getPostData(map, "TODO next" as ID));
         }
 
         return {
@@ -453,7 +467,7 @@ function postDataFromListingMayError(
         const listing = entry.data.item.data;
         return {
             kind: "loader",
-            parent: getPostData(map, listing.parent_id),
+            parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
         };
@@ -461,7 +475,7 @@ function postDataFromListingMayError(
         const listing = entry.data.item.data;
         return {
             kind: "loader",
-            parent: getPostData(map, listing.parent_id),
+            parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
         };
