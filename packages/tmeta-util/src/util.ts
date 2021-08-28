@@ -218,3 +218,25 @@ export function router<Out>(): Router<BaseParentOpts, Out> {
 //     });
 //     urlr.parse("/r/subreddit/one");
 // }
+
+export type Include<T, U> = T extends U ? T : never;
+
+export function kindIs<K extends string, T extends {kind: string}>(value: T, key: K): Include<T, {kind: K}> | null {
+    return value.kind === key ? value as unknown as null : null;
+}
+
+export type MatchFn<T, Key, R> = (value: Include<T, {kind: Key}>) => R;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function switchKindCB<U>(item: {kind: string}, choices: {[key: string]: (item: any) => U}): () => U {
+    const match = choices[item.kind] ?? choices["unsupported"] ?? (() => {
+        throw new Error("condition "+match+" was not handled and no unsupported branch");
+    });
+    return () => match(item);
+}
+export function switchKind<T extends {kind: string}, U>(
+    item: T,
+    choices: {[Key in T["kind"]]: MatchFn<T, Key, U>},
+): U {
+    return switchKindCB<U>(item, choices)();
+}

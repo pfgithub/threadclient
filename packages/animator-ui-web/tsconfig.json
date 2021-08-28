@@ -6,6 +6,9 @@
             "dom",
             "DOM.Iterable",
         ],
+        "types": [
+            "vite/client"
+        ],
     },
     "include": [
         "src/**/*",

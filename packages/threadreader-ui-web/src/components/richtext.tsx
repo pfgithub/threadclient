@@ -5,8 +5,9 @@ import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, getClient, getSettings, Icon, ShowBool,
-    ShowCond, switchKind, SwitchKind, TimeAgo, ToggleColor,
+    ShowCond, SwitchKind, TimeAgo, ToggleColor,
 } from "../util/utils_solid";
+import {switchKind} from "tmeta-util";
 import { animateHeight } from "./animation";
 import { Flair } from "./page2";
 import { Body } from "./body";

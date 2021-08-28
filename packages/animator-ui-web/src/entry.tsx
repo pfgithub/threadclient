@@ -1,5 +1,5 @@
-import {render} from "solid-js/web";
-import Animator from "./animator";
+import { render } from "solid-js/web";
 import "windi.css";
+import AnimatorState from "./animator_state";
 
-render(() => <Animator />, document.getElementById("app")!);
+render(() => <AnimatorState />, document.getElementById("app")!);

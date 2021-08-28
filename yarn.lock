@@ -1863,7 +1863,9 @@ __metadata:
     eslint: ^7.29.0
     eslint-config-tmeta: ^1.0.0
     perfect-freehand: ^0.5.2
+    polygon-clipping: ^0.15.3
     solid-js: ^1.1.1
+    tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
     typescript: ^4.3.5
     vite: ^2.5.1
@@ -4430,6 +4432,15 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
+"polygon-clipping@npm:^0.15.3":
+  version: 0.15.3
+  resolution: "polygon-clipping@npm:0.15.3"
+  dependencies:
+    splaytree: ^3.1.0
+  checksum: ccf88044299f944a775b3a10605254134c6b06536527ed51b757944f7464b957764ab0db1852ed2de5f388d1a90e5eba7f2b0f13fa0ae651bc907f18eac81ddc
+  languageName: node
+  linkType: hard
+
 "postcss-load-config@npm:^3.0.1":
   version: 3.1.0
   resolution: "postcss-load-config@npm:3.1.0"
@@ -5010,6 +5021,13 @@ fsevents@~2.3.2:
   version: 2.0.1
   resolution: "space-separated-tokens@npm:2.0.1"
   checksum: 66e30a6382d6e3ab0a6573d510235a198202071d4ebfef8c198f10433166f0cdced4dbf0946cad3c4b2ecc336896a11f98b2ec93047e140fe7aef6fd3a21365b
+  languageName: node
+  linkType: hard
+
+"splaytree@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "splaytree@npm:3.1.0"
+  checksum: c1b808a0fbc65de7decfe092ddd243490a4fb77c5ddfacb8b20e050c7cc57814c7811a83b041697fdf211d4f162de941d6b0d2880a33cbe1ea0b8fc0496b64a5
   languageName: node
   linkType: hard
 

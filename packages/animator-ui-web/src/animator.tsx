@@ -9,14 +9,9 @@
 // - connect to the server via websocket
 // - post your drawings to the websocket
 
-import { batch, createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import getStroke from "perfect-freehand";
-
-type Point = [
-    x: number,
-    y: number,
-    pressure: number,
-];
+import { batch, createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
+import { Action, CachedState, State } from "./apply_action";
 
 const config: {
     drawing_size: [x: number, y: number],
@@ -25,80 +20,61 @@ const config: {
     drawing_size: [1920, 1080],
     framerate: 30,
 };
+() => config;
 
-type Point2D = [x: number, y: number];
-type Vector = [origin: Point2D, dest: Point2D];
+export default function Animator(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
+    return <div class="h-full">
+        <DrawCurrentFrame state={props.state} applyAction={props.applyAction} />
+        <GestureRecognizer state={props.state.cached_state} applyAction={props.applyAction} />
+    </div>;
+}
 
-function AnimationCanvas(): JSX.Element {
-    const getPageSize = () => {
-        return {width: window.innerWidth, height: window.innerHeight};
-    };
-    const [pageSize, setPageSize] = createSignal<{width: number, height: number}>(getPageSize());
-    const onresize = () => {
-        setPageSize(getPageSize());
-    };
-    window.addEventListener("resize", onresize);
-    onCleanup(() => window.removeEventListener("resize", onresize));
+export function DrawCurrentFrame(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
+    return <FullscreenCanvas2D render={(ctx, size) => {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, size.width, size.height);
+        // TODO scale based on state
+        for(const face of props.state.cached_state.merged_polygons) {
+            let i = -1;
+            for(const points of face) {
+                i++;
+                ctx.beginPath();
+                let zero = true;
+                for(const [x, y] of points) {
+                    if(zero) {
+                        ctx.moveTo(x, y);
+                        zero = false;
+                    }else{
+                        ctx.lineTo(x, y);
+                    }
+                }
+                if(i === 0) {
+                    ctx.fillStyle = "#000000";
+                    ctx.fill();
+                }else{
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fill();
+                }
+            }
+        }
+        ctx.fillStyle = "#000000";
+        ctx.fillText("" + (props.state.update_time), 10, 10);
+    }} />;
+}
 
-    const [committedStrokes, setCommittedStrokes] = createSignal<Point2D[][]>([]);
-    const [points, setPoints] = createSignal(new Map<string, Point[]>());
+export function GestureRecognizer(props: {state: CachedState, applyAction: (action: Action) => void}): JSX.Element {
+    const [plannedStrokes, setPlannedStrokes] = createSignal(new Map<string, PressurePoint[]>());
 
-    const commitStroke = (sp: Point[]) => (
-        getStroke(sp) as Point2D[]
+    const commitStroke = (sp: PressurePoint[]) => (
+        getStroke(sp, {
+            simulatePressure: sp.every(pt => pt[2] === 0.5),
+        }) as Point2D[]
     );
-    const strokes = createMemo((): Point2D[][] => (
-        [...points().values()].map(commitStroke)
-    ));
-
-    // transform (drawing point[1920×1080] → page coord[W×H])
-    const [getTransform, setTransform] = createSignal(new DOMMatrixReadOnly());
-    const transform = () => {
-        return transformScaled(getTransform());
+    const eventToPoint = (e: PointerEvent): PressurePoint => {
+        return [e.pageX, e.pageY, e.pressure];
     };
-    const transformScaled = (transform_v: DOMMatrixReadOnly) => {
-        const page_size = pageSize();
-
-        const scale = Math.min(
-            page_size.width / config.drawing_size[0],
-            page_size.height / config.drawing_size[1],
-        );
-
-        return transform_v.scale(scale, scale);
-    };
-    const transformZoomed = (transform_v: DOMMatrixReadOnly) => {
-        const zoomv = zoom();
-        if(!zoomv) return transform_v;
-        const centerpt = (pt: Vector): Point2D => {
-            return [
-                (pt[1][0] - pt[0][0]) / 2 + pt[0][0],
-                (pt[1][1] - pt[0][1]) / 2 + pt[0][1],
-            ];
-        };
-        const translation_vec: Vector = [
-            centerpt(zoomv[0]),
-            centerpt(zoomv[1]),
-        ];
-        const translation: Point2D = [
-            translation_vec[1][0] - translation_vec[0][0],
-            translation_vec[1][1] - translation_vec[0][1],
-        ];
-        const center = translation_vec[1];
-        return transform_v.translate(
-            center[0], center[1],
-        ).rotate((
-            Math.atan2(zoomv[0][1][0] - zoomv[0][0][0], zoomv[0][1][1] - zoomv[0][0][1]) -
-            Math.atan2(zoomv[1][1][0] - zoomv[1][0][0], zoomv[1][1][1] - zoomv[1][0][1])
-        ) * (180 / Math.PI)).scale(
-            Math.hypot(zoomv[1][1][0] - zoomv[1][0][0], zoomv[1][1][1] - zoomv[1][0][1]) /
-            Math.hypot(zoomv[0][1][0] - zoomv[0][0][0], zoomv[0][1][1] - zoomv[0][0][1])
-        ).translate(
-            translation[0] - center[0], translation[1] - center[1],
-        );
-    };
-    const [zoom, setZoom] = createSignal<[start: Vector, end: Vector] | null>(null);
-
     type Pointer = {
-        points: Map<number, {start: number, point: Point}>,
+        points: Map<number, {start: number, point: PressurePoint}>,
         mode: "draw" | "zoom",
     };
     const pointers = new Map<string, Pointer>();
@@ -127,29 +103,24 @@ function AnimationCanvas(): JSX.Element {
                 return;
             }
             pmap.mode = "zoom";
-            setPoints(pts => {
+            setPlannedStrokes(pts => {
                 const res = new Map(pts);
                 res.delete(e.pointerType);
                 return res;
             });
+            props.applyAction({kind: "undo"});
             const ppv = [...pmap.points.values()];
             if(ppv.length < 2) return;
             const start: Vector = [[ppv[0]!.point[0], ppv[0]!.point[1]], [ppv[1]!.point[0], ppv[1]!.point[1]]];
-            setZoom([start, start]);
-            // gestureCancel()
-            // gestureStart(zoom)
+            // setZoom([start, start]);
+            () => start;
             return;
         }
 
-        setPoints(pts => new Map(pts).set(e.pointerType, [eventToPoint(e)]));
+        setPlannedStrokes(pts => new Map(pts).set(e.pointerType, [eventToPoint(e)]));
     };
     document.addEventListener("pointerdown", onpointerdown);
     onCleanup(() => document.removeEventListener("pointerdown", onpointerdown));
-
-    const eventToPoint = (e: PointerEvent): Point => {
-        const point = transform().inverse().transformPoint(new DOMPoint(e.pageX, e.pageY));
-        return [point.x, point.y, e.pressure];
-    };
 
     const onpointermove = (e: PointerEvent) => {
         const pmap = getPointerMap(e.pointerType);
@@ -163,11 +134,12 @@ function AnimationCanvas(): JSX.Element {
                 const ppv = [...pmap.points.values()];
                 if(ppv.length < 2) return;
                 const current: Vector = [[ppv[0]!.point[0], ppv[0]!.point[1]], [ppv[1]!.point[0], ppv[1]!.point[1]]];
-                setZoom(z => [z![0], current]);
+                // setZoom(z => [z![0], current]);
+                () => current;
                 return;
             }
             
-            setPoints(pts => new Map(pts).set(e.pointerType, [
+            setPlannedStrokes(pts => new Map(pts).set(e.pointerType, [
                 ...pts.get(e.pointerType) ?? [],
                 eventToPoint(e),
             ]));
@@ -184,22 +156,27 @@ function AnimationCanvas(): JSX.Element {
         pmap.points.delete(e.pointerId);
         if(e.pointerType === "touch" && pmap.mode === "zoom") {
             if(pmap.points.size < 2) {
-                batch(() => {
-                    setTransform(t => transformZoomed(t).inverse());
-                    setZoom(null);
-                });
+                // batch(() => {
+                //     setTransform(t => transformZoomed(t).inverse());
+                //     setZoom(null);
+                // });
             }
             return;
         }
 
-        const value = points().get(e.pointerType) ?? [];
+        const value = plannedStrokes().get(e.pointerType) ?? [];
         batch(() => {
-            setPoints(pts => {
+            setPlannedStrokes(pts => {
                 const res = new Map(pts);
                 res.delete(e.pointerType);
                 return res;
             });
-            setCommittedStrokes(cs => [...cs, commitStroke(value)]);
+            const stroke = commitStroke(value);
+            if(stroke.some(item => isNaN(item[0]) || isNaN(item[1]))) return;
+            props.applyAction({
+                kind: "add_polygon",
+                polygon: stroke,
+            });
         });
     };
     document.addEventListener("pointerup", onpointerup);
@@ -210,11 +187,11 @@ function AnimationCanvas(): JSX.Element {
         if(!pmap.points.has(e.pointerId)) return;
         pmap.points.delete(e.pointerId);
         if(e.pointerType === "touch" && pmap.mode === "zoom") {
-            if(pmap.points.size < 2) setZoom(null);
+            // if(pmap.points.size < 2) setZoom(null);
             return;
         }
 
-        setPoints(pts => {
+        setPlannedStrokes(pts => {
             const res = new Map(pts);
             res.delete(e.pointerType);
             return res;
@@ -223,68 +200,68 @@ function AnimationCanvas(): JSX.Element {
     document.addEventListener("pointercancel", onpointercancel);
     onCleanup(() => document.removeEventListener("pointercancel", onpointercancel));
 
-    const onkeypress = (e: KeyboardEvent) => {
-        if(e.key === "a") {
-            setTransform(t => t.rotate(0.2));
-        }
-    };
-    document.addEventListener("keypress", onkeypress);
-    onCleanup(() => document.removeEventListener("keypress", onkeypress));
+    const strokes = createMemo((): Point2D[][] => (
+        [...plannedStrokes().values()].map(commitStroke)
+    ));
 
-    // const draw_size: [w: number, h: number] = [1920, 1080];
+    return <FullscreenCanvas2D render={(ctx, size) => {
+        for(const stroke of strokes()) {
+            ctx.beginPath();
+            let zero = true;
+            for(const [x, y] of stroke) {
+                if(zero) {
+                    ctx.moveTo(x, y);
+                    zero = false;
+                }else{
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.fill();
+        }
+    }} />;
+}
+
+export function FullscreenCanvas2D(props: {
+    render: (
+        ctx: CanvasRenderingContext2D,
+        size: {width: number, height: number},
+    ) => void,
+}): JSX.Element {
+    const getPageSize = () => {
+        return {width: window.innerWidth, height: window.innerHeight};
+    };
+    const [pageSize, setPageSize] = createSignal<{width: number, height: number}>(getPageSize());
+    const onresize = () => {
+        setPageSize(getPageSize());
+    };
+    window.addEventListener("resize", onresize);
+    onCleanup(() => window.removeEventListener("resize", onresize));
 
     return <canvas ref={canvas => {
         const ctx = canvas.getContext("2d")!;
 
+
         createEffect(() => {
-            const point_s = strokes();
             const page_size = pageSize();
             const pr = window.devicePixelRatio;
             if(canvas.width !== page_size.width * pr) canvas.width = page_size.width * pr;
             if(canvas.height !== page_size.height * pr) canvas.height = page_size.height * pr;
+
             ctx.setTransform(new DOMMatrixReadOnly().scale(pr));
             ctx?.clearRect(0, 0, page_size.width, page_size.height);
 
-            ctx.setTransform(transformScaled(transformZoomed(getTransform())).scale(pr));
-
-            ctx.strokeRect(0, 0, config.drawing_size[0], config.drawing_size[1]);
-
-            // possibly use two seperate canvases for these so that committedstrokes
-            // doesn't have to be fully updated constantly
-            for(const stroke of [...committedStrokes(), ...point_s]) {
-                ctx.beginPath();
-                let zero = true;
-                for(const [x, y] of stroke) {
-                    if(zero) {
-                        ctx.moveTo(x, y);
-                        zero = false;
-                    }else{
-                        ctx.lineTo(x, y);
-                    }
-                }
-                ctx.fill();
-            }
-
-            const zoomv = zoom();
-
-            if(zoomv) {
-                ctx.beginPath();
-                ctx.moveTo(zoomv[0][0][0], zoomv[0][0][1]);
-                ctx.lineTo(zoomv[0][1][0], zoomv[0][1][1]);
-                ctx.stroke();
-                // ctx.beginPath();
-                // ctx.moveTo(zoomv[1][0][0], zoomv[1][0][1]);
-                // ctx.lineTo(zoomv[1][1][0], zoomv[1][1][1]);
-                // ctx.stroke();
-            }
+            props.render(ctx, page_size);
         });
     }}
-        class="w-full h-full"
+        class="w-full h-full fixed top-0 left-0 bottom-0 right-0"
     />;
 }
 
-export default function Animator(): JSX.Element {
-    return <div class="h-full">
-        <AnimationCanvas />    
-    </div>;
-}
+type PressurePoint = [
+    x: number,
+    y: number,
+    pressure: number,
+];
+
+type Point2D = [x: number, y: number];
+type Vector = [origin: Point2D, dest: Point2D];

@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "perfect-freehand": "^0.5.2",
-    "solid-js": "^1.1.1"
+    "polygon-clipping": "^0.15.3",
+    "solid-js": "^1.1.1",
+    "tmeta-util": "^1.0.0"
   }
 }
