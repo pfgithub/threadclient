@@ -156,7 +156,7 @@ export let updateState = function updateState(
             const regenerated = applyActionsToState(actions, initialState());
             setState("cached_state", reconcile<CachedState>(regenerated, {merge: true}));
         }else if(action.kind === "set_frame") {
-            setState("frame", action.frame);
+            setState("frame", Math.max(0, action.frame));
         }else{
             setState("actions", [...state.actions, action]);
             const applied = applyActionsToState([action], state.cached_state);

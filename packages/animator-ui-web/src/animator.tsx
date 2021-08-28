@@ -31,6 +31,7 @@ export default function Animator(props: {state: State, applyAction: (action: Act
 
 export function DrawCurrentFrame(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     return <FullscreenCanvas2D render={(ctx, size) => {
+        const start = Date.now();
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, size.width, size.height);
         // TODO scale based on state
@@ -61,11 +62,14 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
                 }
             }
         }
+        const end = Date.now();
         ctx.fillStyle = "#000000";
-        ctx.fillText("Last Update ms:" + (props.state.update_time), 10, 20);
+        ctx.fillText("Last Update ms: " + (props.state.update_time), 10, 20);
+        ctx.fillText("Draw ms: " + (end - start), 10, 30);
         ctx.fillText("Vertices: " + (frame.merged_polygons.reduce((t, poly) => (
             t + poly.reduce((q, points) => q + points.length, 0)
-        ), 0)), 10, 30);
+        ), 0)), 10, 40);
+        ctx.fillText("Frame: " + (props.state.frame), 10, 50);
     }} />;
 }
 
@@ -82,7 +86,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     };
     type Pointer = {
         points: Map<number, {start: number, point: PressurePoint}>,
-        mode: "draw" | "zoom",
+        mode: {kind: "draw"} | {kind: "zoom"} | {kind: "switch_frame", start_x: number},
     };
     const pointers = new Map<string, Pointer>();
     const getPointerMap = (type: string) => {
@@ -90,7 +94,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         if(!submap || submap.points.size === 0) {
             const setv: Pointer = {
                 points: new Map(),
-                mode: "draw",
+                mode: {kind: "draw"},
             };
             pointers.set(type, setv);
             return setv;
@@ -105,11 +109,11 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         pmap.points.set(e.pointerId, {start: Date.now(), point: eventToPoint(e)});
 
         if(e.pointerType === "touch" && pmap.points.size > 1) {
-            if(pmap.mode === "zoom" || [...pmap.points.values()][0]!.start < Date.now() - 200) {
+            if(pmap.mode.kind === "zoom" || [...pmap.points.values()][0]!.start < Date.now() - 200) {
                 pmap.points.delete(e.pointerId);
                 return;
             }
-            pmap.mode = "zoom";
+            pmap.mode = {kind: "zoom"};
             setPlannedStrokes(pts => {
                 const res = new Map(pts);
                 res.delete(e.pointerType);
@@ -121,6 +125,10 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             const start: Vector = [[ppv[0]!.point[0], ppv[0]!.point[1]], [ppv[1]!.point[0], ppv[1]!.point[1]]];
             // setZoom([start, start]);
             () => start;
+            return;
+        }
+        if(e.pageY > window.innerHeight - 200) {
+            pmap.mode = {kind: "switch_frame", start_x: e.pageX};
             return;
         }
 
@@ -137,13 +145,23 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
 
             prev.point = eventToPoint(e);
 
-            if(e.pointerType === "touch" && pmap.mode === "zoom") {
+            if(e.pointerType === "touch" && pmap.mode.kind === "zoom") {
                 const ppv = [...pmap.points.values()];
                 if(ppv.length < 2) return;
                 const current: Vector = [[ppv[0]!.point[0], ppv[0]!.point[1]], [ppv[1]!.point[0], ppv[1]!.point[1]]];
                 // setZoom(z => [z![0], current]);
                 () => current;
                 return;
+            }
+            if(pmap.mode.kind === "switch_frame") {
+                while(e.pageX < pmap.mode.start_x - 20) {
+                    props.applyAction({kind: "set_frame", frame: props.state.frame + 1});
+                    pmap.mode.start_x -= 20;
+                }
+                while(e.pageX > pmap.mode.start_x + 20) {
+                    props.applyAction({kind: "set_frame", frame: props.state.frame - 1});
+                    pmap.mode.start_x += 20;
+                }
             }
             
             setPlannedStrokes(pts => new Map(pts).set(e.pointerType, [
@@ -161,13 +179,16 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         const pmap = getPointerMap(e.pointerType);
         if(!pmap.points.has(e.pointerId)) return;
         pmap.points.delete(e.pointerId);
-        if(e.pointerType === "touch" && pmap.mode === "zoom") {
+        if(e.pointerType === "touch" && pmap.mode.kind === "zoom") {
             if(pmap.points.size < 2) {
                 // batch(() => {
                 //     setTransform(t => transformZoomed(t).inverse());
                 //     setZoom(null);
                 // });
             }
+            return;
+        }
+        if(pmap.mode.kind === "switch_frame") {
             return;
         }
 
@@ -194,8 +215,11 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         const pmap = getPointerMap(e.pointerType);
         if(!pmap.points.has(e.pointerId)) return;
         pmap.points.delete(e.pointerId);
-        if(e.pointerType === "touch" && pmap.mode === "zoom") {
+        if(e.pointerType === "touch" && pmap.mode.kind === "zoom") {
             // if(pmap.points.size < 2) setZoom(null);
+            return;
+        }
+        if(pmap.mode.kind === "switch_frame") {
             return;
         }
 
@@ -232,6 +256,8 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             }
             ctx.fill();
         }
+
+        ctx.fillRect(0, size.height - 200, size.width, 200);
     }} />;
 }
 
