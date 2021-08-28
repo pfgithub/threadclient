@@ -25,11 +25,14 @@ export type Action = ContentAction | {
 export type ContentAction = {
     kind: "add_polygon",
     polygon: [x: number, y: number][],
+} | {
+    kind: "erase_polygon",
+    polygon: [x: number, y: number][],
 };
 
 //
 
-export default function applyActionsToState(actions: ContentAction[], anchor: CachedState): CachedState {
+export default function (actions: ContentAction[], anchor: CachedState): CachedState {
     let cached_state = anchor;
     for(const action of actions) {
         // note: TODO batching
@@ -44,11 +47,25 @@ export default function applyActionsToState(actions: ContentAction[], anchor: Ca
                     merged_polygons: merged,
                 };
             },
+            erase_polygon: (erase_poly): CachedState => {
+                // note: this is a slow operation
+                // preferrably it would be run on a seperate thread and until
+                // it is completed, strokes would be rendered directly
+                const merged = polygonClipping.difference(cached_state.merged_polygons, [erase_poly.polygon]);
+                //
+                return {
+                    ...cached_state,
+                    merged_polygons: merged,
+                };
+            },
         });
     }
     return cached_state;
 }
 
 if(import.meta.hot) {
-    import.meta.hot.accept();
+    import.meta.hot.accept((new_module) => {
+        console.log(new_module);
+        // for some reason it isn't replacing the exports of this module with the new one?
+    });
 }

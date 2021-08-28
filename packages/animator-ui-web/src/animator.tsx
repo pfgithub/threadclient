@@ -174,7 +174,7 @@ export function GestureRecognizer(props: {state: CachedState, applyAction: (acti
             const stroke = commitStroke(value);
             if(stroke.some(item => isNaN(item[0]) || isNaN(item[1]))) return;
             props.applyAction({
-                kind: "add_polygon",
+                kind: e.pointerType === "touch" || (e.button === 2) ? "erase_polygon" : "add_polygon",
                 polygon: stroke,
             });
         });
@@ -199,6 +199,12 @@ export function GestureRecognizer(props: {state: CachedState, applyAction: (acti
     };
     document.addEventListener("pointercancel", onpointercancel);
     onCleanup(() => document.removeEventListener("pointercancel", onpointercancel));
+
+    const oncontextmenu = (e: Event) => {
+        e.preventDefault();
+    };
+    document.addEventListener("contextmenu", oncontextmenu);
+    onCleanup(() => document.removeEventListener("pointercancel", oncontextmenu));
 
     const strokes = createMemo((): Point2D[][] => (
         [...plannedStrokes().values()].map(commitStroke)

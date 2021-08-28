@@ -230,7 +230,7 @@ export type MatchFn<T, Key, R> = (value: Include<T, {kind: Key}>) => R;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function switchKindCB<U>(item: {kind: string}, choices: {[key: string]: (item: any) => U}): () => U {
     const match = choices[item.kind] ?? choices["unsupported"] ?? (() => {
-        throw new Error("condition "+match+" was not handled and no unsupported branch");
+        throw new Error("condition "+item.kind+" was not handled and no unsupported branch");
     });
     return () => match(item);
 }
