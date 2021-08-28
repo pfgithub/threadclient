@@ -31,6 +31,7 @@ module.exports = {
             const parent = node.parent;
 
             if (parent.type === "VariableDeclarator" && parent.parent.type === "VariableDeclaration") {
+                if(parent.parent.kind === "let" || parent.parent.kind === "var") return;
                 const v = parent.parent.parent;
                 if(v.type === "Program" || (v.type === "ExportNamedDeclaration" && v.parent.type === "Program")) {
                     context.report({

@@ -1,7 +1,7 @@
 import { batch, JSX } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import Animator from "./animator";
-import applyActionsToState, { Action, CachedState, initialState, State } from "./apply_action";
+import { applyActionsToState, Action, CachedState, initialState, State } from "./apply_action";
 
 export default function AnimatorState(): JSX.Element {
     const [state, setState] = createStore<State>({
@@ -14,7 +14,9 @@ export default function AnimatorState(): JSX.Element {
     const applyAction = (action: Action) => {
         batch(() => {
             const start = Date.now();
+            console.log(applyActionsToState);
             if(action.kind === "undo") {
+
                 const actions = [...state.actions.slice(0, state.actions.length - 1)];
                 setState("actions", actions);
                 // TODO keep anchors so that undos don't take forever all the time

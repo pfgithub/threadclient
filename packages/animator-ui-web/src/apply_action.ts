@@ -1,7 +1,7 @@
 import polygonClipping, { MultiPolygon } from "polygon-clipping";
 import { switchKind } from "tmeta-util";
 
-export const initialState = (): CachedState => ({
+export let initialState = (): CachedState => ({
     merged_polygons: [],
 });
 
@@ -30,7 +30,10 @@ export type ContentAction = {
     polygon: [x: number, y: number][],
 };
 
-export default function (actions: ContentAction[], anchor: CachedState): CachedState {
+export let applyActionsToState = function applyActionsToState(
+    actions: ContentAction[],
+    anchor: CachedState,
+): CachedState {
     let cached_state = anchor;
     for(const action of actions) {
         cached_state = switchKind(action, {
@@ -38,6 +41,10 @@ export default function (actions: ContentAction[], anchor: CachedState): CachedS
             // until the operations are completed.
             // while something is calculating, add things to be simulated until it's done,
             // then send those all over to be calculated
+            // - making webworkers is easy:
+            // - write the code in a seperate file
+            // - import it with `?worker`
+            // - vite will handle stuff.
 
             // if there's some other obvious and simple way to improve perf here, I'm not
             // sure what it is. there are some complex things I could do eg: splitting the scene into
@@ -82,11 +89,18 @@ export default function (actions: ContentAction[], anchor: CachedState): CachedS
         });
     }
     return cached_state;
-}
+};
 
 if(import.meta.hot) {
-    import.meta.hot.accept((new_module) => {
-        console.log(new_module);
-        // for some reason it isn't replacing the exports of this module with the new one?
+    import.meta.hot.accept((new_mod: typeof import("./apply_action")) => {
+        // https://vitejs.dev/guide/api-hmr.html#hot-accept-cb
+        // > Note that Vite's HMR does not actually swap the originally imported module: if an HMR boundary module
+        //   re-exports imports from a dep, then it is responsible for updating those re-exports (and these exports
+        //   must be using let). In addition, importers up the chain from the boundary module will not be notified
+        //   of the change.
+        // > This simplified HMR implementation is sufficient for most dev use cases, while allowing us to skip the
+        //   expensive work of generating proxy modules.
+        applyActionsToState = new_mod.applyActionsToState;
+        initialState = new_mod.initialState;
     });
 }
