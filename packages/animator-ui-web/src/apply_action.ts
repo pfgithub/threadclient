@@ -137,8 +137,17 @@ export let updateState = function updateState(
     batch(() => {
         const start = Date.now();
         if(action.kind === "undo") {
+            const undone = state.actions[state.actions.length - 1];
             const actions = [...state.actions.slice(0, state.actions.length - 1)];
             setState("actions", actions);
+
+            if(undone) {
+                switchKind(undone, {
+                    add_polygon: poly => setState("frame", poly.frame),
+                    erase_polygon: poly => setState("frame", poly.frame),
+                });
+            }
+
             // TODO keep anchors so that undos don't take forever all the time
             // TODO when regenerating, save parts of those as anchors
             // eg [1..10 +1] [10..100 +10] [100..1000 +100]
