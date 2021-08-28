@@ -1,8 +1,9 @@
+import type * as Generic from "api-types-generic";
 import { createMemo, createSignal, JSX } from "solid-js";
+import { ShowCond, SwitchKind } from "tmeta-util-solid";
 import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsafeLinkToSafeLink } from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
-import type * as Generic from "api-types-generic";
-import { getClient, ShowCond, SwitchKind } from "../util/utils_solid";
+import { getClient } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
 import { Body } from "./body";
 export * from "../util/interop_solid";

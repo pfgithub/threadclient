@@ -1,22 +1,12 @@
 import {
     Accessor, createContext, createEffect, createMemo,
     createRoot,
-    createSignal, ErrorBoundary, JSX, onCleanup, untrack, useContext,
+    createSignal, ErrorBoundary, JSX, onCleanup, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
-import { link_styles_v } from "../app";
 import type { ThreadClient } from "threadreader-client-base";
-import { MatchFn, switchKindCB } from "tmeta-util";
-
-export function SwitchKind<T extends {kind: string}>(props: {
-    item: T,
-    children: {[Key in T["kind"]]: MatchFn<T, Key, JSX.Element>},
-}): JSX.Element {
-    return createMemo(() => {
-        const match = switchKindCB<JSX.Element>(props.item, props.children);
-        return match();
-    });
-}
+import { ShowBool } from "tmeta-util-solid";
+import { link_styles_v } from "../app";
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ColorDepthContext = createContext<{i: number}>();
@@ -58,37 +48,6 @@ export function HideshowProvider(props: {visible: () => boolean, children: JSX.E
 export function getIsVisible(): (() => boolean) {
     const visible_state = useContext(HideshowContext);
     return visible_state?.visible ?? (() => true);
-}
-
-// versions of built in control flow with strict booleans
-
-export function ShowBool(props: {
-    when: boolean,
-    fallback?: undefined | JSX.Element,
-    children: JSX.Element,
-}): JSX.Element {
-    const condition = createMemo(() => props.when, undefined, {
-        equals: (a: boolean, b: boolean) => !a === !b,
-    });
-    return createMemo(() => {
-        if(condition()) return props.children;
-        return props.fallback;
-    });
-}
-export function ShowCond<T>(props: {
-    // if: boolean, // would be nice for this to be optional but not allow undefined
-    if?: undefined | [boolean],
-    when: T | undefined | null,
-    fallback?: undefined | JSX.Element,
-    children: (item: T) => JSX.Element,
-}): JSX.Element {
-    return createMemo(() => {
-        if ((props.if?.[0] ?? true) && props.when != null) {
-            const child = props.children;
-            return untrack(() => child(props.when!));
-        }
-        return props.fallback;
-    });
 }
 
 export type ComputeProperty<T> = {
@@ -224,7 +183,7 @@ const [screenWidth, setScreenWidth] = createSignal(window.innerWidth);
 window.addEventListener("resize", () => {
     setScreenWidth(window.innerWidth);
 });
-export {screenWidth};
+export { screenWidth };
 
 // https://windicss.org/utilities/variants.html
 export const screen_size = {

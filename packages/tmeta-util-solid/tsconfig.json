@@ -1,0 +1,13 @@
+{
+    "extends": "tsconfig-tmeta",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "lib": [
+            "dom",
+            "DOM.Iterable",
+        ]
+    },
+    "include": [
+        "src/**/*"
+    ],
+}

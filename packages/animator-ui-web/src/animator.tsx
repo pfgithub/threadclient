@@ -13,15 +13,6 @@ import getStroke from "perfect-freehand";
 import { batch, createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import { findFrameIndex, Action, State } from "./apply_action";
 
-const config: {
-    drawing_size: [x: number, y: number],
-    framerate: number,
-} = {
-    drawing_size: [1920, 1080],
-    framerate: 30,
-};
-() => config;
-
 export default function Animator(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     return <div class="h-full">
         <DrawCurrentFrame state={props.state} applyAction={props.applyAction} />
@@ -69,9 +60,16 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.fillText("Vertices: " + (frame.merged_polygons.reduce((t, poly) => (
             t + poly.reduce((q, points) => q + points.length, 0)
         ), 0)), 10, 40);
-        ctx.fillText("Frame: " + (props.state.frame), 10, 50);
+        ctx.fillText("Frame: " + (props.state.frame) + " / " + (props.state.max_frame), 10, 50);
+        ctx.fillText("Audio: "
+            + props.state.config.attribution.author.text
+            + " - " + props.state.config.attribution.title.text
+            + " / " + props.state.config.attribution.license.text
+        , 10, 60);
     }} />;
 }
+
+let source: AudioBufferSourceNode | undefined;
 
 export function GestureRecognizer(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     const [plannedStrokes, setPlannedStrokes] = createSignal(new Map<string, PressurePoint[]>());
@@ -154,6 +152,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                 return;
             }
             if(pmap.mode.kind === "switch_frame") {
+                const start_frame = props.state.frame;
                 while(e.pageX < pmap.mode.start_x - 20) {
                     props.applyAction({kind: "set_frame", frame: props.state.frame + 1});
                     pmap.mode.start_x -= 20;
@@ -162,6 +161,19 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                     props.applyAction({kind: "set_frame", frame: props.state.frame - 1});
                     pmap.mode.start_x += 20;
                 }
+                if(props.state.frame !== start_frame) {
+                    if(source) source.stop();
+
+                    let nct = props.state.frame / props.state.config.framerate;
+                    if(nct < 0) nct = 0;
+                    if(nct > props.state.audio.duration) nct = props.state.audio.duration;
+
+                    source = props.state.audio_ctx.createBufferSource();
+                    source.buffer = props.state.audio;
+                    source.connect(props.state.audio_ctx.destination);
+                    source.start(0, nct, 1 / props.state.config.framerate);
+                }
+                return;
             }
             
             setPlannedStrokes(pts => new Map(pts).set(e.pointerType, [
@@ -243,6 +255,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     ));
 
     return <FullscreenCanvas2D render={(ctx, size) => {
+        ctx.fillStyle = "#000";
         for(const stroke of strokes()) {
             ctx.beginPath();
             let zero = true;
@@ -257,7 +270,17 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             ctx.fill();
         }
 
+        ctx.fillStyle = "#aaa";
         ctx.fillRect(0, size.height - 200, size.width, 200);
+
+        ctx.fillStyle = "#000";
+        const data = props.state.audio_data;
+        const start = (props.state.frame / props.state.config.framerate * props.state.audio.sampleRate) |0;
+        // TODO visualizer including this and previous frames
+        // + show frame thumbnails and stuff
+        for(let i = 0; i < 18; i++) {
+            ctx.fillText("" + Math.abs(data[start + i] ?? 0), 10, size.height - 200 + ((i + 2) * 10));
+        }
     }} />;
 }
 

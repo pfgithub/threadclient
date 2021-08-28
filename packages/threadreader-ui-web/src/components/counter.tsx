@@ -1,8 +1,9 @@
-import { Accessor, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import type * as Generic from "api-types-generic";
-import { CounterState, getPointsText, link_styles_v, WatchableCounterState, watchCounterState } from "../app";
-import { getClient, ShowBool, ShowCond } from "../util/utils_solid";
+import { Accessor, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import type { ThreadClient } from "threadreader-client-base";
+import { ShowBool, ShowCond } from "tmeta-util-solid";
+import { CounterState, getPointsText, link_styles_v, WatchableCounterState, watchCounterState } from "../app";
+import { getClient } from "../util/utils_solid";
 
 export function getCounterState(
     counter: Accessor<Generic.CounterAction>,

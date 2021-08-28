@@ -1,5 +1,7 @@
+import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup, Suspense } from "solid-js";
 import { createStore } from "solid-js/store";
+import { ShowCond, SwitchKind } from "tmeta-util-solid";
 import {
     getTwitchClip, gfyLike,
     imgurImage,
@@ -12,16 +14,14 @@ import {
     textToBody, youtubeVideo,
     zoomableImage
 } from "../app";
-import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getClient, getIsVisible,
-    getSettings, ShowCond, SwitchKind, ToggleColor,
+    getSettings, ToggleColor
 } from "../util/utils_solid";
-import { ClientContent, TopLevelWrapper } from "./page2";
 import { LinkButton } from "./links";
+import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
-export * from "../util/interop_solid";
 
 const PreviewVideo = lazy(() => import("./preview_video"));
 

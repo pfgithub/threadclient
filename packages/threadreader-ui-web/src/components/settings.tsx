@@ -1,11 +1,12 @@
-import { createSignal, For, JSX } from "solid-js";
-import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
-import { ClientProvider, ComputeProperty, getSettings, ShowBool, ShowCond } from "../util/utils_solid";
-import { ClientContent, TopLevelWrapper } from "./page2";
-import { variables } from "virtual:_variables";
-import { RichtextParagraphs } from "./richtext";
 import { rt } from "api-types-generic";
+import { createSignal, For, JSX } from "solid-js";
+import { ShowBool, ShowCond } from "tmeta-util-solid";
+import { variables } from "virtual:_variables";
+import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
+import { ClientProvider, ComputeProperty, getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
+import { ClientContent, TopLevelWrapper } from "./page2";
+import { RichtextParagraphs } from "./richtext";
 export * from "../util/interop_solid";
 
 function SettingsSection(props: {title: string, children?: undefined | JSX.Element}): JSX.Element {

@@ -1,10 +1,11 @@
+import type * as Generic from "api-types-generic";
 import {
     createEffect, createSignal, JSX
 } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
+import { ShowCond } from "tmeta-util-solid";
 import { link_styles_v } from "../app";
-import type * as Generic from "api-types-generic";
-import { getClient, ShowCond } from "../util/utils_solid";
+import { getClient } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./page2";
 
 type StoreTypeValue = {value: null | Generic.PostContent};

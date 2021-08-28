@@ -15,3 +15,5 @@
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+
+/packages/animator-ui-web/static/projects/project

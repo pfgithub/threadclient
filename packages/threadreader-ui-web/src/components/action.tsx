@@ -1,8 +1,9 @@
-import { createSignal, For, JSX } from "solid-js";
-import { link_styles_v, renderAction } from "../app";
 import type * as Generic from "api-types-generic";
+import { createSignal, For, JSX } from "solid-js";
+import { ShowCond } from "tmeta-util-solid";
+import { link_styles_v, renderAction } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { screenWidth, screen_size, ShowCond } from "../util/utils_solid";
+import { screenWidth, screen_size } from "../util/utils_solid";
 import { Body } from "./body";
 import { Counter } from "./counter";
 import { LinkButton } from "./links";

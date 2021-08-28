@@ -1,0 +1,19 @@
+{
+  "drawing_size": [1920, 1080],
+  "framerate": 15,
+  "audio": "saoirse dream - dullscythe.mp3",
+  "attribution": {
+    "title": {
+      "text": "dullscythe 🔪 w/ tropes & heartstopmiami",
+      "url": "https://soundcloud.com/saoirsedream/dullscythe"
+    },
+    "author": {
+      "text": "saoirse dream",
+      "url": "https://soundcloud.com/saoirsedream"
+    },
+    "license": {
+      "text": "CC BY 3.0",
+      "url": "https://creativecommons.org/licenses/by/3.0/"
+    }
+  }
+}

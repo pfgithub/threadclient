@@ -1,10 +1,11 @@
+import type * as Generic from "api-types-generic";
 import type shaka_types from "shaka-player";
 import { createEffect, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
+import { ShowCond, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, zoomableImage } from "../app";
-import type * as Generic from "api-types-generic";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { classes, getIsVisible, getSettings, Icon, ShowCond, SwitchKind } from "../util/utils_solid";
+import { classes, getIsVisible, getSettings, Icon } from "../util/utils_solid";
 
 // Note, on firefox some rpan vods fail to play. Example:
 // https://shaka-player-demo.appspot.com/demo/#audiolang=en-US;textlang=en-US;uilang=en-US;asset=

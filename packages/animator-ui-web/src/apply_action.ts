@@ -1,6 +1,4 @@
 import polygonClipping, { MultiPolygon } from "polygon-clipping";
-import { batch } from "solid-js";
-import { reconcile, SetStoreFunction, Store } from "solid-js/store";
 import { switchKind } from "tmeta-util";
 
 export let initialState = (): CachedState => ({
@@ -14,13 +12,37 @@ function emptyFrame(): CachedFrame {
     };
 }
 
+export type Config = {
+    drawing_size: [w: number, h: number],
+    framerate: number,
+    audio: string,
+    attribution: {
+        title: NameLink,
+        author: NameLink,
+        license: NameLink,
+    },
+};
+export type NameLink = {
+    text: string,
+    url?: undefined | string,
+};
+
 export type State = {
     actions: ContentAction[], // from this, you can reconstruct the current state
     cached_state: CachedState,
-    transform: DOMRectReadOnly,
     update_time: number,
 
     frame: number,
+    
+    // readonly props:
+    max_frame: number,
+    config: Config,
+    // Objects of these types are designed to hold small audio snippets, typically less
+    // than 45 s. For longer sounds, objects implementing the MediaElementAudioSourceNode
+    // are more suitable.
+    audio: AudioBuffer,
+    audio_ctx: AudioContext,
+    audio_data: Float32Array,
 };
 
 export let findFrameIndex = function findFrameIndex(frame: number, state: CachedState): number {
@@ -129,43 +151,6 @@ export let applyActionsToState = function applyActionsToState(
     return cached_state;
 };
 
-export let updateState = function updateState(
-    state: Store<State>,
-    setState: SetStoreFunction<State>,
-    action: Action,
-): void {
-    batch(() => {
-        const start = Date.now();
-        if(action.kind === "undo") {
-            const undone = state.actions[state.actions.length - 1];
-            const actions = [...state.actions.slice(0, state.actions.length - 1)];
-            setState("actions", actions);
-
-            if(undone) {
-                switchKind(undone, {
-                    add_polygon: poly => setState("frame", poly.frame),
-                    erase_polygon: poly => setState("frame", poly.frame),
-                });
-            }
-
-            // TODO keep anchors so that undos don't take forever all the time
-            // TODO when regenerating, save parts of those as anchors
-            // eg [1..10 +1] [10..100 +10] [100..1000 +100]
-            // so like as you undo more the gaps get wider, but when you undo you can fill
-            // in until the most recent anchor so it isn't redoing work over and over
-            const regenerated = applyActionsToState(actions, initialState());
-            setState("cached_state", reconcile<CachedState>(regenerated, {merge: true}));
-        }else if(action.kind === "set_frame") {
-            setState("frame", Math.max(0, action.frame));
-        }else{
-            setState("actions", [...state.actions, action]);
-            const applied = applyActionsToState([action], state.cached_state);
-            setState("cached_state", reconcile<CachedState>(applied, {merge: true}));
-        }
-        setState("update_time", Date.now() - start);
-    });
-};
-
 if(import.meta.hot) {
     import.meta.hot.accept((new_mod: typeof import("./apply_action")) => {
         // https://vitejs.dev/guide/api-hmr.html#hot-accept-cb
@@ -178,6 +163,5 @@ if(import.meta.hot) {
         applyActionsToState = new_mod.applyActionsToState;
         findFrameIndex = new_mod.findFrameIndex;
         initialState = new_mod.initialState;
-        updateState = new_mod.updateState;
     });
 }
