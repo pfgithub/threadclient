@@ -9,6 +9,8 @@ export default function AnimatorState(): JSX.Element {
         cached_state: initialState(),
         transform: new DOMRectReadOnly(),
         update_time: 0,
+
+        frame: 0,
     });
 
     const applyAction = (action: Action) => {

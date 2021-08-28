@@ -4,32 +4,57 @@ import { reconcile, SetStoreFunction, Store } from "solid-js/store";
 import { switchKind } from "tmeta-util";
 
 export let initialState = (): CachedState => ({
-    merged_polygons: [],
+    frames: {
+        0: emptyFrame(), // the 0 frame is required to exist.
+    },
 });
+function emptyFrame(): CachedFrame {
+    return {
+        merged_polygons: [],
+    };
+}
 
 export type State = {
     actions: ContentAction[], // from this, you can reconstruct the current state
     cached_state: CachedState,
     transform: DOMRectReadOnly,
     update_time: number,
+
+    frame: number,
+};
+
+export let findFrameIndex = function findFrameIndex(frame: number, state: CachedState): number {
+    for(const frame_index_str of Object.keys(state.frames).reverse()) {
+        const frame_index =+ frame_index_str;
+        if(frame >= frame_index) return frame_index;
+    }
+    throw new Error("requested frame "+frame+" not found. note: the zero frame is required to exist.");
 };
 
 export type CachedState = {
+    frames: {[key: number]: CachedFrame},
+};
+export type CachedFrame = {
     // the polygons of the frame
     merged_polygons: MultiPolygon,
 };
 
 export type Action = ContentAction | {
     kind: "undo",
+} | {
+    kind: "set_frame",
+    frame: number,
 };
 //
 
 export type ContentAction = {
     kind: "add_polygon",
     polygon: [x: number, y: number][],
+    frame: number,
 } | {
     kind: "erase_polygon",
     polygon: [x: number, y: number][],
+    frame: number,
 };
 
 export let applyActionsToState = function applyActionsToState(
@@ -74,18 +99,29 @@ export let applyActionsToState = function applyActionsToState(
             // I think I can get away with ignoring this issue for now and just fixing undo time which
             // isn't that difficult, and start working on other parts of the animator
             add_polygon: (add_poly): CachedState => {
-                const merged = polygonClipping.union(cached_state.merged_polygons, [add_poly.polygon]);
+                const frame: CachedFrame = cached_state.frames[add_poly.frame] ?? emptyFrame();
+                const merged = polygonClipping.union(frame.merged_polygons, [add_poly.polygon]);
+                const res_frame: CachedFrame = {
+                    ...frame,
+                    merged_polygons: merged,
+                };
                 return {
                     ...cached_state,
-                    merged_polygons: merged,
+                    frames: {...cached_state.frames, [add_poly.frame]: res_frame},
                 };
             },
             erase_polygon: (erase_poly): CachedState => {
-                const merged = polygonClipping.difference(cached_state.merged_polygons, [erase_poly.polygon]);
-                //
+                const frame: CachedFrame = cached_state.frames[erase_poly.frame] ?? {
+                    merged_polygons: [],
+                };
+                const merged = polygonClipping.difference(frame.merged_polygons, [erase_poly.polygon]);
+                const res_frame: CachedFrame = {
+                    ...frame,
+                    merged_polygons: merged,
+                };
                 return {
                     ...cached_state,
-                    merged_polygons: merged,
+                    frames: {...cached_state.frames, [erase_poly.frame]: res_frame},
                 };
             },
         });
@@ -101,7 +137,6 @@ export let updateState = function updateState(
     batch(() => {
         const start = Date.now();
         if(action.kind === "undo") {
-
             const actions = [...state.actions.slice(0, state.actions.length - 1)];
             setState("actions", actions);
             // TODO keep anchors so that undos don't take forever all the time
@@ -111,6 +146,8 @@ export let updateState = function updateState(
             // in until the most recent anchor so it isn't redoing work over and over
             const regenerated = applyActionsToState(actions, initialState());
             setState("cached_state", reconcile<CachedState>(regenerated, {merge: true}));
+        }else if(action.kind === "set_frame") {
+            setState("frame", action.frame);
         }else{
             setState("actions", [...state.actions, action]);
             const applied = applyActionsToState([action], state.cached_state);
@@ -118,7 +155,7 @@ export let updateState = function updateState(
         }
         setState("update_time", Date.now() - start);
     });
-}
+};
 
 if(import.meta.hot) {
     import.meta.hot.accept((new_mod: typeof import("./apply_action")) => {
@@ -130,6 +167,7 @@ if(import.meta.hot) {
         // > This simplified HMR implementation is sufficient for most dev use cases, while allowing us to skip the
         //   expensive work of generating proxy modules.
         applyActionsToState = new_mod.applyActionsToState;
+        findFrameIndex = new_mod.findFrameIndex;
         initialState = new_mod.initialState;
         updateState = new_mod.updateState;
     });

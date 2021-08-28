@@ -11,7 +11,7 @@
 
 import getStroke from "perfect-freehand";
 import { batch, createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
-import { Action, CachedState, State } from "./apply_action";
+import { findFrameIndex, Action, State } from "./apply_action";
 
 const config: {
     drawing_size: [x: number, y: number],
@@ -25,7 +25,7 @@ const config: {
 export default function Animator(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     return <div class="h-full">
         <DrawCurrentFrame state={props.state} applyAction={props.applyAction} />
-        <GestureRecognizer state={props.state.cached_state} applyAction={props.applyAction} />
+        <GestureRecognizer state={props.state} applyAction={props.applyAction} />
     </div>;
 }
 
@@ -34,7 +34,11 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, size.width, size.height);
         // TODO scale based on state
-        for(const face of props.state.cached_state.merged_polygons) {
+
+        const frame_index = findFrameIndex(props.state.frame, props.state.cached_state);
+        const frame = props.state.cached_state.frames[frame_index]!;
+
+        for(const face of frame.merged_polygons) {
             let i = -1;
             for(const points of face) {
                 i++;
@@ -49,7 +53,7 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
                     }
                 }
                 if(i === 0) {
-                    ctx.fillStyle = "#000000";
+                    ctx.fillStyle = frame_index === props.state.frame ? "#000000" : "#555555";
                     ctx.fill();
                 }else{
                     ctx.fillStyle = "#ffffff";
@@ -59,13 +63,13 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         }
         ctx.fillStyle = "#000000";
         ctx.fillText("Last Update ms:" + (props.state.update_time), 10, 20);
-        ctx.fillText("Vertices: " + (props.state.cached_state.merged_polygons.reduce((t, poly) => (
+        ctx.fillText("Vertices: " + (frame.merged_polygons.reduce((t, poly) => (
             t + poly.reduce((q, points) => q + points.length, 0)
         ), 0)), 10, 30);
     }} />;
 }
 
-export function GestureRecognizer(props: {state: CachedState, applyAction: (action: Action) => void}): JSX.Element {
+export function GestureRecognizer(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     const [plannedStrokes, setPlannedStrokes] = createSignal(new Map<string, PressurePoint[]>());
 
     const commitStroke = (sp: PressurePoint[]) => (
@@ -179,6 +183,7 @@ export function GestureRecognizer(props: {state: CachedState, applyAction: (acti
             props.applyAction({
                 kind: e.pointerType === "touch" || (e.button === 2) ? "erase_polygon" : "add_polygon",
                 polygon: stroke,
+                frame: props.state.frame,
             });
         });
     };
