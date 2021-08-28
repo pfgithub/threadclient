@@ -18,6 +18,10 @@ export default function AnimatorState(): JSX.Element {
                 const actions = [...state.actions.slice(0, state.actions.length - 1)];
                 setState("actions", actions);
                 // TODO keep anchors so that undos don't take forever all the time
+                // TODO when regenerating, save parts of those as anchors
+                // eg [1..10 +1] [10..100 +10] [100..1000 +100]
+                // so like as you undo more the gaps get wider, but when you undo you can fill
+                // in until the most recent anchor so it isn't redoing work over and over
                 const regenerated = applyActionsToState(actions, initialState());
                 setState("cached_state", reconcile<CachedState>(regenerated, {merge: true}));
             }else{

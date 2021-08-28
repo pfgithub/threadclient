@@ -58,7 +58,10 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
             }
         }
         ctx.fillStyle = "#000000";
-        ctx.fillText("" + (props.state.update_time), 10, 10);
+        ctx.fillText("Last Update ms:" + (props.state.update_time), 10, 20);
+        ctx.fillText("Vertices: " + (props.state.cached_state.merged_polygons.reduce((t, poly) => (
+            t + poly.reduce((q, points) => q + points.length, 0)
+        ), 0)), 10, 30);
     }} />;
 }
 
