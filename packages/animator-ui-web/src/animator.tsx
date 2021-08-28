@@ -171,6 +171,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                     source = props.state.audio_ctx.createBufferSource();
                     source.buffer = props.state.audio;
                     source.connect(props.state.audio_ctx.destination);
+                    source.playbackRate.setValueAtTime(1, 0);
                     source.start(0, nct, (1 / props.state.config.framerate) * 2);
                 }
                 return;
