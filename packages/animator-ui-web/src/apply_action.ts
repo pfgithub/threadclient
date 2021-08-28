@@ -30,8 +30,6 @@ export type ContentAction = {
     polygon: [x: number, y: number][],
 };
 
-//
-
 export default function (actions: ContentAction[], anchor: CachedState): CachedState {
     let cached_state = anchor;
     for(const action of actions) {
@@ -61,6 +59,8 @@ export default function (actions: ContentAction[], anchor: CachedState): CachedS
             //   for chunks and stuff which could be neat. unfortunately, it will still suffer from
             //   floating point precision loss if you zoom out too far, but this would make it possible
             //   to do quite high performance edits probably
+            // - note that simplify with a tolerance of 1 can multiply vertex count by ~0.6, which
+            //   is pretty nice. 
             
             // I think I can get away with ignoring this issue for now and just fixing undo time which
             // isn't that difficult, and start working on other parts of the animator
