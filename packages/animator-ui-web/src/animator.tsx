@@ -212,6 +212,8 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     document.addEventListener("pointerdown", onpointerdown);
     onCleanup(() => document.removeEventListener("pointerdown", onpointerdown));
 
+    const [offset, setOffset] = createSignal(0);
+
     const onpointermove = (e: PointerEvent) => {
         const pmap = getPointerMap(e.pointerType);
         const prev = pmap.points.get(e.pointerId);
@@ -238,6 +240,12 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                     props.applyAction({kind: "set_frame", frame: props.state.frame - 1});
                     pmap.mode.start_x += 20;
                 }
+                const v = (((e.pageX - pmap.mode.start_x)) + 20) / (20 * 2);
+                const pow = 0.3;
+                const shift = v ** pow / (v ** pow + (1 - v) ** pow);
+                const max = 50;
+
+                setOffset((shift * (max * 2)) - max);
                 if(props.state.frame !== start_frame) {
                     playSegment();
                 }
@@ -270,6 +278,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         }
         if(pmap.mode.kind === "switch_frame") {
             stopSource();
+            setOffset(0);
             return;
         }
 
@@ -301,6 +310,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             return;
         }
         if(pmap.mode.kind === "switch_frame") {
+            setOffset(0);
             return;
         }
 
@@ -353,6 +363,17 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             ctx.save();
             ctx.translate((size.width / 2) - (90) + (250 * j), size.height - 200 + 45);
             ctx.scale(0.1, 0.1);
+            if(j === 0) {
+                ctx.fillStyle = "#999";
+                const xh = 100;
+                const yh = 440;
+                ctx.fillRect(
+                    -xh, -yh,
+                    props.state.config.drawing_size[0] + (xh * 2),
+                    props.state.config.drawing_size[1] + (yh * 2),
+                );
+            }
+            ctx.translate(offset() / 0.1, 0);
             ctx.fillStyle = "#fff";
             ctx.fillRect(0, 0, ...props.state.config.drawing_size);
             for(const face of thumbnail) {
