@@ -46,3 +46,27 @@ export function ShowCond<T>(props: {
 //    fallback?: undefined | JSX.Element,
 //    children: T exists ? (item: T) => JSX.Element : JSX.Element,
 // }
+
+
+export function allowedToAcceptClick(target: Node, frame: Node): boolean {
+    // don't click if any text is selected
+    const selection = document.getSelection();
+    if(selection?.isCollapsed === false) return false;
+    // don't accept click if any of the click target parent nodes look like they might be clickable
+    let target_parent = target as Node | null;
+    while(target_parent && target_parent !== frame) {
+        if(target_parent instanceof HTMLElement && (false
+            || target_parent.nodeName === "A"
+            || target_parent.nodeName === "BUTTON"
+            || target_parent.nodeName === "VIDEO"
+            || target_parent.nodeName === "AUDIO"
+            || target_parent.nodeName === "INPUT"
+            || target_parent.nodeName === "TEXTAREA"
+            || target_parent.nodeName === "IFRAME"
+            || target_parent.classList.contains("resizable-iframe")
+            || target_parent.classList.contains("handles-clicks")
+        )) return false;
+        target_parent = target_parent.parentNode;
+    }
+    return true;
+}

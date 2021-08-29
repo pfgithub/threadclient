@@ -15,7 +15,6 @@ function emptyFrame(): CachedFrame {
 export type Config = {
     drawing_size: [w: number, h: number],
     framerate: number,
-    audio: string,
     attribution: {
         title: NameLink,
         author: NameLink,

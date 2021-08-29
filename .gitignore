@@ -1,9 +1,10 @@
 **/.cache/
 **/dist/
-**/zig-cache/
 **/node_modules/
-**/coverage/
 **/yarn-error.log
+
+**/zig-cache/
+**/zig-out/
 
 **/server/deno
 **/server/secret.ts

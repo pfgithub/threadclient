@@ -1,6 +1,7 @@
 import { createSignal, ErrorBoundary, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import "windi.css";
+import "./style.css";
 import { ShowBool } from "../../tmeta-util-solid/src/control_flow_solid";
 import AnimatorState from "./animator_state";
 
@@ -8,10 +9,7 @@ function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JS
     const [showContent, setShowContent] = createSignal(true);
     return <ErrorBoundary fallback={(err: unknown, reset) => {
         console.log(err);
-        return <div class={"overflow-y-scroll h-full p-4"}>
-            <pre class="whitespace-pre-wrap"><code textContent={err instanceof Error ? (
-                err.toString() + "\n\n" + err.stack ?? "*no stack*"
-            ) : "Something went wrong"} /></pre>
+        return <div class={"min-h-full p-4 bg-red-900 text-white"}>
             <button
                 class={"border px-2"}
                 onClick={() => console.log(err, props.data)}
@@ -24,6 +22,9 @@ function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JS
                     reset();
                 }}
             >Retry</button>
+            <pre class="whitespace-pre-wrap"><code textContent={err instanceof Error ? (
+                err.toString() + "\n\n" + err.stack ?? "*no stack*"
+            ) : "Something went wrong"} /></pre>
         </div>;
     }}>
         <ShowBool when={showContent()} fallback={

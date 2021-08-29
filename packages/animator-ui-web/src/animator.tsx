@@ -14,6 +14,9 @@ import { batch, createEffect, createMemo, createSignal, JSX, onCleanup } from "s
 import { findFrameIndex, Action, State } from "./apply_action";
 
 export default function Animator(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
+    document.documentElement.classList.add("no-interact");
+    onCleanup(() => document.documentElement.classList.remove("no-interact"));
+
     return <div class="h-full">
         <DrawCurrentFrame state={props.state} applyAction={props.applyAction} />
         <GestureRecognizer state={props.state} applyAction={props.applyAction} />

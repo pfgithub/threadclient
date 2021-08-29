@@ -1584,6 +1584,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:^16.7.5":
+  version: 16.7.5
+  resolution: "@types/node@npm:16.7.5"
+  checksum: 19765a6e2fea3269f627045a4e07a33f57dc567b5437c7bb18e585944a6c76a23e4b43969e586eac7d92247f424000992c1c8cbfd33faeae4676095aad4a2b61
+  languageName: node
+  linkType: hard
+
 "@types/photoswipe@npm:^4.1.2":
   version: 4.1.2
   resolution: "@types/photoswipe@npm:4.1.2"
@@ -1625,6 +1632,15 @@ __metadata:
   version: 2.0.6
   resolution: "@types/unist@npm:2.0.6"
   checksum: 25cb860ff10dde48b54622d58b23e66214211a61c84c0f15f88d38b61aa1b53d4d46e42b557924a93178c501c166aa37e28d7f6d994aba13d24685326272d5db
+  languageName: node
+  linkType: hard
+
+"@types/ws@npm:^7.4.7":
+  version: 7.4.7
+  resolution: "@types/ws@npm:7.4.7"
+  dependencies:
+    "@types/node": "*"
+  checksum: b4c9b8ad209620c9b21e78314ce4ff07515c0cadab9af101c1651e7bfb992d7fd933bd8b9c99d110738fd6db523ed15f82f29f50b45510288da72e964dedb1a3
   languageName: node
   linkType: hard
 
@@ -1855,6 +1871,21 @@ __metadata:
   checksum: b86d6cb86c69abbd8ce71ab7d4ff272660bf6d34fa9fbe770f73e54da59d531b2546692e36e2b35bbcfb11d20db774b4c09189671335185b8c799d65194e5169
   languageName: node
   linkType: hard
+
+"animator-server@workspace:packages/animator-server":
+  version: 0.0.0-use.local
+  resolution: "animator-server@workspace:packages/animator-server"
+  dependencies:
+    "@types/node": ^16.7.5
+    "@types/ws": ^7.4.7
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    ts-node: ^10.2.1
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.3.5
+    ws: ^8.2.1
+  languageName: unknown
+  linkType: soft
 
 "animator-ui-web@workspace:packages/animator-ui-web":
   version: 0.0.0-use.local
@@ -6033,6 +6064,21 @@ fsevents@~2.3.2:
   version: 1.0.2
   resolution: "wrappy@npm:1.0.2"
   checksum: 159da4805f7e84a3d003d8841557196034155008f817172d4e986bd591f74aa82aa7db55929a54222309e01079a65a92a9e6414da5a6aa4b01ee44a511ac3ee5
+  languageName: node
+  linkType: hard
+
+"ws@npm:^8.2.1":
+  version: 8.2.1
+  resolution: "ws@npm:8.2.1"
+  peerDependencies:
+    bufferutil: ^4.0.1
+    utf-8-validate: ^5.0.2
+  peerDependenciesMeta:
+    bufferutil:
+      optional: true
+    utf-8-validate:
+      optional: true
+  checksum: 22906903c7952790a911627f99e3419d8f251a6a540d9ba4f334a7e0865d7ea7026d8ad23829c3c0f2843a9f15bdb91c646e7f8853a5a5ba25a57dea2cf7d416
   languageName: node
   linkType: hard
 

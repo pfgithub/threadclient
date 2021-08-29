@@ -1,8 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, untrack } from "solid-js";
-import { ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
+import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
 import {
-    allowedToAcceptClick,
     bioRender, clientContent, link_styles_v, navigate
 } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";

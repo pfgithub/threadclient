@@ -15,6 +15,7 @@ import { registerSW } from "virtual:pwa-register";
 import { createSignal } from "solid-js";
 import { Flair } from "./components/page2";
 import { ReplyEditor } from "./components/reply";
+import { allowedToAcceptClick } from "tmeta-util-solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -2047,29 +2048,6 @@ export function clientContent(
 // }
 
 // hsc.associated_data.addChildren = addChildren;
-
-export function allowedToAcceptClick(target: Node, frame: Node): boolean {
-    // don't click if any text is selected
-    const selection = document.getSelection();
-    if(selection?.isCollapsed === false) return false;
-    // don't accept click if any of the click target parent nodes look like they might be clickable
-    let target_parent = target as Node | null;
-    while(target_parent && target_parent !== frame) {
-        if(target_parent instanceof HTMLElement && (false
-            || target_parent.nodeName === "A"
-            || target_parent.nodeName === "BUTTON"
-            || target_parent.nodeName === "VIDEO"
-            || target_parent.nodeName === "AUDIO"
-            || target_parent.nodeName === "INPUT"
-            || target_parent.nodeName === "TEXTAREA"
-            || target_parent.nodeName === "IFRAME"
-            || target_parent.classList.contains("resizable-iframe")
-            || target_parent.classList.contains("handles-clicks")
-        )) return false;
-        target_parent = target_parent.parentNode;
-    }
-    return true;
-}
 
 function clientListingWrapperNode(): HTMLDivElement {
     const frame = el("div").clss("post text-sm"); // the last in the header array should be text-base

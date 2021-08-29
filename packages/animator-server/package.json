@@ -1,0 +1,24 @@
+{
+  "name": "animator-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^16.7.5",
+    "@types/ws": "^7.4.7",
+    "eslint": "^7.29.0",
+    "eslint-config-tmeta": "^1.0.0",
+    "ts-node": "^10.2.1",
+    "tsconfig-tmeta": "^1.0.0",
+    "typescript": "^4.3.5"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings 0 && tsc --noEmit",
+    "test": "true",
+    "serve": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "ws": "^8.2.1"
+  }
+}

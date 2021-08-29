@@ -1,0 +1,10 @@
+{
+    "extends": "tsconfig-tmeta",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "module": "CommonJS"
+    },
+    "include": [
+        "src/**/*",
+    ],
+}
