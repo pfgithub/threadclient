@@ -1,4 +1,4 @@
-name: Deploy ThreadReader
+name: Deploy Animator
 on:
   workflow_dispatch: {}
 jobs:
@@ -7,19 +7,19 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v2.3.1
-        with:
-          fetch-depth: 10
 
       - name: Install and Build 🔧
         run: |
           yarn install
           yarn lint
           yarn test
-          yarn workspace threadreader-ui-web build
+          yarn workspace animator-ui-web build
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.0.0
         with:
           branch: gh-pages # The branch the action should deploy to.
-          folder: packages/threadreader-ui-web/dist # The folder the action should deploy.
+          folder: packages/animator-ui-web/dist # The folder the action should deploy.
           clean: true # Automatically remove deleted files from the deploy branch
+          repository-name: pfgithub/deploy-animator
+          ssh-key: ${{ secret.DEPLOY_ANIMATOR_SSH_KEY }}
