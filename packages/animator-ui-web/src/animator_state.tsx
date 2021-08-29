@@ -364,8 +364,7 @@ function ConnectScreen(props: {
                 <button onClick={() => {
                     setDemoPicker({kind: "none"});
                 }} class={
-                    "text-blue-600 hover:bg-blue-200 hover:text-blue-700 rounded-sm transition "
-                    +"px-1"
+                    "text-blue-600 hover:underline px-1"
                 }>{"< Back"}</button>
                 <div role="heading" class="text-2xl font-black">Demo Projects</div>
                 <hr class="pb-4" />
