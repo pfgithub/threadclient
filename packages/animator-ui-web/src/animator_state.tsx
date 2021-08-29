@@ -29,6 +29,8 @@ export function WSManager(props: {
         audio_data = new Float32Array(new_audio.getChannelData(0));
         // TODO both channels & abs & average & scale 0..peak
         setActions(new_actions);
+        const applied = applyActionsToState(new_actions, initialState());
+        setCachedState(reconcile<CachedState>(applied, {merge: true}));
     }
 
     const state: State = {
@@ -169,9 +171,9 @@ export function WSManager(props: {
                 setLoadState({kind: "ready"});
             })().then(r => {
                 //
-            }).catch(e => {
+            }).catch((e: Error) => {
                 console.log(e);
-                setLoadState({kind: "error", message: "Websocket Error"});
+                setLoadState({kind: "error", message: "Websocket Connect Error: "+e.toString()});
             });
         });
         //@ts-expect-error

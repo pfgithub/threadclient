@@ -77,7 +77,6 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.fillText("Audio: "
             + props.state.config.attribution.author.text
             + " - " + props.state.config.attribution.title.text
-            + " / " + props.state.config.attribution.license.text
         , 10, 60);
     }} />;
 }
@@ -99,7 +98,7 @@ const [currentAudioTime, setCurrentAudioTime] = createSignal<number | null>(null
 
 function onAddedSource(source: ActiveAudioSource) {
     source.source.addEventListener("ended", () => {
-        stopSource();
+        // stopSource();
     });
     const setNow = () => {
         if(!active_source) {
@@ -140,6 +139,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     const commitStroke = (sp: PressurePoint[]) => (
         getStroke(sp, {
             simulatePressure: sp.every(pt => pt[2] === 0.5),
+            // size: 50,
         }) as Point2D[]
     );
     const eventToPoint = (e: PointerEvent): PressurePoint => {
@@ -178,6 +178,8 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
 
     const onpointerdown = (e: PointerEvent) => {
         e.preventDefault();
+
+        console.log(JSON.stringify(props.state.actions));
 
         const pmap = getPointerMap(e.pointerType);
         pmap.points.set(e.pointerId, {start: Date.now(), point: eventToPoint(e)});

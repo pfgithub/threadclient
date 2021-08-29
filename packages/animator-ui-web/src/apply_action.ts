@@ -85,6 +85,11 @@ export let applyActionsToState = function applyActionsToState(
     let cached_state = anchor;
     for(const action of actions) {
         cached_state = switchKind(action, {
+            // a solution easier than all of these (although off-thread is probably
+            // still a good idea):
+            // - store the bounding boxes of the polygons along with the polygons
+            // - only update the polygons with bounds that overlap the polygon being added
+
             // ideally, these would be done off-thread and simulated in rendering
             // until the operations are completed.
             // while something is calculating, add things to be simulated until it's done,
