@@ -10,6 +10,7 @@
 // - post your drawings to the websocket
 
 import getStroke from "perfect-freehand";
+import { MultiPolygon, Polygon } from "polygon-clipping";
 import { batch, createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import { findFrameIndex, Action, State } from "./apply_action";
 
@@ -43,29 +44,9 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         // all the frame thumbnails and stuff will help a lot with that.
         const is_exact_frame = frame_index === frame_raw || current_audio_time != null;
 
-        for(const face of frame.merged_polygons) {
-            let i = -1;
-            for(const points of face) {
-                i++;
-                ctx.beginPath();
-                let zero = true;
-                for(const [x, y] of points) {
-                    if(zero) {
-                        ctx.moveTo(x, y);
-                        zero = false;
-                    }else{
-                        ctx.lineTo(x, y);
-                    }
-                }
-                if(i === 0) {
-                    ctx.fillStyle = is_exact_frame ? "#000000" : "#555555";
-                    ctx.fill();
-                }else{
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fill();
-                }
-            }
-        }
+        ctx.fillStyle = is_exact_frame ? "#000000" : "#555555";
+        renderMultiPolygon(ctx, frame.merged_polygons);
+
         const end = Date.now();
         ctx.fillStyle = "#000000";
         ctx.fillText("Last Update ms: " + (props.state.update_time), 10, 20);
@@ -376,29 +357,10 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             ctx.translate(offset() / 0.1, 0);
             ctx.fillStyle = "#fff";
             ctx.fillRect(0, 0, ...props.state.config.drawing_size);
-            for(const face of thumbnail) {
-                let i = -1;
-                for(const points of face) {
-                    i++;
-                    ctx.beginPath();
-                    let zero = true;
-                    for(const [x, y] of points) {
-                        if(zero) {
-                            ctx.moveTo(x, y);
-                            zero = false;
-                        }else{
-                            ctx.lineTo(x, y);
-                        }
-                    }
-                    if(i === 0) {
-                        ctx.fillStyle = is_exact_frame ? "#000" : "#888";
-                        ctx.fill();
-                    }else{
-                        ctx.fillStyle = "#fff";
-                        ctx.fill();
-                    }
-                }
-            }
+
+            ctx.fillStyle = is_exact_frame ? "#000" : "#888";
+            renderMultiPolygon(ctx, thumbnail);
+
             ctx.restore();
         }
 
@@ -414,6 +376,25 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         ctx.fillText("Draw ms: " + (end_time - start_time), 10, size.height - 200 + 20);
         ctx.fillText("Frame: " + (props.state.frame) + " / " + (props.state.max_frame), 10, size.height - 200 + 30);
     }} />;
+}
+
+function renderMultiPolygon(ctx: CanvasRenderingContext2D, polys: MultiPolygon): void {
+    for(const poly of polys) renderPolygon(ctx, poly);
+}
+function renderPolygon(ctx: CanvasRenderingContext2D, poly: Polygon): void {
+    ctx.beginPath();
+    for(const points of poly) {
+        let zero = true;
+        for(const [x, y] of points) {
+            if(zero) {
+                ctx.moveTo(x, y);
+                zero = false;
+            }else{
+                ctx.lineTo(x, y);
+            }
+        }
+    }
+    ctx.fill();
 }
 
 export function FullscreenCanvas2D(props: {
