@@ -22,4 +22,4 @@ jobs:
           folder: packages/animator-ui-web/dist # The folder the action should deploy.
           clean: true # Automatically remove deleted files from the deploy branch
           repository-name: pfgithub/deploy-animator
-          ssh-key: ${{ secret.DEPLOY_ANIMATOR_SSH_KEY }}
+          ssh-key: ${{ secrets.DEPLOY_ANIMATOR_SSH_KEY }}
