@@ -1,5 +1,7 @@
 import polygonClipping, { MultiPolygon } from "polygon-clipping";
 import { switchKind } from "tmeta-util";
+//@ts-expect-error
+import simplify from "simplify-geojson";
 
 export let initialState = (): CachedState => ({
     frames: {
@@ -9,6 +11,7 @@ export let initialState = (): CachedState => ({
 function emptyFrame(): CachedFrame {
     return {
         merged_polygons: [],
+        thumbnail: [],
     };
 }
 
@@ -58,6 +61,9 @@ export type CachedState = {
 export type CachedFrame = {
     // the polygons of the frame
     merged_polygons: MultiPolygon,
+
+    // a very low res version of the frame
+    thumbnail: MultiPolygon,
 };
 
 export type Action = ContentAction | {
@@ -81,7 +87,9 @@ export type ContentAction = {
 export let applyActionsToState = function applyActionsToState(
     actions: ContentAction[],
     anchor: CachedState,
+    config: Config,
 ): CachedState {
+    const touched_frames = new Set<number>();
     let cached_state = anchor;
     for(const action of actions) {
         cached_state = switchKind(action, {
@@ -126,6 +134,7 @@ export let applyActionsToState = function applyActionsToState(
             // isn't that difficult, and start working on other parts of the animator
             add_polygon: (add_poly): CachedState => {
                 const frame: CachedFrame = cached_state.frames[add_poly.frame] ?? emptyFrame();
+                touched_frames.add(add_poly.frame);
                 const merged = polygonClipping.union(frame.merged_polygons, [add_poly.polygon]);
                 const res_frame: CachedFrame = {
                     ...frame,
@@ -137,9 +146,8 @@ export let applyActionsToState = function applyActionsToState(
                 };
             },
             erase_polygon: (erase_poly): CachedState => {
-                const frame: CachedFrame = cached_state.frames[erase_poly.frame] ?? {
-                    merged_polygons: [],
-                };
+                const frame: CachedFrame = cached_state.frames[erase_poly.frame] ?? emptyFrame();
+                touched_frames.add(erase_poly.frame);
                 const merged = polygonClipping.difference(frame.merged_polygons, [erase_poly.polygon]);
                 const res_frame: CachedFrame = {
                     ...frame,
@@ -152,8 +160,40 @@ export let applyActionsToState = function applyActionsToState(
             },
         });
     }
+
+    // TODO update thumbnails off-thread
+    for(const frame_index of touched_frames) {
+        const frame = cached_state.frames[frame_index];
+        if(!frame) continue;
+
+        const res_frame: CachedFrame = {
+            ...frame,
+            thumbnail: genThumbnail(frame.merged_polygons, config),
+        };
+
+        cached_state = {
+            ...cached_state,
+            frames: {...cached_state.frames, [frame_index]: res_frame},
+        };
+    }
+
     return cached_state;
 };
+
+function genThumbnail(frame: MultiPolygon, config: Config): MultiPolygon {
+    // TODO https://github.com/seabre/simplify-geometry
+
+    // target size is eg like 100×100 or something tiny
+
+    // eslint-disable-next-line
+    return (simplify({
+        type: "Feature",
+        geometry: {
+            type: "MultiPolygon",
+            coordinates: frame,
+        }
+    }, Math.min(...config.drawing_size) / 50)).geometry.coordinates;
+}
 
 if(import.meta.hot) {
     import.meta.hot.accept((new_mod: typeof import("./apply_action")) => {

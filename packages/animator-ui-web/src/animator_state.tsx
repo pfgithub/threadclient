@@ -7,6 +7,7 @@ import {
     Action, applyActionsToState, CachedState, Config,
     ContentAction, initialState, NameLink, State
 } from "./apply_action";
+import { DefaultErrorBoundary } from "./error_boundary";
 
 export function WSManager(props: {
     ctx: AudioContext,
@@ -29,7 +30,7 @@ export function WSManager(props: {
         audio_data = new Float32Array(new_audio.getChannelData(0));
         // TODO both channels & abs & average & scale 0..peak
         setActions(new_actions);
-        const applied = applyActionsToState(new_actions, initialState());
+        const applied = applyActionsToState(new_actions, initialState(), new_config);
         setCachedState(reconcile<CachedState>(applied, {merge: true}));
     }
 
@@ -72,13 +73,13 @@ export function WSManager(props: {
                 // eg [1..10 +1] [10..100 +10] [100..1000 +100]
                 // so like as you undo more the gaps get wider, but when you undo you can fill
                 // in until the most recent anchor so it isn't redoing work over and over
-                const regenerated = applyActionsToState(new_actions, initialState());
+                const regenerated = applyActionsToState(new_actions, initialState(), state.config);
                 setCachedState(reconcile<CachedState>(regenerated, {merge: true}));
             }else if(action.kind === "set_frame") {
                 setFrame(Math.min(state.max_frame, Math.max(0, action.frame)));
             }else{
                 setActions(v => [...v, action]);
-                const applied = applyActionsToState([action], state.cached_state);
+                const applied = applyActionsToState([action], state.cached_state, state.config);
                 setCachedState(reconcile<CachedState>(applied, {merge: true}));
             }
             setUpdateTime(Date.now() - start);
@@ -198,9 +199,11 @@ export function WSManager(props: {
             setLoadState({kind: "ready"});
         }} state={loadState() as ConnectState} audio_ctx={props.ctx} />
     }>
-        <InitializeAudio state={state}>
-            <Animator state={state} applyAction={applyAction} />
-        </InitializeAudio>
+        <DefaultErrorBoundary data={state}>
+            <InitializeAudio state={state}>
+                <Animator state={state} applyAction={applyAction} />
+            </InitializeAudio>
+        </DefaultErrorBoundary>
     </ShowBool>;
 }
 

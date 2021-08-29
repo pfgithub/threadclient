@@ -1895,6 +1895,7 @@ __metadata:
     eslint-config-tmeta: ^1.0.0
     perfect-freehand: ^0.5.2
     polygon-clipping: ^0.15.3
+    simplify-geojson: ^1.0.4
     solid-js: ^1.1.1
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
@@ -2478,6 +2479,17 @@ __metadata:
   version: 0.0.1
   resolution: "concat-map@npm:0.0.1"
   checksum: 902a9f5d8967a3e2faf138d5cb784b9979bad2e6db5357c5b21c568df4ebe62bcb15108af1b2253744844eb964fc023fbd9afbbbb6ddd0bcc204c6fb5b7bf3af
+  languageName: node
+  linkType: hard
+
+"concat-stream@npm:~1.4.1":
+  version: 1.4.11
+  resolution: "concat-stream@npm:1.4.11"
+  dependencies:
+    inherits: ~2.0.1
+    readable-stream: ~1.1.9
+    typedarray: ~0.0.5
+  checksum: 54208ded84be5ded217896b787c7721d71fe76d91446292fddad434b6b394de7d5380da0ec11ff0d07aa89c1d99c528a35c4199317543c17b14cfade2a42257f
   languageName: node
   linkType: hard
 
@@ -3574,7 +3586,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"inherits@npm:2, inherits@npm:~2.0.3":
+"inherits@npm:2, inherits@npm:~2.0.1, inherits@npm:~2.0.3":
   version: 2.0.4
   resolution: "inherits@npm:2.0.4"
   checksum: 4a48a733847879d6cf6691860a6b1e3f0f4754176e4d71494c41f3475553768b10f84b5ce1d40fbd0e34e6bfbb864ee35858ad4dd2cf31e02fc4a154b724d7f1
@@ -3722,6 +3734,13 @@ fsevents@~2.3.2:
   version: 3.14.1
   resolution: "is-what@npm:3.14.1"
   checksum: a9a6ce92d33799f1ae0916c7afb6f8128a23ce9d28bd69d9ec3ec88910e7a1f68432e6236c3c8a4d544cf0b864675e5d828437efde60ee0cf8102061d395c1df
+  languageName: node
+  linkType: hard
+
+"isarray@npm:0.0.1":
+  version: 0.0.1
+  resolution: "isarray@npm:0.0.1"
+  checksum: 49191f1425681df4a18c2f0f93db3adb85573bcdd6a4482539d98eac9e705d8961317b01175627e860516a2fc45f8f9302db26e5a380a97a520e272e2a40a8d4
   languageName: node
   linkType: hard
 
@@ -4049,7 +4068,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"minimist@npm:>=1.2.2, minimist@npm:^1.2.5":
+"minimist@npm:1.2.5, minimist@npm:>=1.2.2, minimist@npm:^1.2.5":
   version: 1.2.5
   resolution: "minimist@npm:1.2.5"
   checksum: 86706ce5b36c16bfc35c5fe3dbb01d5acdc9a22f2b6cc810b6680656a1d2c0e44a0159c9a3ba51fb072bb5c203e49e10b51dcd0eec39c481f4c42086719bae52
@@ -4603,6 +4622,18 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
+"readable-stream@npm:~1.1.9":
+  version: 1.1.14
+  resolution: "readable-stream@npm:1.1.14"
+  dependencies:
+    core-util-is: ~1.0.0
+    inherits: ~2.0.1
+    isarray: 0.0.1
+    string_decoder: ~0.10.x
+  checksum: 17dfeae3e909945a4a1abc5613ea92d03269ef54c49288599507fc98ff4615988a1c39a999dcf9aacba70233d9b7040bc11a5f2bfc947e262dedcc0a8b32b5a0
+  languageName: node
+  linkType: hard
+
 "readdirp@npm:~3.6.0":
   version: 3.6.0
   resolution: "readdirp@npm:3.6.0"
@@ -4914,6 +4945,26 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
+"simplify-geojson@npm:^1.0.4":
+  version: 1.0.4
+  resolution: "simplify-geojson@npm:1.0.4"
+  dependencies:
+    concat-stream: ~1.4.1
+    minimist: 1.2.5
+    simplify-geometry: 0.0.2
+  bin:
+    simplify-geojson: cli.js
+  checksum: dfc2cc8104a4f52fdbf7657b700dd89dfa47f6e70e13479f3babdde7000fc7c4abfb89e35d9df2e368b59d9ccd581f53c57751fd851904df14fe9cee6b970d03
+  languageName: node
+  linkType: hard
+
+"simplify-geometry@npm:0.0.2":
+  version: 0.0.2
+  resolution: "simplify-geometry@npm:0.0.2"
+  checksum: 8ee88e887256b4b3af06a4f95cf0ec68e8e7d38fed7c097a5ac44019da1b942cb80b2b83aaa7405c04539191d33ca788f281d706cd3df803edf343f93f44ffa2
+  languageName: node
+  linkType: hard
+
 "sirv@npm:^1.0.12":
   version: 1.0.14
   resolution: "sirv@npm:1.0.14"
@@ -5121,6 +5172,13 @@ fsevents@~2.3.2:
   version: 0.2.0
   resolution: "string.prototype.repeat@npm:0.2.0"
   checksum: 5127ce1b5bce45258905877048ac28bae71be18f1c3421011bd3979cfbcacf9c16f6b7f42daa3b999c9d90f5da39bd7136982c8e64439f02666dd6c0778ed262
+  languageName: node
+  linkType: hard
+
+"string_decoder@npm:~0.10.x":
+  version: 0.10.31
+  resolution: "string_decoder@npm:0.10.31"
+  checksum: fe00f8e303647e5db919948ccb5ce0da7dea209ab54702894dd0c664edd98e5d4df4b80d6fabf7b9e92b237359d21136c95bf068b2f7760b772ca974ba970202
   languageName: node
   linkType: hard
 
@@ -5585,6 +5643,13 @@ fsevents@~2.3.2:
   version: 0.20.2
   resolution: "type-fest@npm:0.20.2"
   checksum: 4fb3272df21ad1c552486f8a2f8e115c09a521ad7a8db3d56d53718d0c907b62c6e9141ba5f584af3f6830d0872c521357e512381f24f7c44acae583ad517d73
+  languageName: node
+  linkType: hard
+
+"typedarray@npm:~0.0.5":
+  version: 0.0.6
+  resolution: "typedarray@npm:0.0.6"
+  checksum: 33b39f3d0e8463985eeaeeacc3cb2e28bc3dfaf2a5ed219628c0b629d5d7b810b0eb2165f9f607c34871d5daa92ba1dc69f49051cf7d578b4cbd26c340b9d1b1
   languageName: node
   linkType: hard
 

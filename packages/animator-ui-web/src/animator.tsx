@@ -179,8 +179,6 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     const onpointerdown = (e: PointerEvent) => {
         e.preventDefault();
 
-        console.log(JSON.stringify(props.state.actions));
-
         const pmap = getPointerMap(e.pointerType);
         pmap.points.set(e.pointerId, {start: Date.now(), point: eventToPoint(e)});
 
@@ -344,6 +342,44 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
 
         ctx.fillStyle = "#aaa";
         ctx.fillRect(0, size.height - 200, size.width, 200);
+
+        for(let j = -5; j < 5; j++) {
+            const f = j + props.state.frame;
+            if(f < 0) continue;
+            const frame_index = findFrameIndex(f, props.state.cached_state);
+            const is_exact_frame = frame_index === f;
+            const thumbnail = props.state.cached_state.frames[frame_index]!.thumbnail;
+
+            ctx.save();
+            ctx.translate((size.width / 2) - (90) + (250 * j), size.height - 200 + 45);
+            ctx.scale(0.1, 0.1);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, ...props.state.config.drawing_size);
+            for(const face of thumbnail) {
+                let i = -1;
+                for(const points of face) {
+                    i++;
+                    ctx.beginPath();
+                    let zero = true;
+                    for(const [x, y] of points) {
+                        if(zero) {
+                            ctx.moveTo(x, y);
+                            zero = false;
+                        }else{
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    if(i === 0) {
+                        ctx.fillStyle = is_exact_frame ? "#000" : "#888";
+                        ctx.fill();
+                    }else{
+                        ctx.fillStyle = "#fff";
+                        ctx.fill();
+                    }
+                }
+            }
+            ctx.restore();
+        }
 
         ctx.fillStyle = "#000";
         const data = props.state.audio_data;
