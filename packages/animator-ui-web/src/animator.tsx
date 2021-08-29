@@ -27,8 +27,18 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.fillRect(0, 0, size.width, size.height);
         // TODO scale based on state
 
-        const frame_index = findFrameIndex(props.state.frame, props.state.cached_state);
+        const current_audio_time = currentAudioTime();
+        let frame_raw = props.state.frame;
+        if(current_audio_time != null) {
+            frame_raw = (current_audio_time * props.state.config.framerate) |0;
+        }
+        const frame_index = findFrameIndex(frame_raw, props.state.cached_state);
         const frame = props.state.cached_state.frames[frame_index]!;
+
+        // this is a bit confusing because while scrubbing it doesn't easily show you if
+        // you're on an exact frame or not. I think that updating the scrubber bar to have
+        // all the frame thumbnails and stuff will help a lot with that.
+        const is_exact_frame = frame_index === frame_raw || current_audio_time != null;
 
         for(const face of frame.merged_polygons) {
             let i = -1;
@@ -45,7 +55,7 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
                     }
                 }
                 if(i === 0) {
-                    ctx.fillStyle = frame_index === props.state.frame ? "#000000" : "#555555";
+                    ctx.fillStyle = is_exact_frame ? "#000000" : "#555555";
                     ctx.fill();
                 }else{
                     ctx.fillStyle = "#ffffff";
@@ -60,7 +70,7 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.fillText("Vertices: " + (frame.merged_polygons.reduce((t, poly) => (
             t + poly.reduce((q, points) => q + points.length, 0)
         ), 0)), 10, 40);
-        ctx.fillText("Frame: " + (props.state.frame) + " / " + (props.state.max_frame), 10, 50);
+        ctx.fillText("Frame: " + (frame_raw) + " / " + (props.state.max_frame), 10, 50);
         ctx.fillText("Audio: "
             + props.state.config.attribution.author.text
             + " - " + props.state.config.attribution.title.text
@@ -69,7 +79,57 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
     }} />;
 }
 
-let source: AudioBufferSourceNode | undefined;
+type ActiveAudioSource = {
+    source: AudioBufferSourceNode,
+    offset: number,
+    context: AudioContext,
+};
+
+let active_source: ActiveAudioSource | null = null;
+if(import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        stopSource();
+    });
+}
+
+const [currentAudioTime, setCurrentAudioTime] = createSignal<number | null>(null);
+
+function onAddedSource(source: ActiveAudioSource) {
+    source.source.addEventListener("ended", () => {
+        stopSource();
+    });
+    const setNow = () => {
+        if(!active_source) {
+            setCurrentAudioTime(null);
+            return false;
+        }
+        setCurrentAudioTime(active_source.offset + active_source.context.currentTime);
+
+        return true;
+    };
+    setNow();
+    loopAnimationFrame(setNow);
+}
+function loopAnimationFrame(cb: () => boolean): void {
+    const animFrame = () => requestAnimationFrame(() => {
+        if(!cb()) return;
+        animFrame();
+    });
+
+    animFrame();
+}
+
+function stopSource() {
+    if(active_source) {
+        active_source.source.stop();
+        active_source = null;
+    }
+}
+function setSource(source: ActiveAudioSource) {
+    stopSource();
+    active_source = {...source, offset: source.offset - source.context.currentTime};
+    onAddedSource(source);
+}
 
 export function GestureRecognizer(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     const [plannedStrokes, setPlannedStrokes] = createSignal(new Map<string, PressurePoint[]>());
@@ -100,6 +160,19 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         return submap;
     };
 
+    const playSegment = () => {
+        let nct = props.state.frame / props.state.config.framerate;
+        if(nct < 0) nct = 0;
+        if(nct > props.state.audio.duration) nct = props.state.audio.duration;
+
+        const source = props.state.audio_ctx.createBufferSource();
+        source.buffer = props.state.audio;
+        source.connect(props.state.audio_ctx.destination);
+        source.playbackRate.setValueAtTime(1, 0);
+        source.start(0, nct, props.state.audio.duration - nct);
+        setSource({source, offset: nct, context: props.state.audio_ctx});
+    };
+
     const onpointerdown = (e: PointerEvent) => {
         e.preventDefault();
 
@@ -127,6 +200,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         }
         if(e.pageY > window.innerHeight - 200) {
             pmap.mode = {kind: "switch_frame", start_x: e.pageX};
+            playSegment();
             return;
         }
 
@@ -162,17 +236,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                     pmap.mode.start_x += 20;
                 }
                 if(props.state.frame !== start_frame) {
-                    if(source) source.stop();
-
-                    let nct = props.state.frame / props.state.config.framerate;
-                    if(nct < 0) nct = 0;
-                    if(nct > props.state.audio.duration) nct = props.state.audio.duration;
-
-                    source = props.state.audio_ctx.createBufferSource();
-                    source.buffer = props.state.audio;
-                    source.connect(props.state.audio_ctx.destination);
-                    source.playbackRate.setValueAtTime(1, 0);
-                    source.start(0, nct, (1 / props.state.config.framerate) * 2);
+                    playSegment();
                 }
                 return;
             }
@@ -202,6 +266,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             return;
         }
         if(pmap.mode.kind === "switch_frame") {
+            stopSource();
             return;
         }
 
@@ -256,6 +321,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     ));
 
     return <FullscreenCanvas2D render={(ctx, size) => {
+        const start_time = Date.now();
         ctx.fillStyle = "#000";
         for(const stroke of strokes()) {
             ctx.beginPath();
@@ -279,9 +345,12 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         const start = (props.state.frame / props.state.config.framerate * props.state.audio.sampleRate) |0;
         // TODO visualizer including this and previous frames
         // + show frame thumbnails and stuff
-        for(let i = 0; i < 18; i++) {
-            ctx.fillText("" + Math.abs(data[start + i] ?? 0), 10, size.height - 200 + ((i + 2) * 10));
+        for(let i = 0; i < 15; i++) {
+            ctx.fillText("" + Math.abs(data[start + i] ?? 0), 10, size.height - 200 + ((i + 5) * 10));
         }
+        const end_time = Date.now();
+        ctx.fillText("Draw ms: " + (end_time - start_time), 10, size.height - 200 + 20);
+        ctx.fillText("Frame: " + (props.state.frame) + " / " + (props.state.max_frame), 10, size.height - 200 + 30);
     }} />;
 }
 
