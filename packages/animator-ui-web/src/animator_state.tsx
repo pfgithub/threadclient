@@ -337,7 +337,7 @@ function ConnectScreen(props: {
                         }}</SwitchKind>
                     </button>
                     <button class={
-                        "border px-4 py-2 min-w-max w-30 "
+                        "border px-4 py-2 sm:min-w-max sm:w-30 "
                         + (specifiedURL() && !disabled()
                         ? "border-green-400 bg-gradient-to-r from-green-400 to-green-500 text-white "
                         + "font-bold hover:shadow-md"
