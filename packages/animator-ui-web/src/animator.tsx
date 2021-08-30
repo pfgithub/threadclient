@@ -31,10 +31,10 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.fillRect(0, 0, size.width, size.height);
         // TODO scale based on state
 
-        const current_audio_time = currentAudioTime();
+        const current_audio_frame = currentAudioFrame();
         let frame_raw = props.state.frame;
-        if(current_audio_time != null) {
-            frame_raw = (current_audio_time * props.state.config.framerate) |0;
+        if(current_audio_frame != null) {
+            frame_raw = current_audio_frame;
         }
         const frame_index = findFrameIndex(frame_raw, props.state.cached_state);
         const frame = props.state.cached_state.frames[frame_index]!;
@@ -42,7 +42,7 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         // this is a bit confusing because while scrubbing it doesn't easily show you if
         // you're on an exact frame or not. I think that updating the scrubber bar to have
         // all the frame thumbnails and stuff will help a lot with that.
-        const is_exact_frame = frame_index === frame_raw || current_audio_time != null;
+        const is_exact_frame = frame_index === frame_raw || current_audio_frame != null;
 
         ctx.fillStyle = is_exact_frame ? "#000000" : "#555555";
         renderMultiPolygon(ctx, frame.merged_polygons);
@@ -75,18 +75,18 @@ if(import.meta.hot) {
     });
 }
 
-const [currentAudioTime, setCurrentAudioTime] = createSignal<number | null>(null);
+const [currentAudioFrame, setCurrentAudioFrame] = createSignal<number | null>(null);
 
-function onAddedSource(source: ActiveAudioSource) {
+function onAddedSource(source: ActiveAudioSource, framerate: number) {
     source.source.addEventListener("ended", () => {
         // stopSource();
     });
     const setNow = () => {
         if(!active_source) {
-            setCurrentAudioTime(null);
+            setCurrentAudioFrame(null);
             return false;
         }
-        setCurrentAudioTime(active_source.offset + active_source.context.currentTime);
+        setCurrentAudioFrame(((active_source.offset + active_source.context.currentTime) * framerate) |0);
 
         return true;
     };
@@ -108,10 +108,10 @@ function stopSource() {
         active_source = null;
     }
 }
-function setSource(source: ActiveAudioSource) {
+function setSource(source: ActiveAudioSource, framerate: number) {
     stopSource();
     active_source = {...source, offset: source.offset - source.context.currentTime};
-    onAddedSource(source);
+    onAddedSource(source, framerate);
 }
 
 export function GestureRecognizer(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
@@ -154,7 +154,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         source.connect(props.state.audio_ctx.destination);
         source.playbackRate.setValueAtTime(1, 0);
         source.start(0, nct, props.state.audio.duration - nct);
-        setSource({source, offset: nct, context: props.state.audio_ctx});
+        setSource({source, offset: nct, context: props.state.audio_ctx}, props.state.config.framerate);
     };
 
     const onpointerdown = (e: PointerEvent) => {
