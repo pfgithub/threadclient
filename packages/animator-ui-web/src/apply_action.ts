@@ -2,6 +2,7 @@ import polygonClipping, { MultiPolygon } from "polygon-clipping";
 import { switchKind } from "tmeta-util";
 //@ts-expect-error
 import simplify from "simplify-geojson";
+import { Config } from "./generated/security-rules";
 
 export let initialState = (): CachedState => ({
     frames: {
@@ -15,15 +16,6 @@ function emptyFrame(): CachedFrame {
     };
 }
 
-export type Config = {
-    drawing_size: [w: number, h: number],
-    framerate: number,
-    attribution: {
-        title: NameLink,
-        author: NameLink,
-        license: NameLink,
-    },
-};
 export type NameLink = {
     text: string,
     url?: undefined | string,
@@ -192,7 +184,7 @@ function genThumbnail(frame: MultiPolygon, config: Config): MultiPolygon {
             type: "MultiPolygon",
             coordinates: frame,
         }
-    }, Math.min(...config.drawing_size) / 50)).geometry.coordinates;
+    }, Math.min(config.width, config.height) / 50)).geometry.coordinates;
 }
 
 if(import.meta.hot) {

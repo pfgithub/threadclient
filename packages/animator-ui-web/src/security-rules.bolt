@@ -1,0 +1,119 @@
+path / is Model {}
+
+type Model {
+    users: Map<Author, User>,
+    projects: Map<ProjectID, Project>,
+    actions: Map<ProjectID, Actions>,
+}
+
+type User {
+    read() {
+        isUser(key())
+    }
+    write() {
+        isUser(key())
+    }
+    created: Created,
+    projects: Map<ProjectID, ProjectListEntry>,
+}
+
+type ProjectListEntry {
+    validate() {
+        getProjectInfo(key()) != null
+    }
+    updated: Modified,
+}
+
+getProjectInfo(id) {
+    prior(root).projects[id]
+}
+
+canManageProject(project) {
+    isUser(project.owner)
+}
+
+type Actions extends Action[] {
+    validate() { getProjectInfo(key()) != null }
+    read() {
+        canManageProject(getProjectInfo(key()))
+    }
+    write() {
+        canManageProject(getProjectInfo(key()))
+    }
+}
+
+type ProjectID extends String {
+    validate() { this.length >= 1 && this.length <= 32 }
+}
+
+type Project {
+    read() {
+        // the viewer is the owner of the project
+        // TODO or is a contributer
+        //      or has a guest contribution key
+        //      or the project is public
+        canManageProject(this)
+    }
+
+    create() { true }
+    update() {
+        true
+
+        // the updater is the owner of the project
+        // TODO or is a contributer
+        //      or has a guest contribution key
+        && canManageProject(prior(this))
+
+        // the owner cannot be changed
+        // TODO: except by the owner to a contributer
+        && prior(this).owner == this.owner
+    }
+    delete() {
+        // the deleter is the owner of the project
+        isUser(prior(this).owner)
+    }
+
+    created: Number,
+    owner: Author,
+
+    config: Config,
+    
+    // TODO checkpoints for undo and fast loading
+    // not sure how to do that
+    // I guess the clients can write it, just allows weirdness
+}
+
+type Config {
+    title: String,
+    audio: String,
+    framerate: Number,
+    width: Number,
+    height: Number,
+}
+
+type Action {
+    created: Created,
+    author: Author,
+    value: Object,
+}
+
+type Author extends String {
+    validate() { isUser(this) }
+}
+type Created extends Number {
+    validate() { initial(this, now) }
+}
+type Modified extends Number {
+    validate() { this == now }
+}
+
+function isUser(userKey) {
+    auth.uid == userKey
+}
+
+function initial(value, init) {
+    value == (isInitial(value) ? init : prior(value))
+}
+function isInitial(value) {
+    prior(value) == null
+}

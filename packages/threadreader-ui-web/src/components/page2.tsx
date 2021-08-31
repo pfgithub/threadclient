@@ -1,13 +1,13 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, untrack } from "solid-js";
-import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
+import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import {
     bioRender, clientContent, link_styles_v, navigate
 } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getClient, getSettings, HideshowProvider,
-    screenWidth, screen_size, TimeAgo, ToggleColor
+    screenWidth, screen_size, ToggleColor
 } from "../util/utils_solid";
 import { PostActions } from "./action";
 import { animateHeight, ShowAnimate } from "./animation";

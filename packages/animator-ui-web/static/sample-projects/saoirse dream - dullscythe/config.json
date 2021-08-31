@@ -1,6 +1,10 @@
 {
-  "drawing_size": [1920, 1080],
+  "title": "saoirse dream - dullscythe",
+  "audio": "UNUSED",
   "framerate": 15,
+  "width": 1920,
+  "height": 1080,
+
   "attribution": {
     "title": {
       "text": "dullscythe",

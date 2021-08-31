@@ -1,0 +1,95 @@
+{
+  "rules": {
+    ".validate": "newData.hasChildren()",
+    "users": {
+      "$key1": {
+        ".validate": "(newData.hasChildren(['created']) && auth.uid == $key1)",
+        "created": {
+          ".validate": "(newData.isNumber() && newData.val() == (data.val() == null ? now : data.val()))"
+        },
+        "projects": {
+          "$key2": {
+            ".validate": "(((newData.hasChildren(['updated']) && $key2.length >= 1) && $key2.length <= 32) && root.child('projects').child($key2).val() != null)",
+            "updated": {
+              ".validate": "(newData.isNumber() && newData.val() == now)"
+            },
+            "$other": {
+              ".validate": "false"
+            }
+          },
+          ".validate": "newData.hasChildren()"
+        },
+        "$other": {
+          ".validate": "false"
+        },
+        ".read": "auth.uid == $key1",
+        ".write": "auth.uid == $key1"
+      },
+      ".validate": "newData.hasChildren()"
+    },
+    "projects": {
+      "$key3": {
+        ".validate": "((newData.hasChildren(['created', 'owner', 'config']) && $key3.length >= 1) && $key3.length <= 32)",
+        "created": {
+          ".validate": "newData.isNumber()"
+        },
+        "owner": {
+          ".validate": "(newData.isString() && auth.uid == newData.val())"
+        },
+        "config": {
+          ".validate": "newData.hasChildren(['title', 'audio', 'framerate', 'width', 'height'])",
+          "title": {
+            ".validate": "newData.isString()"
+          },
+          "audio": {
+            ".validate": "newData.isString()"
+          },
+          "framerate": {
+            ".validate": "newData.isNumber()"
+          },
+          "width": {
+            ".validate": "newData.isNumber()"
+          },
+          "height": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": "false"
+          }
+        },
+        "$other": {
+          ".validate": "false"
+        },
+        ".write": "((data.val() == null || (((data.val() != null && newData.val() != null) && auth.uid == data.child('owner').val()) && data.child('owner').val() == newData.child('owner').val())) || ((data.val() != null && newData.val() == null) && auth.uid == data.child('owner').val()))",
+        ".read": "auth.uid == data.child('owner').val()"
+      },
+      ".validate": "newData.hasChildren()"
+    },
+    "actions": {
+      "$key4": {
+        ".validate": "(((newData.hasChildren() && $key4.length >= 1) && $key4.length <= 32) && root.child('projects').child($key4).val() != null)",
+        "$key5": {
+          ".validate": "newData.hasChildren(['created', 'author', 'value'])",
+          "created": {
+            ".validate": "(newData.isNumber() && newData.val() == (data.val() == null ? now : data.val()))"
+          },
+          "author": {
+            ".validate": "(newData.isString() && auth.uid == newData.val())"
+          },
+          "value": {
+            ".validate": "newData.hasChildren()"
+          },
+          "$other": {
+            ".validate": "false"
+          }
+        },
+        ".read": "auth.uid == root.child('projects').child($key4).child('owner').val()",
+        ".write": "auth.uid == root.child('projects').child($key4).child('owner').val()"
+      },
+      ".validate": "newData.hasChildren()"
+    },
+    "$other": {
+      ".validate": "false"
+    }
+  }
+}

@@ -55,9 +55,8 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
             t + poly.reduce((q, points) => q + points.length, 0)
         ), 0)), 10, 40);
         ctx.fillText("Frame: " + (frame_raw) + " / " + (props.state.max_frame), 10, 50);
-        ctx.fillText("Audio: "
-            + props.state.config.attribution.author.text
-            + " - " + props.state.config.attribution.title.text
+        ctx.fillText("Project: "
+            + props.state.config.title
         , 10, 60);
     }} />;
 }
@@ -350,13 +349,13 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                 const yh = 440;
                 ctx.fillRect(
                     -xh, -yh,
-                    props.state.config.drawing_size[0] + (xh * 2),
-                    props.state.config.drawing_size[1] + (yh * 2),
+                    props.state.config.width + (xh * 2),
+                    props.state.config.height + (yh * 2),
                 );
             }
             ctx.translate(offset() / 0.1, 0);
             ctx.fillStyle = "#fff";
-            ctx.fillRect(0, 0, ...props.state.config.drawing_size);
+            ctx.fillRect(0, 0, props.state.config.width, props.state.config.height);
 
             ctx.fillStyle = is_exact_frame ? "#000" : "#888";
             renderMultiPolygon(ctx, thumbnail);

@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Files look like: "user/<UID>/<FileID>/path/to/file.txt"
+    match /user/{userId}/{fileId}/{allPaths=**} {
+      allow read;
+      allow write: if request.auth.uid == userId;
+    }
+  }
+}

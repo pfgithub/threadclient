@@ -8,14 +8,14 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import { escapeHTML } from "tmeta-util";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { getSettings, TimeAgo } from "./util/utils_solid";
+import { getSettings } from "./util/utils_solid";
 import { variables } from "virtual:_variables";
 import { render } from "solid-js/web";
 import { registerSW } from "virtual:pwa-register";
 import { createSignal } from "solid-js";
 import { Flair } from "./components/page2";
 import { ReplyEditor } from "./components/reply";
-import { allowedToAcceptClick } from "tmeta-util-solid";
+import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);

@@ -7,6 +7,8 @@
   "devDependencies": {
     "eslint": "^7.29.0",
     "eslint-config-tmeta": "^1.0.0",
+    "firebase-bolt": "^0.8.4",
+    "firebase-bolt-compiler": "^1.2.9",
     "tsconfig-tmeta": "^1.0.0",
     "typescript": "^4.3.5",
     "vite": "^2.5.1",
@@ -18,9 +20,11 @@
     "build": "vite build && cp dist/index.html dist/404.html && touch dist/.nojekyll",
     "serve": "vite preview",
     "lint": "eslint src --max-warnings 0 && tsc --noEmit",
-    "test": "true"
+    "test": "true",
+    "firebase-codegen": "firebase-bolt src/security-rules.bolt --output src/generated/security-rules.json && echo '/* eslint-disable */' > src/generated/security-rules.ts && firebase-bolt-compiler < src/security-rules.bolt >> src/generated/security-rules.ts"
   },
   "dependencies": {
+    "firebase": "^9.0.0",
     "perfect-freehand": "^0.5.2",
     "polygon-clipping": "^0.15.3",
     "simplify-geojson": "^1.0.4",

@@ -2,11 +2,11 @@ import type * as Generic from "api-types-generic";
 import "prism-themes/themes/prism-atom-dark.css"; // vsc dark is missing markdown styles
 import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch } from "solid-js";
 import { switchKind } from "tmeta-util";
-import { ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
+import { ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, getClient, getSettings, Icon, TimeAgo, ToggleColor
+    classes, getClient, getSettings, Icon, ToggleColor
 } from "../util/utils_solid";
 import { animateHeight } from "./animation";
 import { Body } from "./body";
