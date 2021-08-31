@@ -24,11 +24,54 @@ export default function Animator(props: {state: State, applyAction: (action: Act
     </div>;
 }
 
+type WH = {width: number, height: number};
+function scaleCanvasValues(itm_size: WH): {
+    scale: number,
+    translate: {x: number, y: number},
+} {
+    const viewport_size: WH = {width: window.innerWidth, height: window.innerHeight};
+
+    const padding = 50;
+    const area_w = viewport_size.width;
+    const area_h = viewport_size.height - 200;
+    const itm_w = itm_size.width;
+    const itm_h = itm_size.height;
+
+    const min_v = Math.min((area_w - padding * 2) / itm_w, (area_h - padding * 2) / itm_h);
+    const upd_a_w = area_w / min_v;
+    const upd_a_h = area_h / min_v;
+
+    return {
+        scale: min_v,
+        translate: {x: upd_a_w / 2 - itm_w / 2, y: upd_a_h / 2 - itm_h / 2},
+    };
+}
+function scaleCanvas(ctx: CanvasRenderingContext2D, itm_size: WH) {
+    const {scale, translate} = scaleCanvasValues(itm_size);
+
+    ctx.scale(scale, scale);
+    ctx.translate(translate.x, translate.y);
+}
+
 export function DrawCurrentFrame(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     return <FullscreenCanvas2D render={(ctx, size) => {
         const start = Date.now();
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = "#ccc";
         ctx.fillRect(0, 0, size.width, size.height);
+
+        ctx.save();
+
+        scaleCanvas(ctx, props.state.config);
+
+        ctx.save();
+        ctx.fillStyle = "#fff";
+        ctx.shadowColor = "#777";
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetY = 5;
+        ctx.fillRect(0, 0, props.state.config.width, props.state.config.height);
+        ctx.restore();
+
+        ctx.strokeRect(0, 0, props.state.config.width, props.state.config.height);
         // TODO scale based on state
 
         const current_audio_frame = currentAudioFrame();
@@ -47,6 +90,8 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.fillStyle = is_exact_frame ? "#000000" : "#555555";
         renderMultiPolygon(ctx, frame.merged_polygons);
 
+        ctx.restore();
+
         const end = Date.now();
         ctx.fillStyle = "#000000";
         ctx.fillText("Last Update ms: " + (props.state.update_time), 10, 20);
@@ -58,6 +103,7 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.fillText("Project: "
             + props.state.config.title
         , 10, 60);
+
     }} />;
 }
 
@@ -113,17 +159,23 @@ function setSource(source: ActiveAudioSource, framerate: number) {
     onAddedSource(source, framerate);
 }
 
-export function GestureRecognizer(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
-    const [plannedStrokes, setPlannedStrokes] = createSignal(new Map<string, PressurePoint[]>());
+type PlannedStroke = {
+    points: PressurePoint[],
+    mode: "draw" | "erase",
+};
 
-    const commitStroke = (sp: PressurePoint[]) => (
-        getStroke(sp, {
-            simulatePressure: sp.every(pt => pt[2] === 0.5),
-            // size: 50,
+export function GestureRecognizer(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
+    const [plannedStrokes, setPlannedStrokes] = createSignal(new Map<string, PlannedStroke>());
+
+    const commitStroke = (stroke: PlannedStroke) => (
+        getStroke(stroke.points, {
+            simulatePressure: stroke.points.every(pt => pt[2] === 0.5),
+            size: stroke.mode === "erase" ? 100 : 8,
         }) as Point2D[]
     );
     const eventToPoint = (e: PointerEvent): PressurePoint => {
-        return [e.pageX, e.pageY, e.pressure];
+        const {scale, translate} = scaleCanvasValues(props.state.config);
+        return [e.pageX / scale - translate.x, e.pageY / scale - translate.y, e.pressure];
     };
     type Pointer = {
         points: Map<number, {start: number, point: PressurePoint}>,
@@ -187,7 +239,10 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             return;
         }
 
-        setPlannedStrokes(pts => new Map(pts).set(e.pointerType, [eventToPoint(e)]));
+        setPlannedStrokes(pts => new Map(pts).set(e.pointerType, {
+            points: [eventToPoint(e)],
+            mode: e.pointerType === "touch" || (e.button === 2) ? "erase" : "draw",
+        }));
     };
     document.addEventListener("pointerdown", onpointerdown);
     onCleanup(() => document.removeEventListener("pointerdown", onpointerdown));
@@ -232,10 +287,13 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                 return;
             }
             
-            setPlannedStrokes(pts => new Map(pts).set(e.pointerType, [
-                ...pts.get(e.pointerType) ?? [],
-                eventToPoint(e),
-            ]));
+            setPlannedStrokes(pts => new Map(pts).set(e.pointerType, {
+                ...pts.get(e.pointerType)!,
+                points: [
+                    ...pts.get(e.pointerType)?.points ?? [],
+                    eventToPoint(e),
+                ],
+            }));
         }
     };
     document.addEventListener("pointermove", onpointermove);
@@ -262,17 +320,18 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             return;
         }
 
-        const value = plannedStrokes().get(e.pointerType) ?? [];
+        const value = plannedStrokes().get(e.pointerType);
         batch(() => {
             setPlannedStrokes(pts => {
                 const res = new Map(pts);
                 res.delete(e.pointerType);
                 return res;
             });
+            if(!value) return;
             const stroke = commitStroke(value);
             if(stroke.some(item => isNaN(item[0]) || isNaN(item[1]))) return;
             props.applyAction({
-                kind: e.pointerType === "touch" || (e.button === 2) ? "erase_polygon" : "add_polygon",
+                kind: value.mode === "erase" ? "erase_polygon" : "add_polygon",
                 polygon: stroke,
                 frame: props.state.frame,
             });
@@ -314,6 +373,9 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     ));
 
     return <FullscreenCanvas2D render={(ctx, size) => {
+        ctx.save();
+        scaleCanvas(ctx, props.state.config);
+
         const start_time = Date.now();
         ctx.fillStyle = "#000";
         for(const stroke of strokes()) {
@@ -329,6 +391,8 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             }
             ctx.fill();
         }
+
+        ctx.restore();
 
         ctx.fillStyle = "#aaa";
         ctx.fillRect(0, size.height - 200, size.width, 200);
@@ -357,8 +421,10 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             ctx.fillStyle = "#fff";
             ctx.fillRect(0, 0, props.state.config.width, props.state.config.height);
 
-            ctx.fillStyle = is_exact_frame ? "#000" : "#888";
-            renderMultiPolygon(ctx, thumbnail);
+            if(j === 0) {
+                ctx.fillStyle = is_exact_frame ? "#000" : "#888";
+                renderMultiPolygon(ctx, thumbnail);
+            }
 
             ctx.restore();
         }
@@ -382,6 +448,7 @@ function renderMultiPolygon(ctx: CanvasRenderingContext2D, polys: MultiPolygon):
 }
 function renderPolygon(ctx: CanvasRenderingContext2D, poly: Polygon): void {
     ctx.beginPath();
+    // let i = 0;
     for(const points of poly) {
         let zero = true;
         for(const [x, y] of points) {
@@ -392,6 +459,9 @@ function renderPolygon(ctx: CanvasRenderingContext2D, poly: Polygon): void {
                 ctx.lineTo(x, y);
             }
         }
+        // break;
+        // i++;
+        // if(i > 10) break;
     }
     ctx.fill();
 }
