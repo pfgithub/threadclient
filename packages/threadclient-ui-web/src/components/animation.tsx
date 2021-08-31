@@ -80,7 +80,8 @@ export function animateHeight(
             comment_root.style.height = animating() + "px";
             comment_root.style.overflow = "hidden";
             comment_root.style.transition = untrack(() => (
-                shift_pressed ? 3 : settings.animation_time.value()
+                shift_pressed && settings.animation_dev_mode.value() === "shift_slow"
+                ? 3 : settings.animation_time.value()
             )) + "s height";
         }else{
             comment_root.style.removeProperty("height");

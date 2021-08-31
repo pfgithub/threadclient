@@ -265,36 +265,38 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "System Default",
                 } as const)[v ?? "default"]}
             />
-            <div><For each={[0, 0.1, 0.2, 3, undefined]}>{option => {
-                const setting = settings.animation_time;
-                const name = (v: number | undefined) => {
-                    if(v == null) return "Default";
-                    return "" + v + "s";
-                };
-                return <button
-                    class={menuButtonStyle(setting.compute.override() === option)}
-                    onclick={() => {
-                        setting.compute.setOverride(option);
-                    }}
-                >
-                    <ShowCond when={option}
-                        fallback={
-                            <>{name(undefined)} ({name(setting.compute.base())})</>
-                        }
-                    >{opt => <>
-                        {name(opt)}
-                    </>}</ShowCond>
-                </button>;
-            }}</For></div>
-            <SettingPicker
-                setting={settings.animation_dev_mode}
-                options={["none", "shift_slow", undefined]}
-                name={v => ({
-                    none: "None",
-                    shift_slow: "Shift to Slow Animation",
-                    default: "Default",
-                } as const)[v ?? "default"]}
-            />
+            <ShowAnimate when={settings.motion.value() === "full"}>
+                <div><For each={[0, 0.1, 0.2, 0.3, undefined]}>{option => {
+                    const setting = settings.animation_time;
+                    const name = (v: number | undefined) => {
+                        if(v == null) return "Default";
+                        return "" + v + "s";
+                    };
+                    return <button
+                        class={menuButtonStyle(setting.compute.override() === option)}
+                        onclick={() => {
+                            setting.compute.setOverride(option);
+                        }}
+                    >
+                        <ShowCond when={option}
+                            fallback={
+                                <>{name(undefined)} ({name(setting.compute.base())})</>
+                            }
+                        >{opt => <>
+                            {name(opt)}
+                        </>}</ShowCond>
+                    </button>;
+                }}</For></div>
+                <SettingPicker
+                    setting={settings.animation_dev_mode}
+                    options={["none", "shift_slow", undefined]}
+                    name={v => ({
+                        none: "None",
+                        shift_slow: "Shift to Slow Animation",
+                        default: "Default",
+                    } as const)[v ?? "default"]}
+                />
+            </ShowAnimate>
             <TopLevelWrapper restrict_w>
                 <ClientProvider client={{
                     id: "",
