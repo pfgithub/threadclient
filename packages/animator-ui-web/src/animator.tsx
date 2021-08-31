@@ -65,9 +65,9 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
 
         ctx.save();
         ctx.fillStyle = "#fff";
-        ctx.shadowColor = "#777";
-        ctx.shadowBlur = 15;
-        ctx.shadowOffsetY = 5;
+        // ctx.shadowColor = "#777";
+        // ctx.shadowBlur = 15;
+        // ctx.shadowOffsetY = 5;
         ctx.fillRect(0, 0, props.state.config.width, props.state.config.height);
         ctx.restore();
 
