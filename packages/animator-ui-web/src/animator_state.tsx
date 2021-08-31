@@ -903,7 +903,7 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
 
     const actions_ref = query(ref(db, "/actions/"+props.project_id), orderByChild("created"));
 
-    let on_cleanup: (() => void)[] = [];
+    const on_cleanup: (() => void)[] = [];
 
     async function fetchContent() {
 
