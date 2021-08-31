@@ -11,11 +11,11 @@ import * as stor from "firebase/storage";
 import { batch, createSignal, For, JSX, onCleanup } from "solid-js";
 import { createStore, reconcile, Store } from "solid-js/store";
 import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
-import { kindIs, switchKind } from "../../tmeta-util/src/util";
+import { kindIs } from "../../tmeta-util/src/util";
 import Animator from "./animator";
 import {
     Action, applyActionsToState, CachedState,
-    ContentAction, initialState, NameLink, State
+    ContentAction, IdentifiedAction, initialState, NameLink, State
 } from "./apply_action";
 import { DefaultErrorBoundary } from "./error_boundary";
 import { Actions, Config, Project, ProjectListEntry, User } from "./generated/security-rules";
@@ -620,9 +620,13 @@ function SampleProjectsPage(props: {popPage: PopPage, pushPage: PushPage}): JSX.
             const mp3 = await audio_ctx.decodeAudioData(audio_mp3);
 
             if(page_still_open) {
+                const init = initWithAudio(mp3, project.config, actions.actions.map((act, i) => {
+                    return {id: "" + i, saved: true, ...act};
+                }));
                 props.pushPage({
                     kind: "animator",
-                    ...initWithAudio(mp3, project.config, actions.actions),
+                    state: init.state,
+                    applyAction: init.applyAction,
                 });
             }
         })().catch((e: Error) => {
@@ -692,11 +696,19 @@ function SampleProjectsPage(props: {popPage: PopPage, pushPage: PushPage}): JSX.
 function initWithAudio(
     audio: AudioBuffer,
     config: Config,
-    initial_actions: ContentAction[],
-): {state: State, applyAction: (action: Action) => void} {
-    const [actions, setActions] = createSignal<ContentAction[]>(initial_actions);
+    initial_actions: IdentifiedAction[],
+): {
+    state: State,
+    applyAction: (action: Action) => void,
+    replaceActions: (start: number, length: number, insert: IdentifiedAction[]) => void,
+} {
+    const [actions, setActions] = createSignal<IdentifiedAction[]>(initial_actions);
     const [cached_state, setCachedState] = createStore<CachedState>(applyActionsToState(
+        [],
         initial_actions,
+        [],
+        [],
+        initialState(),
         initialState(),
         config,
     ));
@@ -724,6 +736,27 @@ function initWithAudio(
         audio_ctx,
         get audio_data() {return audio_data},
     };
+
+    // note: this should only be called by saving fns. saving to any action other than
+    // the last action is not supported.
+    const replaceActions = (start: number, length: number, insert: IdentifiedAction[]) => {
+        const nearest_ancestor = initialState();
+        const shared = state.actions.filter((__, i) => i < start);
+        const next = state.actions.filter((__, i) => i >= start + length);
+        const removed = state.actions.filter((__, i) => i >= start && i < start + length);
+
+        setActions([...shared, ...insert, ...next]);
+        const regenerated = applyActionsToState(
+            shared,
+            insert,
+            removed,
+            next,
+            nearest_ancestor,
+            cached_state,
+            state.config,
+        );
+        setCachedState(reconcile<CachedState>(regenerated, {merge: false}));
+    };
     
     const applyAction = (action: Action) => {
         batch(() => {
@@ -734,10 +767,7 @@ function initWithAudio(
                 setActions(new_actions);
 
                 if(undone) {
-                    switchKind(undone, {
-                        add_polygon: poly => setFrame(poly.frame),
-                        erase_polygon: poly => setFrame(poly.frame),
-                    });
+                    setFrame(undone.frame);
                 }
 
                 // TODO keep anchors so that undos don't take forever all the time
@@ -745,21 +775,44 @@ function initWithAudio(
                 // eg [1..10 +1] [10..100 +10] [100..1000 +100]
                 // so like as you undo more the gaps get wider, but when you undo you can fill
                 // in until the most recent anchor so it isn't redoing work over and over
-                const regenerated = applyActionsToState(new_actions, initialState(), state.config);
-                setCachedState(reconcile<CachedState>(regenerated, {merge: true}));
+                const regenerated = applyActionsToState(
+                    new_actions,
+                    [],
+                    undone ? [undone] : [],
+                    [],
+                    initialState(),
+                    cached_state,
+                    state.config,
+                );
+                setCachedState(reconcile<CachedState>(regenerated, {merge: false}));
             }else if(action.kind === "set_frame") {
                 setFrame(Math.min(state.max_frame, Math.max(0, action.frame)));
             }else{
+                const act: ContentAction = action;
                 // TODO do this on a different thread with webworkers
-                setActions(v => [...v, action]);
-                const applied = applyActionsToState([action], state.cached_state, state.config);
-                setCachedState(reconcile<CachedState>(applied, {merge: true}));
+                const applied = applyActionsToState(
+                    [], // starts at the anchor, which requires adding 0 actions to get to
+                    [act],
+                    [],
+                    [],
+                    state.cached_state,
+                    state.cached_state,
+                    state.config,
+                );
+                setActions((v): IdentifiedAction[] => [...v, {
+                    id: uniqueId(),
+                    saved: false,
+                    ...act,
+                }]);
+                setCachedState(reconcile<CachedState>(applied, {merge: false}));
             }
             setUpdateTime(Date.now() - start);
         });
     };
 
-    return {state, applyAction};
+    (window as unknown as {animator: unknown}).animator = {state, applyAction, replaceActions};
+
+    return {state, applyAction, replaceActions};
 }
 
 const audio_ctx = new AudioContext();
@@ -851,9 +904,9 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
         const actions_ref = ref(db, "/actions/"+props.project_id);
         // TODO use an array watcher in order to do fun stuff
         const project_actions = await get(actions_ref);
-        const actions = Object.values((project_actions.val() as Actions | null) ?? {}).sort(
-            (a, b) => a.created - b.created,
-        ).map(act => act.value as ContentAction);
+        const actions = Object.entries((project_actions.val() as Actions | null) ?? {}).sort(
+            (a, b) => a[1].created - b[1].created,
+        ).map(([id, act]) => ({id, saved: true, ...act.value as ContentAction}));
         if(!still_open) return;
 
         setLoadState("Initializing Audio");
@@ -862,9 +915,11 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
 
         setLoadState("Starting");
         if(!still_open) return;
+        const init = initWithAudio(decoded_audio, cfg.config, actions);
         props.replacePage({
             kind: "animator",
-            ...initWithAudio(decoded_audio, cfg.config, actions)
+            state: init.state,
+            applyAction: init.applyAction,
         });
     }
     fetchContent().catch((e: Error) => {
