@@ -815,6 +815,17 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
     //   it would be better to copy the actual shape in the frame rather than an
     //   error-prone 'copy the content of the frame at this point in time'
     
+    // here's a doc on creating presence in realtime database:
+    // - https://firebase.google.com/docs/firestore/solutions/presence#web
+    // - just have to give other users permission to view your connection status somehow
+    // - not sure
+    // - oh wow 'onDisconnect' is magic. it runs even on eg losing internet.
+    // - so essentially on a project you can just have a list of users who are currently
+    //   active. do this with push() so multiple copies of the same user can be connected
+    //   at once and not cause any issues. although supposedly their example is 'complete'
+    //   even though it doesn't do that. not sure how it handles the same user being logged
+    //   in twice
+
     // other
     // - also if I want to plan for a future that I don't need to plan for: if I want to
     //   be able to eg create new frames, reorder frames, … the idea would be that the
