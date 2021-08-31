@@ -10,6 +10,7 @@
 **/server/secret.ts
 
 .yarn/*
+!.yarn/cache
 !.yarn/patches
 !.yarn/releases
 !.yarn/plugins
