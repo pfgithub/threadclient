@@ -1,0 +1,32 @@
+{
+  "short_name": "ThreadReather",
+  "name": "ThreadClient for Reddit, Mastodon, etc",
+  "description": "reader for reddit, mastodon, etc",
+  "icons": [
+    {
+      "src": "/images/threadclient_96.png",
+      "type": "image/png",
+      "sizes": "96x96",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/threadclient.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/pwa_start",
+  "background_color": "#000",
+  "display": "standalone",
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "ThreadClient for Reddit",
+      "short_name": "Reddit",
+      "description": "Browse Reddit with ThreadClient",
+      "url": "/reddit",
+      "icons": [{ "src": "/images/threadclient_96.png", "sizes": "96x96" }]
+    }
+  ]
+}

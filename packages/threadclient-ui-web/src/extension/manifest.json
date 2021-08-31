@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "ThreadClient",
+  "version": "1.0",
+
+  "description": "ThreadClient",
+
+  "icons": {
+    "96": "src/icons/threadclient_96.png"
+  },
+  "browser_action": {
+    "default_icon": {
+      "96": "src/icons/threadclient_96.png"
+    },
+    "default_title": "ThreadClient",
+    "default_popup": "src/index.html?show=settings"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.reddit.com/*"],
+      "js": ["reddit.js"]
+    }
+  ],
+  "permissions": [],
+  "optional_permissions": ["*://*.pfg.pw/*", "*://*.reddit.com/*", "webRequest"]
+}

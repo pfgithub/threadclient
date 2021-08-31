@@ -8727,9 +8727,9 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"threadreader-client-base@^1.0.0, threadreader-client-base@workspace:packages/threadreader-client-base":
+"threadclient-client-base@^1.0.0, threadclient-client-base@workspace:packages/threadclient-client-base":
   version: 0.0.0-use.local
-  resolution: "threadreader-client-base@workspace:packages/threadreader-client-base"
+  resolution: "threadclient-client-base@workspace:packages/threadclient-client-base"
   dependencies:
     api-types-generic: ^1.0.0
     eslint: ^7.32.0
@@ -8739,9 +8739,9 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
-"threadreader-client-hackernews@^1.0.0, threadreader-client-hackernews@workspace:packages/threadreader-client-hackernews":
+"threadclient-client-hackernews@^1.0.0, threadclient-client-hackernews@workspace:packages/threadclient-client-hackernews":
   version: 0.0.0-use.local
-  resolution: "threadreader-client-hackernews@workspace:packages/threadreader-client-hackernews"
+  resolution: "threadclient-client-hackernews@workspace:packages/threadclient-client-hackernews"
   dependencies:
     api-types-hackernews: ^1.0.0
     eslint: ^7.32.0
@@ -8751,9 +8751,9 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
-"threadreader-ui-web@workspace:packages/threadreader-ui-web":
+"threadclient-ui-web@workspace:packages/threadclient-ui-web":
   version: 0.0.0-use.local
-  resolution: "threadreader-ui-web@workspace:packages/threadreader-ui-web"
+  resolution: "threadclient-ui-web@workspace:packages/threadclient-ui-web"
   dependencies:
     "@types/babel__core": ^7.1.15
     "@types/commonmark": ^0.27.5
@@ -8778,8 +8778,8 @@ fsevents@~2.3.2:
     sass: ^1.38.1
     shaka-player: ^3.2.0
     solid-js: ^1.1.1
-    threadreader-client-base: ^1.0.0
-    threadreader-client-hackernews: ^1.0.0
+    threadclient-client-base: ^1.0.0
+    threadclient-client-hackernews: ^1.0.0
     tmeta-util: ^1.0.0
     tmeta-util-solid: ^1.0.0
     tsconfig-tmeta: ^1.0.0

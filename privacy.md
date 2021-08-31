@@ -1,2 +1,4 @@
-Threadreader is entirely client-side. All requests are sent directly to
-the services (eg reddit).
+ThreadClient does not collect any personal information.
+
+ThreadClient may connect to third party services if you ask it to (eg Reddit). Platform data usage
+can be seen in their respective privacy policies.

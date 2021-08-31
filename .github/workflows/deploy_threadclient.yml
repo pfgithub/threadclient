@@ -15,13 +15,13 @@ jobs:
           yarn install
           yarn lint
           yarn test
-          yarn workspace threadreader-ui-web build
+          yarn workspace threadclient-ui-web build
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.0.0
         with:
           branch: gh-pages # The branch the action should deploy to.
-          folder: packages/threadreader-ui-web/dist # The folder the action should deploy.
+          folder: packages/threadclient-ui-web/dist # The folder the action should deploy.
           clean: true # Automatically remove deleted files from the deploy branch
           repository-name: pfg-deploy/deploy-threadclient
           ssh-key: ${{ secrets.DEPLOY_THREADCLIENT_SSH_KEY }}

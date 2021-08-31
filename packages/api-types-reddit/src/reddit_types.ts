@@ -480,7 +480,7 @@ export type T2 = {
 // info only available for the logged in user
 export type LoggedInT2Data = {
     features: {
-        // likely this is information about features where rollout is in progress and this doesn't matter to threadreader
+        // likely this is information about features where rollout is in progress and this doesn't matter to threadclient
         mod_service_mute_writes: boolean,
         promoted_trend_blanks: boolean,
         show_amp_link: boolean,

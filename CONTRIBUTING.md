@@ -14,16 +14,16 @@ yarn install
 Start build watcher:
 
 ```
-yarn workspace threadreader-ui-web dev
+yarn workspace threadclient-ui-web dev
 ```
 
 Threadclient can now be visited at `http://localhost:3004`.
 
-To log in locally, after giving threadreader access to reddit, edit the url from `https://thread.pfg.pw/…` to
+To log in locally, after giving threadclient access to reddit, edit the url from `https://thread.pfg.pw/…` to
 `http://localhost:3004/…`.
 
 Note: imgur preview is not supported on localhost. To test imgur support, add an entry to your /etc/hosts file eg
-`127.0.0.1 threadreader`, and access threadreader during development from `http://threadreader`.
+`127.0.0.1 threadclient`, and access threadclient during development from `http://threadclient`.
 
 Check code before commit:
 
@@ -54,7 +54,7 @@ to help with development.
 
 ## Project Structure
 
-The ThreadClient website (thread.pfg.pw) is in `packages/threadreader-ui-web`
+The ThreadClient website (thread.pfg.pw) is in `packages/threadclient-ui-web`
 
 ThreadClient is currently in the middle of a migration to Solid JS and a new client structure. Some components in
 `src/components/` are only used in the new page2 format. This can be enabled in settings > developer
