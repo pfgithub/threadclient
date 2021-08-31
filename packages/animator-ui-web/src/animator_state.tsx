@@ -775,6 +775,54 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
 
     const [loadState, setLoadState] = createSignal<string>("Starting");
 
+    // notes for how saving will work:
+    // firebase gives events:
+    // - child_added
+    //   - this should usually fire near the end of the list so usually not that much
+    //     work will have to happen. an exception to this is when working offline, when
+    //     you reconnect a lot of work will have to happen. that's probably okay though.
+    // - child_changed
+    //   - this should never fire I think. I don't think you are allowed to edit past
+    //     actions according to security rules. actually right now security rules allow
+    //     editing actions. TODO change actions to read/create/delete but no update
+    // - child_removed
+    //   - this should generally happen near the end of the list
+    // - child_moved
+    //   - this will never fire due to the security rules, assuming items are being sorted
+    //     by creation date as they should be. this can be safely ignored
+
+    // anyway, essentially:
+    // - go to the point in the list where the new action is / the change is
+    // - reapply from that point
+
+    // for saving data:
+    // - when an action is written, save it
+    // - only save one thing at a time. there is a potential for race conditions causing out
+    //   of order insertions otherwise. if a thing is being saved and a new thing is added,
+    //   wait until the current one is done and then add all the new ones in bulk. this is
+    //   not necessary.
+
+    // oh, here's a simple performance optimization that can be done when regenerating
+    // - if you know the previous state, the nearest common ancestor, and are trying to
+    //   calculate the new state, you can reuse any data from the previous state about
+    //   different frames. ('any frame that is not touched in any new events can be
+    //    copied directly from the previous frame')
+    // - eg: actions are like [1 5 4 6 1 2 6] and you're inserting
+    //                            ^ 1
+    //   you can completely ignore everything that doesn't touch frame 1 and just copy them
+    //   from the previous state
+    // - exception could be if I ever make a copy frame event or something but I think
+    //   it would be better to copy the actual shape in the frame rather than an
+    //   error-prone 'copy the content of the frame at this point in time'
+    
+    // other
+    // - also if I want to plan for a future that I don't need to plan for: if I want to
+    //   be able to eg create new frames, reorder frames, … the idea would be that the
+    //   frame order is seperate from the frame content list. this isn't the app I'm making
+    //   so I shouldn't think too much about this or intentionally accomodate it in my
+    //   architecture, but it's nice to know it should be possible to keep the architecture
+    //   I'm currently using if I ever want to implement that in the future. 
+
     async function fetchContent() {
         setLoadState("Fetching Project");
         const project_ref = ref(db, "/projects/"+props.project_id);
