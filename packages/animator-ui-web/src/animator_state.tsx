@@ -756,6 +756,8 @@ function initWithAudio(
     // note: this should only be called by saving fns. saving to any action other than
     // the last action is not supported.
     const replaceActions = (start: number, length: number, insert: IdentifiedAction[]) => {
+        const start_time = Date.now();
+
         const nearest_ancestor = start === state.actions.length ? cached_state : initialState();
         const prev = start === state.actions.length ? state.actions.filter((__, i) => i < start) : [];
         const shared = start === state.actions.length ? [] : state.actions.filter((__, i) => i < start);
@@ -772,19 +774,27 @@ function initWithAudio(
             cached_state,
             state.config,
         );
-        setCachedState(reconcile<CachedState>(regenerated, {merge: false}));
+
+        
+        batch(() => {
+            setCachedState(reconcile<CachedState>(regenerated, {merge: false}));
+            const end_time = Date.now();
+            setUpdateTime(end_time - start_time);
+        });
     };
     
     const applyAction = (action: Action) => {
         batch(() => {
-            const start = Date.now();
             if(action.kind === "undo") {
+                // TODO only undo actions your client created this session
+
                 const undone = state.actions[state.actions.length - 1];
                 const new_actions = [...state.actions.slice(0, state.actions.length - 1)];
                 setActions(new_actions);
 
                 if(undone) {
                     setFrame(undone.frame);
+                    cbs.onRemoveAction(undone);
                 }
 
                 // TODO keep anchors so that undos don't take forever all the time
@@ -792,20 +802,6 @@ function initWithAudio(
                 // eg [1..10 +1] [10..100 +10] [100..1000 +100]
                 // so like as you undo more the gaps get wider, but when you undo you can fill
                 // in until the most recent anchor so it isn't redoing work over and over
-                const regenerated = applyActionsToState(
-                    new_actions,
-                    [],
-                    undone ? [undone] : [],
-                    [],
-                    initialState(),
-                    cached_state,
-                    state.config,
-                );
-                setCachedState(reconcile<CachedState>(regenerated, {merge: false}));
-
-                if(undone) {
-                    cbs.onRemoveAction(undone);
-                }
             }else if(action.kind === "set_frame") {
                 setFrame(Math.min(state.max_frame, Math.max(0, action.frame)));
             }else{
@@ -819,7 +815,6 @@ function initWithAudio(
                 // shhhhh
                 cbs.onAddAction(added_action);
             }
-            setUpdateTime(Date.now() - start);
         });
     };
 
