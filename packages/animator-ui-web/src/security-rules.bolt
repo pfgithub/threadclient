@@ -1,4 +1,8 @@
-path / is Model {}
+path /users is Map<Author, User> {}
+path /projects is Map<ProjectID, Project> {}
+path /actions/{projid} is Actions {
+    index() { ["created"] }
+}
 
 type Model {
     users: Map<Author, User>,

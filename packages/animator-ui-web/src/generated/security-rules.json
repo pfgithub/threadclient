@@ -1,6 +1,5 @@
 {
   "rules": {
-    ".validate": "newData.hasChildren()",
     "users": {
       "$key1": {
         ".validate": "(newData.hasChildren(['created']) && auth.uid == $key1)",
@@ -66,9 +65,8 @@
       ".validate": "newData.hasChildren()"
     },
     "actions": {
-      "$key4": {
-        ".validate": "(((newData.hasChildren() && $key4.length >= 1) && $key4.length <= 32) && root.child('projects').child($key4).val() != null)",
-        "$key5": {
+      "$projid": {
+        "$key4": {
           ".validate": "newData.hasChildren(['created', 'author', 'value'])",
           "created": {
             ".validate": "(newData.isNumber() && newData.val() == (data.val() == null ? now : data.val()))"
@@ -83,13 +81,13 @@
             ".validate": "false"
           }
         },
-        ".read": "auth.uid == root.child('projects').child($key4).child('owner').val()",
-        ".write": "auth.uid == root.child('projects').child($key4).child('owner').val()"
-      },
-      ".validate": "newData.hasChildren()"
-    },
-    "$other": {
-      ".validate": "false"
+        ".validate": "(newData.hasChildren() && root.child('projects').child($projid).val() != null)",
+        ".read": "auth.uid == root.child('projects').child($projid).child('owner').val()",
+        ".write": "auth.uid == root.child('projects').child($projid).child('owner').val()",
+        ".indexOn": [
+          "created"
+        ]
+      }
     }
   }
 }

@@ -68,7 +68,7 @@ export type Action = ContentAction | {
 
 export type IdentifiedAction = {
     id: string,
-    saved: boolean,
+    saved: null | number,
 } & ContentAction;
 
 export type ContentAction = {

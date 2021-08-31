@@ -5,7 +5,10 @@ import {
 import {
     get,
     getDatabase,
-    onValue, push, Query, ref, serverTimestamp, set
+    onChildAdded,
+    onChildChanged,
+    onChildRemoved,
+    onValue, orderByChild, push, query, Query, ref, remove, serverTimestamp, set
 } from "firebase/database";
 import * as stor from "firebase/storage";
 import { batch, createSignal, For, JSX, onCleanup } from "solid-js";
@@ -18,7 +21,8 @@ import {
     ContentAction, IdentifiedAction, initialState, NameLink, State
 } from "./apply_action";
 import { DefaultErrorBoundary } from "./error_boundary";
-import { Actions, Config, Project, ProjectListEntry, User } from "./generated/security-rules";
+import { Config, Project, ProjectListEntry, User } from "./generated/security-rules";
+import * as sr from "./generated/security-rules";
 
 type ConnectScreenDefaultPage = {
     kind: "main",
@@ -34,6 +38,7 @@ type ConnectScreenPage = {
     kind: "animator",
     state: State,
     applyAction: (action: Action) => void,
+    cleanup: () => void,
 } | {
     kind: "create_project",
 };
@@ -495,10 +500,6 @@ function MainPage(props: {pushPage: PushPage, popPage: PopPage}): JSX.Element {
             }}>
                 Email Account
             </FormButton>
-            <div class="pb-1" />
-            <p class="text-sm text-gray-700">
-                Note: Saving animations has not yet been implemented. Your animations will not be saved.
-            </p>
             <div class="pb-4" />
             <FormButton disabled={disabled()} class="w-full" style="gray" onClick={() => {
                 props.pushPage({kind: "sample_projects"});
@@ -579,11 +580,14 @@ function ConnectScreen(props: {_?: undefined}): JSX.Element {
                 }}</SwitchKind>
             </div>
         </div></FullscreenCenter>
-    }>{animator => <DefaultErrorBoundary data={animator.state}>
-        <InitializeAudio state={animator.state}>
-            <Animator state={animator.state} applyAction={animator.applyAction} />
-        </InitializeAudio>
-    </DefaultErrorBoundary>}</ShowCond>;
+    }>{animator => {
+        onCleanup(() => animator.cleanup());
+        return <DefaultErrorBoundary data={animator.state}>
+            <InitializeAudio state={animator.state}>
+                <Animator state={animator.state} applyAction={animator.applyAction} />
+            </InitializeAudio>
+        </DefaultErrorBoundary>;
+    }}</ShowCond>;
 }
 
 type DemoConfig = Config & {
@@ -621,12 +625,20 @@ function SampleProjectsPage(props: {popPage: PopPage, pushPage: PushPage}): JSX.
 
             if(page_still_open) {
                 const init = initWithAudio(mp3, project.config, actions.actions.map((act, i) => {
-                    return {id: "" + i, saved: true, ...act};
-                }));
+                    return {id: "" + i, saved: Date.now(), ...act};
+                }), {
+                    onAddAction: (act) => {
+                        init.replaceActions(init.state.actions.length, 0, [act]);
+                    },
+                    onRemoveAction: (act) => {
+                        init.replaceActions(init.state.actions.length - 1, 1, []);
+                    },
+                });
                 props.pushPage({
                     kind: "animator",
                     state: init.state,
                     applyAction: init.applyAction,
+                    cleanup: () => {/**/},
                 });
             }
         })().catch((e: Error) => {
@@ -697,6 +709,10 @@ function initWithAudio(
     audio: AudioBuffer,
     config: Config,
     initial_actions: IdentifiedAction[],
+    cbs: {
+        onAddAction(action: IdentifiedAction): void,
+        onRemoveAction(action: IdentifiedAction): void,
+    },
 ): {
     state: State,
     applyAction: (action: Action) => void,
@@ -740,12 +756,13 @@ function initWithAudio(
     // note: this should only be called by saving fns. saving to any action other than
     // the last action is not supported.
     const replaceActions = (start: number, length: number, insert: IdentifiedAction[]) => {
-        const nearest_ancestor = initialState();
-        const shared = state.actions.filter((__, i) => i < start);
+        const nearest_ancestor = start === state.actions.length ? cached_state : initialState();
+        const prev = start === state.actions.length ? state.actions.filter((__, i) => i < start) : [];
+        const shared = start === state.actions.length ? [] : state.actions.filter((__, i) => i < start);
         const next = state.actions.filter((__, i) => i >= start + length);
         const removed = state.actions.filter((__, i) => i >= start && i < start + length);
 
-        setActions([...shared, ...insert, ...next]);
+        setActions([...prev, ...shared, ...insert, ...next]);
         const regenerated = applyActionsToState(
             shared,
             insert,
@@ -785,26 +802,22 @@ function initWithAudio(
                     state.config,
                 );
                 setCachedState(reconcile<CachedState>(regenerated, {merge: false}));
+
+                if(undone) {
+                    cbs.onRemoveAction(undone);
+                }
             }else if(action.kind === "set_frame") {
                 setFrame(Math.min(state.max_frame, Math.max(0, action.frame)));
             }else{
                 const act: ContentAction = action;
-                // TODO do this on a different thread with webworkers
-                const applied = applyActionsToState(
-                    [], // starts at the anchor, which requires adding 0 actions to get to
-                    [act],
-                    [],
-                    [],
-                    state.cached_state,
-                    state.cached_state,
-                    state.config,
-                );
-                setActions((v): IdentifiedAction[] => [...v, {
+                const added_action: IdentifiedAction = {
                     id: uniqueId(),
-                    saved: false,
+                    saved: null,
                     ...act,
-                }]);
-                setCachedState(reconcile<CachedState>(applied, {merge: false}));
+                };
+                // soo… what if…
+                // shhhhh
+                cbs.onAddAction(added_action);
             }
             setUpdateTime(Date.now() - start);
         });
@@ -820,6 +833,7 @@ const audio_ctx = new AudioContext();
 function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, project_id: string}): JSX.Element {
     const db = getDatabase();
     const storage = stor.getStorage();
+    const auth = getAuth();
     
     let still_open = true;
     onCleanup(() => still_open = false);
@@ -885,46 +899,115 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
     //   frame order is seperate from the frame content list. this isn't the app I'm making
     //   so I shouldn't think too much about this or intentionally accomodate it in my
     //   architecture, but it's nice to know it should be possible to keep the architecture
-    //   I'm currently using if I ever want to implement that in the future. 
+    //   I'm currently using if I ever want to implement that in the future.
+
+    const actions_ref = query(ref(db, "/actions/"+props.project_id), orderByChild("created"));
+
+    let on_cleanup: (() => void)[] = [];
 
     async function fetchContent() {
+
         setLoadState("Fetching Project");
         const project_ref = ref(db, "/projects/"+props.project_id);
         const project_config = await get(project_ref);
         const cfg = project_config.val() as Project;
-        if(!still_open) return;
+        if(!still_open) throw new Error("canceled");
 
         setLoadState("Fetching Audio");
         const audio_ref = stor.ref(storage, cfg.config.audio);
         const audio_url = await stor.getDownloadURL(audio_ref);
         const audio = await fetch(audio_url).then(r => r.arrayBuffer());
-        if(!still_open) return;
+        if(!still_open) throw new Error("canceled");
         
-        setLoadState("Fetching Actions");
-        const actions_ref = ref(db, "/actions/"+props.project_id);
-        // TODO use an array watcher in order to do fun stuff
-        const project_actions = await get(actions_ref);
-        const actions = Object.entries((project_actions.val() as Actions | null) ?? {}).sort(
-            (a, b) => a[1].created - b[1].created,
-        ).map(([id, act]) => ({id, saved: true, ...act.value as ContentAction}));
-        if(!still_open) return;
+        // setLoadState("Fetching Actions");
+        // if(!still_open) return;
 
         setLoadState("Initializing Audio");
         const decoded_audio = await audio_ctx.decodeAudioData(audio);
-        if(!still_open) return;
+        if(!still_open) throw new Error("canceled");
+
+        setLoadState("Initializing App");
+        const init = initWithAudio(decoded_audio, cfg.config, [], {
+            onAddAction: (act) => {
+                console.log("adding action", act);
+
+                const new_act_ref = ref(db, "/actions/"+props.project_id+"/"+act.id);
+                set(new_act_ref, {
+                    created: serverTimestamp() as unknown as number,
+                    author: auth.currentUser!.uid,
+                    value: act,
+                }).then(r => {
+                    console.log("action set ✓");
+                }).catch(e => {
+                    console.log("failed to save action", act, e);
+                });
+            },
+            onRemoveAction: (act) => {
+                console.log("removing action", act);
+
+                const rm_act_ref = ref(db, "/actions/"+props.project_id+"/"+act.id);
+                remove(rm_act_ref).then(r => {
+                    console.log("action removed ✓");
+                }).catch(e => {
+                    console.log("failed to remove action", act, e);
+                });
+            },
+        });
+        if(!still_open) throw new Error("canceled");
+
+        setLoadState("Initializing Actions");
+        // const initial_actions_raw = await get(actions_ref);
+        // const initial_actions = Object.entries((initial_actions_raw.val() as Actions | null) ?? {}).sort(
+        //     (a, b) => a[1].created - b[1].created,
+        // ).map(([id, act]) => ({id, saved: true, ...act.value as ContentAction}));
+        // init.replaceActions(0, 0, initial_actions);
+
+        on_cleanup.push(onChildAdded(actions_ref, data => {
+            const act = data.val() as sr.Action;
+            console.log("\\!/ added action", act);
+            // find the index where the next item .saved > act.created
+            let index = init.state.actions.findIndex(next_item => (
+                act.created < next_item.saved!
+            ));
+            if(index === -1) index = init.state.actions.length;
+            init.replaceActions(index, 0, [{
+                ...act.value as ContentAction,
+                id: data.key!,
+                saved: act.created,
+            }]);
+        }));
+        on_cleanup.push(onChildChanged(actions_ref, data => {
+            console.log("changed action", data);
+        }));
+        on_cleanup.push(onChildRemoved(actions_ref, data => {
+            console.log("removed action", data);
+            const index = init.state.actions.findIndex(item => (
+                item.id === data.key!
+            ));
+            if(index === -1) return console.log("removed nonexistent action", data.key, data.val());
+            init.replaceActions(index, 1, []);
+        }));
+        await new Promise<void>(r => {
+            const removeWatcher = onValue(actions_ref, () => {
+                removeWatcher();
+                r();
+            });
+        });
+        if(!still_open) throw new Error("canceled");
 
         setLoadState("Starting");
-        if(!still_open) return;
-        const init = initWithAudio(decoded_audio, cfg.config, actions);
+        if(!still_open) throw new Error("canceled");
         props.replacePage({
             kind: "animator",
             state: init.state,
             applyAction: init.applyAction,
+            cleanup: () => on_cleanup.forEach(v => v()),
         });
     }
     fetchContent().catch((e: Error) => {
         console.log(e);
         setError(e.toString());
+        on_cleanup.forEach(v => v());
     });
 
     return <>
