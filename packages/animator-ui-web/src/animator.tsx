@@ -11,13 +11,12 @@
 
 import getStroke from "perfect-freehand";
 import { MultiPolygon, Polygon } from "polygon-clipping";
-import { batch, createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
-import { findFrameIndex, Action, State } from "./apply_action";
+import { createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
+import { switchKind } from "../../tmeta-util/src/util";
+import { Action, findFrameIndex, State } from "./apply_action";
+import { EventPoint, recognizeGestures } from "./gesture_recognizer";
 
 export default function Animator(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
-    document.documentElement.classList.add("no-interact");
-    onCleanup(() => document.documentElement.classList.remove("no-interact"));
-
     return <div class="h-full">
         <DrawCurrentFrame state={props.state} applyAction={props.applyAction} />
         <GestureRecognizer state={props.state} applyAction={props.applyAction} />
@@ -173,30 +172,13 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             size: stroke.mode === "erase" ? 100 : 8,
         }) as Point2D[]
     );
-    const eventToPoint = (e: PointerEvent): PressurePoint => {
+    const scalePoint = (e: EventPoint): PressurePoint => {
         const {scale, translate} = scaleCanvasValues(props.state.config);
-        return [e.pageX / scale - translate.x, e.pageY / scale - translate.y, e.pressure];
-    };
-    type Pointer = {
-        points: Map<number, {start: number, point: PressurePoint}>,
-        mode: {kind: "draw"} | {kind: "zoom"} | {kind: "switch_frame", start_x: number},
-    };
-    const pointers = new Map<string, Pointer>();
-    const getPointerMap = (type: string) => {
-        const submap = pointers.get(type);
-        if(!submap || submap.points.size === 0) {
-            const setv: Pointer = {
-                points: new Map(),
-                mode: {kind: "draw"},
-            };
-            pointers.set(type, setv);
-            return setv;
-        }
-        return submap;
+        return [e[0] / scale - translate.x, e[1] / scale - translate.y, e[2]];
     };
 
-    const playSegment = () => {
-        let nct = props.state.frame / props.state.config.framerate;
+    const playSegment = (frame: number) => {
+        let nct = frame / props.state.config.framerate;
         if(nct < 0) nct = 0;
         if(nct > props.state.audio.duration) nct = props.state.audio.duration;
 
@@ -208,169 +190,97 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         setSource({source, offset: nct, context: props.state.audio_ctx}, props.state.config.framerate);
     };
 
-    const onpointerdown = (e: PointerEvent) => {
-        e.preventDefault();
-
-        const pmap = getPointerMap(e.pointerType);
-        pmap.points.set(e.pointerId, {start: Date.now(), point: eventToPoint(e)});
-
-        if(e.pointerType === "touch" && pmap.points.size > 1) {
-            if(pmap.mode.kind === "zoom" || [...pmap.points.values()][0]!.start < Date.now() - 200) {
-                pmap.points.delete(e.pointerId);
-                return;
-            }
-            pmap.mode = {kind: "zoom"};
-            setPlannedStrokes(pts => {
-                const res = new Map(pts);
-                res.delete(e.pointerType);
-                return res;
-            });
-            props.applyAction({kind: "undo"});
-            const ppv = [...pmap.points.values()];
-            if(ppv.length < 2) return;
-            const start: Vector = [[ppv[0]!.point[0], ppv[0]!.point[1]], [ppv[1]!.point[0], ppv[1]!.point[1]]];
-            // setZoom([start, start]);
-            () => start;
-            return;
-        }
-        if(e.pageY > window.innerHeight - 200) {
-            pmap.mode = {kind: "switch_frame", start_x: e.pageX};
-            playSegment();
-            return;
-        }
-
-        setPlannedStrokes(pts => new Map(pts).set(e.pointerType, {
-            points: [eventToPoint(e)],
-            mode: e.pointerType === "touch" || (e.button === 2) ? "erase" : "draw",
-        }));
-    };
-    document.addEventListener("pointerdown", onpointerdown);
-    onCleanup(() => document.removeEventListener("pointerdown", onpointerdown));
-
-    const [offset, setOffset] = createSignal(0);
-
-    const onpointermove = (e: PointerEvent) => {
-        const pmap = getPointerMap(e.pointerType);
-        const prev = pmap.points.get(e.pointerId);
-        if(prev) {
-            e.preventDefault();
-
-            prev.point = eventToPoint(e);
-
-            if(e.pointerType === "touch" && pmap.mode.kind === "zoom") {
-                const ppv = [...pmap.points.values()];
-                if(ppv.length < 2) return;
-                const current: Vector = [[ppv[0]!.point[0], ppv[0]!.point[1]], [ppv[1]!.point[0], ppv[1]!.point[1]]];
-                // setZoom(z => [z![0], current]);
-                () => current;
-                return;
-            }
-            if(pmap.mode.kind === "switch_frame") {
-                const start_frame = props.state.frame;
-                while(e.pageX < pmap.mode.start_x - 20) {
-                    props.applyAction({kind: "set_frame", frame: props.state.frame + 1});
-                    pmap.mode.start_x -= 20;
-                }
-                while(e.pageX > pmap.mode.start_x + 20) {
-                    props.applyAction({kind: "set_frame", frame: props.state.frame - 1});
-                    pmap.mode.start_x += 20;
-                }
-                const v = (((e.pageX - pmap.mode.start_x)) + 20) / (20 * 2);
-                const pow = 0.3;
-                const shift = v ** pow / (v ** pow + (1 - v) ** pow);
-                const max = 50;
-
-                setOffset((shift * (max * 2)) - max);
-                if(props.state.frame !== start_frame) {
-                    playSegment();
-                }
-                return;
-            }
-            
-            setPlannedStrokes(pts => new Map(pts).set(e.pointerType, {
-                ...pts.get(e.pointerType)!,
-                points: [
-                    ...pts.get(e.pointerType)?.points ?? [],
-                    eventToPoint(e),
-                ],
-            }));
-        }
-    };
-    document.addEventListener("pointermove", onpointermove);
-    onCleanup(() => document.removeEventListener("pointermove", onpointermove));
-
-    const onpointerup = (e: PointerEvent) => {
-        e.preventDefault();
-
-        const pmap = getPointerMap(e.pointerType);
-        if(!pmap.points.has(e.pointerId)) return;
-        pmap.points.delete(e.pointerId);
-        if(e.pointerType === "touch" && pmap.mode.kind === "zoom") {
-            if(pmap.points.size < 2) {
-                // batch(() => {
-                //     setTransform(t => transformZoomed(t).inverse());
-                //     setZoom(null);
-                // });
-            }
-            return;
-        }
-        if(pmap.mode.kind === "switch_frame") {
-            stopSource();
-            setOffset(0);
-            return;
-        }
-
-        const value = plannedStrokes().get(e.pointerType);
-        batch(() => {
-            setPlannedStrokes(pts => {
-                const res = new Map(pts);
-                res.delete(e.pointerType);
-                return res;
-            });
-            if(!value) return;
-            const stroke = commitStroke(value);
-            if(stroke.some(item => isNaN(item[0]) || isNaN(item[1]))) return;
-            props.applyAction({
-                kind: value.mode === "erase" ? "erase_polygon" : "add_polygon",
-                polygon: stroke,
-                frame: props.state.frame,
-            });
-        });
-    };
-    document.addEventListener("pointerup", onpointerup);
-    onCleanup(() => document.removeEventListener("pointerup", onpointerup));
-
-    const onpointercancel = (e: PointerEvent) => {
-        const pmap = getPointerMap(e.pointerType);
-        if(!pmap.points.has(e.pointerId)) return;
-        pmap.points.delete(e.pointerId);
-        if(e.pointerType === "touch" && pmap.mode.kind === "zoom") {
-            // if(pmap.points.size < 2) setZoom(null);
-            return;
-        }
-        if(pmap.mode.kind === "switch_frame") {
-            setOffset(0);
-            return;
-        }
-
-        setPlannedStrokes(pts => {
-            const res = new Map(pts);
-            res.delete(e.pointerType);
-            return res;
-        });
-    };
-    document.addEventListener("pointercancel", onpointercancel);
-    onCleanup(() => document.removeEventListener("pointercancel", onpointercancel));
-
-    const oncontextmenu = (e: Event) => {
-        e.preventDefault();
-    };
-    document.addEventListener("contextmenu", oncontextmenu);
-    onCleanup(() => document.removeEventListener("pointercancel", oncontextmenu));
+    const [frameOffset, setFrameOffset] = createSignal<number | null>(null);
+    const [dragOffset, setDragOffset] = createSignal(0);
 
     const strokes = createMemo((): Point2D[][] => (
         [...plannedStrokes().values()].map(commitStroke)
     ));
+
+    onCleanup(recognizeGestures((id, event) => {
+        let planned_stroke_set = false;
+        const setPlannedStroke = (planned_stroke: PlannedStroke) => {
+            planned_stroke_set = true;
+            setPlannedStrokes(s => {
+                const copy = new Map(s);
+                copy.set(id, planned_stroke);
+                return copy;
+            });
+        };
+        let offset_set = false;
+        const setNewOffset = (new_offset: number) => {
+            offset_set = true;
+            setDragOffset(new_offset);
+        };
+
+        // it might be useful to have an oncancel
+        switchKind(event, {
+            draw: draw => {
+                const start = draw.points[0]!;
+                if(start[1] > window.innerHeight - 200) {
+                    const end = draw.points[draw.points.length - 1]!;
+                    const offset = end[0] - start[0];
+                    const frame_offset = -Math.round(offset / 250);
+                    if(draw.commit) {
+                        props.applyAction({
+                            kind: "set_frame",
+                            frame: props.state.frame + frame_offset,
+                        });
+                    }else{
+                        if(frame_offset !== frameOffset()) {
+                            playSegment(props.state.frame + frame_offset);
+                        }
+                        setFrameOffset(frame_offset);
+                        setNewOffset(offset + frame_offset * 250);
+                    }
+                    return;
+                }
+
+                const stroke: PlannedStroke = {
+                    points: draw.points.map(scalePoint),
+                    mode: "draw",
+                };
+                if(draw.commit) {
+                    props.applyAction({
+                        kind: "add_polygon",
+                        polygon: commitStroke(stroke),
+                        frame: props.state.frame,
+                    });
+                }else{
+                    setPlannedStroke(stroke);
+                }
+            },
+            touchzoom: () => {
+                //
+            },
+            tap: tap => {
+                if(tap.points.length === 2) {
+                    props.applyAction({kind: "undo"});
+                }else if(tap.points.length === 3) {
+                    // props.applyAction({kind: "redo"});
+                    alert("TODO redo");
+                }
+            },
+            none: () => {
+                //
+            },
+        });
+
+        blk: if(!planned_stroke_set) {
+            const stroke = plannedStrokes();
+            if(!stroke.has(id)) break blk;
+            const copy = new Map(stroke);
+            copy.delete(id);
+            setPlannedStrokes(copy);
+        }
+        if(!offset_set) {
+            // note: this is incorrect
+            // if two gestures are active at once, this won't work correctly
+            setDragOffset(0);
+            setFrameOffset(null);
+            stopSource();
+        }
+    }));
 
     return <FullscreenCanvas2D render={(ctx, size) => {
         ctx.save();
@@ -397,8 +307,10 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         ctx.fillStyle = "#aaa";
         ctx.fillRect(0, size.height - 200, size.width, 200);
 
+        const current_frame = props.state.frame + (frameOffset() ?? 0);
+
         for(let j = -5; j < 5; j++) {
-            const f = j + props.state.frame;
+            const f = j + current_frame;
             if(f < 0) continue;
             const frame_index = findFrameIndex(f, props.state.cached_state);
             const is_exact_frame = frame_index === f;
@@ -417,14 +329,12 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                     props.state.config.height + (yh * 2),
                 );
             }
-            ctx.translate(offset() / 0.1, 0);
+            ctx.translate(dragOffset() / 0.1, 0);
             ctx.fillStyle = "#fff";
             ctx.fillRect(0, 0, props.state.config.width, props.state.config.height);
 
-            if(j === 0) {
-                ctx.fillStyle = is_exact_frame ? "#000" : "#888";
-                renderMultiPolygon(ctx, thumbnail);
-            }
+            ctx.fillStyle = is_exact_frame ? "#000" : "#888";
+            renderMultiPolygon(ctx, thumbnail);
 
             ctx.restore();
         }
@@ -439,7 +349,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
         }
         const end_time = Date.now();
         ctx.fillText("Draw ms: " + (end_time - start_time), 10, size.height - 200 + 20);
-        ctx.fillText("Frame: " + (props.state.frame) + " / " + (props.state.max_frame), 10, size.height - 200 + 30);
+        ctx.fillText("Frame: " + (current_frame) + " / " + (props.state.max_frame), 10, size.height - 200 + 30);
     }} />;
 }
 
@@ -509,4 +419,3 @@ type PressurePoint = [
 ];
 
 type Point2D = [x: number, y: number];
-type Vector = [origin: Point2D, dest: Point2D];
