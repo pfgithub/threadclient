@@ -39,7 +39,29 @@ really have that much trouble with:
   - check out some libraries eg:
     - https://zingchart.github.io/zingtouch/
     - https://hammerjs.github.io/
-  - these will give me more useful events. hopefully they can be set to send events immediately
+  - these will give me more useful events. hopefully they send single touch events immediately and then
+    cancel them if they are used as a multitouch event.
+
+## checkpointing
+
+- here's how to do checkpointing:
+- 1: don't delete actions (edit the security rules to disallow this)
+  - actions are added forever.
+  - undo is just adding an action that says 'invalidate the action with the id x'
+  - go right to left when loading and put all the invalidated actions into a set, then
+    ignore them. ignore while going right to left too so you can invalidate an invalidate
+    action
+  - then operate like normal, just ignoring the invalidated actions
+- 2: trusted clients can make checkpoints whenever they feel like. checkpoints are for
+  a given point in time.
+- 3: when loading, first fetch the most recent checkpoint, then only fetch actions after that
+  checkpoint. note that in rare occasions, an invalidate action will refer to an action before
+  the checkpoint (invalidate actions should probably contain both id and server_time, server_time
+  so it's easy to check if the action it's referring to is before the checkpoint you have loaded)
+  - in this case: go fetch a checkpoint before the action that you need to go back to and all the
+    actions past that point, then resimulate from that point. this resimulation hopefully won't be
+    all that expensive because it's likely only resimulating a single frame, the most expensive
+    part of that is the load.
 
 ## rendering perf
 
