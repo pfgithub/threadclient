@@ -5,9 +5,20 @@
 the ui does not feel nice right now. this is because of:
 
 - [ ] the frame switcher bar is wayy too finicky
+
   - [x] you should move your finger over the length of one frame to switch a frame
   - [ ] intertial scrolling is required
   - [ ] you should be able to tap a frame to go to it
+  - [ ] here's an idea : what if the current behaviour of the centered item being active is removed and instead
+        you can only tap to focus, so if you want to go to some frame you
+
+    - scroll to it
+    - tap on it
+
+    the point of this is that then there wouldn't be this weird behaviour where as you scroll the animation is playing
+    because it wouldn't seek sound at all. if you want sounds while seeking, you can use that seekbar thing at the
+    top ↓
+
   - [ ] there should be a quick scrubber bar at the top you can drag to go anywhere
   - [ ] perf is bad when scrolling quickly atm because frames that aren't even very complicated can take like
   - [ ] it's hard to see if a frame is real or not. this should be represented better in the ui, like eg the start real
@@ -16,6 +27,7 @@ the ui does not feel nice right now. this is because of:
   - [ ] would be nice to have a button to jump to the keyframe
   - [ ] the audio waveform/volume thing should be shown somewhere
   - [ ] ideally, the frame switcher bar would be zoomable I think
+
 - [ ] deleting the contents of a frame / deleting the frame.
   - there should be a simple button I can press to create a keyframe
   - there should be a button I can press to delete the contents of a keyframe and then I should be able to press it
