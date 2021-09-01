@@ -719,7 +719,7 @@ function initWithAudio(
     replaceActions: (start: number, length: number, insert: IdentifiedAction[]) => void,
 } {
     const [actions, setActions] = createSignal<IdentifiedAction[]>(initial_actions);
-    const [cached_state, setCachedState] = createStore<CachedState>(applyActionsToState(
+    const [cachedState, setCachedState] = createSignal<CachedState>(applyActionsToState(
         [],
         initial_actions,
         [],
@@ -738,7 +738,9 @@ function initWithAudio(
         get actions() {
             return actions();
         },
-        cached_state,
+        get cached_state() {
+            return cachedState();
+        },
         get update_time() {
             return updateTime();
         },
@@ -758,7 +760,7 @@ function initWithAudio(
     const replaceActions = (start: number, length: number, insert: IdentifiedAction[]) => {
         const start_time = Date.now();
 
-        const nearest_ancestor = start === state.actions.length ? cached_state : initialState();
+        const nearest_ancestor = start === state.actions.length ? cachedState() : initialState();
         const prev = start === state.actions.length ? state.actions.filter((__, i) => i < start) : [];
         const shared = start === state.actions.length ? [] : state.actions.filter((__, i) => i < start);
         const next = state.actions.filter((__, i) => i >= start + length);
@@ -771,13 +773,12 @@ function initWithAudio(
             removed,
             next,
             nearest_ancestor,
-            cached_state,
+            cachedState(),
             state.config,
         );
 
-        
         batch(() => {
-            setCachedState(reconcile<CachedState>(regenerated, {merge: false}));
+            setCachedState(regenerated);
             const end_time = Date.now();
             setUpdateTime(end_time - start_time);
         });
