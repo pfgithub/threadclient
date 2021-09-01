@@ -20,8 +20,7 @@ the ui does not feel nice right now. this is because of:
     top ↓
 
   - [ ] there should be a quick scrubber bar at the top you can drag to go anywhere
-  - [ ] perf is bad when scrolling quickly atm because frames that aren't even very complicated can take like
-  - [ ] it's hard to see if a frame is real or not. this should be represented better in the ui, like eg the start real
+  - [x] it's hard to see if a frame is real or not. this should be represented better in the ui, like eg the start real
         frame could be displayed as it is now but then spaces between it and the fake frames following it are filled in
         with a different tone of color so it's obvious they're related
   - [ ] would be nice to have a button to jump to the keyframe
@@ -81,8 +80,9 @@ really have that much trouble with:
 
 - [x] switch cachedstate to use signals per frame rather than a store. I haven't done any testing, but I'm guessing the
       proxied getters/setters are causing some performance issues.
-- [ ] although I'm not sure because current drawings are in a store that uses a map and those have bad perf too, so it
-      might just be rendering
+- [x] although I'm not sure because current drawings are in a store that uses a map and those have bad perf too, so it
+      might just be rendering (this was because current drawings render on the same canvas as thumbnails, which were
+      having bad performance)
 - [ ] if necessary, they can probably be rendered in webgl with zig. ideally, lots of intensive stuff could be moved
       over to wasm and also performed off-thread when possible
 

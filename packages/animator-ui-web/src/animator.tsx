@@ -309,6 +309,20 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
 
         const current_frame = props.state.frame + (frameOffset() ?? 0);
 
+        {
+            ctx.save();
+            ctx.translate((size.width / 2) - (90) + (250 * 0), size.height - 200 + 45);
+            ctx.scale(0.1, 0.1);
+            ctx.fillStyle = "#999";
+            const xh = 100;
+            const yh = 440;
+            ctx.fillRect(
+                -xh, -yh,
+                props.state.config.width + (xh * 2),
+                props.state.config.height + (yh * 2),
+            );
+            ctx.restore();
+        }        
         for(let j = -5; j < 5; j++) {
             const f = j + current_frame;
             if(f < 0) continue;
@@ -319,18 +333,14 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             ctx.save();
             ctx.translate((size.width / 2) - (90) + (250 * j), size.height - 200 + 45);
             ctx.scale(0.1, 0.1);
-            if(j === 0) {
-                ctx.fillStyle = "#999";
-                const xh = 100;
-                const yh = 440;
-                ctx.fillRect(
-                    -xh, -yh,
-                    props.state.config.width + (xh * 2),
-                    props.state.config.height + (yh * 2),
-                );
-            }
             ctx.translate(dragOffset() / 0.1, 0);
-            ctx.fillStyle = "#fff";
+            if(!is_exact_frame) {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+                ctx.fillRect(-580, 0, 580, props.state.config.height);
+                ctx.fillStyle = "#ddd";
+            }else{
+                ctx.fillStyle = "#fff";
+            }
             ctx.fillRect(0, 0, props.state.config.width, props.state.config.height);
 
             ctx.fillStyle = is_exact_frame ? "#000" : "#888";
