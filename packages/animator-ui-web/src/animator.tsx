@@ -90,12 +90,29 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         const frame_index = findFrameIndex(frame_raw, props.state.cached_state);
         const frame = props.state.cached_state.frames[frame_index]!;
 
+        if(current_audio_frame == null && frame_index - 1 >= 0) {
+            const left_raw = frame_index - 1;
+            const left_frame_index = findFrameIndex(left_raw, props.state.cached_state);
+            const left_frame = props.state.cached_state.frames[left_frame_index]!;
+            // const is_exact_frame = left_frame === left_raw;
+            ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
+            renderMultiPolygon(ctx, left_frame.merged_polygons);
+        }
+        if(current_audio_frame == null) {
+            const right_frame_index_raw = frame_raw + 1;
+            if(findFrameIndex(right_frame_index_raw, props.state.cached_state) !== frame_index) {
+                const right_frame = props.state.cached_state.frames[right_frame_index_raw]!;
+                ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+                renderMultiPolygon(ctx, right_frame.merged_polygons);
+            }
+        }
+
         // this is a bit confusing because while scrubbing it doesn't easily show you if
         // you're on an exact frame or not. I think that updating the scrubber bar to have
         // all the frame thumbnails and stuff will help a lot with that.
         const is_exact_frame = frame_index === frame_raw || current_audio_frame != null;
 
-        ctx.fillStyle = is_exact_frame ? "#000000" : "#555555";
+        ctx.fillStyle = is_exact_frame ? "#000000" : "#aaa";
         renderMultiPolygon(ctx, frame.merged_polygons);
 
         ctx.restore();
@@ -245,13 +262,14 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                     return;
                 }
 
+                const mode = "draw" as "draw" | "erase";
                 const stroke: PlannedStroke = {
                     points: draw.points.map(scalePoint),
-                    mode: "draw",
+                    mode: mode,
                 };
                 if(draw.commit) {
                     props.applyAction({
-                        kind: "add_polygon",
+                        kind: mode === "draw" ? "add_polygon" : "erase_polygon",
                         polygon: commitStroke(stroke),
                         frame: props.state.frame,
                     });
