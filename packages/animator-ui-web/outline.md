@@ -54,6 +54,10 @@ really have that much trouble with:
     - https://hammerjs.github.io/
   - these will give me more useful events. hopefully they send single touch events immediately and then
     cancel them if they are used as a multitouch event.
+- [ ] apply_action should go by frame rather than doing the whole thing at once in a weird and complicated way.
+  - first, split into an array of all the frames
+  - then, for each frame do the stuff that's needed. that way it's trivial to eg:
+    - start doing the frame by searching right to left for 'erase_all' actions and ignore everything before them
 
 ## checkpointing
 
