@@ -55,6 +55,9 @@ function scaleCanvas(ctx: CanvasRenderingContext2D, itm_size: WH) {
 export function DrawCurrentFrame(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     return <FullscreenCanvas2D render={(ctx, size) => {
         const start = Date.now();
+
+        const current_audio_frame = currentAudioFrame();
+
         ctx.fillStyle = "#ccc";
         ctx.fillRect(0, 0, size.width, size.height);
 
@@ -72,17 +75,20 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
 
         ctx.strokeRect(0, 0, props.state.config.width, props.state.config.height);
         ctx.save();
+
+        
         ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.beginPath();
-        ctx.moveTo(props.state.config.width / 2, 0);
-        ctx.lineTo(props.state.config.width / 2, props.state.config.height);
-        ctx.moveTo(0, props.state.config.height / 2);
-        ctx.lineTo(props.state.config.width, props.state.config.height / 2);
-        ctx.stroke();
+        if(current_audio_frame == null) {
+            ctx.beginPath();
+            ctx.moveTo(props.state.config.width / 2, 0);
+            ctx.lineTo(props.state.config.width / 2, props.state.config.height);
+            ctx.moveTo(0, props.state.config.height / 2);
+            ctx.lineTo(props.state.config.width, props.state.config.height / 2);
+            ctx.stroke();
+        }
         ctx.restore();
         // TODO scale based on state
 
-        const current_audio_frame = currentAudioFrame();
         let frame_raw = props.state.frame;
         if(current_audio_frame != null) {
             frame_raw = current_audio_frame;
