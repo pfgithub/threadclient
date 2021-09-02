@@ -5,6 +5,7 @@ import { assertNever } from "tmeta-util";
 import { Config } from "./generated/security-rules";
 
 export let initialState = (): CachedState => ({
+    last_action_time: 0, // this has no last action
     frames: {
         0: emptyFrame(), // the 0 frame is required to exist.
     },
@@ -22,7 +23,7 @@ export type NameLink = {
 };
 
 export type State = {
-    actions: IdentifiedAction[], // from this, you can reconstruct the current state
+    actions: InsertedAction[], // from this, you can reconstruct the current state
     cached_state: CachedState,
     update_time: number,
 
@@ -48,6 +49,7 @@ export let findFrameIndex = function findFrameIndex(frame: number, state: Cached
 };
 
 export type CachedState = {
+    last_action_time: number,
     frames: {[key: number]: CachedFrame},
 };
 export type CachedFrame = {
@@ -64,11 +66,17 @@ export type Action = ContentAction | {
     kind: "set_frame",
     frame: number,
 };
-//
+
+export type InsertedAction = IdentifiedAction & {
+    insert_time: number,
+} & ContentAction;
 
 export type IdentifiedAction = {
     id: string,
-    saved: null | number,
+} & DBAction;
+
+export type DBAction = {
+    session_id: string,
 } & ContentAction;
 
 export type ContentAction = {
@@ -79,22 +87,51 @@ export type ContentAction = {
     kind: "erase_polygon",
     polygon: [x: number, y: number][],
     frame: number,
+} | {
+    kind: "invalidate_action",
+    invalidate: {
+        id: string,
+        time: number,
+    },
+    frame: number,
 };
 
 export let applyActionsToState = function applyActionsToState(
-    shared: ContentAction[],
-    insert: ContentAction[],
-    remove: ContentAction[],
-    next: ContentAction[],
-    anchor: CachedState,
-    recent: CachedState,
-    config: Config,
-): CachedState {
-    const touched_frames = new Set<number>();
+    insert: InsertedAction[],
 
-    for(const action of [...insert, ...remove]) {
-        touched_frames.add(action.frame);
+    most_recent_checkpoint: CachedState,
+    old_actions: InsertedAction[],
+    next_actions: InsertedAction[],
+    config: Config,
+    // once we start loading from checkpoints, this will require some changes because it
+    // may encounter an invalidate_action that refers to an action before the latest one it has loaded.
+): CachedState {
+    let anchor = most_recent_checkpoint;
+    let prev_actions: InsertedAction[] = [];
+
+    const touched_frames = new Set<number>();
+    const ignored_actions = new Set<string>();
+    for(const {touch, actionSet} of [
+        {touch: true, actionSet: () => insert},
+        {touch: false, actionSet: () => next_actions},
+        {touch: false, actionSet: () => prev_actions},
+    ]) {
+        for(const action of [...actionSet()].reverse()) {
+            if(ignored_actions.has(action.id)) continue;
+            if(touch) touched_frames.add(action.frame);
+            else if(!touched_frames.has(action.frame)) continue;
+
+            if(action.kind === "invalidate_action") {
+                ignored_actions.add(action.invalidate.id); // ignore the action it's invalidating
+                if(action.invalidate.time <= anchor.last_action_time) {
+                    anchor = initialState();
+                    prev_actions = old_actions;
+                }
+            }
+        }
     }
+
+    // the second half of looping over action set should be here
 
     const updated_frames: {[key: number]: CachedFrame} = {};
     for(const frame_index of touched_frames) {
@@ -102,29 +139,38 @@ export let applyActionsToState = function applyActionsToState(
         updated_frames[frame_index] = {...anchor.frames[frame_index] ?? emptyFrame()};
     }
 
-    for(const action of [...shared, ...insert, ...next]) {
+    let i = 0;
+
+    for(const action of [...prev_actions, ...insert, ...next_actions]) {
+        if(ignored_actions.has(action.id)) continue;
         if(!touched_frames.has(action.frame)) continue;
+        i += 1;
 
         const frame = updated_frames[action.frame]!;
         if(action.kind === "add_polygon") {
             frame.merged_polygons = polygonClipping.union(frame.merged_polygons, [action.polygon]);
-        }else if(action.kind === "erase_polygon"){
+        }else if(action.kind === "erase_polygon") {
             frame.merged_polygons = polygonClipping.difference(frame.merged_polygons, [action.polygon]);
+        }else if(action.kind === "invalidate_action") {
+            // handled above
         }else assertNever(action);
     }
 
-    // TODO update thumbnails off-thread
     for(const frame_index of touched_frames) {
         const frame = updated_frames[frame_index]!;
 
         frame.thumbnail = genThumbnail(frame.merged_polygons, config);
     }
 
-    console.log("Applying Actions", updated_frames, shared, insert, next);
+    const all_actions = [...prev_actions, ...insert, ...next_actions];
+    const last_action_time = all_actions[all_actions.length - 1]?.insert_time ?? 0;
+
+    console.log("regenerated frames:", touched_frames, "in", i, "ignoring", ignored_actions);
 
     return {
         ...anchor,
-        frames: {...anchor.frames, ...recent.frames, ...updated_frames},
+        frames: {...anchor.frames, ...most_recent_checkpoint.frames, ...updated_frames},
+        last_action_time,
     };
 };
 

@@ -41,9 +41,6 @@ type Actions extends Action[] {
     read() {
         canManageProject(getProjectInfo(key()))
     }
-    write() {
-        canManageProject(getProjectInfo(key()))
-    }
 }
 
 type ProjectID extends String {
@@ -96,6 +93,8 @@ type Config {
 }
 
 type Action {
+    create() { true }
+    update() { true }
     created: Created,
     author: Author,
     value: Object,

@@ -58,7 +58,7 @@ really have that much trouble with:
 ## checkpointing
 
 - here's how to do checkpointing:
-- [ ] 1: don't delete actions (edit the security rules to disallow this)
+- [x] 1: don't delete actions (edit the security rules to disallow this)
   - actions are added forever.
   - undo is just adding an action that says 'invalidate the action with the id x'
   - go right to left when loading and put all the invalidated actions into a set, then

@@ -8,7 +8,7 @@ import {
     onChildAdded,
     onChildChanged,
     onChildRemoved,
-    onValue, orderByChild, push, query, Query, ref, remove, serverTimestamp, set
+    onValue, orderByChild, push, query, Query, ref, serverTimestamp, set
 } from "firebase/database";
 import * as stor from "firebase/storage";
 import { batch, createSignal, For, JSX, onCleanup } from "solid-js";
@@ -18,11 +18,17 @@ import { kindIs } from "../../tmeta-util/src/util";
 import Animator from "./animator";
 import {
     Action, applyActionsToState, CachedState,
-    ContentAction, IdentifiedAction, initialState, NameLink, State
+    ContentAction, InsertedAction, initialState, NameLink, State, IdentifiedAction, DBAction
 } from "./apply_action";
 import { DefaultErrorBoundary } from "./error_boundary";
 import { Config, Project, ProjectListEntry, User } from "./generated/security-rules";
 import * as sr from "./generated/security-rules";
+
+const session_id = (() => {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return [...array].map(c => c.toString(16).padStart(2, "0")).join("");
+})();
 
 type ConnectScreenDefaultPage = {
     kind: "main",
@@ -625,13 +631,12 @@ function SampleProjectsPage(props: {popPage: PopPage, pushPage: PushPage}): JSX.
 
             if(page_still_open) {
                 const init = initWithAudio(mp3, project.config, actions.actions.map((act, i) => {
-                    return {id: "" + i, saved: Date.now(), ...act};
+                    return {...act, id: "" + i, session_id, insert_time: Date.now()};
                 }), {
                     onAddAction: (act) => {
-                        init.replaceActions(init.state.actions.length, 0, [act]);
-                    },
-                    onRemoveAction: (act) => {
-                        init.replaceActions(init.state.actions.length - 1, 1, []);
+                        init.replaceActions(init.state.actions.length, 0, [
+                            {...act, insert_time: Date.now()}
+                        ]);
                     },
                 });
                 props.pushPage({
@@ -708,24 +713,22 @@ function SampleProjectsPage(props: {popPage: PopPage, pushPage: PushPage}): JSX.
 function initWithAudio(
     audio: AudioBuffer,
     config: Config,
-    initial_actions: IdentifiedAction[],
+    initial_actions: InsertedAction[],
     cbs: {
         onAddAction(action: IdentifiedAction): void,
-        onRemoveAction(action: IdentifiedAction): void,
     },
 ): {
     state: State,
     applyAction: (action: Action) => void,
-    replaceActions: (start: number, length: number, insert: IdentifiedAction[]) => void,
+    replaceActions: (start: number, length: number, insert: InsertedAction[]) => void,
 } {
-    const [actions, setActions] = createSignal<IdentifiedAction[]>(initial_actions);
+    const [actions, setActions] = createSignal<InsertedAction[]>(initial_actions);
     const [cachedState, setCachedState] = createSignal<CachedState>(applyActionsToState(
-        [],
         initial_actions,
+
+        initialState(),
         [],
         [],
-        initialState(),
-        initialState(),
         config,
     ));
     const [updateTime, setUpdateTime] = createSignal<number>(0);
@@ -757,45 +760,75 @@ function initWithAudio(
 
     // note: this should only be called by saving fns. saving to any action other than
     // the last action is not supported.
-    const replaceActions = (start: number, length: number, insert: IdentifiedAction[]) => {
+    const replaceActions = (start: number, length: number, insert: InsertedAction[]) => {
         const start_time = Date.now();
 
-        const nearest_ancestor = start === state.actions.length ? cachedState() : initialState();
-        const prev = start === state.actions.length ? state.actions.filter((__, i) => i < start) : [];
-        const shared = start === state.actions.length ? [] : state.actions.filter((__, i) => i < start);
-        const next = state.actions.filter((__, i) => i >= start + length);
-        const removed = state.actions.filter((__, i) => i >= start && i < start + length);
+        const prev_actions = actions();
 
-        setActions([...prev, ...shared, ...insert, ...next]);
+        const prev = prev_actions.filter((__, i) => i < start);
+        const next = prev_actions.filter((__, i) => i >= start + length);
+        const removed = prev_actions.filter((__, i) => i >= start && i < start + length);
+
         const regenerated = applyActionsToState(
-            shared,
-            insert,
-            removed,
-            next,
-            nearest_ancestor,
-            cachedState(),
-            state.config,
-        );
+            [...insert, ...removed.map((removed_action): InsertedAction => {
+                return {
+                    id: uniqueId(),
+                    session_id,
+                    insert_time: Infinity, // this action doesn't actually exist
+                    kind: "invalidate_action",
+                    frame: removed_action.frame,
+                    invalidate: {
+                        id: removed_action.id,
+                        time: removed_action.insert_time,
+                    },
+                };
+            })],
 
+            cachedState(),
+            prev,
+            next,
+            config,
+        );
+        
         batch(() => {
+            setActions([...prev, ...insert, ...next]);
             setCachedState(regenerated);
             const end_time = Date.now();
             setUpdateTime(end_time - start_time);
         });
     };
     
-    const applyAction = (action: Action) => {
+    const applyAction = (new_action: Action) => {
         batch(() => {
-            if(action.kind === "undo") {
+            if(new_action.kind === "undo") {
                 // TODO only undo actions your client created this session
 
-                const undone = state.actions[state.actions.length - 1];
-                const new_actions = [...state.actions.slice(0, state.actions.length - 1)];
-                setActions(new_actions);
-
+                const ignored_actions = new Set<string>();
+                let undone: InsertedAction | undefined;
+                for(const action of [...state.actions].reverse()) {
+                    // reverse not being pure is fun isn't it?
+                    // this bug took a very long time to track down
+                    if(ignored_actions.has(action.id)) continue;
+                    if(action.kind === "invalidate_action") {
+                        ignored_actions.add(action.invalidate.id);
+                        continue;
+                    }
+                    if(action.session_id !== session_id) continue;
+                    undone = action;
+                    break;
+                }
                 if(undone) {
                     setFrame(undone.frame);
-                    cbs.onRemoveAction(undone);
+                    cbs.onAddAction({
+                        id: uniqueId(),
+                        session_id,
+                        kind: "invalidate_action",
+                        frame: undone.frame,
+                        invalidate: {
+                            id: undone.id,
+                            time: undone.insert_time,
+                        },
+                    });
                 }
 
                 // TODO keep anchors so that undos don't take forever all the time
@@ -803,14 +836,14 @@ function initWithAudio(
                 // eg [1..10 +1] [10..100 +10] [100..1000 +100]
                 // so like as you undo more the gaps get wider, but when you undo you can fill
                 // in until the most recent anchor so it isn't redoing work over and over
-            }else if(action.kind === "set_frame") {
-                setFrame(Math.min(state.max_frame, Math.max(0, action.frame)));
+            }else if(new_action.kind === "set_frame") {
+                setFrame(Math.min(state.max_frame, Math.max(0, new_action.frame)));
             }else{
-                const act: ContentAction = action;
+                const act: ContentAction = new_action;
                 const added_action: IdentifiedAction = {
-                    id: uniqueId(),
-                    saved: null,
                     ...act,
+                    id: uniqueId(),
+                    session_id,
                 };
                 // soo… what if…
                 // shhhhh
@@ -936,16 +969,7 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
                     console.log("action set ✓");
                 }).catch(e => {
                     console.log("failed to save action", act, e);
-                });
-            },
-            onRemoveAction: (act) => {
-                console.log("removing action", act);
-
-                const rm_act_ref = ref(db, "/actions/"+props.project_id+"/"+act.id);
-                remove(rm_act_ref).then(r => {
-                    console.log("action removed ✓");
-                }).catch(e => {
-                    console.log("failed to remove action", act, e);
+                    alert("error saving action");
                 });
             },
         });
@@ -958,34 +982,60 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
         // ).map(([id, act]) => ({id, saved: true, ...act.value as ContentAction}));
         // init.replaceActions(0, 0, initial_actions);
 
+        let first_load = true;
+
         on_cleanup.push(onChildAdded(actions_ref, data => {
+            if(first_load) return;
+
             const act = data.val() as sr.Action;
+            const action = act.value as DBAction;
             console.log("\\!/ added action", act);
             // find the index where the next item .saved > act.created
             let index = init.state.actions.findIndex(next_item => (
-                act.created < next_item.saved!
+                act.created < next_item.insert_time
             ));
             if(index === -1) index = init.state.actions.length;
+
+            console.log("NEW ACTION ADDED AT INDEX,", index, act);
+
             init.replaceActions(index, 0, [{
-                ...act.value as ContentAction,
+                ...action,
                 id: data.key!,
-                saved: act.created,
+                insert_time: act.created,
             }]);
         }));
         on_cleanup.push(onChildChanged(actions_ref, data => {
             console.log("changed action", data);
         }));
         on_cleanup.push(onChildRemoved(actions_ref, data => {
-            console.log("removed action", data);
+            const act = data.val() as sr.Action;
+            const action = act.value as DBAction;
+
+            console.log("firebase noted action removal ", data.key!, act, "; patching local data");
+
             const index = init.state.actions.findIndex(item => (
                 item.id === data.key!
             ));
-            if(index === -1) return console.log("removed nonexistent action", data.key, data.val());
+            if(index === -1) return console.error("attempting to remove nonexistent action", data.key, action);
             init.replaceActions(index, 1, []);
         }));
         await new Promise<void>(r => {
-            const removeWatcher = onValue(actions_ref, () => {
+            const removeWatcher = onValue(actions_ref, (value) => {
                 removeWatcher();
+                first_load = false;
+
+                const actions: InsertedAction[] = [];
+                if(value.exists()) value.forEach(item => {
+                    const act = item.val() as sr.Action;
+                    const action = act.value as DBAction;
+                    actions.push({
+                        ...action,
+                        id: item.key!,
+                        insert_time: act.created,
+                    });
+                });
+                init.replaceActions(0, init.state.actions.length, actions);
+
                 r();
             });
         });

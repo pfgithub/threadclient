@@ -79,11 +79,11 @@
           },
           "$other": {
             ".validate": "false"
-          }
+          },
+          ".write": "(data.val() == null || (data.val() != null && newData.val() != null))"
         },
         ".validate": "(newData.hasChildren() && root.child('projects').child($projid).val() != null)",
         ".read": "auth.uid == root.child('projects').child($projid).child('owner').val()",
-        ".write": "auth.uid == root.child('projects').child($projid).child('owner').val()",
         ".indexOn": [
           "created"
         ]
