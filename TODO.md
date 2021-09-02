@@ -1,16 +1,22 @@
 ## todo
 
-- !! v.redd.it isn't cors protected anymore
-- use the DASHPlaylist.mpd
-- maybe even use a default video player
-- just have to merge the audio and video in js
+- [ ] check out https://www.tiptap.dev/ for the richtext editor
+  - I haven't looked into it at all, if it does good typescript support then I should try it
+
+---
+
+- [x] !! v.redd.it isn't cors protected anymore
+- [x] use the DASHPlaylist.mpd
+- [x] maybe even use a default video player
+- [x] just have to merge the audio and video in js
 - [x] TODO: https://github.com/windicss/plugins/tree/main/packages/icons
 - [ ] also check out https://github.com/bradlc/tailwindcss-fluid
 - consider:
 - [x] vite + https://github.com/antfu/vite-plugin-pwa
 - [x] probably not since the webpack config is kinda messy and I need both react and solid
 - [x] or I can just delete the tiny bit of react for now
-- [ ]TODO migrate to pnpm
+- [ ] TODO migrate to pnpm
+- [ ] TODO migrate to yarn pnp
 
 page2 todo:
 
