@@ -188,7 +188,7 @@ function genThumbnail(frame: MultiPolygon, config: Config): MultiPolygon {
             type: "MultiPolygon",
             coordinates: frame,
         }
-    }, Math.min(config.width, config.height) / 50)).geometry.coordinates;
+    }, Math.min(config.width, config.height) / 40)).geometry.coordinates;
 }
 
 export const hmr = {
