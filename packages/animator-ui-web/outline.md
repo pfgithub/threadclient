@@ -58,6 +58,9 @@ really have that much trouble with:
   - first, split into an array of all the frames
   - then, for each frame do the stuff that's needed. that way it's trivial to eg:
     - start doing the frame by searching right to left for 'erase_all' actions and ignore everything before them
+- [ ] consider storing data by frame.
+  - like /frames/{animation}/{frameid}/actions
+  - or /frames/{animation}/{frameid}/checkpoints
 
 ## checkpointing
 

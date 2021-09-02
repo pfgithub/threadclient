@@ -1030,26 +1030,33 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
             if(index === -1) return console.error("attempting to remove nonexistent action", data.key, action);
             init.replaceActions(index, 1, []);
         }));
-        await new Promise<void>(r => {
+        await new Promise<void>((r, re) => {
             const removeWatcher = onValue(actions_ref, (value) => {
-                removeWatcher();
-                first_load = false;
+                try {
+                    removeWatcher();
+                    first_load = false;
 
-                setLoadState("Initializing Actions");
+                    setLoadState("Initializing Actions");
 
-                const actions: InsertedAction[] = [];
-                if(value.exists()) value.forEach(item => {
-                    const act = item.val() as sr.Action;
-                    const action = act.value as DBAction;
-                    actions.push({
-                        ...action,
-                        id: item.key!,
-                        insert_time: act.created,
+                    const actions: InsertedAction[] = [];
+                    if(value.exists()) value.forEach(item => {
+                        const act = item.val() as sr.Action;
+                        const action = act.value as DBAction;
+                        actions.push({
+                            ...action,
+                            id: item.key!,
+                            insert_time: act.created,
+                        });
                     });
-                });
-                init.replaceActions(0, init.state.actions.length, actions);
+                    init.replaceActions(0, init.state.actions.length, actions);
 
-                r();
+                    r();
+                }catch(e) {
+                    re(e);
+                }
+            }, (err) => {
+                removeWatcher();
+                re(err);
             });
         });
         if(!still_open) throw new Error("canceled");

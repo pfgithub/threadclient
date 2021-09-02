@@ -148,14 +148,19 @@ export let applyActionsToState = function applyActionsToState(
         if(!touched_frames.has(action.frame)) continue;
         i += 1;
 
-        const frame = updated_frames[action.frame]!;
-        if(action.kind === "add_polygon") {
-            frame.merged_polygons = polygonClipping.union(frame.merged_polygons, [action.polygon]);
-        }else if(action.kind === "erase_polygon") {
-            frame.merged_polygons = polygonClipping.difference(frame.merged_polygons, [action.polygon]);
-        }else if(action.kind === "invalidate_action") {
-            // handled above
-        }else assertNever(action);
+        try {
+            const frame = updated_frames[action.frame]!;
+            if(action.kind === "add_polygon") {
+                frame.merged_polygons = polygonClipping.union(frame.merged_polygons, [action.polygon]);
+            }else if(action.kind === "erase_polygon") {
+                frame.merged_polygons = polygonClipping.difference(frame.merged_polygons, [action.polygon]);
+            }else if(action.kind === "invalidate_action") {
+                // handled above
+            }else assertNever(action);
+        }catch(e) {
+            alert("Error while processing frame "+action.frame+". This frame may be corrupted.");
+            console.log(e);
+        }
     }
 
     for(const frame_index of touched_frames) {
