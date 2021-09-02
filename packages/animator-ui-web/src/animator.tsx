@@ -131,9 +131,10 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
             t + poly.reduce((q, points) => q + points.length, 0)
         ), 0)), 10, 40);
         ctx.fillText("Frame: " + (frame_raw) + " / " + (props.state.max_frame), 10, 50);
+        ctx.fillText("Actions: " + (props.state.actions.length), 10, 60);
         ctx.fillText("Project: "
             + props.state.config.title
-        , 10, 60);
+        , 10, 70);
 
     }} />;
 }
