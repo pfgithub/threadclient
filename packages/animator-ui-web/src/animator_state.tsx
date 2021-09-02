@@ -797,6 +797,8 @@ function initWithAudio(
             setUpdateTime(end_time - start_time);
         });
     };
+
+    let redo_stack: InsertedAction[] = [];
     
     const applyAction = (new_action: Action) => {
         batch(() => {
@@ -818,6 +820,7 @@ function initWithAudio(
                     break;
                 }
                 if(undone) {
+                    redo_stack.push(undone);
                     setFrame(undone.frame);
                     cbs.onAddAction({
                         id: uniqueId(),
@@ -836,9 +839,17 @@ function initWithAudio(
                 // eg [1..10 +1] [10..100 +10] [100..1000 +100]
                 // so like as you undo more the gaps get wider, but when you undo you can fill
                 // in until the most recent anchor so it isn't redoing work over and over
+            }else if(new_action.kind === "redo") {
+                const item: ContentAction | undefined = redo_stack.pop();
+                if(item) cbs.onAddAction({
+                    ...item,
+                    id: uniqueId(),
+                    session_id,
+                });
             }else if(new_action.kind === "set_frame") {
                 setFrame(Math.min(state.max_frame, Math.max(0, new_action.frame)));
             }else{
+                redo_stack = [];
                 const act: ContentAction = new_action;
                 const added_action: IdentifiedAction = {
                     ...act,

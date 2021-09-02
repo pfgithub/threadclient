@@ -63,6 +63,8 @@ export type CachedFrame = {
 export type Action = ContentAction | {
     kind: "undo",
 } | {
+    kind: "redo",
+} | {
     kind: "set_frame",
     frame: number,
 };

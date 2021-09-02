@@ -257,8 +257,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                 if(tap.points.length === 2) {
                     props.applyAction({kind: "undo"});
                 }else if(tap.points.length === 3) {
-                    // props.applyAction({kind: "redo"});
-                    alert("TODO redo");
+                    props.applyAction({kind: "redo"});
                 }
             },
             none: () => {
