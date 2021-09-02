@@ -226,6 +226,10 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     const [frameOffset, setFrameOffset] = createSignal<number | null>(null);
     const [dragOffset, setDragOffset] = createSignal(0);
 
+    const [thumbnailSizeRaw, setThumbnailSize] = createSignal(250);
+    const [thumbnailSizeOverlay, setThumbnailSizeOverlay] = createSignal(1);
+    const thumbnailSize = () => thumbnailSizeRaw() * thumbnailSizeOverlay();
+
     const strokes = createMemo((): Point2D[][] => (
         [...plannedStrokes().values()].map(commitStroke)
     ));
@@ -245,6 +249,11 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             offset_set = true;
             setDragOffset(new_offset);
         };
+        let zoom_set = false;
+        const setNewThumbnailSize = (new_size: number) => {
+            zoom_set = true;
+            setThumbnailSizeOverlay(new_size);
+        };
 
         // it might be useful to have an oncancel
         switchKind(event, {
@@ -253,7 +262,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                 if(start[1] > window.innerHeight - 200) {
                     const end = draw.points[draw.points.length - 1]!;
                     const offset = end[0] - start[0];
-                    const frame_offset = -Math.round(offset / 250);
+                    const frame_offset = -Math.round(offset / thumbnailSize());
                     if(draw.commit) {
                         props.applyAction({
                             kind: "set_frame",
@@ -264,7 +273,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                             playSegment(props.state.frame + frame_offset);
                         }
                         setFrameOffset(frame_offset);
-                        setNewOffset(offset + frame_offset * 250);
+                        setNewOffset(offset + frame_offset * thumbnailSize());
                     }
                     return;
                 }
@@ -284,8 +293,21 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                     setPlannedStroke(stroke);
                 }
             },
-            touchzoom: () => {
-                //
+            touchzoom: tz => {
+                const ptscale = (p: [EventPoint, EventPoint]) => {
+                    return Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]);
+                };
+                const thumbbar_h = window.innerHeight - 200;
+                if(tz.start[0][1] > thumbbar_h && tz.start[1][1] > thumbbar_h) {
+                    const initial_scale = ptscale(tz.start);
+                    const final_scale = ptscale(tz.end);
+                    const overlay = (final_scale / initial_scale);
+                    if(tz.commit) {
+                        setThumbnailSize(ts => ts * overlay);
+                    }else{
+                        setNewThumbnailSize(overlay);
+                    }
+                }
             },
             tap: tap => {
                 if(tap.points.length === 2) {
@@ -312,6 +334,9 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             setDragOffset(0);
             setFrameOffset(null);
             stopSource();
+        }
+        if(!zoom_set) {
+            setThumbnailSizeOverlay(1);
         }
     }));
 
@@ -344,15 +369,14 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
 
         {
             ctx.save();
-            ctx.translate((size.width / 2) - (90) + (250 * 0), size.height - 200 + 45);
-            ctx.scale(0.1, 0.1);
+            ctx.translate((size.width / 2) - (90), 0);
+            ctx.scale(thumbnailSize() / 2500, 1);
             ctx.fillStyle = "#999";
             const xh = 100;
-            const yh = 440;
             ctx.fillRect(
-                -xh, -yh,
+                -xh, size.height - 200,
                 props.state.config.width + (xh * 2),
-                props.state.config.height + (yh * 2),
+                200,
             );
             ctx.restore();
         }        
@@ -364,8 +388,8 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             const thumbnail = props.state.cached_state.frames[frame_index]!.thumbnail;
 
             ctx.save();
-            ctx.translate((size.width / 2) - (90) + (250 * j), size.height - 200 + 45);
-            ctx.scale(0.1, 0.1);
+            ctx.translate((size.width / 2) - (90) + (thumbnailSize() * j), size.height - 200 + 45);
+            ctx.scale(thumbnailSize() / 2500, thumbnailSize() / 2500);
             ctx.translate(dragOffset() / 0.1, 0);
             if(!is_exact_frame) {
                 ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
