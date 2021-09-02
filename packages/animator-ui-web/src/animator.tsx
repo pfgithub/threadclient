@@ -71,6 +71,15 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
         ctx.restore();
 
         ctx.strokeRect(0, 0, props.state.config.width, props.state.config.height);
+        ctx.save();
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.beginPath();
+        ctx.moveTo(props.state.config.width / 2, 0);
+        ctx.lineTo(props.state.config.width / 2, props.state.config.height);
+        ctx.moveTo(0, props.state.config.height / 2);
+        ctx.lineTo(props.state.config.width, props.state.config.height / 2);
+        ctx.stroke();
+        ctx.restore();
         // TODO scale based on state
 
         const current_audio_frame = currentAudioFrame();
