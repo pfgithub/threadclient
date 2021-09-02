@@ -191,8 +191,8 @@ function genThumbnail(frame: MultiPolygon, config: Config): MultiPolygon {
     }, Math.min(config.width, config.height) / 50)).geometry.coordinates;
 }
 
-if(import.meta.hot) {
-    import.meta.hot.accept((new_mod: typeof import("./apply_action")) => {
+export const hmr = {
+    onAccept: (new_mod: typeof import("./apply_action")): void => {
         // https://vitejs.dev/guide/api-hmr.html#hot-accept-cb
         // > Note that Vite's HMR does not actually swap the originally imported module: if an HMR boundary module
         //   re-exports imports from a dep, then it is responsible for updating those re-exports (and these exports
@@ -200,8 +200,15 @@ if(import.meta.hot) {
         //   of the change.
         // > This simplified HMR implementation is sufficient for most dev use cases, while allowing us to skip the
         //   expensive work of generating proxy modules.
+        new_mod.hmr.onAccept = hmr.onAccept;
         applyActionsToState = new_mod.applyActionsToState;
         findFrameIndex = new_mod.findFrameIndex;
         initialState = new_mod.initialState;
+    },
+};
+
+if(import.meta.hot) {
+    import.meta.hot.accept((new_mod: typeof import("./apply_action")) => {
+        hmr.onAccept(new_mod);
     });
 }
