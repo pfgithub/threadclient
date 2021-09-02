@@ -986,7 +986,7 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
         });
         if(!still_open) throw new Error("canceled");
 
-        setLoadState("Initializing Actions");
+        setLoadState("Downloading Actions");
         // const initial_actions_raw = await get(actions_ref);
         // const initial_actions = Object.entries((initial_actions_raw.val() as Actions | null) ?? {}).sort(
         //     (a, b) => a[1].created - b[1].created,
@@ -1034,6 +1034,8 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
             const removeWatcher = onValue(actions_ref, (value) => {
                 removeWatcher();
                 first_load = false;
+
+                setLoadState("Initializing Actions");
 
                 const actions: InsertedAction[] = [];
                 if(value.exists()) value.forEach(item => {
