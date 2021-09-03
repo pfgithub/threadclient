@@ -216,7 +216,7 @@ type PlannedStroke = {
     mode: "draw" | "erase",
 };
 
-const playSegment = (frame: number, state: State) => {
+function playSegment(frame: number, state: State) {
     let nct = frame / state.config.framerate;
     if(nct < 0) nct = 0;
     if(nct > state.audio.duration) nct = state.audio.duration;
@@ -227,7 +227,7 @@ const playSegment = (frame: number, state: State) => {
     source.playbackRate.setValueAtTime(1, 0);
     source.start(0, nct, state.audio.duration - nct);
     setSource({source, offset: nct, context: state.audio_ctx}, state.config.framerate);
-};
+}
 
 export function GestureRecognizer(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     const [plannedStrokes, setPlannedStrokes] = createSignal(new Map<string, PlannedStroke>());
