@@ -183,7 +183,7 @@ export function recognizeGestures(onEvent: (id: string, event: GestureEvent) => 
         e.preventDefault();
     };
     document.addEventListener("contextmenu", oncontextmenu);
-    cleanup.push(() => document.removeEventListener("pointercancel", oncontextmenu));
+    cleanup.push(() => document.removeEventListener("contextmenu", oncontextmenu));
 
     return () => cleanup.forEach(itm => itm());
 }
