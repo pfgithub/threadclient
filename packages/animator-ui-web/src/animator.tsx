@@ -12,14 +12,32 @@
 import getStroke from "perfect-freehand";
 import { MultiPolygon, Polygon } from "polygon-clipping";
 import { createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
+import { ShowBool } from "../../tmeta-util-solid/src/control_flow_solid";
 import { switchKind } from "../../tmeta-util/src/util";
 import { Action, findFrameIndex, State } from "./apply_action";
 import { EventPoint, recognizeGestures } from "./gesture_recognizer";
 
+const [fullscreen, setFullscreen] = createSignal(false);
 export default function Animator(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
+    const onKeyPress = (k: KeyboardEvent) => {
+        if(k.key === "f") {
+            if(fullscreen()) {
+                setFullscreen(false);
+                stopSource();
+            }else{
+                setFullscreen(true);
+                playSegment(0, props.state);
+            }
+        }
+    };
+    document.addEventListener("keypress", onKeyPress);
+    onCleanup(() => document.removeEventListener("keypress", onKeyPress));
+
     return <div class="h-full">
         <DrawCurrentFrame state={props.state} applyAction={props.applyAction} />
-        <GestureRecognizer state={props.state} applyAction={props.applyAction} />
+        <ShowBool when={!fullscreen()}>
+            <GestureRecognizer state={props.state} applyAction={props.applyAction} />
+        </ShowBool>
     </div>;
 }
 
@@ -29,10 +47,11 @@ function scaleCanvasValues(itm_size: WH): {
     translate: {x: number, y: number},
 } {
     const viewport_size: WH = {width: window.innerWidth, height: window.innerHeight};
+    const is_fullscreen = fullscreen();
 
-    const padding = 50;
+    const padding = is_fullscreen ? 0 : 50;
     const area_w = viewport_size.width;
-    const area_h = viewport_size.height - 200;
+    const area_h = viewport_size.height - (is_fullscreen ? 0 : 200);
     const itm_w = itm_size.width;
     const itm_h = itm_size.height;
 
@@ -125,17 +144,18 @@ export function DrawCurrentFrame(props: {state: State, applyAction: (action: Act
 
         const end = Date.now();
         ctx.fillStyle = "#000000";
-        ctx.fillText("Last Update ms: " + (props.state.update_time), 10, 20);
-        ctx.fillText("Draw ms: " + (end - start), 10, 30);
-        ctx.fillText("Vertices: " + (frame.merged_polygons.reduce((t, poly) => (
-            t + poly.reduce((q, points) => q + points.length, 0)
-        ), 0)), 10, 40);
-        ctx.fillText("Frame: " + (frame_raw) + " / " + (props.state.max_frame), 10, 50);
-        ctx.fillText("Actions: " + (props.state.actions.length), 10, 60);
-        ctx.fillText("Project: "
-            + props.state.config.title
-        , 10, 70);
-
+        if(!fullscreen()) {
+            ctx.fillText("Last Update ms: " + (props.state.update_time), 10, 20);
+            ctx.fillText("Draw ms: " + (end - start), 10, 30);
+            ctx.fillText("Vertices: " + (frame.merged_polygons.reduce((t, poly) => (
+                t + poly.reduce((q, points) => q + points.length, 0)
+            ), 0)), 10, 40);
+            ctx.fillText("Frame: " + (frame_raw) + " / " + (props.state.max_frame), 10, 50);
+            ctx.fillText("Actions: " + (props.state.actions.length), 10, 60);
+            ctx.fillText("Project: "
+                + props.state.config.title
+            , 10, 70);
+        }
     }} />;
 }
 
@@ -196,6 +216,19 @@ type PlannedStroke = {
     mode: "draw" | "erase",
 };
 
+const playSegment = (frame: number, state: State) => {
+    let nct = frame / state.config.framerate;
+    if(nct < 0) nct = 0;
+    if(nct > state.audio.duration) nct = state.audio.duration;
+
+    const source = state.audio_ctx.createBufferSource();
+    source.buffer = state.audio;
+    source.connect(state.audio_ctx.destination);
+    source.playbackRate.setValueAtTime(1, 0);
+    source.start(0, nct, state.audio.duration - nct);
+    setSource({source, offset: nct, context: state.audio_ctx}, state.config.framerate);
+};
+
 export function GestureRecognizer(props: {state: State, applyAction: (action: Action) => void}): JSX.Element {
     const [plannedStrokes, setPlannedStrokes] = createSignal(new Map<string, PlannedStroke>());
 
@@ -208,19 +241,6 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
     const scalePoint = (e: EventPoint): PressurePoint => {
         const {scale, translate} = scaleCanvasValues(props.state.config);
         return [e[0] / scale - translate.x, e[1] / scale - translate.y, e[2]];
-    };
-
-    const playSegment = (frame: number) => {
-        let nct = frame / props.state.config.framerate;
-        if(nct < 0) nct = 0;
-        if(nct > props.state.audio.duration) nct = props.state.audio.duration;
-
-        const source = props.state.audio_ctx.createBufferSource();
-        source.buffer = props.state.audio;
-        source.connect(props.state.audio_ctx.destination);
-        source.playbackRate.setValueAtTime(1, 0);
-        source.start(0, nct, props.state.audio.duration - nct);
-        setSource({source, offset: nct, context: props.state.audio_ctx}, props.state.config.framerate);
     };
 
     const [frameOffset, setFrameOffset] = createSignal<number | null>(null);
@@ -270,7 +290,7 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
                         });
                     }else{
                         if(frame_offset !== frameOffset()) {
-                            playSegment(props.state.frame + frame_offset);
+                            playSegment(props.state.frame + frame_offset, props.state);
                         }
                         setFrameOffset(frame_offset);
                         setNewOffset(offset + frame_offset * thumbnailSize());
@@ -380,7 +400,8 @@ export function GestureRecognizer(props: {state: State, applyAction: (action: Ac
             );
             ctx.restore();
         }        
-        for(let j = -5; j < 5; j++) {
+        for(let j = -3; j <= 3; j++) {
+
             const f = j + current_frame;
             if(f < 0) continue;
             const frame_index = findFrameIndex(f, props.state.cached_state);
