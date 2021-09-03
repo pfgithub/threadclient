@@ -519,19 +519,26 @@ function MainPage(props: {pushPage: PushPage, popPage: PopPage}): JSX.Element {
             <div class="pb-4" />
             <ProjectList pushPage={props.pushPage} />
             <div class="pb-4" />
-            <FormButton disabled={disabled()} class="w-full" style="gray" onClick={() => {
-                setLoading("log_out");
-                signOut(auth).then(() => {
-                    setLoading(false);
-                }).catch((e: Error) => {
-                    setLoading(false);
-                    setError("" + e.toString());
-                });
-            }}>
-                <ShowBool when={loading() !== "log_out"} fallback={<Loader />}>
-                    Log Out
-                </ShowBool>
-            </FormButton>            
+            <div class="flex flex-row flex-wrap gap-4 <sm:flex-col">
+                <FormButton disabled={disabled()} class="flex-1" style="gray" onClick={() => {
+                    setLoading("log_out");
+                    signOut(auth).then(() => {
+                        setLoading(false);
+                    }).catch((e: Error) => {
+                        setLoading(false);
+                        setError("" + e.toString());
+                    });
+                }}>
+                    <ShowBool when={loading() !== "log_out"} fallback={<Loader />}>
+                        Log Out
+                    </ShowBool>
+                </FormButton>
+                <FormButton disabled={disabled()} class="flex-1" style="gray" onClick={() => {
+                    props.pushPage({kind: "sample_projects"});
+                }}>
+                    Demo Mode
+                </FormButton>
+            </div>
         </>}</ShowCond>
         <ShowCond when={error()}>{emsg => <>
             <div class="pb-2"></div>
