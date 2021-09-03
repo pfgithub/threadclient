@@ -18,7 +18,7 @@ Animator was created using
 - Vite, a fast javascript website bundler
 - Typescript
 
-While I have finished developing this project, it is not yet functional. Many workarounds were needed while creating
+While I have finished developing this project, it is not yet complete. Many workarounds were needed while creating
 the demo video.
 
 - Switching between tools (pen/eraser) requires editing code and using hot reload to get the changes without
