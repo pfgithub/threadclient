@@ -33,7 +33,7 @@ export function PostActions(props: ClientPostProps & {
             <Counter counter={vote} />
         )}</ShowCond>
         <ShowCond
-            if={[props.content.show_replies_when_below_pivot]}
+            if={[props.content.show_replies_when_below_pivot && !props.opts.at_or_above_pivot]}
             when={props.opts.frame?.replies?.reply}
         >{reply_action => {
             const action = () => <ReplyEditor
