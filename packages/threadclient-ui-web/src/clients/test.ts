@@ -165,9 +165,20 @@ function commitThread(path: string, entry: LogEntry): Generic.PostContent {
 type SitemapEntryData = {
     content: Generic.PostContent,
     replies?: undefined | SitemapEntry[],
-    replyopts?: undefined | Partial<Exclude<Generic.ListingData, "reply">>,
+    replyopts?: undefined | Partial<Generic.ListingData>,
 };
 type SitemapEntry = [string, (path: string) => SitemapEntryData];
+
+const replyable = (): Partial<Generic.ListingData> => ({
+    reply: {
+        action: {
+            kind: "reply",
+            text: "Reply",
+            reply_info: reply_encoder.encode({kind: "markdown"}),
+        },
+        locked: false,
+    },
+});
 
 const sitemap: SitemapEntry[] = [
     ["link-preview", (urlr): SitemapEntryData => ({
@@ -448,26 +459,31 @@ const sitemap: SitemapEntry[] = [
             (urlr): SitemapEntryData => ({content: commitThread(urlr, entry)}),
         ]),
     })],
-    ["markdown", (urlr): SitemapEntryData => ({
-        content: {
-            kind: "post",
-            title: null,
-            body: {kind: "richtext", content: [rt.p(rt.txt("Press 'Reply'"))]},
-            collapsible: false,
-            show_replies_when_below_pivot: false,
-        },
-        replyopts: {
-            reply: {
-                action: {
-                    kind: "reply",
-                    text: "Reply",
-                    reply_info: reply_encoder.encode({kind: "markdown"}),
-                },
-                locked: false,
-            },
-        },
-        replies: [],
-    })],
+    ["markdown", urlr => demoPost(urlr, b.richtext(
+        rt.p(rt.txt("Press 'Reply'")),
+    ), [
+        ["0", urlr => demoPost(urlr, b.richtext(
+            rt.p(rt.txt("Here is a comment")),
+        ), [
+            ["0", urlr => demoPost(urlr, b.richtext(
+                rt.p(rt.txt("It has standard hierarchical replies")),
+            ), [])],
+            ["1", urlr => demoPost(urlr, b.richtext(
+                rt.p(rt.txt("Like these")),
+            ), [])],
+        ])],
+        ["1", urlr => demoPost(urlr, b.richtext(
+            rt.p(rt.txt("Here is another comment")),
+        ), [
+            ["0", urlr => demoPost(urlr, b.richtext(
+                rt.p(rt.txt("It has threaded replies")),
+            ), [
+                ["0", urlr => demoPost(urlr, b.richtext(
+                    rt.p(rt.txt("See?")),
+                ), [])],
+            ])],
+        ])],
+    ])],
     ["header", (urlr): SitemapEntryData => ({
         content: {
             kind: "page",
@@ -552,6 +568,26 @@ const sitemap: SitemapEntry[] = [
     //     ]),
     // })],
 ];
+
+// export b from Generic with eg b.richtext b.captioned_image b…?
+const b = {
+    richtext(...content: Generic.Richtext.Paragraph[]): Generic.Body {
+        return {kind: "richtext", content};
+    },
+};
+function demoPost(path: string, content: Generic.Body, replies: SitemapEntry[]): SitemapEntryData {
+    return {
+        content: {
+            kind: "post",
+            title: null,
+            body: content,
+            collapsible: {default_collapsed: false},
+            show_replies_when_below_pivot: true,
+        },
+        replyopts: replyable(),
+        replies,
+    };
+}
 
 // import {reddit_html_tests} from "./reddit/html_to_richtext.spec";
 

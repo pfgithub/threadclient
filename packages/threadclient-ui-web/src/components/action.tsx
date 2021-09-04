@@ -12,6 +12,7 @@ import { ReplyEditor } from "./reply";
 
 export function PostActions(props: ClientPostProps & {
     children?: undefined | JSX.Element,
+    onAddReply: (reply: Generic.Link<Generic.Post>) => void,
 }): JSX.Element {
     const [showingWindowBelow, setShowingWindowBelow] = createSignal<null | (() => JSX.Element)>(null);
 
@@ -33,14 +34,14 @@ export function PostActions(props: ClientPostProps & {
         )}</ShowCond>
         <ShowCond
             if={[props.content.show_replies_when_below_pivot]}
-            when={props.opts.replies?.reply}
+            when={props.opts.frame?.replies?.reply}
         >{reply_action => {
             const action = () => <ReplyEditor
                 action={reply_action.action} 
                 onCancel={() => setShowingWindowBelow(null)}
-                onAddReply={() => {
+                onAddReply={reply => {
+                    props.onAddReply(reply);
                     setShowingWindowBelow(null);
-                    // TODO show the reply in the tree
                 }}
             />;
             return <>

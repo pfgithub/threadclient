@@ -1,4 +1,5 @@
 import type * as Generic from "api-types-generic";
+import { rt } from "api-types-generic";
 import {
     createEffect, createSignal, JSX
 } from "solid-js";
@@ -12,7 +13,7 @@ type StoreTypeValue = {value: null | Generic.PostContent};
 export function ReplyEditor(props: {
     action: Generic.ReplyAction,
     onCancel: () => void,
-    onAddReply: (response: Generic.Node) => void,
+    onAddReply: (response: Generic.Link<Generic.Post>) => void,
 }): JSX.Element {
     const client = getClient();
     const [content, setContent] = createSignal("");
@@ -44,7 +45,36 @@ export function ReplyEditor(props: {
 
                     client().sendReply!(content(), props.action.reply_info).then((r) => {
                         console.log("Got response", r);
-                        props.onAddReply(r);
+                        // TODO:
+                        // so, this is a terrible idea,
+                        // but what if onAddReply sent the .boundingClientRect of the TopLevelWrapper preview
+                        // so it could like animate the newly added reply into position
+                        // terrible idea, but like…
+                        // it could be fun
+                        // might not look good
+                        props.onAddReply({
+                            ref: {
+                                kind: "post",
+                                internal_data: r.raw_value,
+                                content: r.kind === "thread" ? {
+                                    kind: "legacy",
+                                    thread: r,
+                                } : {
+                                    kind: "post",
+                                    title: {text: "Error"},
+                                    body: {kind: "richtext", content: [
+                                        rt.p(rt.error("Unsupported 'load more'", r)),
+                                    ]},
+                                    show_replies_when_below_pivot: false,
+                                    collapsible: false,
+                                },
+                                display_style: "centered",
+
+                                parent: null,
+                                replies: null,
+                                url: null,
+                            },
+                        });
                     }).catch((error) => {
                         const err = error as Error;
                         console.log("Got error", err);

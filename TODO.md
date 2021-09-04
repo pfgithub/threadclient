@@ -1,10 +1,5 @@
 ## todo
 
-- [ ] check out https://www.tiptap.dev/ for the richtext editor
-  - I haven't looked into it at all, if it does good typescript support then I should try it
-
----
-
 - [x] !! v.redd.it isn't cors protected anymore
 - [x] use the DASHPlaylist.mpd
 - [x] maybe even use a default video player
@@ -17,6 +12,16 @@
 - [x] or I can just delete the tiny bit of react for now
 - [ ] TODO migrate to pnpm
 - [ ] TODO migrate to yarn pnp
+
+fun stuff:
+
+- [ ] check out https://www.tiptap.dev/ for the richtext editor
+  - I haven't looked into it at all, if it does good typescript support then I should try it
+- [ ] show a content summary thing on collapsed comments.
+  - eg: https://user-images.githubusercontent.com/6010774/132083968-7eef3197-0cad-4828-ae26-16bed7056ec8.png
+  - generate these based on the body type. some body types may have no summary and might just be `[image]`
+  - these go after the username and the rest of the infobar. if there is a thumbnail, these don't display at all
+  - actually these are basically thumbnails but for text. huh
 
 page2 todo:
 

@@ -13,7 +13,7 @@ import { variables } from "virtual:_variables";
 import { render } from "solid-js/web";
 import { registerSW } from "virtual:pwa-register";
 import { createSignal } from "solid-js";
-import { Flair } from "./components/page2";
+import { ClientPostReply, Flair } from "./components/page2";
 import { ReplyEditor } from "./components/reply";
 import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
 
@@ -1115,17 +1115,20 @@ function renderReplyAction(
                     vanillaToSolidBoundary(client, div, () => <ReplyEditor action={action} onCancel={() => {
                         reply_state = "none";
                         update();
-                    }} onAddReply={(r: Generic.Node) => {
+                    }} onAddReply={r => {
                         console.log("Got response", r);
                         reply_state = "none";
                         update();
-                        if(r.kind === "load_more") {
-                            console.log("got back load more item. todo display it.");
-                            return;
-                        }
-                        clientContent(client, r, {clickable: false}).defer(hsc)
-                            .adto(el("div").adto(content_buttons_line))
-                        ;
+                        const vsbdiv = el("div").adto(content_buttons_line);
+                        vanillaToSolidBoundary(client, vsbdiv, () => <>
+                            <ul class="ml-10">
+                                <ClientPostReply
+                                    reply={r}
+                                    is_threaded={false}
+                                    parent_is_threaded={false}
+                                />
+                            </ul>
+                        </>, {color_level: 1}).defer(hsc);
                     }} />, {color_level: 1}).defer(reply_container);
                 }
             }
@@ -2054,7 +2057,7 @@ function clientListingWrapperNode(): HTMLDivElement {
     return frame;
 }
 type AddChildrenFn = (children: Generic.Node[]) => void;
-function clientListing(
+export function clientListing(
     client: ThreadClient,
     listing: Generic.Thread,
     frame: HTMLElement,

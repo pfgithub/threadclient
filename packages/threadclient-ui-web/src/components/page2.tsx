@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, untrack } from "solid-js";
 import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import {
-    bioRender, clientContent, link_styles_v, navigate
+    bioRender, clientContent, clientListing, link_styles_v, navigate
 } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
@@ -81,7 +81,7 @@ type ClientPostReplyProps = {
     is_threaded: boolean,
     parent_is_threaded?: undefined | boolean,
 };
-function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
+export function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
     const isThreaded = createMemo((): Generic.Link<Generic.Post> | undefined => {
         if(!props.is_threaded) return undefined;
         const res = props.reply.ref?.replies?.items;
@@ -101,6 +101,19 @@ function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
     // of "your replies" and then when it's rendering replies,
     // render [...yours, ...post's] and this wouldn't run into
     // issues when the post is threaded.
+
+    // TODO:
+    // this threading logic causes a comment to rerender if it becomes no longer threaded
+    // to fix this, don't use <ul>/<li> for the comments
+    // instead, display them in a vertical list and adjust the left indent based on the
+    // depth of the comment.
+    // this will negatively affect screenreader functionality, so aria roles will probably
+    // be required
+    // alternatively: put them in the <li> but:
+    // - only extend the collapse button of the parent comment to the bottom of its actual content
+    // - don't hide its replies when collapsing
+    // - this seems complicated but nicer
+    // - although the above method has the upside that it can work very well with virtual scrolling
 
     return <>
         <li class={classes(
@@ -137,7 +150,16 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
             <ClientPost content={content} opts={props.opts} />
         ),
         page: () => <>TODO page</>,
-        legacy: () => <>TODO legacy</>,
+        legacy: legacy => <>
+            <SolidToVanillaBoundary getValue={(hsc, client) => {
+                const outer = el("div").clss("-mt-10px -ml-10px");
+                const frame = el("div").clss("post text-sm").adto(outer);
+                clientListing(client(), legacy.thread, frame, {
+                    clickable: true,
+                }).defer(hsc);
+                return outer;
+            }} />
+        </>,
         client: () => <>TODO client</>,
     }}</SwitchKind>;
 }
@@ -178,6 +200,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         return props.opts.frame?.url != null && !props.opts.is_pivot;
     };
     
+    const [localReplies, setLocalReplies] = createSignal<Generic.Link<Generic.Post>[]>([]);
+    const onAddReply = (reply: Generic.Link<Generic.Post>) => {
+        setLocalReplies(l => [reply, ...l]);
+    };
+
     return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
             setAnimState({visible: rising || state, animating});
@@ -315,6 +342,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         <PostActions
                             content={props.content}
                             opts={props.opts}
+                            onAddReply={onAddReply}
                         >
                             <div><button
                                 class={link_styles_v["outlined-button"]}
@@ -330,6 +358,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <PostActions
                     content={props.content}
                     opts={props.opts}
+                    onAddReply={onAddReply}
                 />
             </ShowAnimate>
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={transitionTarget}>
@@ -354,19 +383,23 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     <PostActions
                         content={props.content}
                         opts={props.opts}
+                        onAddReply={onAddReply}
                     />
                 </div></ShowBool>
-                <ShowBool when={!!(!props.opts.at_or_above_pivot && props.opts.replies)}>
-                    <ShowCond when={props.opts.replies}>{replies => <ShowBool
-                        when={props.content.show_replies_when_below_pivot !== false}
-                    >
-                        <ul class="-ml-3px">
-                            <For each={replies.items}>{reply => (
-                                // - if replies.items is 1, maybe thread replies?
-                                <ClientPostReply reply={reply} is_threaded={replies.items.length === 1} />
-                            )}</For>
-                        </ul>
-                    </ShowBool>}</ShowCond>
+                <ShowBool when={!props.opts.at_or_above_pivot}>
+                    <ShowCond when={props.opts.replies}>{post_replies => {
+                        const replies = createMemo(() => [...localReplies(), ...post_replies.items]);
+                        return <ShowBool
+                            when={props.content.show_replies_when_below_pivot !== false}
+                        >
+                            <ul class="-ml-3px">
+                                <For each={replies()}>{reply => (
+                                    // - if replies.items is 1, maybe thread replies?
+                                    <ClientPostReply reply={reply} is_threaded={replies().length === 1} />
+                                )}</For>
+                            </ul>
+                        </ShowBool>;
+                    }}</ShowCond>
                 </ShowBool>
             </HideshowProvider></div>
         </div>
@@ -402,6 +435,9 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
 export type ClientPageProps = {page: Generic.Page2};
 export function ClientPage(props: ClientPageProps): JSX.Element {
     const [showReplyEditor, setShowReplyEditor] = createSignal(false);
+
+    const [localReplies, setLocalReplies] = createSignal<Generic.Link<Generic.Post>[]>([]);
+
     // TODO set page title
     // using a store or something
 
@@ -434,15 +470,18 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
                 }>
                     <ReplyEditor action={reply_action.action} onCancel={() => {
                         setShowReplyEditor(false);
-                    }} onAddReply={() => {
+                    }} onAddReply={(reply) => {
                         setShowReplyEditor(false);
-                        // TODO
+                        setLocalReplies(lr => [reply, ...lr]);
                     }} />
                 </ShowAnimate>
             )}</ShowCond>
             <div class="mb-6"></div>
             {/*TODO put the sorting options here*/null}
-            <For each={replies.items} fallback={<div>*There are no replies*</div>}>{reply_link => (
+            <For
+                each={[...localReplies(), ...replies.items]}
+                fallback={<div>*There are no replies*</div>}
+            >{reply_link => (
                 <ErrableLink link={reply_link}>{reply => (
                     <SwitchKind item={reply}>{{
                         post: post => (
@@ -511,7 +550,7 @@ function WrapParent(props: {node: Generic.Post, children: JSX.Element, is_pivot:
                             }} />
                         </TopLevelWrapper>
                     ),
-                    legacy: () => <>TODO legacy</>,
+                    legacy: legacy => <>TODO legacy in wrapParent</>,
                     client: () => <>TODO client</>,
                 }}</SwitchKind>
             ),
