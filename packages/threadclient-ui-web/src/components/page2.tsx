@@ -311,7 +311,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                 {author.name}
                             </UserLink>{" "}
                         </>}</ShowCond>
-                        <ShowBool when={selfVisible() || hasThumbnail()} fallback={
+                        <ShowBool when={selfVisible() || hasTitleOrThumbnail()} fallback={
                             <span class="whitespace-normal">
                                 {"“" + (() => {
                                     const res = summarizeBody(props.content.body);
