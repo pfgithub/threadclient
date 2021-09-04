@@ -11,7 +11,7 @@ import {
 } from "../util/utils_solid";
 import { PostActions } from "./action";
 import { animateHeight, ShowAnimate } from "./animation";
-import { Body } from "./body";
+import { Body, summarizeBody } from "./body";
 import { CounterCount, VerticalIconCounter } from "./counter";
 import { A, LinkButton, UserLink } from "./links";
 import { ReplyEditor } from "./reply";
@@ -244,7 +244,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         </ShowBool>
         <div class="flex-1">
             <div
-                class={"flex flex-row"}
+                class={"flex flex-row" + (postIsClickable() ? " hover-outline" : "")}
                 // note: screenreader or keyboard users must click the 'view' button
                 // or the title if there is one.
                 // I considered making the "x points x hours ago" a link but it's harder
@@ -280,7 +280,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         }}</SwitchKind>
                     </button>
                 )}</ShowCond>
-                <div class={(postIsClickable() ? "hover-outline" : "") + " flex-1"}>
+                <div class={"flex-1"}>
                     <div class={classes(
                         hasTitleOrThumbnail() ? "text-base" : "text-xs",
                     )}>
@@ -297,7 +297,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     </div>
                     <div class={classes(
                         hasTitleOrThumbnail() ? "" : "text-xs",
-                        selfVisible() || hasThumbnail() ? "" : "filter grayscale text-$collapsed-header-color italic",
+                        selfVisible() || hasThumbnail()
+                        ? ""
+                        : "filter grayscale text-$collapsed-header-color italic max-lines max-lines-1",
                     )}>
                         <ShowCond when={props.content.author}>{author => <>
                             <ShowCond if={[
@@ -308,34 +310,46 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             <UserLink href={author.link} color_hash={author.color_hash}>
                                 {author.name}
                             </UserLink>{" "}
-                            <ShowCond when={author.flair}>{flair => <>
-                                <Flair flairs={flair} />{" "}
+                        </>}</ShowCond>
+                        <ShowBool when={selfVisible() || hasThumbnail()} fallback={
+                            <span class="whitespace-normal">
+                                {"“" + (() => {
+                                    const res = summarizeBody(props.content.body);
+                                    if(res.length > 500) return res.substring(0, 500) + "…";
+                                    return res;
+                                })() + "”"}
+                            </span>
+                        }>
+                            <ShowCond when={props.content.author}>{author => <>
+                                <ShowCond when={author.flair}>{flair => <>
+                                    <Flair flairs={flair} />{" "}
+                                </>}</ShowCond>
                             </>}</ShowCond>
-                        </>}</ShowCond>
-                        <ShowCond when={props.content.info?.in}>{in_sr => <>
-                            {" in "}<LinkButton href={in_sr.link} style="normal">{in_sr.name}</LinkButton>{" "}
-                        </>}</ShowCond>
-                        <ShowCond when={props.content.actions?.vote}>{vote_action => <>
-                            <CounterCount counter={vote_action} />{" "}
-                        </>}</ShowCond>
-                        <ShowCond when={props.content.info}>{content_info => <>
-                            <ShowCond when={content_info.creation_date}>{created => <>
-                                <TimeAgo start={created} />{" "}
+                            <ShowCond when={props.content.info?.in}>{in_sr => <>
+                                {" in "}<LinkButton href={in_sr.link} style="normal">{in_sr.name}</LinkButton>{" "}
                             </>}</ShowCond>
-                            <ShowCond when={content_info.edited}>{edited => <>
-                                {"Edited"}<ShowCond when={edited.date}>{edited_date => <>
-                                    {" "}<TimeAgo start={edited_date} />
-                                </>}</ShowCond>{" "}
+                            <ShowCond when={props.content.actions?.vote}>{vote_action => <>
+                                <CounterCount counter={vote_action} />{" "}
                             </>}</ShowCond>
-                            <ShowBool when={content_info.pinned ?? false}>{<>
-                                <span class="text-green-600 dark:text-green-500">Pinned</span>{" "}
-                            </>}</ShowBool>
-                        </>}</ShowCond>
-                        <ShowBool when={mobile()}>
-                            <button
-                                class={link_styles_v["outlined-button"]}
-                                onclick={() => setShowActions(v => !v)}
-                            >{showActions() ? "▾" : "▸"}</button>
+                            <ShowCond when={props.content.info}>{content_info => <>
+                                <ShowCond when={content_info.creation_date}>{created => <>
+                                    <TimeAgo start={created} />{" "}
+                                </>}</ShowCond>
+                                <ShowCond when={content_info.edited}>{edited => <>
+                                    {"Edited"}<ShowCond when={edited.date}>{edited_date => <>
+                                        {" "}<TimeAgo start={edited_date} />
+                                    </>}</ShowCond>{" "}
+                                </>}</ShowCond>
+                                <ShowBool when={content_info.pinned ?? false}>{<>
+                                    <span class="text-green-600 dark:text-green-500">Pinned</span>{" "}
+                                </>}</ShowBool>
+                            </>}</ShowCond>
+                            <ShowBool when={mobile()}>
+                                <button
+                                    class={link_styles_v["outlined-button"]}
+                                    onclick={() => setShowActions(v => !v)}
+                                >{showActions() ? "▾" : "▸"}</button>
+                            </ShowBool>
                         </ShowBool>
                     </div>
                     <ShowBool when={hasThumbnail() && !mobile()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>

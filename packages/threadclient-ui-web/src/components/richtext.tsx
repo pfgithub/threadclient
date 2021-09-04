@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import "prism-themes/themes/prism-atom-dark.css"; // vsc dark is missing markdown styles
 import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch } from "solid-js";
-import { switchKind } from "tmeta-util";
+import { assertNever, switchKind } from "tmeta-util";
 import { ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -9,7 +9,7 @@ import {
     classes, getClient, getSettings, Icon, ToggleColor
 } from "../util/utils_solid";
 import { animateHeight } from "./animation";
-import { Body } from "./body";
+import { Body, summarizeBody } from "./body";
 import { A, LinkButton, PreviewableLink, UserLink } from "./links";
 import { Flair } from "./page2";
 export * from "../util/interop_solid";
@@ -411,12 +411,13 @@ function extractLinks(paragraph: Generic.Richtext.Paragraph): Link[] {
 function extractSpanLinks(spans: Generic.Richtext.Span[]): Link[] {
     return spans.flatMap(span => switchKind(span, {
         link: (link) => [{
-            title: spansToText(link.children),
+            title: summarizeSpans(link.children),
             url: link.url,
         }],
         error: () => [],
         text: () => [],
         br: () => [],
+        // TODO don't display until the spoiler is revealed or something
         spoiler: spoil => extractSpanLinks(spoil.children),
         emoji: () => [],
         flair: () => [],
@@ -424,16 +425,33 @@ function extractSpanLinks(spans: Generic.Richtext.Span[]): Link[] {
         code: () => [],
     }));
 }
-function spansToText(spans: Generic.Richtext.Span[]): string {
+export function summarizeParagraphs(paragraphs: readonly Generic.Richtext.Paragraph[]): string {
+    return paragraphs.map(paragraph => switchKind(paragraph, {
+        paragraph: par => summarizeSpans(par.children),
+        body: body => summarizeBody(body.body),
+        heading: heading => summarizeSpans(heading.children),
+        horizontal_line: hr => "---",
+        blockquote: bquote => summarizeParagraphs(bquote.children),
+        list: list => list.children.map((child, i) => {
+            const bullet = list.ordered ? ("" + i + ". ") : "• ";
+            if(child.kind === "tight_list_item") return bullet + summarizeSpans(child.children);
+            if(child.kind === "list_item") return bullet + summarizeParagraphs(child.children);
+            assertNever(child);
+        }).join("\n"),
+        code_block: code => code.text,
+        table: () => "[table]",
+    })).join("\n");
+}
+export function summarizeSpans(spans: readonly Generic.Richtext.Span[]): string {
     return spans.map(span => switchKind(span, {
-        link: lnk => spansToText(lnk.children),
-        error: emsg => "(Error "+emsg.text+")",
+        link: lnk => summarizeSpans(lnk.children),
+        error: emsg => "[error]",
         text: txt => txt.text,
         br: () => "\n",
-        spoiler: spoil => ">!"+spansToText(spoil.children)+"!<",
+        spoiler: spoil => "[spoiler]", //">!"+summarizeSpans(spoil.children)+"!<",
         emoji: emoji => ":"+emoji.name+":",
-        flair: () => "(flair)",
-        time_ago: () => "(time ago)",
+        flair: () => "[flair]",
+        time_ago: () => "[time ago]",
         code: code => code.text,
     })).join("");
 }

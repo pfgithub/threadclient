@@ -2,6 +2,7 @@ import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup, Suspense } from "solid-js";
 import { createStore } from "solid-js/store";
 import { ShowCond, SwitchKind } from "tmeta-util-solid";
+import { switchKind } from "../../../tmeta-util/src/util";
 import {
     getTwitchClip, gfyLike,
     imgurImage,
@@ -21,7 +22,7 @@ import {
 } from "../util/utils_solid";
 import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
-import { RichtextParagraphs } from "./richtext";
+import { RichtextParagraphs, summarizeParagraphs } from "./richtext";
 
 const PreviewVideo = lazy(() => import("./preview_video"));
 
@@ -258,6 +259,42 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
         },
     }}</SwitchKind>;
 }
+
+export function summarizeBody(body: Generic.Body): string {
+    // note: some of these would benefit from being fetched first. maybe somehow the content of the
+    //       rendered body could contribute to the summary?
+    // note: if a comment is default collapsed for downvotes, maybe don't show a body summary on it
+    return switchKind(body, {
+        text: () => "[text]",
+        richtext: richtext => summarizeParagraphs(richtext.content),
+        link: link => link.url,
+        captioned_image: () => "[image]",
+        video: () => "[video]",
+        gfycat: () => "[gif]",
+        youtube: () => "[video]",
+        imgur: () => "[images]",
+        twitch_clip: () => "[video]",
+        oembed: () => "[link]",
+        reddit_suggested_embed: () => "[content]",
+        audio: () => "[audio]",
+        gallery: () => "[gallery]",
+        poll: () => "[poll]",
+        none: () => "",
+        removed: removed => summarizeBody(removed.body),
+        crosspost: () => "[crosspost]",
+        array: arr => arr.body.map(item => item ? summarizeBody(item) : "").join("\n"),
+        link_preview: link => link.url,
+        mastodon_instance_selector: () => "[mastodon instance selector]",
+    });
+}
+
+// TODO ↑that but for getting the thumbnail. An optional hint
+// can be passed in which will be used if a thumbnail cannot be found
+// also it should say what type the thumbnail is in the output to eg put
+// a little play icon on videos
+
+// then thumbnail on a post would look like
+// `thumbnail: false` | `thumbnail: {hint: "…some url…"}`
 
 function getBound(v: HTMLElement) {
     const rect = v.getBoundingClientRect();
