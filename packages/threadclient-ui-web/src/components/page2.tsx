@@ -384,7 +384,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     onAddReply={onAddReply}
                 />
             </ShowAnimate>
-            <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider visible={transitionTarget}>
+            <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider
+                visible={() => animState().visible || animState().animating}
+            >
                 <section>
                     <ShowBool when={animState().visible || animState().animating}>
                         <ShowBool when={selfVisible() && hasThumbnail()}><div class="mt-2"></div></ShowBool>
