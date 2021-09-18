@@ -511,6 +511,11 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
                     <SwitchKind item={reply}>{{
                         post: post => (
                             <TopLevelWrapper>
+                                <ShowBool when={post.parent !== props.page.pivot}>
+                                    TODO parent posts{
+                                        /*maybe do some WrapParent but all things have to not be above pivot?*/
+                                    null}
+                                </ShowBool>
                                 <ClientContentAny content={post.content} opts={{
                                     clickable: false, // TODO
                                     frame: post,
