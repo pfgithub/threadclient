@@ -15,6 +15,20 @@
 
 fun stuff:
 
+- [ ] display all comments from a single list. use props to specify how indented, if threaded, ...
+  - this allows for:
+    - fun pivoting animations
+    - pivoting without losing dom state
+      - the new pivot is selected
+      - old comments which are unused are display:none'd
+      - new comments are inserted where it makes sense
+    - a mobile depth limit with an automatic pivot button or something
+    - mobile should probably have a completely different comment appearence more like apollo anyway. the collapse
+      button is hard to press on mobile
+    - mobile gestures, so eg you can swipe to collapse a comment
+    - more fun stuff
+  - this has some downsides:
+    - the hover effect on the comment collapse buttons might not be as good as it could be
 - [ ] check out https://www.tiptap.dev/ for the richtext editor
   - I haven't looked into it at all, if it does good typescript support then I should try it
 - [x] show a content summary thing on collapsed comments.
