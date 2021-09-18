@@ -40,6 +40,11 @@ fun stuff:
   - generate these based on the body type. some body types may have no summary and might just be `[image]`
   - these go after the username and the rest of the infobar. if there is a thumbnail, these don't display at all
   - actually these are basically thumbnails but for text. huh
+- [ ] check out `.icon_color` and consider using this instead of color_hash, or at leat
+  using this color while the image is loading.
+- [ ] what if braille images were inserted as an actual 'braille image' component in richtext? that could be fun
+  couldn't it. also would improve summaries and screenreader support. not sure if it's worth it though, it would
+  be useful to parse out the text and stuff
 
 page2 todo:
 

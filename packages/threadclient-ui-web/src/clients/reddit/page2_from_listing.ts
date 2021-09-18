@@ -1,17 +1,199 @@
 import type * as Reddit from "api-types-reddit";
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { assertNever } from "tmeta-util";
+import { assertNever, encodeQuery, switchKind } from "tmeta-util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
-    getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery, expectUnsupported
+    getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery, expectUnsupported, parseLink, redditRequest, authorFromT2
 } from "../reddit";
 
 function warn(...message: unknown[]) {
     console.log(...message);
     // TODO display this visually somewhere if dev mode is enabled
 }
+
+
+export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
+    // TODO: api requests should be seperate from the api result -> page2 stuff.
+    // also authentication should be handled better.
+
+    // unrelated:
+    // the plan is a getSkeleton() that suggests what should be loaded immediately
+    // and what should be loaded as needed
+    //
+    // this will eg:
+    // - loading a user requires:
+    //   - the user page itself
+    //   - the about widget
+    //   - the trophies widget
+    //   - the moderated subreddits widget
+    // - that can't all be represented in one link
+    // - but, this method could return an empty skeleton without even loading anything
+    //   that has some loaders with all the links it needs
+    // - the issue is when eg: sidebar widget and header banner both rely on the same
+    //   web request. how is that represented? is it?
+
+    const id_map: IDMap = new Map();
+
+    const start_time = Date.now();
+
+    try {
+        const [parsed, pathraw] = parseLink(pathraw_in);
+
+        console.log("PARSED URL:", parsed);
+
+        if(parsed.kind === "link_out") {
+            return {
+                pivot: {ref: {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: {text: "Not Supported"},
+                        body: {kind: "richtext", content: [
+                            rt.h1(rt.link("raw!"+parsed.out, {}, rt.txt("View on reddit.com"))),
+                            rt.p(rt.txt("ThreadClient does not support this URL")),
+                        ]},
+                        show_replies_when_below_pivot: false,
+                        collapsible: false,
+                    },
+                    display_style: "centered",
+                    parent: null,
+                    replies: null,
+                    url: null,
+                    internal_data: parsed,
+                }},
+            };
+        }else if(parsed.kind === "todo") {
+            return {
+                pivot: {ref: {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: {text: "Not Supported"},
+                        body: {kind: "richtext", content: [
+                            rt.h1(rt.link("raw!https://www.reddit.com"+parsed.path, {}, rt.txt("View on reddit.com"))),
+                            rt.p(rt.txt("ThreadClient does not yet support this URL")),
+                            rt.p(rt.txt(parsed.msg)),
+                        ]},
+                        show_replies_when_below_pivot: false,
+                        collapsible: false,
+                    },
+                    display_style: "centered",
+                    parent: null,
+                    replies: null,
+                    url: null,
+                    internal_data: parsed,
+                }},
+            };
+        }else if(parsed.kind === "raw") {
+            const resj = await redditRequest<unknown>(parsed.path, {method: "GET"});
+            return {pivot: unsupportedPage(pathraw, resj)};
+        }else if(parsed.kind === "redirect") {
+            return {
+                pivot: {ref: {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: {text: "Not Supported"},
+                        body: {kind: "richtext", content: [
+                            rt.h1(rt.link("raw!https://www.reddit.com"+pathraw, {}, rt.txt("View on reddit.com"))),
+                            rt.p(rt.txt("Error! Redirect Loop. ThreadClient tried to redirect more than 100 times.")),
+                        ]},
+                        show_replies_when_below_pivot: false,
+                        collapsible: false,
+                    },
+                    display_style: "centered",
+                    parent: null,
+                    replies: null,
+                    url: null,
+                    internal_data: parsed,
+                }},
+            };
+        }
+
+        const link: string = switchKind(parsed, {
+            comments: val => "/comments/"+val.post_id_unprefixed+"?"+encodeQuery({
+                sort: val.sort_override, comment: val.focus_comment, context: val.context,
+            }),
+            duplicates: val => "/duplicates/"+val.post_id_unprefixed+"?"+encodeQuery({
+                after: val.after, before: val.before, sort: val.sort, crossposts_only: "" + val.crossposts_only,
+            }),
+            subreddit: val => (
+                "/"+[...val.sub.base, val.current_sort.v].join("/")
+                +"?"+encodeQuery({t: val.current_sort.t, before: val.before, after: val.after})
+            ),
+            wiki: val => "/"+[...val.sub.base, "wiki", ...val.path].join("/") + "?" + encodeQuery(val.query),
+            user: () => pathraw,
+            inbox: () => pathraw,
+        });
+
+        const page = await redditRequest<Reddit.Page>(link, {method: "GET"});
+
+        return {
+            pivot: page2FromListing(id_map, pathraw, parsed, page),
+        };
+    }catch(e) {
+        const err = e as Error;
+        console.log(err);
+        const is_networkerror = err.toString().includes("NetworkError");
+        const error_was_instant = start_time > Date.now() - 50;
+        const browser_is_firefox = navigator.userAgent.includes("Firefox");
+
+        if(is_networkerror) return {
+            pivot: {ref: {
+                kind: "post",
+                content: {
+                    kind: "post",
+                    title: {text: "Error Loading Page"},
+                    body: {kind: "richtext", content: [
+                        ...error_was_instant && browser_is_firefox ? [
+                            rt.h1(rt.txt("Firefox Enhanced Tracking Protection may be active")),
+                            rt.p(rt.txt("Try disabling Enhanced Tracking Protection for this site.")),
+                            rt.ul(
+                                rt.ili(rt.txt("Look at the left side of the URL bar for a shield icon")),
+                                rt.ili(rt.txt("Click it")),
+                                rt.ili(rt.txt("Flip the switch to turn Enhanced Tracking Protection off")),
+                            ),
+                            rt.p(rt.txt(""
+                                +"Enhanced Tracking Protection blocks ThreadClient from sending requests to Reddit,"
+                                +" which prevents ThreadClient from functioning.",
+                            )),
+                            rt.h2(rt.txt("Other things to check:")),
+                        ] : [
+                            rt.h1(rt.txt("There was a network error loading this page")),
+                            rt.h2(rt.txt("Things to check:")),
+                        ],
+                        rt.ul(
+                            rt.ili(rt.txt("Make sure your internet is working")),
+                            rt.ili(
+                                rt.txt("Make sure "),
+                                rt.link("https://www.redditstatus.com/", {}, rt.txt("Reddit is working")),
+                            ),
+                            rt.ili(
+                                rt.txt("If your browser has tracking protection, try disabling it."),
+                            ),
+                        ),
+                    ]},
+                    show_replies_when_below_pivot: false,
+                    collapsible: false,
+                },
+                display_style: "centered",
+                parent: null,
+                replies: null,
+                url: null,
+                internal_data: [
+                    pathraw_in,
+                    err,
+                    {is_networkerror, error_was_instant, browser_is_firefox},
+                ],
+            }},
+        };
+
+        throw err;
+    }
+}
+
 
 export type ID = string & {__is_id: true}; // TODO string & {__is_id: true}
 export type IDMap = Map<ID, IDMapEntry>;
@@ -51,6 +233,10 @@ type IDMapData = {
 } | {
     kind: "more",
     item: Reddit.More,
+} | {
+    kind: "wikipage",
+    listing: Reddit.WikiPage,
+    pathraw: string,
 };
 
 export function page2FromListing(
@@ -114,9 +300,25 @@ export function page2FromListing(
         const pivot_id = getEntryFullname(sr_entry);
 
         return getPostData(id_map, pivot_id);
+    }else if(page.kind === "wikipage") {
+        const sr_entry: IDMapData = {
+            kind: "wikipage",
+            listing: page,
+            pathraw,
+            // TODO it should have a subreddit header
+        };
+        setUpMap(id_map, sr_entry);
+
+        const pivot_id = getEntryFullname(sr_entry);
+
+        return getPostData(id_map, pivot_id);
+    }else if(page.kind === "t5") {
+        warn("TODO t5");
+    }else if(page.kind === "UserList") {
+        warn("TODO userlist");
+    } else {
+        expectUnsupported(page.kind);
     }
-    //else {
-    //  expectUnsupported(page.kind);
 
     return unsupportedPage(pathraw, page);
 }
@@ -175,6 +377,8 @@ function getEntryFullname(entry: IDMapData): ID {
         return "DEPTH_MORE_"+entry.parent_permalink as ID;
     }else if(entry.kind === "more") {
         return "MORE_"+entry.item.data.children.join(",") as ID;
+    }else if(entry.kind === "wikipage") {
+        return "WIKIPAGE_there_should_only_be_one" as ID;
     }else assertNever(entry);
 }
 
@@ -278,6 +482,8 @@ export function setUpMap(
     }else if(data.kind === "more") {
         // nothing to do
     }else if(data.kind === "depth_more") {
+        // nothing to do
+    }else if(data.kind === "wikipage") {
         // nothing to do
     }else assertNever(data);
 
@@ -478,6 +684,49 @@ function postDataFromListingMayError(
             parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
+        };
+    }else if(entry.data.kind === "wikipage") {
+        const listing = entry.data.listing;
+        const title = entry.data.pathraw.substr(entry.data.pathraw.lastIndexOf("/") + 1);
+        return {
+            kind: "post",
+            url: entry.data.pathraw,
+            parent: null, // TODO subreddit (this should also add `| SubName`) in the page title
+            replies: null,
+            content: {
+                kind: "post",
+                title: {text: title},
+                collapsible: false,
+                body: {kind: "text", content: listing.data.content_html, markdown_format: "reddit_html"},
+                show_replies_when_below_pivot: false,
+
+                info: {
+                    // TODO a fancy system could have an array like
+                    // - [at: time, by: user]
+                    // - [at: time, by: user]
+                    // - load more
+                    // eg for a wiki it would be
+                    // - load more
+                    // - [at: time, by: user]
+                    // and then it would just show "edited at ... by ..."
+                    // but you could click it to get more info
+                    // and now a difference can be made between
+                    // "no edits" and "not sure if edited":
+                    // no edits is [at: time, by: user]
+                    // not sure if edited is [at: time, by: user], [...unknown]
+                    // and if there are any load mores in the list, the edit
+                    // text can have a link to "show history"
+                    edited: {date: listing.data.revision_date * 1000},
+                },
+                author: authorFromT2(listing.data.revision_by),
+                actions: {
+                    other: listing.data.may_revise ? [
+                        {kind: "link", text: "Edit", url: "TODO edit wiki page"}
+                    ] : [],
+                },
+            },
+            internal_data: entry.data,
+            display_style: "centered",
         };
     } else assertNever(entry.data);
 }

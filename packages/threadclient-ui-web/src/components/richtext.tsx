@@ -305,7 +305,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
     const [previewOpen, setPreviewOpen] = createSignal<{open: boolean, temporary: boolean}>(
         {open: false, temporary: false},
     );
-    return <div class="my-2">
+    return <ShowBool when={human().link !== "error"}><div class="my-2">
         <ToggleColor>{color => <A
             class={classes(
                 "p-2 px-4",
@@ -362,7 +362,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                 </A>}</ToggleColor>
             </div>
         </ShowBool></>}</ShowCond>
-    </div>;
+    </div></ShowBool>;
 }
 
 export function RichtextParagraphs(props: {

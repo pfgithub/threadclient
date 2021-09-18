@@ -7,7 +7,7 @@ import { rt } from "api-types-generic";
 import * as util from "tmeta-util";
 import { encodeQuery, encodeURL } from "tmeta-util";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
-import { IDMap, page2FromListing } from "./reddit/page2_from_listing";
+import { getPage, IDMap, page2FromListing } from "./reddit/page2_from_listing";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -1823,7 +1823,9 @@ path_router.with(["r", {subreddit: "any"}] as const, urlr => {
         urlr.route([{wiki_path: "rest"}] as const, opts => ({
             kind: "wiki",
             sub: {kind: "subreddit", base: ["r", opts.subreddit], subreddit: opts.subreddit},
-            path: opts.wiki_path,
+            // note: reddit redirects from /wiki to /wiki/index but it forgets
+            // to copy query parameters, causing &lt; and &gt; to be passed.
+            path: opts.wiki_path.length === 0 ? ["index"] : opts.wiki_path,
             query: opts.query,
         }));
 
@@ -2285,15 +2287,15 @@ export function saveButton(fullname: string, saved: boolean): Generic.Action {
     };
 }
 
-function authorFromInfo(opts: {
+export function authorFromInfo(opts: {
     author: string,
-    flair_bits: FlairBits,
+    flair_bits: FlairBits | null,
     additional_flairs?: undefined | Generic.Flair[],
     distinguished: Reddit.UserDistinguished | null,
     is_submitter: boolean,
     author_cakeday: boolean | undefined,
     pfp: string | undefined,
-}): Generic.Info["author"] {
+}): Generic.InfoAuthor {
     const system_colors: {[key in Reddit.UserDistinguished]: string} = {
         admin: "text-red-500",
         moderator: "text-green-500",
@@ -2304,7 +2306,7 @@ function authorFromInfo(opts: {
         name: opts.author,
         link: "/u/"+opts.author,
         flair: [
-            ...flairToGenericFlair(opts.flair_bits),
+            ...opts.flair_bits ? flairToGenericFlair(opts.flair_bits) : [],
             ...opts.is_submitter ? as<Generic.Flair[]>([{
                 elems: [{
                     kind: "text",
@@ -2337,7 +2339,10 @@ function authorFromInfo(opts: {
         } : undefined,
     };
 }
-export function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.PostComment, additional_flairs?: Generic.Flair[]): Generic.Info["author"] {
+export function authorFromPostOrComment(
+    listing: Reddit.PostSubmission | Reddit.PostComment,
+    additional_flairs?: Generic.Flair[],
+): Generic.InfoAuthor {
     return authorFromInfo({
         author: listing.author,
         flair_bits: {
@@ -2351,6 +2356,18 @@ export function authorFromPostOrComment(listing: Reddit.PostSubmission | Reddit.
         is_submitter: 'is_submitter' in listing ? (listing.is_submitter ?? false) : false,
         author_cakeday: listing.author_cakeday,
         pfp: listing.profile_img,
+    });
+}
+
+export function authorFromT2(t2: Reddit.T2): Generic.InfoAuthor {
+    return authorFromInfo({
+        author: t2.data.name,
+        flair_bits: null,
+        additional_flairs: [],
+        distinguished: null,
+        is_submitter: false,
+        author_cakeday: false,
+        pfp: t2.data.icon_img,
     });
 }
 
@@ -3012,7 +3029,7 @@ function generateUserSidebar(
     return resitems;
 }
 
-function parseLink(path: string) {
+export function parseLink(path: string) {
     let parsed = path_router.parse(path)!;
 
     for(let i = 0; parsed.kind === "redirect" && i < 100; i++) {
@@ -3026,50 +3043,7 @@ function parseLink(path: string) {
 export const client: ThreadClient = {
     id: "reddit",
     // loginURL: getLoginURL(),
-    async getPage(pathraw_in): Promise<Generic.Page2> {
-        const id_map: IDMap = new Map();
-
-        try {
-            const [parsed, pathraw] = parseLink(pathraw_in);
-
-            console.log("PARSED URL:", parsed);
-
-            let link: string | undefined;
-            if(parsed.kind === "comments") {
-                link = "/comments/"+parsed.post_id_unprefixed+"?"+encodeQuery({
-                    sort: parsed.sort_override, comment: parsed.focus_comment, context: parsed.context,
-                });
-                // the plan is a getSkeleton() that suggests what should be loaded immediately
-                // and what should be loaded as needed
-            }else if(parsed.kind === "duplicates") {
-                link = "/duplicates/"+parsed.post_id_unprefixed+"?"+encodeQuery({
-                    after: parsed.after, before: parsed.before, sort: parsed.sort, crossposts_only: "" + parsed.crossposts_only,
-                });
-            }else if(parsed.kind === "subreddit") {
-                link = "/"+[...parsed.sub.base, parsed.current_sort.v].join("/")
-                +"?"+encodeQuery({t: parsed.current_sort.t, before: parsed.before, after: parsed.after});
-            }else if(parsed.kind === "wiki") {
-                link = "/"+[...parsed.sub.base, "wiki", ...parsed.path].join("/") + "?" + encodeQuery(parsed.query);
-            }else{
-                throw new Error("TODO "+parsed.kind);
-                // assertNever(parsed)
-            }
-
-            const page = await redditRequest<Reddit.Page>(link, {method: "GET"});
-
-            return {
-                pivot: page2FromListing(id_map, pathraw, parsed, page),
-            };
-        }catch(e) {
-            const err = e as Error;
-            console.log(err);
-            throw new Error("Error"
-                + ". If you're on firefox, try disabling Advanced Tracker Protection for this site."
-                + " Also, try going to v1 in settings (v2 is WIP and incomplete)"
-                + ". " + err.toString() + "\n" + err.stack,
-            );
-        }
-    },
+    getPage,
     async getThread(pathraw_in): Promise<Generic.Page> {
         try {
             const [parsed, pathraw] = parseLink(pathraw_in);
@@ -3150,7 +3124,7 @@ export const client: ThreadClient = {
                     navbar: getNavbar(),
                     body: {kind: "one", item: {parents: [{kind: "thread",
                         body: {kind: "richtext", content: [
-                            rt.h1(rt.link(parsed.out, {}, rt.txt("View on reddit.com"))),
+                            rt.h1(rt.link("raw!"+parsed.out, {}, rt.txt("View on reddit.com"))),
                             rt.p(rt.txt("ThreadClient does not support this URL")),
                         ]},
                         display_mode: {comments: "visible", body: "visible"},
@@ -3177,6 +3151,7 @@ export const client: ThreadClient = {
                     title: "TODO",
                     widget_content: {kind: "body", body: {kind: "richtext", content: [
                         rt.p(rt.txt("This page "), rt.code(pathraw), rt.txt(" is not supported (yet)")),
+                        rt.p(rt.link("raw!https://www.reddit.com"+parsed.path, {}, rt.txt("View on reddit.com"))),
                         rt.p(rt.txt(parsed.msg)),
                     ]}},
                     raw_value: parsed,
@@ -3804,7 +3779,10 @@ type RequestOpts<ResponseType> = (
 // : if you send any requests to edit the subreddit about text or anything like that, clear all caches containing /r/:subname/ or ending with /r/:subname
 // : if you click the refresh button at the top of the page, clear caches maybe
 const request_cache = new Map<string, unknown>();
-async function redditRequest<ResponseType>(path: string, opts: RequestOpts<ResponseType>): Promise<ResponseType> {
+export async function redditRequest<ResponseType>(
+    path: string,
+    opts: RequestOpts<ResponseType>,
+): Promise<ResponseType> {
     // TODO if error because token needs refreshing, refresh the token and try again
     try {
         const authorization = await getAuthorization();
