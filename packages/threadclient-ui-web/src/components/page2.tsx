@@ -166,11 +166,16 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
+    const default_collapsed = props.content.collapsible !== false ? props.content.collapsible.default_collapsed : false;
     const [selfVisible, setSelfVisible] = createSignal(
         props.opts.is_pivot ? true :
-        props.content.collapsible !== false ? !props.content.collapsible.default_collapsed :
+        default_collapsed ? false :
         true,
     );
+    const [hasBeenViewed, setHasBeenViewed] = createSignal(default_collapsed);
+    createEffect(() => {
+        if(selfVisible()) setHasBeenViewed(true);
+    });
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
     );
@@ -311,15 +316,23 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                 {author.name}
                             </UserLink>{" "}
                         </>}</ShowCond>
-                        <ShowBool when={selfVisible() || hasTitleOrThumbnail()} fallback={
-                            <span class="whitespace-normal">
-                                {"“" + (() => {
-                                    const res = summarizeBody(props.content.body);
-                                    if(res.length > 500) return res.substring(0, 500) + "…";
-                                    return res;
-                                })() + "”"}
-                            </span>
-                        }>
+                        <ShowBool when={selfVisible() || hasTitleOrThumbnail()} fallback={<>
+                            <ShowBool when={default_collapsed} fallback={
+                                <span class="whitespace-normal">
+                                    {"“" + (() => {
+                                        const res = summarizeBody(props.content.body);
+                                        if(res.length > 500) return res.substring(0, 500) + "…";
+                                        return res;
+                                    })() + "”"}
+                                </span>
+                            }>
+                                <ShowCond when={props.content.actions?.vote} fallback={
+                                    "[Collapsed by default]"
+                                }>{vote_action => <>
+                                    <CounterCount counter={vote_action} />{" "}
+                                </>}</ShowCond>
+                            </ShowBool>
+                        </>}>
                             <ShowCond when={props.content.author}>{author => <>
                                 <ShowCond when={author.flair}>{flair => <>
                                     <Flair flairs={flair} />{" "}
