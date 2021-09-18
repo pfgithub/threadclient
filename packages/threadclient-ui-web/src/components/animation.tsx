@@ -8,16 +8,14 @@ import { getSettings, Settings } from "../util/utils_solid";
 
 let shift_pressed = false;
 document.addEventListener("keydown", e => {
-    console.log(e);
     if(e.key === "Shift") shift_pressed = true;
 }, {capture: true});
 document.addEventListener("keyup", e => {
     if(e.key === "Shift") shift_pressed = false;
-    console.log(shift_pressed);
 }, {capture: true});
 document.addEventListener("focus", e => {
     shift_pressed = false;
-}, {capture: true});
+});
 
 export function animateHeight(
     comment_root: HTMLElement,
@@ -78,6 +76,7 @@ export function animateHeight(
         });
     }, {defer: true}));
     createEffect(() => {
+        console.log("ANIMATING", shift_pressed);
         if(animating() != null) {
             comment_root.style.height = animating() + "px";
             comment_root.style.overflow = "hidden";
