@@ -953,7 +953,13 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
             renderBody(client, gallery, {autoplay: false}).defer(hsc).adto(resdiv);
             loader.remove();
         }else{
-            resdiv.adch(el("div").clss("error").atxt("Error loading imgur: "+typed.data.error));
+            console.log(typed);
+            if(loader.parentNode) loader.remove();
+            resdiv.adch(el("div").clss("error").atxt("Error loading imgur: "+(
+                location.hostname === "localhost" ? "Imgur does not work on localhost. "
+                +"Follow the instructions in CONTRIBUTING.md to fix. Imgur said: "
+                + typed.data.error : typed.data.error
+            )));
         }
     }).catch(e => {
         console.log(e);
