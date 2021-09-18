@@ -76,9 +76,10 @@ export function ReplyEditor(props: {
                             },
                         });
                     }).catch((error) => {
+                        setSending(false);
                         const err = error as Error;
                         console.log("Got error", err);
-                        setSendError(err.stack ?? err.toString() ?? "Unknown error");
+                        setSendError(err.toString() + "\n" + err.stack);
                     });
                 }}
             >{isSending() ? "…" : "Reply"}</button>
