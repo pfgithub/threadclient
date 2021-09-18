@@ -29,6 +29,10 @@ fun stuff:
     - more fun stuff
   - this has some downsides:
     - the hover effect on the comment collapse buttons might not be as good as it could be
+    - I can't do collapse transitions anymore (like I could collapse transition all the comments in view but I'm not
+      sure how much css would like that, having 20 elements doing height transitions at the same time)
+    - I guess I could use a single fake element taking up all the space and then transform transitions - no, transform
+      transitions still require everything to be in the same parent node
 - [ ] check out https://www.tiptap.dev/ for the richtext editor
   - I haven't looked into it at all, if it does good typescript support then I should try it
 - [x] show a content summary thing on collapsed comments.
