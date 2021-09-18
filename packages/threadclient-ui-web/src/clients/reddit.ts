@@ -1,13 +1,13 @@
 /* eslint-disable max-len */
 
-import { getVredditSources } from "../app";
-import type * as Reddit from "api-types-reddit";
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
+import type * as Reddit from "api-types-reddit";
+import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import * as util from "tmeta-util";
 import { encodeQuery, encodeURL } from "tmeta-util";
-import { encoderGenerator, ThreadClient } from "threadclient-client-base";
-import { getPage, IDMap, page2FromListing } from "./reddit/page2_from_listing";
+import { getVredditSources } from "../app";
+import { getPage } from "./reddit/page2_from_listing";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -3029,7 +3029,7 @@ function generateUserSidebar(
     return resitems;
 }
 
-export function parseLink(path: string) {
+export function parseLink(path: string): [parsed: ParsedPath, path: string] {
     let parsed = path_router.parse(path)!;
 
     for(let i = 0; parsed.kind === "redirect" && i < 100; i++) {
@@ -3037,7 +3037,7 @@ export function parseLink(path: string) {
         parsed = path_router.parse(path)!;
     }
     
-    return [parsed, path] as const;
+    return [parsed, path];
 }
 
 export const client: ThreadClient = {

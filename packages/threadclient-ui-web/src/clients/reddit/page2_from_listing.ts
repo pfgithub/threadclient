@@ -5,7 +5,8 @@ import { assertNever, encodeQuery, switchKind } from "tmeta-util";
 import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
-    getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery, expectUnsupported, parseLink, redditRequest, authorFromT2
+    getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery,
+    expectUnsupported, parseLink, redditRequest, authorFromT2
 } from "../reddit";
 
 function warn(...message: unknown[]) {
