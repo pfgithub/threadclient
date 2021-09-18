@@ -7,15 +7,17 @@ import { navbar } from "../app";
 import { getSettings, Settings } from "../util/utils_solid";
 
 let shift_pressed = false;
-window.addEventListener("keydown", e => {
+document.addEventListener("keydown", e => {
+    console.log(e);
     if(e.key === "Shift") shift_pressed = true;
-});
-window.addEventListener("keyup", e => {
+}, {capture: true});
+document.addEventListener("keyup", e => {
     if(e.key === "Shift") shift_pressed = false;
-});
-window.addEventListener("focus", e => {
+    console.log(shift_pressed);
+}, {capture: true});
+document.addEventListener("focus", e => {
     shift_pressed = false;
-});
+}, {capture: true});
 
 export function animateHeight(
     comment_root: HTMLElement,
