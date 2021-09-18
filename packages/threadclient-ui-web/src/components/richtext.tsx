@@ -382,6 +382,13 @@ export function RichtextParagraphs(props: {
     </>}</For>;
 }
 
+export function RichtextDocument(props: {
+    content: readonly Generic.Richtext.Paragraph[],
+}): JSX.Element {
+    // if there is a lot of content, add a "reader mode" button
+    return <RichtextParagraphs content={props.content} />;
+}
+
 function ExternalIcon(): JSX.Element {
     return <div class="inline-block"><Icon size="icon-sm" icon={{class: "icon-external", label: "External"}} /></div>;
 }

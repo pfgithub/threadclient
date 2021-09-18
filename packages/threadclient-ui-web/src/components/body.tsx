@@ -22,7 +22,7 @@ import {
 } from "../util/utils_solid";
 import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
-import { RichtextParagraphs, summarizeParagraphs } from "./richtext";
+import { RichtextDocument, summarizeParagraphs } from "./richtext";
 
 const PreviewVideo = lazy(() => import("./preview_video"));
 
@@ -135,7 +135,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             }} />
         </TopLevelWrapper>,
         richtext: richtext => <div>
-            <RichtextParagraphs content={richtext.content} />
+            <RichtextDocument content={richtext.content} />
         </div>,
         poll: poll => <div>
             <div>TODO polls are currently not supported</div>
