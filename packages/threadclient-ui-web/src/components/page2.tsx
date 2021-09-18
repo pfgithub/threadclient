@@ -172,10 +172,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         default_collapsed ? false :
         true,
     );
-    const [hasBeenViewed, setHasBeenViewed] = createSignal(default_collapsed);
-    createEffect(() => {
-        if(selfVisible()) setHasBeenViewed(true);
-    });
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
     );
