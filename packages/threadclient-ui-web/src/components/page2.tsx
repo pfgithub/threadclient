@@ -244,25 +244,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             </div>
         </ShowBool>
         <div class="flex-1">
-            <div
-                class={"flex flex-row" + (postIsClickable() ? " hover-outline" : "")}
-                // note: screenreader or keyboard users must click the 'view' button
-                // or the title if there is one.
-                // I considered making the "x points x hours ago" a link but it's harder
-                // to do than it should be because of the {" "} and {", "} those get underlined
-                onclick={e => {
-                    if(!postIsClickable()) return;
-                    if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
-                    e.stopPropagation();
-                    // support ctrl click
-                    const target_url = "/"+client().id+props.opts.frame?.url;
-                    if(e.ctrlKey || e.metaKey || e.altKey) {
-                        window.open(target_url);
-                    }else{
-                        navigate({path: target_url});
-                    }
-                }}
-            >
+            <div class="flex flex-row">
                 <ShowCond when={props.content.thumbnail}>{thumb_any => (
                     <button class={classes(
                         "w-50px h-50px sm:w-70px sm:h-70px mr-4",
@@ -281,7 +263,25 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         }}</SwitchKind>
                     </button>
                 )}</ShowCond>
-                <div class={"flex-1"}>
+                <div
+                    class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
+                    // note: screenreader or keyboard users must click the 'view' button
+                    // or the title if there is one.
+                    // I considered making the "x points x hours ago" a link but it's harder
+                    // to do than it should be because of the {" "} and {", "} those get underlined
+                    onclick={e => {
+                        if(!postIsClickable()) return;
+                        if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
+                        e.stopPropagation();
+                        // support ctrl click
+                        const target_url = "/"+client().id+props.opts.frame?.url;
+                        if(e.ctrlKey || e.metaKey || e.altKey) {
+                            window.open(target_url);
+                        }else{
+                            navigate({path: target_url});
+                        }
+                    }}
+                >
                     <div class={classes(
                         hasTitleOrThumbnail() ? "text-base" : "text-xs",
                     )}>
