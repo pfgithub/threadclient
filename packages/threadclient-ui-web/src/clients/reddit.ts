@@ -3309,9 +3309,6 @@ export const client: ThreadClient = {
                 mode: "urlencoded",
                 body: act.query,
             });
-            if('errors' in res) {
-
-            }
             console.log(res);
         }else if(act.kind === "delete") {
             type DeleteResult = {
