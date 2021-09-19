@@ -1048,6 +1048,14 @@ export type Post = T3 | PostCommentLike | {
     data: {name: string},
 };
 
+export type APIError = {
+    json: {
+        errors: [id: string, message: string, unknown: null | unknown][],
+    // some ids I've seen:
+    // USER_REQUIRED - "Please log in to do that."
+    },
+};
+
 export type Award = {
     // info about the post awarding
     count: number,

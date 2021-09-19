@@ -1195,6 +1195,8 @@ export function renderAction(
             resloadwrap.style.display = nv === "load" ? "" : "none";
             reserrwrap.style.display = typeof nv !== "string" ? "" : "none";
             if(typeof nv !== "string") {
+                resdelwrap.style.display = "";
+                reserrwrap.innerHTML = "";
                 reserrwrap.adch(el("span").clss("error").atxt(nv.error));
             }
         };

@@ -935,17 +935,6 @@ function pathFromListingRaw(
     },
 ): Generic.Page {
     const rtitems: Generic.Richtext.Paragraph[] = [];
-    const listing_json = listing as {json: {errors: string[]}};
-    if(typeof listing_json === "object" && 'json' in listing_json && typeof listing_json.json === "object"
-        && 'errors' in listing_json.json && Array.isArray(listing_json.json.errors)
-    ) {
-        if(listing_json.json.errors.length > 0) {
-            rtitems.push(rt.h1(rt.txt("Errors:")));
-            rtitems.push(rt.ul(...listing_json.json.errors.map(error => (
-                rt.ili(rt.txt(error))
-            ))));
-        }
-    }
     if(opts.warning) rtitems.push(...opts.warning);
     return {
         title: "Error View",
@@ -3314,20 +3303,29 @@ export const client: ThreadClient = {
     async act(action_raw: Generic.Opaque<"act">): Promise<void> {
         const act = act_encoder.decode(action_raw);
         if(act.kind === "vote") {
-            type VoteResult = {__nothing: unknown};
+            type VoteResult = {_?: undefined};
             const res = await redditRequest<VoteResult>("/api/vote", {
                 method: "POST",
                 mode: "urlencoded",
                 body: act.query,
             });
+            if('errors' in res) {
+
+            }
             console.log(res);
         }else if(act.kind === "delete") {
-            type DeleteResult = {__nothing: unknown};
+            type DeleteResult = {
+                success: boolean,
+                jquery: unknown[],
+            };
             const res = await redditRequest<DeleteResult>("/api/del", {
                 method: "POST",
                 mode: "urlencoded",
                 body: {id: act.fullname},
             });
+            if(!res.success) {
+                throw new Error("Failed to delete.");
+            }
             console.log(res);
         }else if(act.kind === "save") {
             type DeleteResult = {__nothing: unknown};
@@ -3819,6 +3817,17 @@ export async function redditRequest<ResponseType>(
             console.log(status, res);
             throw new Error("got status "+status);
         }
+
+        const res_apierror = res as unknown as Reddit.APIError;
+        if(typeof res_apierror === "object" && 'json' in res_apierror) {
+            if(typeof res_apierror.json === "object" && 'errors' in res_apierror.json) {
+                throw new Error(
+                    "Reddit API Error: "
+                    +res_apierror.json.errors.map(([id, message]) => id+": "+message).join(", "),
+                );
+            }
+        }
+
         if(opts.cache ?? false) request_cache.set(cache_text, res);
         return res;
     }catch(e) {
