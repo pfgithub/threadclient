@@ -3311,18 +3311,12 @@ export const client: ThreadClient = {
             });
             console.log(res);
         }else if(act.kind === "delete") {
-            type DeleteResult = {
-                success: boolean,
-                jquery: unknown[],
-            };
+            type DeleteResult = {_?: undefined};
             const res = await redditRequest<DeleteResult>("/api/del", {
                 method: "POST",
                 mode: "urlencoded",
                 body: {id: act.fullname},
             });
-            if(!res.success) {
-                throw new Error("Failed to delete.");
-            }
             console.log(res);
         }else if(act.kind === "save") {
             type DeleteResult = {__nothing: unknown};
@@ -3816,11 +3810,18 @@ export async function redditRequest<ResponseType>(
         }
 
         const res_apierror = res as unknown as Reddit.APIError;
-        if(typeof res_apierror === "object" && 'json' in res_apierror) {
-            if(typeof res_apierror.json === "object" && 'errors' in res_apierror.json) {
+        if(typeof res_apierror === "object") {
+            if('json' in res_apierror && typeof res_apierror.json === "object" && 'errors' in res_apierror.json) {
                 throw new Error(
-                    "Reddit API Error: "
-                    +res_apierror.json.errors.map(([id, message]) => id+": "+message).join(", "),
+                    res_apierror.json.errors.map(([id, message]) => id+": "+message).join(", "),
+                );
+            }else if(true
+                && 'jquery' in res_apierror && Array.isArray(res_apierror.jquery)
+                && 'success' in res_apierror && res_apierror.success === false
+            ) {
+                throw new Error(
+                    res_apierror.jquery.flatMap(item => item[2] === "call" ? item[3]
+                    .map(itm => typeof itm === "string" ? itm : "") : []).join(", "),
                 );
             }
         }

@@ -1054,7 +1054,11 @@ export type APIError = {
     // some ids I've seen:
     // USER_REQUIRED - "Please log in to do that."
     },
+} | {
+    jquery: [number, number, ...JQueryItem][],
+    success: false,
 };
+export type JQueryItem = [method: "call", args: unknown[]] | [method: "unsupported"];
 
 export type Award = {
     // info about the post awarding
