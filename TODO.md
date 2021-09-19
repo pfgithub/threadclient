@@ -45,6 +45,8 @@ fun stuff:
 - [ ] what if braille images were inserted as an actual 'braille image' component in richtext? that could be fun
   couldn't it. also would improve summaries and screenreader support. not sure if it's worth it though, it would
   be useful to parse out the text and stuff
+- [ ] https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/progress_event xhr progress when loading in
+  bad internet
 
 page2 todo:
 
