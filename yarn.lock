@@ -8751,6 +8751,17 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
+"threadclient-extension-firefox@workspace:packages/threadclient-extension-firefox":
+  version: 0.0.0-use.local
+  resolution: "threadclient-extension-firefox@workspace:packages/threadclient-extension-firefox"
+  dependencies:
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.3.5
+  languageName: unknown
+  linkType: soft
+
 "threadclient-ui-web@workspace:packages/threadclient-ui-web":
   version: 0.0.0-use.local
   resolution: "threadclient-ui-web@workspace:packages/threadclient-ui-web"
