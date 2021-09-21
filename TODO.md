@@ -72,6 +72,12 @@ page2 todo:
   - https://i.imgur.com/ji1G657.png
   - it might help to use an actual interface design program to make mockups and then try to replicate those
 
+tmeta todo:
+
+- [ ] add an action that runs every time:
+  - check if there were any changes in .yarn or node_modules
+    - if there were, run `yarn check`
+
 reddit post page2:
 
 - [ ] vote count, vote buttons, % upvoted
