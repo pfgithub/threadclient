@@ -7327,10 +7327,10 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"prismjs@npm:~1.24.0":
-  version: 1.24.1
-  resolution: "prismjs@npm:1.24.1"
-  checksum: e5d14a4ba56773122039295bd760c72106acc964e04cb9831b9ae7e7a58f67ccac6c053e77e21f1018a3684f31d35bb065c0c81fd4ff00b73b1570c3ace4aef0
+"prismjs@npm:~1.25.0":
+  version: 1.25.0
+  resolution: "prismjs@npm:1.25.0"
+  checksum: 04d8eae9d1b26b76c350bc65621584c8f8cab80ace7da3953f8aef2f9a8dd4b4f71c1d15bc5c67f126ddc90cd5af613919dc1340589a6c57355bed86fa3ac010
   languageName: node
   linkType: hard
 
@@ -7598,16 +7598,16 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"refractor@npm:^4.1.1":
-  version: 4.1.1
-  resolution: "refractor@npm:4.1.1"
+"refractor@npm:^4.2.0":
+  version: 4.2.0
+  resolution: "refractor@npm:4.2.0"
   dependencies:
     "@types/hast": ^2.0.0
     "@types/prismjs": ^1.0.0
     hastscript: ^7.0.0
     parse-entities: ^3.0.0
-    prismjs: ~1.24.0
-  checksum: 2d16152392a4ad66b866ea93a2f074d38a8b1501c22dea7e9ac22313fc24b3e656cdc1bb80381456f2ba6a29ce839e87708d8026c377e6bc43fdb5f3112c1f64
+    prismjs: ~1.25.0
+  checksum: ef4f20c7e4c5af044c869ff191ab787307f1379d2c45969a32acbeb129da6e9fe40b71aa06989388d2441ccaa269e099852fd7c6d44abf6430b748358ad4641c
   languageName: node
   linkType: hard
 
@@ -8785,7 +8785,7 @@ fsevents@~2.3.2:
     mux.js: ^5.13.0
     photoswipe: ^4.1.3
     prism-themes: ^1.8.0
-    refractor: ^4.1.1
+    refractor: ^4.2.0
     sass: ^1.38.1
     shaka-player: ^3.2.0
     solid-js: ^1.1.1
