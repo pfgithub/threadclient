@@ -2,8 +2,16 @@
     "extends": "tsconfig-tmeta",
     "compilerOptions": {
         "outDir": "./dist",
+        "lib": [
+            "dom",
+            "DOM.Iterable",
+        ],
+        "types": [
+            "vite/client"
+        ],
     },
     "include": [
         "src/**/*",
+        "vite.config.ts"
     ],
 }

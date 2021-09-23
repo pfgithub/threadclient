@@ -10,8 +10,8 @@
 - [x] vite + https://github.com/antfu/vite-plugin-pwa
 - [x] probably not since the webpack config is kinda messy and I need both react and solid
 - [x] or I can just delete the tiny bit of react for now
-- [ ] TODO migrate to pnpm
-- [ ] TODO migrate to yarn pnp
+- [ ] switch to https://github.com/antfu/unplugin-icons (it supports solid js and is built for vite)
+- [ ] check out rush for incremental monorepo stuff https://rushjs.io/pages/intro/welcome/
 
 fun stuff:
 

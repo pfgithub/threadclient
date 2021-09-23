@@ -6,6 +6,12 @@ Currently adds:
 
 TODO:
 
+https://areknawo.com/modern-web-extension-development-with-typescript/
+
+or this one to stick with vite:
+
+https://github.com/antfu/vitesse-webext
+
 - [ ] Automatically redirect supported pages on reddit.com to threadclient
   - Extract threadclient-router-reddit out from threadclient-client-reddit
   - Use that here to see if we support the page
