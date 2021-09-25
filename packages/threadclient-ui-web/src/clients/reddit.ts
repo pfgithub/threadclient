@@ -3557,7 +3557,7 @@ export const client: ThreadClient = {
     async loadMore(action: Generic.Opaque<"load_more">): Promise<Generic.Node[]> {
         const act = load_more_encoder.decode(action);
         if(act.kind === "api_loadmore") {
-            const remaining = act.children;
+            const remaining = [...act.children];
             const batch = remaining.splice(0, 100);
 
             const url = "/api/morechildren?api_type=json&limit_children=false&children="+batch.join(",")+"&link_id="+encodeURIComponent(act.link_fullname)+"&sort="+act.parent_permalink.sort;
@@ -3811,7 +3811,10 @@ export async function redditRequest<ResponseType>(
 
         const res_apierror = res as unknown as Reddit.APIError;
         if(typeof res_apierror === "object") {
-            if('json' in res_apierror && typeof res_apierror.json === "object" && 'errors' in res_apierror.json) {
+            if('json' in res_apierror
+            && typeof res_apierror.json === "object"
+            && 'errors' in res_apierror.json
+            && res_apierror.json.errors.length > 0) {
                 throw new Error(
                     res_apierror.json.errors.map(([id, message]) => id+": "+message).join(", "),
                 );
