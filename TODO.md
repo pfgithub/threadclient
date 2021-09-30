@@ -47,6 +47,7 @@ fun stuff:
   be useful to parse out the text and stuff
 - [ ] https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/progress_event xhr progress when loading in
   bad internet
+- [ ] doing richtext things: visualviewport finally allows us to position an element above the ios keyboard! and combine that with position device-fixed or a polyfill and it'll be a pretty nice bar thing
 
 page2 todo:
 
