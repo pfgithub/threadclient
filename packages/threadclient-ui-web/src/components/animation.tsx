@@ -32,13 +32,22 @@ export function animateHeight(
 
         const initial_size = comment_root.getBoundingClientRect();
         const navbar_size = navbar.getBoundingClientRect();
-        const navbar_y = 5 + navbar_size.bottom;
+        const visualTop = () => 5 + Math.max(
+            0, 
+            navbar_size.bottom,
+            window.visualViewport.offsetTop,
+        );
+        const visualBottom = () => (
+            window.visualViewport.offsetTop + window.visualViewport.height
+        );
+
+        console.log(initial_size.top, initial_size.bottom, visualTop(), visualBottom());
 
         let scroll_offset = 0;
-        if(initial_size.top < navbar_y && initial_size.bottom > navbar_y) {
+        if(initial_size.top < visualTop() && initial_size.bottom > visualTop()) {
             const start_scroll = document.documentElement.scrollTop;
             comment_root.scrollIntoView();
-            document.documentElement.scrollTop -= navbar_y;
+            document.documentElement.scrollTop -= visualTop();
             const end_scroll = document.documentElement.scrollTop;
             scroll_offset = start_scroll - end_scroll;
         }
@@ -49,15 +58,15 @@ export function animateHeight(
             return;
         }
 
-        const window_height = window.innerHeight;
-        const initial_height = Math.min(initial_size.bottom, window_height) - initial_size.top - scroll_offset;
+        const initial_height = Math.min(initial_size.bottom, visualBottom()) - initial_size.top - scroll_offset;
+        const prev_scrolltop = document.documentElement.scrollTop;
 
         setAnimating(null);
         setState(target, false, true);
 
         requestAnimationFrame(() => {
             const final_size = comment_root.getBoundingClientRect();
-            const final_height = Math.min(final_size.bottom, window_height) - final_size.top;
+            const final_height = Math.min(final_size.bottom, visualBottom()) - final_size.top;
 
             if(final_height === initial_height) {
                 setState(target, false, false);
@@ -69,6 +78,7 @@ export function animateHeight(
             setAnimating(initial_height);
             comment_root.scrollTop = scroll_offset;
             requestAnimationFrame(() => {
+                document.documentElement.scrollTop = prev_scrolltop;
                 comment_root.scrollTop = scroll_offset;
 
                 setAnimating(final_height);

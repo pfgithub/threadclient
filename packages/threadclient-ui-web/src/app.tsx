@@ -2151,11 +2151,25 @@ export function clientListing(
             el("div").clss("collapse-btn-inner")
         ).onev("click", (e) => {
             e.stopPropagation();
+
+            const initial_size = frame.getBoundingClientRect();
+            const navbar_size = navbar.getBoundingClientRect();
+            const visualTop = () => 5 + Math.max(
+                0, 
+                navbar_size.bottom,
+                window.visualViewport.offsetTop,
+            );
+            const visual_bottom =
+                window.visualViewport.offsetTop + window.visualViewport.height
+            ;
+            console.log(visualTop(), visual_bottom, initial_size.top);
+            if(initial_size.top < visualTop() && initial_size.bottom > visualTop()) {
+                frame.scrollIntoView();
+                document.documentElement.scrollTop -= visualTop();
+            }
+
             collapsed =! collapsed;
             update();
-            const topv = collapsed_button.getBoundingClientRect().top;
-            const heightv = 5 + navbar.getBoundingClientRect().height;
-            if(topv < heightv) {collapsed_button.scrollIntoView(); document.documentElement.scrollTop -= heightv }
         });
         frame.insertBefore(collapsed_button, frame.childNodes[0] ?? null);
         update();
@@ -3236,7 +3250,7 @@ function onNavigate(to_index: number, url: URLLike) {
 
 export const bodytop = el("div").adto(document.body);
 export let navbar: HTMLElement; {
-    const frame = el("nav").clss("navbar", "bg-postcolor-100").adto(document.body);
+    const frame = el("nav").clss("navbar", "bg-postcolor-100", "transition-opacity").adto(document.body);
     navbar = frame;
 
     const navbar_button = ["px-2"];
@@ -3285,6 +3299,10 @@ export let navbar: HTMLElement; {
 
         frame.style.setProperty("--mobile-transform", "translateY("+(-navbar_h)+"px)");
     }, {passive: false});
+
+    // if(window.visualViewport) window.visualViewport.addEventListener("resize", () => {
+    //     navbar.classList.toggle("opacity-0", window.visualViewport.scale > 1);
+    // }); // fun but unnecessary
 }
 
 let alertarea: HTMLElement | undefined;
