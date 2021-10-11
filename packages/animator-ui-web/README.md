@@ -1,8 +1,6 @@
 # Animator
 
-Animator was a short (1 week) project to create a simple animation program I could use to make this video:
-
-[![TTYLXOX underscores remix animated lyric video](https://user-images.githubusercontent.com/6010774/131990079-02149516-7a0b-48b6-a46e-7802d1b01e1c.png)](https://www.youtube.com/watch?v=PZwjTi79XuE)
+Animator was a short (1 week) project to create a simple animation program I could use to make a video.
 
 Animator is collaborative, so it suppors multiple people editing the same animation at once
 
@@ -19,7 +17,7 @@ Animator was created using
 - Typescript
 
 While I have finished developing this project, it is not yet complete. Many workarounds were needed while creating
-the demo video.
+the video.
 
 - Switching between tools (pen/eraser) requires editing code and using hot reload to get the changes without
   reloading the page
