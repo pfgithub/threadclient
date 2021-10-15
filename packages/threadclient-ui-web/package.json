@@ -28,6 +28,7 @@
     "eslint-config-tmeta": "^1.0.0",
     "threadclient-client-base": "^1.0.0",
     "threadclient-client-hackernews": "^1.0.0",
+    "threadclient-preview-vreddit": "^1.0.0",
     "tmeta-util": "^1.0.0",
     "tmeta-util-solid": "^1.0.0",
     "tsconfig-tmeta": "^1.0.0",

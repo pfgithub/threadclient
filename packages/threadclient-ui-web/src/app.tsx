@@ -16,6 +16,7 @@ import { createSignal } from "solid-js";
 import { ClientPostReply, Flair } from "./components/page2";
 import { ReplyEditor } from "./components/reply";
 import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
+import { getVredditSources } from "threadclient-preview-vreddit";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -120,22 +121,6 @@ export function menuButtonStyle(active: boolean): string {
         "inline-block mx-1 px-1 text-base border-b-2 transition-colors",
         active ? "border-gray-900" : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900"
     ].join(" ");
-}
-
-// TODO move this somewhere shared
-export function getVredditSources(id: string): Generic.VideoSource {
-    const link = "https://v.redd.it/"+id;
-    return {
-        kind: "video",
-        sources: [
-            {url: link+"/DASHPlaylist.mpd"},
-            {url: link+"/HLSPlaylist.m3u8"},
-        ],
-        preview: [
-            {url: link+"/DASH_96.mp4", type: "video/mp4"},
-            {url: link+"/DASH_96", type: "video/mp4"},
-        ],
-    };
 }
 
 function getVredditPreview(id: string): Generic.Video {
@@ -558,14 +543,14 @@ export async function textToBody(body: Generic.BodyText): Promise<Generic.Body> 
     if(body.markdown_format === "reddit") {
         const [mdr, htr] = await Promise.all([
             getRedditMarkdownRenderer(),
-            import("./clients/reddit/html_to_richtext"),
+            import("threadclient-client-reddit/src/html_to_richtext"),
         ]);
         const safe_html = mdr.renderMd(body.content);
         return {kind: "richtext", content: htr.parseContentHTML(safe_html)};
     }else if(body.markdown_format === "none") {
         return {kind: "richtext", content: [rt.p(rt.txt(body.content))]};
     }else if(body.markdown_format === "reddit_html") {
-        const htr = await import("./clients/reddit/html_to_richtext");
+        const htr = await import("threadclient-client-reddit/src/html_to_richtext");
         console.log(body.content);
         return {kind: "richtext", content: htr.parseContentHTML(body.content)};
     }else assertNever(body.markdown_format);
@@ -2933,7 +2918,7 @@ window.onpopstate = (ev: PopStateEvent) => {
 
 const client_cache: {[key: string]: ThreadClient} = {};
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
-    reddit: () => import("./clients/reddit").then(client => client.client),
+    reddit: () => import("threadclient-client-reddit").then(client => client.client),
     mastodon: () =>  import("./clients/mastodon").then(client => client.client),
     hackernews: () =>  import("threadclient-client-hackernews").then(client => client.client),
     test: () =>  import("./clients/test").then(client => client.client),

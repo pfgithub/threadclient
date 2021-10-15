@@ -6,8 +6,8 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import * as util from "tmeta-util";
 import { encodeQuery, encodeURL } from "tmeta-util";
-import { getVredditSources } from "../app";
-import { getPage } from "./reddit/page2_from_listing";
+import { getVredditSources } from "threadclient-preview-vreddit";
+import { getPage } from "./page2_from_listing";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -2457,7 +2457,7 @@ export function getCommentBody(listing: Reddit.PostComment): Generic.Body {
     return comment_body;
 }
 
-export type { IDMap } from "./reddit/page2_from_listing";
+export type { IDMap } from "./page2_from_listing";
 
 export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
     if(

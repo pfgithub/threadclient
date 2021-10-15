@@ -10386,6 +10386,18 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
+"threadclient-client-reddit@workspace:packages/threadclient-client-reddit":
+  version: 0.0.0-use.local
+  resolution: "threadclient-client-reddit@workspace:packages/threadclient-client-reddit"
+  dependencies:
+    api-types-reddit: ^1.0.0
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.3.5
+  languageName: unknown
+  linkType: soft
+
 "threadclient-extension-firefox@workspace:packages/threadclient-extension-firefox":
   version: 0.0.0-use.local
   resolution: "threadclient-extension-firefox@workspace:packages/threadclient-extension-firefox"
@@ -10397,6 +10409,19 @@ fsevents@~2.3.2:
     web-ext: ^6.4.0
     webext-bridge: ^5.0.0
     webextension-polyfill: ^0.8.0
+  languageName: unknown
+  linkType: soft
+
+"threadclient-preview-vreddit@^1.0.0, threadclient-preview-vreddit@workspace:packages/threadclient-preview-vreddit":
+  version: 0.0.0-use.local
+  resolution: "threadclient-preview-vreddit@workspace:packages/threadclient-preview-vreddit"
+  dependencies:
+    api-types-generic: ^1.0.0
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    threadclient-preview-vreddit: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.3.5
   languageName: unknown
   linkType: soft
 
@@ -10429,6 +10454,7 @@ fsevents@~2.3.2:
     solid-js: ^1.1.1
     threadclient-client-base: ^1.0.0
     threadclient-client-hackernews: ^1.0.0
+    threadclient-preview-vreddit: ^1.0.0
     tmeta-util: ^1.0.0
     tmeta-util-solid: ^1.0.0
     tsconfig-tmeta: ^1.0.0

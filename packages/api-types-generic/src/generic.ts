@@ -251,6 +251,7 @@ export declare namespace Richtext {
 export type RichText = {
     kind: "richtext",
     content: readonly Richtext.Paragraph[],
+    // whitespace_sensitive: boolean (for easier html -> richtext conversions, use false)
 };
 export type Video = {
     kind: "video",

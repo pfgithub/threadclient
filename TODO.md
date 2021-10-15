@@ -48,6 +48,7 @@ fun stuff:
 - [ ] https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/progress_event xhr progress when loading in
   bad internet
 - [ ] doing richtext things: visualviewport finally allows us to position an element above the ios keyboard! and combine that with position device-fixed or a polyfill and it'll be a pretty nice bar thing
+- mock the reddit api and use things eg https://github.com/marak/Faker.js/ and maybe have some sample pages and stuff
 
 page2 todo:
 
@@ -72,6 +73,9 @@ page2 todo:
 - [ ] this still looks very bad, but here is an example of some things that could be done:
   - https://i.imgur.com/ji1G657.png
   - it might help to use an actual interface design program to make mockups and then try to replicate those
+
+preview todo:
+- add support for youtube.com/shorts (I think youtube offers an oembed thing so I don't have to do url parsing)
 
 tmeta todo:
 

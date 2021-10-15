@@ -7,7 +7,7 @@ import {
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
     getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery,
     expectUnsupported, parseLink, redditRequest, authorFromT2
-} from "../reddit";
+} from "./reddit";
 
 function warn(...message: unknown[]) {
     console.log(...message);
