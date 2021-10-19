@@ -541,7 +541,7 @@ function PreviewRealVideo(props: {
                         "rounded-full",
                         "group-focus-visible-outline-default",
                         "cursor-pointer",
-                        showOverlay() ? "scale-200 opacity-100" : "scale-0 opacity-0",
+                        state.playing !== true ? "scale-200 opacity-100" : "scale-0 opacity-0",
                     )}
                 >
                     <Icon size="icon-sm" icon={
