@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import type shaka_types from "shaka-player";
-import { createEffect, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 import { ShowCond, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, zoomableImage } from "../app";
@@ -370,6 +370,19 @@ type SeekState = {
     preview: [x: number, y: number],
 };
 
+// returns true once Date.now() <= target_time
+function compareTime(target_time: number): () => boolean {
+    const distance = target_time - Date.now();
+    if(distance <= 0) return () => true;
+    if(distance >= Number.MAX_SAFE_INTEGER) return () => false;
+    const [result, setResult] = createSignal(false);
+    const timeout = setTimeout(() => {
+        setResult(true);
+    }, distance);
+    onCleanup(() => clearTimeout(timeout));
+    return result;
+}
+
 type VideoSourceI = {i: number, url: string, quality?: undefined | string};
 type BufferNode = {start: number, end: number};
 function PreviewRealVideo(props: {
@@ -392,8 +405,8 @@ function PreviewRealVideo(props: {
         live: null,
     });
 
-    const [expandControlsRaw, setExpandControls] = createSignal(false);
     const [seek, setSeek] = createSignal<SeekState | null>(null);
+    const [lastMouseEvent, setLastMouseEvent] = createSignal<number>(0);
 
     const settings = getSettings();
 
@@ -401,10 +414,12 @@ function PreviewRealVideo(props: {
         return settings.custom_video_controls.value() === "custom" || !!state.live;
     };
 
-    const expandControls = () => {
+    // note: once menus are added, expandControls() has to return true if any menu is open
+    const expandControls = createMemo(() => {
         if(!customControls()) return false;
-        return expandControlsRaw();
-    };
+        if(compareTime(lastMouseEvent() + 1000)()) return false;
+        return true;
+    });
  
     // custom controls todo:
     // [ ] scrubbing
@@ -467,13 +482,13 @@ function PreviewRealVideo(props: {
                 : "16 / 9",
             }}
             onmouseenter={() => {
-                setExpandControls(true);
+                setLastMouseEvent(Date.now());
             }}
             onmousemove={() => {
-                setExpandControls(true);
+                setLastMouseEvent(Date.now());
             }}
             onmouseleave={() => {
-                setExpandControls(false);
+                setLastMouseEvent(0);
             }}
         >
             <NativeVideoElement
