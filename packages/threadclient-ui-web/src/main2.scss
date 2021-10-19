@@ -10,3 +10,6 @@ textarea {
         outline: 1px dotted var(--outline-color);
     }
 }
+.group:focus-visible .group-focus-visible-outline-default {
+    outline: 1px dotted var(--outline-color);
+}

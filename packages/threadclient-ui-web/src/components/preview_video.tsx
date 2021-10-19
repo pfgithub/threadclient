@@ -490,6 +490,12 @@ function PreviewRealVideo(props: {
             onmouseleave={() => {
                 setLastMouseEvent(0);
             }}
+            onfocus={() => {
+                setLastMouseEvent(Date.now());
+            }}
+            onblur={() => {
+                setLastMouseEvent(0);
+            }}
         >
             <NativeVideoElement
                 state={state}
@@ -512,25 +518,31 @@ function PreviewRealVideo(props: {
                     <p>Error! {overlay}</p>
                 </div>
             )}</ShowCond>
-            <div
+            <button
                 class={classes(
-                    "absolute top-0 left-0 bottom-0 right-0 items-center justify-center flex",
-                    "transform transition",
-                    showOverlay() ? "scale-100 opacity-100" : "scale-0 opacity-0",
+                    "block absolute top-0 left-0 bottom-0 right-0 w-full h-full",
+                    "transform transition group",
+                    customControls() ? "" : "hidden",
+                    showOverlay() ? "cursor-default" : "cursor-none",
                 )}
-            >
-                <button
-                    class="block transform scale-200 hover:scale-300 transition-transform"
-                    onclick={() => {
-                        if(state.playing === false) {
-                            video_ref.play();
-                        }else{
-                            video_ref.pause();
-                        }
-                    }}
-                    style={{
-                        'filter': "drop-shadow(0 0 5px rgba(0, 0, 0, 0.5))",
-                    }}
+                onclick={() => {
+                    if(state.playing === false) {
+                        video_ref.play();
+                        setLastMouseEvent(0);
+                    }else{
+                        video_ref.pause();
+                    }
+                }}
+            ><span class="items-center justify-center flex">
+                <div
+                    class={classes(
+                        "block transform transition",
+                        "bg-rwhite dark:bg-rblack bg-opacity-40 dark:bg-opacity-40 hover:bg-opacity-80",
+                        "rounded-full",
+                        "group-focus-visible-outline-default",
+                        "cursor-pointer",
+                        showOverlay() ? "scale-200 opacity-100" : "scale-0 opacity-0",
+                    )}
                 >
                     <Icon size="icon-sm" icon={
                         state.playing === false ? {
@@ -544,8 +556,8 @@ function PreviewRealVideo(props: {
                             label: "Loading",
                         }
                     } />
-                </button>
-            </div>
+                </div>
+            </span></button>
             <div
                 class={classes(
                     "absolute left-0 right-0 bottom-0",

@@ -53,6 +53,8 @@ export default defineConfig({
             'spoiler-color-revealed': "var(--spoiler-color-revealed)",
             'white': "var(--white)",
             'black': "var(--black)",
+            'rwhite': "#FFF",
+            'rblack': "#000",
             'light': {
                 50: "#FFF",
                 100: "#d6dde4",
@@ -74,6 +76,17 @@ export default defineConfig({
             },
             // nightwind doesn't work properly with dahes in names for some reason
             'postcolor': {100: "var(--postcolor-100)", 800: "#181a1b"}, // TODO add more colors here :: spoiler-color spoiler-color-hover spoiler-color-revealed + those collapse btn colors
+        },
+        cursor: {
+            'auto': 'auto',
+            'default': 'default',
+            'pointer': 'pointer',
+            'wait': 'wait',
+            'text': 'text',
+            'move': 'move',
+            'not-allowed': 'not-allowed',
+            'crosshair': 'crosshair',
+            'none': 'none',
         },
     },
     plugins: [
