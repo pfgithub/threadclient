@@ -558,6 +558,16 @@ function postDataFromListingMayError(
 
         const parent_post = map.get(listing.parent_id as ID);
 
+        // note: it would be preferable to have something similar to twitter "hidden" functionality
+        //       where the post is displayed but it's just a box saying "this post is hidden because
+        //       (reason)" and have a button click to show it. and also if you click one show button
+        //       it should reveal all others of the same type (eg if you're looking at a bot's
+        //       profile page)
+        const automatic_collapse = (
+            // collapsed because threadclient provides its own functionality for this
+            listing.author === "FatFingerHelperBot"
+        );
+
         return {
             kind: "post",
             url: updateQuery(listing.permalink, {context: "3"}),
@@ -571,7 +581,7 @@ function postDataFromListingMayError(
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getCommentBody(listing),
                 info: getPostInfo(listing_raw),
-                collapsible: {default_collapsed: listing.collapsed ?? false},
+                collapsible: {default_collapsed: (automatic_collapse) || (listing.collapsed ?? false)},
                 show_replies_when_below_pivot: true,
                 actions: {
                     vote: parent_post?.data.kind === "post" && parent_post.data.post.data.discussion_type === "CHAT"
