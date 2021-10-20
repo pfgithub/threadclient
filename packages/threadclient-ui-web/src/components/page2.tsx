@@ -40,7 +40,15 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
     return <span><For each={props.flairs}>{(flair) => <>
         {" "}
         <span
-            class={flair.system != null ? flair.system : ("rounded-full px-2"
+            class={flair.system != null ? {
+                none: "",
+                op: "text-blue-500",
+                cake: "text-gray-500",
+                admin: "text-red-500",
+                moderator: "text-green-500",
+                approved: "text-green-500",
+                error: "text-red-500",
+            }[flair.system] : ("rounded-full px-2"
                 + (flair.color != null ? " bg-flair-light dark:bg-flair-dark" : " bg-gray-300")
                 + (flair.fg_color != null ? " flair-text-"+flair.fg_color : "")
             )}

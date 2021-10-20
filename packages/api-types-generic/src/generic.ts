@@ -551,12 +551,28 @@ export type RichTextItem = {
     w: number,
     h: number,
 };
+export type SystemKind = "none" | "op" | "cake" | "admin" | "moderator" | "approved" | "error";
 export type Flair = {
     color?: string | undefined,
     fg_color?: "light" | "dark" | undefined,
     elems: RichTextItem[], // TODO → Richtext.Span[]
     content_warning: boolean,
-    system?: string | undefined, // tailwind css color class
+    system?: undefined | SystemKind,
+    // note: this should be moved to being a property of the user or post in page2
+    //       (actually what should it be? admin is a property of the user, moderator
+    //        is a property of the user & the subreddit, op is a property of the
+    //        user & the post. maybe the highest level where the thing applies should
+    //        be the place where the tag is assigned? eg - actually moderator and
+    //        admin are both properties of the post, they have to be manually
+    //        distinguished nvm. and eg: a user who was a mod but no longer is.)
+    //       (could be nice though, some slightly more structured info about this)
+    // op: text-blue-500
+    // cake: text-gray-500
+    // admin: text-red-500
+    // moderator: text-green-500
+    // approved: text-green-500 (move this to be a part of special moderator
+    //                           functionality in page2. moderator stuff probably
+    //                           isn't super generalizable across platforms, not sure)
 };
 export type ActionLabel = string;
 export type ReplyAction = {

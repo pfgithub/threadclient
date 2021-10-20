@@ -51,7 +51,7 @@ export function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
         if(awarding.count > 1) resitems.push({kind: "text", text: "×" + awarding.count});
     }
     if(resitems.length === 0) return [];
-    return [{elems: resitems, content_warning: false, system: ""}];
+    return [{elems: resitems, content_warning: false, system: "none"}];
 }
 
 type Action =
@@ -2285,10 +2285,10 @@ export function authorFromInfo(opts: {
     author_cakeday: boolean | undefined,
     pfp: string | undefined,
 }): Generic.InfoAuthor {
-    const system_colors: {[key in Reddit.UserDistinguished]: string} = {
-        admin: "text-red-500",
-        moderator: "text-green-500",
-        unsupported: "text-red-500",
+    const system_colors: {[key in Reddit.UserDistinguished]: Generic.SystemKind} = {
+        admin: "admin",
+        moderator: "moderator",
+        unsupported: "error",
     };
     return {
         color_hash: opts.author,
@@ -2302,7 +2302,7 @@ export function authorFromInfo(opts: {
                     text: "«OP»",
                 }],
                 content_warning: false,
-                system: "text-blue-500",
+                system: "op",
             }]) : [],
             ...opts.author_cakeday ?? false ? as<Generic.Flair[]>([{
                 elems: [{
@@ -2310,7 +2310,7 @@ export function authorFromInfo(opts: {
                     text: "«🍰»",
                 }],
                 content_warning: false,
-                system: "text-gray-500",
+                system: "cake",
             }]) : [],
             ...opts.distinguished != null ? as<Generic.Flair[]>([{
                 elems: [{
@@ -2588,7 +2588,7 @@ export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
         flairs.push({
             elems: [{kind: "text", text: "✓ Approved"}],
             content_warning: false,
-            system: "text-green-500",
+            system: "approved",
         });
     }
     return flairs;
