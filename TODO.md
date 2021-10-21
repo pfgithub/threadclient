@@ -35,6 +35,7 @@ fun stuff:
       transitions still require everything to be in the same parent node
 - [ ] check out https://www.tiptap.dev/ for the richtext editor
   - I haven't looked into it at all, if it does good typescript support then I should try it
+  - https://github.com/andi23rosca/tiptap-solid there is a solid js port thing
 - [x] show a content summary thing on collapsed comments.
   - eg: https://user-images.githubusercontent.com/6010774/132083968-7eef3197-0cad-4828-ae26-16bed7056ec8.png
   - generate these based on the body type. some body types may have no summary and might just be `[image]`
