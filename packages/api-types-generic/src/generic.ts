@@ -577,6 +577,7 @@ export type Flair = {
 export type ActionLabel = string;
 export type ReplyAction = {
     kind: "reply",
+    key: string, // draft replies will be saved with this key
     text: ActionLabel,
     reply_info: Opaque<"reply">,
 };

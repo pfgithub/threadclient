@@ -173,6 +173,7 @@ const replyable = (): Partial<Generic.ListingData> => ({
     reply: {
         action: {
             kind: "reply",
+            key: "" + Math.random(),
             text: "Reply",
             reply_info: reply_encoder.encode({kind: "markdown"}),
         },
@@ -847,6 +848,7 @@ export const client: ThreadClient = {
             res.actions.push({
                 kind: "reply",
                 text: "Reply",
+                key: "" + Math.random(),
                 reply_info: reply_encoder.encode({kind: "markdown"}),
             });
             return res;

@@ -2250,6 +2250,7 @@ export function reportButton(fullname: string, subreddit: string): Generic.Actio
 export function replyButton(fullname: string): Generic.ReplyAction {
     return {
         kind: "reply",
+        key: "reply-"+fullname,
         text: "Reply",
         reply_info: reply_encoder.encode({parent_id: fullname}),
     };

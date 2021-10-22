@@ -6,7 +6,7 @@ import {
 import { createStore, reconcile } from "solid-js/store";
 import { ShowCond } from "tmeta-util-solid";
 import { link_styles_v } from "../app";
-import { getClient } from "../util/utils_solid";
+import { getClient, localStorageSignal } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./page2";
 
 type StoreTypeValue = {value: null | Generic.PostContent};
@@ -16,7 +16,8 @@ export function ReplyEditor(props: {
     onAddReply: (response: Generic.Link<Generic.Post>) => void,
 }): JSX.Element {
     const client = getClient();
-    const [content, setContent] = createSignal("");
+    const [rawContent, setContent] = localStorageSignal("comment-draft-"+props.action.key);
+    const content = () => rawContent() ?? "";
     const empty = () => content().trim() === "";
 
     const [isSending, setSending] = createSignal(false);
@@ -52,6 +53,7 @@ export function ReplyEditor(props: {
                         // terrible idea, but like…
                         // it could be fun
                         // might not look good
+                        setContent(null); // trust that the response is succesful
                         props.onAddReply({
                             ref: {
                                 kind: "post",
@@ -83,12 +85,7 @@ export function ReplyEditor(props: {
                     });
                 }}
             >{isSending() ? "…" : "Reply"}</button>
-            <button disabled={isSending()} class={link_styles_v["pill-empty"]} on:click={(e) => {
-                console.log("Cancel button clicked");
-
-                if(content()) {
-                    if(!confirm("delete draft?")) return;
-                }
+            <button disabled={isSending()} class={link_styles_v["pill-empty"]} onClick={(e) => {
                 props.onCancel();
             }}>Cancel<div /></button>
         </div>
