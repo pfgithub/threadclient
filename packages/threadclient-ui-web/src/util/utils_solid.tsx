@@ -1,7 +1,7 @@
 import {
     Accessor, createContext, createEffect, createMemo,
     createRoot,
-    createSignal, ErrorBoundary, JSX, onCleanup, Setter, useContext
+    createSignal, ErrorBoundary, JSX, onCleanup, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
