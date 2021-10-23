@@ -21,6 +21,18 @@
 - [ ] switch to https://github.com/antfu/unplugin-icons (it supports solid js and is built for vite)
 - [ ] check out rush for incremental monorepo stuff https://rushjs.io/pages/intro/welcome/
 
+todo:
+
+- [ ] apply thiss tyle to url previews:
+
+  ```css
+  .clickerthing:hover, .clickerthing:focus {
+      background-color: var(--cool-gray-200);
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+      transition: all 0.1s;
+  }
+  ```
+
 fun stuff:
 
 - [ ] display all comments from a single list. use props to specify how indented, if threaded, ...
