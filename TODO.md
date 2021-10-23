@@ -27,9 +27,11 @@ todo:
 
   ```css
   .clickerthing:hover, .clickerthing:focus {
-      background-color: var(--cool-gray-200);
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
-      transition: all 0.1s;
+    background-color: var(--cool-gray-200);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+  }
+  .clickerthing {
+    transition: all 0.1s;
   }
   ```
 
