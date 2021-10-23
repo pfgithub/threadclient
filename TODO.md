@@ -3,7 +3,7 @@
 - [ ] make it so you can go to thread.pfg.pw/https://... and it does the thing
 - [ ] consider rather than having inline link previews, make it so when you click
       a link it navigates to thread.pfg.pw/the link that could be neat maybe
-- [ ] rather than the "delete draft" prompt have the ui save draft replies
+- [x] rather than the "delete draft" prompt have the ui save draft replies
       by post id so when you click reply again it lets you type or whatever
 
 ## todo

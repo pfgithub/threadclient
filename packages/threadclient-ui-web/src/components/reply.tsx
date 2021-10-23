@@ -16,7 +16,7 @@ export function ReplyEditor(props: {
     onAddReply: (response: Generic.Link<Generic.Post>) => void,
 }): JSX.Element {
     const client = getClient();
-    const [rawContent, setContent] = localStorageSignal("comment-draft-"+props.action.key);
+    const [rawContent, setContent] = localStorageSignal("comment-draft-"+client().id+"-"+props.action.key);
     const content = () => rawContent() ?? "";
     const empty = () => content().trim() === "";
 
