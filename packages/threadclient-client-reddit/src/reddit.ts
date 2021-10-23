@@ -669,13 +669,21 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
         kind: "widget",
         title: data.shortName,
         raw_value: data,
-        widget_content: {kind: "list", items: data.order.map((id) => {
+        widget_content: {kind: "list", items: data.order.map((id): Generic.WidgetListItem => {
             const val = data.templates[id]!;
             const flairv = flairToGenericFlair({
                 type: val.type, text: val.text, text_color: val.textColor,
                 background_color: val.backgroundColor, richtext: val.richtext,
             });
-            if(flairv.length !== 1) throw new Error("bad flair");
+            if(flairv.length !== 1) {
+                console.log("bad flair", val, flairv);
+                return {
+                    name: {kind: "text", text: "error bad flair"},
+                    click: {kind: "body", body: {kind: "richtext", content: [
+                        rt.p(rt.error("bad flair", [val, flairv])),
+                    ]}}
+                };
+            }
             return {
                 name: {kind: "flair", flair: flairv[0]!},
                 click: {kind: "link", url: "/r/"+subreddit+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1"}
