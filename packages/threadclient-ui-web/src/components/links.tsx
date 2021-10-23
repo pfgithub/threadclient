@@ -9,8 +9,6 @@ import { Body } from "./body";
 export * from "../util/interop_solid";
 
 export function PreviewableLink(props: {href: string, children: JSX.Element}): JSX.Element {
-    const client = getClient();
-
     const linkPreview: () => {
         visible: () => boolean,
         setVisible: (a: boolean) => void,

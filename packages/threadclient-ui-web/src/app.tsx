@@ -3143,7 +3143,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             return renderPath(parsed_url.pathname, parsed_url.search);
         }
 
-        const safe_link = unsafeLinkToSafeLink("null", parsed_url.toString())
+        const safe_link = unsafeLinkToSafeLink("null", parsed_url.toString());
         if(safe_link.kind === "link") {
             if(!safe_link.external) {
                 const [respath, ...ressearch] = safe_link.url.split("?");
@@ -3151,7 +3151,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             }
         }
 
-        const previewable_link = previewLink(pathfull, {})
+        const previewable_link = previewLink(pathfull, {});
         if(previewable_link) {
             const res = el("div");
             const hsc = hideshow(res);
