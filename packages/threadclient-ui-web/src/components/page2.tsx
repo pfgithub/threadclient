@@ -162,7 +162,7 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
             <SolidToVanillaBoundary getValue={(hsc, client) => {
                 const outer = el("div").clss("-mt-10px -ml-10px");
                 const frame = el("div").clss("post text-sm").adto(outer);
-                clientListing(client(), legacy.thread, frame, {
+                clientListing(client, legacy.thread, frame, {
                     clickable: true,
                 }).defer(hsc);
                 return outer;
@@ -282,7 +282,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
                         e.stopPropagation();
                         // support ctrl click
-                        const target_url = "/"+client().id+props.opts.frame?.url;
+                        const target_url = "/"+client.id+props.opts.frame?.url;
                         if(e.ctrlKey || e.metaKey || e.altKey) {
                             window.open(target_url);
                         }else{
@@ -458,7 +458,7 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
                     // clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
                     // return clientContent()
                     //                             clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
-                    return clientContent(client(), legacy.thread, {clickable: props.opts.clickable}).defer(hsc);
+                    return clientContent(client, legacy.thread, {clickable: props.opts.clickable}).defer(hsc);
                 }}/>,
             }}</SwitchKind>
         </DefaultErrorBoundary>
@@ -584,7 +584,7 @@ function WrapParent(props: {node: Generic.Post, children: JSX.Element, is_pivot:
                                     margin: "-10px",
                                     padding: "10px",
                                 });
-                                bioRender(client(), page.wrap_page.header, frame).defer(hsc);
+                                bioRender(client, page.wrap_page.header, frame).defer(hsc);
                                 return frame;
                             }} />
                         </TopLevelWrapper>

@@ -16,7 +16,7 @@ export function ReplyEditor(props: {
     onAddReply: (response: Generic.Link<Generic.Post>) => void,
 }): JSX.Element {
     const client = getClient();
-    const [rawContent, setContent] = localStorageSignal("comment-draft-"+client().id+"-"+props.action.key);
+    const [rawContent, setContent] = localStorageSignal("comment-draft-"+client.id+"-"+props.action.key);
     const content = () => rawContent() ?? "";
     const empty = () => content().trim() === "";
 
@@ -25,7 +25,7 @@ export function ReplyEditor(props: {
 
     const [diffable, setDiffable] = createStore<StoreTypeValue>({value: null});
     createEffect(() => {
-        const resv: Generic.PostContent = client().previewReply!(content(), props.action.reply_info);
+        const resv: Generic.PostContent = client.previewReply!(content(), props.action.reply_info);
         setDiffable(reconcile<StoreTypeValue>({value: resv}, {merge: true}));
         // this does well but unfortunately it doesn't know what to use as keys for lists and it can't really know
         // because it's text → (opaque parser) → richtext
@@ -44,7 +44,7 @@ export function ReplyEditor(props: {
                 onClick={(e) => {
                     setSending(true);
 
-                    client().sendReply!(content(), props.action.reply_info).then((r) => {
+                    client.sendReply!(content(), props.action.reply_info).then((r) => {
                         console.log("Got response", r);
                         // TODO:
                         // so, this is a terrible idea,

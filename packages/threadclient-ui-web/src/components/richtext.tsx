@@ -296,7 +296,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
         return {visible, toggleVisible: () => setVisible(v => !v), body};
     });
     const human = createMemo((): {link: string, external: boolean} => {
-        const res = unsafeLinkToSafeLink(client().id, props.link.url);
+        const res = unsafeLinkToSafeLink(client.id, props.link.url);
         if(res.kind === "link") {
             return {link: res.url, external: res.external};
         }else return {link: "error", external: true};

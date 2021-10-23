@@ -31,8 +31,10 @@ export function vanillaToSolidBoundary(
 }
 
 export function SolidToVanillaBoundary(props: {
-    getValue: (hsc: HideShowCleanup<undefined>,
-    client: () => ThreadClient) => HTMLElement,
+    getValue: (
+        hsc: HideShowCleanup<undefined>,
+        client: ThreadClient,
+    ) => HTMLElement,
 }): JSX.Element {
     const client = getClient();
     const visible = getIsVisible();

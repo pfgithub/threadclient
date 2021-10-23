@@ -79,11 +79,11 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                             let new_body: Generic.Body;
                             let errored = false;
                             setLoadState({kind: "loading"});
-                            if(!client().fetchRemoved) {
+                            if(!client.fetchRemoved) {
                                 throw new Error("client provided a removal fetch path but has no fetchRemoved");
                             }
                             try {
-                                new_body = await client().fetchRemoved!(path);
+                                new_body = await client.fetchRemoved(path);
                             }catch(error_) {
                                 const error = error_ as Error;
                                 errored = true;
@@ -172,12 +172,12 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
         }}</For>,
         gfycat: gfycat => <SolidToVanillaBoundary getValue={(hsc, client) => {
             const div = el("div");
-            gfyLike(client(), gfycat.host, gfycat.id, {autoplay: props.autoplay}).defer(hsc).adto(div);
+            gfyLike(client, gfycat.host, gfycat.id, {autoplay: props.autoplay}).defer(hsc).adto(div);
             return div;
         }} />,
         imgur: imgur => <SolidToVanillaBoundary getValue={(hsc, client) => {
             const div = el("div");
-            imgurImage(client(), imgur.imgur_kind, imgur.imgur_id).defer(hsc).adto(div);
+            imgurImage(client, imgur.imgur_kind, imgur.imgur_id).defer(hsc).adto(div);
             return div;
         }} />,
         youtube: youtube => <SolidToVanillaBoundary getValue={(hsc, client) => {
@@ -196,12 +196,12 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
         }} />,
         link_preview: link_preview => <SolidToVanillaBoundary getValue={(hsc, client) => {
             const div = el("div");
-            linkPreview(client(), link_preview).defer(hsc).adto(div);
+            linkPreview(client, link_preview).defer(hsc).adto(div);
             return div;
         }} />,
         oembed: oembed => <SolidToVanillaBoundary getValue={(hsc, client) => {
             const div = el("div");
-            renderOembed(client(), oembed).defer(hsc).adto(div);
+            renderOembed(client, oembed).defer(hsc).adto(div);
             return div;
         }} />,
         mastodon_instance_selector: () => {
@@ -216,7 +216,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             });
             const go = () => {
                 if(!acceptable()) return;
-                navigate({path: "/"+client().id+"/"+(instance().replaceAll("/", "-"))});
+                navigate({path: "/"+client.id+"/"+(instance().replaceAll("/", "-"))});
             };
             return <div>
                 <h1 class="text-base font-light" style={{'max-width': "6rem"}}>

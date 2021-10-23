@@ -45,7 +45,7 @@ export function A(props: {
     children: JSX.Element,
 }): JSX.Element {
     const client = getClient();
-    const linkValue = createMemo(() => unsafeLinkToSafeLink(client().id, props.href));
+    const linkValue = createMemo(() => unsafeLinkToSafeLink(client.id, props.href));
     return <SwitchKind item={linkValue()}>{{
         error: (error) => <a class={props.class + " error"} title={error.title} on:click={(e) => {
             e.stopPropagation();

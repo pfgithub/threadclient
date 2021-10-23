@@ -26,10 +26,10 @@ const ClientContext = createContext<{client: ThreadClient}>();
 export function ClientProvider(props: {client: ThreadClient, children: JSX.Element}): JSX.Element {
     return <ClientContext.Provider value={{client: props.client}}>{props.children}</ClientContext.Provider>;
 }
-export function getClient(): (() => ThreadClient) { // TODO getClient: (): ThreadClient =}
+export function getClient(): ThreadClient { // TODO getClient: (): ThreadClient =}
     const client = useContext(ClientContext);
     if(!client) throw new Error("A client is required to render this component");
-    return createMemo(() => client.client); // turns out you can't update provider values? weird
+    return client.client; // turns out you can't update provider values? weird
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention

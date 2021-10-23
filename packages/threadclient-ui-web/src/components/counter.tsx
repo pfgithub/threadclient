@@ -90,7 +90,7 @@ export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
             onclick={() => {
                 void actAuto(
                     state().your_vote === "increment" ? undefined : "increment",
-                    client(),
+                    client,
                     state(),
                     setState,
                     props.counter,
@@ -104,7 +104,7 @@ export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
                 onclick={() => {
                     void actAuto(
                         state().your_vote === "decrement" ? undefined : "decrement",
-                        client(),
+                        client,
                         state(),
                         setState,
                         props.counter,
@@ -129,7 +129,7 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
             onclick={() => {
                 void actAuto(
                     state().your_vote === "increment" ? undefined : "increment",
-                    client(),
+                    client,
                     state(),
                     setState,
                     props.counter,
@@ -147,7 +147,7 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
             onclick={() => {
                 void actAuto(
                     state().your_vote === "decrement" ? undefined : "decrement",
-                    client(),
+                    client,
                     state(),
                     setState,
                     props.counter,
