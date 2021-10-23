@@ -54,7 +54,11 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): (
         urlparsed = undefined;
     }
     if(urlparsed && !is_raw && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
-        href = "/reddit"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
+        if(urlparsed.host === "mod.reddit.com") {
+            href = "/reddit/mod"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
+        }else{
+            href = "/reddit"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
+        }
     }
     if(urlparsed && !is_raw && (urlparsed.host === "redd.it")) {
         href = "/reddit/comments"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
@@ -257,7 +261,6 @@ function replaceExtension(path: string, ext: string): string {
 }
 
 export function previewLink(
-    client: ThreadClient,
     link: string,
     opts: {suggested_embed?: undefined | string},
 ): undefined | Generic.Body {
@@ -409,7 +412,7 @@ export function canPreview(
     link: string,
     opts: {autoplay: boolean, suggested_embed?: undefined | string},
 ): undefined | (() => HideShowCleanup<HTMLElement>) {
-    const preview_body = previewLink(client, link, {suggested_embed: opts.suggested_embed});
+    const preview_body = previewLink(link, {suggested_embed: opts.suggested_embed});
     if(preview_body) {
         return (): HideShowCleanup<HTMLElement> => renderBody(client, preview_body, {autoplay: opts.autoplay});
     }
@@ -3127,6 +3130,51 @@ export function fetchPromiseThen<T>(
 }
 
 function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivElement> {
+    const pathfull = (pathraw + search).substring(1);
+    if(pathfull.toLowerCase().startsWith("http://")
+    || pathfull.toLowerCase().startsWith("https://")) {
+        let parsed_url: URL;
+        try {
+            parsed_url = new URL(pathfull);
+        } catch(e) {
+            return fullscreenError("Invalid URL: "+pathfull);
+        }
+        if(parsed_url.hostname === "thread.pfg.pw") {
+            return renderPath(parsed_url.pathname, parsed_url.search);
+        }
+
+        const safe_link = unsafeLinkToSafeLink("null", parsed_url.toString())
+        if(safe_link.kind === "link") {
+            if(!safe_link.external) {
+                const [respath, ...ressearch] = safe_link.url.split("?");
+                return renderPath(respath!, ressearch.join("?"));
+            }
+        }
+
+        const previewable_link = previewLink(pathfull, {})
+        if(previewable_link) {
+            const res = el("div");
+            const hsc = hideshow(res);
+            vanillaToSolidBoundary(
+                {
+                    id: "ERROR",
+                    getThread: () => {throw new Error("not real client")},
+                    act: () => {throw new Error("not real client")},
+                    previewReply: () => {throw new Error("not real client")},
+                    sendReply: () => {throw new Error("not real client")},
+                    loadMore: () => {throw new Error("not real client")},
+                    loadMoreUnmounted: () => {throw new Error("not real client")},
+                },
+                res,
+                () => <Body body={previewable_link} autoplay={false} />,
+                {color_level: 0},
+            ).defer(hsc);
+            return hsc;
+        }
+
+        return fullscreenError("Unsupported Link: "+pathfull);
+    }
+
     const path = pathraw.split("/").filter(w => w);
 
     const path0 = path.shift();
@@ -3256,13 +3304,20 @@ export let navbar: HTMLElement; {
     const nav_go = el("button").attr({'aria-label': "Go"}).clss(...navbar_button).atxt("⏎").adto(frame);
     const nav_reload = el("button").attr({'aria-label': "Reload"}).clss(...navbar_button).atxt("🗘").adto(frame);
 
-    const go = () => navigate({path: nav_path.value});
+    const go = () => navigate({path: "/"+nav_path.value.replace(/^\//, "")});
     nav_go.onclick = () => go();
     nav_path.onkeydown = k => k.key === "Enter" ? go() : 0;
 
     nav_reload.onclick = () => alert("TODO refresh");
 
-    navigate_event_handlers.push(url => nav_path.value = url.pathname + url.search);
+    navigate_event_handlers.push(url => {
+        if(url.pathname.toLowerCase().startsWith("/http://")
+        || url.pathname.toLowerCase().startsWith("/https://")) {
+            nav_path.value = (url.pathname + url.search).substr(1);
+        }else{
+            nav_path.value = url.pathname + url.search;
+        }
+    });
 
     let prev_scroll = window.scrollY;
     let resp = 0;

@@ -16,7 +16,7 @@ export function PreviewableLink(props: {href: string, children: JSX.Element}): J
         setVisible: (a: boolean) => void,
         body: Generic.Body,
     } | undefined = createMemo(() => {
-        const body = previewLink(client(), props.href, {});
+        const body = previewLink(props.href, {});
         if(!body) return undefined;
         const [visible, setVisible] = createSignal(false);
         return {visible, setVisible, body};

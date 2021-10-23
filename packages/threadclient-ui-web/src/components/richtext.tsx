@@ -290,7 +290,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
         toggleVisible: () => void,
         body: Generic.Body,
     } | undefined = createMemo(() => {
-        const body = previewLink(client(), props.link.url, {});
+        const body = previewLink(props.link.url, {});
         if(!body) return undefined;
         const [visible, setVisible] = createSignal(false);
         return {visible, toggleVisible: () => setVisible(v => !v), body};

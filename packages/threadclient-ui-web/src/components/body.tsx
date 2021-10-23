@@ -41,12 +41,10 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             return <ShowCond when={a()}>{b => <Body body={b} autoplay={false} />}</ShowCond>;
         },
         link: link => {
-            const client = getClient();
-
             const previewBody: () => {
                 body: Generic.Body,
             } | undefined = createMemo(() => {
-                const body = previewLink(client(), link.url, {
+                const body = previewLink(link.url, {
                     suggested_embed: link.embed_html,
                 });
                 if(!body) return undefined;
