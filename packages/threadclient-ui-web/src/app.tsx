@@ -959,7 +959,7 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
 }
 
 function zoomableFrame(img: HTMLImageElement): HTMLElement {
-    const frame = el("button").adch(img);
+    const frame = el("button").clss("block").adch(img);
 
     frame.onclick = (e) => {
         e.preventDefault();
