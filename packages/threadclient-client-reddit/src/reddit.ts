@@ -616,16 +616,6 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
                 };
             }),
         },
-        actions_top: [{
-            kind: "link",
-            url: "/message/compose?to="+subreddit,
-            text: "Message the mods",
-        }],
-        actions_bottom: [{
-            kind: "link",
-            url: "/r/"+subreddit+"/about/moderators",
-            text: "View All Moderators",
-        }],
     }; else if(data.kind === "id-card") return {
         kind: "widget",
         title: "Error!",
