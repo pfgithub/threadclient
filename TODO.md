@@ -8,6 +8,17 @@
 
 ## todo
 
+- here's a fun idea that might be kind of difficult working within vite
+- what if every time a version of threadclient was made it made a new folder
+  with the version name (git hash / semver if I get fancy) and then:
+- old versions of threadclient would continue to function correctly before
+  they are updated
+- you could go into settings and get like a version selector to revert to
+  previous versions (make sure to add some kind of override to get back to
+  the latest if the version selector thing breaks)
+
+## todo
+
 - [x] !! v.redd.it isn't cors protected anymore
 - [x] use the DASHPlaylist.mpd
 - [x] maybe even use a default video player
