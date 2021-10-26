@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+
 import * as Reddit from "../reddit_types";
 
 function expectT1<T extends Reddit.T1>(comment: T) {
