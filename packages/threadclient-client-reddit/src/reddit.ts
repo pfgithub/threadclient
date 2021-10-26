@@ -105,7 +105,7 @@ function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.Ga
         };
     }
     if(media_meta.e === "Image") {
-        const thumb = media_meta.p[0] ?? media_meta.s;
+        const thumb = media_meta.p?.[0] ?? media_meta.s;
         return {
             thumb: thumb.u ?? "error",
             aspect: thumb.x / thumb.y,

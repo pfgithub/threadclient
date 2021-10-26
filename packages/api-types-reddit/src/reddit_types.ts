@@ -783,7 +783,7 @@ export type Media = (BaseMedia & ({
     e: "Image",
     m: string, // eg image/png
 
-    p: ImageMeta[], // alternate sizes, small → large
+    p?: undefined | ImageMeta[], // alternate sizes, small → large
     s: ImageMeta, // source size
 
     t: "emoji" | "unsupported",
