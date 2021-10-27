@@ -221,8 +221,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         })}
         class={classes(
             "text-sm",
-            // selfVisible()
-            // props.content.show_replies_when_below_pivot !== false
             "pt-10px",
             props.content.collapsible !== false ? (
                 props.opts.top_level ? "pl-1" : ""
