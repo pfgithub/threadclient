@@ -252,22 +252,24 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         <div class="flex-1">
             <div class="flex flex-row">
                 <ShowCond when={props.content.thumbnail}>{thumb_any => (
-                    <button class={classes(
-                        "w-50px h-50px sm:w-70px sm:h-70px mr-4",
-                        contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
-                    )} onClick={() => setTransitionTarget(t => !t)}>
-                        <SwitchKind item={thumb_any}>{{
-                            image: img => <img
-                                // TODO based on the img content, display eg a play button or something
-                                src={img.url}
-                                alt=""
-                                class={classes(
-                                    "w-full h-full object-contain"
-                                )}
-                            />,
-                            default: def => <>TODO {def.kind}</>,
-                        }}</SwitchKind>
-                    </button>
+                    <ToggleColor>{color => (
+                        <button class={classes(
+                            "w-50px h-50px sm:w-70px sm:h-70px mr-4 rounded-md "+color,
+                            contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
+                        )} onClick={() => setTransitionTarget(t => !t)}>
+                            <SwitchKind item={thumb_any}>{{
+                                image: img => <img
+                                    // TODO based on the img content, display eg a play button or something
+                                    src={img.url}
+                                    alt=""
+                                    class={classes(
+                                        "w-full h-full object-contain"
+                                    )}
+                                />,
+                                default: def => <>TODO {def.kind}</>,
+                            }}</SwitchKind>
+                        </button>
+                    )}</ToggleColor>
                 )}</ShowCond>
                 <div
                     class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
