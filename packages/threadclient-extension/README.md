@@ -1,0 +1,1 @@
+https://github.com/antfu/vitesse-webext
