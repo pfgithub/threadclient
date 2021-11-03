@@ -9,7 +9,7 @@ window.addEventListener("locationchange", () => {
     setCurrentURL(location.href);
 });
 
-export function showRedirectNotice(root: Node) {
+export function showRedirectNotice(root: Node): void {
     render(() => <div class="w-400px <sm:w-auto <sm:left-0 bg-black text-white rounded-md shadow-md m-4 p-4">
         <a class="text-blue-500 hover:underline" href={"https://thread.pfg.pw/"+currentURL()}>
             Redirect to ThreadClient

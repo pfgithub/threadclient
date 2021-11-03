@@ -14,8 +14,6 @@ browser.runtime.onInstalled.addListener((): void => {
     console.log("Extension installed");
 });
 
-let previous_tab_id = 0;
-
 // automatic redirect
 // TODO only when enabled + with permission
 browser.webRequest.onBeforeRequest.addListener(
@@ -28,7 +26,7 @@ browser.webRequest.onBeforeRequest.addListener(
         if(url.hostname === "reddit.com" || url.hostname.endsWith(".reddit.com")) {
             // don't redirect if we got here from a link on threadclient or
             // a link on reddit.com
-            if(details.originUrl) {
+            if(details.originUrl !== undefined) {
                 const origin_url = new URL(details.originUrl);
                 if(origin_url.hostname === "thread.pfg.pw"
                 || origin_url.hostname === "reddit.com"

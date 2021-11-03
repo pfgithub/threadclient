@@ -1,4 +1,4 @@
-import { onMessage } from "webext-bridge";
+// import { onMessage } from "webext-bridge";
 import browser from "webextension-polyfill";
 import "windi.css";
 import { showRedirectNotice } from "./threadclient_redirect_notice";
@@ -12,9 +12,9 @@ void (async () => {
     console.info("[vitesse-webext] Hello world from content script");
 
     // communication example: send previous tab title from background page
-    onMessage("tab-prev", ({ data }: {data: {title: string}}) => {
-        console.log(`[vitesse-webext] Navigate from page "${data.title}"`);
-    });
+    // onMessage("tab-prev", ({ data }: {data: {title: string}}) => {
+    //     console.log(`[vitesse-webext] Navigate from page "${data.title}"`);
+    // });
 
     // mount component to context window
     const container = document.createElement("div");
