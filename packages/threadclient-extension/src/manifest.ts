@@ -35,6 +35,8 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
             "tabs",
             "storage",
             "activeTab",
+            "webRequest",
+            "webRequestBlocking",
             "http://*/",
             "https://*/",
         ],

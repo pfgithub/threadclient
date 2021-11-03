@@ -33,10 +33,5 @@ export default defineConfig({
   },
   plugins: [
     ...shared_config.plugins!,
-    // note: to use windicss here
-    // only use it in a shadow root:
-    // - create a shadow root
-    // - add a style element with content `import("virtual:windi.css")`
-    //   (make sure that doesn't apply the styles to the page)
   ],
 });

@@ -34,7 +34,7 @@
     "build:prepare": "esno src/scripts/prepare.ts",
     "build:web": "vite build",
     "build:js": "vite build --config vite.config.content.ts",
-    "pack": "cross-env NODE_ENV=production run-p pack:\\*",
+    "pack": "mkdir -p dist && yarn build && cross-env NODE_ENV=production run-p pack:\\*",
     "pack:zip": "rm dist/extension.zip; jszip-cli add extension -o dist/extension.zip",
     "pack:crx": "crx pack extension -o dist/extension.crx",
     "pack:xpi": "cross-env WEB_EXT_ARTIFACTS_DIR=./ web-ext build --source-dir ./extension --filename dist/extension.xpi --overwrite-dest",

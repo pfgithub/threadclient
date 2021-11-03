@@ -25,6 +25,8 @@
     "tabs",
     "storage",
     "activeTab",
+    "webRequest",
+    "webRequestBlocking",
     "http://*/",
     "https://*/",
     "webNavigation"

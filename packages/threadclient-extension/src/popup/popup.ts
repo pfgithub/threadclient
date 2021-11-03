@@ -1,3 +1,3 @@
-import "virtual:windi.css";
+import "windi.css";
 
 console.log("Popup loaded");
