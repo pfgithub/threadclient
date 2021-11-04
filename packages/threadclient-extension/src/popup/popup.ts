@@ -1,3 +1,2 @@
 import "windi.css";
-
-console.log("Popup loaded");
+import "./PopupMain";
