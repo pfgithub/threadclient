@@ -24,7 +24,7 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
         },
         background: {
             page: "./dist/background/index.html",
-            persistent: false,
+            persistent: true, // I need the webrequest api
         },
         icons: {
             16: "./assets/threadclient.png",
