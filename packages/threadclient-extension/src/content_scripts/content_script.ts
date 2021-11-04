@@ -30,8 +30,7 @@ void (async () => {
 
     const root = document.createElement("div");
     root.setAttribute("data-tc", "tc-data");
-    // in firefox at least, closed is just as easy to debug. not sure what this is for?
-    const shadow_dom = container.attachShadow({ mode: __DEV__ ? "open" : "closed" });
+    const shadow_dom = container.attachShadow({ mode: "closed" });
     const style_el = document.createElement("link");
     style_el.setAttribute("rel", "stylesheet");
     style_el.setAttribute("href", browser.runtime.getURL("dist/contentScripts/style.css"));

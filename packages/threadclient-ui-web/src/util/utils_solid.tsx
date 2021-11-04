@@ -246,11 +246,11 @@ export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Elemen
             ) : "Something went wrong"} /></pre>
             <button
                 class={link_styles_v["outlined-button"]}
-                on:click={() => console.log(err, props.data)}
+                onclick={() => console.log(err, props.data)}
             >Code</button>{" / "}
             <button
                 class={link_styles_v["outlined-button"]}
-                on:click={() => {
+                onclick={() => {
                     setShowContent(false);
                     setTimeout(() => setShowContent(true), 200);
                     reset();

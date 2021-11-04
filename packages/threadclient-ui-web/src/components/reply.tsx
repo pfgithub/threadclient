@@ -91,7 +91,7 @@ export function ReplyEditor(props: {
         </div>
         <ShowCond when={sendError()}>{errv => <>
             <pre class="error"><code>There was an error! {errv}</code></pre>
-            <button on:click={() => setSendError(undefined)}>Hide error</button>
+            <button onclick={() => setSendError(undefined)}>Hide error</button>
         </>}</ShowCond>
         <ShowCond if={[!empty()]} when={diffable.value}>{value => {
             console.log("Value changed", value);

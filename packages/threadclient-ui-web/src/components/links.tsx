@@ -47,14 +47,14 @@ export function A(props: {
     const client = getClient();
     const linkValue = createMemo(() => unsafeLinkToSafeLink(client.id, props.href));
     return <SwitchKind item={linkValue()}>{{
-        error: (error) => <a class={props.class + " error"} title={error.title} on:click={(e) => {
+        error: (error) => <a class={props.class + " error"} title={error.title} onclick={(e) => {
             e.stopPropagation();
             alert(props.href);
         }}>{props.children}</a>,
         mailto: (mailto) => <span title={mailto.title}>{props.children}</span>,
         link: (link) => <a
             class={props.class} href={link.url} target="_blank" rel="noopener noreferrer"
-            on:click={(!link.external || props.onClick) ? event => {
+            onclick={(!link.external || props.onClick) ? event => {
                 event.stopPropagation();
                 if (
                     !event.defaultPrevented && // onClick prevented default

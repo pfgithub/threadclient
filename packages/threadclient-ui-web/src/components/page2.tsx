@@ -444,7 +444,7 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
     const todosupport = (thing: unknown) => <>
         TODO support. also in the parent list these should probably{" "}
         be one of those navbars with bits like ClientName {">"} PageName {">"} …{" "}
-        <button on:click={() => console.log(thing)}>code</button>
+        <button onclick={() => console.log(thing)}>code</button>
     </>;
     return <div>
         <DefaultErrorBoundary data={[props.listing, props.opts]}>

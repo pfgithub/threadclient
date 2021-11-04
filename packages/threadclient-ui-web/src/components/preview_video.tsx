@@ -720,7 +720,7 @@ function PreviewRealVideo(props: {
                 <button
                     class={link_styles_v["outlined-button"]}
                     disabled={state.playback_rate === speed}
-                    on:click={() => video_ref.setPlaybackRate(speed)}
+                    onclick={() => video_ref.setPlaybackRate(speed)}
                 >{speed}×</button>
             )}</For>
         </div>
@@ -730,7 +730,7 @@ function PreviewRealVideo(props: {
                 <button
                     class={link_styles_v["outlined-button"]}
                     disabled={targetQuality() === i()}
-                    on:click={() => {
+                    onclick={() => {
                         setTargetQuality(qual.index);
                         video_ref.reload();
                     }}

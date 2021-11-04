@@ -99,7 +99,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                         };
                         return <button
                             class={link_styles_v["outlined-button"]}
-                            on:click={() => {
+                            onclick={() => {
                                 void doClick().catch(console.log);
                             }}
                             disabled={loadState().kind === "loading" || loadState().kind === "loaded"}
@@ -239,7 +239,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                             if(e.key === "Enter") go();
                         }}
                     /></label>
-                    <button on:click={() => {
+                    <button onclick={() => {
                         go();
                     }} 
                         disabled={!acceptable()}
@@ -368,7 +368,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                         "m-1 inline-block rounded-md",
                         color,
                     )}
-                    on:click={() => {
+                    onclick={() => {
                         if(usesFullscreen()) {
                             setFullscreenState({
                                 enabled: true,
@@ -427,18 +427,18 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
         image: sel => <>
             <button
                 class={link_styles_v["outlined-button"]}
-                on:click={() => setState({kind: "image", index: sel.index - 1})}
+                onclick={() => setState({kind: "image", index: sel.index - 1})}
                 disabled={sel.index <= 0}
             >Prev</button>
             {sel.index + 1}/{props.images.length}
             <button
                 class={link_styles_v["outlined-button"]}
-                on:click={() => setState({kind: "image", index: sel.index + 1})}
+                onclick={() => setState({kind: "image", index: sel.index + 1})}
                 disabled={sel.index >= props.images.length - 1}
             >Next</button>
             <button
                 class={link_styles_v["outlined-button"]}
-                on:click={() => setState({kind: "overview"})}
+                onclick={() => setState({kind: "overview"})}
             >Gallery</button>
             <Body body={props.images[sel.index]!.body} autoplay={true} />
         </>,

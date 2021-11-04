@@ -66,7 +66,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                             +"rounded bg-spoiler-color hover:bg-spoiler-color-hover cursor-pointer"
                         }
                         title="Click to reveal spoiler"
-                        on:click={() => setOpened(true)}
+                        onclick={() => setOpened(true)}
                     ></button>
                 </ShowBool>
                 <span

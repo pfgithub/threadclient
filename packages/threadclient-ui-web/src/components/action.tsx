@@ -50,7 +50,7 @@ export function PostActions(props: ClientPostProps & {
                         showingWindowBelow() === action ? "action-button-active" : "action-button"
                     ]}
                     disabled={reply_action.locked}
-                    on:click={() => {
+                    onclick={() => {
                         if(showingWindowBelow() === action) {
                             setShowingWindowBelow(null);
                         }else{
@@ -68,7 +68,7 @@ export function PostActions(props: ClientPostProps & {
         <ShowCond when={props.content?.actions?.code?.body} fallback={
             <button
                 class={link_styles_v["code-button"]}
-                on:click={() => {
+                onclick={() => {
                     console.log(props.opts.frame);
                 }}
             >Code</button>
@@ -79,7 +79,7 @@ export function PostActions(props: ClientPostProps & {
                     showingWindowBelow() === action
                     ? "action-button-active" : "action-button"
                 ]}
-                on:click={() => {
+                onclick={() => {
                     console.log(props.opts.frame);
                     if(showingWindowBelow() === action) {
                         setShowingWindowBelow(null);
