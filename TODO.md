@@ -1,5 +1,18 @@
 ## todo
 
+- [ ] ok I know I lose the fun animations on collapsing posts and stuff but I
+  think I have to do this:
+  - rather than rendering posts in a hierarchy, render them from a single
+    array using a single <\For>
+  - handle indentation in the post renderer
+  - why:
+    - this seems like a far more useful structure
+    - allows for unthreading to occur without losing state
+    - allows for virtual scrolling
+    - allows for loading more to occur without losing state
+
+## todo
+
 - [ ] make it so you can go to thread.pfg.pw/https://... and it does the thing
 - [ ] consider rather than having inline link previews, make it so when you click
       a link it navigates to thread.pfg.pw/the link that could be neat maybe

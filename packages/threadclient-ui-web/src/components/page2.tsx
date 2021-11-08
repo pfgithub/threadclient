@@ -535,8 +535,12 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
                                 }} />
                             </TopLevelWrapper>
                         ),
-                        loader: () => <>
-                            TODO load more
+                        loader: (loader) => <>
+                            ok this is easy
+                            render the loader
+                            render the children
+                            onclick load and then rerender
+                            TODO load more <button onclick={() => console.log(loader)}>code</button>
                         </>,
                     }}</SwitchKind>
                 )}</ErrableLink>

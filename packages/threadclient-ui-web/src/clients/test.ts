@@ -612,7 +612,10 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
             kind: "post",
             url: urlr,
             parent: parent ? {ref: parent, err: undefined} : null,
-            replies: {...called.replyopts, items: [{ref: {kind: "loader", parent: null, replies: null, url: null}}]},
+            replies: {...called.replyopts, items: [{ref: {
+                kind: "loader", parent: null, replies: null, url: null,
+                key: 0 as unknown as Generic.Opaque<"loader">,
+            }}]},
             content: called.content,
             internal_data: 0,
             display_style: "centered",
@@ -646,7 +649,10 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
                             replyitm.content.show_replies_when_below_pivot !== false
                         ) ? (
                             mapReplies(thispost.ref as Generic.PostData, replyitm.replies, urlr2)
-                        ) : [{ref: {kind: "loader", parent: null, replies: null, url: null}}],
+                        ) : [{ref: {
+                            kind: "loader", parent: null, replies: null, url: null,
+                            key: 0 as unknown as Generic.Opaque<"loader">,
+                        }}],
                     };
                     return thispost;
                 })

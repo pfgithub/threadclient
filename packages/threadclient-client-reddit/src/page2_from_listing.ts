@@ -8,6 +8,7 @@ import {
     getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery,
     expectUnsupported, parseLink, redditRequest, authorFromT2
 } from "./reddit";
+import { encoderGenerator } from "threadclient-client-base";
 
 function warn(...message: unknown[]) {
     console.log(...message);
@@ -687,6 +688,11 @@ function postDataFromListingMayError(
             parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
+
+            key: loader.encode({
+                kind: "depth",
+                data: listing,
+            }),
         };
     }else if(entry.data.kind === "more") {
         const listing = entry.data.item.data;
@@ -695,6 +701,11 @@ function postDataFromListingMayError(
             parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
+
+            key: loader.encode({
+                kind: "more",
+                data: listing,
+            }),
         };
     }else if(entry.data.kind === "wikipage") {
         const listing = entry.data.listing;
@@ -741,6 +752,16 @@ function postDataFromListingMayError(
         };
     } else assertNever(entry.data);
 }
+
+type LoaderData = {
+    kind: "more",
+    data: Reddit.PostMore,
+} | {
+    kind: "depth",
+    data: Reddit.PostMore,
+};
+
+const loader = encoderGenerator<LoaderData, "loader">("loader");
 
 // Two examples of load more:
 // - /comments/omvrb7 - a horizontal loader is needed for the pinned post

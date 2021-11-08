@@ -17,6 +17,12 @@ export type PostData = BasePost & {
 export type Loader = BasePost & {
     kind: "loader",
     // note: horizontal loaders are not allowed to have replies
+
+    // a loader:
+
+    // loadLoader(replies) -> tree
+
+    key: Opaque<"loader">,
 };
 
 export type BasePost = {
@@ -612,6 +618,7 @@ export type CodeAction = {
 export type DataEncodings = 
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
     | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
+    | "loader"
 ;
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 
