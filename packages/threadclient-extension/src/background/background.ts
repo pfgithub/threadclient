@@ -26,13 +26,16 @@ browser.webRequest.onBeforeRequest.addListener(
         if(url.hostname === "reddit.com" || url.hostname.endsWith(".reddit.com")) {
             // don't redirect if we got here from a link on threadclient or
             // a link on reddit.com
-            if(details.originUrl !== undefined) {
-                const origin_url = new URL(details.originUrl);
-                if(origin_url.hostname === "thread.pfg.pw"
-                || origin_url.hostname === "reddit.com"
-                || origin_url.hostname.endsWith(".reddit.com")) {
-                    return;
-                }
+
+            if(details.originUrl === undefined) {
+                return; // navigating by manually entering the url
+            }
+
+            const origin_url = new URL(details.originUrl);
+            if(origin_url.hostname === "thread.pfg.pw"
+            || origin_url.hostname === "reddit.com"
+            || origin_url.hostname.endsWith(".reddit.com")) {
+                return;
             }
 
             // TODO: don't redirect if threadclient doesn't support the page
