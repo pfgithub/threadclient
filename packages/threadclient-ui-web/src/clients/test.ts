@@ -210,7 +210,7 @@ const sitemap: SitemapEntry[] = [
                 ]},
                 actions: {
                     other: [
-                        {kind: "link", text: "View", url: urlr}
+                        {kind: "link", client_id: client.id, text: "View", url: urlr}
                     ],
                 },
                 collapsible: {default_collapsed: false},

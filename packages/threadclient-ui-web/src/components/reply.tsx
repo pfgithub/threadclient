@@ -62,6 +62,7 @@ export function ReplyEditor(props: {
                                 content: r.kind === "thread" ? {
                                     kind: "legacy",
                                     thread: r,
+                                    client_id: props.action.client_id,
                                 } : {
                                     kind: "post",
                                     title: {text: "Error"},

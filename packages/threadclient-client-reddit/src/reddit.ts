@@ -837,26 +837,26 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     // subscribe button
 
     const res_menu: Generic.MenuItem[] = [
-        {text: "Posts", action: {kind: "link", url: "/r/"+subinfo.subreddit}, selected: true}
+        {text: "Posts", action: {kind: "link", client_id: client.id, url: "/r/"+subinfo.subreddit}, selected: true}
     ];
 
     wdgs: if(subinfo.widgets) {
         const order_len = subinfo.widgets?.layout.topbar.order.length;
         if(order_len === 0) break wdgs;
         if(order_len !== 1) {
-            res_menu.push({text: "ERROR Topbar Order", action: {kind: "link", url: "error"}, selected: false});
+            res_menu.push({text: "ERROR Topbar Order", action: {kind: "link", client_id: client.id, url: "error"}, selected: false});
             break wdgs;
         }
         const menu = subinfo.widgets.items[subinfo.widgets.layout.topbar.order[0]!]!;
         
         if(menu.kind !== "menu") {
-            res_menu.push({text: "ERROR Topbar Item", action: {kind: "link", url: "error"}, selected: false});
+            res_menu.push({text: "ERROR Topbar Item", action: {kind: "link", client_id: client.id, url: "error"}, selected: false});
             break wdgs;
         }
 
         if(menu.showWiki) {
             res_menu.push(
-                {text: "Wiki", action: {kind: "link", url: "/r/"+subinfo.subreddit+"/wiki/index"}, selected: false}, // true if the path looks like /wiki
+                {text: "Wiki", action: {kind: "link", client_id: client.id, url: "/r/"+subinfo.subreddit+"/wiki/index"}, selected: false}, // true if the path looks like /wiki
             );
         }
 
@@ -868,7 +868,7 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
             }; else if('url' in data_item) return {
                 text: data_item.text,
                 selected: false,
-                action: {kind: "link", url: data_item.url}
+                action: {kind: "link", client_id: client.id, url: data_item.url}
             };
             assertNever(data_item); // expectNever could be better
         };
@@ -906,7 +906,7 @@ type SubInfo = {
 };
 function getNavbar(): Generic.Navbar {
     if(isLoggedIn()) return {
-        actions: [{kind: "act", action: act_encoder.encode({kind: "log_out"}), text: "Log Out"}],
+        actions: [{kind: "act", client_id: client.id, action: act_encoder.encode({kind: "log_out"}), text: "Log Out"}],
         inboxes: [
             {
                 id: "/messages",
@@ -926,8 +926,8 @@ function getNavbar(): Generic.Navbar {
     };
     return {
         actions: [
-            {kind: "link", url: getLoginURL(), text: "Log In"},
-            {kind: "link", url: "raw!https://www.reddit.com/register", text: "Sign Up"},
+            {kind: "link", client_id: client.id, url: getLoginURL(), text: "Log In"},
+            {kind: "link", client_id: client.id, url: "raw!https://www.reddit.com/register", text: "Sign Up"},
         ],
         inboxes: [],
     };
@@ -1067,7 +1067,7 @@ export function pageFromListing(
                 menu = [{
                     selected: true,
                     text: "Random",
-                    action: {kind: "link", url: updateQuery(permalink, {sort: "random"})}
+                    action: {kind: "link", client_id: client.id, url: updateQuery(permalink, {sort: "random"})}
                 }];
             }else{
                 menu = ([
@@ -1076,7 +1076,7 @@ export function pageFromListing(
                 ] as const).map(([sortname, sorttext]): Generic.MenuItem => ({
                     selected: (page.sort_override ?? default_sort) === sortname,
                     text: sorttext,
-                    action: {kind: "link", url: updateQuery(permalink, {sort: sortname})},
+                    action: {kind: "link", client_id: client.id, url: updateQuery(permalink, {sort: sortname})},
                 }));
             }
         }else if(page.kind === "duplicates") {
@@ -1086,10 +1086,10 @@ export function pageFromListing(
             ] as const).map(([sortname, sorttext]): Generic.MenuItem => ({
                 selected: page.sort === sortname,
                 text: sorttext,
-                action: {kind: "link", url: updateQuery(permalink.replace("/comments", "/duplicates"), {sort: sortname})},
+                action: {kind: "link", client_id: client.id, url: updateQuery(permalink.replace("/comments", "/duplicates"), {sort: sortname})},
             }));
         }else{
-            menu = [{selected: false, text: "error "+page.kind, action: {kind: "link", url: "error"}}];
+            menu = [{selected: false, text: "error "+page.kind, action: {kind: "link", client_id: client.id, url: "error"}}];
         }
 
         return {
@@ -1260,19 +1260,19 @@ export function pageFromListing(
                 menu: page.kind === "subreddit" ? [{
                     selected: page.current_sort.v === "hot",
                     text: "Hot",
-                    action: {kind: "link", url: "/"+[...page.sub.base, ...page.is_user_page ? ["hot"] : []].join("/")},
+                    action: {kind: "link", client_id: client.id, url: "/"+[...page.sub.base, ...page.is_user_page ? ["hot"] : []].join("/")},
                 }, {
                     selected: page.current_sort.v === "best",
                     text: "Best",
-                    action: {kind: "link", url: "/"+[...page.sub.base, "best"].join("/")},
+                    action: {kind: "link", client_id: client.id, url: "/"+[...page.sub.base, "best"].join("/")},
                 }, {
                     selected: page.current_sort.v === "new",
                     text: "New",
-                    action: {kind: "link", url: "/"+[...page.sub.base, "new"].join("/")},
+                    action: {kind: "link", client_id: client.id, url: "/"+[...page.sub.base, "new"].join("/")},
                 }, {
                     selected: page.current_sort.v === "rising",
                     text: "Rising",
-                    action: {kind: "link", url: "/"+[...page.sub.base, "rising"].join("/")},
+                    action: {kind: "link", client_id: client.id, url: "/"+[...page.sub.base, "rising"].join("/")},
                 }, ...[["top", "Top"] as const, ["controversial", "Controversial"] as const].map(([url, text]): Generic.MenuItem => ({
                     selected: page.current_sort.v === url,
                     text: page.current_sort.v === url ? (text + " ("+page.current_sort.t+")") : text,
@@ -1281,7 +1281,7 @@ export function pageFromListing(
                     ] as const).map(([time, time_text]): Generic.MenuItem => ({
                         text: time_text,
                         selected: page.current_sort.v === url && page.current_sort.t === time,
-                        action: {kind: "link", url: "/"+[...page.sub.base, url].join("/")+"?t="+time},
+                        action: {kind: "link", client_id: client.id, url: "/"+[...page.sub.base, url].join("/")+"?t="+time},
                     }))},
                 }))] : page.kind === "user" ? [...user_sorted_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
                     // huh this needs two menus
@@ -1291,12 +1291,12 @@ export function pageFromListing(
                         {
                             selected: page.current.tab === tab && page.current.sort.sort === "hot",
                             text: "Hot",
-                            action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "hot"})},
+                            action: {kind: "link", client_id: client.id, url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "hot"})},
                         },
                         {
                             selected: page.current.tab === tab && page.current.sort.sort === "new",
                             text: "New",
-                            action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "new"})},
+                            action: {kind: "link", client_id: client.id, url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: "new"})},
                         },
                         ...[["top", "Top"] as const, ["controversial", "Controversial"] as const].map(([url, text]): Generic.MenuItem => ({
                             selected: page.current.tab === tab && page.current.sort.sort === url,
@@ -1306,31 +1306,31 @@ export function pageFromListing(
                             ] as const).map(([time, time_text]): Generic.MenuItem => ({
                                 text: time_text,
                                 selected: page.current.tab === tab && page.current.sort.sort === url && page.current.sort.t === time,
-                                action: {kind: "link", url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: url, t: time})},
+                                action: {kind: "link", client_id: client.id, url: updateQuery("/"+["u", page.username, tab].join("/"), {sort: url, t: time})},
                             }))},
                         }))
                     ]}
-                    // action: {kind: "link", url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
+                    // action: {kind: "link", client_id: client.id, url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
                 })), {
                     selected: page.current.tab === "gilded",
                     text: "Gilded",
                     action: {kind: "show-line-two", children: [{
                         selected: page.current.tab === "gilded" && page.current.by === "received",
                         text: "Received",
-                        action: {kind: "link", url: "/"+["u", page.username, "gilded"].join("/")}
+                        action: {kind: "link", client_id: client.id, url: "/"+["u", page.username, "gilded"].join("/")}
                     }, {
                         selected: page.current.tab === "gilded" && page.current.by === "given",
                         text: "Given",
-                        action: {kind: "link", url: "/"+["u", page.username, "gilded", "given"].join("/")}
+                        action: {kind: "link", client_id: client.id, url: "/"+["u", page.username, "gilded", "given"].join("/")}
                     }]},
                 }, ...user_sortless_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
                     selected: page.current.tab === tab,
                     text: tabname,
-                    action: {kind: "link", url: "/"+["u", page.username, tab].join("/")},
+                    action: {kind: "link", client_id: client.id, url: "/"+["u", page.username, tab].join("/")},
                 }))] : page.kind === "inbox" ? [{
                     selected: page.current.tab === "compose",
                     text: "Compose",
-                    action: {kind: "link", url: "/message/compose"},
+                    action: {kind: "link", client_id: client.id, url: "/message/compose"},
                 }, {
                     selected: page.current.tab === "inbox",
                     text: "Inbox",
@@ -1341,14 +1341,14 @@ export function pageFromListing(
                     ] as const).map(([url, name]): Generic.MenuItem => ({
                         text: name,
                         selected: page.current.tab === "inbox" && page.current.inbox_tab === url,
-                        action: {kind: "link", url: "/message/"+url}
+                        action: {kind: "link", client_id: client.id, url: "/message/"+url}
                     }))},
                 }, {
                     selected: page.current.tab === "sent",
                     text: "Sent",
-                    action: {kind: "link", url: "/message/sent"},
+                    action: {kind: "link", client_id: client.id, url: "/message/sent"},
                 }] : [
-                    {text: "Error! "+page.kind, selected: false, action: {kind: "link", url: pathraw}},
+                    {text: "Error! "+page.kind, selected: false, action: {kind: "link", client_id: client.id, url: pathraw}},
                 ],
                 header: opts.header ?? {
                     kind: "thread",
@@ -2096,8 +2096,8 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
             default_collapsed: false,
             actions: [
                 ...inbox_msg.kind === "t1" ? [getPointsOn(msg)] : [],
-                ...msg.context ? [{kind: "link", url: msg.context, text: "Context"} as const] : [],
-                ...inbox_msg.kind === "t4" ? [{kind: "link", url: "/message/messages/"+msg.id, text: "Permalink"} as const] : [],
+                ...msg.context ? [{kind: "link", client_id: client.id, url: msg.context, text: "Context"} as const] : [],
+                ...inbox_msg.kind === "t4" ? [{kind: "link", client_id: client.id, url: "/message/messages/"+msg.id, text: "Permalink"} as const] : [],
                 {
                     kind: "counter",
                     client_id: client.id,
@@ -2201,7 +2201,7 @@ function topLevelThreadFromListing(listing_raw: Reddit.Post, options: ThreadOpts
                 link: listing_raw.data.link_permalink,
                 layout: "reddit-post",
                 default_collapsed: false,
-                actions: [{kind: "link", url: listing_raw.data.link_permalink, text: "Permalink"}],
+                actions: [{kind: "link", client_id: client.id, url: listing_raw.data.link_permalink, text: "Permalink"}],
                 raw_value: listing_raw,
                 replies: [],
             }, ...(listing_raw.data.parent_id === listing_raw.data.link_id
@@ -2245,6 +2245,7 @@ function threadFromListing(listing_raw: Reddit.Post, options: ThreadOpts = {}, p
 export function deleteButton(fullname: string): Generic.Action {
     return {
         kind: "delete",
+        client_id: client.id,
         data: encodeDeleteAction(fullname),
     };
 }
@@ -2256,6 +2257,7 @@ const report_encoder = encoderGenerator<ReportInfo, "report">("report");
 export function reportButton(fullname: string, subreddit: string): Generic.Action {
     return {
         kind: "report",
+        client_id: client.id,
         data: report_encoder.encode({subreddit, fullname}),
     };
 }
@@ -2642,6 +2644,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 replyButton(listing.name),
                 {
                     kind: "link",
+                    client_id: client.id,
                     text: "Permalink",
                     url: listing.permalink ? updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}) : "Error no permalink",
                 },
@@ -2729,14 +2732,17 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
             },
             actions: [...options.show_post_reply_button ?? false ? [replyButton(listing.name)] : [], {
                 kind: "link",
+                client_id: client.id,
                 url: listing.permalink,
                 text: listing.num_comments.toLocaleString() + " comment"+(listing.num_comments === 1 ? "" : "s"),
             }, {
                 kind: "link",
+                client_id: client.id,
                 url: "/domain/"+listing.domain,
                 text: listing.domain,
             }, deleteButton(listing.name), saveButton(listing.name, listing.saved), getPointsOn(listing), {
                 kind: "link",
+                client_id: client.id,
                 url: listing.permalink.replace("/comments/", "/duplicates/"),
                 text: "Duplicates"
             }, reportButton(listing.name, listing.subreddit)],
@@ -2865,7 +2871,7 @@ function sidebarFromMulti(multi_raw: Reddit.LabeledMulti): Generic.ContentNode[]
                 },
             },
             actions_bottom: [
-                {kind: "link", text: "Create a copy", url: "TODO"},
+                {kind: "link", client_id: client.id, text: "Create a copy", url: "TODO"},
             ],
         },
         {
@@ -2878,7 +2884,7 @@ function sidebarFromMulti(multi_raw: Reddit.LabeledMulti): Generic.ContentNode[]
                     return {
                         // icon: undefined,
                         name: {kind: "text", text: "r/"+sub.name},
-                        click: {kind: "link", url: "/r/"+sub.name},
+                        click: {kind: "link", client_id: client.id, url: "/r/"+sub.name},
                         //action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
                     };
                 }),
@@ -3426,6 +3432,7 @@ export const client: ThreadClient = {
         };
         return {
             kind: "legacy",
+            client_id: client.id,
             thread: legacy_value,
         };
     },

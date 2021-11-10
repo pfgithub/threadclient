@@ -14,10 +14,12 @@ function getNavbar(host: string | null): Generic.Navbar {
     return {actions: [
         !isLoggedIn(host) ? {
             kind: "login",
+            client_id: client.id,
             data: login_url_encoder.encode({host}),
             // text: "Log In to "+host,
         } : {
             kind: "link",
+            client_id: client.id,
             text: "Log Out",
             url: "TODO log out from mastodon",
         },
@@ -437,8 +439,8 @@ function postToThreadCanError(
         info,
         flair: post.sensitive || post.spoiler_text ? [{content_warning: post.sensitive, elems: [{kind: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
         actions: [
-            {kind: "link", url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")},
-            {kind: "link", url: post.uri, text: "Permalink"},
+            {kind: "link", client_id: client.id, url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")},
+            {kind: "link", client_id: client.id, url: post.uri, text: "Permalink"},
             {kind: "counter",
                 label: "Favourite",
                 client_id: client.id,
@@ -810,10 +812,10 @@ export const client: ThreadClient = {
             });
         }else if(parsed.kind === "timeline") {
             const timelines_navbar: Generic.Menu = [
-                mnu.link("Home", "/"+host+"/timelines/home", parsed.tmname === "home"),
-                mnu.link("Local", "/"+host+"/timelines/local", parsed.tmname === "local"),
-                mnu.link("Federated", "/"+host+"/timelines/public", parsed.tmname === "public"),
-                mnu.link("Notifications", "/"+host+"/notifications", false),
+                mnu.link(client, "Home", "/"+host+"/timelines/home", parsed.tmname === "home"),
+                mnu.link(client, "Local", "/"+host+"/timelines/local", parsed.tmname === "local"),
+                mnu.link(client, "Federated", "/"+host+"/timelines/public", parsed.tmname === "public"),
+                mnu.link(client, "Notifications", "/"+host+"/notifications", false),
             ];
             return await timelineView(host, auth, parsed.api_path, pathraw, genericHeader(), timelines_navbar, "Timeline "+parsed.tmname);
         }else if(parsed.kind === "status") {
@@ -908,6 +910,7 @@ export const client: ThreadClient = {
                 },
                 more_actions: [{
                     kind: "link",
+                    client_id: client.id,
                     url: account_info.url,
                     text: "Permalink",
                 }],

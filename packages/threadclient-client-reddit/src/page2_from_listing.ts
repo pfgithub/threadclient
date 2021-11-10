@@ -653,10 +653,12 @@ function postDataFromListingMayError(
                     other: [
                         {
                             kind: "link",
+                            client_id: client.id,
                             url: "/domain/"+listing.domain,
                             text: listing.domain,
                         }, deleteButton(listing.name), saveButton(listing.name, listing.saved), {
                             kind: "link",
+                            client_id: client.id,
                             url: listing.permalink.replace("/comments/", "/duplicates/"),
                             text: "Duplicates"
                         }, reportButton(listing.name, listing.subreddit),
@@ -763,7 +765,7 @@ function postDataFromListingMayError(
                 author: authorFromT2(listing.data.revision_by),
                 actions: {
                     other: listing.data.may_revise ? [
-                        {kind: "link", text: "Edit", url: "TODO edit wiki page"}
+                        {kind: "link", client_id: client.id, text: "Edit", url: "TODO edit wiki page"}
                     ] : [],
                 },
             },

@@ -1,24 +1,9 @@
-import { createContext, createEffect, createSignal, JSX, onCleanup, useContext } from "solid-js";
+import { createEffect, createSignal, JSX, onCleanup } from "solid-js";
 import { render } from "solid-js/web";
-import type { ThreadClient } from "threadclient-client-base";
 import { hideshow, HideShowCleanup } from "../app";
 import { ColorDepthContext, getIsVisible, HideshowProvider } from "./utils_solid";
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const TempSVBorderClientContext = createContext<{client: ThreadClient}>();
-export function ClientProvider(props: {client: ThreadClient, children: JSX.Element}): JSX.Element {
-    return <TempSVBorderClientContext.Provider value={{client: props.client}}>
-        {props.children}
-    </TempSVBorderClientContext.Provider>;
-}
-export function getTempBorderClient(): ThreadClient { // TODO getClient: (): ThreadClient =}
-    const client = useContext(TempSVBorderClientContext);
-    if(!client) throw new Error("A client is required to render this component");
-    return client.client; // turns out you can't update provider values? weird
-}
-
 export function vanillaToSolidBoundary(
-    client: ThreadClient,
     frame: HTMLElement,
     solidNode: () => JSX.Element,
     opts: {color_level: number},
@@ -31,11 +16,9 @@ export function vanillaToSolidBoundary(
         hsc.on("show", () => setCvisible(true));
 
         return <HideshowProvider visible={cvisible}>
-            <ClientProvider client={client}>
-                <ColorDepthContext.Provider value={{i: opts.color_level}}>
-                    {solidNode()}
-                </ColorDepthContext.Provider>
-            </ClientProvider>
+            <ColorDepthContext.Provider value={{i: opts.color_level}}>
+                {solidNode()}
+            </ColorDepthContext.Provider>
         </HideshowProvider>;
     }, frame);
     hsc.on("cleanup", () => cleanup());
@@ -46,15 +29,13 @@ export function vanillaToSolidBoundary(
 export function SolidToVanillaBoundary(props: {
     getValue: (
         hsc: HideShowCleanup<undefined>,
-        client: ThreadClient,
     ) => HTMLElement,
 }): JSX.Element {
-    const client = getTempBorderClient();
     const visible = getIsVisible();
     return <span ref={(div) => {
         createEffect(() => {
             const hsc = hideshow();
-            const body = props.getValue(hsc, client).adto(div);
+            const body = props.getValue(hsc).adto(div);
             createEffect(() => {
                 hsc.setVisible(visible());
             });

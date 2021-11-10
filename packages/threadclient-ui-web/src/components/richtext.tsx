@@ -90,7 +90,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
         emoji: (emoji) => <img class="w-4 h-4 object-contain inline-block" src={emoji.url} title={emoji.name} />,
         flair: (flair) => <Flair flairs={[flair.flair]} />,
         time_ago: (time) => <TimeAgo start={time.start} />,
-        error: (err) => <SolidToVanillaBoundary getValue={(hsc, client) => {
+        error: (err) => <SolidToVanillaBoundary getValue={hsc => {
             return elButton("error").atxt(err.text).onev("click", e => {
                 console.log(err.value);
             });

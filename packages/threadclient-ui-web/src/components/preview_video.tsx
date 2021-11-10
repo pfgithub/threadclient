@@ -795,7 +795,7 @@ export default function PreviewVideo(props: {
         )}</ShowCond>
         <SwitchKind item={props.video.source}>{{
             video: video => <PreviewRealVideo video={props.video} source={video} autoplay={props.autoplay} />,
-            img: img => <SolidToVanillaBoundary getValue={(hsc, client) => {
+            img: img => <SolidToVanillaBoundary getValue={hsc => {
                 const content = el("div");
                 zoomableImage(img.url, {alt: props.video.alt}).adto(content);
                 return content;

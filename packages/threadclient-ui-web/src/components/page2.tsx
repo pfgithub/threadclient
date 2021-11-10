@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, untrack } from "solid-js";
 import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import {
-    bioRender, clientContent, clientListing, link_styles_v, navigate
+    bioRender, clientContent, clientListing, getClientCached, link_styles_v, navigate
 } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
@@ -161,9 +161,10 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
         ),
         page: () => <>TODO page</>,
         legacy: legacy => <>
-            <SolidToVanillaBoundary getValue={(hsc, client) => {
+            <SolidToVanillaBoundary getValue={hsc => {
                 const outer = el("div").clss("-mt-10px -ml-10px");
                 const frame = el("div").clss("post text-sm").adto(outer);
+                const client = getClientCached(legacy.client_id)!;
                 clientListing(client, legacy.thread, frame, {
                     clickable: true,
                 }).defer(hsc);
@@ -467,10 +468,11 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
                 post: (post) => <>
                     <ClientPost content={post} opts={props.opts} />
                 </>,
-                legacy: legacy => <SolidToVanillaBoundary getValue={(hsc, client): HTMLElement => {
+                legacy: legacy => <SolidToVanillaBoundary getValue={(hsc): HTMLElement => {
                     // clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
                     // return clientContent()
                     //                             clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
+                    const client = getClientCached(legacy.client_id)!;
                     return clientContent(client, legacy.thread, {clickable: props.opts.clickable}).defer(hsc);
                 }}/>,
             }}</SwitchKind>
@@ -598,12 +600,12 @@ function WrapParent(props: {node: Generic.Post, children: JSX.Element, is_pivot:
                     ),
                     page: page => (
                         <TopLevelWrapper>
-                            <SolidToVanillaBoundary getValue={(hsc, client) => {
+                            <SolidToVanillaBoundary getValue={hsc => {
                                 const frame = el("div").clss("post text-sm").styl({
                                     margin: "-10px",
                                     padding: "10px",
                                 });
-                                bioRender(client, page.wrap_page.header, frame).defer(hsc);
+                                bioRender(page.wrap_page.header, frame).defer(hsc);
                                 return frame;
                             }} />
                         </TopLevelWrapper>

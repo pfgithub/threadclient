@@ -132,6 +132,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             <ClientContent listing={{
                 kind: "legacy",
                 thread: xpost.source,
+                client_id: xpost.client_id,
             }} opts={{
                 clickable: true,
                 client_id: xpost.client_id,
@@ -180,17 +181,17 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             if(!item) return null;
             return <Body body={item} autoplay={false} />;
         }}</For>,
-        gfycat: gfycat => <SolidToVanillaBoundary getValue={(hsc, client) => {
+        gfycat: gfycat => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
-            gfyLike(client, gfycat.host, gfycat.id, {autoplay: props.autoplay}).defer(hsc).adto(div);
+            gfyLike(gfycat.host, gfycat.id, {autoplay: props.autoplay}).defer(hsc).adto(div);
             return div;
         }} />,
-        imgur: imgur => <SolidToVanillaBoundary getValue={(hsc, client) => {
+        imgur: imgur => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
-            imgurImage(client, imgur.imgur_kind, imgur.imgur_id).defer(hsc).adto(div);
+            imgurImage(imgur.imgur_kind, imgur.imgur_id).defer(hsc).adto(div);
             return div;
         }} />,
-        youtube: youtube => <SolidToVanillaBoundary getValue={(hsc, client) => {
+        youtube: youtube => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
             youtubeVideo(youtube.id, youtube.search, {autoplay: props.autoplay}).defer(hsc).adto(div);
             return div;
@@ -199,19 +200,19 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             const [a] = createResource(twitch.slug, getTwitchClip);
             return <ShowCond when={a()}>{b => <Body body={b} autoplay={false} />}</ShowCond>;
         },
-        reddit_suggested_embed: se => <SolidToVanillaBoundary getValue={(hsc, client) => {
+        reddit_suggested_embed: se => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
             redditSuggestedEmbed(se.suggested_embed).defer(hsc).adto(div);
             return div;
         }} />,
-        link_preview: link_preview => <SolidToVanillaBoundary getValue={(hsc, client) => {
+        link_preview: link_preview => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
-            linkPreview(client, link_preview).defer(hsc).adto(div);
+            linkPreview(link_preview.client_id, link_preview).defer(hsc).adto(div);
             return div;
         }} />,
-        oembed: oembed => <SolidToVanillaBoundary getValue={(hsc, client) => {
+        oembed: oembed => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
-            renderOembed(client, oembed).defer(hsc).adto(div);
+            renderOembed(oembed).defer(hsc).adto(div);
             return div;
         }} />,
         mastodon_instance_selector: mis => {

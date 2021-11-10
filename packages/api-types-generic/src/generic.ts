@@ -100,6 +100,7 @@ export type PostContent = ClientPost | {
 } | PostContentPost | {
     kind: "legacy",
     thread: Thread,
+    client_id: string,
 };
 export type SortData = {
     sort_methods: "TODO",
@@ -339,9 +340,11 @@ export type Body = BodyText | RichText | {
 export type OEmbedBody = {
     kind: "oembed",
     url: string,
+    client_id: string,
 };
 export type LinkPreview = {
     kind: "link_preview",
+    client_id: string,
     thumb?: string | undefined, // thumbnail url
     click: Body,
     title: string,
@@ -503,6 +506,7 @@ export type MenuItem = {
     action: {
         kind: "link",
         url: string,
+        client_id: string,
     } | {
         kind: "menu",
         children: MenuItem[],
@@ -599,19 +603,24 @@ export type ReplyAction = {
 export type Action = {
     kind: "link",
     url: string,
+    client_id: string,
     text: ActionLabel,
 } | ReplyAction | CounterAction | {
     kind: "delete",
     data: Opaque<"act">,
+    client_id: string,
 } | {
     kind: "report",
     data: Opaque<"report">,
+    client_id: string,
 } | {
     kind: "login",
     data: Opaque<"login_url">,
+    client_id: string,
 } | {
     kind: "act",
     action: Opaque<"act">,
+    client_id: string,
     text: string,
 } | {
     kind: "flair",
@@ -746,5 +755,7 @@ export const rt = {
 };
 
 export const mnu = {
-    link: (text: string, url: string, selected: boolean): MenuItem => ({selected, action: {kind: "link", url}, text}),
+    link: (client: {id: string}, text: string, url: string, selected: boolean): MenuItem => ({
+        selected, action: {kind: "link", client_id: client.id, url}, text,
+    }),
 };

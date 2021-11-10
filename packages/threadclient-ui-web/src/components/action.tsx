@@ -95,9 +95,9 @@ export function PostActions(props: ClientPostProps & {
 }
 
 export function Action(props: {action: Generic.Action}): JSX.Element {
-    return <SolidToVanillaBoundary getValue={(hsc, client) => {
+    return <SolidToVanillaBoundary getValue={hsc => {
         const span = el("span");
-        renderAction(client, props.action, span, {value_for_code_btn: 0}).defer(hsc);
+        renderAction(props.action, span, {value_for_code_btn: 0}).defer(hsc);
         return span;
     }} />;
 }

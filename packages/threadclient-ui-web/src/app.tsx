@@ -1,22 +1,22 @@
-import type { ThreadClient } from "threadclient-client-base";
-import type {OEmbed} from "api-types-oembed";
-import { oembed } from "./clients/oembed";
-import { Body, ImageGallery } from "./components/body";
-import { Homepage } from "./components/homepage";
-import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { escapeHTML } from "tmeta-util";
-import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { getSettings } from "./util/utils_solid";
-import { variables } from "virtual:_variables";
-import { render } from "solid-js/web";
-import { registerSW } from "virtual:pwa-register";
+import type { OEmbed } from "api-types-oembed";
 import { createSignal } from "solid-js";
+import { render } from "solid-js/web";
+import type { ThreadClient } from "threadclient-client-base";
+import { getVredditSources } from "threadclient-preview-vreddit";
+import { escapeHTML } from "tmeta-util";
+import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
+import { registerSW } from "virtual:pwa-register";
+import { variables } from "virtual:_variables";
+import { oembed } from "./clients/oembed";
+import { Body } from "./components/body";
+import { Homepage } from "./components/homepage";
 import { ClientPostReply, Flair } from "./components/page2";
 import { ReplyEditor } from "./components/reply";
-import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
-import { getVredditSources } from "threadclient-preview-vreddit";
+import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
+import { vanillaToSolidBoundary } from "./util/interop_solid";
+import { getSettings } from "./util/utils_solid";
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -136,7 +136,6 @@ function getVredditPreview(id: string): Generic.Video {
     return video;
 }
 export function gfyLike(
-    client: ThreadClient,
     gfy_host: string,
     gfy_link: string,
     opts: {autoplay: boolean},
@@ -222,7 +221,7 @@ export function gfyLike(
 
         const urls = gfy_item.content_urls;
         const url = urls.max5mbGif ?? urls.max2mbGif ?? urls.max1mbGif;
-        renderBody(client, {
+        renderBody({
             kind: "video",
             aspect: gfy_item.width / gfy_item.height,
             gifv: false,
@@ -392,10 +391,12 @@ export function previewLink(
     }
     if(url && (url.host === "soundcloud.com" || url.host.endsWith(".soundcloud.com"))) return {
         kind: "oembed",
+        client_id: "n/a",
         url: "https://soundcloud.com/oembed?format=json&url="+encodeURIComponent(link),
     };
     if(url && (url.host === "tiktok.com" || url.host.endsWith(".tiktok.com"))) return {
         kind: "oembed",
+        client_id: "n/a",
         url: "https://www.tiktok.com/oembed?url="+encodeURIComponent(link),
     };
     if(opts.suggested_embed != null) return {
@@ -403,27 +404,6 @@ export function previewLink(
         suggested_embed: opts.suggested_embed,
     };
     return undefined;
-}
-
-// what instead of actually previewing the link, this returned a body? pretty resonable idea tbh, just make sure not to allow
-// infinite loops where this returns a link body
-export function canPreview(
-    client: ThreadClient,
-    link: string,
-    opts: {autoplay: boolean, suggested_embed?: undefined | string},
-): undefined | (() => HideShowCleanup<HTMLElement>) {
-    const preview_body = previewLink(link, {suggested_embed: opts.suggested_embed});
-    if(preview_body) {
-        return (): HideShowCleanup<HTMLElement> => renderBody(client, preview_body, {autoplay: opts.autoplay});
-    }
-    return undefined;
-}
-
-export function renderImageGallery(client: ThreadClient, images: Generic.GalleryItem[]): HideShowCleanup<Node> {
-    const frame = el("div");
-    const hsc = hideshow(frame);
-    vanillaToSolidBoundary(client, frame, () => <ImageGallery images={images} />, {color_level: 1}).defer(hsc);
-    return hsc;
 }
 
 export function renderFlair(flairs: Generic.Flair[]): Node {
@@ -436,7 +416,6 @@ export function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
     const frame = el("span");
     const hsc = hideshow(frame);
     vanillaToSolidBoundary(
-        0 as unknown as ThreadClient,
         frame,
         () => <TimeAgo start={start_ms} />,
         {color_level: 1},
@@ -560,12 +539,11 @@ export async function textToBody(body: Generic.BodyText): Promise<Generic.Body> 
 }
 
 export function renderBody(
-    client: ThreadClient,
     body: Generic.Body,
     opts: {autoplay: boolean}
 ): HideShowCleanup<HTMLDivElement> {
     try {
-        return renderBodyMayError(client, body, opts);
+        return renderBodyMayError(body, opts);
     }catch(er) {
         const e = er as Error;
         console.log(e);
@@ -576,7 +554,6 @@ export function renderBody(
     }
 }
 function renderBodyMayError(
-    client: ThreadClient,
     body: Generic.Body,
     opts: {autoplay: boolean}
 ): HideShowCleanup<HTMLDivElement> {
@@ -585,7 +562,6 @@ function renderBodyMayError(
 
     const frame = el("div").adto(content);
     vanillaToSolidBoundary(
-        client,
         frame,
         () => <Body body={body} autoplay={opts.autoplay} />,
         {color_level: 1},
@@ -594,7 +570,7 @@ function renderBodyMayError(
     return hsc;
 }
 
-export function linkPreview(client: ThreadClient, body: Generic.LinkPreview): HideShowCleanup<HTMLDivElement> {
+export function linkPreview(client_id: string, body: Generic.LinkPreview): HideShowCleanup<HTMLDivElement> {
     const content = el("div");
     const hsc = hideshow(content);
     // maybe outline with body background and no shadow?
@@ -602,9 +578,9 @@ export function linkPreview(client: ThreadClient, body: Generic.LinkPreview): Hi
     if(body.click_enabled) {
         button_box = el("div").clss("bg-body rounded-lg block").adto(content);
     }else{
-        button_box = linkButton(client.id, body.url, "none", {onclick: body.click_enabled ? () => {
+        button_box = linkButton(client_id, body.url, "none", {onclick: body.click_enabled ? () => {
             button_box.remove();
-            renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(content);
+            renderBody(body.click, {autoplay: true}).defer(hsc).adto(content);
         } : undefined}).clss("bg-body rounded-lg hover:shadow-md hover:bg-gray-100 block").adto(content);
     }
     const link_preview_box = el("article")
@@ -642,10 +618,10 @@ export function linkPreview(client: ThreadClient, body: Generic.LinkPreview): Hi
         el("button").clss("hover:underline").adto(choicebox).atxt("Play").onev("click", e => {
             e.stopPropagation();
             thumb_box.innerHTML = "";
-            renderBody(client, body.click, {autoplay: true}).defer(hsc).adto(thumb_box);
+            renderBody(body.click, {autoplay: true}).defer(hsc).adto(thumb_box);
         });
         choicebox.atxt(" ");
-        linkButton(client.id, body.url, "none").clss("hover:underline").atxt("Open").adto(choicebox);
+        linkButton(client_id, body.url, "none").clss("hover:underline").atxt("Open").adto(choicebox);
     }
     const meta_box = el("div").clss("flex flex-col p-3 text-sm").adto(link_preview_box);
     meta_box.adch(el("h1").clss("max-lines max-lines-1 font-black").atxt(body.title));
@@ -655,7 +631,7 @@ export function linkPreview(client: ThreadClient, body: Generic.LinkPreview): Hi
     return hsc;
 }
 
-export function renderOembed(client: ThreadClient, body: Generic.OEmbedBody): HideShowCleanup<HTMLDivElement> {
+export function renderOembed(body: Generic.OEmbedBody): HideShowCleanup<HTMLDivElement> {
     const content = el("div");
     const hsc = hideshow(content);
 
@@ -663,7 +639,7 @@ export function renderOembed(client: ThreadClient, body: Generic.OEmbedBody): Hi
         console.log("oembed resp", resp);
         const outerel = el("div");
         const ihsc = hideshow(outerel);
-        renderBody(client, oembed(resp as OEmbed, client.id), {autoplay: false}).defer(hsc).adto(outerel);
+        renderBody(oembed(resp as OEmbed, body.client_id), {autoplay: false}).defer(hsc).adto(outerel);
         return ihsc;
     }).defer(hsc).adto(content);
 
@@ -861,7 +837,7 @@ export function youtubeVideo(
     return hsc;
 }
 
-export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galleryid: string): HideShowCleanup<Node> {
+export function imgurImage(isv: "gallery" | "album", galleryid: string): HideShowCleanup<Node> {
     const resdiv = el("div");
     const hsc = hideshow(resdiv);
     const loader = loadingSpinner().adto(resdiv);
@@ -937,8 +913,8 @@ export function imgurImage(client: ThreadClient, isv: "gallery" | "album", galle
                 }),
             };
             // this can be used to render like a post rather than a list of thumbnails you can click
-            //  renderBody(client, {kind: "array", body: gallery.images.map(img => img.body)}, {autoplay: false}).defer(hsc).adto(resdiv);
-            renderBody(client, gallery, {autoplay: false}).defer(hsc).adto(resdiv);
+            //  renderBody({kind: "array", body: gallery.images.map(img => img.body)}, {autoplay: false}).defer(hsc).adto(resdiv);
+            renderBody(gallery, {autoplay: false}).defer(hsc).adto(resdiv);
             loader.remove();
         }else{
             console.log(typed);
@@ -1028,20 +1004,19 @@ export function zoomableImage(url: string, opt: {
 }
 
 function userProfileListing(
-    client: ThreadClient,
     profile: Generic.Profile,
     frame: HTMLDivElement,
 ): HideShowCleanup<undefined> {
     const hsc = hideshow();
 
     {
-        renderBody(client, profile.bio, {autoplay: false}).defer(hsc).adto(frame);
+        renderBody(profile.bio, {autoplay: false}).defer(hsc).adto(frame);
     }
 
     const action_container = el("div").adto(frame);
     for(const action of profile.actions) {
         action_container.atxt(" ");
-        renderAction(client, action, action_container, {value_for_code_btn: profile}).defer(hsc);
+        renderAction(action, action_container, {value_for_code_btn: profile}).defer(hsc);
     }
     action_container.atxt(" ");
     elButton("code-button").adto(action_container).atxt("Code").onev("click", (e) => {
@@ -1069,7 +1044,6 @@ type RenderActionOpts = {
     value_for_code_btn: unknown,
 };
 function renderReplyAction(
-    client: ThreadClient,
     action: Generic.ReplyAction,
     content_buttons_line: Node,
     onAddReply: (thread: Generic.Thread) => void,
@@ -1106,7 +1080,7 @@ function renderReplyAction(
                     const div = el("div").adto(content_buttons_line);
                     reply_container = hideshow(div);
 
-                    vanillaToSolidBoundary(client, div, () => <ReplyEditor action={action} onCancel={() => {
+                    vanillaToSolidBoundary(div, () => <ReplyEditor action={action} onCancel={() => {
                         reply_state = "none";
                         update();
                     }} onAddReply={r => {
@@ -1114,7 +1088,7 @@ function renderReplyAction(
                         reply_state = "none";
                         update();
                         const vsbdiv = el("div").adto(content_buttons_line);
-                        vanillaToSolidBoundary(client, vsbdiv, () => <>
+                        vanillaToSolidBoundary(vsbdiv, () => <>
                             <ul class="ml-10">
                                 <ClientPostReply
                                     reply={r}
@@ -1139,23 +1113,23 @@ function renderReplyAction(
     }
 }
 export function renderAction(
-    client: ThreadClient,
     action: Generic.Action,
     content_buttons_line: Node,
     opts: RenderActionOpts
 ): HideShowCleanup<undefined> {
     if(action.kind === "link") {
-        linkButton(client.id, action.url, "action-button").atxt(action.text).adto(content_buttons_line);
+        linkButton(action.client_id, action.url, "action-button").atxt(action.text).adto(content_buttons_line);
         return hideshow();
     }else if(action.kind === "reply") {
         const hsc = hideshow();
-        renderReplyAction(client, action, content_buttons_line, (thread) => {
+        renderReplyAction(action, content_buttons_line, (thread) => {
+            const client = getClientCached(action.client_id)!;
             clientContent(client, thread, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
         }).defer(hsc);
         return hsc;
     }else if(action.kind === "counter") {
         const hsc = hideshow();
-        renderCounterAction(client, action, content_buttons_line, {parens: true}).defer(hsc);
+        renderCounterAction(action, content_buttons_line, {parens: true}).defer(hsc);
         return hsc;
     }else if(action.kind === "delete") {
         const resdelwrap = el("span").adto(content_buttons_line);
@@ -1197,7 +1171,7 @@ export function renderAction(
         confirmbtn.onev("click", (e) => {
             e.stopPropagation();
             setv("load");
-            client.act!(action.data).then(r => {
+            getClientCached(action.client_id)!.act!(action.data).then(r => {
                 setv("deleted");
             }).catch(err => {
                 console.log("Got error:", err);
@@ -1210,6 +1184,7 @@ export function renderAction(
         });
         return hideshow();
     }else if(action.kind === "report") {
+        const client = getClientCached(action.client_id)!;
         const hsc = hideshow();
         let report_container: HideShowCleanup<HTMLElement> | undefined;
 
@@ -1230,6 +1205,7 @@ export function renderAction(
 
         return hsc;
     }else if(action.kind === "login") {
+        const client = getClientCached(action.client_id)!;
         const frame = el("span").adto(content_buttons_line);
         const hsc = hideshow();
 
@@ -1262,6 +1238,7 @@ export function renderAction(
 
         return hsc;
     }else if(action.kind === "act") {
+        const client = getClientCached(action.client_id)!;
         const frame = el("span").adto(content_buttons_line);
         const btn = elButton("action-button").atxt(action.text).adto(frame).onev("click", (e) => {
             e.stopPropagation();
@@ -1289,7 +1266,7 @@ export function renderAction(
             console.log(opts.value_for_code_btn);
             if(!report_container) {
                 btn.setAttribute("class", link_styles_v["action-button-active"]); // also set aria-something idk
-                report_container = renderBody(client, action.body, {autoplay: true});
+                report_container = renderBody(action.body, {autoplay: true});
                 report_container.associated_data.adto(content_buttons_line);
             } else {
                 btn.setAttribute("class", link_styles_v["action-button"]);
@@ -1317,7 +1294,7 @@ function renderOneReportItem(
     const frame = el("div").clss("report-content").adto(outer_v);
 
     if(report_item.description) {
-        renderBody(client, report_item.description, {autoplay: false}).defer(hsc).adto(frame);
+        renderBody(report_item.description, {autoplay: false}).defer(hsc).adto(frame);
     }
 
     switch(report_item.report.kind) {
@@ -1402,7 +1379,7 @@ function renderReportScreen(
                 console.log("Completed report", sentr);
                 const resdiv = clientListingWrapperNode().adto(frame);
                 resdiv.adch(el("div").atxt(sentr.title));
-                renderBody(client, sentr.body, {autoplay: false}).defer(hsc).adto(resdiv);
+                renderBody(sentr.body, {autoplay: false}).defer(hsc).adto(resdiv);
                 console.log(resdiv, frame, frame.childNodes);
             }).defer(report_item_hsc).adto(frame);
         }
@@ -1488,8 +1465,8 @@ export function getPointsText(state: CounterState): {text: string, raw: string} 
     return {text: scoreToString(score_mut), raw: score_mut.toLocaleString()};
 }
 
+// I rewrote this already can't I delete this and switch to new?
 function renderCounterAction(
-    client: ThreadClient,
     action: Generic.CounterAction,
     content_buttons_line: Node,
     opts: {parens: boolean},
@@ -1560,6 +1537,7 @@ function renderCounterAction(
         if('error' in action.actions) {
             return alert("Error: "+action.actions.error);
         }
+        const client = getClientCached(action.client_id)!;
         const prev_vote = state.your_vote;
         state.your_vote = vote;
         state.loading = true;
@@ -1667,7 +1645,7 @@ export function watchNode<Node>(
     return hsc;
 }
 
-function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<HTMLElement> {
+function renderMenu(menu: Generic.Menu): HideShowCleanup<HTMLElement> {
     const menu_area = el("div");
     const hsc = hideshow(menu_area);
     const menu_this_line = el("div").adto(menu_area);
@@ -1675,7 +1653,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
         const smdiv = el("div");
         for(const item of items) {
             if(item.action.kind === "link") {
-                linkButton(client.id, item.action.url, "none")
+                linkButton(item.action.client_id, item.action.url, "none")
                     .clss("text-gray-600 dark:text-gray-400 hover:text-gray-900")
                     .adto(smdiv).atxt(item.text)
                 ;
@@ -1777,7 +1755,9 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
 
             update();
         }else if(item.action.kind === "link") {
-            const lbtn = linkButton(client.id, item.action.url, "none").atxt(item.text).adto(menu_this_line);
+            const lbtn = linkButton(
+                item.action.client_id, item.action.url, "none",
+            ).atxt(item.text).adto(menu_this_line);
 
             watchNode([selected_item], 0, () => {
                 lbtn.setAttribute("class", menuButtonStyle(item === selected_item.value));
@@ -1790,7 +1770,7 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
 
                 if(item === selected_item.value) {
                     if(menu_l2) throw new Error("already existing menu_l2");
-                    menu_l2 = renderMenu(client, action.children);
+                    menu_l2 = renderMenu(action.children);
                     menu_l2.defer(hsc);
                     menu_l2.associated_data.clss("mt-2").adto(menu_area);
                 }
@@ -1806,7 +1786,6 @@ function renderMenu(client: ThreadClient, menu: Generic.Menu): HideShowCleanup<H
 }
 
 export function bioRender(
-    client: ThreadClient,
     listing: Generic.RedditHeader,
     frame: HTMLDivElement,
 ): HideShowCleanup<undefined> {
@@ -1839,23 +1818,23 @@ export function bioRender(
 
     if(listing.subscribe) {
         const subscr = el("div").adto(rest);
-        renderAction(client, listing.subscribe, subscr, {value_for_code_btn: listing}).defer(hsc);
+        renderAction(listing.subscribe, subscr, {value_for_code_btn: listing}).defer(hsc);
     }
 
     if(listing.body) {
-        renderBody(client, listing.body, {autoplay: false}).defer(hsc).adto(rest);
+        renderBody(listing.body, {autoplay: false}).defer(hsc).adto(rest);
     }
 
     const post_frame = el("div").clss("relative").adto(frame);
 
     // TODO extract this out so menus can be used for eg listing sort options
     if(listing.menu) {
-        renderMenu(client, listing.menu).defer(hsc).adto(el("div").clss("my-3").adto(post_frame));
+        renderMenu(listing.menu).defer(hsc).adto(el("div").clss("my-3").adto(post_frame));
     }
 
     const final_actions_area = el("div").adto(post_frame);
     if(listing.more_actions) for(const act of listing.more_actions) {
-        renderAction(client, act, final_actions_area, {value_for_code_btn: listing}).defer(hsc);
+        renderAction(act, final_actions_area, {value_for_code_btn: listing}).defer(hsc);
     }
     elButton("action-button").atxt("Code").adto(final_actions_area)
         .onev("click", (e) => {e.stopPropagation(); console.log(listing)})
@@ -1881,7 +1860,7 @@ function widgetRender(
     if(widget.actions_top) {
         const actionstop = el("div").clss("widget-actions-top").adto(frame);
         for(const action of widget.actions_top) {
-            renderAction(client, action, actionstop, {value_for_code_btn: widget}).defer(hsc);
+            renderAction(action, actionstop, {value_for_code_btn: widget}).defer(hsc);
         }
     }
 
@@ -1895,7 +1874,7 @@ function widgetRender(
                 ili_wrapper.clss("list-none");
                 const details = el("details").adto(ili_wrapper);
                 ili = el("summary").attr({draggable: "true"}).adto(details);
-                renderBody(client, item.click.body, {autoplay: false}).defer(hsc).adto(details);
+                renderBody(item.click.body, {autoplay: false}).defer(hsc).adto(details);
             }else{
                 ili_wrapper.clss("ml-4");
                 ili = ili_wrapper;
@@ -1931,13 +1910,13 @@ function widgetRender(
             }
             if(item.action) {
                 const actionv = el("span").adto(ili).atxt(" ");
-                renderAction(client, item.action, actionv, {value_for_code_btn: item}).defer(hsc);
+                renderAction(item.action, actionv, {value_for_code_btn: item}).defer(hsc);
             }
         }
     }else if(content.kind === "community-details") {
         el("p").atxt(content.description).adto(frame);
     }else if(content.kind === "body") {
-        renderBody(client, content.body, {autoplay: false}).defer(hsc).adto(frame);
+        renderBody(content.body, {autoplay: false}).defer(hsc).adto(frame);
     }else if(content.kind === "iframe") {
         const alt_frame = el("div");
         outest_el.replaceChild(alt_frame, outer_el);
@@ -1964,7 +1943,7 @@ function widgetRender(
     if(widget.actions_bottom) {
         const actionstop = el("div").clss("widget-actions-bottom").adto(frame);
         for(const action of widget.actions_bottom) {
-            renderAction(client, action, actionstop, {value_for_code_btn: widget}).defer(hsc);
+            renderAction(action, actionstop, {value_for_code_btn: widget}).defer(hsc);
         }
     }
     el("div").adto(frame).adch(elButton("code-button").atxt("Code")
@@ -1989,11 +1968,11 @@ export function clientContent(
 
     try {
         if(listing.kind === "user-profile") {
-            userProfileListing(client, listing, frame).defer(hsc);
+            userProfileListing(listing, frame).defer(hsc);
             return hsc;
         }
         if(listing.kind === "bio") {
-            bioRender(client, listing, frame).defer(hsc);
+            bioRender(listing, frame).defer(hsc);
             return hsc;
         }
         if(listing.kind === "widget") {
@@ -2301,11 +2280,11 @@ export function clientListing(
                     cwbox.remove();
                     content_warnings = [];
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
-                    renderBody(client, body, {...bodyopts}).defer(body_hsc).adto(body_container);
+                    renderBody(body, {...bodyopts}).defer(body_hsc).adto(body_container);
                 });
                 return body_hsc;
             }
-            renderBody(client, body, {...bodyopts}).defer(body_hsc).adto(body_container);
+            renderBody(body, {...bodyopts}).defer(body_hsc).adto(body_container);
             return body_hsc;
         };
         
@@ -2362,7 +2341,7 @@ export function clientListing(
     for(const action of listing.actions) {
         if(action.kind === "counter" && action.special === "reddit-points") {
             frame.clss("spacefiller-redditpoints");
-            const ctr = renderCounterAction(client, action, content_voting_area, {parens: false}).defer(hsc);
+            const ctr = renderCounterAction(action, content_voting_area, {parens: false}).defer(hsc);
             if(listing.layout === "reddit-comment") {
                 content_subminfo_line.insertBefore(txt(" "), reserved_points_area);
                 content_subminfo_line.insertBefore(ctr.votecount, reserved_points_area);
@@ -2374,12 +2353,12 @@ export function clientListing(
                 content_voting_area.clss("desktop-only");
                 content_buttons_line.atxt(" ");
                 const cbl_render_area = el("div").clss("mobile-only").adto(content_buttons_line);
-                renderAction(client, action, cbl_render_area, {value_for_code_btn: listing}).defer(hsc);
+                renderAction(action, cbl_render_area, {value_for_code_btn: listing}).defer(hsc);
             }
         }else {
             if(action.kind === "code") has_code_button = true;
             content_buttons_line.atxt(" ");
-            renderAction(client, action, content_buttons_line, {value_for_code_btn: listing}).defer(hsc);
+            renderAction(action, content_buttons_line, {value_for_code_btn: listing}).defer(hsc);
         }
     }
 
@@ -2642,15 +2621,19 @@ function renderClientPage(
 
     const navbar_area = el("div").adto(frame).clss("navbar-area");
     for(const navbar_action of listing.navbar.actions) {
-        renderAction(client, navbar_action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
+        renderAction(navbar_action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
         txt(" ").adto(navbar_area);
     }
     const default_actions: Generic.Action[] = [
-        {kind: "link", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Report Issue"},
-        {kind: "link", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Feature Request"},
+        {kind: "link",
+            client_id: "n/a", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Report Issue",
+        },
+        {kind: "link",
+            client_id: "n/a", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Feature Request",
+        },
     ];
     for(const action of default_actions) {
-        renderAction(client, action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
+        renderAction(action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
         navbar_area.atxt(" ");
     }
     elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(listing));
@@ -2700,7 +2683,7 @@ function renderClientPage(
         ;
 
         if(listing.body.menu) {
-            renderMenu(client, listing.body.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
+            renderMenu(listing.body.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
         }
 
         const listing_area = el("div").adto(content_area);
@@ -2782,7 +2765,7 @@ function renderClientPage(
             clientContent(client, parent, {clickable: !is_last}).defer(hsc).adto(parent_area);
         }
         if(listing.body.item.menu) {
-            renderMenu(client, listing.body.item.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
+            renderMenu(listing.body.item.menu).defer(hsc).adto(makeTopLevelWrapper().adto(content_area));
         }
         const addChildren = (children: Generic.Node[]) => {
             for(const child of children) addChild(child);
@@ -2848,7 +2831,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             frame.classList.add(
                 "display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[display_style ?? "centered"]
             );
-            vanillaToSolidBoundary(client, frame, () => <ClientPage page={page2} />, {color_level: 0}).defer(hsc);
+            vanillaToSolidBoundary(frame, () => <ClientPage page={page2} />, {color_level: 0}).defer(hsc);
             // renderClientPage2(client, page2, frame, title).defer(hsc);
         }else{
             const listing = await client.getThread(current_path);
@@ -2968,7 +2951,7 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
 
-    vanillaToSolidBoundary(0 as unknown as ThreadClient, res, () => <Homepage />, {color_level: 0}).defer(hsc);
+    vanillaToSolidBoundary(res, () => <Homepage />, {color_level: 0}).defer(hsc);
 
     return hsc;
 }
@@ -2977,7 +2960,7 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
     return fetchPromiseThen(import("./components/settings"), ({SettingsPage}) => {
         const res = el("div");
         const hsc = hideshow(res);
-        vanillaToSolidBoundary(0 as unknown as ThreadClient, res, () => <SettingsPage />, {color_level: 0}).defer(hsc);
+        vanillaToSolidBoundary(res, () => <SettingsPage />, {color_level: 0}).defer(hsc);
         return hsc;
     });
 }
@@ -3156,15 +3139,6 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             const res = el("div");
             const hsc = hideshow(res);
             vanillaToSolidBoundary(
-                {
-                    id: "ERROR",
-                    getThread: () => {throw new Error("not real client")},
-                    act: () => {throw new Error("not real client")},
-                    previewReply: () => {throw new Error("not real client")},
-                    sendReply: () => {throw new Error("not real client")},
-                    loadMore: () => {throw new Error("not real client")},
-                    loadMoreUnmounted: () => {throw new Error("not real client")},
-                },
                 res,
                 () => <Body body={previewable_link} autoplay={false} />,
                 {color_level: 0},
@@ -3363,7 +3337,7 @@ console.log("ThreadClient built on "+variables.build_time);
 
 const [availableForOfflineUse, setAvailableForOfflineUse] = createSignal(false);
 const [updateAvailable, setUpdateAvailable] = createSignal(false);
-export {availableForOfflineUse, updateAvailable};
+export { availableForOfflineUse, updateAvailable };
 export const updateSW = registerSW({
     onNeedRefresh() {
         console.log("An update to ThreadClient is available");
