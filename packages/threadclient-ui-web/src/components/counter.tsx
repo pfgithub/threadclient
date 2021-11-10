@@ -2,8 +2,10 @@ import type * as Generic from "api-types-generic";
 import { Accessor, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import type { ThreadClient } from "threadclient-client-base";
 import { ShowBool, ShowCond } from "tmeta-util-solid";
-import { CounterState, getPointsText, link_styles_v, WatchableCounterState, watchCounterState } from "../app";
-import { getClient } from "../util/utils_solid";
+import { 
+    CounterState, fetchClient, getPointsText, link_styles_v,
+    WatchableCounterState, watchCounterState,
+} from "../app";
 
 export function getCounterState(
     counter: Accessor<Generic.CounterAction>,
@@ -63,13 +65,14 @@ export async function act(
 
 export async function actAuto(
     direction: "increment" | "decrement" | undefined,
-    client: ThreadClient,
     state: CounterState,
     setState: (s: CounterState) => void,
     counter: Generic.CounterAction,
 ): Promise<void> {
     setState({...state, loading: true, your_vote: direction});
     try {
+        const client = await fetchClient(counter.client_id);
+        if(!client) throw new Error("missing client");
         await act(direction, client, counter);
         setState({...state, loading: false, your_vote: direction});
     }catch(e) {
@@ -81,7 +84,6 @@ export async function actAuto(
 
 export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
     const [state, setState] = getCounterState(() => props.counter);
-    const client = getClient();
 
     return <span>
         <button
@@ -90,7 +92,6 @@ export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
             onclick={() => {
                 void actAuto(
                     state().your_vote === "increment" ? undefined : "increment",
-                    client,
                     state(),
                     setState,
                     props.counter,
@@ -104,7 +105,6 @@ export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
                 onclick={() => {
                     void actAuto(
                         state().your_vote === "decrement" ? undefined : "decrement",
-                        client,
                         state(),
                         setState,
                         props.counter,
@@ -117,7 +117,6 @@ export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
 
 export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JSX.Element {
     const [state, setState] = getCounterState(() => props.counter);
-    const client = getClient();
 
     return <div class={"flex flex-col items-center gap-2px"}>
         <button
@@ -129,7 +128,6 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
             onclick={() => {
                 void actAuto(
                     state().your_vote === "increment" ? undefined : "increment",
-                    client,
                     state(),
                     setState,
                     props.counter,
@@ -147,7 +145,6 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
             onclick={() => {
                 void actAuto(
                     state().your_vote === "decrement" ? undefined : "decrement",
-                    client,
                     state(),
                     setState,
                     props.counter,

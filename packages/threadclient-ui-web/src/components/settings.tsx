@@ -3,7 +3,7 @@ import { createSignal, For, JSX } from "solid-js";
 import { ShowBool, ShowCond } from "tmeta-util-solid";
 import { variables } from "virtual:_variables";
 import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
-import { ClientProvider, ComputeProperty, getSettings } from "../util/utils_solid";
+import { ComputeProperty, getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
@@ -101,45 +101,37 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 } as const)[v ?? "default"]}
             />
             <TopLevelWrapper restrict_w>
-                <ClientProvider client={{
-                    id: "reddit",
-                    getThread: () => {throw new Error("no")},
-                    act: () => {throw new Error("no")},
-                    previewReply: () => {throw new Error("no")},
-                    sendReply: () => {throw new Error("no")},
-                    loadMore: () => {throw new Error("no")},
-                    loadMoreUnmounted: () => {throw new Error("no")},
-                }}>
-                    <ClientContent listing={{
-                        kind: "post",
+                <ClientContent listing={{
+                    kind: "post",
 
-                        title: null,
-                        author: {
-                            name: "pfg___",
-                            color_hash: "pfg___",
-                            link: "/u/pfg___",
-                            pfp: {
-                                url: "https://www.redditstatic.com/avatars/avatar_default_02_FF8717.png",
-                                hover: "https://www.redditstatic.com/avatars/avatar_default_02_FF8717.png",
-                            },
+                    title: null,
+                    author: {
+                        name: "pfg___",
+                        client_id: "reddit",
+                        color_hash: "pfg___",
+                        link: "/u/pfg___",
+                        pfp: {
+                            url: "https://www.redditstatic.com/avatars/avatar_default_02_FF8717.png",
+                            hover: "https://www.redditstatic.com/avatars/avatar_default_02_FF8717.png",
                         },
-                        collapsible: {default_collapsed: false},
-                        show_replies_when_below_pivot: true,
-                        body: {
-                            kind: "richtext",
-                            content: [{kind: "paragraph", children: [
-                                {kind: "text", text: "This is an example comment!", styles: {}},
-                            ]}],
-                        },
-                    }} opts={{
-                        clickable: false,
-                        frame: null,
-                        replies: null,
-                        at_or_above_pivot: false,
-                        is_pivot: false,
-                        top_level: true,
-                    }} />
-                </ClientProvider>
+                    },
+                    collapsible: {default_collapsed: false},
+                    show_replies_when_below_pivot: true,
+                    body: {
+                        kind: "richtext",
+                        content: [{kind: "paragraph", children: [
+                            {kind: "text", text: "This is an example comment!", styles: {}},
+                        ]}],
+                    },
+                }} opts={{
+                    clickable: false,
+                    frame: null,
+                    replies: null,
+                    client_id: "",
+                    at_or_above_pivot: false,
+                    is_pivot: false,
+                    top_level: true,
+                }} />
             </TopLevelWrapper>
         </SettingsSection>
         <SettingsSection title="Update Notices">
@@ -169,33 +161,23 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "Default",
                 } as const)[v ?? "default"]}
             />
-            <ClientProvider client={{
-                id: "",
-                getThread: () => {throw new Error("no")},
-                act: () => {throw new Error("no")},
-                previewReply: () => {throw new Error("no")},
-                sendReply: () => {throw new Error("no")},
-                loadMore: () => {throw new Error("no")},
-                loadMoreUnmounted: () => {throw new Error("no")},
-            }}>
-                <RichtextParagraphs content={[
-                    rt.p(
-                        rt.txt("Optionally show link helpers to make it easier to click small links"),
-                    ),
-                    rt.p(
-                        rt.txt("I put a small link "),
-                        rt.link("/settings", {}, rt.txt("here")),
-                        rt.txt(" to demo the functionality."),
-                    ),
-                    rt.p(
-                        rt.txt("There are some more "),
-                        rt.link("https://i.redd.it/p0y4mrku6xh61.png", {}, rt.txt("small links")),
-                        rt.txt(" in "),
-                        rt.link("https://en.wikipedia.org/wiki/Special:Random", {}, rt.txt("this")),
-                        rt.txt(" paragraph."),
-                    ),
-                ]} />
-            </ClientProvider>
+            <RichtextParagraphs content={[
+                rt.p(
+                    rt.txt("Optionally show link helpers to make it easier to click small links"),
+                ),
+                rt.p(
+                    rt.txt("I put a small link "),
+                    rt.link({id: ""}, "/settings", {}, rt.txt("here")),
+                    rt.txt(" to demo the functionality."),
+                ),
+                rt.p(
+                    rt.txt("There are some more "),
+                    rt.link({id: ""}, "https://i.redd.it/p0y4mrku6xh61.png", {}, rt.txt("small links")),
+                    rt.txt(" in "),
+                    rt.link({id: ""}, "https://en.wikipedia.org/wiki/Special:Random", {}, rt.txt("this")),
+                    rt.txt(" paragraph."),
+                ),
+            ]} />
         </SettingsSection>
         <SettingsSection title="Custom Video Controls">
             <SettingPicker
@@ -212,47 +194,38 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 they are complete, they will be enabled by default.
             </p>
             <TopLevelWrapper restrict_w>
-                <ClientProvider client={{
-                    id: "n/a",
-                    getThread: () => {throw new Error("no")},
-                    act: () => {throw new Error("no")},
-                    previewReply: () => {throw new Error("no")},
-                    sendReply: () => {throw new Error("no")},
-                    loadMore: () => {throw new Error("no")},
-                    loadMoreUnmounted: () => {throw new Error("no")},
-                }}>
-                    <ClientContent listing={{
-                        kind: "post",
+                <ClientContent listing={{
+                    kind: "post",
 
-                        title: {text: "Video Example"},
-                        collapsible: {default_collapsed: true},
-                        show_replies_when_below_pivot: false,
-                        body: {
+                    title: {text: "Video Example"},
+                    collapsible: {default_collapsed: true},
+                    show_replies_when_below_pivot: false,
+                    body: {
+                        kind: "video",
+                        gifv: false,
+                        aspect: 16 / 9,
+                        source: {
                             kind: "video",
-                            gifv: false,
-                            aspect: 16 / 9,
-                            source: {
-                                kind: "video",
-                                thumbnail: "https://commondatastorage.googleapis.com/"
-                                + "gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
-                                sources: [
-                                    {
-                                        url: "https://commondatastorage.googleapis.com/"
-                                        + "gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                                        quality: "720p",
-                                    },
-                                ],
-                            },
+                            thumbnail: "https://commondatastorage.googleapis.com/"
+                            + "gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+                            sources: [
+                                {
+                                    url: "https://commondatastorage.googleapis.com/"
+                                    + "gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                                    quality: "720p",
+                                },
+                            ],
                         },
-                    }} opts={{
-                        clickable: false,
-                        frame: null,
-                        replies: null,
-                        at_or_above_pivot: false,
-                        is_pivot: false,
-                        top_level: true,
-                    }} />
-                </ClientProvider>
+                    },
+                }} opts={{
+                    clickable: false,
+                    frame: null,
+                    client_id: "n/a",
+                    replies: null,
+                    at_or_above_pivot: false,
+                    is_pivot: false,
+                    top_level: true,
+                }} />
             </TopLevelWrapper>
         </SettingsSection>
         <SettingsSection title="Animations">
@@ -298,36 +271,27 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 />
             </ShowAnimate>
             <TopLevelWrapper restrict_w>
-                <ClientProvider client={{
-                    id: "",
-                    getThread: () => {throw new Error("no")},
-                    act: () => {throw new Error("no")},
-                    previewReply: () => {throw new Error("no")},
-                    sendReply: () => {throw new Error("no")},
-                    loadMore: () => {throw new Error("no")},
-                    loadMoreUnmounted: () => {throw new Error("no")},
-                }}>
-                    <ClientContent listing={{
-                        kind: "post",
+                <ClientContent listing={{
+                    kind: "post",
 
-                        title: {text: "Motion Example"},
-                        collapsible: {default_collapsed: false},
-                        show_replies_when_below_pivot: true,
-                        body: {
-                            kind: "richtext",
-                            content: [
-                                rt.p(rt.txt("Click the collapse button to the left to see an example")),
-                            ],
-                        },
-                    }} opts={{
-                        clickable: false,
-                        frame: null,
-                        replies: null,
-                        at_or_above_pivot: false,
-                        is_pivot: false,
-                        top_level: true,
-                    }} />
-                </ClientProvider>
+                    title: {text: "Motion Example"},
+                    collapsible: {default_collapsed: false},
+                    show_replies_when_below_pivot: true,
+                    body: {
+                        kind: "richtext",
+                        content: [
+                            rt.p(rt.txt("Click the collapse button to the left to see an example")),
+                        ],
+                    },
+                }} opts={{
+                    clickable: false,
+                    frame: null,
+                    client_id: "n/a",
+                    replies: null,
+                    at_or_above_pivot: false,
+                    is_pivot: false,
+                    top_level: true,
+                }} />
             </TopLevelWrapper>
         </SettingsSection>
         <SettingsSection title="Developer Options">

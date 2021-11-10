@@ -6,7 +6,7 @@ import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
     getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery,
-    expectUnsupported, parseLink, redditRequest, authorFromT2
+    expectUnsupported, parseLink, redditRequest, authorFromT2, client
 } from "./reddit";
 import { encoderGenerator } from "threadclient-client-base";
 
@@ -49,11 +49,12 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             return {
                 pivot: {ref: {
                     kind: "post",
+                    client_id: client.id,
                     content: {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
-                            rt.h1(rt.link("raw!"+parsed.out, {}, rt.txt("View on reddit.com"))),
+                            rt.h1(rt.link(client, "raw!"+parsed.out, {}, rt.txt("View on reddit.com"))),
                             rt.p(rt.txt("ThreadClient does not support this URL")),
                         ]},
                         show_replies_when_below_pivot: false,
@@ -70,11 +71,14 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             return {
                 pivot: {ref: {
                     kind: "post",
+                    client_id: client.id,
                     content: {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
-                            rt.h1(rt.link("raw!https://www.reddit.com"+parsed.path, {}, rt.txt("View on reddit.com"))),
+                            rt.h1(rt.link(client, "raw!https://www.reddit.com"+parsed.path, {},
+                                rt.txt("View on reddit.com"),
+                            )),
                             rt.p(rt.txt("ThreadClient does not yet support this URL")),
                             rt.p(rt.txt(parsed.msg)),
                         ]},
@@ -95,11 +99,14 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             return {
                 pivot: {ref: {
                     kind: "post",
+                    client_id: client.id,
                     content: {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
-                            rt.h1(rt.link("raw!https://www.reddit.com"+pathraw, {}, rt.txt("View on reddit.com"))),
+                            rt.h1(rt.link(client, "raw!https://www.reddit.com"+pathraw, {},
+                                rt.txt("View on reddit.com"),
+                            )),
                             rt.p(rt.txt("Error! Redirect Loop. ThreadClient tried to redirect more than 100 times.")),
                         ]},
                         show_replies_when_below_pivot: false,
@@ -145,6 +152,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
         if(is_networkerror) return {
             pivot: {ref: {
                 kind: "post",
+                client_id: client.id,
                 content: {
                     kind: "post",
                     title: {text: "Error Loading Page"},
@@ -170,7 +178,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.ili(rt.txt("Make sure your internet is working")),
                             rt.ili(
                                 rt.txt("Make sure "),
-                                rt.link("https://www.redditstatus.com/", {}, rt.txt("Reddit is working")),
+                                rt.link(client, "https://www.redditstatus.com/", {}, rt.txt("Reddit is working")),
                             ),
                             rt.ili(
                                 rt.txt("If your browser has tracking protection, try disabling it."),
@@ -342,6 +350,7 @@ function getSrId(sub: SubrInfo): ID {
 function unsupportedPage(pathraw: string, page: unknown): Generic.Link<Generic.PostData> {
     return {ref: {
         kind: "post",
+        client_id: client.id,
         parent: null,
         url: null,
         replies: null,
@@ -532,6 +541,7 @@ function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
         in: listing_raw.kind === "t3" ? {
             name: listing.subreddit_name_prefixed,
             link: "/"+listing.subreddit_name_prefixed,
+            client_id: client.id,
         } : undefined, // don't show on comments
 
         comments: listing_raw.kind === "t3" ? listing_raw.data.num_comments : undefined,
@@ -571,6 +581,7 @@ function postDataFromListingMayError(
 
         return {
             kind: "post",
+            client_id: client.id,
             url: updateQuery(listing.permalink, {context: "3"}),
 
             parent: getPostData(map, listing.parent_id as ID),
@@ -606,6 +617,7 @@ function postDataFromListingMayError(
 
         return {
             kind: "post",
+            client_id: client.id,
             url: listing.permalink,
 
             parent: getPostData(map, getSrId({
@@ -666,6 +678,7 @@ function postDataFromListingMayError(
 
         return {
             kind: "post",
+            client_id: client.id,
             url: null,
             parent: null,
             replies: {
@@ -685,6 +698,7 @@ function postDataFromListingMayError(
         const listing = entry.data.item.data;
         return {
             kind: "loader",
+            client_id: client.id,
             parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
@@ -698,6 +712,7 @@ function postDataFromListingMayError(
         const listing = entry.data.item.data;
         return {
             kind: "loader",
+            client_id: client.id,
             parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
@@ -712,6 +727,7 @@ function postDataFromListingMayError(
         const title = entry.data.pathraw.substr(entry.data.pathraw.lastIndexOf("/") + 1);
         return {
             kind: "post",
+            client_id: client.id,
             url: entry.data.pathraw,
             parent: null, // TODO subreddit (this should also add `| SubName`) in the page title
             replies: null,
@@ -719,7 +735,11 @@ function postDataFromListingMayError(
                 kind: "post",
                 title: {text: title},
                 collapsible: false,
-                body: {kind: "text", content: listing.data.content_html, markdown_format: "reddit_html"},
+                body: {kind: "text",
+                    content: listing.data.content_html,
+                    client_id: client.id,
+                    markdown_format: "reddit_html",
+                },
                 show_replies_when_below_pivot: false,
 
                 info: {

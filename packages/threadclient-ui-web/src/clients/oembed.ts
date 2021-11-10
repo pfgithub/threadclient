@@ -4,7 +4,7 @@ import type {OEmbed} from "api-types-oembed";
 
 // TODO return {error: …} | {body: …}
 // then let the main thing display a link if error was returned
-export function oembed(card: OEmbed): Generic.Body {
+export function oembed(card: OEmbed, client_id: string): Generic.Body {
     if('status_msg' in card) {
         return {
             kind: "richtext",
@@ -23,6 +23,7 @@ export function oembed(card: OEmbed): Generic.Body {
             w: null, h: null,
         } : {
             kind: "link",
+            client_id,
             url: card.url,
             embed_html: card.html || undefined,
         },

@@ -18,7 +18,7 @@ test("sample", async () => {
         //     const md_as_html = mdr.renderMd(test[0]);
         //     expect(md_as_html).toEqual(test[1]);
         // }
-        const html_as_rt = htr.parseContentHTML(test_item[1]);
+        const html_as_rt = htr.parseContentHTML(test_item[1], client.id);
         const expected_rt = test_item[2];
 
         expect(html_as_rt).toEqual(expected_rt);
@@ -71,37 +71,39 @@ test("sample", async () => {
 //     }
 // }
 
+const client = {id: "reddit"};
+
 // this test set doesn't include basic things like **bold**, ***bold italic***, <ul>, <ol>, …
 // I should probably go find the other test set that has those
 export const reddit_html_tests: [markdown: string | null, html: string, richtext: Generic.Richtext.Paragraph[]][] = [
     ["", "", []],
     [" ", "", []],
     ["http://www.reddit.com", "<p><a href=\"http://www.reddit.com\">http://www.reddit.com</a></p>\n", [
-        rt.p(rt.link("http://www.reddit.com", {}, rt.txt("http://www.reddit.com"))),
+        rt.p(rt.link(client, "http://www.reddit.com", {}, rt.txt("http://www.reddit.com"))),
     ]],
     ["http://www.reddit.com/a\x00b", "<p><a href=\"http://www.reddit.com/ab\">http://www.reddit.com/ab</a></p>\n", [
-        rt.p(rt.link("http://www.reddit.com/ab", {}, rt.txt("http://www.reddit.com/ab"))),
+        rt.p(rt.link(client, "http://www.reddit.com/ab", {}, rt.txt("http://www.reddit.com/ab"))),
     ]],
     ["foo@example.com", "<p><a href=\"mailto:foo@example.com\">foo@example.com</a></p>\n", [
-        rt.p(rt.link("mailto:foo@example.com", {}, rt.txt("foo@example.com"))),
+        rt.p(rt.link(client, "mailto:foo@example.com", {}, rt.txt("foo@example.com"))),
     ]],
     ["[foo](http://en.wikipedia.org/wiki/Link_(film\\))", "<p><a href=\"http://en.wikipedia.org/wiki/Link_(film)\">foo</a></p>\n", [
-        rt.p(rt.link("http://en.wikipedia.org/wiki/Link_(film)", {}, rt.txt("foo"))),
+        rt.p(rt.link(client, "http://en.wikipedia.org/wiki/Link_(film)", {}, rt.txt("foo"))),
     ]],
     ["(http://tsfr.org)", "<p>(<a href=\"http://tsfr.org\">http://tsfr.org</a>)</p>\n", [
-        rt.p(rt.txt("("), rt.link("http://tsfr.org", {}, rt.txt("http://tsfr.org")), rt.txt(")")),
+        rt.p(rt.txt("("), rt.link(client, "http://tsfr.org", {}, rt.txt("http://tsfr.org")), rt.txt(")")),
     ]],
     ["[A link with a /r/subreddit in it](/lol)", "<p><a href=\"/lol\">A link with a /r/subreddit in it</a></p>\n", [
-        rt.p(rt.link("https://www.reddit.com/lol", {}, rt.txt("A link with a /r/subreddit in it"))),
+        rt.p(rt.link(client, "https://www.reddit.com/lol", {}, rt.txt("A link with a /r/subreddit in it"))),
     ]],
     ["[A link with a http://www.url.com in it](/lol)", "<p><a href=\"/lol\">A link with a http://www.url.com in it</a></p>\n", [
-        rt.p(rt.link("https://www.reddit.com/lol", {}, rt.txt("A link with a http://www.url.com in it"))),
+        rt.p(rt.link(client, "https://www.reddit.com/lol", {}, rt.txt("A link with a http://www.url.com in it"))),
     ]],
     ["[Empty Link]()", "<p>[Empty Link]()</p>\n", [
         rt.p(rt.txt("[Empty Link]()")),
     ]],
     ["http://en.wikipedia.org/wiki/café_racer", "<p><a href=\"http://en.wikipedia.org/wiki/caf%C3%A9_racer\">http://en.wikipedia.org/wiki/café_racer</a></p>\n", [
-        rt.p(rt.link("http://en.wikipedia.org/wiki/caf%C3%A9_racer", {}, rt.txt("http://en.wikipedia.org/wiki/café_racer"))),
+        rt.p(rt.link(client, "http://en.wikipedia.org/wiki/caf%C3%A9_racer", {}, rt.txt("http://en.wikipedia.org/wiki/café_racer"))),
     ]],
     ["#####################################################hi", "<h6>###############################################hi</h6>\n", [
         rt.hn(6, rt.txt("###############################################hi")),
@@ -110,10 +112,10 @@ export const reddit_html_tests: [markdown: string | null, html: string, richtext
         
     // ]],
     ["/r/test", "<p><a href=\"/r/test\">/r/test</a></p>\n", [
-        rt.p(rt.link("https://www.reddit.com/r/test", {}, rt.txt("/r/test"))),
+        rt.p(rt.link(client, "https://www.reddit.com/r/test", {}, rt.txt("/r/test"))),
     ]],
     ["Words words /r/test words", "<p>Words words <a href=\"/r/test\">/r/test</a> words</p>\n", [
-        rt.p(rt.txt("Words words "), rt.link("https://www.reddit.com/r/test", {}, rt.txt("/r/test")), rt.txt(" words")),
+        rt.p(rt.txt("Words words "), rt.link(client, "https://www.reddit.com/r/test", {}, rt.txt("/r/test")), rt.txt(" words")),
     ]],
     // ["/r/", "<p>/r/</p>\n", [
         
@@ -125,7 +127,7 @@ export const reddit_html_tests: [markdown: string | null, html: string, richtext
         
     // ]],
     ["[_regular_ link with nesting](/test)", "<p><a href=\"/test\"><em>regular</em> link with nesting</a></p>\n", [
-        rt.p(rt.link("https://www.reddit.com/test", {}, rt.txt("regular", {emphasis: true}), rt.txt(" link with nesting"))),
+        rt.p(rt.link(client, "https://www.reddit.com/test", {}, rt.txt("regular", {emphasis: true}), rt.txt(" link with nesting"))),
     ]],
     // [" www.a.co?with&test", "<p><a href=\"http://www.a.co?with&amp;test\">www.a.co?with&amp;test</a></p>\n", [
         
@@ -242,7 +244,7 @@ export const reddit_html_tests: [markdown: string | null, html: string, richtext
         
     // ]],
     ["*u/me*", "<p><em><a href=\"/u/me\">u/me</a></em></p>\n", [
-        rt.p(rt.link("https://www.reddit.com/u/me", {}, rt.txt("u/me", {emphasis: true}))),
+        rt.p(rt.link(client, "https://www.reddit.com/u/me", {}, rt.txt("u/me", {emphasis: true}))),
     ]],
     // ["foo^u/me", "<p>foo<sup><a href=\"/u/me\">u/me</a></sup></p>\n", [
         
@@ -644,119 +646,119 @@ wow!</p>
 <hr />
 <p><a href="/r/hfy/wiki/pages" rel="nofollow">Back To Full Page List</a></p>
 </div><!-- SC_ON -->`, [{ordered:false,kind:"list",children:[{kind:"list_item",children:[{
-        kind:"paragraph",children:[{url:"#wiki_the_hfy_wiki",kind:"link",children:[{text:
+        kind:"paragraph",children:[{url:"#wiki_the_hfy_wiki",kind:"link",client_id:client.id,children:[{text:
         "The HFY Wiki",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:[{ordered:false,
         kind:"list",children:[{kind:"list_item",children:[{kind:"paragraph",children:[
-            {url:"#wiki_guides",kind:"link",children:[{text:"Guides",styles:{},kind:"text"}]}
+            {url:"#wiki_guides",kind:"link",client_id:client.id,children:[{text:"Guides",styles:{},kind:"text"}]}
         ]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:"#wiki_recommended_reading"
-            ,kind:"link",children:[{text:"Recommended Reading",styles:{},kind:"text"}]}]}]},{kind:
+            ,kind:"link",client_id:client.id,children:[{text:"Recommended Reading",styles:{},kind:"text"}]}]}]},{kind:
         "list_item",children:[{ordered:false,kind:"list",children:[{kind:"list_item",children:
-        [{kind:"paragraph",children:[{url:"#wiki_oc",kind:"link",children:[{text:"OC",styles:
+        [{kind:"paragraph",children:[{url:"#wiki_oc",kind:"link",client_id:client.id,children:[{text:"OC",styles:
         {},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "#wiki_outside_authors",kind:"link",children:[{text:"Outside Authors",styles:{},kind:
+        "#wiki_outside_authors",kind:"link",client_id:client.id,children:[{text:"Outside Authors",styles:{},kind:
         "text"}]}]}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "#wiki_the_reference_library",kind:"link",children:[{text:"The Reference Library",styles:
+        "#wiki_the_reference_library",kind:"link",client_id:client.id,children:[{text:"The Reference Library",styles:
         {},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "#wiki_tools_.26amp.3B_development",kind:"link",children:[{text:"Tools & Development",styles:
+        "#wiki_tools_.26amp.3B_development",kind:"link",client_id:client.id,children:[{text:"Tools & Development",styles:
         {},kind:"text"}]}]}]}]}]}]},{level:1,kind:"heading",children:[{text:"The HFY Wiki",styles:
         {},kind:"text"}]},{kind:"paragraph",children:[{text:
         "From here, you will be able to navigate to other sections of the wiki to read stories, our community's expectations, how to format posts, and much more.",styles:
         {},kind:"text"},{kind:"br"},{text:" ",styles:{},kind:"text"},{text:"Authors:",styles:{strong:
         true},kind:"text"},{text:" Want your own wiki page? Send a ",styles:{},kind:"text"},{url:
-        "http://www.reddit.com/message/compose?to=%2Fr%2FHFY",kind:"link",children:[{text:
+        "http://www.reddit.com/message/compose?to=%2Fr%2FHFY",kind:"link",client_id:client.id,children:[{text:
         "message to the mods!",styles:{},kind:"text"}]},{text:" ",styles:{},kind:"text"}]},{level:
         2,kind:"heading",children:[{text:"Guides",styles:{},kind:"text"}]},{ordered:false,kind:
         "list",children:[{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/hfy/wiki/ref/faq",kind:"link",children:[{text:
+        "https://www.reddit.com/r/hfy/wiki/ref/faq",kind:"link",client_id:client.id,children:[{text:
         "Frequently Asked Questions",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:
         "paragraph",children:[{url:"http://www.reddit.com/r/hfy/wiki/ref/standards_and_expectations",kind:
-        "link",children:[{text:"Standards and Expectations",styles:{},kind:"text"}]}]}]},{kind:
+        "link",client_id:client.id,children:[{text:"Standards and Expectations",styles:{},kind:"text"}]}]}]},{kind:
         "list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/HFY/wiki/ref/faq/formatting_guide",kind:"link",children:[{text:
+        "https://www.reddit.com/r/HFY/wiki/ref/faq/formatting_guide",kind:"link",client_id:client.id,children:[{text:
         "Formatting guide",styles:{},kind:"text"}]},{kind:"br"}]}]},{kind:"list_item",children:[{kind:
         "paragraph",children:[{url:"https://www.reddit.com/r/hfy/wiki/ref/guidelines",kind:
-        "link",children:[{text:"Post guidelines",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:
-        [{kind:"paragraph",children:[{url:"http://www.reddit.com/wiki/submitting",kind:"link",children:
+        "link",client_id:client.id,children:[{text:"Post guidelines",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:
+        [{kind:"paragraph",children:[{url:"http://www.reddit.com/wiki/submitting",kind:"link",client_id:client.id,children:
         [{text:"Official Reddit Submitting Guide",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:
         [{kind:"paragraph",children:[{url:"https://www.reddit.com/r/hfy/wiki/ref/wiki_updating",kind:
-        "link",children:[{text:"Wiki Updating",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:
-        "paragraph",children:[{url:"http://www.reddit.com/r/HFY/wiki/ref/faq/irc",kind:"link",children:[{text:
+        "link",client_id:client.id,children:[{text:"Wiki Updating",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:
+        "paragraph",children:[{url:"http://www.reddit.com/r/HFY/wiki/ref/faq/irc",kind:"link",client_id:client.id,children:[{text:
         "Discord Guide",styles:{},kind:"text"}]}]}]}]},{level:2,kind:"heading",children:[{text:
         "Recommended Reading",styles:{},kind:"text"}]},{level:6,kind:"heading",children:[{text:"OC",styles:
         {},kind:"text"}]},{ordered:false,kind:"list",children:[{kind:"list_item",children:[{kind:
-        "paragraph",children:[{url:"https://www.reddit.com/r/HFY/wiki/ref/classics",kind:"link",children:
+        "paragraph",children:[{url:"https://www.reddit.com/r/HFY/wiki/ref/classics",kind:"link",client_id:client.id,children:
         [{text:"Classics",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:
-        [{url:"https://www.reddit.com/r/HFY/wiki/ref/must_read",kind:"link",children:[{text:"Must Read",styles:
+        [{url:"https://www.reddit.com/r/HFY/wiki/ref/must_read",kind:"link",client_id:client.id,children:[{text:"Must Read",styles:
         {},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/HFY/wiki/featured",kind:"link",children:[{text:"Past Features",styles:{},kind:
+        "https://www.reddit.com/r/HFY/wiki/featured",kind:"link",client_id:client.id,children:[{text:"Past Features",styles:{},kind:
         "text"}]}]}]}]},{level:6,kind:"heading",children:[{text:"Outside Authors",styles:{},kind:
         "text"}]},{ordered:false,kind:"list",children:[{kind:"list_item",children:[{kind:"paragraph",children:
-        [{url:"https://www.reddit.com/r/HFY/wiki/ref/hfylibrary",kind:"link",children:[{text:"HFY Library",styles:
+        [{url:"https://www.reddit.com/r/HFY/wiki/ref/hfylibrary",kind:"link",client_id:client.id,children:[{text:"HFY Library",styles:
         {},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/HFY/wiki/ref/text",kind:"link",children:[{text:
+        "https://www.reddit.com/r/HFY/wiki/ref/text",kind:"link",client_id:client.id,children:[{text:
         "Text stories from outside /r/HFY",styles:{},kind:"text"}]}]}]}]},{level:2,kind:"heading",children:
-        [{url:"https://www.reddit.com/r/hfy/wiki/ref",kind:"link",children:[{text:"The Reference Library",styles:
+        [{url:"https://www.reddit.com/r/hfy/wiki/ref",kind:"link",client_id:client.id,children:[{text:"The Reference Library",styles:
         {},kind:"text"}]}]},{kind:"paragraph",children:[{text:
         "Trying to find a story? Looking for author resources to help with your writing? Check out the reference library.",styles:
         {},kind:"text"}]},{ordered:false,kind:"list",children:[{kind:"list_item",children:[{kind:"paragraph",children:
-        [{url:"https://www.reddit.com/r/HFY/wiki/ref/tropes",kind:"link",children:[{text:
+        [{url:"https://www.reddit.com/r/HFY/wiki/ref/tropes",kind:"link",client_id:client.id,children:[{text:
         "Common Tropes/Themes",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:
-        [{url:"https://www.reddit.com/r/HFY/wiki/ref/universes",kind:"link",children:[{text:"Popular Universes",styles:
+        [{url:"https://www.reddit.com/r/HFY/wiki/ref/universes",kind:"link",client_id:client.id,children:[{text:"Popular Universes",styles:
         {},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/HFY/wiki/contests",kind:"link",children:[{text:"Contests",styles:{},kind:
+        "https://www.reddit.com/r/HFY/wiki/contests",kind:"link",client_id:client.id,children:[{text:"Contests",styles:{},kind:
         "text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/HFY/wiki/ref/prompts",kind:"link",children:[{text:"Writing Prompt Index",styles:
+        "https://www.reddit.com/r/HFY/wiki/ref/prompts",kind:"link",client_id:client.id,children:[{text:"Writing Prompt Index",styles:
         {},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/HFY/wiki/ref/lfs",kind:"link",children:[{text:"Looking For Story Index",styles:
+        "https://www.reddit.com/r/HFY/wiki/ref/lfs",kind:"link",client_id:client.id,children:[{text:"Looking For Story Index",styles:
         {},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/HFY/wiki/ref/audio",kind:"link",children:[{text:
+        "https://www.reddit.com/r/HFY/wiki/ref/audio",kind:"link",client_id:client.id,children:[{text:
         "Audio Recordings and Narrations",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:
-        "paragraph",children:[{url:"http://www.reddit.com/r/HFY/wiki/authors",kind:"link",children:[{text:
+        "paragraph",children:[{url:"http://www.reddit.com/r/HFY/wiki/authors",kind:"link",client_id:client.id,children:[{text:
         "List of Authors",styles:{},kind:"text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:
-        [{url:"http://www.reddit.com/r/HFY/wiki/series",kind:"link",children:[{text:"List of Series",styles:{},kind:
+        [{url:"http://www.reddit.com/r/HFY/wiki/series",kind:"link",client_id:client.id,children:[{text:"List of Series",styles:{},kind:
         "text"}]}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/hfy/wiki/tags/",kind:"link",children:[{text:"List of OC By Tag",styles:{},kind:
+        "https://www.reddit.com/r/hfy/wiki/tags/",kind:"link",client_id:client.id,children:[{text:"List of OC By Tag",styles:{},kind:
         "text"}]},{text:" ",styles:{},kind:"text"},{text:"No longer up to date",styles:{emphasis:true},kind:
         "text"}]}]}]},{level:2,kind:"heading",children:[{url:"http://www.reddit.com/r/HFY/wiki/tools",kind:
-        "link",children:[{text:"Tools & Development",styles:{},kind:"text"}]}]},{ordered:false,kind:"list",children:
+        "link",client_id:client.id,children:[{text:"Tools & Development",styles:{},kind:"text"}]}]},{ordered:false,kind:"list",children:
         [{kind:"list_item",children:[{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/HFY/wiki/tools/hfydata",kind:"link",children:[{text:"HFYdata",styles:{},kind:
+        "https://www.reddit.com/r/HFY/wiki/tools/hfydata",kind:"link",client_id:client.id,children:[{text:"HFYdata",styles:{},kind:
         "text"}]},{text:" Developed by ",styles:{},kind:"text"},{url:"https://www.reddit.com/u/uNople",kind:
-        "link",children:[{text:"/u/uNople",styles:{},kind:"text"}]},{text:
+        "link",client_id:client.id,children:[{text:"/u/uNople",styles:{},kind:"text"}]},{text:
         " for collecting !V/!N MWC votes and featured nominations",styles:{},kind:"text"}]}]},{kind:
         "list_item",children:[{kind:"paragraph",children:[{url:
-        "https://np.reddit.com/r/UpdateMeBot/comments/4wirnm/updatemebot_info/",kind:"link",children:
+        "https://np.reddit.com/r/UpdateMeBot/comments/4wirnm/updatemebot_info/",kind:"link",client_id:client.id,children:
         [{text:"UpdateMeBot",styles:{},kind:"text"}]},{text:" Developed by ",styles:{},kind:"text"},{url:
-        "https://www.reddit.com/u/Watchful1",kind:"link",children:[{text:"/u/Watchful1",styles:{},kind:
+        "https://www.reddit.com/u/Watchful1",kind:"link",client_id:client.id,children:[{text:"/u/Watchful1",styles:{},kind:
         "text"}]},{text:" for notifying users of new story posts",styles:{},kind:"text"}]}]},{kind:
         "list_item",children:[{kind:"paragraph",children:[{url:"https://waffle.arkmuse.org/",kind:
-        "link",children:[{text:"Wᵥ4ffle",styles:{},kind:"text"}]},{text:" Developed by ",styles:{},kind:
-        "text"},{url:"https://www.reddit.com/u/GamingWolfie",kind:"link",children:[{text:
+        "link",client_id:client.id,children:[{text:"Wᵥ4ffle",styles:{},kind:"text"}]},{text:" Developed by ",styles:{},kind:
+        "text"},{url:"https://www.reddit.com/u/GamingWolfie",kind:"link",client_id:client.id,children:[{text:
         "/u/GamingWolfie",styles:{},kind:"text"}]},{text:
         " for the HFY Discord, also performs OC-linking duties on the sub.",styles:{},kind:"text"}]}]},{kind:
         "list_item",children:[{kind:"paragraph",children:[{text:"Offline",styles:{strong:true},kind:"text"},{text:
-        " ",styles:{},kind:"text"},{url:"https://www.reddit.com/r/HFY/wiki/tools/hfybot",kind:"link",children:
+        " ",styles:{},kind:"text"},{url:"https://www.reddit.com/r/HFY/wiki/tools/hfybot",kind:"link",client_id:client.id,children:
         [{text:"HFYBotReborn",styles:{strikethrough:true},kind:"text"}]},{text:" Developed by ",styles:
-        {strikethrough:true},kind:"text"},{url:"https://www.reddit.com/u/kaisermagnus",kind:"link",children:
+        {strikethrough:true},kind:"text"},{url:"https://www.reddit.com/u/kaisermagnus",kind:"link",client_id:client.id,children:
         [{text:"/u/kaisermagnus",styles:{strikethrough:true},kind:"text"}]},{text:" praise the magnus ",styles:
         {strikethrough:true,superscript:true},kind:"text"},{text:" for automated OC-linking hotness",styles:
         {strikethrough:true},kind:"text"}]}]},{kind:"list_item",children:[{kind:"paragraph",children:[{text:
         "Offline",styles:{strong:true},kind:"text"},{text:" ",styles:{},kind:"text"},{url:
-        "https://www.reddit.com/r/HFY/wiki/tools/hfysubs",kind:"link",children:[{text:"HFYsubs",styles:
+        "https://www.reddit.com/r/HFY/wiki/tools/hfysubs",kind:"link",client_id:client.id,children:[{text:"HFYsubs",styles:
         {strikethrough:true},kind:"text"}]},{text:" Developed by ",styles:{strikethrough:true},kind:
-        "text"},{url:"https://www.reddit.com/u/TheDarkLordSano",kind:"link",children:[{text:
+        "text"},{url:"https://www.reddit.com/u/TheDarkLordSano",kind:"link",client_id:client.id,children:[{text:
         "/u/TheDarkLordSano",styles:{strikethrough:true},kind:"text"}]},{text:
         " for notifying users of new story posts",styles:{strikethrough:true},kind:"text"}]}]},{kind:
         "list_item",children:[{kind:"paragraph",children:[{text:"Offline",styles:{strong:true},kind:
         "text"},{text:" ",styles:{},kind:"text"},{url:"https://www.reddit.com/r/HFY/wiki/tools/hfy_tag_bot",kind:
-        "link",children:[{text:"HFY_Tag_Bot",styles:{strikethrough:true},kind:"text"}]},{text:" Developed by ",styles:
-        {strikethrough:true},kind:"text"},{url:"https://www.reddit.com/u/other-guy",kind:"link",children:[{text:
+        "link",client_id:client.id,children:[{text:"HFY_Tag_Bot",styles:{strikethrough:true},kind:"text"}]},{text:" Developed by ",styles:
+        {strikethrough:true},kind:"text"},{url:"https://www.reddit.com/u/other-guy",kind:"link",client_id:client.id,children:[{text:
         "/u/other-guy",styles:{strikethrough:true},kind:"text"}]},{text:" for tagging and sorting OC",styles:
         {strikethrough:true},kind:"text"},{text:" ",styles:{},kind:"text"},{url:
-        "https://www.reddit.com/r/hfy/wiki/ref/tagging_info",kind:"link",children:[{text:"Info",styles:{strikethrough:
+        "https://www.reddit.com/r/hfy/wiki/ref/tagging_info",kind:"link",client_id:client.id,children:[{text:"Info",styles:{strikethrough:
         true},kind:"text"}]},{text:" ",styles:{},kind:"text"},{url:
-        "https://www.reddit.com/r/HFY/wiki/ref/tagging",kind:"link",children:[{text:"How to",styles:{strikethrough:
+        "https://www.reddit.com/r/HFY/wiki/ref/tagging",kind:"link",client_id:client.id,children:[{text:"How to",styles:{strikethrough:
         true},kind:"text"}]}]}]}]},{kind:"horizontal_line"},{kind:"paragraph",children:[{url:
-        "https://www.reddit.com/r/hfy/wiki/pages",kind:"link",children:[{text:"Back To Full Page List",styles:
+        "https://www.reddit.com/r/hfy/wiki/pages",kind:"link",client_id:client.id,children:[{text:"Back To Full Page List",styles:
         {},kind:"text"}]}]}]],
 ];

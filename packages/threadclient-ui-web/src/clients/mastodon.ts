@@ -32,6 +32,7 @@ const error404 = (host: string | null, msg = "404 not found"): Generic.Page => (
         title: {text: "Error"},
         body: {
             kind: "text",
+            client_id: client.id,
             content: msg,
             markdown_format: "none",
         },
@@ -50,7 +51,7 @@ const error404 = (host: string | null, msg = "404 not found"): Generic.Page => (
 const genericHeader = (): Generic.Thread => ({
     kind: "thread",
     title: {text: "Listing"},
-    body: {kind: "text", content: "Listing", markdown_format: "none"},
+    body: {kind: "text", client_id: client.id, content: "Listing", markdown_format: "none"},
     display_mode: {body: "collapsed", comments: "collapsed"},
     link: "TODO no link",
     layout: "error",
@@ -137,9 +138,11 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
                 w: media.meta.original?.width ?? null,
                 h: media.meta.original?.height ?? null,
                 alt: media.description,
-            } : (
-                {kind: "link", url: media.url}
-            ),
+            } : {
+                kind: "link",
+                url: media.url,
+                client_id: client.id,
+            },
         };
     } else if((media.type === "video" || media.type === "gifv")) {
         return {
@@ -158,9 +161,11 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
                 },
                 aspect: media.meta.original ? media.meta.original.width / media.meta.original.height : undefined,
                 gifv: media.type === "gifv"
-            } : (
-                {kind: "link", url: media.url}
-            ),
+            } : {
+                kind: "link",
+                url: media.url,
+                client_id: client.id,
+            },
         };
     }else if(media.type === "audio") {
         return {
@@ -173,9 +178,11 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
             thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=unknown",
             aspect: 1,
             body: {kind: "array", body: [
-                {kind: "text", content: "alt: " + media.description, markdown_format: "none"},
-                {kind: "link", url: media.url},
-                ...media.remote_url != null ? [{kind: "link", url: media.remote_url}] as const : [],
+                {kind: "text", client_id: client.id, content: "alt: " + media.description, markdown_format: "none"},
+                {kind: "link", client_id: client.id, url: media.url},
+                ...media.remote_url != null ? [
+                    {kind: "link", client_id: client.id, url: media.remote_url},
+                ] as const : [],
             ]},
         };
     } 
@@ -183,7 +190,7 @@ function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.Galler
     return {
         thumb: "https://dummyimage.com/100x100/ff0000/000000&text="+encodeURIComponent(media.type),
         aspect: 1,
-        body: {kind: "link", url: media.url},
+        body: {kind: "link", client_id: client.id, url: media.url},
     };
     
 }
@@ -280,20 +287,20 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
                 const content = Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles));
                 const flat_content = node.textContent;
                 if(flat_content == null || !flat_content.startsWith("#")) return [rt.error("bad hashtag", [content, node])];
-                return noClasses(rt.link("/"+meta.host+"/timelines/tag/"+encodeURIComponent(flat_content), {},
+                return noClasses(rt.link(client, "/"+meta.host+"/timelines/tag/"+encodeURIComponent(flat_content), {},
                     ...content,
                 ));
             }
             if(eatClass("mention")) {
                 const mention_data = meta.mentions.get(href_v);
                 if(mention_data) {
-                    return noClasses(rt.link("/"+meta.host+"/accounts/"+mention_data.id, {
+                    return noClasses(rt.link(client, "/"+meta.host+"/accounts/"+mention_data.id, {
                         is_user_link: mention_data.username,
                     }, rt.txt("@"+mention_data.acct, styles)));
                 }
             }
 
-            return noClasses(rt.link(href_v, {},
+            return noClasses(rt.link(client, href_v, {},
                 ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
             ));
         }
@@ -389,6 +396,7 @@ function postToThreadCanError(
         edited: false,
         author: {
             name: post.account.display_name + " (@"+post.account.acct+")",
+            client_id: client.id,
             color_hash: post.account.username,
             link: "/"+host+"/accounts/"+post.account.id,
             flair: post.account.bot ? [{elems: [{kind: "text", text: "bot"}], content_warning: false}] : [],
@@ -420,7 +428,7 @@ function postToThreadCanError(
                     your_votes: (post.poll.own_votes ?? []).map(ov => ({id: "" + ov})),
                     close_time: new Date(post.poll.expires_at).getTime(),
                 } : undefined,
-                post.card ? oembed(post.card) : undefined,
+                post.card ? oembed(post.card, client.id) : undefined,
             ],
         },
         display_mode: {body: "visible", comments: "visible"},
@@ -433,6 +441,7 @@ function postToThreadCanError(
             {kind: "link", url: post.uri, text: "Permalink"},
             {kind: "counter",
                 label: "Favourite",
+                client_id: client.id,
                 incremented_label: "Favourited",
                 unique_id: host+"/favourite/"+post.id+"/",
                 time: Date.now(),
@@ -779,6 +788,7 @@ export const client: ThreadClient = {
         if(parsed.kind === "instance-selector") {
             return bodyPage("", "Choose Instance", {
                 kind: "mastodon_instance_selector",
+                client_id: client.id,
             });
         }else if(parsed.kind === "404") {
             return error404("", parsed.reason);
@@ -795,7 +805,7 @@ export const client: ThreadClient = {
                     rt.ul(...([
                         ["/"+host+"/timelines/public", "Federated Timeline"],
                         ["/"+host+"/timelines/local", "Local Timeline"],
-                    ] as const).map(([url, text]) => rt.li(rt.p(rt.link(url, {}, rt.txt(text)))))),
+                    ] as const).map(([url, text]) => rt.li(rt.p(rt.link(client, url, {}, rt.txt(text)))))),
                 ],
             });
         }else if(parsed.kind === "timeline") {
@@ -878,6 +888,7 @@ export const client: ThreadClient = {
                 },
                 subscribe: {
                     kind: "counter",
+                    client_id: client.id,
                     unique_id: "/follow/"+account_info.id+"/",
                     time: Date.now(),
                     label: account_info.locked ? "Request Follow" : "Follow",
@@ -967,7 +978,7 @@ export const client: ThreadClient = {
                     title: "Raw",
                     widget_content: {kind: "body", body: {kind: "richtext", content: [
                         rt.p(rt.txt("This is a raw page.")),
-                        rt.p(rt.link(parsed.path, {}, rt.txt("View Rendered"))),
+                        rt.p(rt.link(client, parsed.path, {}, rt.txt("View Rendered"))),
                     ]}},
                     raw_value: parsed,
                 }],

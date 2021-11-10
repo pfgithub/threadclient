@@ -4,7 +4,6 @@ import {
     createSignal, ErrorBoundary, JSX, onCleanup, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
-import type { ThreadClient } from "threadclient-client-base";
 import { ShowBool } from "tmeta-util-solid";
 import { link_styles_v } from "../app";
 
@@ -19,17 +18,6 @@ export function ToggleColor(props: {children: (color: string, i: number) => JSX.
     return <ColorDepthContext.Provider value={{i: next_color}}>
         {props.children(this_color % 2 === 0 ? "bg-postcolor-100" : "bg-body", this_color)}
     </ColorDepthContext.Provider>;
-}
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const ClientContext = createContext<{client: ThreadClient}>();
-export function ClientProvider(props: {client: ThreadClient, children: JSX.Element}): JSX.Element {
-    return <ClientContext.Provider value={{client: props.client}}>{props.children}</ClientContext.Provider>;
-}
-export function getClient(): ThreadClient { // TODO getClient: (): ThreadClient =}
-    const client = useContext(ClientContext);
-    if(!client) throw new Error("A client is required to render this component");
-    return client.client; // turns out you can't update provider values? weird
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention

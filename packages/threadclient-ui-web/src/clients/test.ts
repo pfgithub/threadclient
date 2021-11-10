@@ -43,7 +43,7 @@ function spanToRichtextSpan(node: commonmark.Node, styl: Richtext.Style): Richte
     if(node.type === "text") {
         return [rt.txt(node.literal ?? "ERR", styl)];
     }else if(node.type === "link") {
-        return [rt.link(node.destination ?? "ERR", {title: node.title ?? undefined}, ...childrenOf(node).flatMap(it => spanToRichtextSpan(it, styl)))];
+        return [rt.link(client, node.destination ?? "ERR", {title: node.title ?? undefined}, ...childrenOf(node).flatMap(it => spanToRichtextSpan(it, styl)))];
     }else if(node.type === "linebreak") {
         return [rt.br()];
     }else if(node.type === "softbreak") {
@@ -148,6 +148,7 @@ function commitThread(path: string, entry: LogEntry): Generic.PostContent {
         collapsible: {default_collapsed: true},
         author: {
             name: entry.author_name,
+            client_id: client.id,
             flair: [{
                 elems: [{kind: "text", text: entry.author_email}],
                 content_warning: false,
@@ -173,6 +174,7 @@ const replyable = (): Partial<Generic.ListingData> => ({
     reply: {
         action: {
             kind: "reply",
+            client_id: client.id,
             key: "" + Math.random(),
             text: "Reply",
             reply_info: reply_encoder.encode({kind: "markdown"}),
@@ -204,7 +206,7 @@ const sitemap: SitemapEntry[] = [
                 title: null,
                 body: {kind: "richtext", content: [
                     rt.p(rt.txt(spl.expected_result)),
-                    rt.p(rt.link(spl.url, {}, rt.txt(spl.url))),
+                    rt.p(rt.link(client, spl.url, {}, rt.txt(spl.url))),
                 ]},
                 actions: {
                     other: [
@@ -229,8 +231,12 @@ const sitemap: SitemapEntry[] = [
             const item = (desc: string, body: Generic.Body) => ({desc, body});
             const body_kinds: {[key in Generic.Body["kind"]]: ITRes[]} = {
                 text: [
-                    item("text displays", {kind: "text", content: "Hello there! It works.", markdown_format: "none"}),
-                    item("reddit markdown functions", {kind: "text", content: [
+                    item("text displays", {kind: "text",
+                        client_id: client.id,
+                        content: "Hello there! It works.",
+                        markdown_format: "none",
+                    }),
+                    item("reddit markdown functions", {kind: "text", client_id: client.id, content: [
                         "Level 1 heading:", "",
                         "# Heading level 1", "",
                         "Level 2 heading:", "",
@@ -264,30 +270,30 @@ const sitemap: SitemapEntry[] = [
                         rt.hr(),
                         rt.ul(
                             rt.ili(
-                                rt.txt("Sample link: "), rt.link("/", {}, rt.txt("Goes to '/'")),
+                                rt.txt("Sample link: "), rt.link(client, "/", {}, rt.txt("Goes to '/'")),
                             ),
                             rt.ili(
-                                rt.txt("Error link: "), rt.link("javascript:alert(\"xss\")", {}, rt.txt("Uh oh!")),
+                                rt.txt("Error link: "), rt.link(client, "javascript:alert(\"xss\")", {}, rt.txt("Uh oh!")),
                             ),
                             rt.ili(
-                                rt.txt("Raw link: "), rt.link("raw:https://www.reddit.com/", {}, rt.txt("Goes to www.reddit.com")),
+                                rt.txt("Raw link: "), rt.link(client, "raw:https://www.reddit.com/", {}, rt.txt("Goes to www.reddit.com")),
                             ),
                             rt.ili(
-                                rt.txt("Link with title: "), rt.link("/", {title: "Title is working!"}, rt.txt("Hover me!")),
+                                rt.txt("Link with title: "), rt.link(client, "/", {title: "Title is working!"}, rt.txt("Hover me!")),
                             ),
                             rt.ili(
-                                rt.txt("User link: "), rt.link("/", {is_user_link: "u/sample_user"}, rt.txt("I should be light pink (or dark pink/'cab sav' in light mode)")),
+                                rt.txt("User link: "), rt.link(client, "/", {is_user_link: "u/sample_user"}, rt.txt("I should be light pink (or dark pink/'cab sav' in light mode)")),
                             ),
                             rt.ili(
-                                rt.link("https://i.imgur.com/Cnm26CH.png", {}, rt.txt("Preview me!")),
+                                rt.link(client, "https://i.imgur.com/Cnm26CH.png", {}, rt.txt("Preview me!")),
                             ),
                         ),
                         rt.p(
-                            rt.txt("Pill link: "), rt.link("/", {style: "pill-empty"}, rt.txt("I should be an unfilled pill")),
+                            rt.txt("Pill link: "), rt.link(client, "/", {style: "pill-empty"}, rt.txt("I should be an unfilled pill")),
                         ),
                         rt.p(
                             rt.txt("Link containing a spoiler? should this even be allowed?: "),
-                            rt.link("/", {}, rt.txt("Spoiler: "), rt.spoiler(rt.txt("No."))),
+                            rt.link(client, "/", {}, rt.txt("Spoiler: "), rt.spoiler(rt.txt("No."))),
                         ),
                         rt.p(rt.txt("Assorted span items:")),
                         rt.ul(
@@ -330,7 +336,7 @@ const sitemap: SitemapEntry[] = [
                             ),
                             rt.p(
                                 rt.txt("Make sure links work within spoilers and aren't clickable until revealed: "),
-                                rt.spoiler(rt.link("/", {}, rt.txt("I shouldn't be clickable until the spoiler is opened"))),
+                                rt.spoiler(rt.link(client, "/", {}, rt.txt("I shouldn't be clickable until the spoiler is opened"))),
                             ),
                         ),
                         rt.blockquote(
@@ -366,7 +372,7 @@ const sitemap: SitemapEntry[] = [
                         ),
                         rt.hn(6, rt.txt("Heading level 6. Should be normal and underlined. Body:")),
                         {kind: "body", body:
-                            {kind: "crosspost", source: userThread(urlr, {
+                            {kind: "crosspost", client_id: client.id, source: userThread(urlr, {
                                 kind: "richtext", content: [rt.p(rt.txt("Crossposted Body"))]
                             }, {
                                 title: "Crossposted Source", layout: "reddit-post"
@@ -406,7 +412,7 @@ const sitemap: SitemapEntry[] = [
                 removed: [],
                 crosspost: [
                     item("inner post should appear with title and body, width should be as small as possible",
-                        {kind: "crosspost", source: userThread(urlr, {
+                        {kind: "crosspost", client_id: client.id, source: userThread(urlr, {
                             kind: "richtext", content: [rt.p(rt.txt("Crossposted Body"))]
                         }, {
                             title: "Crossposted Source", layout: "reddit-post"
@@ -416,7 +422,12 @@ const sitemap: SitemapEntry[] = [
                 array: [],
                 link_preview: [],
                 oembed: [],
-                mastodon_instance_selector: [item("mastodon instance selector", {kind: "mastodon_instance_selector"})],
+                mastodon_instance_selector: [
+                    item("mastodon instance selector", {
+                        kind: "mastodon_instance_selector",
+                        client_id: client.id,
+                    }),
+                ],
             };
             return Object.entries(body_kinds).map(([key, items]): SitemapEntry => [
                 key,
@@ -611,9 +622,11 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         const this_post: Generic.PostData = {
             kind: "post",
             url: urlr,
+            client_id: client.id,
             parent: parent ? {ref: parent, err: undefined} : null,
             replies: {...called.replyopts, items: [{ref: {
                 kind: "loader", parent: null, replies: null, url: null,
+                client_id: client.id,
                 key: 0 as unknown as Generic.Opaque<"loader">,
             }}]},
             content: called.content,
@@ -635,6 +648,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
                     const thispost: Generic.Link<Generic.Post> = {ref: {
                         kind: "post",
                         url: urlr2,
+                        client_id: client.id,
                         parent: {ref: parentv, err: undefined},
                         replies: null,
                         content: replyitm.content,
@@ -651,6 +665,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
                             mapReplies(thispost.ref as Generic.PostData, replyitm.replies, urlr2)
                         ) : [{ref: {
                             kind: "loader", parent: null, replies: null, url: null,
+                            client_id: client.id,
                             key: 0 as unknown as Generic.Opaque<"loader">,
                         }}],
                     };
@@ -669,6 +684,7 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
     const this_post: Generic.PostData = {
         kind: "post",
         url: "/"+path.join("/"),
+        client_id: client.id,
         parent: parent ? {ref: parent, err: undefined} : null,
         replies: null,
         content: {
@@ -690,6 +706,7 @@ function clientWrapperAdd(): Generic.PostData {
     return {
         kind: "post",
         url: null,
+        client_id: client.id,
         parent: null,
         replies: null,
 
@@ -774,7 +791,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
                     "/reddit",
                     "/header",
                 ].map(v => rt.li(rt.p(
-                    rt.link(v, {}, rt.txt(v)),
+                    rt.link(client, v, {}, rt.txt(v)),
                 )))),
                 rt.h1(rt.txt("TODO:")),
                 rt.p(rt.txt("Test download pages from clients, for example a real sidebar widget or a real post or a real saved inbox")),
@@ -792,6 +809,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     const pivot: Generic.PostData = {
         kind: "post",
         url: "/",
+        client_id: client.id,
         parent: {ref: client_wrapper, err: undefined},
         replies: null,
 
@@ -853,6 +871,7 @@ export const client: ThreadClient = {
             const res = richtextPost("/", markdownToRichtext(body));
             res.actions.push({
                 kind: "reply",
+                client_id: client.id,
                 text: "Reply",
                 key: "" + Math.random(),
                 reply_info: reply_encoder.encode({kind: "markdown"}),

@@ -6,7 +6,7 @@ import { ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, getClient, getSettings, Icon, ToggleColor
+    classes, getSettings, Icon, ToggleColor
 } from "../util/utils_solid";
 import { animateHeight } from "./animation";
 import { Body, summarizeBody } from "./body";
@@ -24,15 +24,21 @@ function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
     const styleIsLink = () => (props.rts.style ?? "link") === "link";
     return <span title={props.rts.title}><Switch>
         <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => (
-            <UserLink color_hash={color_hash} href={props.rts.url}>
+            <UserLink client_id={props.rts.client_id} color_hash={color_hash} href={props.rts.url}>
                 <RichtextSpans spans={props.rts.children} />
             </UserLink>
         )}</Match>
         <Match when={props.rts.is_user_link == null && styleIsLink()}>
-            <PreviewableLink href={props.rts.url}><RichtextSpans spans={props.rts.children} /></PreviewableLink>
+            <PreviewableLink
+                client_id={props.rts.client_id}
+                href={props.rts.url}
+            >
+                <RichtextSpans spans={props.rts.children} />
+            </PreviewableLink>
         </Match>
         <Match when={props.rts.is_user_link == null && !styleIsLink()}>
             <LinkButton
+                client_id={props.rts.client_id}
                 href={props.rts.url}
                 style={generic_linkstyle_mappings[props.rts.style ?? "link"]}
             ><RichtextSpans spans={props.rts.children} /></LinkButton>
@@ -284,7 +290,6 @@ export function CodeBlock(props: {
 // eg for youtube videos, it's an image `https://img.youtube.com/vi/${id}/default.jpg`
 export function MobileLinkPreview(props: {link: Link}): JSX.Element {
     const settings = getSettings();
-    const client = getClient();
     const linkPreview: () => {
         visible: () => boolean,
         toggleVisible: () => void,
@@ -296,7 +301,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
         return {visible, toggleVisible: () => setVisible(v => !v), body};
     });
     const human = createMemo((): {link: string, external: boolean} => {
-        const res = unsafeLinkToSafeLink(client.id, props.link.url);
+        const res = unsafeLinkToSafeLink(props.link.client_id, props.link.url);
         if(res.kind === "link") {
             return {link: res.url, external: res.external};
         }else return {link: "error", external: true};
@@ -307,6 +312,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
     );
     return <ShowBool when={human().link !== "error"}><div class="my-2">
         <ToggleColor>{color => <A
+            client_id={props.link.client_id}
             class={classes(
                 "p-2 px-4",
                 "block",
@@ -346,6 +352,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
         </div><ShowBool when={previewOpen().open || previewOpen().temporary}>
             <div style={{display: previewOpen().open ? "block" : "none"}}>
                 <ToggleColor>{color => <A
+                    client_id={props.link.client_id}
                     class={classes(
                         "p-2 px-4",
                         "block",
@@ -396,6 +403,7 @@ function ExternalIcon(): JSX.Element {
 type Link = {
     title: string,
     url: string,
+    client_id: string,
 };
 function extractLinks(paragraph: Generic.Richtext.Paragraph): Link[] {
     return switchKind(paragraph, {
@@ -420,6 +428,7 @@ function extractSpanLinks(spans: Generic.Richtext.Span[]): Link[] {
         link: (link) => [{
             title: summarizeSpans(link.children),
             url: link.url,
+            client_id: link.client_id,
         }],
         error: () => [],
         text: () => [],

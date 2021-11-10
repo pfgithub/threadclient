@@ -91,6 +91,7 @@ function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.Pos
         return {
             kind: "post",
             url: "/item?id="+item.id,
+            client_id: client.id,
 
             parent: getPostData(map, value.data.parent),
             replies: {
@@ -104,6 +105,7 @@ function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.Pos
                     name: item.user,
                     color_hash: item.user.toLowerCase(),
                     link: "/user?id="+item.user,
+                    client_id: client.id,
                 } : undefined,
                 info: {
                     creation_date: item.time * 1000,
@@ -111,17 +113,20 @@ function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.Pos
                 },
                 body: item.content != null ? {
                     kind: "text",
+                    client_id: client.id,
                     markdown_format: "reddit_html",
                     content: item.content,
                 } : item.url != null ? {
                     kind: "link",
                     url: item.url,
+                    client_id: client.id,
                 } : {
                     kind: "none",
                 },
                 actions: {
                     vote: item.type !== "job" ? {
                         kind: "counter",
+                        client_id: client.id,
                         unique_id: "/vote/"+getEntryID(value.data),
                         time: Date.now(),
                         incremented_label: "Voted",
@@ -181,6 +186,7 @@ function getPageHeader(parsed: ParsedPath, replies: Generic.ListingData): Generi
     return {
         kind: "post",
         url: null,
+        client_id: client.id,
 
         parent: null,
         replies,

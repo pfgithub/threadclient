@@ -21,7 +21,7 @@ export function PostActions(props: ClientPostProps & {
     return <><section class={"flex flex-wrap gap-2 "+(mobile() ? "flex-col" : "items-center")}>
         {props.children}
         <ShowCond when={props.opts.frame?.url}>{url => (
-            <LinkButton href={url} style="action-button">
+            <LinkButton client_id={props.opts.client_id} href={url} style="action-button">
                 <ShowCond when={props.content.info?.comments} fallback={"Focus"}>{num_comments => (
                     num_comments.toLocaleString() + " comment"+(
                         num_comments === 1 ? "" : "s"

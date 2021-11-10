@@ -30,6 +30,7 @@ export type BasePost = {
     replies: ListingData | null,
     
     url: string | null, // if a thing does not have a url, it cannot be the pivot
+    client_id: string,
 };
 
 export type ListingData = {
@@ -52,7 +53,7 @@ export type PostInfo = {
     creation_date?: number | undefined,
     edited?: {date?: number | undefined} | undefined,
     pinned?: boolean | undefined, // TODO remove this, use the "pinned" section in a ListingData instead
-    in?: {name: string, link: string} | undefined,
+    in?: {name: string, link: string, client_id: string} | undefined,
     comments?: number | undefined,
 };
 export type PostContentPost = {
@@ -156,6 +157,7 @@ export type UnmountedNode = {
 export type BodyText = {
     kind: "text",
     content: string,
+    client_id: string,
     markdown_format: "reddit" | "reddit_html" | "none",
 };
 export declare namespace Richtext {
@@ -205,6 +207,7 @@ export declare namespace Richtext {
     export type LinkSpan = ({
         kind: "link",
         url: string,
+        client_id: string,
         children: Span[],
     } & LinkOpts);
     // TODO split this out a bit?
@@ -270,6 +273,7 @@ export type Video = {
 export type Body = BodyText | RichText | {
     kind: "link",
     url: string,
+    client_id: string,
     embed_html?: string | undefined,
 } | {
     kind: "captioned_image",
@@ -320,14 +324,17 @@ export type Body = BodyText | RichText | {
     removal_message: RemovalMessage,
     fetch_path?: Opaque<"fetch_removed_path"> | undefined,
     body: Body,
+    client_id: string,
 } | {
     kind: "crosspost",
     source: Thread,
+    client_id: string, // won't be needed after this is migrated to page2
 } | {
     kind: "array",
     body: (Body | undefined)[],
 } | LinkPreview | {
     kind: "mastodon_instance_selector",
+    client_id: string,
 };
 export type OEmbedBody = {
     kind: "oembed",
@@ -428,6 +435,7 @@ export type InfoAuthor = {
     name: string,
     color_hash: string,
     link: string,
+    client_id: string,
     flair?: Flair[] | undefined,
     pfp?: undefined | {
         url: string,
@@ -586,6 +594,7 @@ export type ReplyAction = {
     key: string, // draft replies will be saved with this key
     text: ActionLabel,
     reply_info: Opaque<"reply">,
+    client_id: string,
 };
 export type Action = {
     kind: "link",
@@ -635,6 +644,7 @@ export type FlairEmoji = {
 // a counter or a button with 2-3 states
 export type CounterAction = {
     kind: "counter",
+    client_id: string,
 
     unique_id: string | null, // identifier that refers to this counter, unique per-client
     time: number, // when this was found
@@ -715,8 +725,8 @@ export const rt = {
     ili: (...items: Richtext.Span[]): Richtext.ListItem => rt.kind("tight_list_item", {}, items),
     blockquote: (...items: Richtext.Paragraph[]): Richtext.Paragraph => rt.kind("blockquote", {}, items),
     txt: (text: string, styles: Richtext.Style = {}): Richtext.Span => rt.kind("text", {text, styles}),
-    link: (url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => (
-        rt.kind("link", {url, ...opts}, children)
+    link: (client: {id: string}, url: string, opts: Richtext.LinkOpts, ...children: Richtext.Span[]): Richtext.Span => (
+        rt.kind("link", {url, client_id: client.id, ...opts}, children)
     ),
     pre: (text: string, lang?: string): Richtext.Paragraph => rt.kind("code_block", {text, lang}),
     error: (text: string, value: unknown): Richtext.Span => rt.kind("error", {text, value}),

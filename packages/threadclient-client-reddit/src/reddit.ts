@@ -291,11 +291,11 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
     switch(rtd.e) {
         case "text": return richtextFormattedText(rtd.t, rtd.f ?? [], opt);
         case "r/": case "u/": return [
-            rt.link("/"+rtd.e+rtd.t, {
+            rt.link(client, "/"+rtd.e+rtd.t, {
                 is_user_link: rtd.e === "u/" ? rtd.t : undefined,
             }, rt.txt((rtd.l ? "/" : "") + rtd.e + rtd.t)),
         ];
-        case "link": return [rt.link(rtd.u, {title: rtd.a}, ...richtextFormattedText(rtd.t, rtd.f ?? [], opt))];
+        case "link": return [rt.link(client, rtd.u, {title: rtd.a}, ...richtextFormattedText(rtd.t, rtd.f ?? [], opt))];
         case "br": return [rt.br()];
         case "spoilertext": return [rt.spoiler(...richtextSpanArray(rtd.c, opt))];
         case "raw": return [rt.txt(rtd.t)];
@@ -307,7 +307,7 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
             if(meta.status !== "valid") return [rt.error("Bad status "+meta.status, meta)];
             if(meta.e === "AnimatedImage") {
                 return [
-                    rt.link(meta.s.mp4 ?? meta.s.gif, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
+                    rt.link(client, meta.s.mp4 ?? meta.s.gif, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
                 ];
             }else if(meta.e === "Image") {
                 if(meta.t === "emoji") {
@@ -316,7 +316,7 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
                     ];
                 }else {
                     return [
-                        rt.link(meta.s.u, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
+                        rt.link(client, meta.s.u, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
                     ];
                 }
             }else {
@@ -534,6 +534,7 @@ export function updateQuery(path: string, update: {[key: string]: string | undef
 function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.Action {
     return {
         kind: "counter",
+        client_id: client.id,
 
         unique_id: "/subscribe/"+subreddit+"/",
         time: Date.now(),
@@ -581,16 +582,19 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
                 kind: "richtext",
                 content: [
                     rt.p(
-                        rt.link("/message/compose?to=/r/"+subreddit, {style: "pill-empty"}, rt.txt("Message the mods")),
+                        rt.link(client, "/message/compose?to=/r/"+subreddit,
+                            {style: "pill-empty"},
+                            rt.txt("Message the mods"),
+                        ),
                     ),
                     rt.ul(...data.mods.map(mod => rt.li(rt.p(
-                        rt.link("/u/"+mod.name, {is_user_link: mod.name}, rt.txt("u/"+mod.name)),
+                        rt.link(client, "/u/"+mod.name, {is_user_link: mod.name}, rt.txt("u/"+mod.name)),
                         ...flairToGenericFlair({
                             type: mod.authorFlairType, text: mod.authorFlairText, text_color: mod.authorFlairTextColor,
                             background_color: mod.authorFlairBackgroundColor, richtext: mod.authorFlairRichText,
                         }).flatMap(flair => [rt.txt(" "), rt.flair(flair)]),
                     )))),
-                    rt.p(rt.link("/r/"+subreddit+"/about/moderators", {}, rt.txt("View All Moderators"))),
+                    rt.p(rt.link(client, "/r/"+subreddit+"/about/moderators", {}, rt.txt("View All Moderators"))),
                 ],
             },
         },
@@ -636,14 +640,18 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
         kind: "widget",
         title: data.shortName,
         raw_value: data,
-        widget_content: {kind: "body", body: {kind: "text", content: data.text, markdown_format: "reddit"}},
+        widget_content: {kind: "body", body: {kind: "text",
+            client_id: client.id, content: data.text, markdown_format: "reddit",
+        }},
     }; else if(data.kind === "subreddit-rules") return {
         kind: "widget",
         title: data.shortName,
         raw_value: data,
         widget_content: {kind: "list", items: data.data.map((rule, i) => ({
             name: {kind: "text", text: "" + (i + 1) + ". " + rule.shortName},
-            click: {kind: "body", body: {kind: "text", content: rule.description, markdown_format: "reddit"}},
+            click: {kind: "body", body: {kind: "text",
+                client_id: client.id, content: rule.description, markdown_format: "reddit",
+            }},
         }))},
     }; else if(data.kind === "image") return {
         kind: "widget", // TODO seperate fullscreen_widget or not
@@ -696,7 +704,7 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
         raw_value: data,
         widget_content: {
             kind: "list",
-            above_text: {kind: "text", content: data.description, markdown_format: "reddit"},
+            above_text: {kind: "text", content: data.description, client_id: client.id, markdown_format: "reddit"},
             items: data.buttons.map((button): Generic.WidgetListItem => {
                 if(button.kind === "text") return {
                     name: {kind: "text", text: button.text},
@@ -722,10 +730,10 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
             body: data.data.flatMap((item, i): Generic.Body[] => {
                 return [
                     ...i !== 0 ? [{kind: "richtext", content: [rt.hr()]}] as const : [],
-                    {kind: "text", content: item.title, markdown_format: "reddit"},
+                    {kind: "text", client_id: client.id, content: item.title, markdown_format: "reddit"},
                     {kind: "richtext", content: [rt.p(rt.timeAgo(item.startTime * 1000))]},
-                    {kind: "text", content: item.location, markdown_format: "reddit"},
-                    {kind: "text", content: item.description, markdown_format: "reddit"},
+                    {kind: "text", client_id: client.id, content: item.location, markdown_format: "reddit"},
+                    {kind: "text", client_id: client.id, content: item.description, markdown_format: "reddit"},
                 ];
             }),
         }},
@@ -756,7 +764,7 @@ function oldSidebarWidget(t5: Reddit.T5, subreddit: string, {collapsed}: {collap
     return {
         kind: "thread",
         raw_value: t5,
-        body: {kind: "text", markdown_format: "reddit", content: t5.data.description},
+        body: {kind: "text", client_id: client.id, markdown_format: "reddit", content: t5.data.description},
         display_mode: {body: collapsed ? "collapsed" : "visible", comments: "visible"},
         link: "/r/"+subreddit+"/about/sidebar",
         layout: "reddit-post",
@@ -816,7 +824,7 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     if(!subinfo) return {
         kind: "thread",
         title: {text: "Listing"},
-        body: {kind: "text", content: "Listing", markdown_format: "none"},
+        body: {kind: "text", client_id: client.id, content: "Listing", markdown_format: "none"},
         display_mode: {body: "collapsed", comments: "collapsed"},
         link: "TODO no link",
         layout: "error",
@@ -1149,7 +1157,7 @@ export function pageFromListing(
                     parents: [{
                         kind: "thread",
                         raw_value: listing,
-                        body: {kind: "text", markdown_format: "reddit_html", content: listing.data.content_html},
+                        body: {kind: "text", client_id: client.id, markdown_format: "reddit_html", content: listing.data.content_html},
                         display_mode: {body: "visible", comments: "visible"},
                         link: pathraw,
                         layout: "error",
@@ -1172,7 +1180,7 @@ export function pageFromListing(
                 item: {parents: [{
                     kind: "thread",
                     raw_value: listing,
-                    body: {kind: "text", markdown_format: "reddit", content: listing.data.description},
+                    body: {kind: "text", client_id: client.id, markdown_format: "reddit", content: listing.data.description},
                     display_mode: {body: "visible", comments: "visible"},
                     link: pathraw,
                     layout: "reddit-post",
@@ -1200,7 +1208,9 @@ export function pageFromListing(
                                 rt.th("left", rt.txt("Added")),
                                 rt.th("left", rt.txt("Perms")),
                             ], ...listing.data.children.map(child => [
-                                rt.td(rt.link("/u/"+child.name, {is_user_link: child.name}, rt.txt("u/"+child.name))),
+                                rt.td(rt.link(client, "/u/"+child.name, {is_user_link: child.name},
+                                    rt.txt("u/"+child.name),
+                                )),
                                 rt.td(rt.timeAgo(child.date * 1000)),
                                 rt.td(...child.mod_permissions.flatMap((modperm, i) => [...i !== 0 ? [rt.txt(", ")] : [], rt.txt(modperm)])),
                             ])),
@@ -1343,7 +1353,7 @@ export function pageFromListing(
                 header: opts.header ?? {
                     kind: "thread",
                     title: {text: "Listing"},
-                    body: {kind: "text", content: "Listing", markdown_format: "none"},
+                    body: {kind: "text", client_id: client.id, content: "Listing", markdown_format: "none"},
                     display_mode: {body: "collapsed", comments: "collapsed"},
                     link: "TODO no link",
                     layout: "error",
@@ -1374,14 +1384,14 @@ export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[
         rt.h1(rt.txt("This url is not supported yet")),
         ismod ? rt.h2(
             rt.txt("View it on mod.reddit.com: "),
-            rt.link("raw!https://mod.reddit.com"+pathraw, {}, rt.txt("mod.reddit.com"+pathraw)),
+            rt.link(client, "raw!https://mod.reddit.com"+pathraw, {}, rt.txt("mod.reddit.com"+pathraw)),
         ) : rt.h2(
             rt.txt("View it on reddit.com: "),
-            rt.link("raw!https://www.reddit.com"+pathraw, {}, rt.txt("reddit.com"+pathraw)),
+            rt.link(client, "raw!https://www.reddit.com"+pathraw, {}, rt.txt("reddit.com"+pathraw)),
         ),
         rt.p(
             rt.txt("Submit an issue "),
-            rt.link("https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
+            rt.link(client, "https://github.com/pfgithub/threadclient/issues", {}, rt.txt("here")),
             rt.txt(" if you would like to see this supported. Mention the url: "),
             rt.code(pathraw),
         ),
@@ -2040,6 +2050,7 @@ export function getPointsOn(listing: {
     const vote_data = {id: listing.name, rank: "2"};
     return {
         kind: "counter",
+        client_id: client.id,
 
         unique_id: "/vote/"+listing.name+"/",
         time: Date.now(),
@@ -2072,12 +2083,13 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
                 edited: false,
                 author: {
                     name: "u/"+msg.author,
-                    color_hash: msg.author,
                     link: "/u/"+msg.author,
+                    color_hash: msg.author,
+                    client_id: client.id,
                 },
                 pinned: false,
             },
-            body: {kind: "text", content: msg.body, markdown_format: "reddit"},
+            body: {kind: "text", client_id: client.id, content: msg.body, markdown_format: "reddit"},
             display_mode: {body: "visible", comments: "collapsed"},
             link: msg.context,
             layout: "reddit-comment",
@@ -2088,6 +2100,7 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
                 ...inbox_msg.kind === "t4" ? [{kind: "link", url: "/message/messages/"+msg.id, text: "Permalink"} as const] : [],
                 {
                     kind: "counter",
+                    client_id: client.id,
                     count_excl_you: "none",
                     you: msg.new ? "increment" : undefined,
                     unique_id: "/unread/"+msg.name+"/",
@@ -2179,10 +2192,11 @@ function topLevelThreadFromListing(listing_raw: Reddit.Post, options: ThreadOpts
                         color_hash: listing_raw.data.link_author,
                         name: listing_raw.data.link_author,
                         link: "/u/"+listing_raw.data.link_author,
+                        client_id: client.id,
                     },
                     pinned: false,
                 },
-                body: {kind: "link", url: listing_raw.data.link_permalink},
+                body: {kind: "link", client_id: client.id, url: listing_raw.data.link_permalink},
                 display_mode: {body: "visible", comments: "collapsed"},
                 link: listing_raw.data.link_permalink,
                 layout: "reddit-post",
@@ -2248,6 +2262,7 @@ export function reportButton(fullname: string, subreddit: string): Generic.Actio
 export function replyButton(fullname: string): Generic.ReplyAction {
     return {
         kind: "reply",
+        client_id: client.id,
         key: "reply-"+fullname,
         text: "Reply",
         reply_info: reply_encoder.encode({parent_id: fullname}),
@@ -2256,6 +2271,7 @@ export function replyButton(fullname: string): Generic.ReplyAction {
 export function saveButton(fullname: string, saved: boolean): Generic.Action {
     return {
         kind: "counter",
+        client_id: client.id,
 
         unique_id: `/save/${fullname}/`,
         time: Date.now(),
@@ -2291,6 +2307,7 @@ export function authorFromInfo(opts: {
     };
     return {
         color_hash: opts.author,
+        client_id: client.id,
         name: opts.author,
         link: "/u/"+opts.author,
         flair: [
@@ -2451,6 +2468,7 @@ export function getCommentBody(listing: Reddit.PostComment): Generic.Body {
         ? {kind: "removed", removal_message: is_deleted,
             fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/comment/search?ids="+listing.id}),
             body: body_content,
+            client_id: client.id,
         } : body_content
     ;
     return comment_body;
@@ -2472,6 +2490,7 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
                 is_chat: false,
             }, listing.permalink),
         ) as Generic.Thread,
+        client_id: client.id,
     };
     if(listing.is_self) return {
         kind: "array",
@@ -2480,7 +2499,7 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
                 ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
                 : listing.url === "https://www.reddit.com" + listing.permalink // isn't this what is_self is for? why am I doing this check?
                 ? {kind: "none"}
-                : {kind: "link", url: listing.url, embed_html: listing.media_embed?.content}, // does this code path ever get used?
+                : {kind: "link", client_id: client.id, url: listing.url, embed_html: listing.media_embed?.content}, // does this code path ever get used?
             listing.poll_data
             ? {kind: "poll",
                 votable: "Cannot vote",
@@ -2542,7 +2561,7 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
             };
         }
     }
-    return {kind: "link", url: listing.url, embed_html: listing.media_embed?.content};
+    return {kind: "link", client_id: client.id, url: listing.url, embed_html: listing.media_embed?.content};
 }
 
 export function getPostThumbnail(
@@ -2685,6 +2704,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 ? {kind: "removed", removal_message: is_deleted,
                     fetch_path: fetch_path.encode({path: "https://api.pushshift.io/reddit/submission/search?ids="+post_id_no_pfx}),
                     body: body_content,
+                    client_id: client.id,
                 }
                 : body_content
             ,
@@ -2753,7 +2773,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
         return {
             kind: "thread",
             title: {text: "unsupported listing kind "+listing_raw.kind},
-            body: {kind: "text", content: "unsupported", markdown_format: "none"},
+            body: {kind: "text", client_id: client.id, content: "unsupported", markdown_format: "none"},
             display_mode: {body: "collapsed", comments: "collapsed"},
             raw_value: listing_raw,
             link: "TODO no link",
@@ -2828,11 +2848,17 @@ function sidebarFromMulti(multi_raw: Reddit.LabeledMulti): Generic.ContentNode[]
                     body: [{
                         kind: "richtext",
                         content: [
-                            rt.p(rt.txt("Curated by "), rt.link("/u/"+multi.owner, {is_user_link: multi.owner.toLowerCase()}, rt.txt("u/"+multi.owner))),
+                            rt.p(
+                                rt.txt("Curated by "),
+                                rt.link(client, "/u/"+multi.owner, {is_user_link: multi.owner.toLowerCase()},
+                                    rt.txt("u/"+multi.owner),
+                                ),
+                            ),
                             rt.p(rt.txt("Created "), rt.timeAgo(multi.created_utc * 1000)),
                         ],
                     }, {
                         kind: "text",
+                        client_id: client.id,
                         content: multi.description_md,
                         markdown_format: "reddit",
                     }],
@@ -2894,11 +2920,13 @@ function generateUserSidebar(
         raw_value: user,
         body: {
             kind: "text",
+            client_id: client.id,
             content: user.data.subreddit.public_description,
             markdown_format: "reddit",
         },
         subscribe: {
             kind: "counter",
+            client_id: client.id,
 
             unique_id: "/follow/"+user.data.name+"/",
             time: Date.now(),
@@ -2920,7 +2948,7 @@ function generateUserSidebar(
         kind: "widget",
         title: "About",
         widget_content: {kind: "body", body: {kind: "richtext", content: [
-            rt.h1(rt.link("/u/"+user.data.name, {is_user_link: user.data.name}, rt.txt(user.data.name))),
+            rt.h1(rt.link(client, "/u/"+user.data.name, {is_user_link: user.data.name}, rt.txt(user.data.name))),
             rt.p(rt.txt(user.data.link_karma + " post karma")),
             rt.p(rt.txt(user.data.comment_karma + " comment karma")),
             rt.p(rt.txt("Account created "), rt.timeAgo(user.data.created_utc * 1000)),
@@ -2965,7 +2993,7 @@ function generateUserSidebar(
         widget_content: {kind: "body", body: {kind: "richtext", content: [
             ...trophies.data.trophies.map(({data: trophy}): Generic.Richtext.Paragraph => {
                 const rt_content: Generic.Richtext.Paragraph[] = [
-                    ...trophy.url != null ? [rt.p(rt.link(trophy.url, {}, rt.txt(trophy.url)))] : [],
+                    ...trophy.url != null ? [rt.p(rt.link(client, trophy.url, {}, rt.txt(trophy.url)))] : [],
                     ...trophy.description != null ? [rt.p(rt.txt(trophy.description))] : [],
                 ];
                 return {kind: "body", body: {
@@ -2981,6 +3009,7 @@ function generateUserSidebar(
                     // url: trophy.url ?? "NO",
 
                     kind: "crosspost",
+                    client_id: client.id,
                     source: {
                         kind: "thread",
                         title: {text: trophy.name},
@@ -3112,7 +3141,7 @@ export const client: ThreadClient = {
                     navbar: getNavbar(),
                     body: {kind: "one", item: {parents: [{kind: "thread",
                         body: {kind: "richtext", content: [
-                            rt.h1(rt.link("raw!"+parsed.out, {}, rt.txt("View on reddit.com"))),
+                            rt.h1(rt.link(client, "raw!"+parsed.out, {}, rt.txt("View on reddit.com"))),
                             rt.p(rt.txt("ThreadClient does not support this URL")),
                         ]},
                         display_mode: {comments: "visible", body: "visible"},
@@ -3139,7 +3168,7 @@ export const client: ThreadClient = {
                     title: "TODO",
                     widget_content: {kind: "body", body: {kind: "richtext", content: [
                         rt.p(rt.txt("This page "), rt.code(pathraw), rt.txt(" is not supported (yet)")),
-                        rt.p(rt.link("raw!https://www.reddit.com"+parsed.path, {}, rt.txt("View on reddit.com"))),
+                        rt.p(rt.link(client, "raw!https://www.reddit.com"+parsed.path, {}, rt.txt("View on reddit.com"))),
                         rt.p(rt.txt(parsed.msg)),
                     ]}},
                     raw_value: parsed,
@@ -3151,7 +3180,7 @@ export const client: ThreadClient = {
                     title: "Raw",
                     widget_content: {kind: "body", body: {kind: "richtext", content: [
                         rt.p(rt.txt("This is a raw page.")),
-                        rt.p(rt.link(parsed.path, {}, rt.txt("View Rendered"))),
+                        rt.p(rt.link(client, parsed.path, {}, rt.txt("View Rendered"))),
                     ]}},
                     raw_value: parsed,
                 }]});
@@ -3182,7 +3211,7 @@ export const client: ThreadClient = {
                 widget_content: {kind: "body", body: {kind: "richtext", content: [
                     rt.p(rt.txt("This page "), rt.code(pathraw), rt.txt(" is not supported (yet)")),
                     rt.p(rt.txt(parsed.kind)),
-                    rt.p(rt.txt("View it on "), rt.link("raw!https://reddit.com"+pathraw, {}, rt.txt("reddit.com")), rt.txt(".")),
+                    rt.p(rt.txt("View it on "), rt.link(client, "raw!https://reddit.com"+pathraw, {}, rt.txt("reddit.com")), rt.txt(".")),
                 ]}},
                 raw_value: parsed,
             }]});
@@ -3200,6 +3229,7 @@ export const client: ThreadClient = {
                     title: {text: "Error"},
                     body: {
                         kind: "text",
+                        client_id: client.id,
                         content: `Error ${e.toString()}`+ (is_networkerror
                             ? `. If you're using Firefox, try disabling 'Enhanced Tracker Protection' ${""
                             } for this site. Enhanced tracker protection indiscriminately blocks all ${""
@@ -3285,6 +3315,7 @@ export const client: ThreadClient = {
         if(item.selftext) {
             return {
                 kind: "text",
+                client_id: client.id,
                 content: item.selftext,
                 markdown_format: "reddit",
             };
@@ -3293,6 +3324,7 @@ export const client: ThreadClient = {
         if(item.body) {
             return {
                 kind: "text",
+                client_id: client.id,
                 content: item.body,
                 markdown_format: "reddit",
             };
@@ -3356,7 +3388,7 @@ export const client: ThreadClient = {
         const reply_info = reply_encoder.decode(data);
         const legacy_value: Generic.Thread = {
             kind: "thread",
-            body: {kind: "text", content: md, markdown_format: "reddit"},
+            body: {kind: "text", client_id: client.id, content: md, markdown_format: "reddit"},
             display_mode: {body: "visible", comments: "visible"},
             raw_value: [md, data],
             link: "no link",
@@ -3368,12 +3400,14 @@ export const client: ThreadClient = {
                     name: "TODO You",
                     color_hash: "TODO You",
                     link: "/u/TODO You",
+                    client_id: client.id,
                     // flair: …
                 },
                 pinned: false,
             },
             actions: [{
                 kind: "counter",
+                client_id: client.id,
                 special: "reddit-points",
                 unique_id: null,
                 time: Date.now(),
@@ -3471,7 +3505,7 @@ export const client: ThreadClient = {
 
             sub_rules_out.push({
                 title: sub_rule.violation_reason,
-                description: {kind: "text", content: sub_rule.description, markdown_format: "reddit"},
+                description: {kind: "text", client_id: client.id, content: sub_rule.description, markdown_format: "reddit"},
                 report: {
                     kind: "submit",
                     data: report_action_encoder.encode({
@@ -3549,7 +3583,7 @@ export const client: ThreadClient = {
 
         return {
             title: report.reason.kind === "sub_other" ? "Report Sent!" : report.reason.id,
-            body: text != null ? {kind: "text", content: text, markdown_format: "none"} : {kind: "none"},
+            body: text != null ? {kind: "text", client_id: client.id, content: text, markdown_format: "none"} : {kind: "none"},
         };
     },
 
@@ -3701,7 +3735,7 @@ function siteRuleToReportScreen(data: ReportInfo, site_rule: Reddit.FlowRule): G
             kind: "more",
             screens: [{
                 title: site_rule.complaintPageTitle,
-                description: {kind: "text", content: site_rule.complaintPrompt, markdown_format: "none"},
+                description: {kind: "text", client_id: client.id, content: site_rule.complaintPrompt, markdown_format: "none"},
                 report: {
                     kind: "link",
                     url: "raw!"+updated_url,

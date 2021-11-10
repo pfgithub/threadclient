@@ -1,8 +1,21 @@
-import { createEffect, createSignal, JSX, onCleanup } from "solid-js";
+import { createContext, createEffect, createSignal, JSX, onCleanup, useContext } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { hideshow, HideShowCleanup } from "../app";
-import { ClientProvider, ColorDepthContext, getClient, getIsVisible, HideshowProvider } from "./utils_solid";
+import { ColorDepthContext, getIsVisible, HideshowProvider } from "./utils_solid";
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const TempSVBorderClientContext = createContext<{client: ThreadClient}>();
+export function ClientProvider(props: {client: ThreadClient, children: JSX.Element}): JSX.Element {
+    return <TempSVBorderClientContext.Provider value={{client: props.client}}>
+        {props.children}
+    </TempSVBorderClientContext.Provider>;
+}
+export function getTempBorderClient(): ThreadClient { // TODO getClient: (): ThreadClient =}
+    const client = useContext(TempSVBorderClientContext);
+    if(!client) throw new Error("A client is required to render this component");
+    return client.client; // turns out you can't update provider values? weird
+}
 
 export function vanillaToSolidBoundary(
     client: ThreadClient,
@@ -36,7 +49,7 @@ export function SolidToVanillaBoundary(props: {
         client: ThreadClient,
     ) => HTMLElement,
 }): JSX.Element {
-    const client = getClient();
+    const client = getTempBorderClient();
     const visible = getIsVisible();
     return <span ref={(div) => {
         createEffect(() => {

@@ -549,13 +549,13 @@ export async function textToBody(body: Generic.BodyText): Promise<Generic.Body> 
             import("threadclient-client-reddit/src/html_to_richtext"),
         ]);
         const safe_html = mdr.renderMd(body.content);
-        return {kind: "richtext", content: htr.parseContentHTML(safe_html)};
+        return {kind: "richtext", content: htr.parseContentHTML(safe_html, body.client_id)};
     }else if(body.markdown_format === "none") {
         return {kind: "richtext", content: [rt.p(rt.txt(body.content))]};
     }else if(body.markdown_format === "reddit_html") {
         const htr = await import("threadclient-client-reddit/src/html_to_richtext");
         console.log(body.content);
-        return {kind: "richtext", content: htr.parseContentHTML(body.content)};
+        return {kind: "richtext", content: htr.parseContentHTML(body.content, body.client_id)};
     }else assertNever(body.markdown_format);
 }
 
@@ -663,7 +663,7 @@ export function renderOembed(client: ThreadClient, body: Generic.OEmbedBody): Hi
         console.log("oembed resp", resp);
         const outerel = el("div");
         const ihsc = hideshow(outerel);
-        renderBody(client, oembed(resp as OEmbed), {autoplay: false}).defer(hsc).adto(outerel);
+        renderBody(client, oembed(resp as OEmbed, client.id), {autoplay: false}).defer(hsc).adto(outerel);
         return ihsc;
     }).defer(hsc).adto(content);
 
@@ -2926,7 +2926,7 @@ const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     hackernews: () =>  import("threadclient-client-hackernews").then(client => client.client),
     test: () =>  import("./clients/test").then(client => client.client),
 };
-async function getClient(name_any: string) {
+export async function fetchClient(name_any: string): Promise<ThreadClient | undefined> {
     const name = name_any.toLowerCase();
     const clientInitializer = client_initializers[name];
     if(!clientInitializer) return undefined;
@@ -2934,7 +2934,7 @@ async function getClient(name_any: string) {
     if(client_cache[name]!.id !== name) throw new Error("client has incorrect id");
     return client_cache[name];
 }
-function getClientCached(name: string): ThreadClient | undefined {
+export function getClientCached(name: string): ThreadClient | undefined {
     return client_cache[name] ?? undefined;
 }
 
@@ -3101,7 +3101,7 @@ function fetchClientThen(
         return cb(cached);
     }
 
-    return fetchPromiseThen(getClient(client_id), client => {
+    return fetchPromiseThen(fetchClient(client_id), client => {
         if(!client){ 
             return fullscreenError("404. Client "+client_id+" not found.");
         }

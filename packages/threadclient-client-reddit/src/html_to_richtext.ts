@@ -5,7 +5,7 @@ import {rt} from "api-types-generic";
 // https://pfg.pw/snudown/test
 // test all expected output → richtext transformations
 
-type GenMeta = {_?: undefined};
+type GenMeta = {client_id: string};
 
 function childNodesToRichtextParagraphs(meta: GenMeta, nodes: NodeListOf<ChildNode>): Generic.Richtext.Paragraph[] {
     const committed: Generic.Richtext.Paragraph[] = [];
@@ -198,7 +198,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
             //     return noClasses(rt.error("Bad link", href_v));
             // }
 
-            return noClasses(rt.link(href_v, {},
+            return noClasses(rt.link({id: meta.client_id}, href_v, {},
                 ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
             ));
         }else if(node.nodeName === "BR") {
@@ -229,13 +229,13 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
     return [rt.error("Unsupported Node", node)];
 }
 
-function setupGenMeta(content: string): [GenMeta, NodeListOf<ChildNode>] {
+function setupGenMeta(content: string, client_id: string): [GenMeta, NodeListOf<ChildNode>] {
     const parsed_v = document.createElement("div");
     parsed_v.innerHTML = content; // safe, scripts won't execute and this won't be displayed directly on the screen
-    const gen_meta: GenMeta = {};
+    const gen_meta: GenMeta = {client_id};
     return [gen_meta, parsed_v.childNodes];
 }
 
-export function parseContentHTML(html: string): Generic.Richtext.Paragraph[] {
-    return childNodesToRichtextParagraphs(...setupGenMeta(html));
+export function parseContentHTML(html: string, client_id: string): Generic.Richtext.Paragraph[] {
+    return childNodesToRichtextParagraphs(...setupGenMeta(html, client_id));
 }

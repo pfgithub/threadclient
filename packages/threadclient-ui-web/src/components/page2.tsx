@@ -6,7 +6,7 @@ import {
 } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, DefaultErrorBoundary, getClient, getSettings, HideshowProvider,
+    classes, DefaultErrorBoundary, getSettings, HideshowProvider,
     screenWidth, screen_size, ToggleColor
 } from "../util/utils_solid";
 import { PostActions } from "./action";
@@ -20,6 +20,7 @@ export type ClientPostOpts = {
     clickable: boolean,
     frame: Generic.PostData | null,
     replies: Generic.ListingData | null,
+    client_id: string,
     at_or_above_pivot: boolean,
     is_pivot: boolean,
     top_level: boolean,
@@ -138,6 +139,7 @@ export function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
                             at_or_above_pivot: false,
                             is_pivot: false,
                             frame: content_post,
+                            client_id: content_post.client_id,
                             replies: isThreaded() != null ? null : post.replies,
                             top_level: false,
                         }} />
@@ -191,7 +193,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     };
 
     const settings = getSettings();
-    const client = getClient();
 
     const [transitionTarget, setTransitionTarget] = createSignal(selfVisible());
     const [animState, setAnimState] = createSignal<{visible: boolean, animating: boolean}>({
@@ -282,7 +283,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
                         e.stopPropagation();
                         // support ctrl click
-                        const target_url = "/"+client.id+props.opts.frame?.url;
+                        const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
                         if(e.ctrlKey || e.metaKey || e.altKey) {
                             window.open(target_url);
                         }else{
@@ -298,7 +299,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                 <ShowCond when={props.opts.frame?.url} fallback={(
                                     title.text
                                 )}>{url => (
-                                    <A href={url} class="hover:underline">{title.text}</A>
+                                    <A
+                                        client_id={props.opts.client_id}
+                                        href={url}
+                                        class="hover:underline"
+                                    >{title.text}</A>
                                 )}</ShowCond>
                             </span>
                         )}</ShowCond>
@@ -316,7 +321,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             ]} when={author.pfp} fallback={"By "}>{pfp => <>
                                 <AuthorPfp src_url={pfp.url} />{" "}
                             </>}</ShowCond>
-                            <UserLink href={author.link} color_hash={author.color_hash}>
+                            <UserLink
+                                client_id={author.client_id}
+                                href={author.link}
+                                color_hash={author.color_hash}
+                            >
                                 {author.name}
                             </UserLink>{" "}
                         </>}</ShowCond>
@@ -343,7 +352,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                 </>}</ShowCond>
                             </>}</ShowCond>
                             <ShowCond when={props.content.info?.in}>{in_sr => <>
-                                {" in "}<LinkButton href={in_sr.link} style="normal">{in_sr.name}</LinkButton>{" "}
+                                {" in "}<LinkButton
+                                    href={in_sr.link}
+                                    style="normal"
+                                    client_id={in_sr.client_id}
+                                >{in_sr.name}</LinkButton>{" "}
                             </>}</ShowCond>
                             <ShowCond when={props.content.actions?.vote}>{vote_action => <>
                                 <CounterCount counter={vote_action} />{" "}
@@ -528,6 +541,7 @@ export function ClientPage(props: ClientPageProps): JSX.Element {
                                 <ClientContentAny content={post.content} opts={{
                                     clickable: false, // TODO
                                     frame: post,
+                                    client_id: post.client_id,
                                     replies: post.replies,
                                     at_or_above_pivot: false,
                                     top_level: true,
@@ -574,6 +588,7 @@ function WrapParent(props: {node: Generic.Post, children: JSX.Element, is_pivot:
                             <ClientContent listing={post} opts={{
                                 clickable: !props.is_pivot,
                                 frame: post_root,
+                                client_id: post_root.client_id,
                                 replies: post_root.replies,
                                 at_or_above_pivot: true,
                                 top_level: true,

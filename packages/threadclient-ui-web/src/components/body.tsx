@@ -4,6 +4,7 @@ import { createStore } from "solid-js/store";
 import { ShowCond, SwitchKind } from "tmeta-util-solid";
 import { switchKind } from "../../../tmeta-util/src/util";
 import {
+    fetchClient,
     getTwitchClip, gfyLike,
     imgurImage,
     linkPreview,
@@ -17,7 +18,7 @@ import {
 } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, DefaultErrorBoundary, getClient, getIsVisible,
+    classes, DefaultErrorBoundary, getIsVisible,
     getSettings, ToggleColor
 } from "../util/utils_solid";
 import { LinkButton } from "./links";
@@ -52,7 +53,11 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             });
 
             return <div>
-                <div><LinkButton href={link.url} style={"normal"}>{link.url}</LinkButton></div>
+                <div><LinkButton
+                    client_id={link.client_id}
+                    href={link.url}
+                    style={"normal"}
+                >{link.url}</LinkButton></div>
                 <ShowCond when={previewBody()}>{preview_opts => (
                     <Body body={preview_opts.body} autoplay={props.autoplay} />
                 )}</ShowCond>
@@ -73,12 +78,15 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                         //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
                         (loadState().kind !== "loaded" ? true : undefined) && removed.fetch_path
                     }>{path => {
-                        const client = getClient();
                         // body.fetch_path
                         const doClick = async () => {
+                            const client = await fetchClient(removed.client_id);
                             let new_body: Generic.Body;
                             let errored = false;
                             setLoadState({kind: "loading"});
+                            if(!client) {
+                                throw new Error("invalid client");
+                            }
                             if(!client.fetchRemoved) {
                                 throw new Error("client provided a removal fetch path but has no fetchRemoved");
                             }
@@ -90,6 +98,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                                 console.log(error);
                                 new_body = {
                                     kind: "text",
+                                    client_id: "n/a",
                                     content: "Error! "+error.toString(),
                                     markdown_format: "none",
                                 };
@@ -125,6 +134,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 thread: xpost.source,
             }} opts={{
                 clickable: true,
+                client_id: xpost.client_id,
                 frame: null,
                 replies: null,
                 at_or_above_pivot: false,
@@ -204,8 +214,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             renderOembed(client, oembed).defer(hsc).adto(div);
             return div;
         }} />,
-        mastodon_instance_selector: () => {
-            const client = getClient();
+        mastodon_instance_selector: mis => {
             const [instance, setInstance] = createSignal("");
             const acceptable = createMemo(() => {
                 const value = instance();
@@ -216,7 +225,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             });
             const go = () => {
                 if(!acceptable()) return;
-                navigate({path: "/"+client.id+"/"+(instance().replaceAll("/", "-"))});
+                navigate({path: "/"+mis.client_id+"/"+(instance().replaceAll("/", "-"))});
             };
             return <div>
                 <h1 class="text-base font-light" style={{'max-width': "6rem"}}>
@@ -248,7 +257,11 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 </div>
                 <p class="py-2">
                     Not on mastodon? Join at{" "}
-                    <LinkButton style="normal" href="https://joinmastodon.org">joinmastodon.org</LinkButton>
+                    <LinkButton
+                        client_id={""}
+                        style="normal"
+                        href="https://joinmastodon.org"
+                    >joinmastodon.org</LinkButton>
                 </p>
                 <p class="py-2">
                     Note that some instances may require logging in before they let you view timelines.

@@ -3,12 +3,15 @@ import { createMemo, createSignal, JSX } from "solid-js";
 import { ShowCond, SwitchKind } from "tmeta-util-solid";
 import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsafeLinkToSafeLink } from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
-import { getClient } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
 import { Body } from "./body";
 export * from "../util/interop_solid";
 
-export function PreviewableLink(props: {href: string, children: JSX.Element}): JSX.Element {
+export function PreviewableLink(props: {
+    href: string,
+    client_id: string,
+    children: JSX.Element,
+}): JSX.Element {
     const linkPreview: () => {
         visible: () => boolean,
         setVisible: (a: boolean) => void,
@@ -21,7 +24,11 @@ export function PreviewableLink(props: {href: string, children: JSX.Element}): J
     });
 
     return <>
-        <LinkButton href={props.href} style={linkPreview() ? "previewable" : "normal"} onClick={linkPreview() ? () => {
+        <LinkButton
+            client_id={props.client_id}
+            href={props.href}
+            style={linkPreview() ? "previewable" : "normal"}
+        onClick={linkPreview() ? () => {
             const lp = linkPreview()!;
             lp.setVisible(!lp.visible());
         } : undefined}>
@@ -41,11 +48,11 @@ export function PreviewableLink(props: {href: string, children: JSX.Element}): J
 export function A(props: {
     href: string,
     class: string,
+    client_id: string,
     onClick?: undefined | (() => void),
     children: JSX.Element,
 }): JSX.Element {
-    const client = getClient();
-    const linkValue = createMemo(() => unsafeLinkToSafeLink(client.id, props.href));
+    const linkValue = createMemo(() => unsafeLinkToSafeLink(props.client_id, props.href));
     return <SwitchKind item={linkValue()}>{{
         error: (error) => <a class={props.class + " error"} title={error.title} onclick={(e) => {
             e.stopPropagation();
@@ -73,13 +80,24 @@ export function A(props: {
 export function LinkButton(props: {
     href: string,
     style: LinkStyle,
+    client_id: string,
     onClick?: undefined | (() => void),
     children: JSX.Element,
 }): JSX.Element {
-    return <A class={link_styles_v[props.style]} href={props.href} onClick={props.onClick}>{props.children}</A>;
+    return <A
+        client_id={props.client_id}
+        class={link_styles_v[props.style]}
+        href={props.href}
+        onClick={props.onClick}
+    >{props.children}</A>;
 }
 
-export function UserLink(props: {href: string, color_hash: string, children: JSX.Element}): JSX.Element {
+export function UserLink(props: {
+    href: string,
+    client_id: string,
+    color_hash: string,
+    children: JSX.Element,
+}): JSX.Element {
     const getStyle = () => {
         const [author_color, author_color_dark] = getRandomColor(seededRandom(props.color_hash.toLowerCase()));
         return  {
@@ -87,5 +105,9 @@ export function UserLink(props: {href: string, color_hash: string, children: JSX
             '--dark-color': rgbToString(author_color_dark),
         };
     };
-    return <span style={getStyle()}><LinkButton style="userlink" href={props.href}>{props.children}</LinkButton></span>;
+    return <span style={getStyle()}>
+        <LinkButton style="userlink" href={props.href} client_id={props.client_id}>
+            {props.children}
+        </LinkButton>
+    </span>;
 }

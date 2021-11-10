@@ -5,8 +5,8 @@ import {
 } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { ShowCond } from "tmeta-util-solid";
-import { link_styles_v } from "../app";
-import { getClient, localStorageSignal } from "../util/utils_solid";
+import { getClientCached, link_styles_v } from "../app";
+import { localStorageSignal } from "../util/utils_solid";
 import { ClientContent, TopLevelWrapper } from "./page2";
 
 type StoreTypeValue = {value: null | Generic.PostContent};
@@ -15,8 +15,7 @@ export function ReplyEditor(props: {
     onCancel: () => void,
     onAddReply: (response: Generic.Link<Generic.Post>) => void,
 }): JSX.Element {
-    const client = getClient();
-    const [rawContent, setContent] = localStorageSignal("comment-draft-"+client.id+"-"+props.action.key);
+    const [rawContent, setContent] = localStorageSignal("comment-draft-"+props.action.client_id+"-"+props.action.key);
     const content = () => rawContent() ?? "";
     const empty = () => content().trim() === "";
 
@@ -25,7 +24,8 @@ export function ReplyEditor(props: {
 
     const [diffable, setDiffable] = createStore<StoreTypeValue>({value: null});
     createEffect(() => {
-        const resv: Generic.PostContent = client.previewReply!(content(), props.action.reply_info);
+        const client = getClientCached(props.action.client_id);
+        const resv: Generic.PostContent = client!.previewReply!(content(), props.action.reply_info);
         setDiffable(reconcile<StoreTypeValue>({value: resv}, {merge: true}));
         // this does well but unfortunately it doesn't know what to use as keys for lists and it can't really know
         // because it's text → (opaque parser) → richtext
@@ -44,7 +44,8 @@ export function ReplyEditor(props: {
                 onClick={(e) => {
                     setSending(true);
 
-                    client.sendReply!(content(), props.action.reply_info).then((r) => {
+                    const client = getClientCached(props.action.client_id);
+                    client!.sendReply!(content(), props.action.reply_info).then((r) => {
                         console.log("Got response", r);
                         // TODO:
                         // so, this is a terrible idea,
@@ -75,6 +76,7 @@ export function ReplyEditor(props: {
                                 parent: null,
                                 replies: null,
                                 url: null,
+                                client_id: props.action.client_id,
                             },
                         });
                     }).catch((error) => {
@@ -103,6 +105,7 @@ export function ReplyEditor(props: {
                     is_pivot: true,
                     top_level: true,
                     frame: null,
+                    client_id: props.action.client_id,
                 }}/>
             </TopLevelWrapper>;
         }}</ShowCond>
