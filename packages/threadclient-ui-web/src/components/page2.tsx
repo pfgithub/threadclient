@@ -13,7 +13,6 @@ import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { CounterCount, VerticalIconCounter } from "./counter";
 import { A, LinkButton, UserLink } from "./links";
-import { ReplyEditor } from "./reply";
 
 export type ClientPostOpts = {
     clickable: boolean,
@@ -214,6 +213,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const onAddReply = (reply: Generic.Link<Generic.Post>) => {
         setLocalReplies(l => [reply, ...l]);
     };
+
+    () => localReplies;
 
     return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
@@ -490,7 +491,7 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
             post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
                 <div class="flex flex-row">
                     <For each={loader_or_post.indent}>{indent => <>|</>}</For>
-                    <SwitchKind item={loader_or_post.content}>{{
+                    <div class="flex-1"><SwitchKind item={loader_or_post.content}>{{
                         post: post => <ClientContentAny
                             content={post.content}
                             opts={{
@@ -504,7 +505,7 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                             }}
                         />,
                         loader: () => <>TODO loader</>,
-                    }}</SwitchKind>
+                    }}</SwitchKind></div>
                 </div>
             </div>}</ToggleColor>,
             horizontal_line: () => <hr

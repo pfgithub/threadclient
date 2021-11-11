@@ -51,7 +51,7 @@ type IndentItem = {
 type FlatItem = {
     kind: "wrapper_start" | "wrapper_end" | "horizontal_line",
 } | FlatPost | {
-    kind: "todo"
+    kind: "todo",
     note: string,
     data: unknown,
 } | {
@@ -82,7 +82,7 @@ function renderPost(post: Generic.Post, parent_indent: IndentItem[], meta: Meta)
     const self_indent: IndentItem[] = [...parent_indent, final_indent];
 
     const self_collapsed = meta.collapse_states.get(final_indent.id) ?? (
-        post.kind === "post" ? post.content.kind === "post" ? post.content.collapsible ?
+        post.kind === "post" ? post.content.kind === "post" ? post.content.collapsible !== false ?
         post.content.collapsible.default_collapsed : false : false : false
     );
 
@@ -104,7 +104,7 @@ function flattenPost(post: Generic.Post, parent_indent: IndentItem[], meta: Meta
 
     if(!rres.collapsed) if(post.replies) for(const reply of post.replies.items) {
         if(reply.err !== undefined) res.push(fi.err(reply.err, reply));
-        else res.push(...flattenPost(reply.ref, self_indent, meta))
+        else res.push(...flattenPost(reply.ref, self_indent, meta));
     }
 
     return res;
@@ -131,7 +131,7 @@ export function flatten(page: Generic.Page2, meta: Meta): FlatPage {
             if(reply.err !== undefined) res.push(fi.err(reply.err, reply));
             else res.push(...flattenPost(reply.ref, [], meta));
             res.push({kind: "wrapper_end"});
-        }; if(pivot.replies.items.length === 0) {
+        } if(pivot.replies.items.length === 0) {
             res.push(fi.todo("*There are no replies*", pivot));
         }
     }
