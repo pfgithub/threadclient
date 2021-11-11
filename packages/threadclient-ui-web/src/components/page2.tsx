@@ -1,9 +1,8 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, untrack } from "solid-js";
+import { flatten } from "threadclient-render-flatten";
 import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
-import {
-    bioRender, clientContent, clientListing, getClientCached, link_styles_v, navigate
-} from "../app";
+import { clientContent, clientListing, getClientCached, link_styles_v, navigate } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getSettings, HideshowProvider,
@@ -433,21 +432,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         onAddReply={onAddReply}
                     />
                 </div></ShowBool>
-                <ShowBool when={!props.opts.at_or_above_pivot}>
-                    <ShowCond when={props.opts.replies}>{post_replies => {
-                        const replies = createMemo(() => [...localReplies(), ...post_replies.items]);
-                        return <ShowBool
-                            when={props.content.show_replies_when_below_pivot !== false}
-                        >
-                            <ul class="-ml-3px">
-                                <For each={replies()}>{reply => (
-                                    // - if replies.items is 1, maybe thread replies?
-                                    <ClientPostReply reply={reply} is_threaded={replies().length === 1} />
-                                )}</For>
-                            </ul>
-                        </ShowBool>;
-                    }}</ShowCond>
-                </ShowBool>
             </HideshowProvider></div>
         </div>
     </article>;
@@ -481,88 +465,58 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
 }
 
 export type ClientPageProps = {page: Generic.Page2};
-export function ClientPage(props: ClientPageProps): JSX.Element {
-    const [showReplyEditor, setShowReplyEditor] = createSignal(false);
+export default function ClientPage(props: ClientPageProps): JSX.Element {
+    const view = createMemo(() => flatten(props.page, {
+        collapse_states: new Map(),
+    })); // TODO reconcile merge:true I think key:"key" but be careful
 
-    const [localReplies, setLocalReplies] = createSignal<Generic.Link<Generic.Post>[]>([]);
+    // ok I want to delete all the routing code so I can do hmr
+    // it'd be really nice having hmr with clientpage
+    // rn all the export vars are messing everything up in app
 
-    // TODO set page title
-    // using a store or something
+    // I should be able to move everything into an export function main() I think
+    // life hack
 
-    // ok recursive
-    // going up:
-    // - wrap a post in parent posts until the top is reached (inverse, starting from this post and going up)
-    // going down:
-    // - loop over replies like normal
-    // - note that eg with mastodon, a child's parent might not be the pivot
-
-    // might be nice to merge parents into one block thing idk
-
-    // also WrapParent is going to be bad for perf, it should eventually be turned into a list thing
-    // should be fine for now though, only bad when modifying parent lists eg loading more
-
-    // it should be index for replies right? actually should be for jk
-    return <WrapParent node={props.page.pivot.ref!} is_pivot={true}>
-        <ShowCond when={props.page.pivot.ref!.replies}>{replies => <>
-            <hr class="my-2 border-t-2" style={{'border-top-color': "var(--collapse-line-color)"}} />
-            <ShowCond when={replies.reply}>{reply_action => (
-                <ShowAnimate when={showReplyEditor()} fallback={
-                    <div>
-                        <button
-                            class={link_styles_v["pill-empty"]} onClick={() => {
-                                setShowReplyEditor(true);
+    return <div class="m-4">
+        <For each={view().body}>{item => <SwitchKind item={item}>{{
+            wrapper_start: () => <ToggleColor>{color => <div class={""
+                + " " + color
+                + " h-2 rounded-xl mt-4"
+            } style="border-bottom-left-radius: 0; border-bottom-right-radius: 0" />}</ToggleColor>,
+            wrapper_end: () => <ToggleColor>{color => <div class={""
+                + " " + color
+                + " h-2 rounded-xl mb-4"
+            } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
+            post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
+                <div class="flex flex-row">
+                    <For each={loader_or_post.indent}>{indent => <>|</>}</For>
+                    <SwitchKind item={loader_or_post.content}>{{
+                        post: post => <ClientContentAny
+                            content={post.content}
+                            opts={{
+                                clickable: false, // TODO
+                                frame: post,
+                                client_id: post.client_id,
+                                replies: post.replies,
+                                at_or_above_pivot: false,
+                                top_level: false,
+                                is_pivot: false,
                             }}
-                            disabled={reply_action.locked}
-                        >Write Reply{reply_action.locked ? " (Locked)" : ""}</button>
-                    </div>
-                }>
-                    <ReplyEditor action={reply_action.action} onCancel={() => {
-                        setShowReplyEditor(false);
-                    }} onAddReply={(reply) => {
-                        setShowReplyEditor(false);
-                        setLocalReplies(lr => [reply, ...lr]);
-                    }} />
-                </ShowAnimate>
-            )}</ShowCond>
-            <div class="mb-6"></div>
-            {/*TODO put the sorting options here*/null}
-            <For
-                each={[...localReplies(), ...replies.items]}
-                fallback={<div>*There are no replies*</div>}
-            >{reply_link => (
-                <ErrableLink link={reply_link}>{reply => (
-                    <SwitchKind item={reply}>{{
-                        post: post => (
-                            <TopLevelWrapper>
-                                <ShowBool
-                                    when={post.parent !== props.page.pivot}
-                                    // maybe do some WrapParent but all things have to not be above pivot?
-                                >
-                                    TODO parent posts
-                                </ShowBool>
-                                <ClientContentAny content={post.content} opts={{
-                                    clickable: false, // TODO
-                                    frame: post,
-                                    client_id: post.client_id,
-                                    replies: post.replies,
-                                    at_or_above_pivot: false,
-                                    top_level: true,
-                                    is_pivot: false,
-                                }} />
-                            </TopLevelWrapper>
-                        ),
-                        loader: (loader) => <>
-                            ok this is easy
-                            render the loader
-                            render the children
-                            onclick load and then rerender
-                            TODO load more <button onclick={() => console.log(loader)}>code</button>
-                        </>,
+                        />,
+                        loader: () => <>TODO loader</>,
                     }}</SwitchKind>
-                )}</ErrableLink>
-            )}</For>
-        </>}</ShowCond>
-    </WrapParent>;
+                </div>
+            </div>}</ToggleColor>,
+            horizontal_line: () => <hr
+                class="my-2 border-t-2"
+                style={{'border-top-color': "var(--collapse-line-color)"}}
+            />,
+            todo: todo => <div>TODO: {todo.note} <button onclick={() => todo.data}>code</button></div>,
+            error: error => <div class="text-red-500">
+                Error: {error.note} <button onclick={() => error.data}>code</button>
+            </div>,
+        }}</SwitchKind>}</For>
+    </div>;
 }
 
 export function TopLevelWrapper(props: {
@@ -574,60 +528,4 @@ export function TopLevelWrapper(props: {
         + " " + color
         + " " + (props.restrict_w ?? false ? "max-w-xl" : "")
     }>{props.children}</div>}</ToggleColor>;
-}
-
-// you know what'd be interesting?
-// what if the Client post in a post's parent list actually contained the client to use to render it
-// not going to do that but it could be interesting
-function WrapParent(props: {node: Generic.Post, children: JSX.Element, is_pivot: boolean}): JSX.Element {
-    // () => in order to capture any .Provider nodes in a parent
-    const content = () => <>
-        <SwitchKind item={props.node}>{{
-            post: post_root => (
-                <SwitchKind item={post_root.content}>{{
-                    post: post => (
-                        <TopLevelWrapper>
-                            <ClientContent listing={post} opts={{
-                                clickable: !props.is_pivot,
-                                frame: post_root,
-                                client_id: post_root.client_id,
-                                replies: post_root.replies,
-                                at_or_above_pivot: true,
-                                top_level: true,
-                                is_pivot: props.is_pivot,
-                            }} />
-                        </TopLevelWrapper>
-                    ),
-                    page: page => (
-                        <TopLevelWrapper>
-                            <SolidToVanillaBoundary getValue={hsc => {
-                                const frame = el("div").clss("post text-sm").styl({
-                                    margin: "-10px",
-                                    padding: "10px",
-                                });
-                                bioRender(page.wrap_page.header, frame).defer(hsc);
-                                return frame;
-                            }} />
-                        </TopLevelWrapper>
-                    ),
-                    legacy: legacy => <>TODO legacy in wrapParent</>,
-                    client: () => <>TODO client</>,
-                }}</SwitchKind>
-            ),
-            loader: () => <>TODO loader</>,
-        }}</SwitchKind>
-        {props.children}
-    </>;
-    return <>
-        <ShowCond when={props.node.parent} fallback={
-            content()
-        } children={parent_link => {
-            return <ErrableLink link={parent_link} fallback={err_msg => <>
-                <div>Error: {err_msg}</div>
-                <div>{content()}</div>
-            </>} children={parent => (
-                <WrapParent node={parent} children={content()} is_pivot={false} />
-            )} />;
-        }} />
-    </>;
 }

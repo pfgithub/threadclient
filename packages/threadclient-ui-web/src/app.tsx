@@ -2824,7 +2824,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             }
             title.setTitle(p2title ?? "«err no title»");
 
-            const {ClientPage} = await import("./components/page2");
+            const {default: ClientPage} = await import("./components/page2");
             loader_area.remove();
 
             frame.classList.remove("client-main-frame");

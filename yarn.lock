@@ -11303,6 +11303,18 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
+"threadclient-render-flatten@^1.0.0, threadclient-render-flatten@workspace:packages/threadclient-render-flatten":
+  version: 0.0.0-use.local
+  resolution: "threadclient-render-flatten@workspace:packages/threadclient-render-flatten"
+  dependencies:
+    api-types-generic: ^1.0.0
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.3.5
+  languageName: unknown
+  linkType: soft
+
 "threadclient-ui-web@workspace:packages/threadclient-ui-web":
   version: 0.0.0-use.local
   resolution: "threadclient-ui-web@workspace:packages/threadclient-ui-web"
@@ -11333,6 +11345,7 @@ fsevents@~2.3.2:
     threadclient-client-base: ^1.0.0
     threadclient-client-hackernews: ^1.0.0
     threadclient-preview-vreddit: ^1.0.0
+    threadclient-render-flatten: ^1.0.0
     tmeta-util: ^1.0.0
     tmeta-util-solid: ^1.0.0
     tsconfig-tmeta: ^1.0.0
