@@ -173,6 +173,27 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
     }}</SwitchKind>;
 }
 
+// we're going to be disabling animations for a bit during this transition
+export function CollapseButton(props: {
+    class?: undefined | string,
+    collapsed_raw: boolean,
+    collapsed_anim: boolean,
+    onClick: () => void,
+}): JSX.Element {
+    return <button
+        class={"collapse-btn z-1 static outline-default "+props.class}
+        classList={{
+            'collapsed': props.collapsed_anim,
+        }}
+        draggable={true}
+        onClick={() => props.onClick()}
+        aria-label="Collapse"
+        aria-pressed={props.collapsed_raw}
+    >
+        <div class="collapse-btn-inner"></div>
+    </button>;
+}
+
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
     const default_collapsed = props.content.collapsible !== false ? props.content.collapsible.default_collapsed : false;
@@ -242,13 +263,14 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         <VerticalIconCounter counter={vote_action} />
                     </div>
                 )}</ShowCond>
-                <button class="flex-1 collapse-btn z-1 static outline-default" classList={{
-                    'collapsed': !selfVisible(),
-                }} draggable={true} onClick={(e) => {
+                <CollapseButton
+                    class="flex-1"
+                    collapsed_raw={!transitionTarget()}
+                    collapsed_anim={!selfVisible()}
+                    onClick={() => {
                     setTransitionTarget(t => !t);
-                }} aria-label="Collapse" aria-pressed={!transitionTarget()}>
-                    <div class="collapse-btn-inner"></div>
-                </button>
+                    }}
+                />
             </div>
         </ShowBool>
         <div class="flex-1">
@@ -490,7 +512,11 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
             } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
             post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
                 <div class="flex flex-row">
-                    <For each={loader_or_post.indent}>{indent => <>|</>}</For>
+                    <For each={loader_or_post.indent}>{indent => <>
+                        <CollapseButton collapsed_raw={false} collapsed_anim={false} onClick={() => {
+                            alert("todo!");
+                        }} />
+                    </>}</For>
                     <div class="flex-1"><SwitchKind item={loader_or_post.content}>{{
                         post: post => <ClientContentAny
                             content={post.content}

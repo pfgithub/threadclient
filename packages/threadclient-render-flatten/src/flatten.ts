@@ -17,6 +17,7 @@ type IndentItem = {
     // | post_ndhcajk: {indent: [{id: "post_anvdhla"}]}
     id: string | symbol,
     threaded: boolean,
+    // start: bool, end: bool,
 };
 
 /*
