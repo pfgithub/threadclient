@@ -190,7 +190,7 @@ export function CollapseButton(props: {
         aria-label="Collapse"
         aria-pressed={props.collapsed_raw}
     >
-        <div class="collapse-btn-inner"></div>
+        <div class="collapse-btn-inner rounded-none"></div>
     </button>;
 }
 

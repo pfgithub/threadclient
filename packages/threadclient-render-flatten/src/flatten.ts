@@ -12,12 +12,13 @@ type FlatPage = {
     // sidebar: FlatItem[],
 };
 
-type IndentItem = {
+type CollapseButton = {
     // post_anvdhla
     // | post_ndhcajk: {indent: [{id: "post_anvdhla"}]}
+    collapsed: boolean,
     id: string | symbol,
     threaded: boolean,
-    // start: bool, end: bool,
+    // start: boolean, end: boolean,
 };
 
 /*
@@ -64,8 +65,8 @@ type FlatItem = {
 type FlatPost = {
     kind: "post",
     content: Generic.Post, // note rather than generic.post we can be fancier to reduce complexity when rendering
-    collapsed: boolean,
-    indent: IndentItem[],
+    indent: CollapseButton[],
+    collapse: CollapseButton,
 };
 
 const fi = {
@@ -75,35 +76,37 @@ const fi = {
 
 type CollapseStates = Map<string | symbol, boolean>;
 
-function renderPost(post: Generic.Post, parent_indent: IndentItem[], meta: Meta): FlatPost {
-    const final_indent: IndentItem = {
-        id: "TODO unique id "+post.url+Math.random(),
-        threaded: false,
-    };
-    const self_indent: IndentItem[] = [...parent_indent, final_indent];
+function renderPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta): FlatPost {
+    const id = "TODO unique id "+post.url+Math.random();
 
-    const self_collapsed = meta.collapse_states.get(final_indent.id) ?? (
+    const self_collapsed = meta.collapse_states.get(id) ?? (
         post.kind === "post" ? post.content.kind === "post" ? post.content.collapsible !== false ?
         post.content.collapsible.default_collapsed : false : false : false
     );
 
+    const final_indent: CollapseButton = {
+        id,
+        threaded: false,
+        collapsed: self_collapsed,
+    };
+
     return {
         kind: "post",
         content: post,
-        collapsed: self_collapsed,
-        indent: self_indent,
+        indent: parent_indent,
+        collapse: final_indent,
     };
 }
 
-function flattenPost(post: Generic.Post, parent_indent: IndentItem[], meta: Meta): FlatItem[] {
+function flattenPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta): FlatItem[] {
     const res: FlatItem[] = [];
 
     const rres = renderPost(post, parent_indent, meta);
     res.push(rres);
 
-    const self_indent = rres.indent;
+    const self_indent = [...rres.indent, rres.collapse];
 
-    if(!rres.collapsed) if(post.replies) for(const reply of post.replies.items) {
+    if(!rres.collapse.collapsed) if(post.replies) for(const reply of post.replies.items) {
         if(reply.err !== undefined) res.push(fi.err(reply.err, reply));
         else res.push(...flattenPost(reply.ref, self_indent, meta));
     }
