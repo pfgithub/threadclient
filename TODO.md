@@ -1,3 +1,15 @@
+## note
+
+```
+db data (eg reddit api results)
+→
+semantic data (page2, not frontend specific)
+→
+display data (translates easily to an actual rendered thing)
+→
+rendered on your screen/display
+```
+
 ## todo
 
 - [ ] ok I know I lose the fun animations on collapsing posts and stuff but I
