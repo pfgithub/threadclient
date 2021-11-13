@@ -1,3 +1,18 @@
+## todo
+
+- [ ] I think it's critical that I make a seperate codepath for page2.
+- [ ] like from entry.ts, completely different, only sharing the
+  serviceworker stuff
+- [ ] that way I can get page2 working with hot reload and significantly
+  improve development experience
+- [ ] be careful with what I'm doing in flatten.ts - I'm kinda accidentally
+  recreating virtual dom and that will have terrible performance implications.
+  when you collapse something, it should not have to regenerate the entire array.
+  - huh... that's not ideal is it
+  - like if I add a reply I don't want to regenerate the whole array, just anything
+    relevant
+  - also I should be keeping around hidden items in dom so navigation works and stuff
+
 ## note
 
 ```
