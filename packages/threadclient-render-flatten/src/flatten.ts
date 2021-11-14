@@ -127,7 +127,10 @@ export function flatten(page: Generic.Page2, meta: Meta): FlatPage {
     let highest: Generic.Post = pivot;
     const above_pivot: FlatItem[] = [];
     while(true) {
-        above_pivot.push(...flattenPost(highest, [], meta));
+        above_pivot.unshift({kind: "wrapper_end"});
+        above_pivot.unshift(renderPost(highest, [], meta));
+        above_pivot.unshift({kind: "wrapper_start"});
+
         if(!highest.parent) break;
         if(highest.parent.err !== undefined) {
             above_pivot.push(fi.err(highest.parent.err, highest));
@@ -135,7 +138,7 @@ export function flatten(page: Generic.Page2, meta: Meta): FlatPage {
         }
         highest = highest.parent.ref;
     }
-    res.push(...above_pivot.reverse());
+    res.push(...above_pivot);
 
     // note scroll should probably center at the pivot post and things above should require scrolling
     // up like twitter does
