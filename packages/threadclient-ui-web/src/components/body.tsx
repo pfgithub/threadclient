@@ -304,7 +304,7 @@ export function summarizeBody(body: Generic.Body): string {
 
 export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
     const [state, setState] = createSignal<{
-        kind: "loading"
+        kind: "loading",
     } | {
         kind: "loaded",
         frame: Generic.PostData,
@@ -326,8 +326,8 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
             setState({kind: "loaded", frame: r});
         }).catch(e => {
             if(!running) return;
-            console.log("got error", e, e.stack);
-            setState({kind: "error", message: e.toString()});
+            console.log("got error", e, (e as Error).stack);
+            setState({kind: "error", message: (e as Error).toString()});
         });
     });
 

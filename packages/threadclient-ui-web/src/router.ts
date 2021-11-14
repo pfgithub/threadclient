@@ -1,5 +1,4 @@
 
-import * as Generic from "api-types-generic";
 import { createSignal } from "solid-js";
 import { ThreadClient } from "threadclient-client-base";
 import { registerSW } from "virtual:pwa-register";
@@ -201,7 +200,7 @@ if(import.meta.hot) {
         // reinitializing stuff or whatever
         if(!alertarea) throw new Error("attempt to update router.ts twice");
 
-        const alert = el("div").clss("alert").adto(alertarea!);
+        const alert = el("div").clss("alert").adto(alertarea);
         el("div").clss("alert-body").adto(alert).atxt("router.tsx does not support updating.");
         elButton("pill-empty").atxt("Ignore (Error)").adto(alert).onev("click", (e) => {
             e.stopPropagation();

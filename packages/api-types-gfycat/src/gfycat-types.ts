@@ -1,4 +1,4 @@
-export namespace V1 {
+export declare namespace V1 {
     // types for the v1 api
 
     // `<api_root>/v1/gfycats/<slug>`
@@ -47,7 +47,7 @@ export namespace V1 {
     export type GfyResponse = GfySuccessResponse | GfyErrorResponse;
 }
 
-export namespace V2 {
+export declare namespace V2 {
     // types for the v2 api
 
     // `<api_root>/v2/gifs/<slug>`

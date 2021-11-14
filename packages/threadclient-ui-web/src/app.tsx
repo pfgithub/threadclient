@@ -7,7 +7,7 @@ import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { escapeHTML } from "tmeta-util";
-import { allowedToAcceptClick, ShowCond, TimeAgo } from "tmeta-util-solid";
+import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
 import { Homepage } from "./components/homepage";
@@ -145,7 +145,9 @@ export async function gfyLike2(
     gfy_host: string,
     gfy_link: string,
 ): Promise<Generic.PostData> {
-    const res: Gfycat.V2.GfyResponse = await fetch("https://api."+gfy_host+"/v2/gifs/"+gfy_link).then(r => r.json());
+    const res = (
+        await fetch("https://api."+gfy_host+"/v2/gifs/"+gfy_link).then(r => r.json())
+    ) as Gfycat.V2.GfyResponse;
     console.log("gfy response", res);
 
     if('errorMessage' in res) {
@@ -3279,7 +3281,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 //    else
 //    - gone below item
 
-export function onNavigate(to_index: number, url: URLLike, page: undefined | Generic.Page2) {
+export function onNavigate(to_index: number, url: URLLike, page: undefined | Generic.Page2): void {
     console.log("Navigating", to_index, url, nav_history, page);
 
     document.title = "ThreadClient";
