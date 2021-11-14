@@ -284,7 +284,11 @@ export type Body = BodyText | RichText | {
     w: number | null,
     h: number | null,
 } | Video | {
-    kind: "gfycat",
+    kind: "gfycatv1",
+    id: string,
+    host: string,
+} | {
+    kind: "gfycatv2",
     id: string,
     host: string,
 } | {
@@ -659,7 +663,7 @@ export type CounterAction = {
     time: number, // when this was found
 
     // TODO: maybe just allow any 15×ANY icon?
-    icon_style?: never | "reddit-upvote-downvote" | "mastodon-star" | "other",
+    icon_style?: never | "upvote-downvote" | "star" | "heart" | "other",
 
     // TODO: delete
     special?: undefined | "reddit-points",

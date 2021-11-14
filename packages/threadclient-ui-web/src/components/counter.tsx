@@ -13,7 +13,7 @@ export function getCounterState(
     const [res, setRes] = createSignal<CounterState>(null as unknown as CounterState);
     let wcs!: WatchableCounterState;
     createMemo(() => {
-        const hscv = watchCounterState(counter().unique_id, {
+        const hscv = watchCounterState(counter().client_id + "_" + counter().unique_id, {
             count: counter().count_excl_you,
             you: counter().you,
             time: counter().time
@@ -136,7 +136,7 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
         >
             <span>⯅ Vote</span>
         </button>
-        <button
+        <ShowBool when={props.counter.decremented_label != null}><button
             class="reddit-vote-button reddit-downvote-button"
             classList={{"vote-icon-voted": state().your_vote === "decrement"}}
             disabled={state().loading}
@@ -152,6 +152,6 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
             }}
         >
             <span>⯆</span>
-        </button>
+        </button></ShowBool>
     </div>;
 }

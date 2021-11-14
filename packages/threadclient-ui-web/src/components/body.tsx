@@ -5,7 +5,7 @@ import { ShowCond, SwitchKind } from "tmeta-util-solid";
 import { switchKind } from "../../../tmeta-util/src/util";
 import {
     fetchClient,
-    getTwitchClip, gfyLike,
+    getTwitchClip, gfyLike2, gfyLikeV1,
     imgurImage,
     linkPreview,
     link_styles_v,
@@ -181,11 +181,12 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             if(!item) return null;
             return <Body body={item} autoplay={false} />;
         }}</For>,
-        gfycat: gfycat => <SolidToVanillaBoundary getValue={hsc => {
+        gfycatv1: gfycat => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
-            gfyLike(gfycat.host, gfycat.id, {autoplay: props.autoplay}).defer(hsc).adto(div);
+            gfyLikeV1(gfycat.host, gfycat.id, {autoplay: props.autoplay}).defer(hsc).adto(div);
             return div;
         }} />,
+        gfycatv2: gfycat => <Gfycat data={gfycat} />,
         imgur: imgur => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
             imgurImage(imgur.imgur_kind, imgur.imgur_id).defer(hsc).adto(div);
@@ -282,7 +283,8 @@ export function summarizeBody(body: Generic.Body): string {
         link: link => link.url,
         captioned_image: () => "[image]",
         video: () => "[video]",
-        gfycat: () => "[gif]",
+        gfycatv1: () => "[gif]",
+        gfycatv2: () => "[gif]",
         youtube: () => "[video]",
         imgur: () => "[images]",
         twitch_clip: () => "[video]",
@@ -298,6 +300,55 @@ export function summarizeBody(body: Generic.Body): string {
         link_preview: link => link.url,
         mastodon_instance_selector: () => "[mastodon instance selector]",
     });
+}
+
+export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
+    const [state, setState] = createSignal<{
+        kind: "loading"
+    } | {
+        kind: "loaded",
+        frame: Generic.PostData,
+    } | {
+        kind: "error",
+        message: string,
+    }>({kind: "loading"});
+    const [retry, setRetry] = createSignal(Symbol());
+
+    createEffect(() => {
+        retry();
+
+        let running = true;
+        onCleanup(() => running = false);
+
+        const data = props.data;
+        gfyLike2(data.host, data.id).then(r => {
+            if(!running) return;
+            setState({kind: "loaded", frame: r});
+        }).catch(e => {
+            if(!running) return;
+            console.log("got error", e, e.stack);
+            setState({kind: "error", message: e.toString()});
+        });
+    });
+
+    return <TopLevelWrapper restrict_w>
+        <SwitchKind item={state()}>{{
+            loading: () => <>loading...</>,
+            loaded: ({frame}) => <ClientContent listing={frame.content} opts={{
+                clickable: true,
+                client_id: frame.client_id,
+                frame: frame,
+                replies: null,
+                at_or_above_pivot: false,
+                is_pivot: false,
+                top_level: false,
+            }} />,
+            error: e => <div class="text-red-500">
+                <button onClick={() => setRetry(Symbol())}>Retry</button>
+                {e.message}
+            </div>,
+        }}</SwitchKind>
+    </TopLevelWrapper>;
 }
 
 // TODO ↑that but for getting the thumbnail. An optional hint

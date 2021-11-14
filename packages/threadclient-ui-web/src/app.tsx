@@ -1,5 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
+import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
@@ -15,7 +16,7 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {
     alertarea, client_cache, current_history_index, global_counter_info,
     navbar,
-    navigate_event_handlers, nav_history, session_name, setCurrentHistoryIndex,
+    navigate_event_handlers, nav_history, session_name, setCurrentHistoryIndex
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings } from "./util/utils_solid";
@@ -137,7 +138,115 @@ function getVredditPreview(id: string): Generic.Video {
     };
     return video;
 }
-export function gfyLike(
+
+// note make sure to put an error boundary
+export async function gfyLike2(
+    gfy_host: string,
+    gfy_link: string,
+): Promise<Generic.PostData> {
+    const res: Gfycat.V2.GfyResponse = await fetch("https://api."+gfy_host+"/v2/gifs/"+gfy_link).then(r => r.json());
+    console.log("gfy response", res);
+
+    if('errorMessage' in res) {
+        throw new Error("Gfycat error: "+res.errorMessage+"; logged="+res.logged+"; reported="+res.reported);
+    }
+    if('message' in res) {
+        throw new Error("Gfycat error: "+res.message+"; logged="+res.logged+"; reported="+res.reported);
+    }
+
+    const {gif, user} = res;
+
+    const client_id = "https://www."+gfy_host;
+
+    const body: Generic.Body = {
+        kind: "video",
+        aspect: gif.width / gif.height,
+        gifv: false,
+        source: {
+            kind: "video",
+            sources: [
+                {url: gif.urls.hd, quality: "HD"},
+                {url: gif.urls.sd, quality: "SD"},
+            ],
+            // preview: [
+            //     {url: gif.urls.vthumbnail},
+            // ],
+            thumbnail: gif.urls.thumbnail,
+        },
+    };
+
+    return {
+        kind: "post",
+
+        parent: null,
+        replies: null,
+        url: "https://www."+gfy_host+"/watch/"+gfy_link,
+        client_id,
+
+        display_style: "centered",
+
+        content: {
+            kind: "post",
+
+
+            title: null,
+            thumbnail: {kind: "image", url: gif.urls.thumbnail}, // backup gif.averageColor
+            flair: gif.tags.map((tag): Generic.Flair => ({
+                content_warning: false,
+                elems: [
+                    {kind: "text", text: tag},
+                ],
+            })),
+            info: {
+                creation_date: gif.createDate * 1000,
+            },
+            author: user ? {
+                name: user.name,
+                color_hash: user.username,
+                link: user.url,
+                client_id,
+                pfp: {
+                    url: user.profileImageUrl,
+                    hover: user.profileImageUrl,
+                },
+            } : undefined,
+            body,
+            show_replies_when_below_pivot: false,
+            collapsible: {default_collapsed: false},
+            actions: {
+                vote: {
+                    kind: "counter",
+
+                    client_id,
+                    unique_id: "like_"+gfy_link,
+                    time: Date.now(),
+
+                    icon_style: "heart",
+                    special: undefined,
+
+                    label: "likes",
+                    incremented_label: "likes",
+
+                    count_excl_you: gif.likes,
+                    you: undefined,
+
+                    actions: {error: "gfycat liking is not supported"},
+                },
+                other: [
+                    {
+                        kind: "link",
+                        text: gif.views + " Views",
+                        url: "https://www."+gfy_host+"/watch/"+gfy_link,
+                        client_id,
+                    }
+                ],
+            },
+        },
+        internal_data: res,
+    };
+}
+
+export function gfyLikeV1(
     gfy_host: string,
     gfy_link: string,
     opts: {autoplay: boolean},
@@ -147,65 +256,25 @@ export function gfyLike(
     
     const loader = loadingSpinner().adto(resdiv);
     
-    fetch("https://api."+gfy_host+"/v1/gfycats/"+gfy_link).then(r => r.json()).then(r => {
+    fetch("https://api."+gfy_host+"/v1/gfycats/"+gfy_link).then(r => r.json()).then((r: Gfycat.V1.GfyResponse) => {
         console.log("gfylike response:", r);
         loader.remove();
-        type GfyContentUrl = {
-            url: string,
-            size: number,
-            width: number,
-            height: number,
-        };
         resdiv.adch(el("div").adch(elButton("code-button").atxt("code")
             .onev("click", (e) => {e.stopPropagation(); console.log(r)})
         ));
-        const error_v = r as {
-            logged?: undefined | boolean,
-            message: string,
-            errorMessage: {code: string, description: string} | string,
-            reported?: undefined | boolean,
-        };
-        if('message' in error_v || 'errorMessage' in error_v) {
+        if('message' in r) {
             el("div").clss("error").adto(resdiv).atxt("Error: "
-                + (error_v.message ?? (
-                    typeof error_v.errorMessage === "string" ? error_v.errorMessage : error_v.errorMessage.description
-                ))
-                + ('logged' in error_v ? " ; logged="+error_v.logged : "")
-                + ('reported' in error_v ? " ; reported="+error_v.reported : "")
+                + r.message,
             );
             return;
         }
-        const {gfyItem: gfy_item} = r as {
-            gfyItem: {
-                avgColor: string,
-                content_urls: {
-                    // thumbnails
-                    poster: GfyContentUrl,
-                    mobilePoster: GfyContentUrl,
-
-                    // gifs
-                    max1mbGif?: undefined | GfyContentUrl,
-                    max2mbGif?: undefined | GfyContentUrl,
-                    max5mbGif?: undefined | GfyContentUrl,
-                    
-                    // videos
-                    mp4?: undefined | GfyContentUrl,
-                    mobile?: undefined | GfyContentUrl,
-                    webm?: undefined | GfyContentUrl,
-                    webp?: undefined | GfyContentUrl,
-                },
-                createDate: number,
-                description?: undefined | string,
-                title?: undefined | string,
-                width: number,
-                height: number,
-
-                mobileUrl?: undefined | string,
-                webmUrl?: undefined | string,
-                webpUrl?: undefined | string,
-                mp4Url?: undefined | string,
-            },
-        };
+        if('errorMessage' in r) {
+            el("div").clss("error").adto(resdiv).atxt("Error: "
+                + r.errorMessage
+            );
+            return;
+        }
+        const {gfyItem: gfy_item} = r;
         if(gfy_item.title != null) resdiv.adch(el("div").atxt("Title: " + gfy_item.title));
         if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
 
@@ -307,7 +376,7 @@ export function previewLink(
         && (url.host === "gfycat.com" || url.host.endsWith(".gfycat.com"))
         && url.pathname.split("/").length === 2
     ) return {
-        kind: "gfycat",
+        kind: "gfycatv1",
         id: url.pathname.replace("/", "").split("-")[0]!.split(".")[0]!.toLowerCase(),
         host: "gfycat.com",
     };
@@ -317,7 +386,7 @@ export function previewLink(
     ) {
         const gfylink = url.pathname.replace("/watch/", "").split("-")[0]!.split(".")[0]!.toLowerCase();
         return {
-            kind: "gfycat",
+            kind: "gfycatv2",
             id: gfylink,
             host: "\x72\x65\x64gifs.com",
         };

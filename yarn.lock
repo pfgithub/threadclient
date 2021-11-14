@@ -2911,6 +2911,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"api-types-gfycat@^1.0.0, api-types-gfycat@workspace:packages/api-types-gfycat":
+  version: 0.0.0-use.local
+  resolution: "api-types-gfycat@workspace:packages/api-types-gfycat"
+  dependencies:
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.3.5
+  languageName: unknown
+  linkType: soft
+
 "api-types-hackernews@^1.0.0, api-types-hackernews@workspace:packages/api-types-hackernews":
   version: 0.0.0-use.local
   resolution: "api-types-hackernews@workspace:packages/api-types-hackernews"
@@ -11327,6 +11338,7 @@ fsevents@~2.3.2:
     "@typescript-eslint/parser": ^4.29.3
     "@windicss/plugin-icons": ^1.0.2
     api-types-generic: ^1.0.0
+    api-types-gfycat: ^1.0.0
     api-types-mastodon: ^1.0.0
     api-types-oembed: ^1.0.0
     api-types-reddit: ^1.0.0
