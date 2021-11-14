@@ -343,9 +343,12 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
                 is_pivot: false,
                 top_level: false,
             }} />,
-            error: e => <div class="text-red-500">
-                <button onClick={() => setRetry(Symbol())}>Retry</button>
-                {e.message}
+            error: e => <div>
+                <button onClick={() => {
+                    setState({kind: "loading"});
+                    setRetry(Symbol());
+                }}>Retry</button>
+                <span class="text-red-500">{e.message}</span>
             </div>,
         }}</SwitchKind>
     </TopLevelWrapper>;
