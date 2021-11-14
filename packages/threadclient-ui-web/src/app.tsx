@@ -2,11 +2,12 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
+import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { escapeHTML } from "tmeta-util";
-import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
+import { allowedToAcceptClick, ShowCond, TimeAgo } from "tmeta-util-solid";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
 import { Homepage } from "./components/homepage";
@@ -16,7 +17,7 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {
     alertarea, client_cache, current_history_index, global_counter_info,
     navbar,
-    navigate_event_handlers, nav_history, session_name, setCurrentHistoryIndex
+    navigate_event_handlers, nav_history, page2mainel, session_name, setCurrentHistoryIndex
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings } from "./util/utils_solid";
@@ -2877,31 +2878,13 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         // await new Promise(r => 0);
         if(!client.getThread || client.getPage && getSettings().page_version.value() === "2") {
             const page2 = await client.getPage!(current_path);
-            // if(dev mode) error if no title is set;
-            
-            let p2title: undefined | string;
-            let display_style: "centered" | "fullscreen" | undefined;
-            let focus = page2.pivot.ref;
-            while(focus) {
-                if(focus.kind === "post" && focus.content.kind === "post") {
-                    if(focus.content.title) {
-                        if(p2title == null) p2title = focus.content.title.text;
-                    }
-                    if(display_style == null) display_style = focus.display_style;
-                }
-                focus = focus.parent?.ref;
-            }
-            title.setTitle(p2title ?? "«err no title»");
 
             // const {default: ClientPage} = await import("./components/page2");
             loader_area.remove();
 
-            frame.classList.remove("client-main-frame");
-            frame.classList.add(
-                "display-"+{centered: "comments-view", fullscreen: "fullscreen-view"}[display_style ?? "centered"]
-            );
-            vanillaToSolidBoundary(frame, () => <ClientPage page={page2} />, {color_level: 0}).defer(hsc);
-            // renderClientPage2(client, page2, frame, title).defer(hsc);
+            if(hsc.visible) showPage2(page2);
+            hsc.on("hide", () => hidePage2());
+            hsc.on("show", () => showPage2(page2));
         }else{
             const listing = await client.getThread(current_path);
             loader_area.remove();
@@ -2914,6 +2897,48 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
     });
 
     return hsc;
+}
+
+
+let showPage2!: (page: Generic.Page2) => void;
+let hidePage2!: () => void;
+
+{
+    const [focusedPage, setFocusedPage] = createSignal<Generic.Page2>(null as unknown as Generic.Page2);
+    let on = false;
+    showPage2 = (page: Generic.Page2) => {
+        console.log("showing page2", page);
+        page2mainel.style.display = "";
+
+        // todo don't do this mess
+        let p2title: undefined | string;
+        let display_style: "centered" | "fullscreen" | undefined;
+        let focus = page.pivot.ref;
+        while(focus) {
+            if(focus.kind === "post" && focus.content.kind === "post") {
+                if(focus.content.title) {
+                    if(p2title == null) p2title = focus.content.title.text;
+                }
+                if(display_style == null) display_style = focus.display_style;
+            }
+            focus = focus.parent?.ref;
+        }
+        document.title = p2title ?? "«err no title»";
+        // todo remove the stuff above this comment, it should be handled in flatten.ts
+
+        setFocusedPage(page);
+
+        if(!on) {
+            on = true;
+
+            vanillaToSolidBoundary(page2mainel, () => <>
+                <ClientPage page={focusedPage()} />
+            </>, {color_level: 0});
+        }
+    };
+    hidePage2 = () => {
+        page2mainel.style.display = "none";
+    };
 }
 
 function fullscreenError(message: string): HideShowCleanup<HTMLDivElement> {
@@ -2976,26 +3001,24 @@ export function getClientCached(name: string): ThreadClient | undefined {
     return client_cache[name] ?? undefined;
 }
 
-export type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () => void};
+export type NavigationEntryNode = {
+    kind: "t1",
+    removeSelf: () => void, hide: () => void, show: () => void,
+} | {
+    kind: "t2",
+    page2: Generic.Page2,
+};
 export type NavigationEntry = {url: string, node: NavigationEntryNode};
 
 export type HistoryState = {index: number, session_name: string};
 
-export function navigate({path, replace}: {path: string, replace?: undefined | boolean}): void {
-    replace ??= false;
-    if(replace) {
-        console.log("Replacing history item", current_history_index, path);
-        nav_history[current_history_index] = {
-            url: "::redirecting::",
-            node: {removeSelf: () => {""}, hide: () => {""}, show: () => {""}},
-        };
-        history.replaceState({index: current_history_index, session_name}, "ThreadClient", path);
-        onNavigate(current_history_index, location);
-    }else{
-        console.log("Appending history state index", current_history_index + 1, path);
-        history.pushState({index: current_history_index + 1, session_name}, "ThreadClient", path);
-        onNavigate(current_history_index + 1, location);
-    }
+export function navigate({path, page}: {
+    path: string,
+    page?: undefined | Generic.Page2,
+}): void {
+    console.log("Appending history state index", current_history_index + 1, path);
+    history.pushState({index: current_history_index + 1, session_name}, "ThreadClient", path);
+    onNavigate(current_history_index + 1, location, page);
 }
 
 // a custom redirect can be made for "/" for SEO reasons that has html in it already
@@ -3256,17 +3279,25 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 //    else
 //    - gone below item
 
-export function onNavigate(to_index: number, url: URLLike) {
-    console.log("Navigating", to_index, url, nav_history);
+export function onNavigate(to_index: number, url: URLLike, page: undefined | Generic.Page2) {
+    console.log("Navigating", to_index, url, nav_history, page);
+
     document.title = "ThreadClient";
     navigate_event_handlers.forEach(evh => evh(url));
-
     const thisurl = url.pathname + url.search;
+
     setCurrentHistoryIndex(to_index);
+
+    // hide all history
+    hidePage2();
+    nav_history.forEach(item => {
+        if(item.node.kind === "t1") {
+            item.node.hide();
+        }
+    });
+
     const history_item = nav_history[to_index];
     if(history_item) {
-        // hide all history
-        nav_history.forEach(item => item.node.hide());
         if(history_item.url !== thisurl) {
             console.log("URLS differ. «", history_item.url, "» «", thisurl, "»");
             
@@ -3274,15 +3305,26 @@ export function onNavigate(to_index: number, url: URLLike) {
             for(let i = nav_history.length - 1; i >= to_index; i--) {
                 const last = nav_history.pop();
                 if(!last) throw new Error("bad logic");
-                last.node.removeSelf();
+                if(last.node.kind === "t1") last.node.removeSelf();
             }
         }else{
             // show the current history
-            history_item.node.show();
+            if(history_item.node.kind === "t1") history_item.node.show();
+            else showPage2(history_item.node.page2);
             return; // done
         }
-    }else{
-        nav_history.forEach(item => item.node.hide());
+    }
+
+    if(page) {
+        const page2 = page;
+    
+        showPage2(page2);
+        nav_history[to_index] = {node: {
+            kind: "t2",
+            page2,
+        }, url: thisurl};
+
+        return;
     }
 
     const hsc = hideshow();
@@ -3292,6 +3334,7 @@ export function onNavigate(to_index: number, url: URLLike) {
     hsc.on("show", () => node.style.display = "");
 
     const naventry: NavigationEntryNode = {
+        kind: "t1",
         removeSelf: () => hsc.cleanup(),
         hide: () => hsc.setVisible(false),
         show: () => hsc.setVisible(true),

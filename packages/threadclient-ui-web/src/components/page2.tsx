@@ -310,7 +310,10 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         if(e.ctrlKey || e.metaKey || e.altKey) {
                             window.open(target_url);
                         }else{
-                            navigate({path: target_url});
+                            navigate({
+                                path: target_url,
+                                page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
+                            });
                         }
                     }}
                 >
@@ -492,6 +495,7 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
     const view = createMemo(() => flatten(props.page, {
         collapse_states: new Map(),
     })); // TODO reconcile merge:true I think key:"key" but be careful
+    // TODO don't delete old items from dom just hide them
 
     // ok I want to delete all the routing code so I can do hmr
     // it'd be really nice having hmr with clientpage

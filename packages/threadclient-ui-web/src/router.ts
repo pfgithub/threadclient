@@ -1,4 +1,5 @@
 
+import * as Generic from "api-types-generic";
 import { createSignal } from "solid-js";
 import { ThreadClient } from "threadclient-client-base";
 import { registerSW } from "virtual:pwa-register";
@@ -19,11 +20,13 @@ export let client_cache!: {[key: string]: ThreadClient};
 export let navigate_event_handlers!: ((url: URLLike) => void)[];
 export let current_history_index!: number;
 
+export let page2mainel!: HTMLElement;
+
 export function setCurrentHistoryIndex(new_index: number): void {
     current_history_index = new_index;
 }
 
-export function mainPage1(): void {
+export function main(): void {
     global_counter_info = new Map<string, GlobalCounter>();
 
     window.onpopstate = (ev: PopStateEvent) => {
@@ -32,10 +35,10 @@ export function mainPage1(): void {
         const state = ev.state as HistoryState | undefined;
         if(state?.session_name !== session_name) {
             console.log("Going to history item from different session");
-            onNavigate(0, location);
+            onNavigate(0, location, undefined);
             return;
         }
-        onNavigate(state?.index ?? 0, location);
+        onNavigate(state?.index ?? 0, location, undefined);
     };
     
     client_cache = {};
@@ -48,9 +51,11 @@ export function mainPage1(): void {
     current_history_index = 0;
     bodytop = el("div").adto(document.body);
     
-    {
+    const pagever = getSettings().page_version.value();
+    if(pagever === "1" || pagever === "2") {
         const frame = el("nav").clss("navbar", "bg-postcolor-100", "transition-opacity").adto(document.body);
         navbar = frame;
+        // todo use style.top = xpx position absolute and then when fixed use top=0 fixed
     
         const navbar_button = ["px-2"];
     
@@ -109,9 +114,14 @@ export function mainPage1(): void {
         // if(window.visualViewport) window.visualViewport.addEventListener("resize", () => {
         //     navbar.classList.toggle("opacity-0", window.visualViewport.scale > 1);
         // }); // fun but unnecessary
+    }else{
+        const frame = el("nav").adto(document.body);
+        navbar = frame;
     }
     
     console.log("ThreadClient built on "+variables.build_time);
+
+    page2mainel = el("div").adto(body);
     
     // MISSING:
     // availableForOfflineUse, setAvailableForOfflineUse
@@ -121,7 +131,7 @@ export function mainPage1(): void {
     history.replaceState({index: 0, session_name}, "ThreadClient",
         location.pathname + location.search + location.hash,
     );
-    onNavigate(0, location);
+    onNavigate(0, location, undefined);
 
     let drtime = 100;
     const rmdarkreader = () => {
