@@ -1,20 +1,22 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type { OEmbed } from "api-types-oembed";
-import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { escapeHTML } from "tmeta-util";
 import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
-import { registerSW } from "virtual:pwa-register";
-import { variables } from "virtual:_variables";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
 import { Homepage } from "./components/homepage";
 import ClientPage, { ClientPostReply, Flair } from "./components/page2";
 import { ReplyEditor } from "./components/reply";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
+import {
+    alertarea, client_cache, current_history_index, global_counter_info,
+    navbar,
+    navigate_event_handlers, nav_history, session_name, setCurrentHistoryIndex,
+} from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings } from "./util/utils_solid";
 
@@ -1397,7 +1399,7 @@ export type CounterState = {
     pt_count: number | "hidden" | "none",
     your_vote: "increment" | "decrement" | undefined,
 };
-type GlobalCounter = {
+export type GlobalCounter = {
     state: CounterState,
     handlers: Set<() => void>,
     users: number,
@@ -1408,8 +1410,6 @@ export type WatchableCounterState = {
     emit: () => void,
     onupdate: (cb: () => void) => void,
 };
-
-let global_counter_info!: Map<string, GlobalCounter>;
 
 export function watchCounterState(
     counter_id_raw: string | null,
@@ -2889,7 +2889,6 @@ function clientLoginPage(
     return hsc;
 }
 
-let client_cache!: {[key: string]: ThreadClient};
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     reddit: () => import("threadclient-client-reddit").then(client => client.client),
     mastodon: () =>  import("./clients/mastodon").then(client => client.client),
@@ -2908,13 +2907,10 @@ export function getClientCached(name: string): ThreadClient | undefined {
     return client_cache[name] ?? undefined;
 }
 
-type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () => void};
-type NavigationEntry = {url: string, node: NavigationEntryNode};
-let nav_history!: NavigationEntry[];
+export type NavigationEntryNode = {removeSelf: () => void, hide: () => void, show: () => void};
+export type NavigationEntry = {url: string, node: NavigationEntryNode};
 
-let session_name!: string;
-
-type HistoryState = {index: number, session_name: string};
+export type HistoryState = {index: number, session_name: string};
 
 export function navigate({path, replace}: {path: string, replace?: undefined | boolean}): void {
     replace ??= false;
@@ -2967,9 +2963,7 @@ function pwaStartPage(): HideShowCleanup<HTMLDivElement> {
     return hsc;
 }
 
-type URLLike = {search: string, pathname: string};
-
-let navigate_event_handlers!: ((url: URLLike) => void)[];
+export type URLLike = {search: string, pathname: string};
 
 export type HSEvent = "hide" | "show" | "cleanup";
 export type HideShowCleanup<T> = {
@@ -3193,14 +3187,13 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 //    else
 //    - gone below item
 
-let current_history_index!: number;
-function onNavigate(to_index: number, url: URLLike) {
+export function onNavigate(to_index: number, url: URLLike) {
     console.log("Navigating", to_index, url, nav_history);
     document.title = "ThreadClient";
     navigate_event_handlers.forEach(evh => evh(url));
 
     const thisurl = url.pathname + url.search;
-    current_history_index = to_index;
+    setCurrentHistoryIndex(to_index);
     const history_item = nav_history[to_index];
     if(history_item) {
         // hide all history
@@ -3242,174 +3235,10 @@ function onNavigate(to_index: number, url: URLLike) {
 // eg within the frame of /pwa-start, display the client and have custom nav buttons
 // on the top that don't use history or whatever
 
-export let bodytop!: HTMLDivElement;
-export let navbar: HTMLElement; 
+export { alertarea, availableForOfflineUse, bodytop, navbar, updateAvailable, updateSW } from "./router";
 
-let alertarea: HTMLElement | undefined;
-// () => alertarea;
-// export function showAlert(text: string): void {
-//     if(!alertarea) return;
-//     const alert = el("div").clss("alert").adto(alertarea);
-//     el("div").clss("alert-body").adto(alert).atxt(text);
-//     elButton("pill-empty").atxt("🗙 Ignore").adto(alert).onev("click", (e) => {e.stopPropagation(); alert.remove()});
-//     alert.atxt(" ");
-//     const update_btn = elButton("pill-empty").atxt("🗘 Update").adto(alert).onev("click", (e) => {
-//         e.stopPropagation();
-//         updateSW(true);
-//     });
-// }
 
-const [availableForOfflineUse, setAvailableForOfflineUse] = createSignal(false);
-const [updateAvailable, setUpdateAvailable] = createSignal(false);
-export { availableForOfflineUse, updateAvailable };
-export const updateSW = registerSW({
-    onNeedRefresh() {
-        console.log("An update to ThreadClient is available");
-        setUpdateAvailable(true);
-        const settings = getSettings();
-        if(settings.update_notifications.value() === "on") {
-            const alert = el("div").clss("alert").adto(alertarea!);
-            el("div").clss("alert-body").adto(alert).atxt("An update to ThreadClient is available.");
-            elButton("pill-empty").atxt("Ignore").adto(alert).onev("click", (e) => {
-                e.stopPropagation();
-                alert.remove();
-            });
-            alert.atxt(" ");
-            elButton("pill-empty").atxt("Update (Refresh)").adto(alert).onev("click", (e) => {
-                e.stopPropagation();
-                void updateSW(true);
-            });
-        }
-    },
-    onOfflineReady() {
-        console.log("Ready for offline use.");
-        setAvailableForOfflineUse(true);
-    },
-});
-console.log("updateSW", updateSW);
-if(navigator.serviceWorker != null) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-        if(registrations.every(registration => registration.active) && registrations.length !== 0) {
-            setAvailableForOfflineUse(true);
-        }
-    }).catch(e => console.log("Error checking sw registrations", e));    
-}
-
-export function main(): void {
-    global_counter_info = new Map<string, GlobalCounter>();
-
-    window.onpopstate = (ev: PopStateEvent) => {
-        // onNavigate(ev?.state.index ?? 0);
-        console.log("onpopstate. ev:",ev.state);
-        const state = ev.state as HistoryState | undefined;
-        if(state?.session_name !== session_name) {
-            console.log("Going to history item from different session");
-            onNavigate(0, location);
-            return;
-        }
-        onNavigate(state?.index ?? 0, location);
-    };
-    
-    client_cache = {};
-    
-    nav_history = [];
-    session_name = "" + Math.random();
-    
-    navigate_event_handlers = [];
-    
-    current_history_index = 0;
-    bodytop = el("div").adto(document.body);
-    
-    {
-        const frame = el("nav").clss("navbar", "bg-postcolor-100", "transition-opacity").adto(document.body);
-        navbar = frame;
-    
-        const navbar_button = ["px-2"];
-    
-        el("button").adto(frame).attr({'aria-label': "Back"}).atxt("←").clss(...navbar_button).onev("click", e => {
-            e.stopPropagation();
-            history.back();
-        });
-        el("button").adto(frame).attr({'aria-label': "Forward"}).atxt("→").clss(...navbar_button).onev("click", e => {
-            e.stopPropagation();
-            history.forward();
-        });
-    
-        const nav_path = el("input").attr({'aria-label': "URL"}).adto(frame)
-            .clss("bg-transparent text-center border border-gray-600 dark:border-gray-500")
-        ;
-    
-        const nav_go = el("button").attr({'aria-label': "Go"}).clss(...navbar_button).atxt("⏎").adto(frame);
-        const nav_reload = el("button").attr({'aria-label': "Reload"}).clss(...navbar_button).atxt("🗘").adto(frame);
-    
-        const go = () => navigate({path: "/"+nav_path.value.replace(/^\//, "")});
-        nav_go.onclick = () => go();
-        nav_path.onkeydown = k => k.key === "Enter" ? go() : 0;
-    
-        nav_reload.onclick = () => alert("TODO refresh");
-    
-        navigate_event_handlers.push(url => {
-            if(url.pathname.toLowerCase().startsWith("/http://")
-            || url.pathname.toLowerCase().startsWith("/https://")) {
-                nav_path.value = (url.pathname + url.search).substr(1);
-            }else{
-                nav_path.value = url.pathname + url.search;
-            }
-        });
-    
-        let prev_scroll = window.scrollY;
-        let resp = 0;
-        // TODO:
-        // on touch release, either transition resp to 0 or to 100
-        document.addEventListener("scroll", e => {
-            const this_scroll = window.scrollY;
-            const diff = this_scroll - prev_scroll;
-            prev_scroll = this_scroll;
-    
-            const max_resp = Math.max(0, Math.min(100, this_scroll));
-    
-            resp += diff;
-            if(resp > max_resp) resp = max_resp;
-            if(resp < 0) resp = 0;
-            let navbar_h = resp;
-    
-            if(this_scroll < 0) navbar_h = -this_scroll;
-    
-            frame.style.setProperty("--mobile-transform", "translateY("+(-navbar_h)+"px)");
-        }, {passive: false});
-    
-        // if(window.visualViewport) window.visualViewport.addEventListener("resize", () => {
-        //     navbar.classList.toggle("opacity-0", window.visualViewport.scale > 1);
-        // }); // fun but unnecessary
-    }
-    
-    console.log("ThreadClient built on "+variables.build_time);
-    
-    // MISSING:
-    // availableForOfflineUse, setAvailableForOfflineUse
-    // updateAvailable, setUpdateAvailable
-    // updateSW
-    
-    if(variables.build_mode !== "test") {
-        history.replaceState({index: 0, session_name}, "ThreadClient",
-            location.pathname + location.search + location.hash,
-        );
-        onNavigate(0, location);
-    
-        let drtime = 100;
-        const rmdarkreader = () => {
-            document.head.querySelector(".darkreader")?.remove();
-            drtime *= 2;
-            setTimeout(() => rmdarkreader(), drtime);
-        };
-        setTimeout(() => rmdarkreader(), 0);
-    
-    
-        alertarea = el("div").adto(document.body).clss("alert-area");
-    }
-}
-
-console.log("APP.TSX WAS RELOADED; THIS SHOULD NOT HAPPEN BECAUSE APP.TSX SHOULD BE AN HMR BOUNDARY.");
+console.log("APP.TSX WAS RELOADED.");
 if(import.meta.hot) {
     console.log("...configuring app.tsx as an hmr boundary");
     import.meta.hot.accept((new_mod: typeof import("./app")) => {

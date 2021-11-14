@@ -2,6 +2,6 @@ import "./main.scss";
 import "windi.css";
 import "./main2.scss";
 import "./_stdlib";
-import {main} from "./app";
+import {mainPage1} from "./router";
 
-main();
+mainPage1();
