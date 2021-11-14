@@ -12,6 +12,8 @@
   - like if I add a reply I don't want to regenerate the whole array, just anything
     relevant
   - also I should be keeping around hidden items in dom so navigation works and stuff
+  - ok I'm not going to worry about that for now - I'll be able to do memoization and
+    stuff if I need
 
 ## note
 
