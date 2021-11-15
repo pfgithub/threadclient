@@ -56,6 +56,41 @@ to help with development.
 
 The ThreadClient website (thread.pfg.pw) is in `packages/threadclient-ui-web`
 
+ThreadClient:
+
+```
+┌──────┐┌────────┐┌──────────┐┌─┐
+│reddit││mastodon││hackernews││…│
+└┬─────┘└┬───────┘└┬─────────┘└┬┘
+┌▽───────▽─────────▽───────────▽┐
+│semantic                       │
+└┬──────────────────────────────┘
+┌▽───────────────┐
+│flat            │
+└┬─△──┬──────△──┬┘
+┌▽─┴┐┌▽──────┴┐┌▽┐
+│web││terminal││…│
+└───┘└────────┘└─┘
+```
+
+- `reddit`: packages/threadclient-client-reddit
+- `mastodon`: packages/threadclient-client-mastodon
+- `hackernews`: packages/threadclient-client-hackernews
+- `semantic`\*: packages/api-types-generic
+- `flat`: packages/threadclient-render-flatten
+- `web`: packages/threadclient-ui-web
+- `terminal`: terminal has not been implemented yet
+
+\* Note that ThreadClient is currently in the middle of a migration from old-style 'page1'
+data to newer, more semantic 'page2' data
+
+ThreadClient works by having different Clients that conform to the interface
+in `threadclient-client-base`. Clients return Generic data that is then
+converted in `threadclient-render-flatten` to data easy for common ui display.
+Data is then displayed.
+
+Note that ThreadClient is currently in the middle of a migration from the old
+
 ThreadClient is currently in the middle of a migration to Solid JS and a new client structure. Some components in
 `src/components/` are only used in the new page2 format. This can be enabled in settings > developer
 options > page version "v2". Note that many pages do not yet work in page2.
