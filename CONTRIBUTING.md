@@ -23,7 +23,7 @@ To log in locally, after giving threadclient access to reddit, edit the url from
 `http://localhost:3004/…`.
 
 Note: imgur preview is not supported on localhost. To test imgur support, add an entry to your /etc/hosts file eg
-`127.0.0.1 threadclient`, and access threadclient during development from `http://threadclient`.
+`127.0.0.1 threadclient`, and access threadclient during development from `http://threadclient:3004`.
 
 Check code before commit:
 
