@@ -3240,6 +3240,15 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         return settingsPage();
     }
 
+    if(path0 === "temp0") {
+        (async () => {
+            const {client} = await import("threadclient-client-reddit");
+            const {stringify} = await import("json-recursive");
+            const v = await client.getPage!("/"+path.join("/")+search);
+            console.log(JSON.stringify(stringify(v)));
+        })();
+    }
+
     if(path0 === "login"){
         return fetchClientThen(path[0] ?? "ENOCLIENT", (client) => {
             return clientLoginPage(client, path, new URLSearchParams(search));
