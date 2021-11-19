@@ -266,10 +266,11 @@ function richtextFormattedText(
         const nofmt = text.substring(previdx, endv);
         if(nofmt.length > 0) resitems.push(rt.txt(nofmt));
     };
+    const textsplit = [...text];
     format.forEach(([fmtid, start, length]) => {
         commit(start);
         previdx = start + length;
-        const fmt = text.substr(start, length);
+        const fmt = textsplit.slice(start, start + length).join(""); // .substr cannot be used because start refers to codepoint index and not utf-16 doublebyte index
         const resstyl = richtextStyle(fmtid);
         if(resstyl.error != null) {
             resitems.push(rt.error(fmt, resstyl.error));
