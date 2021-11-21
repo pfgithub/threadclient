@@ -207,11 +207,19 @@ function printRichtextSpan(span: Generic.Richtext.Span): string {
 }
 
 function postld(visual: VisualNode): string {
-    return "\x1b[90m" + (visual.depth > 0 ? "│ ".repeat(visual.depth) : "* ") + "\x1b(B\x1b[m";
+    // return "\x1b[90m" + (visual.depth > 0 ? "│ ".repeat(visual.depth) : "* ") + "\x1b(B\x1b[m";
+    return (visual.depth > 0 ? "│ ".repeat(visual.depth) : "* ");
 }
 
-const postmarker = "\x1b[94m│ \x1b(B\x1b[m";
-const postsplit = "\x1b[94m· \x1b(B\x1b[m";
+// const postmarker = "\x1b[94m│ \x1b(B\x1b[m";
+// const postsplit = "\x1b[94m· \x1b(B\x1b[m";
+const postmarker = "│ ";
+const postsplit = "· ";
+
+function postformat(ld: string, post: string, styl: "center" | "other") {
+    const stylv = styl === "center" ? "\x1b[100m" : "\x1b[40m";
+    return post.split("\n").map(l => ld + stylv + postmarker + l + "\x1b[0K\x1b(B\x1b[m").join("\n");
+}
 
 function printPost(visual: VisualNode) {
     const {post} = visual;
@@ -226,9 +234,6 @@ function printPost(visual: VisualNode) {
     if(content.title) {
         finalv.push(content.title.text);
         finalv.push("");
-    }else{
-        finalv.push("*no title*");
-        finalv.push("");
     }
     if(content.author) {
         finalv.push("by "+content.author.name);
@@ -239,31 +244,31 @@ function printPost(visual: VisualNode) {
     const parent = parentnode(visual);
     if(parent) {
         const pld = postld(parent);
-        console.log(pld + postmarker + "← left (parent)");
+        console.log(postformat(pld, "← left (parent)", "other"));
         console.log(pld + postsplit);
     }
 
     const above = prevnode(visual);
     if(above) {
         const pld = postld(above);
-        console.log(pld + postmarker + "↑ up (prev)");
+        console.log(postformat(pld, "↑ up (prev)", "other"));
         console.log(pld + postsplit);
     }
 
-    console.log(finalv.join("\n").split("\n").map(l => ld + postmarker + l).join("\n"));
+    console.log(postformat(ld, finalv.join("\n"), "center"));
 
     const child = firstchild(visual);
     if(child) {
         const pld = postld(child);
         console.log(ld + postsplit);
-        console.log(pld + postmarker + "→ right (child)");
+        console.log(postformat(pld, "→ right (child)", "other"));
     }
 
     const below = nextnode(visual);
     if(below) {
         const pld = postld(below);
         console.log(pld + postsplit);
-        console.log(pld + postmarker + "↓ down (next)");
+        console.log(postformat(pld, "↓ down (next)", "other"));
     }
 
     // imgcat thumbnail.png --width 8 --height 4
