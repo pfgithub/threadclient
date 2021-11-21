@@ -66,13 +66,13 @@ export function destringify(text: string): unknown {
         if(typeof value === "object") {
             if(Array.isArray(value)) {
                 for(let i = 0; i < value.length; i++) {
-                    const isc = autoreplace(value[i]);
+                    const isc = autoreplace(resolve(value[i]));
                     if(isc) value[i] = isc.value;
                 }
             }else{
                 if(value == null) return null;
                 for(const [key, item] of Object.entries(value)) {
-                    const isc = autoreplace(item);
+                    const isc = autoreplace(resolve(item));
                     if(isc) (value as unknown as {[key: string]: unknown})[key] = isc.value;
                 }
             }
