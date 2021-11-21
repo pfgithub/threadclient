@@ -1,4 +1,5 @@
 import {destringify} from "json-recursive";
+import {switchKind} from "tmeta-util";
 import * as Generic from "api-types-generic";
 import * as example_post from "./example_post.json";
 import * as fs from "fs";
@@ -74,7 +75,7 @@ function generateVisualParentsAroundPost(
 
 const keys = {};
 
-(async () => {
+async function main() {
     if(parsed.pivot.err) {
         console.log("error: "+parsed.pivot.err);
         return;
@@ -108,20 +109,17 @@ const keys = {};
 
         const ers: string[] = [];
         console.log(key.name);
-        if(key.name === "right") {
-            if(!focus.visual_replies) {
-                ers.push("post does not have replies");
-            }else if(!focus.visual_replies[0]) {
-                ers.push("no replies");
-            }else{
-                focus = focus.visual_replies[0];
-            }
-        }else if(key.name === "left") {
-            if(!focus.visual_parent) {
-                ers.push("no visual parent");
-            }else{
-                focus = focus.visual_parent;
-            }
+
+        const v = {
+            left: parentnode,
+            right: firstchild,
+            up: prevnode,
+            down: nextnode,
+        }[key.name];
+        if(v) {
+            const q = v(focus);
+            if(q) focus = q;
+            else ers.push("not found in direction");
         }else{
             ers.push("unknown command");
         }
@@ -152,22 +150,115 @@ const keys = {};
     clrscrn();
     update();
     drawconsole();
-})();
+}
+
+function parentnode(vn: VisualNode) {
+    return vn.visual_parent;
+}
+function firstchild(vn: VisualNode) {
+    return vn.visual_replies?.[0];
+}
+function addnode(vn: VisualNode, pm: number) {
+    const index = vn.visual_parent?.visual_replies?.findIndex(v => v === vn);
+    if(index == null) {
+        return undefined;
+    }else if(index === -1) {
+        throw new Error("unreachable; should be found visually");
+    }else{
+        const findex = index + pm;
+        const fitem = vn.visual_parent?.visual_replies?.[findex];
+        if(!fitem) {
+            return undefined;
+        }else{
+            return fitem;
+        }
+    }
+}
+function nextnode(vn: VisualNode) {
+    return addnode(vn, 1);
+}
+function prevnode(vn: VisualNode) {
+    return addnode(vn, -1);
+}
+
+function printBody(body: Generic.Body): string {
+    if(body.kind === "richtext") return body.content.map(printRichtextParagraph).join("\n\n");
+    return "*"+body.kind+"*";
+}
+
+function printRichtextParagraph(rtpar: Generic.Richtext.Paragraph): string {
+    return switchKind(rtpar, {
+        paragraph: par => par.children.map(printRichtextSpan).join(""),
+        body: body => printBody(body.body),
+        heading: heading => "#".repeat(heading.level) + " " + heading.children.map(printRichtextSpan).join(""),
+        horizontal_line: () => "---",
+        blockquote: bquot => bquot.children.map(printRichtextParagraph)
+            .join("\n\n").split("\n").map(l => "> " + l).join("\n")
+        ,
+        list: () => "*list*",
+        code_block: () => "*code_block*",
+        table: () => "*table*",
+    });
+}
+
+function printRichtextSpan(span: Generic.Richtext.Span): string {
+    if(span.kind === "text") return span.text;
+    return "*span "+span.kind+"*";
+}
+
+function postld(visual: VisualNode): string {
+    return "\x1b[90m" + (visual.depth > 0 ? "│ ".repeat(visual.depth) : "· ") + "\x1b(B\x1b[m";
+}
+
+const postmarker = "\x1b[94m│ \x1b(B\x1b[m";
+const postsplit = "\x1b[94m· \x1b(B\x1b[m";
 
 function printPost(visual: VisualNode) {
     const {post} = visual;
 
-    console.log(visual.depth > 0 ? "> ".repeat(visual.depth) : "++");
+    const ld = postld(visual);
 
     if(post.kind === "loader") return console.log("enotpost");
     const {content} = post;
     if(content.kind !== "post") return console.log("enotpost");
 
-
+    const finalv: string[] = [];
     if(content.title) {
-        console.log(content.title.text);
+        finalv.push(content.title.text);
     }else{
-        console.log("*no title*");
+        finalv.push("*no title*");
+    }
+    finalv.push("");
+    finalv.push(printBody(content.body));
+
+    const parent = parentnode(visual);
+    if(parent) {
+        const pld = postld(parent);
+        console.log(pld + postmarker + "← left (parent)");
+        console.log(pld + postsplit);
+    }
+
+    const above = prevnode(visual);
+    if(above) {
+        const pld = postld(above);
+        console.log(pld + postmarker + "↑ up (prev)");
+        console.log(pld + postsplit);
+    }
+
+    console.log(finalv.join("\n").split("\n").map(l => ld + postmarker + l).join("\n"));
+
+    const child = firstchild(visual);
+    if(child) {
+        const pld = postld(child);
+        console.log(ld + postsplit);
+        console.log(pld + postmarker + "→ right (child)");
+    }
+
+    const below = nextnode(visual);
+    if(below) {
+        const pld = postld(below);
+        console.log(pld + postsplit);
+        console.log(pld + postmarker + "↓ down (next)");
     }
 
     // imgcat thumbnail.png --width 8 --height 4
@@ -183,3 +274,5 @@ function printPost(visual: VisualNode) {
 // - maybe let you press f or something to refocus around that idk
 // - yeah I think a focus/back would be useful. focus sets the pivot and regenerates
 //   the semantic parent list
+
+main();
