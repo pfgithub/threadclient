@@ -208,13 +208,13 @@ function printRichtextSpan(span: Generic.Richtext.Span): string {
 
 function postld(visual: VisualNode): string {
     // return "\x1b[90m" + (visual.depth > 0 ? "│ ".repeat(visual.depth) : "* ") + "\x1b(B\x1b[m";
-    return (visual.depth > 0 ? "│ ".repeat(visual.depth) : "* ");
+    return (visual.depth > 0 ? "  ".repeat(visual.depth) : "* ");
 }
 
 // const postmarker = "\x1b[94m│ \x1b(B\x1b[m";
 // const postsplit = "\x1b[94m· \x1b(B\x1b[m";
 const postmarker = "│ ";
-const postsplit = "· ";
+const postsplit = "  ";
 
 function postformat(ld: string, post: string, styl: "center" | "other") {
     const stylv = styl === "center" ? "\x1b[100m" : "\x1b[40m";
