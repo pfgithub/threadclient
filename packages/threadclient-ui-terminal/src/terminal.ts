@@ -1,9 +1,12 @@
-import {destringify} from "json-recursive";
-import {switchKind} from "tmeta-util";
 import * as Generic from "api-types-generic";
-import * as example_post from "./example_post.json";
-import * as fs from "fs";
+import { promises as fs } from "fs";
+import { destringify } from "json-recursive";
+import * as os from "os";
+import * as path from "path";
 import * as readline from "readline";
+import { switchKind } from "tmeta-util";
+import * as example_post from "./example_post.json";
+import fetch from "node-fetch";
 
 const parsed = destringify(JSON.stringify(example_post)) as Generic.Page2;
 
@@ -18,6 +21,9 @@ type VisualNode = {
     post: Generic.Post,
     depth: number,
 };
+
+const cachedir = path.join(os.homedir(), ".cache", "threadclient-term");
+const imgcachedir = path.join(cachedir, "images");
 
 function unlink(link: Generic.Link<Generic.Post>): Generic.Post {
     if(link.err != null) return {
@@ -75,7 +81,29 @@ function generateVisualParentsAroundPost(
 
 const keys = {};
 
+async function downloadimage(url: string): Promise<{filename: string, bytes: number}> {
+    const cachename = btoa(url);
+    const filename = imgcachedir + "/" + cachename;
+
+    try {
+        const stat = await fs.stat(filename);
+        return {filename, bytes: stat.size};
+    } catch(e) {
+        // do nothing
+    }
+
+    const fetchres = await fetch(url).then(r => r.arrayBuffer());
+    await fs.writeFile(filename, Buffer.from(fetchres));
+
+    return {filename, bytes: fetchres.byteLength};
+}
+async function printimage(image: {filename: string, bytes: number}): Promise<string> {
+    return "\x1b]1337;File="; // idk
+}
+
 async function main() {
+    await fs.mkdir(imgcachedir, {recursive: true});
+
     if(parsed.pivot.err) {
         console.log("error: "+parsed.pivot.err);
         return;

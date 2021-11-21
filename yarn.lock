@@ -4305,6 +4305,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"data-uri-to-buffer@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "data-uri-to-buffer@npm:4.0.0"
+  checksum: a010653869abe8bb51259432894ac62c52bf79ad761d418d94396f48c346f2ae739c46b254e8bb5987bded8a653d467db1968db3a69bab1d33aa5567baa5cfc7
+  languageName: node
+  linkType: hard
+
 "dateformat@npm:^1.0.11, dateformat@npm:^1.0.12":
   version: 1.0.12
   resolution: "dateformat@npm:1.0.12"
@@ -5717,6 +5724,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fetch-blob@npm:^3.1.2":
+  version: 3.1.3
+  resolution: "fetch-blob@npm:3.1.3"
+  dependencies:
+    web-streams-polyfill: ^3.0.3
+  checksum: 7be20e9c9a936601c280ef3cfed1968dbcfb35e31564b9bdc807b48de73587cd358b7c3965a3f03483f5268dc373ae8526608947750f22eb214e20c94efab9c1
+  languageName: node
+  linkType: hard
+
 "file-entry-cache@npm:^6.0.1":
   version: 6.0.1
   resolution: "file-entry-cache@npm:6.0.1"
@@ -5926,6 +5942,15 @@ __metadata:
     combined-stream: ^1.0.6
     mime-types: ^2.1.12
   checksum: 10c1780fa13dbe1ff3100114c2ce1f9307f8be10b14bf16e103815356ff567b6be39d70fc4a40f8990b9660012dc24b0f5e1dde1b6426166eb23a445ba068ca3
+  languageName: node
+  linkType: hard
+
+"formdata-polyfill@npm:^4.0.10":
+  version: 4.0.10
+  resolution: "formdata-polyfill@npm:4.0.10"
+  dependencies:
+    fetch-blob: ^3.1.2
+  checksum: 82a34df292afadd82b43d4a740ce387bc08541e0a534358425193017bf9fb3567875dc5f69564984b1da979979b70703aa73dee715a17b6c229752ae736dd9db
   languageName: node
   linkType: hard
 
@@ -8731,6 +8756,17 @@ fsevents@~2.3.2:
   version: 2.6.1
   resolution: "node-fetch@npm:2.6.1"
   checksum: 91075bedd57879117e310fbcc36983ad5d699e522edb1ebcdc4ee5294c982843982652925c3532729fdc86b2d64a8a827797a745f332040d91823c8752ee4d7c
+  languageName: node
+  linkType: hard
+
+"node-fetch@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "node-fetch@npm:3.1.0"
+  dependencies:
+    data-uri-to-buffer: ^4.0.0
+    fetch-blob: ^3.1.2
+    formdata-polyfill: ^4.0.10
+  checksum: 23b5977554d21b72d7d99145d00bcf06e463fa621bf0afc276ad121a79509a133f38c7e470b34aad45d4032d3315bf5584ff6a1cb83e8f01be7a44cc7ac72693
   languageName: node
   linkType: hard
 
@@ -11583,9 +11619,11 @@ fsevents@~2.3.2:
     eslint-config-tmeta: ^1.0.0
     esno: ^0.12.1
     json-recursive: ^1.0.0
+    node-fetch: ^3.1.0
     threadclient-client-base: ^1.0.0
     threadclient-client-reddit: ^1.0.0
     threadclient-render-flatten: ^1.0.0
+    tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
     typescript: ^4.3.5
   languageName: unknown
@@ -12447,6 +12485,13 @@ fsevents@~2.3.2:
   bin:
     web-ext: bin/web-ext
   checksum: fca1741464220900a72ed0c130116f64ecdb2ee0fe32fb9733281e7ac8353a4653d253de9c460ca7cd5fe03a6856cb8d419ce1115cbbff076e67bb298d54f154
+  languageName: node
+  linkType: hard
+
+"web-streams-polyfill@npm:^3.0.3":
+  version: 3.2.0
+  resolution: "web-streams-polyfill@npm:3.2.0"
+  checksum: e23ad0649392fa0159dbfc6bb27474c308c3f332d9078cfef3c06c154165bef18732c5814126147c6c712f604216ddc950c171c854e3821f020e0d2d721a5958
   languageName: node
   linkType: hard
 
