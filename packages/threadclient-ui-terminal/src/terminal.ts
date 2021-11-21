@@ -207,7 +207,7 @@ function printRichtextSpan(span: Generic.Richtext.Span): string {
 }
 
 function postld(visual: VisualNode): string {
-    return "\x1b[90m" + (visual.depth > 0 ? "│ ".repeat(visual.depth) : "· ") + "\x1b(B\x1b[m";
+    return "\x1b[90m" + (visual.depth > 0 ? "│ ".repeat(visual.depth) : "* ") + "\x1b(B\x1b[m";
 }
 
 const postmarker = "\x1b[94m│ \x1b(B\x1b[m";
@@ -225,10 +225,15 @@ function printPost(visual: VisualNode) {
     const finalv: string[] = [];
     if(content.title) {
         finalv.push(content.title.text);
+        finalv.push("");
     }else{
         finalv.push("*no title*");
+        finalv.push("");
     }
-    finalv.push("");
+    if(content.author) {
+        finalv.push("by "+content.author.name);
+        finalv.push("");
+    }
     finalv.push(printBody(content.body));
 
     const parent = parentnode(visual);
