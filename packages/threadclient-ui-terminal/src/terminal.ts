@@ -116,7 +116,7 @@ type TermStyle = {
 type TermText = string | {
     style: TermStyle,
     children: TermText[],
-};
+} | TermText[];
 
 async function downloadimage(url: string): Promise<{filename: string, bytes: number}> {
     const cachename = btoa(url);
@@ -266,7 +266,7 @@ function arrayjoin<T>(a: T[], b: () => T): T[] {
 }
 
 function printBody(body: Generic.Body): TermText[] {
-    if(body.kind === "richtext") return arrayjoin(body.content.flatMap(printRichtextParagraph), () => "\n\n");
+    if(body.kind === "richtext") return arrayjoin(body.content.map(printRichtextParagraph), () => ["\n\n"]);
     return [style({fg: TermColor.red}, "*"+body.kind+"*")];
 }
 
@@ -274,9 +274,9 @@ function printRichtextParagraph(rtpar: Generic.Richtext.Paragraph): TermText[] {
     return switchKind(rtpar, {
         paragraph: par => par.children.flatMap(printRichtextSpan),
         body: body => printBody(body.body),
-        heading: heading => ["#".repeat(heading.level), " ", style({bold: true, underline: true}, ...heading.children.flatMap(printRichtextSpan))],
+        heading: heading => ["#".repeat(heading.level), " ", style({bold: true, underline: true}, ...heading.children.map(printRichtextSpan))],
         horizontal_line: () => ["---"], // iterm2 image that spans term width?
-        blockquote: bquot => [style({indent: ["> "]}, ...arrayjoin(bquot.children.flatMap(printRichtextParagraph), () => "\n\n"))],
+        blockquote: bquot => [style({indent: ["> "]}, ...arrayjoin(bquot.children.map(printRichtextParagraph), () => ["\n\n"]))],
         list: () => [style({fg: TermColor.red}, "*list*")],
         code_block: () => [style({fg: TermColor.red}, "*code_block*")],
         table: () => [style({fg: TermColor.red}, "*table*")],
@@ -284,7 +284,15 @@ function printRichtextParagraph(rtpar: Generic.Richtext.Paragraph): TermText[] {
 }
 
 function printRichtextSpan(span: Generic.Richtext.Span): TermText[] {
-    if(span.kind === "text") return [span.text];
+    if(span.kind === "text") return [style({
+        bold: span.styles.strong,
+        italic: span.styles.emphasis,
+        bg: span.styles.strikethrough ?? false ? TermColor.red : undefined, // check for term capability for \x1b[9m
+    }, span.text)];
+    if(span.kind === "link") return [
+        style({fg: TermColor.blue, underline: true}, ...span.children.map(printRichtextSpan)),
+        ": " + span.url, // should do link helpers like page2 does instead of this
+    ];
     return [style({fg: TermColor.red}, "*span "+span.kind+"*")];
     // <span fg=red>*span*</span>
 }
@@ -345,7 +353,7 @@ function printPost(visual: VisualNode) {
     }
     postr.push(printBody(content.body));
 
-    finalv.push(...postformat(ld, arrayjoin(postr, () => ["\n"]).flat(), "center"));
+    finalv.push(...postformat(ld, arrayjoin(postr, () => ["\n"]), "center"));
 
     const child = firstchild(visual);
     if(child) {
@@ -411,6 +419,8 @@ function printTermText(ttxt: TermText[], style?: TermStyle): string {
                 if(i === 0) return l;
                 return printTermText(style?.indent ?? [], {}) + printTermStyle(style) + l;
             }).join(eoltxt + "\n"));
+        }else if(Array.isArray(txti)) {
+            res.push(printTermText(txti, style));
         }else{
             if(txti.style.indent) {
                 res.push(printTermText(txti.style.indent, style));
