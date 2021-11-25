@@ -81,6 +81,43 @@ function generateVisualParentsAroundPost(
 
 const keys = {};
 
+enum TermColor {
+    black = 0,
+    brblack = 60,
+    red = 1,
+    brred = 61,
+    green = 2,
+    brgreen = 62,
+    yellow = 3,
+    bryellow = 63,
+    blue = 4,
+    brblue = 64,
+    magenta = 5,
+    brmagenta = 65,
+    cyan = 6,
+    brcyan = 66,
+    white = 7,
+    brwhite = 67,
+
+    normal = 200,
+};
+
+type TermStyle = {
+    bg?: undefined | TermColor,
+    fg?: undefined | TermColor,
+
+    bold?: undefined | boolean,
+    italic?: undefined | boolean,
+    underline?: undefined | boolean,
+
+    indent?: undefined | TermText[],
+};
+
+type TermText = string | {
+    style: TermStyle,
+    children: TermText[],
+};
+
 async function downloadimage(url: string): Promise<{filename: string, bytes: number}> {
     const cachename = btoa(url);
     const filename = imgcachedir + "/" + cachename;
@@ -186,8 +223,11 @@ function parentnode(vn: VisualNode) {
 function firstchild(vn: VisualNode) {
     return vn.visual_replies?.[0];
 }
+function getnodeindex(vn: VisualNode) {
+    return vn.visual_parent?.visual_replies?.findIndex(v => v === vn) ?? undefined;
+}
 function addnode(vn: VisualNode, pm: number) {
-    const index = vn.visual_parent?.visual_replies?.findIndex(v => v === vn);
+    const index = getnodeindex(vn);
     if(index == null) {
         return undefined;
     }else if(index === -1) {
@@ -209,34 +249,53 @@ function prevnode(vn: VisualNode) {
     return addnode(vn, -1);
 }
 
-function printBody(body: Generic.Body): string {
-    if(body.kind === "richtext") return body.content.map(printRichtextParagraph).join("\n\n");
-    return "*"+body.kind+"*";
+function style(style: TermStyle, ...children: TermText[]): TermText {
+    return {
+        style,
+        children,
+    };
 }
 
-function printRichtextParagraph(rtpar: Generic.Richtext.Paragraph): string {
+function arrayjoin<T>(a: T[], b: () => T): T[] {
+    const c: T[] = [];
+    a.forEach((item, i) => {
+        if(i !== 0) c.push(b());
+        c.push(item);
+    });
+    return c;
+}
+
+function printBody(body: Generic.Body): TermText[] {
+    if(body.kind === "richtext") return arrayjoin(body.content.flatMap(printRichtextParagraph), () => "\n\n");
+    return [style({fg: TermColor.red}, "*"+body.kind+"*")];
+}
+
+function printRichtextParagraph(rtpar: Generic.Richtext.Paragraph): TermText[] {
     return switchKind(rtpar, {
-        paragraph: par => par.children.map(printRichtextSpan).join(""),
+        paragraph: par => par.children.flatMap(printRichtextSpan),
         body: body => printBody(body.body),
-        heading: heading => "#".repeat(heading.level) + " " + heading.children.map(printRichtextSpan).join(""),
-        horizontal_line: () => "---",
-        blockquote: bquot => bquot.children.map(printRichtextParagraph)
-            .join("\n\n").split("\n").map(l => "> " + l).join("\n")
-        ,
-        list: () => "*list*",
-        code_block: () => "*code_block*",
-        table: () => "*table*",
+        heading: heading => ["#".repeat(heading.level), " ", style({bold: true, underline: true}, ...heading.children.flatMap(printRichtextSpan))],
+        horizontal_line: () => ["---"], // iterm2 image that spans term width?
+        blockquote: bquot => [style({indent: ["> "]}, ...arrayjoin(bquot.children.flatMap(printRichtextParagraph), () => "\n\n"))],
+        list: () => [style({fg: TermColor.red}, "*list*")],
+        code_block: () => [style({fg: TermColor.red}, "*code_block*")],
+        table: () => [style({fg: TermColor.red}, "*table*")],
     });
 }
 
-function printRichtextSpan(span: Generic.Richtext.Span): string {
-    if(span.kind === "text") return span.text;
-    return "*span "+span.kind+"*";
+function printRichtextSpan(span: Generic.Richtext.Span): TermText[] {
+    if(span.kind === "text") return [span.text];
+    return [style({fg: TermColor.red}, "*span "+span.kind+"*")];
+    // <span fg=red>*span*</span>
 }
 
-function postld(visual: VisualNode): string {
+function postld(visual: VisualNode): {indent: string, once: string} {
     // return "\x1b[90m" + (visual.depth > 0 ? "│ ".repeat(visual.depth) : "* ") + "\x1b(B\x1b[m";
-    return (visual.depth > 0 ? "  ".repeat(visual.depth) : "* ");
+
+    return {
+        indent: (visual.depth > 0 ? "  ".repeat(visual.depth) : "* "),
+        once: "\x1b[2D" + ((getnodeindex(visual) ?? -2) + 1) + " ",
+    };
 }
 
 // const postmarker = "\x1b[94m│ \x1b(B\x1b[m";
@@ -244,9 +303,9 @@ function postld(visual: VisualNode): string {
 const postmarker = "│ ";
 const postsplit = "  ";
 
-function postformat(ld: string, post: string, styl: "center" | "other") {
-    const stylv = styl === "center" ? "\x1b[100m" : "\x1b[40m";
-    return post.split("\n").map(l => ld + stylv + postmarker + l + "\x1b[0K\x1b(B\x1b[m").join("\n");
+function postformat(ld: {indent: string, once: string}, post: TermText[], styl: "center" | "other"): TermText[] {
+    const stylv = styl === "center" ? TermColor.brblack : TermColor.black;
+    return [style({indent: [ld.indent], bg: stylv}, style({indent: [postmarker]}, ld.once, ...post))];
 }
 
 function printPost(visual: VisualNode) {
@@ -258,49 +317,112 @@ function printPost(visual: VisualNode) {
     const {content} = post;
     if(content.kind !== "post") return console.log("enotpost");
 
-    const finalv: string[] = [];
-    if(content.title) {
-        finalv.push(content.title.text);
-        finalv.push("");
-    }
-    if(content.author) {
-        finalv.push("by "+content.author.name);
-        finalv.push("");
-    }
-    finalv.push(printBody(content.body));
+    const finalv: TermText[] = [];
 
     const parent = parentnode(visual);
     if(parent) {
         const pld = postld(parent);
-        console.log(postformat(pld, "← left (parent)", "other"));
-        console.log(pld + postsplit);
+        finalv.push(...postformat(pld, ["← left (parent)"], "other"));
+        finalv.push(pld.indent + postsplit);
     }
 
     const above = prevnode(visual);
     if(above) {
         const pld = postld(above);
-        console.log(postformat(pld, "↑ up (prev)", "other"));
-        console.log(pld + postsplit);
+        finalv.push(...postformat(pld, ["↑ up (prev)"], "other"));
+        finalv.push(pld.indent + postsplit);
     }
 
-    console.log(postformat(ld, finalv.join("\n"), "center"));
+    const postr: TermText[][] = [];
+    // \x1b[<N>D
+    if(content.title) {
+        postr.push([content.title.text]);
+        postr.push([""]);
+    }
+    if(content.author) {
+        postr.push(["by "+content.author.name]);
+        postr.push([""]);
+    }
+    postr.push(printBody(content.body));
+
+    finalv.push(...postformat(ld, arrayjoin(postr, () => ["\n"]).flat(), "center"));
 
     const child = firstchild(visual);
     if(child) {
         const pld = postld(child);
-        console.log(ld + postsplit);
-        console.log(postformat(pld, "→ right (child)", "other"));
+        finalv.push(ld.indent + postsplit);
+        finalv.push(...postformat(pld, ["→ right (child)"], "other"));
     }
 
     const below = nextnode(visual);
     if(below) {
         const pld = postld(below);
-        console.log(pld + postsplit);
-        console.log(postformat(pld, "↓ down (next)", "other"));
+        finalv.push(pld.indent + postsplit);
+        finalv.push(...postformat(pld, ["↓ down (next)"], "other"));
     }
+
+    console.log(printTermText(arrayjoin(finalv, () => "\n")));
 
     // imgcat thumbnail.png --width 8 --height 4
     // protocol: https://iterm2.com/documentation-images.html
+}
+
+function pushStyle(base: TermStyle | undefined, add: TermStyle | undefined): TermStyle {
+    return {
+        bg: add?.bg ?? base?.bg,
+        fg: add?.fg ?? base?.fg,
+
+        bold: add?.bold ?? base?.bold,
+        italic: add?.italic ?? base?.italic,
+        underline: add?.underline ?? base?.underline,
+
+        indent: [style(base ?? {}, ...(add?.indent ?? []))],
+    };
+}
+
+function printTermStyle(style: TermStyle | undefined): string {
+    const colors: number[] = [];
+
+    if(style?.bold ?? false) colors.push(1);
+    // [2m dim
+    if(style?.italic ?? false) colors.push(3);
+    if(style?.underline ?? false) colors.push(4);
+    // [7m inverse
+    // [8m hidden
+    if(style?.fg !== undefined) colors.push(style.fg + 30);
+    if(style?.bg !== undefined) colors.push(style.bg + 40);
+
+    return "\x1b(B\x1b[m" + colors.map(col => "\x1b["+col+"m").join("");
+    // return (colors.length ? "<"+colors.join(",")+">" : "<clr>");
+}
+
+const eoltxt = "\x1b[0K\x1b(B\x1b[m";
+
+function printTermText(ttxt: TermText[], style?: TermStyle): string {
+    const res: string[] = [];
+    let reqclr = false;
+    for(const txti of ttxt) {
+        if(typeof txti === "string") {
+            if(reqclr) {
+                reqclr = false;
+                res.push(printTermStyle(style));
+            }
+            res.push(txti.split("\n").map((l, i): string => {
+                if(i === 0) return l;
+                return printTermText(style?.indent ?? [], {}) + printTermStyle(style) + l;
+            }).join(eoltxt + "\n"));
+        }else{
+            if(txti.style.indent) {
+                res.push(printTermText(txti.style.indent, style));
+            }
+            const nstyl = pushStyle(style, txti.style);
+            res.push(printTermStyle(nstyl));
+            reqclr = true;
+            res.push(printTermText(txti.children, nstyl));
+        }
+    }
+    if(!style) return res.join("") + eoltxt;
+    return res.join("");
 }
 
 // goal
