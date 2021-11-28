@@ -8,3 +8,4 @@ terminal ui:
   - viewing image posts
   - appearence improvements
   - ui improvements
+  - initial video viewing demo

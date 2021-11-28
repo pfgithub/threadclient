@@ -153,7 +153,7 @@ const tasks: Task[] = [];
 // });
 
 async function runCommand([command, ...args]: string[], signal: AbortSignal): Promise<void> {
-    const viewer = cp.spawn(command!, args, {signal, stdio: "pipe"});
+    const viewer = cp.spawn(command!, args, {signal, stdio: "inherit"});
     let is_abort_error = false;
     viewer.on("error", (e) => {
         if(e.name === "AbortError") { // recommended way, https://github.com/nodejs/node/issues/36084
@@ -163,7 +163,7 @@ async function runCommand([command, ...args]: string[], signal: AbortSignal): Pr
         console.log("process errored", e.name);
     });
     const ecode = await new Promise<number | null>(r => viewer.on("exit", (code) => r(code)));
-    if(ecode !== 0) throw new Error("feh exited with code " + ecode);
+    if(ecode !== 0) throw new Error("command exited with code " + ecode);
     if(is_abort_error) throw new Error("is abort error");
 }
 
@@ -175,6 +175,13 @@ async function displayBody(body: Generic.Body, signal: AbortSignal): Promise<voi
         const imgv = await downloadimage(body.url, signal);
 
         await runCommand(["feh", imgv.filename], signal);
+    }else if(body.kind === "link") {
+        if(body.url.startsWith("https://v.redd.it/")) {
+            await runCommand(["mpv", body.url + "/DASHPlaylist.mpd"], signal);
+            // note when switching to if(body.kind === "video"), allow you to select a source before opening mpv
+        }else{
+            console.log("TODO call app.tsx previewLink() → Body and preview that value");
+        }
     }else{
         console.log("TODO! "+body.kind);
     }
@@ -183,7 +190,7 @@ async function displayBody(body: Generic.Body, signal: AbortSignal): Promise<voi
 async function main() {
     await fs.mkdir(imgcachedir, {recursive: true});
 
-    const parsed = destringify(await fs.readFile(__dirname + "/example_post.json", "utf-8")) as Generic.Page2;
+    const parsed = destringify(await fs.readFile(__dirname + "/example_content/all.json", "utf-8")) as Generic.Page2;
 
     if(parsed.pivot.err != null) {
         console.log("error: "+parsed.pivot.err);
@@ -260,6 +267,10 @@ async function main() {
             focus = generateVisualParentsAroundPost(focus.post);
             // todo navigation history and fwd/back
             return scupdate();
+        }else if(key.name === "c") {
+            console.log("code");
+            console.log(focus);
+            return;
         }
 
         const v = {
@@ -357,6 +368,12 @@ function printBody(body: Generic.Body): TermText[] {
             "["+(body.alt ?? "image")+"]",
             body.caption != null ? "\nCaption: "+body.caption : "",
         )];
+    }
+    if(body.kind === "array") {
+        return arrayjoin(body.body.map(b => b ? printBody(b) : "*undefined*"), () => ["\n\n"]);
+    }
+    if(body.kind === "link") {
+        return [styl({fg: TermColor.blue, underline: true}, body.url)];
     }
     return [styl({fg: TermColor.red}, "*body "+body.kind+"*")];
 }
