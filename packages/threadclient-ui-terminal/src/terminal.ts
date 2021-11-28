@@ -5,10 +5,7 @@ import * as os from "os";
 import * as path from "path";
 import * as readline from "readline";
 import { switchKind } from "tmeta-util";
-import * as example_post from "./example_post.json";
 import fetch from "node-fetch";
-
-const parsed = destringify(JSON.stringify(example_post)) as Generic.Page2;
 
 console.log(destringify(JSON.stringify({
     "@root": {a: {'$ref': "@1"}, b: [{'$ref': "@1"}]},
@@ -56,7 +53,7 @@ function generateVisualParentsAroundPost(
     post: Generic.Post,
     parent?: undefined | VisualNode,
     replies?: undefined | VisualNode[],
-    depth: number = 0,
+    depth = 0,
 ): VisualNode {
     const res: VisualNode = {
         post,
@@ -79,8 +76,6 @@ function generateVisualParentsAroundPost(
     return res;
 }
 
-const keys = {};
-
 enum TermColor {
     black = 0,
     brblack = 60,
@@ -100,7 +95,7 @@ enum TermColor {
     brwhite = 67,
 
     normal = 200,
-};
+}
 
 type TermStyle = {
     bg?: undefined | TermColor,
@@ -118,8 +113,8 @@ type TermText = string | {
     children: TermText[],
 } | TermText[];
 
-async function downloadimage(url: string): Promise<{filename: string, bytes: number}> {
-    const cachename = btoa(url);
+export async function downloadimage(url: string): Promise<{filename: string, bytes: number}> {
+    const cachename = Buffer.from(url).toString("base64");
     const filename = imgcachedir + "/" + cachename;
 
     try {
@@ -134,18 +129,20 @@ async function downloadimage(url: string): Promise<{filename: string, bytes: num
 
     return {filename, bytes: fetchres.byteLength};
 }
-async function printimage(image: {filename: string, bytes: number}): Promise<string> {
+export async function printimage(image: {filename: string, bytes: number}): Promise<string> {
     return "\x1b]1337;File="; // idk
 }
 
 async function main() {
     await fs.mkdir(imgcachedir, {recursive: true});
 
-    if(parsed.pivot.err) {
+    const parsed = destringify(await fs.readFile(__dirname + "/example_post.json", "utf-8")) as Generic.Page2;
+
+    if(parsed.pivot.err != null) {
         console.log("error: "+parsed.pivot.err);
         return;
     }
-    let focus: VisualNode = generateVisualParentsAroundPost(parsed.pivot.ref!);
+    let focus: VisualNode = generateVisualParentsAroundPost(parsed.pivot.ref);
     // note we need to store both the focus and like a path to get here
     // because a reply can have a different parent than the parent node
     // we could make a basic wrapper around Generic.Post that gives like
@@ -249,7 +246,7 @@ function prevnode(vn: VisualNode) {
     return addnode(vn, -1);
 }
 
-function style(style: TermStyle, ...children: TermText[]): TermText {
+function styl(style: TermStyle, ...children: TermText[]): TermText {
     return {
         style,
         children,
@@ -267,33 +264,38 @@ function arrayjoin<T>(a: T[], b: () => T): T[] {
 
 function printBody(body: Generic.Body): TermText[] {
     if(body.kind === "richtext") return arrayjoin(body.content.map(printRichtextParagraph), () => ["\n\n"]);
-    return [style({fg: TermColor.red}, "*"+body.kind+"*")];
+    return [styl({fg: TermColor.red}, "*"+body.kind+"*")];
 }
 
 function printRichtextParagraph(rtpar: Generic.Richtext.Paragraph): TermText[] {
     return switchKind(rtpar, {
         paragraph: par => par.children.flatMap(printRichtextSpan),
         body: body => printBody(body.body),
-        heading: heading => ["#".repeat(heading.level), " ", style({bold: true, underline: true}, ...heading.children.map(printRichtextSpan))],
+        heading: heading => [
+            "#".repeat(heading.level), " ",
+            styl({bold: true, underline: true}, ...heading.children.map(printRichtextSpan)),
+        ],
         horizontal_line: () => ["---"], // iterm2 image that spans term width?
-        blockquote: bquot => [style({indent: ["> "]}, ...arrayjoin(bquot.children.map(printRichtextParagraph), () => ["\n\n"]))],
-        list: () => [style({fg: TermColor.red}, "*list*")],
-        code_block: () => [style({fg: TermColor.red}, "*code_block*")],
-        table: () => [style({fg: TermColor.red}, "*table*")],
+        blockquote: bquot => [styl({indent: ["> "]},
+            ...arrayjoin(bquot.children.map(printRichtextParagraph), () => ["\n\n"]),
+        )],
+        list: () => [styl({fg: TermColor.red}, "*list*")],
+        code_block: () => [styl({fg: TermColor.red}, "*code_block*")],
+        table: () => [styl({fg: TermColor.red}, "*table*")],
     });
 }
 
 function printRichtextSpan(span: Generic.Richtext.Span): TermText[] {
-    if(span.kind === "text") return [style({
+    if(span.kind === "text") return [styl({
         bold: span.styles.strong,
         italic: span.styles.emphasis,
         bg: span.styles.strikethrough ?? false ? TermColor.red : undefined, // check for term capability for \x1b[9m
     }, span.text)];
     if(span.kind === "link") return [
-        style({fg: TermColor.blue, underline: true}, ...span.children.map(printRichtextSpan)),
+        styl({fg: TermColor.blue, underline: true}, ...span.children.map(printRichtextSpan)),
         ": " + span.url, // should do link helpers like page2 does instead of this
     ];
-    return [style({fg: TermColor.red}, "*span "+span.kind+"*")];
+    return [styl({fg: TermColor.red}, "*span "+span.kind+"*")];
     // <span fg=red>*span*</span>
 }
 
@@ -311,9 +313,9 @@ function postld(visual: VisualNode): {indent: string, once: string} {
 const postmarker = "│ ";
 const postsplit = "  ";
 
-function postformat(ld: {indent: string, once: string}, post: TermText[], styl: "center" | "other"): TermText[] {
-    const stylv = styl === "center" ? TermColor.brblack : TermColor.black;
-    return [style({indent: [ld.indent], bg: stylv}, style({indent: [postmarker]}, ld.once, ...post))];
+function postformat(ld: {indent: string, once: string}, post: TermText[], style: "center" | "other"): TermText[] {
+    const stylv = style === "center" ? TermColor.brblack : TermColor.black;
+    return [styl({indent: [ld.indent], bg: stylv}, styl({indent: [postmarker]}, ld.once, ...post))];
 }
 
 function printPost(visual: VisualNode) {
@@ -384,7 +386,7 @@ function pushStyle(base: TermStyle | undefined, add: TermStyle | undefined): Ter
         italic: add?.italic ?? base?.italic,
         underline: add?.underline ?? base?.underline,
 
-        indent: [style(base ?? {}, ...(add?.indent ?? []))],
+        indent: [styl(base ?? {}, ...(add?.indent ?? []))],
     };
 }
 
@@ -399,6 +401,7 @@ function printTermStyle(style: TermStyle | undefined): string {
     // [8m hidden
     if(style?.fg !== undefined) colors.push(style.fg + 30);
     if(style?.bg !== undefined) colors.push(style.bg + 40);
+    // TODO termcolor.normal
 
     return "\x1b(B\x1b[m" + colors.map(col => "\x1b["+col+"m").join("");
     // return (colors.length ? "<"+colors.join(",")+">" : "<clr>");
@@ -445,4 +448,7 @@ function printTermText(ttxt: TermText[], style?: TermStyle): string {
 // - yeah I think a focus/back would be useful. focus sets the pivot and regenerates
 //   the semantic parent list
 
-main();
+main().catch(e => {
+    console.error(e);
+    process.exit(1);
+});

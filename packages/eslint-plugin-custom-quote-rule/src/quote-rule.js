@@ -42,23 +42,28 @@ function default_rule(context) {
             let expected_quote_type = '"';
             if(node.parent.type === "BinaryExpression") {
                 if(node.parent.operator === "in" && node === node.parent.left) {
-                    expected_quote_type = "'"; 
+                    expected_quote_type = "'";
+                    if(!node.value.match(/^[A-Z]/)) return; // either is fine if it doesn't start with a caps letter
                 }
             }
-            if(node.parent.type === "Property") {
+            if(node.parent.type === "Property" || node.parent.type === "TSPropertySignature") {
                 if(node === node.parent.key) {
                     expected_quote_type = "'";
                     if(!node.value.match(/^[A-Z]/)) return; // either is fine if it doesn't start with a caps letter
                 }
             }
+            if(node.parent.type === "MemberExpression") {
+                expected_quote_type = "'";
+                if(!node.value.match(/^[A-Z]/)) return; // either is fine if it doesn't start with a caps letter
+            }
             let other_quote_type = expected_quote_type === "'" ? '"' : "'";
             let quotkind = expected_quote_type === "'" ? "single quotes" : "double quotes";
             if(node.raw.startsWith(other_quote_type)) {
                 const substr = node.raw.substring(1, node.raw.length - 1);
-                if(substr.includes(expected_quote_type) && !substr.includes("other_quote_type")) return;
+                if(substr.includes(expected_quote_type) && !substr.includes(other_quote_type)) return;
                 context.report({
                     node,
-                    message: "Prefer "+quotkind,
+                    message: "Prefer "+quotkind+" in "+node.parent.type,
                     fix: quoteFixer(node, expected_quote_type),
                 });
             }

@@ -4,7 +4,7 @@
         "outDir": "./dist",
         "lib": [
             "dom",
-            "DOM.Iterable",
+            "DOM.Iterable"
         ]
     },
     "include": [

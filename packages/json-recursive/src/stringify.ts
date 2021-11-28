@@ -37,7 +37,7 @@ export function stringify(object: unknown): {[key: string]: unknown} {
 }
 
 export function destringify(text: string): unknown {
-    const ds = JSON.parse(text);
+    const ds = JSON.parse(text) as unknown as {[key: string]: unknown};
     const value_map = new Map<string, boolean>();
     const symbol_map = new Map<string, symbol>();
     const autoreplace = (value: unknown): (undefined | {value: unknown}) => {
@@ -61,7 +61,7 @@ export function destringify(text: string): unknown {
         if(value_map.has(str)) return ds[str];
         value_map.set(str, true);
         return resolve(ds[str]);
-    }
+    };
     const resolve = (value: unknown) => {
         if(typeof value === "object") {
             if(Array.isArray(value)) {
