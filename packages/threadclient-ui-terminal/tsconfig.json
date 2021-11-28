@@ -4,6 +4,7 @@
         "outDir": "./dist",
         "lib": [
             "DOM.Iterable",
+            "es2021",
         ],
         "types": [
             "node"

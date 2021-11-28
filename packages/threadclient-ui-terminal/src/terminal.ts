@@ -4,6 +4,7 @@ import { destringify } from "json-recursive";
 import * as os from "os";
 import * as path from "path";
 import * as readline from "readline";
+import * as cp from "child_process";
 import { switchKind } from "tmeta-util";
 import fetch from "node-fetch";
 
@@ -113,8 +114,8 @@ type TermText = string | {
     children: TermText[],
 } | TermText[];
 
-export async function downloadimage(url: string): Promise<{filename: string, bytes: number}> {
-    const cachename = Buffer.from(url).toString("base64");
+export async function downloadimage(url: string, signal: AbortSignal): Promise<{filename: string, bytes: number}> {
+    const cachename = Buffer.from(url).toString("base64").replaceAll("/", "_").replaceAll("+", "-"); // todo should probably hash rather than b64 encode
     const filename = imgcachedir + "/" + cachename;
 
     try {
@@ -124,13 +125,59 @@ export async function downloadimage(url: string): Promise<{filename: string, byt
         // do nothing
     }
 
-    const fetchres = await fetch(url).then(r => r.arrayBuffer());
+    const fetchres = await fetch(url, {signal}).then(r => r.arrayBuffer());
+    await fs.mkdir(imgcachedir, {recursive: true});
     await fs.writeFile(filename, Buffer.from(fetchres));
 
     return {filename, bytes: fetchres.byteLength};
 }
 export async function printimage(image: {filename: string, bytes: number}): Promise<string> {
     return "\x1b]1337;File="; // idk
+}
+
+type KeyEvent = [insertext: string | undefined, key: {
+    sequence: string,
+    name: string,
+    ctrl: boolean,
+    meta: boolean,
+    shift: boolean,
+    code: string,
+}];
+
+type Task = ((...ev: KeyEvent) => void);
+
+const tasks: Task[] = [];
+
+// process.on("uncaughtException", (e) => {
+//     console.log("uncau", e, "uacnu");
+// });
+
+async function runCommand([command, ...args]: string[], signal: AbortSignal): Promise<void> {
+    const viewer = cp.spawn(command!, args, {signal, stdio: "pipe"});
+    let is_abort_error = false;
+    viewer.on("error", (e) => {
+        if(e.name === "AbortError") { // recommended way, https://github.com/nodejs/node/issues/36084
+            is_abort_error = true;
+            return;
+        }
+        console.log("process errored", e.name);
+    });
+    const ecode = await new Promise<number | null>(r => viewer.on("exit", (code) => r(code)));
+    if(ecode !== 0) throw new Error("feh exited with code " + ecode);
+    if(is_abort_error) throw new Error("is abort error");
+}
+
+async function displayBody(body: Generic.Body, signal: AbortSignal): Promise<void> {
+    // for richtext we should go fullscreen and let you go paragraph by paragraph so you can eg view images
+    if(body.kind === "captioned_image") {
+        if(body.caption != null) console.log("caption: "+body.caption);
+        if(body.alt != null) console.log("alt: "+body.alt);
+        const imgv = await downloadimage(body.url, signal);
+
+        await runCommand(["feh", imgv.filename], signal);
+    }else{
+        console.log("TODO! "+body.kind);
+    }
 }
 
 async function main() {
@@ -153,24 +200,67 @@ async function main() {
     process.stdin.resume();
     process.stdin.setEncoding("utf-8");
     readline.emitKeypressEvents(process.stdin);
-    process.stdin.on("keypress", (insertext: string | undefined, key: {
-        sequence: string,
-        name: string,
-        ctrl: boolean,
-        meta: boolean,
-        shift: boolean,
-        code: string,
-    }) => {
+    process.stdin.on("keypress", (itxt: KeyEvent[0], key: KeyEvent[1]) => {
+        const task0 = tasks[tasks.length - 1];
+        if(task0) {
+            return task0(itxt, key);
+        }
         if(key.name === "c" && key.ctrl) {
             console.log("^C"),
             process.exit(0);
         }
 
-        clrscrn();
-        drawconsole();
+        const scupdate = () => {
+            clrscrn();
+            drawconsole();
+            console.log(key.name);
 
-        const ers: string[] = [];
-        console.log(key.name);
+            update();
+            drawconsole();
+        };
+        const scerror = (msg: string) => {
+            console.log(key.name);
+            console.log(printTermText([styl({fg: TermColor.red}, msg)]));
+            drawconsole();
+        };
+
+        if(key.name === "v") {
+            // open the body in a viewer program
+            if(focus.post.kind === "post" && focus.post.content.kind === "post") {
+                console.log("view content");
+
+                const abort = new AbortController();
+
+                const mtask: Task = (a, b) => {
+                    console.log(a, b);
+                    if(b.name === "c" && b.ctrl) {
+                        console.log("^C");
+                        abort.abort();
+                    }
+                };
+                tasks.push(mtask);
+                displayBody(focus.post.content.body, abort.signal).then(() => {
+                    const index = tasks.indexOf(mtask);
+                    if(index >= 0) tasks.splice(index, 1);
+
+                    drawconsole();
+                }).catch(e => {
+                    const index = tasks.indexOf(mtask);
+                    if(index >= 0) tasks.splice(index, 1);
+
+                    if(e instanceof Error && e.name === "AbortError") { // recommended way, https://github.com/nodejs/node/issues/36084
+                        // do nothing
+                    }else console.log("errored", (e as Error).toString(), (e as Error).stack);
+                    drawconsole();
+                });
+                return;
+            }
+            return scerror("post has no body");
+        }else if(key.name === "f") {
+            focus = generateVisualParentsAroundPost(focus.post);
+            // todo navigation history and fwd/back
+            return scupdate();
+        }
 
         const v = {
             left: parentnode,
@@ -180,17 +270,14 @@ async function main() {
         }[key.name];
         if(v) {
             const q = v(focus);
-            if(q) focus = q;
-            else ers.push("not found in direction");
+            if(q) {
+                focus = q;
+                return scupdate();
+            }
+            return scerror("not found in direction");
         }else{
-            ers.push("unknown command");
+            return scerror("unknown command");
         }
-
-        update();
-        console.log("");
-        for(const er of ers) console.log(er);
-
-        drawconsole();
     });
 
     const drawconsole = () => {
@@ -264,7 +351,14 @@ function arrayjoin<T>(a: T[], b: () => T): T[] {
 
 function printBody(body: Generic.Body): TermText[] {
     if(body.kind === "richtext") return arrayjoin(body.content.map(printRichtextParagraph), () => ["\n\n"]);
-    return [styl({fg: TermColor.red}, "*"+body.kind+"*")];
+    if(body.kind === "captioned_image") {
+        return [styl(
+            {bg: TermColor.black},
+            "["+(body.alt ?? "image")+"]",
+            body.caption != null ? "\nCaption: "+body.caption : "",
+        )];
+    }
+    return [styl({fg: TermColor.red}, "*body "+body.kind+"*")];
 }
 
 function printRichtextParagraph(rtpar: Generic.Richtext.Paragraph): TermText[] {
@@ -293,7 +387,11 @@ function printRichtextSpan(span: Generic.Richtext.Span): TermText[] {
     }, span.text)];
     if(span.kind === "link") return [
         styl({fg: TermColor.blue, underline: true}, ...span.children.map(printRichtextSpan)),
-        ": " + span.url, // should do link helpers like page2 does instead of this
+        ": ", // should do link helpers like page2 does instead of this
+        styl({fg: TermColor.blue, underline: true}, span.url),
+    ];
+    if(span.kind === "error") return [
+        styl({fg: TermColor.red}, span.text),
     ];
     return [styl({fg: TermColor.red}, "*span "+span.kind+"*")];
     // <span fg=red>*span*</span>
@@ -314,8 +412,8 @@ const postmarker = "│ ";
 const postsplit = "  ";
 
 function postformat(ld: {indent: string, once: string}, post: TermText[], style: "center" | "other"): TermText[] {
-    const stylv = style === "center" ? TermColor.brblack : TermColor.black;
-    return [styl({indent: [ld.indent], bg: stylv}, styl({indent: [postmarker]}, ld.once, ...post))];
+    const stylv = style === "center" ? TermColor.brwhite : undefined;
+    return [styl({indent: [ld.indent], fg: stylv}, styl({indent: [postmarker]}, ld.once, ...post))];
 }
 
 function printPost(visual: VisualNode) {
@@ -347,13 +445,15 @@ function printPost(visual: VisualNode) {
     // \x1b[<N>D
     if(content.title) {
         postr.push([content.title.text]);
-        postr.push([""]);
+        postr.push([]);
     }
     if(content.author) {
         postr.push(["by "+content.author.name]);
-        postr.push([""]);
+        postr.push([]);
     }
     postr.push(printBody(content.body));
+    postr.push([]);
+    postr.push(["[buttons] [go] [here]"]);
 
     finalv.push(...postformat(ld, arrayjoin(postr, () => ["\n"]), "center"));
 
