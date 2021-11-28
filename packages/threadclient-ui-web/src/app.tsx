@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
-import { createSignal } from "solid-js";
+import { createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { getVredditSources } from "threadclient-preview-vreddit";
@@ -13,6 +13,7 @@ import { Body } from "./components/body";
 import { Homepage } from "./components/homepage";
 import ClientPage, { ClientPostReply, Flair } from "./components/page2";
 import { ReplyEditor } from "./components/reply";
+import { RichtextParagraphs } from "./components/richtext";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {
     alertarea, client_cache, current_history_index, global_counter_info,
@@ -3240,13 +3241,35 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         return settingsPage();
     }
 
-    if(path0 === "temp0") {
+    function Component(): JSX.Element {
+        const [text, setText] = createSignal("loading…");
+
         (async () => {
             const {client} = await import("threadclient-client-reddit");
             const {stringify} = await import("json-recursive");
             const v = await client.getPage!("/"+path.join("/")+search);
-            console.log(JSON.stringify(stringify(v)));
-        })();
+            setText(JSON.stringify(stringify(v)));
+        })().catch(e => {
+            setText((e as Error).toString() + "\n" + (e as Error).stack);
+        });
+
+        return <main class="client-wrapper">
+            <div class="display-comments-view">
+                <RichtextParagraphs content={[
+                    rt.pre(text(), "json"),
+                ]} />
+            </div>
+        </main>;
+    }
+
+    if(path0 === "temp0") {
+
+        const res = el("div");
+        const hsc = hideshow(res);
+
+        vanillaToSolidBoundary(res, () => <Component />, {color_level: 0}).defer(hsc);
+
+        return hsc;
     }
 
     if(path0 === "login"){

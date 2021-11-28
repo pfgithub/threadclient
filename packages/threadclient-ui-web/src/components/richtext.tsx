@@ -199,6 +199,7 @@ export function CodeBlock(props: {
     createEffect(() => setLanguage(props.default_language));
 
     const [highlighted, setHighlighted] = createSignal<null | string>(null);
+    const allowHighlighted = () => props.text.length < 10_000;
 
     const [menuOpen, setMenuOpen] = createSignal(false);
 
@@ -208,6 +209,8 @@ export function CodeBlock(props: {
         }
     });
     createEffect(() => {
+        if(!allowHighlighted()) return; // skip syn hl
+
         let active = true;
         onCleanup(() => active = false);
         setHighlighted(null);
@@ -234,7 +237,7 @@ export function CodeBlock(props: {
         "language-"+(language() ?? "none"),
         "!whitespace-pre-wrap",
     ])}>
-        <div class={classes([
+        <ShowBool when={allowHighlighted()}><div class={classes([
             "absolute",
             "top-0 right-0",
             "transition-opacity",
@@ -271,7 +274,7 @@ export function CodeBlock(props: {
                     )}</For>
                 </select>
             </ShowBool>
-        </div>
+        </div></ShowBool>
         <ShowCond when={highlighted()} fallback={
             /* !whitespace-pre-wrap is required here due to a weird issue
             in the browser where somehow the less important white-space: pre
