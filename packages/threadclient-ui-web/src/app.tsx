@@ -5,7 +5,7 @@ import type { OEmbed } from "api-types-oembed";
 import { createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
-import { getVredditSources } from "threadclient-preview-vreddit";
+import { gfyLike2, previewLink } from "threadclient-preview";
 import { escapeHTML } from "tmeta-util";
 import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
 import { oembed } from "./clients/oembed";
@@ -22,6 +22,8 @@ import {
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings } from "./util/utils_solid";
+
+export {previewLink, gfyLike2};
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -132,124 +134,6 @@ export function menuButtonStyle(active: boolean): string {
     ].join(" ");
 }
 
-function getVredditPreview(id: string): Generic.Video {
-    const video: Generic.Video = {
-        kind: "video",
-        source: getVredditSources(id),
-        gifv: false,
-    };
-    return video;
-}
-
-// note make sure to put an error boundary
-export async function gfyLike2(
-    gfy_host: string,
-    gfy_link: string,
-): Promise<Generic.PostData> {
-    const res = (
-        await fetch("https://api."+gfy_host+"/v2/gifs/"+gfy_link).then(r => r.json())
-    ) as Gfycat.V2.GfyResponse;
-    console.log("gfy response", res);
-
-    if('errorMessage' in res) {
-        throw new Error("Gfycat error: "+res.errorMessage+"; logged="+res.logged+"; reported="+res.reported);
-    }
-    if('message' in res) {
-        throw new Error("Gfycat error: "+res.message+"; logged="+res.logged+"; reported="+res.reported);
-    }
-
-    const {gif, user} = res;
-
-    const client_id = "https://www."+gfy_host;
-
-    const body: Generic.Body = {
-        kind: "video",
-        aspect: gif.width / gif.height,
-        gifv: false,
-        source: {
-            kind: "video",
-            sources: [
-                {url: gif.urls.hd, quality: "HD"},
-                {url: gif.urls.sd, quality: "SD"},
-            ],
-            // preview: [
-            //     {url: gif.urls.vthumbnail},
-            // ],
-            thumbnail: gif.urls.thumbnail,
-        },
-    };
-
-    return {
-        kind: "post",
-
-        parent: null,
-        replies: null,
-        url: "https://www."+gfy_host+"/watch/"+gfy_link,
-        client_id,
-
-        display_style: "centered",
-
-        content: {
-            kind: "post",
-
-
-            title: null,
-            thumbnail: {kind: "image", url: gif.urls.thumbnail}, // backup gif.averageColor
-            flair: gif.tags.map((tag): Generic.Flair => ({
-                content_warning: false,
-                elems: [
-                    {kind: "text", text: tag},
-                ],
-            })),
-            info: {
-                creation_date: gif.createDate * 1000,
-            },
-            author: user ? {
-                name: user.name,
-                color_hash: user.username,
-                link: user.url,
-                client_id,
-                pfp: {
-                    url: user.profileImageUrl,
-                    hover: user.profileImageUrl,
-                },
-            } : undefined,
-            body,
-            show_replies_when_below_pivot: false,
-            collapsible: {default_collapsed: false},
-            actions: {
-                vote: {
-                    kind: "counter",
-
-                    client_id,
-                    unique_id: "like_"+gfy_link,
-                    time: Date.now(),
-
-                    icon_style: "heart",
-                    special: undefined,
-
-                    label: "likes",
-                    incremented_label: "likes",
-
-                    count_excl_you: gif.likes,
-                    you: undefined,
-
-                    actions: {error: "gfycat liking is not supported"},
-                },
-                other: [
-                    {
-                        kind: "link",
-                        text: gif.views + " Views",
-                        url: "https://www."+gfy_host+"/watch/"+gfy_link,
-                        client_id,
-                    }
-                ],
-            },
-        },
-        internal_data: res,
-    };
-}
-
 export function gfyLikeV1(
     gfy_host: string,
     gfy_link: string,
@@ -325,160 +209,6 @@ export function gfyLikeV1(
     });
     
     return hsc;
-}
-
-function replaceExtension(path: string, ext: string): string {
-    const split = path.split(".");
-    split.pop();
-    split.push(ext);
-    return split.join(".");
-}
-
-export function previewLink(
-    link: string,
-    opts: {suggested_embed?: undefined | string},
-): undefined | Generic.Body {
-    let url_mut: URL | undefined;
-    try { 
-        url_mut = new URL(link);
-    }catch(e) {
-        // ignore
-    }
-    const url = url_mut;
-    const path = url?.pathname ?? link;
-    const is_mp4_link_masking_as_gif = url ? path.endsWith(".gif") && url.searchParams.get("format") === "mp4" : false;
-    if(is_mp4_link_masking_as_gif) {
-        return {kind: "video", gifv: true, source: {
-            kind: "video",
-            sources: [{url: link, quality: "Highest"}],
-        }};
-    }
-    if((url?.hostname ?? "") === "i.imgur.com" && path.endsWith(".gif")
-        || path.endsWith(".gifv")
-    ) {
-        return {kind: "video", gifv: true, source: {kind: "video", sources: [
-            {url: replaceExtension(link, "webm"), quality: "Highest"},
-            {url: replaceExtension(link, "mp4"), quality: "Highest"},
-            {url: link, quality: "Highest"},
-        ]}};
-    }
-    if((url?.hostname ?? "") === "i.redd.it"
-        || path.endsWith(".png") || path.endsWith(".jpg")
-        || path.endsWith(".jpeg")|| path.endsWith(".gif")
-        || path.endsWith(".webp")|| (url?.hostname ?? "") === "pbs.twimg.com"
-    ) return {kind: "captioned_image", url: link, w: null, h: null};
-    if(link.startsWith("https://v.redd.it/")) return getVredditPreview(link.replace("https://v.redd.it/", ""));
-    if(url && (url.host === "reddit.com" || url.host.endsWith(".reddit.com") && url.pathname.startsWith("/link"))) {
-        const pathsplit = path.split("/");
-        pathsplit.shift();
-        // /link/:postname/video/:videoid/player
-        if(pathsplit[0] === "link" && pathsplit[2] === "video" && pathsplit[4] === "player") {
-            return getVredditPreview(pathsplit[3] ?? "");
-        }
-    }
-    if(url
-        && (url.host === "gfycat.com" || url.host.endsWith(".gfycat.com"))
-        && url.pathname.split("/").length === 2
-    ) return {
-        kind: "gfycatv1",
-        id: url.pathname.replace("/", "").split("-")[0]!.split(".")[0]!.toLowerCase(),
-        host: "gfycat.com",
-    };
-    if(url
-        && (url.host === "\x72\x65\x64gifs.com" || url.host.endsWith(".\x72\x65\x64gifs.com"))
-        && url.pathname.split("/").length === 3 && url.pathname.startsWith("/watch/")
-    ) {
-        const gfylink = url.pathname.replace("/watch/", "").split("-")[0]!.split(".")[0]!.toLowerCase();
-        return {
-            kind: "gfycatv2",
-            id: gfylink,
-            host: "\x72\x65\x64gifs.com",
-        };
-    }
-    if(path.endsWith(".mp4") || path.endsWith(".webm")) {
-        return {kind: "video", gifv: false, source: {kind: "video", sources: [
-            {url: link, quality: "Highest"},
-        ]}};
-    }
-    if(path.endsWith(".mp3")) {
-        return {kind: "audio", url: link};
-    }
-    if(url && (
-        url.host === "www.youtube.com"
-        || url.host === "youtube.com"
-        || url.host === "m.youtube.com"
-    ) && url.pathname === "/watch") {
-        const ytvid_id = url.searchParams.get("v");
-        if(ytvid_id != null) return {kind: "youtube", id: ytvid_id, search: url.searchParams.toString()};
-    }
-    if(url && (url.host === "youtu.be") && url.pathname.split("/").length === 2) {
-        const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
-        return {kind: "youtube", id: youtube_video_id, search: url.searchParams.toString()};
-    }
-    if(url && (url.host === "vocaroo.com" || url.host === "www.vocaroo.com" || url.host === "voca.ro")) {
-        const splitv = url.pathname.split("/").filter(q => q);
-        if(splitv.length === 1 && splitv[0] != null && splitv[0] !== "") {
-            return {kind: "audio", url: "https://media.vocaroo.com/mp3/"+splitv[0]};
-        }        
-    }
-    if(url && (url.host === "giphy.com" || url.host === "www.giphy.com")) {
-        const splitv = url.pathname.split("/").filter(q => q);
-        if(splitv.length === 3 && splitv[0] === "gifs" && splitv[2] === "fullscreen") {
-            const giphy_id_bits = splitv[1]!.split("-");
-            const giphy_id = giphy_id_bits[giphy_id_bits.length - 1];
-            return {kind: "video", source: {
-                kind: "video",
-                sources: [
-                    {
-                        url: "https://media4.giphy.com/media/"+giphy_id+"/giphy.mp4",
-                        quality: "Highest",
-                    },
-                ],
-            }, gifv: true};
-        }        
-    }
-    if(url && (url.host === "www.imgur.com" || url.host === "imgur.com" || url.host === "m.imgur.com")) {
-        const splitv = url.pathname.split("/").filter(q => q);
-        const galleryid = splitv[1]!;
-        const isv = splitv[0] === "gallery" ? "gallery" : splitv[0] === "a" ? "album" : undefined;
-        if(isv !== undefined && splitv.length === 2) {
-            return {
-                kind: "imgur",
-                imgur_id: galleryid,
-                imgur_kind: isv,
-            };
-        }
-        if(splitv.length === 1 && (splitv[0] ?? "").length > 4) {
-            return {
-                kind: "captioned_image",
-                url: "https://i.imgur.com/"+splitv[0]+".jpg",
-                w: null,
-                h: null,
-            };
-        }
-    }
-    if(url && url.host === "clips.twitch.tv" && url.pathname.split("/").filter(q => q).length === 1) {
-        const clipid = url.pathname.split("/").filter(q => q)[0];
-        if(clipid != null) return {
-            kind: "twitch_clip",
-            slug: clipid,
-        };
-    }
-    if(url && (url.host === "soundcloud.com" || url.host.endsWith(".soundcloud.com"))) return {
-        kind: "oembed",
-        client_id: "n/a",
-        url: "https://soundcloud.com/oembed?format=json&url="+encodeURIComponent(link),
-    };
-    if(url && (url.host === "tiktok.com" || url.host.endsWith(".tiktok.com"))) return {
-        kind: "oembed",
-        client_id: "n/a",
-        url: "https://www.tiktok.com/oembed?url="+encodeURIComponent(link),
-    };
-    if(opts.suggested_embed != null) return {
-        kind: "reddit_suggested_embed",
-        suggested_embed: opts.suggested_embed,
-    };
-    return undefined;
 }
 
 export function renderFlair(flairs: Generic.Flair[]): Node {

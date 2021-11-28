@@ -11598,6 +11598,20 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
+"threadclient-preview@^1.0.0, threadclient-preview@workspace:packages/threadclient-preview":
+  version: 0.0.0-use.local
+  resolution: "threadclient-preview@workspace:packages/threadclient-preview"
+  dependencies:
+    api-types-generic: ^1.0.0
+    api-types-gfycat: ^1.0.0
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    threadclient-preview-vreddit: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.3.5
+  languageName: unknown
+  linkType: soft
+
 "threadclient-render-flatten@^1.0.0, threadclient-render-flatten@workspace:packages/threadclient-render-flatten":
   version: 0.0.0-use.local
   resolution: "threadclient-render-flatten@workspace:packages/threadclient-render-flatten"
@@ -11622,6 +11636,7 @@ fsevents@~2.3.2:
     node-fetch: ^3.1.0
     threadclient-client-base: ^1.0.0
     threadclient-client-reddit: ^1.0.0
+    threadclient-preview: ^1.0.0
     threadclient-render-flatten: ^1.0.0
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
@@ -11659,7 +11674,7 @@ fsevents@~2.3.2:
     solid-js: ^1.1.1
     threadclient-client-base: ^1.0.0
     threadclient-client-hackernews: ^1.0.0
-    threadclient-preview-vreddit: ^1.0.0
+    threadclient-preview: ^1.0.0
     threadclient-render-flatten: ^1.0.0
     tmeta-util: ^1.0.0
     tmeta-util-solid: ^1.0.0
