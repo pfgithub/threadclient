@@ -285,6 +285,7 @@ export async function main(opts: {
             right: savedchild,
             up: prevnode,
             down: nextnode,
+            n: nextvisual,
         }[key.name];
         if(v) {
             const focus = opts.focus()!;
@@ -465,6 +466,19 @@ function addnode(vn: VisualNode, pm: number) {
         }
     }
 }
+function nextvisual(vn: VisualNode) {
+    let res: VisualNode = vn;
+
+    while(!nextnode(res)) {
+        // if we ever want to accept untrusted page2 data we have to do a validation step to make sure
+        // it's not a cyclic graph
+        const pn = parentnode(res);
+        if(!pn) return undefined;
+        res = pn;
+    }
+
+    return nextnode(res);
+}
 function nextnode(vn: VisualNode) {
     return addnode(vn, 1);
 }
@@ -623,6 +637,13 @@ function printPost(visual: VisualNode) {
         const pld = postld(below);
         finalv.push(pld.indent + postsplit);
         finalv.push(...postformat(pld, ["↓ down (next)"], "other"));
+    }
+
+    const belowvisual = nextvisual(visual);
+    if(belowvisual && below !== belowvisual) {
+        const pld = postld(belowvisual);
+        finalv.push(pld.indent + postsplit);
+        finalv.push(...postformat(pld, ["n next (next)"], "other"));
     }
 
     console.log(printTermText(arrayjoin(finalv, () => "\n")));
