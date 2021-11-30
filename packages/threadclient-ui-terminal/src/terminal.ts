@@ -189,18 +189,22 @@ async function displayBody(body: Generic.Body, signal: AbortSignal): Promise<voi
     }
 }
 
-async function main() {
-    await fs.mkdir(imgcachedir, {recursive: true});
+export async function main(opts: {
+    focus: () => VisualNode | undefined,
+    setFocus: (nf: VisualNode) => void,
+}): Promise<void> {
+    if(opts.focus() == null) {
+        const parsed = destringify(
+            await fs.readFile(__dirname + "/example_content/comments.json", "utf-8"),
+        ) as Generic.Page2;
 
-    const parsed = destringify(
-        await fs.readFile(__dirname + "/example_content/comments.json", "utf-8"),
-    ) as Generic.Page2;
-
-    if(parsed.pivot.err != null) {
-        console.log("error: "+parsed.pivot.err);
-        return;
+        if(parsed.pivot.err != null) {
+            console.log("error: "+parsed.pivot.err);
+            return;
+        }
+        opts.setFocus(generateVisualParentsAroundPost(parsed.pivot.ref));
     }
-    let focus: VisualNode = generateVisualParentsAroundPost(parsed.pivot.ref);
+
     // note we need to store both the focus and like a path to get here
     // because a reply can have a different parent than the parent node
     // we could make a basic wrapper around Generic.Post that gives like
@@ -237,6 +241,7 @@ async function main() {
 
         if(key.name === "v") {
             // open the body in a viewer program
+            const focus = opts.focus()!;
             if(focus.post.kind === "post" && focus.post.content.kind === "post") {
                 console.log("view content");
 
@@ -268,7 +273,8 @@ async function main() {
             }
             return scerror("post has no body");
         }else if(key.name === "f") {
-            focus = generateVisualParentsAroundPost(focus.post);
+            const focus = opts.focus()!;
+            opts.setFocus(generateVisualParentsAroundPost(focus.post));
             // todo navigation history and fwd/back
             return scupdate();
         }else if(key.name === "c") {
@@ -284,10 +290,11 @@ async function main() {
             down: nextnode,
         }[key.name];
         if(v) {
+            const focus = opts.focus()!;
             const q = v(focus);
             if(q) {
-                focus = q;
-                updatesaved(focus);
+                opts.setFocus(q);
+                updatesaved(q);
                 return scupdate();
             }
             return scerror("not found in direction");
@@ -310,7 +317,7 @@ async function main() {
     }
 
     const update = () => {
-        printPost(focus);
+        printPost(opts.focus()!);
     };
     clrscrn();
     update();
@@ -576,8 +583,3 @@ function printTermText(ttxt: TermText[], style?: TermStyle): string {
 // - maybe let you press f or something to refocus around that idk
 // - yeah I think a focus/back would be useful. focus sets the pivot and regenerates
 //   the semantic parent list
-
-main().catch(e => {
-    console.error(e);
-    process.exit(1);
-});

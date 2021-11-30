@@ -1,7 +1,7 @@
 {
   "name": "threadclient-ui-terminal",
   "version": "1.0.0",
-  "main": "src/terminal.ts",
+  "main": "src/term_hmr.ts",
   "license": "MIT",
   "private": true,
   "devDependencies": {
