@@ -190,7 +190,9 @@ async function displayBody(body: Generic.Body, signal: AbortSignal): Promise<voi
 async function main() {
     await fs.mkdir(imgcachedir, {recursive: true});
 
-    const parsed = destringify(await fs.readFile(__dirname + "/example_content/all.json", "utf-8")) as Generic.Page2;
+    const parsed = destringify(
+        await fs.readFile(__dirname + "/example_content/comments.json", "utf-8"),
+    ) as Generic.Page2;
 
     if(parsed.pivot.err != null) {
         console.log("error: "+parsed.pivot.err);
@@ -433,14 +435,30 @@ function postformat(ld: {indent: string, once: string}, post: TermText[], style:
     return [styl({indent: [ld.indent], fg: stylv}, styl({indent: [postmarker]}, ld.once, ...post))];
 }
 
-function printPost(visual: VisualNode) {
-    const {post} = visual;
-
-    const ld = postld(visual);
-
-    if(post.kind === "loader") return console.log("enotpost");
+function renderPost(post: Generic.Post): TermText[][] {
+    if(post.kind === "loader") return [["enotpost"]];
     const {content} = post;
-    if(content.kind !== "post") return console.log("enotpost");
+    if(content.kind !== "post") return [["enotpost"]];
+
+    const postr: TermText[][] = [];
+
+    if(content.title) {
+        postr.push([content.title.text]);
+        postr.push([]);
+    }
+    if(content.author) {
+        postr.push(["by "+content.author.name]);
+        postr.push([]);
+    }
+    postr.push(printBody(content.body));
+    postr.push([]);
+    postr.push(["[buttons] [go] [here]"]);
+
+    return arrayjoin(postr, () => ["\n"]);
+}
+
+function printPost(visual: VisualNode) {
+    const ld = postld(visual);
 
     const finalv: TermText[] = [];
 
@@ -458,21 +476,8 @@ function printPost(visual: VisualNode) {
         finalv.push(pld.indent + postsplit);
     }
 
-    const postr: TermText[][] = [];
     // \x1b[<N>D
-    if(content.title) {
-        postr.push([content.title.text]);
-        postr.push([]);
-    }
-    if(content.author) {
-        postr.push(["by "+content.author.name]);
-        postr.push([]);
-    }
-    postr.push(printBody(content.body));
-    postr.push([]);
-    postr.push(["[buttons] [go] [here]"]);
-
-    finalv.push(...postformat(ld, arrayjoin(postr, () => ["\n"]), "center"));
+    finalv.push(...postformat(ld, renderPost(visual.post), "center"));
 
     const child = firstchild(visual);
     if(child) {
