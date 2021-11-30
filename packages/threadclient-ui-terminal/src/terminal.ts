@@ -8,11 +8,6 @@ import * as cp from "child_process";
 import { switchKind } from "tmeta-util";
 import fetch from "node-fetch";
 
-console.log(destringify(JSON.stringify({
-    "@root": {a: {'$ref': "@1"}, b: [{'$ref': "@1"}]},
-    "@1": "hi! how are you",
-})));
-
 type VisualNode = {
     visual_parent: VisualNode | undefined,
     visual_replies: VisualNode[] | undefined,
@@ -146,7 +141,10 @@ type KeyEvent = [insertext: string | undefined, key: {
     code: string,
 }];
 
-type Task = ((...ev: KeyEvent) => void);
+type Task = {
+    onKey: ((...ev: KeyEvent) => void),
+    abort: () => void,
+};
 
 const tasks: Task[] = [];
 
@@ -192,7 +190,11 @@ async function displayBody(body: Generic.Body, signal: AbortSignal): Promise<voi
 export async function main(opts: {
     focus: () => VisualNode | undefined,
     setFocus: (nf: VisualNode) => void,
-}): Promise<void> {
+    reload: () => Promise<void>,
+}): Promise<(() => void)[]> {
+    console.log("main()");
+    const cleanup: (() => void)[] = [];
+
     if(opts.focus() == null) {
         const parsed = destringify(
             await fs.readFile(__dirname + "/example_content/comments.json", "utf-8"),
@@ -200,7 +202,7 @@ export async function main(opts: {
 
         if(parsed.pivot.err != null) {
             console.log("error: "+parsed.pivot.err);
-            return;
+            return cleanup;
         }
         opts.setFocus(generateVisualParentsAroundPost(parsed.pivot.ref));
     }
@@ -215,10 +217,14 @@ export async function main(opts: {
     process.stdin.resume();
     process.stdin.setEncoding("utf-8");
     readline.emitKeypressEvents(process.stdin);
-    process.stdin.on("keypress", (itxt: KeyEvent[0], key: KeyEvent[1]) => {
+    const onkeypress = (itxt: KeyEvent[0], key: KeyEvent[1]) => {
         const task0 = tasks[tasks.length - 1];
         if(task0) {
-            return task0(itxt, key);
+            if(key.name === "c" && key.ctrl) {
+                console.log("^C");
+                return tasks.pop()!.abort();
+            }
+            return task0.onKey(itxt, key);
         }
         if(key.name === "c" && key.ctrl) {
             console.log("^C"),
@@ -247,12 +253,14 @@ export async function main(opts: {
 
                 const abort = new AbortController();
 
-                const mtask: Task = (a, b) => {
-                    console.log(a, b);
-                    if(b.name === "c" && b.ctrl) {
+                const mtask: Task = {
+                    onKey: (a, b) => {
+                        console.log(a, b);
+                    },
+                    abort: () => {
                         console.log("^C");
                         abort.abort();
-                    }
+                    },
                 };
                 tasks.push(mtask);
                 displayBody(focus.post.content.body, abort.signal).then(() => {
@@ -281,6 +289,24 @@ export async function main(opts: {
             console.log("code");
             console.log(focus);
             return;
+        }else if(key.name === "s") {
+            scupdate();
+            return;
+        }else if(key.name === "r") {
+            console.log("reload");
+            const mtask: Task = {
+                onKey: () => {/**/},
+                abort: () => {/**/},
+            };
+            opts.reload().then(r => {
+                // reloaded.
+            }).catch(e => {
+                const index = tasks.indexOf(mtask);
+                if(index >= 0) tasks.splice(index, 1);
+                console.log("error while reloading", e);
+            });
+            tasks.push(mtask);
+            return;
         }
 
         const v = {
@@ -301,6 +327,11 @@ export async function main(opts: {
         }else{
             return scerror("unknown command");
         }
+    };
+    process.stdin.on("keypress", onkeypress);
+    cleanup.push(() => process.stdin.off("keypress", onkeypress));
+    cleanup.push(() => {
+        [...tasks].reverse().forEach(v => v.abort());
     });
 
     const drawconsole = () => {
@@ -320,8 +351,12 @@ export async function main(opts: {
         printPost(opts.focus()!);
     };
     clrscrn();
+    drawconsole();
+    console.log("s");
     update();
     drawconsole();
+
+    return cleanup;
 }
 
 function parentnode(vn: VisualNode) {
@@ -466,7 +501,13 @@ function renderPost(post: Generic.Post): TermText[][] {
     }
     postr.push(printBody(content.body));
     postr.push([]);
-    postr.push(["[buttons] [go] [here]"]);
+    postr.push([
+        styl({bg: TermColor.black, fg: TermColor.white}, "[buttons]"),
+        " ",
+        styl({bg: TermColor.black, fg: TermColor.white}, "[go]"),
+        " ",
+        styl({bg: TermColor.black, fg: TermColor.white}, "[here]"),
+    ]);
 
     return arrayjoin(postr, () => ["\n"]);
 }
