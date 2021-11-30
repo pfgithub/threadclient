@@ -195,42 +195,13 @@ export async function main(opts: {
     console.log("main()");
     const cleanup: (() => void)[] = [];
 
-    if(opts.focus() == null) {
-        const parsed = destringify(
-            await fs.readFile(__dirname + "/example_content/comments.json", "utf-8"),
-        ) as Generic.Page2;
-
-        if(parsed.pivot.err != null) {
-            console.log("error: "+parsed.pivot.err);
-            return cleanup;
-        }
-        opts.setFocus(generateVisualParentsAroundPost(parsed.pivot.ref));
-    }
-
     // note we need to store both the focus and like a path to get here
     // because a reply can have a different parent than the parent node
     // we could make a basic wrapper around Generic.Post that gives like
     // - viewportParent: …
     // - viewportReplies: …
 
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.setEncoding("utf-8");
-    readline.emitKeypressEvents(process.stdin);
-    const onkeypress = (itxt: KeyEvent[0], key: KeyEvent[1]) => {
-        const task0 = tasks[tasks.length - 1];
-        if(task0) {
-            if(key.name === "c" && key.ctrl) {
-                console.log("^C");
-                return tasks.pop()!.abort();
-            }
-            return task0.onKey(itxt, key);
-        }
-        if(key.name === "c" && key.ctrl) {
-            console.log("^C"),
-            process.exit(0);
-        }
-
+    const maintask: Task = {onKey: (itxt: KeyEvent[0], key: KeyEvent[1]) => {
         const scupdate = () => {
             clrscrn();
             drawconsole();
@@ -325,7 +296,31 @@ export async function main(opts: {
             }
             return scerror("not found in direction");
         }else{
-            return scerror("unknown command");
+            return scerror("unknown command; h for help");
+        }
+    },
+        abort: () => {
+            //
+        },
+    };
+
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding("utf-8");
+    readline.emitKeypressEvents(process.stdin);
+    const onkeypress = (itxt: KeyEvent[0], key: KeyEvent[1]) => {
+        if(key.name === "c" && key.ctrl || key.name === "d" && key.ctrl) {
+            console.log("^"+key.name.toUpperCase());
+            if(tasks.length === 0) process.exit(0);
+            tasks.pop()!.abort();
+            if(tasks.length === 0) process.exit(0);
+            return;
+        }
+        const task0 = tasks[tasks.length - 1];
+        if(task0) {
+            return task0.onKey(itxt, key);
+        }else{
+            console.error("there is no task defined atm; error");
         }
     };
     process.stdin.on("keypress", onkeypress);
@@ -350,11 +345,93 @@ export async function main(opts: {
     const update = () => {
         printPost(opts.focus()!);
     };
-    clrscrn();
-    drawconsole();
-    console.log("s");
-    update();
-    drawconsole();
+
+    const startmain = () => {
+        clrscrn();
+        drawconsole();
+        console.log("s");
+        update();
+        drawconsole();
+        tasks.push(maintask);
+    };
+
+
+    if(opts.focus() == null) {
+        let contents: string[];
+        try {
+            contents = await fs.readdir(__dirname + "/example_content");
+        }catch(e) {
+            console.log("you don't have any samples! go to /temp0/…a reddit url in threadclient and paste them into "
+                +"a file in sample.json",
+            );
+            process.exit(0);
+        }
+        if(contents.length === 0) {
+            console.log("you don't have any samples! go to /temp0/…a reddit url in threadclient and paste them into "
+                +"a file in sample.json",
+            );
+            process.exit(0);
+        }
+        let findex = 0;
+
+        const upd8 = (v: string) => {
+            clrscrn();
+            console.log("$>",v);
+
+            console.log(findex, contents[findex]);
+
+            console.log("↑, ↓, ⏎");
+            process.stdout.write("$> ");
+        };
+        const resolve = async (resstr: string) => {
+            const parsed = destringify(
+                await fs.readFile(__dirname + "/example_content/"+resstr, "utf-8"),
+            ) as Generic.Page2;
+
+            if(parsed.pivot.err != null) {
+                console.log("error: "+parsed.pivot.err);
+                return;
+            }
+            opts.setFocus(generateVisualParentsAroundPost(parsed.pivot.ref));
+            startmain();
+        };
+        const mtask: Task = {
+            onKey: (__, key) => {
+                if(key.name === "down") {
+                    findex += 1;
+                }else if(key.name === "up") {
+                    findex -= 1;
+                }else if(key.name === "s") {
+                    //
+                }else if(key.name === "return") {
+                    if(contents[findex] == null) {
+                        console.log(key.name);
+                        console.log("not found");
+                        process.stdout.write("$> ");
+                        return;
+                    }
+
+                    resolve(contents[findex]!).then(r => {
+                        // done;
+                    }).catch(e => {
+                        // error;
+                    });
+                    return;
+                }else{
+                    console.log(key.name);
+                    console.log("unknown command; h for help");
+                    process.stdout.write("$> ");
+                    return;
+                }
+                upd8(key.name);
+            },
+            abort: () => {/**/},
+        };
+        tasks.push(mtask);
+        upd8("s");
+    }else{
+        startmain();
+    }
 
     return cleanup;
 }
