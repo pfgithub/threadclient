@@ -16,6 +16,7 @@ console.log(destringify(JSON.stringify({
 type VisualNode = {
     visual_parent: VisualNode | undefined,
     visual_replies: VisualNode[] | undefined,
+    visual_reply_index: number,
     post: Generic.Post,
     depth: number,
 };
@@ -60,6 +61,7 @@ function generateVisualParentsAroundPost(
         post,
         visual_parent: undefined,
         visual_replies: undefined,
+        visual_reply_index: 0,
         depth,
     };
     res.visual_parent = parent ?? (post.parent ?
@@ -277,7 +279,7 @@ async function main() {
 
         const v = {
             left: parentnode,
-            right: firstchild,
+            right: savedchild,
             up: prevnode,
             down: nextnode,
         }[key.name];
@@ -285,6 +287,7 @@ async function main() {
             const q = v(focus);
             if(q) {
                 focus = q;
+                updatesaved(focus);
                 return scupdate();
             }
             return scerror("not found in direction");
@@ -317,11 +320,15 @@ async function main() {
 function parentnode(vn: VisualNode) {
     return vn.visual_parent;
 }
-function firstchild(vn: VisualNode) {
-    return vn.visual_replies?.[0];
+function savedchild(vn: VisualNode) {
+    return vn.visual_replies?.[vn.visual_reply_index];
 }
 function getnodeindex(vn: VisualNode) {
     return vn.visual_parent?.visual_replies?.findIndex(v => v === vn) ?? undefined;
+}
+function updatesaved(vn: VisualNode) {
+    const nindex = getnodeindex(vn);
+    if(nindex != null && vn.visual_parent) vn.visual_parent.visual_reply_index = nindex;
 }
 function addnode(vn: VisualNode, pm: number) {
     const index = getnodeindex(vn);
@@ -479,7 +486,7 @@ function printPost(visual: VisualNode) {
     // \x1b[<N>D
     finalv.push(...postformat(ld, renderPost(visual.post), "center"));
 
-    const child = firstchild(visual);
+    const child = savedchild(visual);
     if(child) {
         const pld = postld(child);
         finalv.push(ld.indent + postsplit);
