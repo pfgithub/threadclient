@@ -133,7 +133,7 @@ export function flatten(page: Generic.Page2, meta: Meta): FlatPage {
 
         if(!highest.parent) break;
         if(highest.parent.err !== undefined) {
-            above_pivot.push(fi.err(highest.parent.err, highest));
+            above_pivot.unshift(fi.err(highest.parent.err, highest));
             break;
         }
         highest = highest.parent.ref;

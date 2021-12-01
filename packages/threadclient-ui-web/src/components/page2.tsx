@@ -542,9 +542,9 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                 class="my-2 border-t-2"
                 style={{'border-top-color': "var(--collapse-line-color)"}}
             />,
-            todo: todo => <div>TODO: {todo.note} <button onclick={() => todo.data}>code</button></div>,
+            todo: todo => <div>TODO: {todo.note} <button onclick={() => console.log(todo.data)}>code</button></div>,
             error: error => <div class="text-red-500">
-                Error: {error.note} <button onclick={() => error.data}>code</button>
+                Error: {error.note} <button onclick={() => console.log(error.data)}>code</button>
             </div>,
         }}</SwitchKind>}</For>
     </div>;
