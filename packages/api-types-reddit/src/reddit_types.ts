@@ -1225,3 +1225,36 @@ export type VoteBody = {
     rank: string, // a number above 1, unclear the purpose
     dir: "-1" | "0" | "1",
 };
+
+
+// i want to be able to type the types
+// like export type Requests: {[key: string]: {query?: unknown, body?: unknown, response: unknown}} = {};
+// I think I can do that with like a "extends" but not sure
+export type Requests = {
+    "/api/comment": {
+        body: {
+            api_type: "json",
+            return_rtjson: boolean,
+            richtext_json?: undefined | unknown,
+            text?: undefined | string,
+            thing_id: string,
+            // uh: string,
+        },
+        response: PostComment, // | {json: {errors: [id: string, desc: string, other: string][]}} (handled by my request fn)
+    },
+    "/api/editusertext": {
+        body: {
+            api_type: "json",
+            return_rtjson: boolean,
+            richtext_json?: undefined | unknown,
+            text?: undefined | string,
+            thing_id: string,
+            // uh: string,
+        },
+    },
+    [key: `/api/test/${string}`]: {
+        query: {
+            nothing?: never,
+        },
+    },
+};

@@ -6,7 +6,7 @@ import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
     getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery,
-    expectUnsupported, parseLink, redditRequest, authorFromT2, client
+    expectUnsupported, parseLink, redditRequest, authorFromT2, client, editButton
 } from "./reddit";
 import { encoderGenerator } from "threadclient-client-base";
 
@@ -602,6 +602,7 @@ function postDataFromListingMayError(
                     ,
                     code: getCodeButton(listing.body),
                     other: [
+                        editButton(listing.name),
                         deleteButton(listing.name),
                         saveButton(listing.name, listing.saved),
                         reportButton(listing.name, listing.subreddit),
@@ -662,6 +663,7 @@ function postDataFromListingMayError(
                             url: listing.permalink.replace("/comments/", "/duplicates/"),
                             text: "Duplicates"
                         }, reportButton(listing.name, listing.subreddit),
+                        editButton(listing.name),
                     ],
                 },
             },

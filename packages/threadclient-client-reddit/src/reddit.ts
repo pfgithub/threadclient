@@ -2269,6 +2269,17 @@ export function replyButton(fullname: string): Generic.ReplyAction {
         key: "reply-"+fullname,
         text: "Reply",
         reply_info: reply_encoder.encode({parent_id: fullname}),
+        mode: "reply",
+    };
+}
+export function editButton(fullname: string): Generic.Action {
+    return {
+        kind: "reply",
+        client_id: client.id,
+        key: "edit-"+fullname,
+        text: "Edit",
+        reply_info: reply_encoder.encode({parent_id: fullname}),
+        mode: "edit",
     };
 }
 export function saveButton(fullname: string, saved: boolean): Generic.Action {
@@ -2649,6 +2660,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                     text: "Permalink",
                     url: listing.permalink ? updateQuery(listing.permalink, {context: "3", sort: parent_permalink.sort}) : "Error no permalink",
                 },
+                editButton(listing.name),
                 deleteButton(listing.name),
                 saveButton(listing.name, listing.saved),
                 reportButton(listing.name, listing.subreddit),
@@ -2741,7 +2753,8 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 client_id: client.id,
                 url: "/domain/"+listing.domain,
                 text: listing.domain,
-            }, deleteButton(listing.name), saveButton(listing.name, listing.saved), getPointsOn(listing), {
+            }, editButton(listing.name), deleteButton(listing.name), saveButton(listing.name, listing.saved),
+            getPointsOn(listing), {
                 kind: "link",
                 client_id: client.id,
                 url: listing.permalink.replace("/comments/", "/duplicates/"),
@@ -3437,7 +3450,7 @@ export const client: ThreadClient = {
             thread: legacy_value,
         };
     },
-    async sendReply(md: string, data_raw: Generic.Opaque<"reply">): Promise<Generic.Node> {
+    async sendReply(md: string, data_raw: Generic.Opaque<"reply">, mode): Promise<Generic.Node> {
         const reply_info = reply_encoder.decode(data_raw);
         const paragraphs: Reddit.Richtext.Paragraph[] = [];
         // huh, if you pass a format 1<<2 it puts tildes around the range and then removes the format item, weird
@@ -3476,16 +3489,12 @@ export const client: ThreadClient = {
                 : {text: md}
             ),
         };
-        const reply = await redditRequest<Reddit.PostComment | {json: {errors: [id: string, desc: string, other: string][]}}>("/api/comment", {
+        const url = ({reply: "/api/comment", edit: "/api/editusertext"} as const)[mode];
+        const reply = await redditRequest<Reddit.PostComment>(url, {
             method: "POST",
             mode: "urlencoded",
             body,
         });
-        if('json' in reply) {
-            const errortxt = reply.json.errors.map(err => "[" + err[0] + "]" + ": " + err[1] + " (in "+err[2]+")").join("\n");
-            console.log(errortxt, reply);
-            throw new Error(errortxt);
-        }
         console.log(reply);
         // the reply also has a "rte_mode": "markdown" | "unsupported"
         return threadFromListing({kind: "t1", data: reply}, {}, {permalink: "TODO", sort: "unsupported", is_chat: false});

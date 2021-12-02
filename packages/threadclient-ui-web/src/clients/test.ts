@@ -178,6 +178,7 @@ const replyable = (): Partial<Generic.ListingData> => ({
             key: "" + Math.random(),
             text: "Reply",
             reply_info: reply_encoder.encode({kind: "markdown"}),
+            mode: "reply",
         },
         locked: false,
     },
@@ -876,6 +877,7 @@ export const client: ThreadClient = {
                 text: "Reply",
                 key: "" + Math.random(),
                 reply_info: reply_encoder.encode({kind: "markdown"}),
+                mode: "reply",
             });
             return res;
         }else if(decoded.kind === "other") {

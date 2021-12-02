@@ -603,6 +603,7 @@ export type ReplyAction = {
     text: ActionLabel,
     reply_info: Opaque<"reply">,
     client_id: string,
+    mode: "reply" | "edit",
 };
 export type Action = {
     kind: "link",
@@ -640,7 +641,7 @@ export type CodeAction = {
 export type DataEncodings = 
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
     | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
-    | "loader"
+    | "loader" | "edit"
 ;
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 

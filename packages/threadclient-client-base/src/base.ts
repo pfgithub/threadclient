@@ -13,7 +13,9 @@ export type ThreadClient = {
     fetchReportScreen?: undefined | ((report: Generic.Opaque<"report">) => Promise<Generic.ReportFlow>),
     sendReport?: undefined | ((action: Generic.Opaque<"send_report">, text?: string) => Promise<Generic.SentReport>),
     previewReply?: undefined | ((body: string, reply_info: Generic.Opaque<"reply">) => Generic.PostContent),
-    sendReply?: undefined | ((body: string, reply_info: Generic.Opaque<"reply">) => Promise<Generic.Node>),
+    sendReply?: undefined | ((
+        body: string, reply_info: Generic.Opaque<"reply">, mode: "reply" | "edit",
+    ) => Promise<Generic.Node>),
 
     loadMore?: undefined | ((action: Generic.Opaque<"load_more">) => Promise<Generic.Node[]>),
     loadMoreUnmounted?: undefined | ((

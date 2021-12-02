@@ -45,7 +45,7 @@ export function ReplyEditor(props: {
                     setSending(true);
 
                     const client = getClientCached(props.action.client_id);
-                    client!.sendReply!(content(), props.action.reply_info).then((r) => {
+                    client!.sendReply!(content(), props.action.reply_info, props.action.mode).then((r) => {
                         console.log("Got response", r);
                         // TODO:
                         // so, this is a terrible idea,
@@ -87,7 +87,7 @@ export function ReplyEditor(props: {
                         setSendError(err.toString() + "\n" + err.stack);
                     });
                 }}
-            >{isSending() ? "…" : "Reply"}</button>
+            >{isSending() ? "…" : props.action.text}</button>
             <button disabled={isSending()} class={link_styles_v["pill-empty"]} onClick={(e) => {
                 props.onCancel();
             }}>Cancel<div /></button>

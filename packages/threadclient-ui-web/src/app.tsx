@@ -855,7 +855,7 @@ function renderReplyAction(
 ): HideShowCleanup<undefined> {
     {
         let reply_state: "none" | "some" = "none";
-        const reply_btn = elButton("action-button").atxt("Reply").adto(content_buttons_line);
+        const reply_btn = elButton("action-button").atxt(action.text).adto(content_buttons_line);
 
         const hsc = hideshow();
 
