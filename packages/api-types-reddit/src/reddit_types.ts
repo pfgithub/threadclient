@@ -751,7 +751,6 @@ export type Listing = {
 };
 export type MoreChildren = {
     json: {
-        errors: string[],
         data: {
             things: PostCommentLike[],
         },
@@ -1228,9 +1227,24 @@ export type VoteBody = {
 
 
 // i want to be able to type the types
-// like export type Requests: {[key: string]: {query?: unknown, body?: unknown, response: unknown}} = {};
+// like export type Requests: {[key: string]: RequestInfo} = {};
 // I think I can do that with like a "extends" but not sure
+
+export type RequestInfo = {
+    query?: undefined | {[key: string]: string | null | undefined},
+    body?: undefined | unknown,
+    response: unknown,
+};
+export type PathBit<T extends string = string> = `«ENCODED_${T}»`;
 export type Requests = {
+    // !!NOTE: Does not include possible errors in responses.
+    // All responses should be treated as `Response | Reddit.APIError`
+    //
+    // !!NOTE: Queries exclude values which are required in every URL for these api responses to be correct:
+    // ?raw_json=1&rtj=yes&emotes_as_images=true&gilding_detail=1&profile_img=true
+    //
+    // note: an alternative to this could be providing types for a generic url builder
+    // eg like thing.api.test("somebit").post(data);
     "/api/comment": {
         body: {
             api_type: "json",
@@ -1240,7 +1254,7 @@ export type Requests = {
             thing_id: string,
             // uh: string,
         },
-        response: PostComment, // | {json: {errors: [id: string, desc: string, other: string][]}} (handled by my request fn)
+        response: PostComment,
     },
     "/api/editusertext": {
         body: {
@@ -1251,10 +1265,132 @@ export type Requests = {
             thing_id: string,
             // uh: string,
         },
+        response: PostComment,
     },
-    [key: `/api/test/${string}`]: {
+    "/api/test/0": {
         query: {
-            nothing?: never,
+            a: "b",
         },
+        response: "no",
     },
+    [key: `/r/${PathBit}/api/widgets`]: {
+        response: ApiWidgets,
+    },
+    [key: `/r/${PathBit}/about`]: {
+        response: T5,
+    },
+    [key: `/r/${PathBit}/about/rules`]: {
+        response: Rules,
+    },
+    "/api/multi/__unknown_base": {
+        response: LabeledMulti,
+    },
+    [key: `/comments/${PathBit}`]: {
+        query: {
+            sort: Sort | null,
+            comment: string | null,
+            context: string | null,
+        },
+        response: Page,
+    },
+    [key: `/duplicates/${PathBit}`]: { // could even enforce it has to be an unprefixed post fullname with distincts
+        query: {
+            after: string | null,
+            before: string | null,
+            sort: DuplicatesSort | null,
+            crossposts_only: string,
+        },
+        response: Page,
+    },
+    // if bases are updated to start with a slash and not end with a slash, i think we can support them properly
+    "/__unknown_base/__unknown_sort": {
+        query: {
+            t: SortTime | null, before: string | null, after: string | null,
+        },
+        response: Listing,
+    },
+    "/__any": {
+        response: AnyResult,
+    },
+    "/__any_page": {
+        response: Page,
+    },
+    "/__any_listing": {
+        response: Listing,
+    },
+    "/message/unread": {
+        response: Listing,
+    },
+    "/api/mod/conversations/unread/count": {
+        response: ModmailUnreadCount,
+    },
+    "/__unknown": {
+        response: unknown,
+    },
+    [key: `/user/${PathBit}/about`]: {
+        response: T2,
+    },
+    [key: `/api/v1/user/${PathBit}/trophies`]: {
+        response: TrophyList,
+    },
+    [key: `/user/${PathBit}/moderated_subreddits`]: {
+        response: ModeratedList,
+    },
+    "/api/vote": {
+        body: VoteBody,
+        response: EmptyResult,
+    },
+    "/api/del": {
+        body: {id: string},
+        response: EmptyResult,
+    },
+    "/api/subscribe": {
+        body: {
+            action: "sub" | "unsub",
+            sr_name: string,
+        },
+        response: EmptyResult,
+    },
+    "/api/report": {
+        body: {
+            sr_name: string,
+            thing_id: string,
+            rule_reason?: undefined | string,
+            site_reason?: undefined | string,
+            report_reason?: undefined | string,
+            reason?: undefined | string,
+        },
+        response: ReportResponse,
+    },
+    "/api/morechildren": {
+        query: {
+            limit_children: "false",
+            children: string,
+            link_id: string,
+            sort: Sort,
+        },
+        response: MoreChildren,
+    },
+
+    // i gave up, typescript was erroring with both `[key: …]` and `[key in …]`
+    // might need to do PathBit<"a_or_un"> to make it a normal template string thing instead of a union
+    "/api/save": ApiEntrySave, "/api/unsave": ApiEntrySave,
+    "/api/read_message": ApiEntryReadMessage, "/api/unread_message": ApiEntryReadMessage,
 };
+
+type ApiEntrySave = {// [key in "/api/save" | "/api/unsave"]: { // `/api/${"" | "un"}save`
+    body: {id: string},
+    response: EmptyResult,
+};
+type ApiEntryReadMessage = {
+    body: {id: string},
+    response: EmptyResult,
+};
+
+export type EmptyResult = {_?: undefined};
+
+export type DuplicatesSort = "num_comments" | "new" | "unsupported";
+
+
+export type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded";
+export type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";

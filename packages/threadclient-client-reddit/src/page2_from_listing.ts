@@ -93,7 +93,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 }},
             };
         }else if(parsed.kind === "raw") {
-            const resj = await redditRequest<unknown>(parsed.path, {method: "GET"});
+            const resj = await redditRequest(parsed.path as "/__unknown", {method: "GET"});
             return {pivot: unsupportedPage(pathraw, resj)};
         }else if(parsed.kind === "redirect") {
             return {
@@ -137,7 +137,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             inbox: () => pathraw,
         });
 
-        const page = await redditRequest<Reddit.Page>(link, {method: "GET"});
+        const page = await redditRequest(link as "/__any_page", {method: "GET"});
 
         return {
             pivot: page2FromListing(id_map, pathraw, parsed, page),

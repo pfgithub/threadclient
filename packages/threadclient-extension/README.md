@@ -11,6 +11,22 @@ features I want:
 - [ ] click the icon to search for reddit comments on a youtube video
 - [ ] do that for lots of pages, not just youtube
 - [ ] proxy getting reddit chat message count and pass to threadclient (fixes an issue)
+  - this should be enabled by default (no going into settings and accepting an extra permission)
+  - gql
+  - url: `https://gql.reddit.com/?request_timestamp=${unix timestamp}`
+  - body: `{id "d99f8962bcd6"}`
+  - authorization: `Bearer ${…}`
+    - i'm not sure where that token is from. the first bit is in the `reddit_session` cookie but where's the
+      part after the dash from? idk
+  - response:
+    ```js
+    {data: {badgeIndicators: {
+        chatUnreadMessages: {count: number},
+        chatUnreadMentions: {count: number},
+        chatHasNewMessages: {isShowing: boolean},
+        chatUnacceptedInvites: {count: number},
+    }}}
+    ```
 - [ ] proxy uploading images to reddit's s3 bucket if it's even possible. I think it is but haven't tested.
 
 ok I think I have to do this to get it in my browser:

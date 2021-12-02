@@ -361,7 +361,7 @@ function baseURL(oauth: boolean) {
     return "https://"+base;
 }
 function pathURL(oauth: boolean, path: string, opts: {override?: undefined | boolean}) {
-    const [pathname, query] = splitURL(path);
+    const [pathname, query, hash] = splitURL(path);
     if(!pathname.startsWith("/")) {
         throw new Error("path didn't start with `/` : `"+path+"`");
     }
@@ -371,7 +371,7 @@ function pathURL(oauth: boolean, path: string, opts: {override?: undefined | boo
     query.set("emotes_as_images", "true"); // enables sending {t: "gif"} span elements in richtext rather than sending a link
     query.set("gilding_detail", "1"); // not sure what this does but new.reddit sends it in an oauth.reddit.com request so it sounds good
     query.set("profile_img", "true"); // profile images
-    return baseURL(oauth) + pathname + ".json?"+query.toString();
+    return baseURL(oauth) + pathname + ".json?"+query.toString() + (hash === "" ? "" : "#"+hash);
 }
 
 // ok so the idea::
@@ -519,17 +519,19 @@ async function getAuthorization() {
     return "Bearer "+access_token;
 }
 
-function splitURL(path: string): [string, URLSearchParams] {
+function splitURL(path: string): [string, URLSearchParams, string] {
     const [pathname, ...query] = path.split("?");
-    return [pathname ?? "", new URLSearchParams(query.join("?"))];
+    const queryjoined = query.join("?");
+    const [justquery, ...hash] = queryjoined.split("#");
+    return [pathname ?? "", new URLSearchParams(justquery), hash.join("#")];
 }
 export function updateQuery(path: string, update: {[key: string]: string | undefined}): string {
-    const [pathname, query] = splitURL(path);
+    const [pathname, query, hash] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
         if(v != null) query.set(k, v);
         else query.delete(k);
     }
-    return pathname + "?" + query.toString();
+    return pathname + "?" + query.toString() + (hash !== "" ? "#"+hash : "");
 }
 
 function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.Action {
@@ -1399,13 +1401,10 @@ export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[
     ];
 }
 
-type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded";
-type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
-
 export type ParsedPath = {
     kind: "subreddit",
     sub: SubrInfo,
-    current_sort: {v: SortMode, t: SortTime},
+    current_sort: {v: Reddit.SortMode, t: Reddit.SortTime},
     is_user_page: boolean, // /u/…/hot. user subreddit pages must have /hot /new /random otherwise they will display the normal user page
 
     before: string | null, // fullname
@@ -1416,7 +1415,7 @@ export type ParsedPath = {
     current: {
         kind: "sorted-tab",
         tab: "overview" | "comments" | "submitted",
-        sort: {sort: SortMode | "unsupported", t: SortTime},
+        sort: {sort: Reddit.SortMode | "unsupported", t: Reddit.SortTime},
         // overview defaults ?sort=new
         // comments defaults ?sort=new
         // submitted defaults ?sort=hot
@@ -1471,7 +1470,7 @@ export type ParsedPath = {
     post_id_unprefixed: string,
     after: string | null,
     before: string | null,
-    sort: "num_comments" | "new" | "unsupported",
+    sort: Reddit.DuplicatesSort | null,
     crossposts_only: boolean,
 } | {
     kind: "comments",
@@ -1479,7 +1478,7 @@ export type ParsedPath = {
     post_id_unprefixed: string,
     focus_comment: string | null, // unprefixed id | null
     // /comments/:post_id_unprefixed.json?comment=:focus_comment
-    sort_override: "confidence" | "top" | "new" | "controversial" | "old" | "random" | "qa" | "live" | "unsupported" | null,
+    sort_override: Reddit.Sort | null,
     context: string | null,
 } | {
     kind: "wiki",
@@ -2834,8 +2833,8 @@ async function fetchSubInfo(sub: SubrInfo): Promise<{
     if(sub.kind === "mod") return {sidebar: null};
     if(sub.kind === "subreddit") {
         const [widgets, about] = await Promise.all([
-            redditRequest<Reddit.ApiWidgets | undefined>("/r/"+sub.subreddit+"/api/widgets", {method: "GET", onerror: e => undefined, cache: true}),
-            redditRequest<Reddit.T5 | undefined>("/r/"+sub.subreddit+"/about", {method: "GET", onerror: e => undefined, cache: true}),
+            redditRequest(`/r/${ec(sub.subreddit)}/api/widgets`, {method: "GET", onerror: e => undefined, cache: true}),
+            redditRequest(`/r/${ec(sub.subreddit)}/about`, {method: "GET", onerror: e => undefined, cache: true}),
         ]);
         const subinfo: SubInfo = {subreddit: sub.subreddit, sub_t5: about ?? null, widgets: widgets ?? null};
         return {
@@ -2845,7 +2844,7 @@ async function fetchSubInfo(sub: SubrInfo): Promise<{
     }
     if(sub.kind === "multireddit") {
         const [multi_info] = await Promise.all([
-            redditRequest<Reddit.LabeledMulti | undefined>("/" + ["api", "multi", ...sub.base].join("/"), {method: "GET", onerror: e => undefined, cache: true}),
+            redditRequest(("/" + ["api", "multi", ...sub.base].join("/")) as unknown as "/api/multi/__unknown_base", {method: "GET", onerror: e => undefined, cache: true}),
         ]);
         return {
             sidebar: multi_info ? sidebarFromMulti(multi_info) : null,
@@ -3077,6 +3076,10 @@ export function parseLink(path: string): [parsed: ParsedPath, path: string] {
     return [parsed, path];
 }
 
+export function ec<T extends string>(v: T): Reddit.PathBit<T> {
+    return v as Reddit.PathBit<T>;
+}
+
 export const client: ThreadClient = {
     id: "reddit",
     // loginURL: getLoginURL(),
@@ -3090,11 +3093,10 @@ export const client: ThreadClient = {
             if(parsed.kind === "comments") {
                 // ?comment=… ?context=… ?depth=… ?limit=… ?showedits=true ?showmedia=true ?showmore=true ?showtitle=true ?sort=confidence|top|new|controversial|old|random|qa|live
                 // ?sr_detail=… // passes the subreddit about page with the result
-                const link = "/comments/"+parsed.post_id_unprefixed+"?"+encodeQuery({
-                    sort: parsed.sort_override, comment: parsed.focus_comment, context: parsed.context,
-                });
                 const [page, subinfo] = await Promise.all([
-                    redditRequest<Reddit.Page>(link, {method: "GET"}),
+                    redditRequest(`/comments/${ec(parsed.post_id_unprefixed)}`, {method: "GET", query: {
+                        sort: parsed.sort_override, comment: parsed.focus_comment, context: parsed.context,
+                    }}),
                     fetchSubInfo(parsed.sub),
                 ]);
 
@@ -3102,19 +3104,20 @@ export const client: ThreadClient = {
             }else if(parsed.kind === "duplicates") {
                 // ?sort=num_comments|new
                 // ?before=
-                const link = "/duplicates/"+parsed.post_id_unprefixed+"?"+encodeQuery({
-                    after: parsed.after, before: parsed.before, sort: parsed.sort, crossposts_only: "" + parsed.crossposts_only,
-                });
                 const [duplicates, subinfo] = await Promise.all([
-                    redditRequest<Reddit.Page>(link, {method: "GET"}),
+                    redditRequest(`/duplicates/${ec(parsed.post_id_unprefixed)}`, {method: "GET", query: {
+                        after: parsed.after, before: parsed.before, sort: parsed.sort, crossposts_only: "" + parsed.crossposts_only,
+                    }}),
                     fetchSubInfo(parsed.sub),
                 ]);
 
                 return pageFromListing(pathraw, parsed, duplicates, {...subinfo});
             }else if(parsed.kind === "subreddit") {
-                const link = "/"+[...parsed.sub.base, parsed.current_sort.v].join("/")+"?"+encodeQuery({t: parsed.current_sort.t, before: parsed.before, after: parsed.after});
+                const link = "/"+[...parsed.sub.base, parsed.current_sort.v].join("/");
                 const [listing, subinfo] = await Promise.all([
-                    redditRequest<Reddit.Listing>(link, {method: "GET"}),
+                    redditRequest(link as "/__unknown_base/__unknown_sort", {method: "GET", query: {
+                        t: parsed.current_sort.t, before: parsed.before, after: parsed.after,
+                    }}),
                     fetchSubInfo(parsed.sub),
                 ]);
 
@@ -3122,7 +3125,7 @@ export const client: ThreadClient = {
             }else if(parsed.kind === "wiki") {
                 const link = "/"+[...parsed.sub.base, "wiki", ...parsed.path].join("/") + "?" + encodeQuery(parsed.query);
                 const [result, subinfo] = await Promise.all([
-                    redditRequest<Reddit.AnyResult>(link, {method: "GET"}),
+                    redditRequest(link as "/__any", {method: "GET"}),
                     fetchSubInfo(parsed.sub),
                 ]);
                 
@@ -3130,10 +3133,10 @@ export const client: ThreadClient = {
             }else if(parsed.kind === "user") {
                 const link = pathraw;
                 const [result, userabout, trophies, modded_subs] = await Promise.all([
-                    redditRequest<Reddit.AnyResult>(link, {method: "GET"}),
-                    redditRequest<Reddit.T2 | undefined>("/user/"+parsed.username+"/about", {method: "GET", onerror: e => undefined, cache: true}),
-                    redditRequest<Reddit.TrophyList | undefined>("/api/v1/user/"+parsed.username+"/trophies", {method: "GET", onerror: e => undefined, cache: true}),
-                    redditRequest<Reddit.ModeratedList | undefined>("/user/"+parsed.username+"/moderated_subreddits", {
+                    redditRequest(link as "/__any", {method: "GET"}),
+                    redditRequest(`/user/${ec(parsed.username)}/about`, {method: "GET", onerror: e => undefined, cache: true}),
+                    redditRequest(`/api/v1/user/${ec(parsed.username)}/trophies`, {method: "GET", onerror: e => undefined, cache: true}),
+                    redditRequest(`/user/${ec(parsed.username)}/moderated_subreddits`, {
                         method: "GET", onerror: e => undefined, cache: true,
                     }), // this is undocumented?
                 ]);
@@ -3149,7 +3152,7 @@ export const client: ThreadClient = {
                     // TODO
                 }else if(parsed.current.tab === "inbox") {
                     const link = "/message/"+parsed.current.inbox_tab;
-                    const result = await redditRequest<Reddit.AnyResult>(link, {method: "GET"});
+                    const result = await redditRequest(link as "/__any", {method: "GET"});
 
                     return pageFromListing(pathraw, parsed, result, {sidebar: null});
                 }else if(parsed.current.tab === "sent") {
@@ -3174,7 +3177,7 @@ export const client: ThreadClient = {
                     display_style: "comments-view",
                 };
             }else if(parsed.kind === "todo") {
-                const resj = await redditRequest<Reddit.AnyResult>(parsed.path, {method: "GET", onerror: (error) => ({
+                const resj = await redditRequest(parsed.path as "/__any", {method: "GET", onerror: (error): Reddit.AnyResult => ({
                     kind: "unsupported",
                     extra: {
                         title: error.message,
@@ -3194,7 +3197,7 @@ export const client: ThreadClient = {
                     raw_value: parsed,
                 }]});
             }else if(parsed.kind === "raw") {
-                const resj = await redditRequest<unknown>(parsed.path, {method: "GET"});
+                const resj = await redditRequest(parsed.path as "/__unknown", {method: "GET"});
                 return pathFromListingRaw(pathraw, resj, {sidebar: [{
                     kind: "widget",
                     title: "Raw",
@@ -3354,32 +3357,28 @@ export const client: ThreadClient = {
     async act(action_raw: Generic.Opaque<"act">): Promise<void> {
         const act = act_encoder.decode(action_raw);
         if(act.kind === "vote") {
-            type VoteResult = {_?: undefined};
-            const res = await redditRequest<VoteResult>("/api/vote", {
+            const res = await redditRequest("/api/vote", {
                 method: "POST",
                 mode: "urlencoded",
                 body: act.query,
             });
             console.log(res);
         }else if(act.kind === "delete") {
-            type DeleteResult = {_?: undefined};
-            const res = await redditRequest<DeleteResult>("/api/del", {
+            const res = await redditRequest("/api/del", {
                 method: "POST",
                 mode: "urlencoded",
                 body: {id: act.fullname},
             });
             console.log(res);
         }else if(act.kind === "save") {
-            type DeleteResult = {__nothing: unknown};
-            const res = await redditRequest<DeleteResult>("/api/" + act.direction + "save", {
+            const res = await redditRequest(`/api/${act.direction}save`, {
                 method: "POST",
                 mode: "urlencoded",
                 body: {id: act.fullname},
             });
             console.log(res);
         }else if(act.kind === "subscribe") {
-            type DeleteResult = {__nothing: unknown};
-            const res = await redditRequest<DeleteResult>("/api/subscribe", {
+            const res = await redditRequest("/api/subscribe", {
                 method: "POST",
                 mode: "urlencoded",
                 body: {
@@ -3389,8 +3388,7 @@ export const client: ThreadClient = {
             });
             console.log(res);
         }else if(act.kind === "mark_read") {
-            type DeleteResult = {error: number, message: string};
-            const res = await redditRequest<DeleteResult>("/api/"+act.direction+"read_message/", {
+            const res = await redditRequest(`/api/${act.direction}read_message`, {
                 method: "POST",
                 mode: "urlencoded",
                 body: {
@@ -3490,7 +3488,7 @@ export const client: ThreadClient = {
             ),
         };
         const url = ({reply: "/api/comment", edit: "/api/editusertext"} as const)[mode];
-        const reply = await redditRequest<Reddit.PostComment>(url, {
+        const reply = await redditRequest(url, {
             method: "POST",
             mode: "urlencoded",
             body,
@@ -3502,8 +3500,8 @@ export const client: ThreadClient = {
     async fetchReportScreen(data_raw) {
         const data = report_encoder.decode(data_raw);
         const [sub_rules, sub_about] = await Promise.all([
-            await redditRequest<Reddit.Rules>("/r/"+data.subreddit+"/about/rules", {method: "GET", cache: true}),
-            await redditRequest<Reddit.T5>("/r/"+data.subreddit+"/about", {method: "GET", cache: true}),
+            await redditRequest(`/r/${ec(data.subreddit)}/about/rules`, {method: "GET", cache: true}),
+            await redditRequest(`/r/${ec(data.subreddit)}/about`, {method: "GET", cache: true}),
         ]);
 
         const kind = data.fullname.startsWith("t1_") ? "comment" : data.fullname.startsWith("t3_") ? "link" : "unsupported";
@@ -3575,7 +3573,7 @@ export const client: ThreadClient = {
             if(text == null) throw new Error("never. missing text on sub_other");
         }
 
-        const response = await redditRequest<Reddit.ReportResponse>("/api/report", {
+        const response = await redditRequest("/api/report", {
             method: "POST",
             mode: "urlencoded",
             body: {
@@ -3610,15 +3608,15 @@ export const client: ThreadClient = {
             const remaining = [...act.children];
             const batch = remaining.splice(0, 100);
 
-            const url = "/api/morechildren?api_type=json&limit_children=false&children="+batch.join(",")+"&link_id="+encodeURIComponent(act.link_fullname)+"&sort="+act.parent_permalink.sort;
-            const resp = await redditRequest<Reddit.MoreChildren>(url, {
+            const resp = await redditRequest("/api/morechildren", {
                 method: "GET",
+                query: {
+                    limit_children: "false",
+                    children: batch.join(","),
+                    link_id: act.link_fullname,
+                    sort: act.parent_permalink.sort,
+                },
             });
-
-            if(resp.json.errors.length > 0) {
-                console.log("got errors", resp);
-                throw new Error("Got errors: "+resp.json.errors.join(", "));
-            }
 
             const reparenting: Reddit.PostCommentLike[] = [];
             const id_map = new Map<string, Reddit.PostCommentLike>();
@@ -3660,7 +3658,7 @@ export const client: ThreadClient = {
 
             return res_value;
         }else if(act.kind === "parent_permalink") {
-            const resp = await redditRequest<Reddit.Page>(act.permalink, {
+            const resp = await redditRequest(act.permalink as "/__any_page", {
                 method: "GET",
             });
             const [parsed_link, pathraw] = parseLink(act.permalink)!;
@@ -3688,7 +3686,7 @@ export const client: ThreadClient = {
     }> {
         const act = load_more_unmounted_encoder.decode(action);
         if(act.kind === "listing") {
-            const resp = await redditRequest<Reddit.Listing>(act.url, {
+            const resp = await redditRequest(act.url as "/__any_listing", {
                 method: "GET",
             });
             const [parsed_url, pathraw] = parseLink(act.url)!;
@@ -3705,7 +3703,7 @@ export const client: ThreadClient = {
     async hydrateInbox(inbox_raw: Generic.Opaque<"deferred_inbox">): Promise<Generic.InboxData> {
         const inbox = deferred_inbox.decode(inbox_raw);
         if(inbox.kind === "inbox") {
-            const resp = await redditRequest<Reddit.Listing>("/message/unread", {
+            const resp = await redditRequest("/message/unread", {
                 method: "GET",
             });
             const msgs = (resp.data.after != null) ? {
@@ -3721,7 +3719,7 @@ export const client: ThreadClient = {
             };
             // in the future, clicking the button could have resp preloaded rather than loading it again
         }else if(inbox.kind === "modmail") {
-            const resp = await redditRequest<Reddit.ModmailUnreadCount>("/api/mod/conversations/unread/count", {
+            const resp = await redditRequest("/api/mod/conversations/unread/count", {
                 method: "GET",
             });
             return {
@@ -3804,28 +3802,81 @@ type ReportAction = {
 // note: sub_other should pass the text through the other_reason field when reporting
 const report_action_encoder = encoderGenerator<ReportAction, "send_report">("send_report");
 
-type RequestOpts<ResponseType> = (
+type RequestOpts<ThingType extends Reddit.RequestInfo, Extra> = (
     | {method: "GET"}
     | {method: "POST", mode: "urlencoded", body: {[key: string]: string | undefined}}
     | {method: "POST", mode: "json", body: unknown}
 ) & {
-    onerror?: undefined | ((e: Error) => ResponseType),
-    onstatus?: undefined | ((status: number, res: ResponseType) => ResponseType),
+    onerror?: undefined | ((e: Error) => Extra),
+    onstatus?: undefined | ((status: number, res: ThingType["response"]) => Extra),
     cache?: undefined | boolean,
     override?: undefined | boolean,
-};
+} & (ThingType["query"] extends {[key: string]: string | null | undefined} ? {
+    query: ThingType["query"],
+} : {
+    query?: undefined,
+});
 // note: TODO reset caches on a few occasions
 // : if you send any requests to edit the subreddit about text or anything like that, clear all caches containing /r/:subname/ or ending with /r/:subname
 // : if you click the refresh button at the top of the page, clear caches maybe
 const request_cache = new Map<string, unknown>();
-export async function redditRequest<ResponseType>(
-    path: string,
-    opts: RequestOpts<ResponseType>,
-): Promise<ResponseType> {
+
+async (cond: boolean, use: <T>(v: T) => void) => {
+    // tests for the redditRequest return type
+
+    {
+        let tres = await redditRequest("/api/test/0", {
+            query: {a: "b"},
+            method: "GET",
+        });
+
+        if(cond) tres = "no";
+        // @ts-expect-error
+        if(cond) tres = "yes";
+
+        use<"no">(tres);
+    }
+
+    {
+        let tres = await redditRequest("/api/test/0", {
+            query: {a: "b"},
+            method: "GET",
+            onerror: () => "yes" as const,
+        });
+
+        if(cond) tres = "no";
+        if(cond) tres = "yes";
+        // @ts-expect-error
+        if(cond) tres = "maybe";
+
+        use<"yes" | "no">(tres);
+    }
+
+    {
+        let tres = await redditRequest("/api/test/0", {
+            query: {a: "b"},
+            method: "GET",
+            onerror: () => undefined,
+        });
+
+        if(cond) tres = "no";
+        if(cond) tres = undefined;
+        // @ts-expect-error
+        if(cond) tres = "yes";
+
+        use<"no" | undefined>(tres);
+    }
+};
+
+export async function redditRequest<Path extends keyof Reddit.Requests, Extra = never>(
+    path: Path,
+    opts: RequestOpts<Reddit.Requests[Path], Extra>,
+): Promise<Reddit.Requests[Path]["response"] | Extra> {
     // TODO if error because token needs refreshing, refresh the token and try again
     try {
         const authorization = await getAuthorization();
-        const full_url = pathURL(!!authorization, path, {override: opts.override});
+
+        const full_url = pathURL(!!authorization, updateQuery(path, opts.query ?? {}), {override: opts.override});
         const fetchopts: RequestInit = {
             method: opts.method, mode: "cors", credentials: "omit",
             headers: {
@@ -3849,9 +3900,9 @@ export async function redditRequest<ResponseType>(
         };
         const cache_text = JSON.stringify([full_url, fetchopts]);
         const prev_cache = request_cache.get(cache_text);
-        if(prev_cache != null && (opts.cache ?? false)) return prev_cache as ResponseType;
+        if(prev_cache != null && (opts.cache ?? false)) return prev_cache as Reddit.Requests[Path]["response"];
         const [status, res] = await fetch(full_url, fetchopts).then(async (v) => {
-            return [v.status, await v.json() as ResponseType] as const;
+            return [v.status, await v.json() as Reddit.Requests[Path]["response"]] as const;
         });
         if(status !== 200) {
             if(opts.onstatus) return opts.onstatus(status, res);
