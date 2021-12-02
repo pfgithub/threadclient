@@ -8,12 +8,12 @@ oh I can hack it I think: `<base href="http://pathtooriginalpage" />`
 
 - [ ] I think it's critical that I make a seperate codepath for page2.
 - [ ] like from entry.ts, completely different, only sharing the
-  serviceworker stuff
+      serviceworker stuff
 - [ ] that way I can get page2 working with hot reload and significantly
-  improve development experience
+      improve development experience
 - [ ] be careful with what I'm doing in flatten.ts - I'm kinda accidentally
-  recreating virtual dom and that will have terrible performance implications.
-  when you collapse something, it should not have to regenerate the entire array.
+      recreating virtual dom and that will have terrible performance implications.
+      when you collapse something, it should not have to regenerate the entire array.
   - huh... that's not ideal is it
   - like if I add a reply I don't want to regenerate the whole array, just anything
     relevant
@@ -36,7 +36,7 @@ rendered on your screen/display
 ## todo
 
 - [ ] ok I know I lose the fun animations on collapsing posts and stuff but I
-  think I have to do this:
+      think I have to do this:
   - rather than rendering posts in a hierarchy, render them from a single
     array using a single <\For>
   - handle indentation in the post renderer
@@ -85,7 +85,8 @@ todo:
 - [ ] apply thiss tyle to url previews:
 
   ```css
-  .clickerthing:hover, .clickerthing:focus {
+  .clickerthing:hover,
+  .clickerthing:focus {
     background-color: var(--cool-gray-200);
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
   }
@@ -123,12 +124,12 @@ fun stuff:
   - these go after the username and the rest of the infobar. if there is a thumbnail, these don't display at all
   - actually these are basically thumbnails but for text. huh
 - [ ] check out `.icon_color` and consider using this instead of color_hash, or at leat
-  using this color while the image is loading.
+      using this color while the image is loading.
 - [ ] what if braille images were inserted as an actual 'braille image' component in richtext? that could be fun
-  couldn't it. also would improve summaries and screenreader support. not sure if it's worth it though, it would
-  be useful to parse out the text and stuff
+      couldn't it. also would improve summaries and screenreader support. not sure if it's worth it though, it would
+      be useful to parse out the text and stuff
 - [ ] https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/progress_event xhr progress when loading in
-  bad internet
+      bad internet
 - [ ] doing richtext things: visualviewport finally allows us to position an element above the ios keyboard! and combine that with position device-fixed or a polyfill and it'll be a pretty nice bar thing
 - mock the reddit api and use things eg https://github.com/marak/Faker.js/ and maybe have some sample pages and stuff
 
@@ -157,6 +158,7 @@ page2 todo:
   - it might help to use an actual interface design program to make mockups and then try to replicate those
 
 preview todo:
+
 - add support for youtube.com/shorts (I think youtube offers an oembed thing so I don't have to do url parsing)
 
 tmeta todo:
