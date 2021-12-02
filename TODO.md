@@ -1,3 +1,9 @@
+## bug!
+
+sidebar iframes with relative links have the wrong base url
+
+oh I can hack it I think: `<base href="http://pathtooriginalpage" />`
+
 ## todo
 
 - [ ] I think it's critical that I make a seperate codepath for page2.
