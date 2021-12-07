@@ -113,7 +113,7 @@ type TermText = string | {
 
 export async function downloadimage(url: string, signal: AbortSignal): Promise<{filename: string, bytes: number}> {
     const cachename = Buffer.from(url).toString("base64").replaceAll("/", "_").replaceAll("+", "-"); // todo should probably hash rather than b64 encode
-    const filename = imgcachedir + "/" + cachename;
+    const filename = imgcachedir + "/" + cachename + ".png";
 
     try {
         const stat = await fs.stat(filename);
@@ -173,6 +173,17 @@ async function displayBody(body: Generic.Body, signal: AbortSignal): Promise<voi
         if(body.caption != null) console.log("caption: "+body.caption);
         if(body.alt != null) console.log("alt: "+body.alt);
         const imgv = await downloadimage(body.url, signal);
+
+        // image viewers:
+        // - in-terminal:
+        //   - kitty image transfer api
+        //   - iterm2 image transfer api
+        // - seperate window:
+        //   - feh $image
+        //   - qlmanage -p $image # note: must end in an image file extension
+        // - through system default apps:
+        //   - xdg-open $image
+        //   - open $image # note: must end in an image file extension
 
         await runCommand(["feh", imgv.filename], signal);
     }else if(body.kind === "link") {
