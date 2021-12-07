@@ -181,7 +181,7 @@ if(navigator.serviceWorker != null) {
     }).catch(e => console.log("Error checking sw registrations", e));    
 }
 
-console.log("ROUTER.TS WAS RELOADED.");
+console.log("ROUTER.TS WAS RELOADED.", import.meta.hot);
 // TODO show an error message
 if(import.meta.hot) {
     console.log("...configuring router.ts as an hmr boundary");
@@ -198,7 +198,10 @@ if(import.meta.hot) {
 
         // don't want to bother with manually updating all the exports this has or
         // reinitializing stuff or whatever
-        if(!alertarea) throw new Error("attempt to update router.ts twice");
+        if(!alertarea || !global_counter_info) {
+            throw new Error("attempt to update router.ts twice");
+        }
+        console.log(alertarea, global_counter_info);
 
         const alert = el("div").clss("alert").adto(alertarea);
         el("div").clss("alert-body").adto(alert).atxt("router.tsx does not support updating.");

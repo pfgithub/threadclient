@@ -22,7 +22,10 @@ export type Loader = BasePost & {
 
     // loadLoader(replies) -> tree
 
+    // note: when a loader is used, the ui should pass the sort mode to the client
     key: Opaque<"loader">,
+
+    load_count: null | number,
 };
 
 export type BasePost = {

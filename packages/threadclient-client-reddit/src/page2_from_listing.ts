@@ -626,16 +626,30 @@ function postDataFromListingMayError(
                 subreddit: listing.subreddit,
                 base: ["r", listing.subreddit],
             })),
-            replies: entry.data.replies !== "not_loaded" ? {
+            replies: {
                 reply: {
                     action: replyButton(listing.name),
                     locked: listing.locked,
                 },
                 // I don't think before and after are used here
-                items: entry.data.replies.data.children.map(reply => (
+                items: entry.data.replies !== "not_loaded" ? entry.data.replies.data.children.map(reply => (
                     getPostData(map, getPostFullname(reply))
-                )),
-            } : null, // TODO load_more instead of null
+                )) : [
+                    {ref: {
+                        kind: "loader",
+                        key: loader.encode({
+                            kind: "comments",
+                            post: listing.id,
+                        }),
+
+                        parent: entry.link,
+                        replies: null,
+                        client_id: client.id,
+                        url: null,
+                        load_count: null,
+                    }},
+                ],
+            },
 
             content: {
                 kind: "post",
@@ -706,6 +720,7 @@ function postDataFromListingMayError(
             parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
+            load_count: null,
 
             key: loader.encode({
                 kind: "depth",
@@ -720,6 +735,7 @@ function postDataFromListingMayError(
             parent: getPostData(map, listing.parent_id as ID),
             replies: null,
             url: null,
+            load_count: listing.children.length,
 
             key: loader.encode({
                 kind: "more",
@@ -783,6 +799,9 @@ type LoaderData = {
 } | {
     kind: "depth",
     data: Reddit.PostMore,
+} | {
+    kind: "comments",
+    post: string,
 };
 
 const loader = encoderGenerator<LoaderData, "loader">("loader");

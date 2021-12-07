@@ -534,7 +534,11 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                 is_pivot: false,
                             }}
                         />,
-                        loader: () => <>TODO loader</>,
+                        loader: loader => (
+                            <button class="text-blue-500 hover:underline">
+                                Load More ({loader.load_count ?? "???"})
+                            </button>
+                        ),
                     }}</SwitchKind></div>
                 </div>
             </div>}</ToggleColor>,
