@@ -336,7 +336,7 @@ pre {
 }
 
 .resizable-iframe {
-    resize: both;
+    resize: vertical;
     overflow: auto;
     border: 2px solid var(--collapse-line-color);
     & > iframe {
