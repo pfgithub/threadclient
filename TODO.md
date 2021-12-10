@@ -6,6 +6,12 @@ oh I can hack it I think: `<base href="http://pathtooriginalpage" />`
 
 ## todo
 
+- consider using github subtrees? like you can merge another repo into this one and keep
+  the history and stuff. and that would be nice because it makes projects more
+  discoverable while keeping the monorepo structure.
+
+## todo
+
 - [ ] I think it's critical that I make a seperate codepath for page2.
 - [ ] like from entry.ts, completely different, only sharing the
       serviceworker stuff
