@@ -86,8 +86,8 @@ export function animateHeight(
         });
     }, {defer: true}));
     createEffect(() => {
-        console.log("ANIMATING", shift_pressed);
         if(animating() != null) {
+            console.log("ANIMATING", shift_pressed);
             comment_root.style.height = animating() + "px";
             comment_root.style.overflow = "hidden";
             comment_root.style.transition = untrack(() => (

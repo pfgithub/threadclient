@@ -536,7 +536,7 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                         />,
                         loader: loader => (
                             <button class="text-blue-500 hover:underline">
-                                Load More ({loader.load_count ?? "???"})
+                                Load More ({loader.load_count ?? "????"})
                             </button>
                         ),
                     }}</SwitchKind></div>
