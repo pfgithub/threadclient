@@ -1,7 +1,14 @@
 // import { onMessage } from "webext-bridge";
+import { createSignal } from "solid-js";
 import browser from "webextension-polyfill";
 import "windi.css";
-import { showRedirectNotice } from "./threadclient_redirect_notice";
+import { showNotifications } from "./threadclient_redirect_notice";
+
+export type NotificationsType = {
+    ask_to_redirect: boolean; // only allow one visible max.
+    // consider using sessionstorage to hide this if you're navigating.
+    // oh jk, sessionstorage lasts across page reloads nvm
+};
 
 // Firefox `browser.tabs.executeScript()` requires scripts return a primitive value
 void (async () => {
@@ -38,5 +45,19 @@ void (async () => {
     shadow_dom.appendChild(root);
     document.body.appendChild(container);
 
-    showRedirectNotice(shadow_dom);
+    const [notifications, setNotifications] = createSignal<NotificationsType>({
+        ask_to_redirect: false,
+    });
+
+    if(location.pathname.startsWith("/chat")) {
+        // don't show a redirect notice, we don't support chat.
+    }else{
+        // TODO check if the page is supported in threadclient by exporting the
+        // actual router data.
+        setNotifications(v => ({
+            ...v,
+            ask_to_redirect: true,
+        }));
+    }
+    showNotifications(shadow_dom, notifications, setNotifications);
 })();

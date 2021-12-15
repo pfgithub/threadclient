@@ -1,7 +1,7 @@
-import browser from "webextension-polyfill";
+// import browser from "webextension-polyfill";
 
 // https://bugzilla.mozilla.org/show_bug.cgi?id=1319168
-// need both a background and a content script :(
+// need both a background and a content script because this isn't implemented :(
 
 // so:
 // - in the content script, we need to add a sendMessage listener
@@ -56,8 +56,3 @@ import browser from "webextension-polyfill";
 // - much fancier than the one old.reddit uses, although this one is probably
 //   subject to more change (change means the api would stop working eventually,
 //   since this is gql the actual response data won't change for a given request id.)
-
-browser.runtime.onMessageExternal.addListener((message) => {
-    // got message external
-    console.log
-})
