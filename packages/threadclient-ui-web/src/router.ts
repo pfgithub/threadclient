@@ -198,7 +198,7 @@ if(import.meta.hot) {
 
         // don't want to bother with manually updating all the exports this has or
         // reinitializing stuff or whatever
-        if(!alertarea || !global_counter_info) {
+        if(!alertarea || !(global_counter_info as unknown as boolean)) {
             throw new Error("attempt to update router.ts twice");
         }
         console.log(alertarea, global_counter_info);
