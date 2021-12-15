@@ -7,6 +7,10 @@ function Popup(): JSX.Element {
         <button onClick={() => {
             void browser.runtime.openOptionsPage();
         }}>open options</button>
+        <a href="error" target="_blank" rel="noopener">
+            [if page == reddit]Open in ThreadClient,
+            [if page == threadclient]Open in Reddit,
+        </a>
     </div>;
 }
 
