@@ -2061,7 +2061,10 @@ export function getPointsOn(listing: {
         incremented_label: "Voted",
         decremented_label: "Voted",
 
-        count_excl_you: listing.score_hidden ?? listing.hide_score ?? false ? "hidden" : listing.score + (listing.likes === true ? -1 : listing.likes === false ? 1 : 0),
+        count_excl_you: (listing.score_hidden ?? listing.hide_score ?? false) && listing.score === 1
+            ? "hidden"
+            : listing.score + (listing.likes === true ? -1 : listing.likes === false ? 1 : 0)
+        ,
         you: listing.likes === true ? "increment" : listing.likes === false ? "decrement" : undefined,
 
         percent: listing.upvote_ratio,
