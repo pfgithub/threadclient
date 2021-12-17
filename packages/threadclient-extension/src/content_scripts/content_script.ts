@@ -5,7 +5,7 @@ import "windi.css";
 import { showNotifications } from "./threadclient_redirect_notice";
 
 export type NotificationsType = {
-    ask_to_redirect: boolean; // only allow one visible max.
+    ask_to_redirect: boolean, // only allow one visible max.
     // consider using sessionstorage to hide this if you're navigating.
     // oh jk, sessionstorage lasts across page reloads nvm
 };

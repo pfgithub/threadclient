@@ -4,6 +4,7 @@ import { NotificationsType } from "./content_script";
 import { ShowBool } from "tmeta-util-solid";
 
 declare module "solid-js" {
+    // eslint-disable-next-line @typescript-eslint/no-shadow
     namespace JSX {
         interface CustomEvents {
             click: MouseEvent;
