@@ -3614,6 +3614,7 @@ export const client: ThreadClient = {
             const resp = await redditRequest("/api/morechildren", {
                 method: "GET",
                 query: {
+                    api_type: "json",
                     limit_children: "false",
                     children: batch.join(","),
                     link_id: act.link_fullname,

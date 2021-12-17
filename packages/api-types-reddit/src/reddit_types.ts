@@ -1364,6 +1364,7 @@ export type Requests = {
     },
     "/api/morechildren": {
         query: {
+            api_type: "json",
             limit_children: "false",
             children: string,
             link_id: string,
