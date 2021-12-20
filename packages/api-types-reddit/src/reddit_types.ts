@@ -987,6 +987,10 @@ export type RemovedByCategory =
     | "moderator"
     // Filtered by automoderator
     | "automod_filtered"
+    // Sorry, this post was removed by Reddit.
+    // Reddit administrators occasionally remove posts that violate Reddit's User Agreement and Content Policy.
+    // [I would give an example but pushshift cached it so nvm]
+    | "content_takedown"
     // other
     | "unsupported"
 ;

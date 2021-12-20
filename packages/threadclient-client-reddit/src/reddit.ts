@@ -2455,6 +2455,11 @@ const removal_reasons: {[key in Reddit.RemovedByCategory]: (raw_name: string, su
         title: "This post was filtered by AutoModerator",
         body: "«TODO fill this»",
     }),
+    content_takedown: () => ({
+        short: "Content Takedown",
+        title: "Sorry, this post was removed by Reddit.",
+        body: "Reddit administrators occasionally remove posts that violate Reddit's User Agreement and Content Policy.",
+    }),
     unsupported: (raw_name) => ({
         short: raw_name,
         title: "This post was removed for «"+raw_name+"»",
@@ -3355,6 +3360,9 @@ export const client: ThreadClient = {
                 markdown_format: "reddit",
             };
         }
+        console.log("got item", item);
+        // TODO: fetchRemoved should return a full post.
+        // fetchremoved does not work for link posts atm because of this.
         throw new Error("no selftext or body");
     },
     async act(action_raw: Generic.Opaque<"act">): Promise<void> {
