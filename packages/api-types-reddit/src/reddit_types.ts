@@ -1010,6 +1010,15 @@ export type PostComment = PostOrComment & {
     collapsed: boolean,
     // collapsed_reason: ?,
     // collapsed_because_crowd_control: ?,
+
+    /// sometimes this will be null even when collapsed is true. not sure why
+    /// it could be crowd control?
+    /// one of these I saw didn't have score visible yet and seemed like it could
+    /// have been due to low score.
+    /// not sure if this is something I should rely on.
+    /// ok I found one 100% collapsed due to crowd control and it did not have a reason
+    /// code.
+    collapsed_reason_code: "DELETED" | "LOW_SCORE" | null,
 } & ({
     link_id: string,
     link_author: string,
