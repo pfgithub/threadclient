@@ -57,6 +57,9 @@
 //   subject to more change (change means the api would stop working eventually,
 //   since this is gql the actual response data won't change for a given request id.)
 
+// or use d99f8962bcd6
+// that's the old.reddit one which is probably less likely to change
+
 // await fetch("https://gql.reddit.com/?request_timestamp="+Date.now(), {
 //  method: "POST",
 //  headers: {

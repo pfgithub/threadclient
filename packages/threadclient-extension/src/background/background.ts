@@ -119,7 +119,7 @@ browser.webRequest.onHeadersReceived.addListener(
             });
             details.responseHeaders.push({
                 name: "Access-Control-Allow-Origin",
-                value: "*",
+                value: origin_url.origin,
             });
             return {
                 responseHeaders: details.responseHeaders,
