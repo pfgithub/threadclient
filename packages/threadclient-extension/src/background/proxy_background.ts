@@ -56,3 +56,13 @@
 // - much fancier than the one old.reddit uses, although this one is probably
 //   subject to more change (change means the api would stop working eventually,
 //   since this is gql the actual response data won't change for a given request id.)
+
+// await fetch("https://gql.reddit.com/?request_timestamp="+Date.now(), {
+//  method: "POST",
+//  headers: {
+//    "Content-Type": "application/json",
+//  },
+//  body: JSON.stringify({
+//    id: "9d105ce5d71a",
+//  }),
+// }).then(r => r.json())

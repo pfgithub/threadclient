@@ -1,4 +1,4 @@
-import { createMemo, createSignal, JSX, onCleanup, untrack } from "solid-js";
+import { Accessor, createMemo, createSignal, JSX, onCleanup, untrack } from "solid-js";
 import { MatchFn, switchKindCB } from "tmeta-util";
 
 export function SwitchKind<T extends {kind: string}>(props: {
@@ -118,4 +118,25 @@ export function TimeAgo(props: {start: number}): JSX.Element {
     return <time datetime={new Date(props.start).toString()} title={"" + new Date(props.start)}>
         {label}
     </time>;
+}
+
+export function localStorageSignal(key: string): [Accessor<string | null>, (nv: string | null) => void] {
+    const [value, setValue] = createSignal<string | null>(localStorage.getItem(key));
+
+    const onStorage = (e: StorageEvent) => {
+        if(e.key === key) {
+            setValue(e.newValue);
+        }
+    };
+    window.addEventListener("storage", onStorage);
+    onCleanup(() => window.removeEventListener("storage", onStorage));
+
+    return [value, (new_value: string | null) => {
+        if(new_value == null) {
+            localStorage.removeItem(key);
+        } else {
+            localStorage.setItem(key, new_value);
+        }
+        setValue(new_value);
+    }];
 }

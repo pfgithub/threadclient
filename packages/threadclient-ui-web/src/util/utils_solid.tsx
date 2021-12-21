@@ -4,8 +4,10 @@ import {
     createSignal, ErrorBoundary, JSX, onCleanup, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
-import { ShowBool } from "tmeta-util-solid";
+import { ShowBool, localStorageSignal } from "tmeta-util-solid";
 import { link_styles_v } from "../app";
+
+export {localStorageSignal};
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ColorDepthContext = createContext<{i: number}>();
@@ -74,28 +76,6 @@ type SerializerDeserializer<T> = {
     serialize(v: T): string,
     deserialize(v: string | undefined): T | undefined,
 };
-
-// creates a solid js signal from a local storage value
-export function localStorageSignal(key: string): [Accessor<string | null>, (nv: string | null) => void] {
-    const [value, setValue] = createSignal<string | null>(localStorage.getItem(key));
-
-    const onStorage = (e: StorageEvent) => {
-        if(e.key === key) {
-            setValue(e.newValue);
-        }
-    };
-    window.addEventListener("storage", onStorage);
-    onCleanup(() => window.removeEventListener("storage", onStorage));
-
-    return [value, (new_value: string | null) => {
-        if(new_value == null) {
-            localStorage.removeItem(key);
-        } else {
-            localStorage.setItem(key, new_value);
-        }
-        setValue(new_value);
-    }];
-}
 
 function localStorageProperty<
     T, Serializer extends (T extends string ? Partial<SerializerDeserializer<T>> : SerializerDeserializer<T>),

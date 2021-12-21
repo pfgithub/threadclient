@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+import browser, { WebRequest } from "webextension-polyfill";
 // import { sendMessage, onMessage } from "webext-bridge";
 
 // only on dev mode
@@ -53,19 +53,8 @@ browser.webRequest.onBeforeSendHeaders.addListener(
     (details) => {
         if(details.method !== "POST") return;
 
-        console.log("GOT WEB REQUEST1:", details.url, details);
-
-        const url = new URL(details.url);
-
-        if(url.hostname === "gql.reddit.com") {
-            const origin_url = new URL(details.originUrl ?? "https://example.com/");
-            if(origin_url.hostname !== "reddit.com" && !origin_url.hostname.endsWith(".reddit.com")) {
-                return; // ignore requests from eg:
-                // - thread.pfg.pw (it's not useful to take a token from ourself)
-                // - other sites if for whatever reason they wanted to send a request to
-                //   gql.reddit.com with a fake token
-            }
-
+        const origin_url = new URL(details.originUrl ?? "https://example.com/");
+        if(origin_url.hostname === "reddit.com" || origin_url.hostname.endsWith(".reddit.com")) {
             const authorization = (details.requestHeaders ?? [])
                 .find(header => header.name === "Authorization")
             ;
@@ -73,8 +62,6 @@ browser.webRequest.onBeforeSendHeaders.addListener(
 
             const token = authorization.value;//.replace(/^Bearer /, "");
             if(token == null || token.length === 0) return;
-
-            console.log("Got GQL Token:", token);
 
             const prev_token = localStorage.getItem("gql_token");
             if(prev_token === token) return; // no change needed
@@ -87,10 +74,62 @@ browser.webRequest.onBeforeSendHeaders.addListener(
             //   "allow threadclient to see if you have unread messages?"
             // or if they get here from a link in threadclient, assume they gave consent.
             // or if there is already a previous token, assume they gave consent.
+
+            return; // no changes to make.
+        }else if(origin_url.hostname === "thread.pfg.pw" || (allowDev() && origin_url.hostname === "localhost")) {
+            // add the token to the request
+
+            const token = localStorage.getItem("gql_token");
+            if(token == null || token.length === 0) return {
+                cancel: true,
+            };
+
+            (details.requestHeaders ??= []).push({
+                name: "Authorization",
+                value: token, // already says "Bearer"
+            });
+
+            return {
+                requestHeaders: details.requestHeaders,
+            };
+        }else{
+            return;
         }
     },
     { urls: ["https://gql.reddit.com/*"] },
-    ["requestHeaders"],//, "extraHeaders"], // nonblocking
+    ["blocking", "requestHeaders"],//, "extraHeaders"],
+    // for *.reddit.com origin, this should be nonblocking.
+    // for thread.pfg.pw origin, this should be blocking.
+);
+
+function allowDev(): boolean {
+    return localStorage.getItem("allow-dev") === "true";
+}
+
+browser.webRequest.onHeadersReceived.addListener(
+    (details) => {
+        const origin_url = new URL(details.originUrl ?? "https://example.com/");
+        if(origin_url.hostname === "thread.pfg.pw" || (allowDev() && origin_url.hostname === "localhost")) {
+            details.responseHeaders ??= [];
+            details.responseHeaders = details.responseHeaders.filter(h => {
+                if(h.name === "Access-Control-Allow-Origin") {
+                    return false;
+                }
+                return true;
+            });
+            details.responseHeaders.push({
+                name: "Access-Control-Allow-Origin",
+                value: "*",
+            });
+            return {
+                responseHeaders: details.responseHeaders,
+            };
+        }else{
+            return;
+        }
+    },
+    { urls: ["https://gql.reddit.com/*"] },
+    ["blocking", "responseHeaders"],
 );
 
 // communication example: send previous tab title from background page
