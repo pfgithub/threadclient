@@ -1,3 +1,8 @@
+## todo
+
+- along with getting chat messages working,
+- switch unread message count to `/api/v1/me` `.inbox_count`. also this will let us get our username. also we should save.
+
 ## bug!
 
 sidebar iframes with relative links have the wrong base url
