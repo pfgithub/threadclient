@@ -1,6 +1,6 @@
-import {JSX, Accessor, createSignal, onCleanup} from "solid-js";
-import {render} from "solid-js/web";
-import { ShowBool, localStorageSignal } from "tmeta-util-solid";
+import { JSX } from "solid-js";
+import { render } from "solid-js/web";
+import { localStorageSignal, ShowBool } from "tmeta-util-solid";
 // import browser from "webextension-polyfill";
 
 function Section(opts: {title: string, children: JSX.Element}): JSX.Element {
@@ -25,7 +25,10 @@ function Options(): JSX.Element {
                 <p>Chat indicators are {chatIndicatorsEnabled() ? "enabled" : "not enabled"}.</p>
                 <ShowBool when={chatIndicatorsEnabled()} fallback={
                     <p>
-                        <a href="https://www.reddit.com/#tc-chat-unread-indicators" target="_blank" rel="noopener noreferrer">
+                        <a
+                            href="https://www.reddit.com/#tc-chat-unread-indicators"
+                            target="_blank" rel="noopener noreferrer"
+                        >
                             Click Here
                         </a>
                         to enable chat unread indicators. Make sure to log in.

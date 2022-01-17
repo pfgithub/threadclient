@@ -1,4 +1,4 @@
-import browser, { WebRequest } from "webextension-polyfill";
+import browser from "webextension-polyfill";
 // import { sendMessage, onMessage } from "webext-bridge";
 
 // only on dev mode
