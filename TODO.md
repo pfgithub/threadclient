@@ -17,6 +17,7 @@ oh I can hack it I think: `<base href="http://pathtooriginalpage" />`
 
 ## todo
 
+- [ ] add a "load above" when you're sorting on new
 - [ ] I think it's critical that I make a seperate codepath for page2.
 - [ ] like from entry.ts, completely different, only sharing the
       serviceworker stuff
