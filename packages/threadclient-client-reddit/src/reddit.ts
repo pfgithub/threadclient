@@ -3715,22 +3715,24 @@ export const client: ThreadClient = {
     async hydrateInbox(inbox_raw: Generic.Opaque<"deferred_inbox">): Promise<Generic.InboxData> {
         const inbox = deferred_inbox.decode(inbox_raw);
         if(inbox.kind === "inbox") {
-            const resp = await redditRequest("/message/unread", {
+            const resp = await redditRequest("/api/me", {
                 method: "GET",
             });
-            const msgs = (resp.data.after != null) ? {
-                kind: "minimum",
-                min: resp.data.children.length,
-            } as const : resp.data.children.length > 0 ? {
-                kind: "exact",
-                value: resp.data.children.length,
-            } as const : {kind: "zero"} as const;
+            const count = resp.data.inbox_count;
             return {
-                messages: msgs,
-                url: msgs.kind === "zero" ? "/message/inbox" : "/message/unread",
+                messages: count === 0 ? {
+                    kind: "zero",
+                } : {
+                    kind: "exact",
+                    value: count
+                },
+                url: count === 0 ? "/message/inbox" : "/message/unread",
             };
             // in the future, clicking the button could have resp preloaded rather than loading it again
         }else if(inbox.kind === "modmail") {
+            // TODO this response also comes from the inbox thing
+            // but rather than a number it's just a boolean "new_modmail_exists"
+            // we should support that. but right now each one needs its own seperate request.
             const resp = await redditRequest("/api/mod/conversations/unread/count", {
                 method: "GET",
             });

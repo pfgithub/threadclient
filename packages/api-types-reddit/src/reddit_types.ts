@@ -446,39 +446,48 @@ export type ApiWidgets = {
     },
 };
 
+export type T2DataBase = {
+    is_employee: boolean,
+    is_friend: boolean,
+    subreddit: T5Data,
+    snoovatar_size: null,
+    awardee_karma: number,
+    id: string,
+    gilded_last_month: unknown, // {}
+    verified: boolean,
+    is_gold: boolean,
+    is_mod: boolean,
+    awarder_karma: number,
+    has_verified_email: boolean,
+    icon_img: string | "", // idk what this looks like for people with no icon
+    hide_from_robots: boolean,
+    link_karma: number,
+    pref_show_snoovatar: boolean,
+    total_karma: number,
+    accept_chats: boolean,
+    name: string,
+    created_utc: number,
+    snoovatar_img: "",
+    comment_karma: number,
+    has_subscribed: boolean,
+    accept_pms: boolean,
+};
+export type T2DataOtherUser = T2DataBase & {__is_the_logged_in_user: false};
+export type T2DataLoggedIn = T2DataBase & LoggedInT2Data;
+
+export type T2Data = T2DataOtherUser | T2DataLoggedIn;
+
 // user info
 export type T2 = {
     kind: "t2",
-    data: {
-        is_employee: boolean,
-        is_friend: boolean,
-        subreddit: T5Data,
-        snoovatar_size: null,
-        awardee_karma: number,
-        id: string,
-        gilded_last_month: unknown, // {}
-        verified: boolean,
-        is_gold: boolean,
-        is_mod: boolean,
-        awarder_karma: number,
-        has_verified_email: boolean,
-        icon_img: string | "", // idk what this looks like for people with no icon
-        hide_from_robots: boolean,
-        link_karma: number,
-        pref_show_snoovatar: boolean,
-        total_karma: number,
-        accept_chats: boolean,
-        name: string,
-        created_utc: number,
-        snoovatar_img: "",
-        comment_karma: number,
-        has_subscribed: boolean,
-        accept_pms: boolean,
-    } & ({__is_the_logged_in_user: false} | LoggedInT2Data),
+    data: T2Data,
 };
 
 // info only available for the logged in user
 export type LoggedInT2Data = {
+    inbox_count: number,
+    new_modmail_exists: boolean,
+
     features: {
         // likely this is information about features where rollout is in progress and this doesn't matter to threadclient
         mod_service_mute_writes: boolean,
@@ -1385,6 +1394,9 @@ export type Requests = {
         },
         response: MoreChildren,
     },
+    "/api/me": {
+        response: ApiMe,
+    },
 
     // i gave up, typescript was erroring with both `[key: …]` and `[key in …]`
     // might need to do PathBit<"a_or_un"> to make it a normal template string thing instead of a union
@@ -1408,3 +1420,10 @@ export type DuplicatesSort = "num_comments" | "new" | "unsupported";
 
 export type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded";
 export type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
+
+export type ApiMe = {
+    loid: string,
+    loid_created: Date.Ms,
+    kind: "t2",
+    data: LoggedInT2Data,
+};
