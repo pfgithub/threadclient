@@ -54,24 +54,32 @@ function setUpMap(map: IDMap, data: IDMapData): void {
 
     map.set(entry_id, {
         kind: "unprocessed",
-        link: createLink(),
+        link: createLink("id: "+entry_id),
         data,
     });
 }
-function createLink<T>(): Generic.Link<T> {
-    return {ref: undefined, err: "processing not completed"};
+
+function createSymbolLinkToError(content: Generic.Page2Content, emsg: string): Generic.Link<any> {
+    const link = createLink<any>("immediate error value");
+    content[link] = {error: emsg};
+    return link;
 }
-function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostData> {
+function createLink<T>(debug_msg: string): Generic.Link<T> {
+    const value = Symbol(debug_msg) as Generic.Link<T>;
+    return value;
+}
+
+function getPostData(content: Generic.Page2Content, map: IDMap, key: string): Generic.Link<Generic.PostData> {
     const value = map.get(key);
     if(!value) {
         // TODO determine which load more to use
-        return {ref: undefined, err: "post was not found in tree (TODO load more) ("+key+")"};
+        return createSymbolLinkToError(content, "post was not found in tree (TODO load more) ("+key+")");
     }
     if(value.kind === "unprocessed") {
         value.kind = "processing";
 
-        const res = postDataFromListingMayError(map, value);
-        [value.link.ref, value.link.err] = [res, undefined];
+        const res = postDataFromListingMayError(content, map, value);
+        content[value.link] = {data: res};
 
         value.kind = "processed";
 
@@ -81,10 +89,10 @@ function getPostData(map: IDMap, key: string): Generic.Link<Generic.PostData> {
     }else assertNever(value.kind);
 }
 
-function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.PostData {
+function postDataFromListingMayError(content: Generic.Page2Content, map: IDMap, value: IDMapEntry): Generic.PostData {
     if(value.data.kind === "header") {
         return getPageHeader(value.data.parsed, {
-            items: value.data.replies.map(reply => getPostData(map, getID(reply))),
+            items: value.data.replies.map(reply => getPostData(content, map, getID(reply))),
         });
     }else if(value.data.kind === "item") {
         const item = value.data.item;
@@ -93,9 +101,9 @@ function postDataFromListingMayError(map: IDMap, value: IDMapEntry): Generic.Pos
             url: "/item?id="+item.id,
             client_id: client.id,
 
-            parent: getPostData(map, value.data.parent),
+            parent: getPostData(content, map, value.data.parent),
             replies: {
-                items: (item.comments ?? []).map(reply => getPostData(map, getID(reply))),
+                items: (item.comments ?? []).map(reply => getPostData(content, map, getID(reply))),
             },
             content: {
                 kind: "post",
@@ -165,6 +173,8 @@ export const client: ThreadClient = {
 
         const map: IDMap = new Map();
 
+        const content: Generic.Page2Content = {};
+
         if(url.kind === "firebaseio") {
             throw new Error("TODO");
         }else if(url.kind === "node-hnapi") {
@@ -177,7 +187,8 @@ export const client: ThreadClient = {
             });
 
             return {
-                pivot: getPostData(map, Array.isArray(fetchres) ? "PAGE_HEADER" : getID(fetchres)),
+                pivot: getPostData(content, map, Array.isArray(fetchres) ? "PAGE_HEADER" : getID(fetchres)),
+                content,
             };
         }else assertNever(url);
     }

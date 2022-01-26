@@ -5,7 +5,7 @@ import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo } from "t
 import { clientContent, clientListing, getClientCached, link_styles_v, navigate } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, DefaultErrorBoundary, getSettings, HideshowProvider,
+    classes, DefaultErrorBoundary, getPageRootContext, getSettings, HideshowProvider,
     screenWidth, screen_size, ToggleColor
 } from "../util/utils_solid";
 import { PostActions } from "./action";
@@ -69,87 +69,36 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
     </>}</For></span>;
 }
 
+function readLinkNoError<T>(link: Generic.Link<T>): {value: T, error: null} | {error: string, value: null} {
+    const root_context = getPageRootContext()();
+    const value = root_context[link]; // get the value first to put a solid js watcher on it
+    if(!value) return {error: "Link not found", value: null};
+    if(Object.hasOwnProperty.call(root_context, link)) {
+        if('error' in value) return {error: "Client error; "+value.error, value: null};
+        return {value: value.data as T, error: null};
+    }else{
+        return {error: "Link not found", value: null};
+    }
+}
+function readLink<T>(link: Generic.Link<T>): T {
+    const res = readLinkNoError(link);
+    if(res.error != null) throw new Error("Could not read link; "+res.error);
+    return res.value;
+}
+
 function ErrableLink<T,>(props: {
     link: Generic.Link<T>,
     fallback?: undefined | ((err: string) => JSX.Element),
     children: (link: T) => JSX.Element,
 }) {
-    return <ShowBool when={props.link.err == null} fallback={
+    const value = createMemo(() => readLinkNoError(props.link));
+    return <ShowBool when={value().error != null} fallback={
         props.fallback ? (
-            untrack(() => props.fallback!(props.link.err!))
-        ) : <div>Error! {props.link.err}</div>
+            untrack(() => props.fallback!(value().error!))
+        ) : <div>Error! {value().error!}</div>
     }>
-        {untrack(() => props.children(props.link.ref!))}
+        {untrack(() => props.children(value().value!))}
     </ShowBool>;
-}
-
-type ClientPostReplyProps = {
-    reply: Generic.Link<Generic.Post>,
-    is_threaded: boolean,
-    parent_is_threaded?: undefined | boolean,
-};
-export function ClientPostReply(props: ClientPostReplyProps): JSX.Element {
-    const isThreaded = createMemo((): Generic.Link<Generic.Post> | undefined => {
-        if(!props.is_threaded) return undefined;
-        const res = props.reply.ref?.replies?.items;
-        if(res && res.length === 1) {
-            return res[0]!;
-        }
-        return undefined;
-    });
-    // this threading logic is a bit complicated and it requires
-    // hiding the replies from the ClientPost that gets rendered.
-    // if you can find a way to improve the threading logic or
-    // maybe have the ClientPost render its replies threaded
-    // if it is threaded itself, that would probably be an
-    // improvement.
-    // eg: it would make it easier to do the onreplied function
-    // of the reply action because a post could just keep a state
-    // of "your replies" and then when it's rendering replies,
-    // render [...yours, ...post's] and this wouldn't run into
-    // issues when the post is threaded.
-
-    // TODO:
-    // this threading logic causes a comment to rerender if it becomes no longer threaded
-    // to fix this, don't use <ul>/<li> for the comments
-    // instead, display them in a vertical list and adjust the left indent based on the
-    // depth of the comment.
-    // this will negatively affect screenreader functionality, so aria roles will probably
-    // be required
-    // alternatively: put them in the <li> but:
-    // - only extend the collapse button of the parent comment to the bottom of its actual content
-    // - don't hide its replies when collapsing
-    // - this seems complicated but nicer
-    // - although the above method has the upside that it can work very well with virtual scrolling
-
-    return <>
-        <li class={classes(
-            // "comment",
-            props.is_threaded && (
-                isThreaded() != null || (props.parent_is_threaded ?? false)
-            ) ? ["relative", "threaded"] : [],
-        )}>
-            <ErrableLink link={props.reply}>{post => (
-                <SwitchKind item={post}>{{
-                    post: content_post => (
-                        <ClientContentAny content={content_post.content} opts={{
-                            clickable: false,
-                            at_or_above_pivot: false,
-                            is_pivot: false,
-                            frame: content_post,
-                            client_id: content_post.client_id,
-                            replies: isThreaded() != null ? null : post.replies,
-                            top_level: false,
-                        }} />
-                    ),
-                    loader: () => <>TODO load more TODO load more may have replies</>
-                }}</SwitchKind>
-            )}</ErrableLink>
-        </li>
-        <ShowCond when={isThreaded()}>{thread => (
-            <ClientPostReply reply={thread} is_threaded={true} parent_is_threaded={true} />
-        )}</ShowCond>
-    </>;
 }
 
 export function ClientContentAny(props: {content: Generic.PostContent, opts: ClientPostOpts}): JSX.Element {
@@ -312,7 +261,10 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         }else{
                             navigate({
                                 path: target_url,
-                                page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
+                                // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
+                                // disabling this for now, we'll fix it in a bit
+                                // we just need to know what the link to the post is in the
+                                // post itself
                             });
                         }
                     }}
@@ -490,10 +442,15 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
     </div>;
 }
 
-export type ClientPageProps = {page: Generic.Page2};
+export type ClientPageProps = {
+    pivot: Generic.Link<Generic.Post>
+};
 export default function ClientPage(props: ClientPageProps): JSX.Element {
-    const view = createMemo(() => flatten(props.page, {
+    // [!] we'll want to fix this up and make it observable and stuff
+    // now that page2 is ready to be properly observable, flatten should be too.
+    const view = createMemo(() => flatten(props.pivot, {
         collapse_states: new Map(),
+        content: getPageRootContext()(),
     })); // TODO reconcile merge:true I think key:"key" but be careful
     // TODO don't delete old items from dom just hide them
 
@@ -535,7 +492,18 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                             }}
                         />,
                         loader: loader => (
-                            <button class="text-blue-500 hover:underline">
+                            <button
+                                class="text-blue-500 hover:underline"
+                                onClick={() => {
+                                    // fetch the result
+                                    // merge it into global state for the current session
+                                    //
+                                    // this implies props.page should just be a map of key
+                                    // → value rather than the current nested structure
+                                    // ok I'm going to do that let's go
+                                    alert("TODO");
+                                }}
+                            >
                                 Load More ({loader.load_count ?? "????"})
                             </button>
                         ),

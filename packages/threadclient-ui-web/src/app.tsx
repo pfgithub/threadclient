@@ -11,7 +11,7 @@ import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
 import { Homepage } from "./components/homepage";
-import ClientPage, { ClientPostReply, Flair } from "./components/page2";
+import ClientPage, { ClientContentAny, Flair } from "./components/page2";
 import { ReplyEditor } from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
@@ -21,9 +21,13 @@ import {
     navigate_event_handlers, nav_history, page2mainel, session_name, setCurrentHistoryIndex
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { getSettings } from "./util/utils_solid";
+import { getSettings, PageRootProvider } from "./util/utils_solid";
 
-export {previewLink, gfyLike2};
+// TODO add support for navigation without any browser navigation things
+// eg within the frame of /pwa-start, display the client and have custom nav buttons
+// on the top that don't use history or whatever
+export { alertarea, availableForOfflineUse, bodytop, navbar, updateAvailable, updateSW } from "./router";
+export { previewLink, gfyLike2 };
 
 function assertNever(content: never): never {
     console.log("not never:", content);
@@ -895,11 +899,15 @@ function renderReplyAction(
                         const vsbdiv = el("div").adto(content_buttons_line);
                         vanillaToSolidBoundary(vsbdiv, () => <>
                             <ul class="ml-10">
-                                <ClientPostReply
-                                    reply={r}
-                                    is_threaded={false}
-                                    parent_is_threaded={false}
-                                />
+                                <ClientContentAny content={r.content} opts={{
+                                    clickable: false,
+                                    at_or_above_pivot: false,
+                                    is_pivot: false,
+                                    frame: r,
+                                    client_id: r.client_id,
+                                    replies: r.replies,
+                                    top_level: false,
+                                }} />
                             </ul>
                         </>, {color_level: 1}).defer(hsc);
                     }} />, {color_level: 1}).defer(reply_container);
@@ -2638,34 +2646,39 @@ let hidePage2!: () => void;
 
 {
     const [focusedPage, setFocusedPage] = createSignal<Generic.Page2>(null as unknown as Generic.Page2);
-    let on = false;
+    let page2_viewer_initialized = false;
     showPage2 = (page: Generic.Page2) => {
         console.log("showing page2", page);
         page2mainel.style.display = "";
 
         // todo don't do this mess
+        // oh this thing is for finding a title. huh. yeah remove this, it's bad.
+        // make it better.
         let p2title: undefined | string;
         let display_style: "centered" | "fullscreen" | undefined;
-        let focus = page.pivot.ref;
-        while(focus) {
+        let focus_outer = page.content[page.pivot];
+        while(focus_outer && !('error' in focus_outer)) {
+            const focus = focus_outer.data as Generic.Post;
             if(focus.kind === "post" && focus.content.kind === "post") {
                 if(focus.content.title) {
                     if(p2title == null) p2title = focus.content.title.text;
                 }
                 if(display_style == null) display_style = focus.display_style;
             }
-            focus = focus.parent?.ref;
+            focus_outer = focus.parent ? page.content[focus.parent] : undefined;
         }
         document.title = p2title ?? "«err no title»";
         // todo remove the stuff above this comment, it should be handled in flatten.ts
 
         setFocusedPage(page);
 
-        if(!on) {
-            on = true;
+        if(!page2_viewer_initialized) {
+            page2_viewer_initialized = true;
 
             vanillaToSolidBoundary(page2mainel, () => <>
-                <ClientPage page={focusedPage()} />
+                <PageRootProvider content={focusedPage().content}>
+                    <ClientPage pivot={focusedPage().pivot} />
+                </PageRootProvider>
             </>, {color_level: 0});
         }
     };
@@ -3107,11 +3120,6 @@ export function onNavigate(to_index: number, url: URLLike, page: undefined | Gen
     nav_history[to_index] = {node: naventry, url: thisurl};
 }
 
-// TODO add support for navigation without any browser navigation things
-// eg within the frame of /pwa-start, display the client and have custom nav buttons
-// on the top that don't use history or whatever
-
-export { alertarea, availableForOfflineUse, bodytop, navbar, updateAvailable, updateSW } from "./router";
 
 
 console.log("APP.TSX WAS RELOADED.");

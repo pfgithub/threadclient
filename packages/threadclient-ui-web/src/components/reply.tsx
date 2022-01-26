@@ -13,7 +13,7 @@ type StoreTypeValue = {value: null | Generic.PostContent};
 export function ReplyEditor(props: {
     action: Generic.ReplyAction,
     onCancel: () => void,
-    onAddReply: (response: Generic.Link<Generic.Post>) => void,
+    onAddReply: (response: Generic.PostData) => void,
 }): JSX.Element {
     const [rawContent, setContent] = localStorageSignal("comment-draft-"+props.action.client_id+"-"+props.action.key);
     const content = () => rawContent() ?? "";
@@ -56,29 +56,27 @@ export function ReplyEditor(props: {
                         // might not look good
                         setContent(null); // trust that the response is succesful
                         props.onAddReply({
-                            ref: {
-                                kind: "post",
-                                internal_data: r.raw_value,
-                                content: r.kind === "thread" ? {
-                                    kind: "legacy",
-                                    thread: r,
-                                    client_id: props.action.client_id,
-                                } : {
-                                    kind: "post",
-                                    title: {text: "Error"},
-                                    body: {kind: "richtext", content: [
-                                        rt.p(rt.error("Unsupported 'load more'", r)),
-                                    ]},
-                                    show_replies_when_below_pivot: false,
-                                    collapsible: false,
-                                },
-                                display_style: "centered",
-
-                                parent: null,
-                                replies: null,
-                                url: null,
+                            kind: "post",
+                            internal_data: r.raw_value,
+                            content: r.kind === "thread" ? {
+                                kind: "legacy",
+                                thread: r,
                                 client_id: props.action.client_id,
+                            } : {
+                                kind: "post",
+                                title: {text: "Error"},
+                                body: {kind: "richtext", content: [
+                                    rt.p(rt.error("Unsupported 'load more'", r)),
+                                ]},
+                                show_replies_when_below_pivot: false,
+                                collapsible: false,
                             },
+                            display_style: "centered",
+
+                            parent: null,
+                            replies: null,
+                            url: null,
+                            client_id: props.action.client_id,
                         });
                     }).catch((error) => {
                         setSending(false);

@@ -107,8 +107,9 @@ function flattenPost(post: Generic.Post, parent_indent: CollapseButton[], meta: 
     const self_indent = [...rres.indent, rres.collapse];
 
     if(!rres.collapse.collapsed) if(post.replies) for(const reply of post.replies.items) {
-        if(reply.err !== undefined) res.push(fi.err(reply.err, reply));
-        else res.push(...flattenPost(reply.ref, self_indent, meta));
+        const reply_value = readLinkNoError(meta, reply);
+        if(reply_value.error != null) res.push(fi.err(reply_value.error, reply));
+        else res.push(...flattenPost(reply_value.value, self_indent, meta));
     }
 
     return res;
@@ -116,13 +117,36 @@ function flattenPost(post: Generic.Post, parent_indent: CollapseButton[], meta: 
 
 type Meta = {
     collapse_states: CollapseStates,
+    content: Generic.Page2Content,
 };
 
-export function flatten(page: Generic.Page2, meta: Meta): FlatPage {
+// oop copy-pasted
+function readLinkNoError<T>(meta: Meta, link: Generic.Link<T>): (
+    {value: T, error: null} | {error: string, value: null}
+) {
+    const root_context = meta.content;
+    const value = root_context[link]; // get the value first to put a solid js watcher on it
+    if(!value) return {error: "[flatten]Link not found", value: null};
+    if(Object.hasOwnProperty.call(root_context, link)) {
+        if('error' in value) return {error: value.error, value: null};
+        return {value: value.data as T, error: null};
+    }else{
+        return {error: "[flatten]Link found but not in hasOwnProperty", value: null};
+    }
+}
+function readLink<T>(meta: Meta, link: Generic.Link<T>): T {
+    const res = readLinkNoError(meta, link);
+    if(res.error != null) {
+        console.log("Failed to read link. Link:", link, "Result:", res, "Searching in", meta.content);
+        throw new Error("Could not read link; "+res.error);
+    }
+    return res.value;
+}
+
+export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): FlatPage {
     const res: FlatItem[] = [];
 
-    if(page.pivot.err !== undefined) throw new Error("no pivot; "+page.pivot.err);
-    const pivot = page.pivot.ref;
+    const pivot = readLink(meta, pivot_link);
 
     let highest: Generic.Post = pivot;
     const above_pivot: FlatItem[] = [];
@@ -132,11 +156,12 @@ export function flatten(page: Generic.Page2, meta: Meta): FlatPage {
         above_pivot.unshift({kind: "wrapper_start"});
 
         if(!highest.parent) break;
-        if(highest.parent.err !== undefined) {
-            above_pivot.unshift(fi.err(highest.parent.err, highest));
+        const highest_parent = readLinkNoError(meta, highest.parent);
+        if(highest_parent.error != null) {
+            above_pivot.unshift(fi.err(highest_parent.error, highest));
             break;
         }
-        highest = highest.parent.ref;
+        highest = highest_parent.value;
     }
     res.push(...above_pivot);
 
@@ -147,8 +172,9 @@ export function flatten(page: Generic.Page2, meta: Meta): FlatPage {
         if(pivot.replies?.reply) res.push(fi.todo("(add reply)", pivot));
         for(const reply of pivot.replies.items) {
             res.push({kind: "wrapper_start"});
-            if(reply.err !== undefined) res.push(fi.err(reply.err, reply));
-            else res.push(...flattenPost(reply.ref, [], meta));
+            const reply_value = readLinkNoError(meta, reply);
+            if(reply_value.error != null) res.push(fi.err(reply_value.error, reply));
+            else res.push(...flattenPost(reply_value.value, [], meta));
             res.push({kind: "wrapper_end"});
         } if(pivot.replies.items.length === 0) {
             res.push(fi.todo("*There are no replies*", pivot));

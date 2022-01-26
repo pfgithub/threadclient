@@ -1,13 +1,15 @@
+import type * as Generic from "api-types-generic";
 import {
     Accessor, createContext, createEffect, createMemo,
     createRoot,
     createSignal, ErrorBoundary, JSX, onCleanup, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
-import { ShowBool, localStorageSignal } from "tmeta-util-solid";
+import { localStorageSignal, ShowBool } from "tmeta-util-solid";
 import { link_styles_v } from "../app";
 
-export {localStorageSignal};
+export { localStorageSignal };
+export { screenWidth };
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ColorDepthContext = createContext<{i: number}>();
@@ -38,6 +40,19 @@ export function HideshowProvider(props: {visible: () => boolean, children: JSX.E
 export function getIsVisible(): (() => boolean) {
     const visible_state = useContext(HideshowContext);
     return visible_state?.visible ?? (() => true);
+}
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const PageRootContext = createContext<{content: () => Generic.Page2Content}>();
+
+export function PageRootProvider(props: {content: Generic.Page2Content, children: JSX.Element}): JSX.Element {
+    return <PageRootContext.Provider value={{content: () => props.content}}>{props.children}</PageRootContext.Provider>;
+}
+
+export function getPageRootContext(): () => Generic.Page2Content {
+    const page_root_context = useContext(PageRootContext);
+    if(!page_root_context) throw new Error("no page root context here.");
+    return page_root_context.content;
 }
 
 export type ComputeProperty<T> = {
@@ -174,7 +189,6 @@ const [screenWidth, setScreenWidth] = createSignal(window.innerWidth);
 window.addEventListener("resize", () => {
     setScreenWidth(window.innerWidth);
 });
-export { screenWidth };
 
 // https://windicss.org/utilities/variants.html
 export const screen_size = {

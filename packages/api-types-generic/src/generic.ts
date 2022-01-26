@@ -1,8 +1,17 @@
-export type Page2 = {
-    pivot: Link<Post>,
+// always use object.hasownpropertyvalue because this isn't a Map();
+// TODO: store history?
+// this will likely be backed by a solid Store to provide updates when
+// individual pieces of content change.
+export type Page2Content = {[key: string | symbol]:
+    {data: unknown} | {error: string} | undefined
 };
 
-export type Link<T> = {ref: T, err?: undefined} | {ref: undefined, err: string};
+export type Page2 = {
+    pivot: Link<Post>,
+    content: Page2Content,
+}
+
+export type Link<T> = (string | symbol) & {__is_link: T};
 
 export type Post = PostData | Loader;
 
@@ -24,6 +33,8 @@ export type Loader = BasePost & {
 
     // note: when a loader is used, the ui should pass the sort mode to the client
     key: Opaque<"loader">,
+    // loaded_key: Link<Loaded>, // when displaying a loader, check if this
+    // key is present and display it instead
 
     load_count: null | number,
 };

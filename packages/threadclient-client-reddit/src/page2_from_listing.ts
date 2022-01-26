@@ -40,6 +40,8 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
 
     const start_time = Date.now();
 
+    const content: Generic.Page2Content = {};
+
     try {
         const [parsed, pathraw] = parseLink(pathraw_in);
 
@@ -47,7 +49,8 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
 
         if(parsed.kind === "link_out") {
             return {
-                pivot: {ref: {
+                content,
+                pivot: createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
                     content: {
@@ -65,11 +68,12 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     replies: null,
                     url: null,
                     internal_data: parsed,
-                }},
+                }),
             };
         }else if(parsed.kind === "todo") {
             return {
-                pivot: {ref: {
+                content,
+                pivot: createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
                     content: {
@@ -90,14 +94,18 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     replies: null,
                     url: null,
                     internal_data: parsed,
-                }},
+                }),
             };
         }else if(parsed.kind === "raw") {
             const resj = await redditRequest(parsed.path as "/__unknown", {method: "GET"});
-            return {pivot: unsupportedPage(pathraw, resj)};
+            return {
+                content,
+                pivot: unsupportedPage(content, pathraw, resj),
+            };
         }else if(parsed.kind === "redirect") {
             return {
-                pivot: {ref: {
+                content,
+                pivot: createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
                     content: {
@@ -117,7 +125,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     replies: null,
                     url: null,
                     internal_data: parsed,
-                }},
+                }),
             };
         }
 
@@ -140,7 +148,8 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
         const page = await redditRequest(link as "/__any_page", {method: "GET"});
 
         return {
-            pivot: page2FromListing(id_map, pathraw, parsed, page),
+            content,
+            pivot: page2FromListing(content, id_map, pathraw, parsed, page),
         };
     }catch(e) {
         const err = e as Error;
@@ -150,7 +159,8 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
         const browser_is_firefox = navigator.userAgent.includes("Firefox");
 
         if(is_networkerror) return {
-            pivot: {ref: {
+            content,
+            pivot: createSymbolLinkToValue<Generic.Post>(content, {
                 kind: "post",
                 client_id: client.id,
                 content: {
@@ -197,11 +207,17 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     err,
                     {is_networkerror, error_was_instant, browser_is_firefox},
                 ],
-            }},
+            }),
         };
 
         throw err;
     }
+}
+
+function createSymbolLinkToValue<T>(content: Generic.Page2Content, value: T): Generic.Link<T> {
+    const link = createLink<T>("immediate value");
+    content[link] = {data: value};
+    return link;
 }
 
 
@@ -250,6 +266,7 @@ type IDMapData = {
 };
 
 export function page2FromListing(
+    content: Generic.Page2Content,
     id_map: IDMap,
     pathraw: string,
     path: ParsedPath,
@@ -257,11 +274,11 @@ export function page2FromListing(
 ): Generic.Link<Generic.Post> {
     if(Array.isArray(page)) {
         if(page[0].data.children.length !== 1) {
-            return unsupportedPage(pathraw, page);
+            return unsupportedPage(content, pathraw, page);
         }
         const parent_post = page[0].data.children[0]!;
         if(parent_post.kind !== "t3") {
-            return unsupportedPage(pathraw, page);
+            return unsupportedPage(content, pathraw, page);
         }
 
         const link_fullname = parent_post.data.name;
@@ -298,7 +315,7 @@ export function page2FromListing(
             else warn("focused comment not found in tree `"+new_focus+"`");
         }
 
-        return getPostData(id_map, focus);
+        return getPostData(content, id_map, focus);
     }else if(page.kind === "Listing") {
         const sr_entry: IDMapData = {
             kind: "subreddit_unloaded",
@@ -309,7 +326,7 @@ export function page2FromListing(
 
         const pivot_id = getEntryFullname(sr_entry);
 
-        return getPostData(id_map, pivot_id);
+        return getPostData(content, id_map, pivot_id);
     }else if(page.kind === "wikipage") {
         const sr_entry: IDMapData = {
             kind: "wikipage",
@@ -321,7 +338,7 @@ export function page2FromListing(
 
         const pivot_id = getEntryFullname(sr_entry);
 
-        return getPostData(id_map, pivot_id);
+        return getPostData(content, id_map, pivot_id);
     }else if(page.kind === "t5") {
         warn("TODO t5");
     }else if(page.kind === "UserList") {
@@ -330,7 +347,7 @@ export function page2FromListing(
         expectUnsupported(page.kind);
     }
 
-    return unsupportedPage(pathraw, page);
+    return unsupportedPage(content, pathraw, page);
 }
 
 function getSrId(sub: SubrInfo): ID {
@@ -347,8 +364,8 @@ function getSrId(sub: SubrInfo): ID {
     }else assertNever(sub);
 }
 
-function unsupportedPage(pathraw: string, page: unknown): Generic.Link<Generic.PostData> {
-    return {ref: {
+function unsupportedPage(content: Generic.Page2Content, pathraw: string, page: unknown): Generic.Link<Generic.PostData> {
+    return createSymbolLinkToValue<Generic.PostData>(content, {
         kind: "post",
         client_id: client.id,
         parent: null,
@@ -369,7 +386,7 @@ function unsupportedPage(pathraw: string, page: unknown): Generic.Link<Generic.P
         },
         internal_data: null,
         display_style: "centered",
-    }, err: undefined};
+    });
 }
 
 function getPostFullname(post: Reddit.Post): ID {
@@ -500,26 +517,33 @@ export function setUpMap(
 
     map.set(entry_fullname, {
         kind: "unprocessed",
-        link: createLink(),
+        link: createLink("id: "+entry_fullname),
         data,
     });
 
     return entry_fullname;
 }
 
+function createSymbolLinkToError(content: Generic.Page2Content, emsg: string): Generic.Link<any> {
+    const link = createLink<any>("immediate error value");
+    content[link] = {error: emsg};
+    return link;
+}
+
 // returns a pointer to the PostData
 // TODO support load more in both parents and replies
-export function getPostData(map: IDMap, key: ID): Generic.Link<Generic.Post> {
+export function getPostData(content: Generic.Page2Content, map: IDMap, key: ID): Generic.Link<Generic.Post> {
     const value = map.get(key);
     if(!value) {
         // TODO determine which load more to use
-        return {ref: undefined, err: "post was not found in tree (TODO load more) ("+key+")"};
+        return createSymbolLinkToError(content, "post was not found in tree (TODO load more) ("+key+")");
     }
     if(value.kind === "unprocessed") {
         value.kind = "processing";
 
-        const res = postDataFromListingMayError(map, value); // uuh… this is mayerror… should handle errors here
-        [value.link.ref, value.link.err] = [res, undefined];
+        const res = postDataFromListingMayError(content, map, value); // uuh… this is mayerror… should handle errors here
+
+        content[value.link] = {data: res};
 
         value.kind = "processed";
 
@@ -549,6 +573,7 @@ function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
 }
 
 function postDataFromListingMayError(
+    content: Generic.Page2Content,
     map: IDMap,
     entry: IDMapEntry,
 ): Generic.Post {
@@ -563,7 +588,7 @@ function postDataFromListingMayError(
         //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if(listing.replies) {
             for(const reply of listing.replies.data.children) {
-                replies.items.push(getPostData(map, getPostFullname(reply)));
+                replies.items.push(getPostData(content, map, getPostFullname(reply)));
             }
         }
 
@@ -584,7 +609,7 @@ function postDataFromListingMayError(
             client_id: client.id,
             url: updateQuery(listing.permalink, {context: "3"}),
 
-            parent: getPostData(map, listing.parent_id as ID),
+            parent: getPostData(content, map, listing.parent_id as ID),
             replies,
 
             content: {
@@ -621,7 +646,7 @@ function postDataFromListingMayError(
             client_id: client.id,
             url: listing.permalink,
 
-            parent: getPostData(map, getSrId({
+            parent: getPostData(content, map, getSrId({
                 kind: "subreddit",
                 subreddit: listing.subreddit,
                 base: ["r", listing.subreddit],
@@ -632,23 +657,22 @@ function postDataFromListingMayError(
                     locked: listing.locked,
                 },
                 // I don't think before and after are used here
-                items: entry.data.replies !== "not_loaded" ? entry.data.replies.data.children.map(reply => (
-                    getPostData(map, getPostFullname(reply))
-                )) : [
-                    {ref: {
-                        kind: "loader",
-                        key: loader.encode({
-                            kind: "comments",
-                            post: listing.id,
-                        }),
+                items: entry.data.replies !== "not_loaded" ? entry.data.replies.data.children.map((reply
+                ): Generic.Link<Generic.Post> => (
+                    getPostData(content, map, getPostFullname(reply))
+                )) : [createSymbolLinkToValue(content, {
+                    kind: "loader",
+                    key: loader.encode({
+                        kind: "comments",
+                        post: listing.id,
+                    }),
 
-                        parent: entry.link,
-                        replies: null,
-                        client_id: client.id,
-                        url: null,
-                        load_count: null,
-                    }},
-                ],
+                    parent: entry.link,
+                    replies: null,
+                    client_id: client.id,
+                    url: null,
+                    load_count: null,
+                })],
             },
 
             content: {
@@ -688,10 +712,10 @@ function postDataFromListingMayError(
         const replies: Generic.Link<Generic.Post>[] = [];
 
         for(const child of entry.data.listing.data.children) {
-            replies.push(getPostData(map, getPostFullname(child)));
+            replies.push(getPostData(content, map, getPostFullname(child)));
         }
         if(entry.data.listing.data.after != null) {
-            replies.push(getPostData(map, "TODO next" as ID));
+            replies.push(getPostData(content, map, "TODO next" as ID));
         }
 
         return {
@@ -717,7 +741,7 @@ function postDataFromListingMayError(
         return {
             kind: "loader",
             client_id: client.id,
-            parent: getPostData(map, listing.parent_id as ID),
+            parent: getPostData(content, map, listing.parent_id as ID),
             replies: null,
             url: null,
             load_count: null,
@@ -732,7 +756,7 @@ function postDataFromListingMayError(
         return {
             kind: "loader",
             client_id: client.id,
-            parent: getPostData(map, listing.parent_id as ID),
+            parent: getPostData(content, map, listing.parent_id as ID),
             replies: null,
             url: null,
             load_count: listing.children.length,
@@ -812,6 +836,7 @@ const loader = encoderGenerator<LoaderData, "loader">("loader");
 // TO FIND:
 // - a depth-based horizontal loader
 
-function createLink<T>(): Generic.Link<T> {
-    return {ref: undefined, err: "processing not completed"};
+function createLink<T>(debug_msg: string): Generic.Link<T> {
+    const value = Symbol(debug_msg) as Generic.Link<T>;
+    return value;
 }
