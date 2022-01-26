@@ -174,12 +174,10 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         return props.opts.frame?.url != null && !props.opts.is_pivot;
     };
     
-    const [localReplies, setLocalReplies] = createSignal<Generic.Link<Generic.Post>[]>([]);
-    const onAddReply = (reply: Generic.Link<Generic.Post>) => {
-        setLocalReplies(l => [reply, ...l]);
+    const onAddReply = (reply: Generic.Post) => {
+        // TODO;
+        alert("Reply posted. TODO: display it.");
     };
-
-    () => localReplies;
 
     return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {

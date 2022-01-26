@@ -12,7 +12,7 @@ import { ReplyEditor } from "./reply";
 
 export function PostActions(props: ClientPostProps & {
     children?: undefined | JSX.Element,
-    onAddReply: (reply: Generic.Link<Generic.Post>) => void,
+    onAddReply: (reply: Generic.Post) => void,
 }): JSX.Element {
     const [showingWindowBelow, setShowingWindowBelow] = createSignal<null | (() => JSX.Element)>(null);
 
