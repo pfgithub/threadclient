@@ -11,6 +11,11 @@ oh I can hack it I think: `<base href="http://pathtooriginalpage" />`
 
 ## todo
 
+- support https://thread.pfg.pw/reddit/api/v1/me/karma
+  - link to it from a profile dropdown or something
+
+## todo
+
 - consider using github subtrees? like you can merge another repo into this one and keep
   the history and stuff. and that would be nice because it makes projects more
   discoverable while keeping the monorepo structure.
