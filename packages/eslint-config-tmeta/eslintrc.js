@@ -16,6 +16,7 @@ module.exports = {
         "@typescript-eslint/no-namespace": ["error", {allowDeclarations: true}],
         "@typescript-eslint/no-non-null-assertion": "off",
         "no-constant-condition": ["warn", {checkLoops: false}],
+        "@typescript-eslint/no-explicit-any": "off",
 
         // stricter linting rules:
         "@typescript-eslint/no-shadow": ["warn", {allow: ["urlr"]}],

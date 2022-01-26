@@ -69,37 +69,32 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
     </>}</For></span>;
 }
 
-function readLinkNoError<T>(link: Generic.Link<T>): {value: T, error: null} | {error: string, value: null} {
-    const root_context = getPageRootContext()();
-    const value = root_context[link]; // get the value first to put a solid js watcher on it
-    if(!value) return {error: "Link not found", value: null};
-    if(Object.hasOwnProperty.call(root_context, link)) {
-        if('error' in value) return {error: "Client error; "+value.error, value: null};
-        return {value: value.data as T, error: null};
-    }else{
-        return {error: "Link not found", value: null};
-    }
-}
-function readLink<T>(link: Generic.Link<T>): T {
-    const res = readLinkNoError(link);
-    if(res.error != null) throw new Error("Could not read link; "+res.error);
-    return res.value;
-}
 
-function ErrableLink<T,>(props: {
-    link: Generic.Link<T>,
-    fallback?: undefined | ((err: string) => JSX.Element),
-    children: (link: T) => JSX.Element,
-}) {
-    const value = createMemo(() => readLinkNoError(props.link));
-    return <ShowBool when={value().error != null} fallback={
-        props.fallback ? (
-            untrack(() => props.fallback!(value().error!))
-        ) : <div>Error! {value().error!}</div>
-    }>
-        {untrack(() => props.children(value().value!))}
-    </ShowBool>;
-}
+
+// function readLinkNoError<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> {
+//     const root_context = getPageRootContext()();
+//     return Generic.readLink(root_context, link);
+// }
+// function readLink<T>(link: Generic.Link<T>): T {
+//     const res = readLinkNoError(link);
+//     if(res.error != null) throw new Error("Could not read link; "+res.error);
+//     return res.value;
+// }
+//
+// function ErrableLink<T,>(props: {
+//     link: Generic.Link<T>,
+//     fallback?: undefined | ((err: string) => JSX.Element),
+//     children: (link: T) => JSX.Element,
+// }) {
+//     const value = createMemo(() => readLinkNoError(props.link));
+//     return <ShowBool when={value().error != null} fallback={
+//         props.fallback ? (
+//             untrack(() => props.fallback!(value().error!))
+//         ) : <div>Error! {value().error!}</div>
+//     }>
+//         {untrack(() => props.children(value().value!))}
+//     </ShowBool>;
+// }
 
 export function ClientContentAny(props: {content: Generic.PostContent, opts: ClientPostOpts}): JSX.Element {
     return <SwitchKind item={props.content}>{{
@@ -443,7 +438,7 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
 }
 
 export type ClientPageProps = {
-    pivot: Generic.Link<Generic.Post>
+    pivot: Generic.Link<Generic.Post>,
 };
 export default function ClientPage(props: ClientPageProps): JSX.Element {
     // [!] we'll want to fix this up and make it observable and stuff

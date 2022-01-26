@@ -2,16 +2,29 @@
 // TODO: store history?
 // this will likely be backed by a solid Store to provide updates when
 // individual pieces of content change.
-export type Page2Content = {[key: string | symbol]:
-    {data: unknown} | {error: string} | undefined
+export type Page2Content = {
+    [key: string | symbol]: {data: unknown} | {error: string} | undefined,
 };
 
 export type Page2 = {
     pivot: Link<Post>,
     content: Page2Content,
-}
+};
 
 export type Link<T> = (string | symbol) & {__is_link: T};
+
+export type ReadLinkResult<T> = {value: T, error: null} | {error: string, value: null};
+export function readLink<T>(content: Page2Content, link: Link<T>): ReadLinkResult<T> {
+    const root_context = content;
+    const value = root_context[link]; // get the value first to put a solid js watcher on it
+    if(!value) return {error: "[read]Link not found", value: null};
+    if(Object.hasOwnProperty.call(root_context, link)) {
+        if('error' in value) return {error: value.error, value: null};
+        return {value: value.data as T, error: null};
+    }else{
+        return {error: "[read]Link found but not in hasOwnProperty", value: null};
+    }
+}
 
 export type Post = PostData | Loader;
 

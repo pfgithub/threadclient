@@ -120,19 +120,9 @@ type Meta = {
     content: Generic.Page2Content,
 };
 
-// oop copy-pasted
-function readLinkNoError<T>(meta: Meta, link: Generic.Link<T>): (
-    {value: T, error: null} | {error: string, value: null}
-) {
+function readLinkNoError<T>(meta: Meta, link: Generic.Link<T>): Generic.ReadLinkResult<T> {
     const root_context = meta.content;
-    const value = root_context[link]; // get the value first to put a solid js watcher on it
-    if(!value) return {error: "[flatten]Link not found", value: null};
-    if(Object.hasOwnProperty.call(root_context, link)) {
-        if('error' in value) return {error: value.error, value: null};
-        return {value: value.data as T, error: null};
-    }else{
-        return {error: "[flatten]Link found but not in hasOwnProperty", value: null};
-    }
+    return Generic.readLink(root_context, link);
 }
 function readLink<T>(meta: Meta, link: Generic.Link<T>): T {
     const res = readLinkNoError(meta, link);

@@ -364,7 +364,9 @@ function getSrId(sub: SubrInfo): ID {
     }else assertNever(sub);
 }
 
-function unsupportedPage(content: Generic.Page2Content, pathraw: string, page: unknown): Generic.Link<Generic.PostData> {
+function unsupportedPage(
+    content: Generic.Page2Content, pathraw: string, page: unknown,
+): Generic.Link<Generic.PostData> {
     return createSymbolLinkToValue<Generic.PostData>(content, {
         kind: "post",
         client_id: client.id,

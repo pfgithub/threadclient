@@ -14,13 +14,16 @@ type VisualNode = {
     visual_reply_index: number,
     post: Generic.Post,
     depth: number,
+
+    content: Generic.Page2Content, // hack because I'm not thinking right now
 };
 
 const cachedir = path.join(os.homedir(), ".cache", "threadclient-term");
 const imgcachedir = path.join(cachedir, "images");
 
-function unlink(link: Generic.Link<Generic.Post>): Generic.Post {
-    if(link.err != null) return {
+function unlink(content: Generic.Page2Content, link: Generic.Link<Generic.Post>): Generic.Post {
+    const value = Generic.readLink(content, link);
+    if(value.error != null) return {
         parent: null,
         replies: null,
         client_id: "n/a",
@@ -33,7 +36,7 @@ function unlink(link: Generic.Link<Generic.Post>): Generic.Post {
             body: {
                 kind: "richtext",
                 content: [{kind: "paragraph", children: [{
-                    kind: "error", text: link.err, value: link.err,
+                    kind: "error", text: value.error, value: value.error,
                 }]}],
             },
             show_replies_when_below_pivot: false,
@@ -43,10 +46,11 @@ function unlink(link: Generic.Link<Generic.Post>): Generic.Post {
         internal_data: link,
         display_style: "centered",
     };
-    return link.ref;
+    return value.value;
 }
 
 function generateVisualParentsAroundPost(
+    content: Generic.Page2Content,
     post: Generic.Post,
     parent?: undefined | VisualNode,
     replies?: undefined | VisualNode[],
@@ -58,16 +62,17 @@ function generateVisualParentsAroundPost(
         visual_replies: undefined,
         visual_reply_index: 0,
         depth,
+        content,
     };
     res.visual_parent = parent ?? (post.parent ?
-        generateVisualParentsAroundPost(unlink(post.parent), undefined, [res], depth - 1)
+        generateVisualParentsAroundPost(content, unlink(content, post.parent), undefined, [res], depth - 1)
     : undefined);
     res.visual_replies = replies ?? (() => {
         const actual_replies = post.replies;
         if(!actual_replies) return undefined;
         const rplres: VisualNode[] = [];
         for(const item of actual_replies.items) {
-            rplres.push(generateVisualParentsAroundPost(unlink(item), res, undefined, depth + 1));
+            rplres.push(generateVisualParentsAroundPost(content, unlink(content, item), res, undefined, depth + 1));
         }
         return rplres;
     })();
@@ -264,7 +269,7 @@ export async function main(opts: {
             return scerror("post has no body");
         }else if(key.name === "f") {
             const focus = opts.focus()!;
-            opts.setFocus(generateVisualParentsAroundPost(focus.post));
+            opts.setFocus(generateVisualParentsAroundPost(focus.content, focus.post));
             // todo navigation history and fwd/back
             return scupdate();
         }else if(key.name === "c") {
@@ -374,13 +379,13 @@ export async function main(opts: {
             contents = await fs.readdir(__dirname + "/example_content");
         }catch(e) {
             console.log("you don't have any samples! go to /temp0/…a reddit url in threadclient and paste them into "
-                +"a file in sample.json",
+                +"a file in __dirname/example_content/",
             );
             process.exit(0);
         }
         if(contents.length === 0) {
             console.log("you don't have any samples! go to /temp0/…a reddit url in threadclient and paste them into "
-                +"a file in sample.json",
+                +"a file in __dirname/example_content/",
             );
             process.exit(0);
         }
@@ -400,11 +405,7 @@ export async function main(opts: {
                 await fs.readFile(__dirname + "/example_content/"+resstr, "utf-8"),
             ) as Generic.Page2;
 
-            if(parsed.pivot.err != null) {
-                console.log("error: "+parsed.pivot.err);
-                return;
-            }
-            opts.setFocus(generateVisualParentsAroundPost(parsed.pivot.ref));
+            opts.setFocus(generateVisualParentsAroundPost(parsed.content, unlink(parsed.content, parsed.pivot)));
             startmain();
         };
         const mtask: Task = {

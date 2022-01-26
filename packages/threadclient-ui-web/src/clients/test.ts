@@ -608,7 +608,13 @@ function demoPost(path: string, content: Generic.Body, replies: SitemapEntry[]):
 type ReplyData = {kind: "markdown"} | {kind: "other"};
 const reply_encoder = encoderGenerator<ReplyData, "reply">("reply");
 
-function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], parent: Generic.PostData | null): Generic.PostData | undefined {
+function getFromSitemap(
+    content: Generic.Page2Content,
+    path: string[],
+    index: number,
+    replies: SitemapEntry[],
+    parent: Generic.Link<Generic.Post> | null,
+): Generic.Link<Generic.Post> | undefined {
     const current_bit = path[index];
     if(current_bit == null) return undefined;
 
@@ -625,22 +631,23 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
             kind: "post",
             url: urlr,
             client_id: client.id,
-            parent: parent ? {ref: parent, err: undefined} : null,
-            replies: {...called.replyopts, items: [{ref: {
+            parent,
+            replies: {...called.replyopts, items: [linkFromPostData(content, {
                 kind: "loader", parent: null, replies: null, url: null,
                 client_id: client.id,
                 key: 0 as unknown as Generic.Opaque<"loader">,
                 load_count: null,
-            }}]},
+            })]},
             content: called.content,
             internal_data: 0,
             display_style: "centered",
         };
+        const this_post_link = linkFromPostData(content, this_post);
         if(called.replies) {
-            const subv = getFromSitemap(path, index + 1, called.replies, this_post);
+            const subv = getFromSitemap(content, path, index + 1, called.replies, this_post_link);
             if(subv) return subv;
             const mapReplies = (
-                parentv: Generic.PostData,
+                parentv: Generic.Link<Generic.Post>,
                 nreplies: SitemapEntry[],
                 urlr: string,
             ): Generic.Link<Generic.Post>[] => (
@@ -648,48 +655,50 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
                     const urlr2 = urlr + "/" + reply[0];
                     const replyitm = reply[1](urlr2);
                     // reply count estimate: replyitm.replies.length
-                    const thispost: Generic.Link<Generic.Post> = {ref: {
+                    const thispost: Generic.PostData = {
                         kind: "post",
                         url: urlr2,
                         client_id: client.id,
-                        parent: {ref: parentv, err: undefined},
+                        parent: parentv,
                         replies: null,
                         content: replyitm.content,
                         internal_data: 0,
                         display_style: "centered",
-                    }, err: undefined};
-                    if(replyitm.replies) thispost.ref.replies = {
+                    };
+                    const thispost_key = linkFromPostData(content, thispost);
+                    if(replyitm.replies) thispost.replies = {
                         ...replyitm.replyopts,
                         items: (
                             replyitm.content.kind === "post"
                             &&
                             replyitm.content.show_replies_when_below_pivot !== false
                         ) ? (
-                            mapReplies(thispost.ref as Generic.PostData, replyitm.replies, urlr2)
-                        ) : [{ref: {
+                            mapReplies(thispost_key, replyitm.replies, urlr2)
+                        ) : [linkFromPostData(content, {
                             kind: "loader", parent: null, replies: null, url: null,
                             client_id: client.id,
                             key: 0 as unknown as Generic.Opaque<"loader">,
                             load_count: null,
-                        }}],
+                        })],
                     };
-                    return thispost;
+
+                    return linkFromPostData(content, thispost);
                 })
             );
             this_post.replies = {
-                ...called.replyopts, items: mapReplies(this_post, called.replies, urlr),
+                ...called.replyopts, items: mapReplies(this_post_link, called.replies, urlr),
             };
         }else{
             this_post.replies = null;
         }
-        return this_post;
+        return this_post_link;
     }
 
-    const this_post: Generic.PostData = {
+    const this_post_link = linkFromPostData(content, {
         kind: "post",
         url: "/"+path.join("/"),
         client_id: client.id,
-        parent: parent ? {ref: parent, err: undefined} : null,
+        parent,
         replies: null,
         content: {
             kind: "post",
@@ -702,8 +711,17 @@ function getFromSitemap(path: string[], index: number, replies: SitemapEntry[], 
         },
         internal_data: 0,
         display_style: "centered",
-    };
-    return this_post;
+    });
+    return this_post_link;
+}
+
+function linkFromPostData(
+    content: Generic.Page2Content,
+    post_data: Generic.Post,
+): Generic.Link<Generic.Post> {
+    const sym = Symbol("link") as Generic.Link<Generic.Post>;
+    content[sym] = {data: post_data};
+    return sym;
 }
 
 function clientWrapperAdd(): Generic.PostData {
@@ -723,11 +741,14 @@ function clientWrapperAdd(): Generic.PostData {
     };
 }
 
-export async function getPage(path: string): Promise<Generic.Page2> {
+export async function getPage(
+    path: string,
+): Promise<Generic.Page2> {
     const parsed_path = new URL(path, "http://test/");
     const pathsplit = parsed_path.pathname.split("/").filter(q => q);
 
-    const client_wrapper = clientWrapperAdd();
+    const content: Generic.Page2Content = {};
+    const client_wrapper = linkFromPostData(content, clientWrapperAdd());
 
     // if(pathsplit[0] === "reddit") {
     //     const reddit_client = await import("./reddit");
@@ -772,11 +793,12 @@ export async function getPage(path: string): Promise<Generic.Page2> {
     //     };
     // }
 
-    const smres = getFromSitemap(pathsplit, 0, sitemap, client_wrapper);
+    const smres = getFromSitemap(content, pathsplit, 0, sitemap, client_wrapper);
 
     if(smres) {
         return {
-            pivot: {ref: smres, err: undefined},
+            pivot: smres,
+            content,
         };
     }
 
@@ -814,7 +836,7 @@ export async function getPage(path: string): Promise<Generic.Page2> {
         kind: "post",
         url: "/",
         client_id: client.id,
-        parent: {ref: client_wrapper, err: undefined},
+        parent: client_wrapper,
         replies: null,
 
         display_style: "centered",
@@ -822,7 +844,8 @@ export async function getPage(path: string): Promise<Generic.Page2> {
         internal_data: 0,
     };
     return {
-        pivot: {ref: pivot, err: undefined},
+        pivot: linkFromPostData(content, pivot),
+        content,
     };
 }
 
