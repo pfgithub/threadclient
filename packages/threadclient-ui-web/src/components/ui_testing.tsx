@@ -1,15 +1,27 @@
-import { JSX, For } from "solid-js";
-import { classes } from "../util/utils_solid";
-import { TopLevelWrapper } from "./page2";
 import faker from "@faker-js/faker";
+import { For, JSX } from "solid-js";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
+import { classes, getSettings } from "../util/utils_solid";
+import { TopLevelWrapper } from "./page2";
+import { SettingPicker } from "./settings";
 export * from "../util/interop_solid";
 
 export default function UITestingPage(): JSX.Element {
     faker.seed(123); // this won't work right consistently because it's
     // global state but the code below can be rerun multiple times
 
+    const settings = getSettings();
+
     return <div class="m-4 text-gray-800">
+        <SettingPicker
+            setting={settings.color_scheme}
+            options={["light", "dark", undefined]}
+            name={v => ({
+                light: "Light",
+                dark: "Dark",
+                default: "System Default",
+            } as const)[v ?? "default"]}
+        />
         <h1>Posts, Above or below pivot:</h1>
         <section><TopLevelWrapper><div class="m-2 text-base text-gray-800">
             <h2>
@@ -68,10 +80,10 @@ function Username(): JSX.Element {
     </span>;
 }
 
-function Button(props: {children: JSX.Element}): JSX.Element {
+function Button(props: {children: JSX.Element, onClick?: () => void}): JSX.Element {
     return <button class={classes(
-        "bg-white py-1 px-2 rounded-md border-white border-top-gray-400 border-1",
+        "py-1 px-2 rounded-md",
         "text-gray-600",
-        "light:bg-gray-700",
-    )}>{props.children}</button>;
+        "bg-gray-200 border-b-1 border-gray-500 dark:border-t-1 dark:border-b-0 dark:bg-white dark:border-gray-400",
+    )} onClick={props.onClick}>{props.children}</button>;
 }

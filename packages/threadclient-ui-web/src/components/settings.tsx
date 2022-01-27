@@ -48,7 +48,7 @@ function UpdateStatus(): JSX.Element {
     </p>;
 }
 
-function SettingPicker<T extends string>(props: {
+export function SettingPicker<T extends string>(props: {
     setting: ComputeProperty<T>,
     options: (T | undefined)[],
     name: (a: T | undefined) => string,
