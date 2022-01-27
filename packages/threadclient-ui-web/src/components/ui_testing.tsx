@@ -63,6 +63,44 @@ export default function UITestingPage(): JSX.Element {
                 <Button>Share</Button>
             </div>
         </div></TopLevelWrapper></section>
+        <h1>Comment, At pivot:</h1>
+        <section><TopLevelWrapper><div class="m-4 text-base text-gray-800">
+            <div class="flex gap-4 items-center">
+                <img src={faker.internet.avatar()} class="rounded-full w-12 h-12" />
+                <div class="text-gray-500 flex-1">
+                    By <Username /> in
+                    {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
+                </div>
+            </div>
+            <div class="mt-4" />
+            <For each={[5, 5, 5]}>{par_cnt => (
+                <p class="my-4">
+                    {faker.lorem.paragraph(par_cnt)}
+                </p>
+            )}</For>
+            <div class="mt-8" />
+            <div class="flex gap-4">
+                <Button>Save</Button>
+                <Button>Share</Button>
+            </div>
+        </div></TopLevelWrapper></section>
+        <h1>Comment, Above pivot:</h1>
+        <section><TopLevelWrapper><div class="m-2 text-base text-gray-800">
+            <div class="flex gap-4 items-center">
+                <img src={faker.internet.avatar()} class="rounded-full w-12 h-12" />
+                <div class="text-gray-500 flex-1">
+                    By <Username /> in
+                    {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
+                </div>
+                <Button>…</Button>
+            </div>
+            <div class="mt-4" />
+            <For each={[5, 5, 5]}>{par_cnt => (
+                <p class="my-4">
+                    {faker.lorem.paragraph(par_cnt)}
+                </p>
+            )}</For>
+        </div></TopLevelWrapper></section>
     </div>;
 }
 
@@ -84,6 +122,7 @@ function Button(props: {children: JSX.Element, onClick?: () => void}): JSX.Eleme
     return <button class={classes(
         "py-1 px-2 rounded-md",
         "text-gray-600",
-        "bg-gray-200 border-b-1 border-gray-500 dark:border-t-1 dark:border-b-0 dark:bg-white dark:border-gray-400",
+        "bg-gray-200 border-b-1 border-gray-500",
+        "dark:border-t-1 dark:border-b-0 dark:bg-white dark:border-gray-400",
     )} onClick={props.onClick}>{props.children}</button>;
 }
