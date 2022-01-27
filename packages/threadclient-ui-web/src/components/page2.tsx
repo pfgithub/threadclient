@@ -281,6 +281,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         <Flair flairs={props.content.flair ?? []} />
                     </div>
                     <div class={classes(
+                        "text-gray-500",
                         hasTitleOrThumbnail() ? "" : "text-xs",
                         selfVisible() || hasThumbnail()
                         ? ""
