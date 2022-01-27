@@ -7,5 +7,6 @@
     "lint": "yarn workspaces foreach -p run lint",
     "test": "yarn workspaces foreach -p run test",
     "create-package": "yarn workspace create-tmeta-package run ts-node src/create.ts"
-  }
+  },
+  "packageManager": "yarn@3.1.1"
 }
