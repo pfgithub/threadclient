@@ -327,13 +327,15 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                 linkPreview()!.toggleVisible();
             } : undefined}
         >
-            <div class="max-lines max-lines-1">
+            <div class="max-lines max-lines-1 select-none">
                 <ShowCond when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</ShowCond>
                 {props.link.title}
             </div>
             <ShowBool when={!previewOpen().open || previewOpen().temporary}>
                 <div style={{display: previewOpen().open ? "none" : "block"}}>
-                    <div class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400">
+                    <div
+                        class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400 select-none"
+                    >
                         <ShowBool when={!linkPreview() && human().external}>
                             <ExternalIcon />{" "}
                         </ShowBool>
@@ -363,7 +365,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                     )}
                     href={props.link.url}
                 >
-                    <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400">
+                    <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400 select-none">
                         <ShowBool when={human().external}>
                             <ExternalIcon />{" "}
                         </ShowBool>
