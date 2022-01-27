@@ -186,7 +186,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         })}
         class={classes(
             "text-sm",
-            "pt-10px",
+            // "pt-10px",
             props.content.collapsible !== false ? (
                 props.opts.top_level ? "pl-1" : ""
             ) : "pl-15px",
@@ -471,7 +471,9 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                             alert("todo!");
                         }} />
                     </>}</For>
-                    <div class="flex-1"><SwitchKind item={loader_or_post.content}>{{
+                    <div class="flex-1"><ShowBool when={!loader_or_post.first_in_wrapper}>
+                        <div class="pt-10px" />
+                    </ShowBool><SwitchKind item={loader_or_post.content}>{{
                         post: post => <ClientContentAny
                             content={post.content}
                             opts={{

@@ -67,6 +67,7 @@ type FlatPost = {
     content: Generic.Post, // note rather than generic.post we can be fancier to reduce complexity when rendering
     indent: CollapseButton[],
     collapse: CollapseButton,
+    first_in_wrapper: boolean,
 };
 
 const fi = {
@@ -76,7 +77,11 @@ const fi = {
 
 type CollapseStates = Map<string | symbol, boolean>;
 
-function renderPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta): FlatPost {
+type RenderPostOpts = {
+    first_in_wrapper: boolean,
+};
+
+function renderPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta, opts: RenderPostOpts): FlatPost {
     const id = "TODO unique id "+post.url+Math.random();
 
     const self_collapsed = meta.collapse_states.get(id) ?? (
@@ -95,13 +100,14 @@ function renderPost(post: Generic.Post, parent_indent: CollapseButton[], meta: M
         content: post,
         indent: parent_indent,
         collapse: final_indent,
+        first_in_wrapper: opts.first_in_wrapper,
     };
 }
 
-function flattenPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta): FlatItem[] {
+function flattenPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta, rpo: RenderPostOpts): FlatItem[] {
     const res: FlatItem[] = [];
 
-    const rres = renderPost(post, parent_indent, meta);
+    const rres = renderPost(post, parent_indent, meta, rpo);
     res.push(rres);
 
     const self_indent = [...rres.indent, rres.collapse];
@@ -109,7 +115,7 @@ function flattenPost(post: Generic.Post, parent_indent: CollapseButton[], meta: 
     if(!rres.collapse.collapsed) if(post.replies) for(const reply of post.replies.items) {
         const reply_value = readLinkNoError(meta, reply);
         if(reply_value.error != null) res.push(fi.err(reply_value.error, reply));
-        else res.push(...flattenPost(reply_value.value, self_indent, meta));
+        else res.push(...flattenPost(reply_value.value, self_indent, meta, {...rpo, first_in_wrapper: false}));
     }
 
     return res;
@@ -142,7 +148,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
     const above_pivot: FlatItem[] = [];
     while(true) {
         above_pivot.unshift({kind: "wrapper_end"});
-        above_pivot.unshift(renderPost(highest, [], meta));
+        above_pivot.unshift(renderPost(highest, [], meta, {first_in_wrapper: true}));
         above_pivot.unshift({kind: "wrapper_start"});
 
         if(!highest.parent) break;
@@ -164,7 +170,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
             res.push({kind: "wrapper_start"});
             const reply_value = readLinkNoError(meta, reply);
             if(reply_value.error != null) res.push(fi.err(reply_value.error, reply));
-            else res.push(...flattenPost(reply_value.value, [], meta));
+            else res.push(...flattenPost(reply_value.value, [], meta, {first_in_wrapper: true}));
             res.push({kind: "wrapper_end"});
         } if(pivot.replies.items.length === 0) {
             res.push(fi.todo("*There are no replies*", pivot));
