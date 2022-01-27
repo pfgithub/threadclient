@@ -6,6 +6,14 @@ import { TopLevelWrapper } from "./page2";
 import { SettingPicker } from "./settings";
 export * from "../util/interop_solid";
 
+// NOTES:
+// - if there is a thumbnail, do not show the user pfp
+//   (you can show it on hover)
+// - do not show buttons on non-pivoted posts. instead, show the `…` thing
+// vv I think this is the same for posts and replies. That is a goal.
+//    the only difference is that replies show their body always and posts only
+//    do when pivoted.
+
 export default function UITestingPage(): JSX.Element {
     faker.seed(123); // this won't work right consistently because it's
     // global state but the code below can be rerun multiple times

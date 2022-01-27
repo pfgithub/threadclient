@@ -752,7 +752,7 @@ export async function getPage(
 
     if(pathsplit[0] === "faker") {
         const faker = await import("./test/faker");
-        return await faker.getPage(pathsplit.slice(1).join("/"));
+        return await faker.getPage("/"+pathsplit.slice(1).join("/"));
     }
 
     // if(pathsplit[0] === "reddit") {

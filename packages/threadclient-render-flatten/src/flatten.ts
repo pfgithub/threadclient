@@ -68,6 +68,9 @@ type FlatPost = {
     indent: CollapseButton[],
     collapse: CollapseButton,
     first_in_wrapper: boolean,
+
+    is_pivot: boolean,
+    at_or_above_pivot: boolean,
 };
 
 const fi = {
@@ -79,6 +82,8 @@ type CollapseStates = Map<string | symbol, boolean>;
 
 type RenderPostOpts = {
     first_in_wrapper: boolean,
+    is_pivot: boolean,
+    at_or_above_pivot: boolean,
 };
 
 function renderPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta, opts: RenderPostOpts): FlatPost {
@@ -101,6 +106,9 @@ function renderPost(post: Generic.Post, parent_indent: CollapseButton[], meta: M
         indent: parent_indent,
         collapse: final_indent,
         first_in_wrapper: opts.first_in_wrapper,
+
+        is_pivot: opts.is_pivot,
+        at_or_above_pivot: opts.at_or_above_pivot,
     };
 }
 
@@ -112,7 +120,10 @@ function flattenPost(post: Generic.Post, parent_indent: CollapseButton[], meta: 
 
     const self_indent = [...rres.indent, rres.collapse];
 
-    if(!rres.collapse.collapsed) if(post.replies) for(const reply of post.replies.items) {
+    const show_replies = post.kind === "post" ? post.content.kind === "post" ?
+        post.content.show_replies_when_below_pivot
+    : true : true;
+    if(!rres.collapse.collapsed && show_replies) if(post.replies) for(const reply of post.replies.items) {
         const reply_value = readLinkNoError(meta, reply);
         if(reply_value.error != null) res.push(fi.err(reply_value.error, reply));
         else res.push(...flattenPost(reply_value.value, self_indent, meta, {...rpo, first_in_wrapper: false}));
@@ -146,10 +157,16 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
 
     let highest: Generic.Post = pivot;
     const above_pivot: FlatItem[] = [];
+    let is_pivot = true;
     while(true) {
         above_pivot.unshift({kind: "wrapper_end"});
-        above_pivot.unshift(renderPost(highest, [], meta, {first_in_wrapper: true}));
+        above_pivot.unshift(renderPost(highest, [], meta, {
+            first_in_wrapper: true,
+            at_or_above_pivot: true,
+            is_pivot,
+        }));
         above_pivot.unshift({kind: "wrapper_start"});
+        is_pivot = false;
 
         if(!highest.parent) break;
         const highest_parent = readLinkNoError(meta, highest.parent);
@@ -170,7 +187,11 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
             res.push({kind: "wrapper_start"});
             const reply_value = readLinkNoError(meta, reply);
             if(reply_value.error != null) res.push(fi.err(reply_value.error, reply));
-            else res.push(...flattenPost(reply_value.value, [], meta, {first_in_wrapper: true}));
+            else res.push(...flattenPost(reply_value.value, [], meta, {
+                first_in_wrapper: true,
+                is_pivot: false,
+                at_or_above_pivot: false,
+            }));
             res.push({kind: "wrapper_end"});
         } if(pivot.replies.items.length === 0) {
             res.push(fi.todo("*There are no replies*", pivot));

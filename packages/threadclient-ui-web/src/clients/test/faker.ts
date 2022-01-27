@@ -34,20 +34,43 @@ function generateAuthor(): Generic.InfoAuthor {
     return {
         name: username,
         color_hash: username.toLowerCase(),
-        link: "/user/"+username,
+        link: "/faker"+"/user/"+username,
         client_id: "test",
         pfp: {url: pfp, hover: pfp},
     };
 }
 
-function generate(content: Generic.Page2Content, id: string): void {
-    faker.seedValue = parseID(id)[0]!;
+function setSeed(seed: string, fn_name: string): number[] {
+    return (fn_name+":"+seed).split("").map(v => v.codePointAt(0)!);
+}
+
+function getParent(id_raw: Generic.Link<Generic.Post>): Generic.Link<Generic.Post> | null {
+    const id = id_raw.toString();
+    if(id.split("/").length <= 2) return null;
+    return newLink<Generic.Post>(id.split("/").slice(0, -1).join("/"));
+}
+function getReplies(id_link: Generic.Link<Generic.Post>): Generic.Link<Generic.Post>[] {
+    const id = id_link.toString();
+    faker.seed(setSeed(id, "getReplies"));
+
+    const count = faker.datatype.number(50);
+    return new Array(count).fill(0).map(() => {
+        return newLink<Generic.Post>(id + "/" + faker.random.alphaNumeric(6));
+    });
+}
+
+function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.Post>): void {
+    const id = id_link.toString();
+    const replies = getReplies(id_link);
+    faker.seed(setSeed(id, "generate"));
 
     saveLink(content, newLink<Generic.Post>(id), {
-        url: id,
+        url: "/faker"+id,
         client_id: "test",
-        parent: null, // TODO "/"+parseID(id)[1..].reverse().join("/")
-        replies: null, // TODO
+        parent: getParent(id_link),
+        replies: {
+            items: replies,
+        },
 
         kind: "post",
         content: {
@@ -59,10 +82,10 @@ function generate(content: Generic.Page2Content, id: string): void {
             },
             author: generateAuthor(),
             show_replies_when_below_pivot: false,
-            collapsible: {default_collapsed: false},
+            collapsible: {default_collapsed: true},
             thumbnail: {
                 kind: "image",
-                url: faker.image.image(140, 140),
+                url: generateThumbnailImage(),
             },
         },
         internal_data: id,
@@ -70,15 +93,30 @@ function generate(content: Generic.Page2Content, id: string): void {
     });
 }
 
+function generateThumbnailImage() {
+    const seed = faker.random.alphaNumeric(6);
+    return "https://picsum.photos/seed/"+seed+"/140/140";
+}
+
 export async function getPage(
     path: string,
 ): Promise<Generic.Page2> {
     const content: Generic.Page2Content = {};
 
-    generate(content, "/0");
+    const root_link_text = path === "/" ? "/home" : path;
+
+    const root_link = newLink<Generic.Post>(root_link_text);
+    generate(content, root_link);
+
+    const parent = getParent(root_link);
+    if(parent) generate(content, parent);
+
+    for(const reply of getReplies(root_link)) {
+        generate(content, reply);
+    }
 
     return {
         content,
-        pivot: newLink("/0"),
+        pivot: root_link,
     };
 }

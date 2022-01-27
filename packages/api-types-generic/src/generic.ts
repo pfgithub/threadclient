@@ -11,18 +11,19 @@ export type Page2 = {
     content: Page2Content,
 };
 
+// !NOTE: the empty string is not a valid link due to eslint limitations
 export type Link<T> = (string | symbol) & {__is_link: T};
 
 export type ReadLinkResult<T> = {value: T, error: null} | {error: string, value: null};
 export function readLink<T>(content: Page2Content, link: Link<T>): ReadLinkResult<T> {
     const root_context = content;
     const value = root_context[link]; // get the value first to put a solid js watcher on it
-    if(!value) return {error: "[read]Link not found", value: null};
+    if(!value) return {error: "[read]Link not found: "+link.toString(), value: null};
     if(Object.hasOwnProperty.call(root_context, link)) {
         if('error' in value) return {error: value.error, value: null};
         return {value: value.data as T, error: null};
     }else{
-        return {error: "[read]Link found but not in hasOwnProperty", value: null};
+        return {error: "[read]Link found but not in hasOwnProperty: "+link.toString(), value: null};
     }
 }
 

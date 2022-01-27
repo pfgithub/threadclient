@@ -140,7 +140,10 @@ export function CollapseButton(props: {
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
-    const default_collapsed = props.content.collapsible !== false ? props.content.collapsible.default_collapsed : false;
+    const default_collapsed = props.content.collapsible !== false ? (
+        props.opts.is_pivot ? false :
+        props.content.collapsible.default_collapsed
+     ) : false;
     const [selfVisible, setSelfVisible] = createSignal(
         props.opts.is_pivot ? true :
         default_collapsed ? false :
@@ -482,9 +485,9 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                 frame: post,
                                 client_id: post.client_id,
                                 replies: post.replies,
-                                at_or_above_pivot: false,
+                                at_or_above_pivot: loader_or_post.at_or_above_pivot,
                                 top_level: false,
-                                is_pivot: false,
+                                is_pivot: loader_or_post.is_pivot,
                             }}
                         />,
                         loader: loader => (
