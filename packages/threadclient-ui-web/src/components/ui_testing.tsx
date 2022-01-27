@@ -118,7 +118,10 @@ function Username(): JSX.Element {
     </span>;
 }
 
-function Button(props: {children: JSX.Element, onClick?: () => void}): JSX.Element {
+function Button(props: {
+    children: JSX.Element,
+    onClick?: undefined | (() => void),
+}): JSX.Element {
     return <button class={classes(
         "py-1 px-2 rounded-md",
         "text-gray-600",

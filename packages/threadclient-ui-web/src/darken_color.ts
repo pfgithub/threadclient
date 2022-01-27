@@ -251,8 +251,7 @@ export function seededRandom(string: string): () => number {
     return sfc32(seed(), seed(), seed(), seed());
 }
 
-export function getRandomColor(rand: () => number): [RGBA, RGBA] 
-{
+export function getRandomColor(rand: () => number): [RGBA, RGBA] {
     const hue = rand() * 360;
     const saturation = rand() * 0.5 + 0.5;
     const lightness = rand();
