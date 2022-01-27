@@ -2786,6 +2786,15 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
     });
 }
 
+function uiTestingPage(): HideShowCleanup<HTMLDivElement> {
+    return fetchPromiseThen(import("./components/ui_testing"), ({default: UITestingPage}) => {
+        const res = el("div");
+        const hsc = hideshow(res);
+        vanillaToSolidBoundary(res, () => <UITestingPage />, {color_level: 0}).defer(hsc);
+        return hsc;
+    });
+}
+
 function pwaStartPage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
@@ -2982,6 +2991,9 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
     }
     if(path0 === "settings") {
         return settingsPage();
+    }
+    if(path0 === "ui_testing") {
+        return uiTestingPage();
     }
 
     function Component(): JSX.Element {
