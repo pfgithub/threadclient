@@ -23,24 +23,20 @@ export default function UITestingPage(): JSX.Element {
             } as const)[v ?? "default"]}
         />
         <h1>Posts, Above or below pivot:</h1>
-        <section><TopLevelWrapper><div class="m-2 text-base text-gray-800">
-            <h2>
-                {faker.lorem.sentence()}
-            </h2>
-            <div class="text-gray-500">
-                By <Username /> in
-                {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
-            </div>
-        </div></TopLevelWrapper></section>
-        <section><TopLevelWrapper><div class="m-2 text-base text-gray-800">
-            <h2>
-                {faker.lorem.sentence()}
-            </h2>
-            <div class="text-gray-500">
-                By <Username /> in
-                {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
-            </div>
-        </div></TopLevelWrapper></section>
+        <For each={[1, 2]}>{() => <>
+            <section><TopLevelWrapper><div class="m-2 text-base text-gray-800">
+                <h2>
+                    {faker.lorem.sentence()}
+                </h2>
+                <div class="text-gray-500">
+                    By <Username /> in
+                    {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
+                </div>
+                <div class="text-gray-500">
+                    21.8k points, 2 years ago, 83% upvoted
+                </div>
+            </div></TopLevelWrapper></section>
+        </>}</For>
         <h1>Post, At pivot:</h1>
         <section><TopLevelWrapper><div class="m-4 text-base text-gray-800">
             <h2 class="text-3xl">
@@ -58,6 +54,10 @@ export default function UITestingPage(): JSX.Element {
                 </p>
             )}</For></div>
             <div class="mt-8" />
+            <div class="text-gray-500">
+                21.8k points, 2 years ago, 83% upvoted
+            </div>
+            <div class="mt-2" />
             <div class="flex gap-4">
                 <Button>Save</Button>
                 <Button>Share</Button>
@@ -68,8 +68,7 @@ export default function UITestingPage(): JSX.Element {
             <div class="flex gap-4 items-center">
                 <img src={faker.internet.avatar()} class="rounded-full w-12 h-12" />
                 <div class="text-gray-500 flex-1">
-                    <Username /> in
-                    {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
+                    <Username />
                 </div>
             </div>
             <div class="mt-6" />
@@ -79,6 +78,10 @@ export default function UITestingPage(): JSX.Element {
                 </p>
             )}</For></div>
             <div class="mt-8" />
+            <div class="text-gray-500">
+                21.8k points, 2 years ago
+            </div>
+            <div class="mt-2" />
             <div class="flex gap-4">
                 <Button>Save</Button>
                 <Button>Share</Button>
@@ -89,14 +92,13 @@ export default function UITestingPage(): JSX.Element {
             <div class="flex gap-2 items-center">
                 <img src={faker.internet.avatar()} class="rounded-full w-8 h-8" />
                 <div class="text-gray-500 flex-1">
-                    <Username /> in
-                    {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
+                    <Username /> 21.8k points, 2 years ago
                 </div>
                 <Button>…</Button>
             </div>
             <div class="mt-4" />
             <For each={[5, 5, 5]}>{par_cnt => (
-                <p class="my-4">
+                <p class="mt-4">
                     {faker.lorem.paragraph(par_cnt)}
                 </p>
             )}</For>
