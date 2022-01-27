@@ -25,15 +25,25 @@ export default function UITestingPage(): JSX.Element {
         <h1>Posts, Above or below pivot:</h1>
         <For each={[1, 2]}>{() => <>
             <section><TopLevelWrapper><div class="m-2 text-base text-gray-800">
-                <h2>
-                    {faker.lorem.sentence()}
-                </h2>
-                <div class="text-gray-500">
-                    By <Username /> in
-                    {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
-                </div>
-                <div class="text-gray-500">
-                    21.8k points, 2 years ago, 83% upvoted
+                <div class="flex items-center">
+                    <div>
+                        <img src={faker.image.image(400, 400)} class="h-12 w-12 rounded-md" />
+                    </div>
+                    <div class="mr-4" />
+                    <div class="flex-1">
+                        <h2>
+                            {faker.lorem.sentence()}
+                        </h2>
+                        <div class="text-gray-500">
+                            By <Username /> in
+                            {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
+                        </div>
+                        <div class="text-gray-500">
+                            21.8k points, 2 years ago, 83% upvoted
+                        </div>
+                    </div>
+                    <div class="mr-2" />
+                    <div class="self-start"><Button>…</Button></div>
                 </div>
             </div></TopLevelWrapper></section>
         </>}</For>
@@ -94,7 +104,7 @@ export default function UITestingPage(): JSX.Element {
                 <div class="text-gray-500 flex-1">
                     <Username /> 21.8k points, 2 years ago
                 </div>
-                <Button>…</Button>
+                <div class="self-start"><Button>…</Button></div>
             </div>
             <div class="mt-4" />
             <For each={[5, 5, 5]}>{par_cnt => (
