@@ -1,11 +1,11 @@
 /* eslint-disable max-len */
 
-import * as commonmark from "commonmark";
-import { LogEntry, variables } from "virtual:_variables";
 import type * as Generic from "api-types-generic";
 import { Richtext, rt } from "api-types-generic";
-import { assertNever } from "tmeta-util";
+import * as commonmark from "commonmark";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { assertNever } from "tmeta-util";
+import { LogEntry, variables } from "virtual:_variables";
 
 function childrenOf(node: commonmark.Node): commonmark.Node[] {
     const res: commonmark.Node[] = [];
@@ -750,6 +750,11 @@ export async function getPage(
     const content: Generic.Page2Content = {};
     const client_wrapper = linkFromPostData(content, clientWrapperAdd());
 
+    if(pathsplit[0] === "faker") {
+        const faker = await import("./test/faker");
+        return await faker.getPage(pathsplit.slice(1).join("/"));
+    }
+
     // if(pathsplit[0] === "reddit") {
     //     const reddit_client = await import("./reddit");
     //     const reddit_comments = await import("./test/sample_comment");
@@ -816,6 +821,7 @@ export async function getPage(
                     "/markdown",
                     "/reddit",
                     "/header",
+                    "/faker",
                 ].map(v => rt.li(rt.p(
                     rt.link(client, v, {}, rt.txt(v)),
                 )))),
