@@ -68,6 +68,32 @@ import { SettingPicker } from "./settings";
 // the note is:
 // - comments do not have a title or a thumbnail
 
+const HSplit = {
+    Container(props: {dir: "left" | "right", children: JSX.Element[]}): JSX.Element {
+        return <div class={classes(
+            "flex flex-wrap items-center",
+            props.dir === "right" ? "justify-end" : "",
+        )}>
+            {props.children}
+        </div>
+    },
+    Child(props: {
+        vertical?: undefined | "top" | "center" | "bottom",
+        fullwidth?: undefined | boolean,
+        children: JSX.Element,
+    }): JSX.Element {
+        return <div class={classes(
+            ({
+                top: "self-start",
+                center: "self-center",
+                bottom: "self-end",
+                none: "",
+            } as const)[props.vertical ?? "none"],
+            props.fullwidth ? "flex-1" : "",
+        )}>{props.children}</div>;
+    },
+};
+
 export default function UITestingPage(): JSX.Element {
     faker.seed(123); // this won't work right consistently because it's
     // global state but the code below can be rerun multiple times
@@ -88,12 +114,14 @@ export default function UITestingPage(): JSX.Element {
         <For each={[1, 2]}>{() => {
             const expanded = false;
             return <section><TopLevelWrapper><div class="m-2 text-sm text-gray-800">
-                <div class="flex flex-wrap justify-end items-center">
-                    <div>
+                <HSplit.Container dir="right">
+                    <HSplit.Child>
                         <img src={faker.image.image(400, 400)} class="h-12 w-12 rounded-md" />
-                    </div>
-                    <div class="mr-4" />
-                    <div class="flex-1">
+                    </HSplit.Child>
+                    <HSplit.Child>
+                        <div class="mr-4" />
+                    </HSplit.Child>
+                    <HSplit.Child fullwidth>
                         <h2>
                             {faker.lorem.sentence()}
                         </h2>
@@ -107,10 +135,10 @@ export default function UITestingPage(): JSX.Element {
                             <span><i class="far fa-smile" /> 83%</span>
                             <span><i class="far fa-clock" /> 2y</span>
                         </div>
-                    </div>
-                    <div class="mr-2" />
+                    </HSplit.Child>
+                    <HSplit.Child><div class="mr-2" /></HSplit.Child>
                     <div class="self-start"><Button>…</Button></div>
-                </div>
+                </HSplit.Container>
                 <ShowBool when={expanded}><div class="mt-2">
                     <img src={faker.image.image(600, 500)} />
                 </div></ShowBool>
