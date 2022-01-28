@@ -185,6 +185,9 @@ export function getSettings(): Settings { // TODO getClient: (): ThreadClient =}
     return global_settings;
 }
 
+// [!] consider exporting different stops rather than the screen width
+// so we don't have thousands of items listening to resize, just items listening
+// to the stops they care about
 const [screenWidth, setScreenWidth] = createSignal(window.innerWidth);
 window.addEventListener("resize", () => {
     setScreenWidth(window.innerWidth);

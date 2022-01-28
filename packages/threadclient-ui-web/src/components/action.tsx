@@ -10,6 +10,11 @@ import { LinkButton } from "./links";
 import type { ClientPostProps } from "./page2";
 import { ReplyEditor } from "./reply";
 
+// TODO
+// function postActions(): PostAction[]
+//
+// that way we can have both button actions and actions as a dropdown
+
 export function PostActions(props: ClientPostProps & {
     children?: undefined | JSX.Element,
     onAddReply: (reply: Generic.Post) => void,

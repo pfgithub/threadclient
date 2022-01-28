@@ -138,6 +138,43 @@ export function CollapseButton(props: {
     </button>;
 }
 
+const HSplit = {
+    Container(props: {dir: "left" | "right", children: JSX.Element}): JSX.Element {
+        return <div class={classes(
+            "flex flex-wrap items-center",
+            props.dir === "right" ? "justify-end" : "",
+        )}>
+            {props.children}
+        </div>
+    },
+    Child(props: {
+        vertical?: undefined | "top" | "center" | "bottom",
+        fullwidth?: undefined | boolean,
+        children: JSX.Element,
+    }): JSX.Element {
+        return <div class={classes(
+            ({
+                top: "self-start",
+                center: "self-center",
+                bottom: "self-end",
+                none: "",
+            } as const)[props.vertical ?? "none"],
+            props.fullwidth ? "flex-1" : "",
+        )}>{props.children}</div>;
+    },
+};
+function Button(props: {
+    children: JSX.Element,
+    onClick?: undefined | (() => void),
+}): JSX.Element {
+    return <button class={classes(
+        "py-1 px-2 rounded-md",
+        "text-gray-600",
+        "bg-gray-200 border-b-1 border-gray-500",
+        "dark:border-t-1 dark:border-b-0 dark:bg-white dark:border-gray-400",
+    )} onClick={props.onClick}>{props.children}</button>;
+}
+
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
     const default_collapsed = props.content.collapsible !== false ? (
@@ -167,11 +204,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         animating: false,
     });
 
-    const [showActions, setShowActions] = createSignal(false);
-    const mobile = () => screenWidth() < screen_size.sm;
-    createEffect(() => {
-        if(!mobile()) setShowActions(false);
-    });
+    // const [showActions, setShowActions] = createSignal(false);
+    // const mobile = () => screenWidth() < screen_size.sm;
+    // createEffect(() => {
+    //     if(!mobile()) setShowActions(false);
+    // });
 
     const postIsClickable = () => {
         return props.opts.frame?.url != null && !props.opts.is_pivot;
@@ -181,6 +218,30 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         // TODO;
         alert("Reply posted. TODO: display it.");
     };
+    
+    // class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
+    // // note: screenreader or keyboard users must click the 'view' button
+    // // or the title if there is one.
+    // // I considered making the "x points x hours ago" a link but it's harder
+    // // to do than it should be because of the {" "} and {", "} those get underlined
+    // onclick={e => {
+    //     if(!postIsClickable()) return;
+    //     if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
+    //     e.stopPropagation();
+    //     // support ctrl click
+    //     const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
+    //     if(e.ctrlKey || e.metaKey || e.altKey) {
+    //         window.open(target_url);
+    //     }else{
+    //         navigate({
+    //             path: target_url,
+    //             // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
+    //             // disabling this for now, we'll fix it in a bit
+    //             // we just need to know what the link to the post is in the
+    //             // post itself
+    //         });
+    //     }
+    // }}
 
     return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
@@ -201,7 +262,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             "--left-v": "8px",
         }}
     >
-        <ShowBool when={props.content.collapsible !== false}>
+        <ShowBool when={props.content.collapsible !== false && (
+            props.content.thumbnail != null ? selfVisible() ? true : false : true
+        )}>
             <div class={"flex flex-col items-center mr-1 gap-2 "+(props.opts.top_level ? "sm:px-1" : "sm:pr-1")}>
                 <ShowCond when={props.content.actions?.vote}>{vote_action => (
                     <div class={selfVisible() || hasThumbnail() ? "" : " hidden"}>
@@ -213,58 +276,36 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     collapsed_raw={!transitionTarget()}
                     collapsed_anim={!selfVisible()}
                     onClick={() => {
-                    setTransitionTarget(t => !t);
+                        setTransitionTarget(t => !t);
                     }}
                 />
             </div>
         </ShowBool>
         <div class="flex-1">
-            <div class="flex flex-row">
-                <ShowCond when={props.content.thumbnail}>{thumb_any => (
+            <HSplit.Container dir="right">
+                <ShowCond if={[!selfVisible()]} when={props.content.thumbnail}>{thumb_any => (
                     <ToggleColor>{color => (
-                        <button class={classes(
-                            "w-50px h-50px sm:w-70px sm:h-70px mr-4 rounded-md "+color,
-                            contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
-                        )} onClick={() => setTransitionTarget(t => !t)}>
-                            <SwitchKind item={thumb_any}>{{
-                                image: img => <img
-                                    // TODO based on the img content, display eg a play button or something
-                                    src={img.url}
-                                    alt=""
-                                    class={classes(
-                                        "w-full h-full object-contain"
-                                    )}
-                                />,
-                                default: def => <>TODO {def.kind}</>,
-                            }}</SwitchKind>
-                        </button>
+                        <HSplit.Child>
+                            <button class={classes(
+                                "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
+                                contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
+                            )} onClick={() => setTransitionTarget(t => !t)}>
+                                <SwitchKind item={thumb_any}>{{
+                                    image: img => <img
+                                        // TODO based on the img content, display eg a play button or something
+                                        src={img.url}
+                                        alt=""
+                                        class={classes(
+                                            "w-full h-full object-contain rounded-md"
+                                        )}
+                                    />,
+                                    default: def => <>TODO {def.kind}</>,
+                                }}</SwitchKind>
+                            </button>
+                        </HSplit.Child>
                     )}</ToggleColor>
                 )}</ShowCond>
-                <div
-                    class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
-                    // note: screenreader or keyboard users must click the 'view' button
-                    // or the title if there is one.
-                    // I considered making the "x points x hours ago" a link but it's harder
-                    // to do than it should be because of the {" "} and {", "} those get underlined
-                    onclick={e => {
-                        if(!postIsClickable()) return;
-                        if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
-                        e.stopPropagation();
-                        // support ctrl click
-                        const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
-                        if(e.ctrlKey || e.metaKey || e.altKey) {
-                            window.open(target_url);
-                        }else{
-                            navigate({
-                                path: target_url,
-                                // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
-                                // disabling this for now, we'll fix it in a bit
-                                // we just need to know what the link to the post is in the
-                                // post itself
-                            });
-                        }
-                    }}
-                >
+                <HSplit.Child fullwidth>
                     <div class={classes(
                         hasTitleOrThumbnail() ? "text-base" : "text-xs",
                     )}>
@@ -349,37 +390,16 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                     <span class="text-green-600 dark:text-green-500">Pinned</span>{" "}
                                 </>}</ShowBool>
                             </>}</ShowCond>
-                            <ShowBool when={mobile()}>
-                                <button
-                                    class={link_styles_v["outlined-button"]}
-                                    onclick={() => setShowActions(v => !v)}
-                                >{showActions() ? "▾" : "▸"}</button>
-                            </ShowBool>
                         </ShowBool>
                     </div>
-                    <ShowBool when={hasThumbnail() && !mobile()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
-                        <PostActions
-                            content={props.content}
-                            opts={props.opts}
-                            onAddReply={onAddReply}
-                        >
-                            <div><button
-                                class={link_styles_v["outlined-button"]}
-                                onclick={() => setTransitionTarget(t => !t)}
-                            >
-                                {transitionTarget() ? "Hide" : "Show"}
-                            </button></div>
-                        </PostActions>
-                    </div></ShowBool>
-                </div>
-            </div>
-            <ShowAnimate when={mobile() && showActions()}>
-                <PostActions
-                    content={props.content}
-                    opts={props.opts}
-                    onAddReply={onAddReply}
-                />
-            </ShowAnimate>
+                </HSplit.Child>
+                <ShowBool when={!props.opts.is_pivot}>
+                    <HSplit.Child vertical="top">
+                        <div class="pl-2" />
+                        <Button onClick={() => alert("TODO")}>…</Button>
+                    </HSplit.Child>
+                </ShowBool>
+            </HSplit.Container>
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider
                 visible={() => animState().visible || animState().animating}
             >
@@ -400,7 +420,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </ShowAnimate>
                     </ShowBool>
                 </section>
-                <ShowBool when={!hasThumbnail() && !mobile()}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
+                <ShowBool when={props.opts.is_pivot}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
                     <PostActions
                         content={props.content}
                         opts={props.opts}

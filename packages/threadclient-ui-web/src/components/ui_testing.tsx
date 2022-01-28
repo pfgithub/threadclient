@@ -116,7 +116,7 @@ export default function UITestingPage(): JSX.Element {
             return <section><TopLevelWrapper><div class="m-2 text-sm text-gray-800">
                 <HSplit.Container dir="right">
                     <HSplit.Child>
-                        <img src={faker.image.image(400, 400)} class="h-12 w-12 rounded-md" />
+                        <img src={faker.image.image(400, 400)} class="h-12 w-12 sm:w-16 sm:h-16 rounded-md" />
                     </HSplit.Child>
                     <HSplit.Child>
                         <div class="mr-4" />
@@ -137,7 +137,7 @@ export default function UITestingPage(): JSX.Element {
                         </div>
                     </HSplit.Child>
                     <HSplit.Child><div class="mr-2" /></HSplit.Child>
-                    <div class="self-start"><Button>…</Button></div>
+                    <HSplit.Child vertical="top"><Button>…</Button></HSplit.Child>
                 </HSplit.Container>
                 <ShowBool when={expanded}><div class="mt-2">
                     <img src={faker.image.image(600, 500)} />
