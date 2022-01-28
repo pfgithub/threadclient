@@ -115,7 +115,7 @@ export default function UITestingPage(): JSX.Element {
                 <ShowBool when={expanded}><div class="mt-2">
                     <img src={faker.image.image(600, 500)} />
                 </div></ShowBool>
-            </div></TopLevelWrapper></section>
+            </div></TopLevelWrapper></section>;
         }}</For>
         <h1>Post, At pivot:</h1>
         <section><TopLevelWrapper><div class="m-4 text-sm text-gray-800">
