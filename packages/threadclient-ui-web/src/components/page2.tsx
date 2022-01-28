@@ -143,7 +143,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     const default_collapsed = props.content.collapsible !== false ? (
         props.opts.is_pivot ? false :
         props.content.collapsible.default_collapsed
-     ) : false;
+    ) : false;
     const [selfVisible, setSelfVisible] = createSignal(
         props.opts.is_pivot ? true :
         default_collapsed ? false :

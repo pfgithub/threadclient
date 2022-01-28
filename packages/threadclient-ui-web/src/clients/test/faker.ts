@@ -17,10 +17,6 @@ function saveLink<T>(content: Generic.Page2Content, link: Generic.Link<T>, value
     content[link] = {data: value};
 }
 
-function parseID(id: string): string[] {
-    return id.split("/").filter(w => w).reverse();
-}
-
 function generateAuthor(): Generic.InfoAuthor {
     // we should pass in the username and have it generate an id based
     // on that
@@ -133,7 +129,7 @@ function generateComment(): Generic.PostContent {
         author: generateAuthor(),
         show_replies_when_below_pivot: true,
         collapsible: {default_collapsed: false},
-    }
+    };
 }
 
 function postKind(id: string): "post" | "comment" {
