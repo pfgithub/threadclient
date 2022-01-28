@@ -6,7 +6,6 @@ import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { classes, getSettings } from "../util/utils_solid";
 import { TopLevelWrapper } from "./page2";
 import { SettingPicker } from "./settings";
-export * from "../util/interop_solid";
 
 // ok iconsets I tried:
 // - remixicon
