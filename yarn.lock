@@ -1883,6 +1883,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fortawesome/fontawesome-free@npm:^5.15.4":
+  version: 5.15.4
+  resolution: "@fortawesome/fontawesome-free@npm:5.15.4"
+  checksum: 32281c3df4075290d9a96dfc22f72fadb3da7055d4117e48d34046b8c98032a55fa260ae351b0af5d6f6fb57a2f5d79a4abe52af456da35195f7cb7dda27b4a2
+  languageName: node
+  linkType: hard
+
 "@gar/promisify@npm:^1.0.1":
   version: 1.1.2
   resolution: "@gar/promisify@npm:1.1.2"
@@ -11657,6 +11664,7 @@ fsevents@~2.3.2:
   resolution: "threadclient-ui-web@workspace:packages/threadclient-ui-web"
   dependencies:
     "@faker-js/faker": ^6.0.0-alpha.5
+    "@fortawesome/fontawesome-free": ^5.15.4
     "@types/babel__core": ^7.1.15
     "@types/commonmark": ^0.27.5
     "@types/node": ^16.7.2

@@ -1,10 +1,13 @@
 import faker from "@faker-js/faker";
 import { For, JSX } from "solid-js";
+import { ShowBool } from "tmeta-util-solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { classes, getSettings } from "../util/utils_solid";
 import { TopLevelWrapper } from "./page2";
 import { SettingPicker } from "./settings";
+import "@fortawesome/fontawesome-free/css/all.css";
 export * from "../util/interop_solid";
+
 
 // NOTES:
 // - if there is a thumbnail, do not show the user pfp
@@ -14,13 +17,42 @@ export * from "../util/interop_solid";
 //    the only difference is that replies show their body always and posts only
 //    do when pivoted.
 
+// ok I'm missing one thing right now:
+// how do you collapse comments + can you expand posts?
+// I guess what I can do for now is just say you can't expand posts, you have to
+// pivot them.
+// that doesn't seem right though, why can you expand comments then?
+// oh actually wait we can just do uncollapsed posts exactly the same as comments
+
+// okay yeah that'll be alright I guess
+// so we have:
+// - collapsed
+// - expanded
+// collapsed state shows:
+// - thumbnail
+// - title
+// - author
+// - info
+// expanded state shows:
+//
+// oh I'm missing: why do comments mix author and info into one line and show a summary?
+// why do posts do neither?
+
+// ok I think we have:
+// - a title line
+// - an attribution line (author, pfp, sub, reblog)
+// - an info line (reply count, vote count, time, percent)
+
+// the note is:
+// - comments do not have a title or a thumbnail
+
 export default function UITestingPage(): JSX.Element {
     faker.seed(123); // this won't work right consistently because it's
     // global state but the code below can be rerun multiple times
 
     const settings = getSettings();
 
-    return <div class="m-4 text-gray-800">
+    return <div class="m-4 <sm:mx-0 text-gray-800">
         <SettingPicker
             setting={settings.color_scheme}
             options={["light", "dark", undefined]}
@@ -31,9 +63,10 @@ export default function UITestingPage(): JSX.Element {
             } as const)[v ?? "default"]}
         />
         <h1>Posts, Above or below pivot:</h1>
-        <For each={[1, 2]}>{() => <>
-            <section><TopLevelWrapper><div class="m-2 text-base text-gray-800">
-                <div class="flex items-center">
+        <For each={[1, 2]}>{() => {
+            const expanded = false;
+            return <section><TopLevelWrapper><div class="m-2 text-sm text-gray-800">
+                <div class="flex flex-wrap justify-end items-center">
                     <div>
                         <img src={faker.image.image(400, 400)} class="h-12 w-12 rounded-md" />
                     </div>
@@ -46,17 +79,23 @@ export default function UITestingPage(): JSX.Element {
                             By <Username /> in
                             {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
                         </div>
-                        <div class="text-gray-500">
-                            21.8k points, 2 years ago, 83% upvoted
+                        <div class="text-gray-500 flex flex-wrap gap-2 <sm:text-xs">
+                            <span><i class="far fa-comment" /> 12</span>
+                            <span><i class="fas fa-arrow-up" /> 21.8k</span>
+                            <span><i class="far fa-smile" /> 83%</span>
+                            <span><i class="far fa-clock" /> 2y</span>
                         </div>
                     </div>
                     <div class="mr-2" />
                     <div class="self-start"><Button>…</Button></div>
                 </div>
+                <ShowBool when={expanded}><div class="mt-2">
+                    <img src={faker.image.image(600, 500)} />
+                </div></ShowBool>
             </div></TopLevelWrapper></section>
-        </>}</For>
+        }}</For>
         <h1>Post, At pivot:</h1>
-        <section><TopLevelWrapper><div class="m-4 text-base text-gray-800">
+        <section><TopLevelWrapper><div class="m-4 text-sm text-gray-800">
             <h2 class="text-3xl">
                 {faker.lorem.sentence(18)}
             </h2>
@@ -66,7 +105,7 @@ export default function UITestingPage(): JSX.Element {
                 {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
             </div>
             <div class="mt-8" />
-            <div class="text-lg"><For each={[5, 5, 5]}>{par_cnt => (
+            <div class="text-base"><For each={[5, 5, 5]}>{par_cnt => (
                 <p class="my-4">
                     {faker.lorem.paragraph(par_cnt)}
                 </p>
@@ -76,21 +115,21 @@ export default function UITestingPage(): JSX.Element {
                 21.8k points, 2 years ago, 83% upvoted
             </div>
             <div class="mt-2" />
-            <div class="flex gap-4">
+            <div class="flex flex-wrap gap-4">
                 <Button>Save</Button>
                 <Button>Share</Button>
             </div>
         </div></TopLevelWrapper></section>
         <h1>Comment, At pivot:</h1>
-        <section><TopLevelWrapper><div class="m-4 text-base text-gray-800">
-            <div class="flex gap-4 items-center">
+        <section><TopLevelWrapper><div class="m-4 text-sm text-gray-800">
+            <div class="flex flex-wrap justify-end gap-4 items-center">
                 <img src={faker.internet.avatar()} class="rounded-full w-12 h-12" />
                 <div class="text-gray-500 flex-1">
                     <Username />
                 </div>
             </div>
             <div class="mt-6" />
-            <div class="text-lg"><For each={[5, 5, 5]}>{par_cnt => (
+            <div class="text-base"><For each={[5, 5, 5]}>{par_cnt => (
                 <p class="my-4">
                     {faker.lorem.paragraph(par_cnt)}
                 </p>
@@ -100,17 +139,21 @@ export default function UITestingPage(): JSX.Element {
                 21.8k points, 2 years ago
             </div>
             <div class="mt-2" />
-            <div class="flex gap-4">
+            <div class="flex flex-wrap gap-4">
                 <Button>Save</Button>
                 <Button>Share</Button>
             </div>
         </div></TopLevelWrapper></section>
         <h1>Comment, Above pivot:</h1>
-        <section><TopLevelWrapper><div class="m-2 text-base text-gray-800">
-            <div class="flex gap-2 items-center">
+        <section><TopLevelWrapper><div class="m-2 text-sm text-gray-800">
+            <div class="flex flex-wrap justify-end gap-2 items-center">
                 <img src={faker.internet.avatar()} class="rounded-full w-8 h-8" />
-                <div class="text-gray-500 flex-1">
-                    <Username /> 21.8k points, 2 years ago
+                <div class="text-gray-500">
+                    <Username />
+                </div>
+                <div class="text-gray-500 flex-1" />
+                <div class="text-gray-500">
+                    21.8k points, 2 years ago
                 </div>
                 <div class="self-start"><Button>…</Button></div>
             </div>
@@ -120,6 +163,21 @@ export default function UITestingPage(): JSX.Element {
                     {faker.lorem.paragraph(par_cnt)}
                 </p>
             )}</For>
+        </div></TopLevelWrapper></section>
+        <h1>Comment, Collapsed:</h1>
+        <section><TopLevelWrapper><div class="mx-2 text-sm text-gray-800">
+            <div class="flex flex-wrap justify-end gap-2 items-center">
+                <div class="text-gray-500">
+                    <Username />
+                </div>
+                <div class="text-gray-500 flex-1 max-lines max-lines-1">
+                    {faker.lorem.paragraph(5)}
+                </div>
+                <div class="text-gray-500">·</div>
+                <div class="text-gray-500">
+                    21.8k points, 2 years ago
+                </div>
+            </div>
         </div></TopLevelWrapper></section>
     </div>;
 }
