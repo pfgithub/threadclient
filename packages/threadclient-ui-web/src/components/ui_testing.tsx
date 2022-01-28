@@ -1,13 +1,36 @@
 import faker from "@faker-js/faker";
+import "@fortawesome/fontawesome-free/css/all.css";
 import { For, JSX } from "solid-js";
 import { ShowBool } from "tmeta-util-solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { classes, getSettings } from "../util/utils_solid";
 import { TopLevelWrapper } from "./page2";
 import { SettingPicker } from "./settings";
-import "@fortawesome/fontawesome-free/css/all.css";
 export * from "../util/interop_solid";
 
+// ok iconsets I tried:
+// - remixicon
+//     super neat but unfortunately the icons don't fit in with text very well
+// - fontawesome
+//     pro is required for the non-bold arrow icon. icons fit in nicely though
+// - ikonate
+//     no font = hard to manage size
+// - glyphs
+//     no font = hard to manage sizez
+// - typicons
+//     wrong style
+// - ionicons
+//     no longer distribute a css font file in 5.0+
+// - solid-icons 
+//     contains many icon packs, but does not fit in with text
+//
+// ok I'm staying with fontawesome
+// the issue is that most of these are designed to look nice in square boxes but
+// don't fit in with text. like they need resonable baselines and matching stroke
+// widths in order to fit in with text and they don't have that.
+//
+// anyway maybe I'll get fontawesome pro eventually so I can have the right up arrow icon
+// or I'll just use `↑`
 
 // NOTES:
 // - if there is a thumbnail, do not show the user pfp
@@ -173,7 +196,6 @@ export default function UITestingPage(): JSX.Element {
                 <div class="text-gray-500 flex-1 max-lines max-lines-1">
                     {faker.lorem.paragraph(5)}
                 </div>
-                <div class="text-gray-500">·</div>
                 <div class="text-gray-500">
                     21.8k points, 2 years ago
                 </div>
