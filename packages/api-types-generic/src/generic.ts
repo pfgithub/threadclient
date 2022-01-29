@@ -82,7 +82,8 @@ export type PostInfo = {
     edited?: {date?: number | undefined} | undefined,
     pinned?: boolean | undefined, // TODO remove this, use the "pinned" section in a ListingData instead
     in?: {name: string, link: string, client_id: string} | undefined,
-    comments?: number | undefined,
+    comments?: number | undefined, // TODO consider removing this, instead add up the
+    // totals of all the replies and loader counts in the ui.
 };
 export type PostContentPost = {
     kind: "post",

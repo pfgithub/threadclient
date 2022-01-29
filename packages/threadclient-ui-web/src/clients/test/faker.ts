@@ -211,14 +211,14 @@ function generateContent(id: string): Generic.PostContent {
     }
 }
 
-function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.Post>): void {
+function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.Post>): Generic.Post {
     const id = id_link.toString();
     const replies = getReplies(id_link);
 
     faker.seed(setSeed(id, "generate"));
     const content_value = generateContent(id);
 
-    saveLink(content, newLink<Generic.Post>(id), {
+    const result: Generic.Post = {
         url: "/faker"+id,
         client_id: "test",
         parent: getParent(id_link),
@@ -236,12 +236,40 @@ function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.P
         } : content_value,
         internal_data: id,
         display_style: "centered",
-    });
+    };
+    saveLink(content, newLink<Generic.Post>(id), result);
+    return result;
 }
 
 function generatePostImage(w: number, h: number) {
     const seed = faker.random.alphaNumeric(6);
     return "https://picsum.photos/seed/"+seed+"/"+w+"/"+h+".jpg";
+}
+
+function fillReplies(
+    content: Generic.Page2Content,
+    root: Generic.Post,
+    maximum: number,
+    depth: number,
+    opts: {pivot: boolean},
+): number {
+    if(root.replies == null) return 0;
+    if(root.kind === "post" && root.content.kind === "post") {
+        if(!opts.pivot && !root.content.show_replies_when_below_pivot) {
+            // TODO: replace the replies with a loader
+            return 0;
+        }
+    }
+    if(depth <= 0) return maximum; // TODO: replace remaining replies with a loader
+    for(const reply of root.replies.items) {
+        if(maximum <= 0) return maximum; // TODO: replace remaining replies with a loader
+
+        const item = generate(content, reply);
+        maximum -= 1;
+
+        maximum = fillReplies(content, item, maximum, depth - 1, {pivot: false});
+    }
+    return maximum;
 }
 
 export async function getPage(
@@ -252,18 +280,11 @@ export async function getPage(
     const root_link_text = path === "/" ? "/home" : path;
 
     const root_link = newLink<Generic.Post>(root_link_text);
-    generate(content, root_link);
+    const root_item = generate(content, root_link);
+    fillReplies(content, root_item, 100, 10, {pivot: true}); // we could use a url ?limit= param for this
 
     const parent = getParent(root_link);
     if(parent) generate(content, parent);
-
-    for(const reply of getReplies(root_link)) {
-        generate(content, reply);
-        // for(const reply2 of getReplies(reply)) {
-        //     generate(content, reply2);
-        // }
-        // we want to do load mores and stuff
-    }
 
     return {
         content,
