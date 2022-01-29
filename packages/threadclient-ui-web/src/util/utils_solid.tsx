@@ -194,13 +194,17 @@ window.addEventListener("resize", () => {
 });
 
 // https://windicss.org/utilities/variants.html
-export const size_lt = {
-    sm: createMemo(() => screenWidth() < 640),
-    // md: 768,
-    // lg: 1024,
-    // xl: 1280,
-    // xl2: 1536,
-};
+export const size_lt = createRoot((dispose) => {
+    // dispose this if the module is reloaded or something
+
+    return {
+        sm: createMemo(() => screenWidth() < 640),
+        // md: 768,
+        // lg: 1024,
+        // xl: 1280,
+        // xl2: 1536,
+    } as const;
+});
 
 type Classes = string | Classes[];
 export function classes(...items: Classes[]): string {

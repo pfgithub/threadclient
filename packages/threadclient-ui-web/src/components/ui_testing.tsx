@@ -1,9 +1,10 @@
 import faker from "@faker-js/faker";
 import "@fortawesome/fontawesome-free/css/all.css";
-import { For, JSX } from "solid-js";
-import { ShowBool } from "tmeta-util-solid";
+import { For, JSX, createSignal, onCleanup, createEffect } from "solid-js";
+import { Portal } from "solid-js/web";
+import { ShowBool, ShowCond } from "tmeta-util-solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
-import { classes, getSettings } from "../util/utils_solid";
+import { classes, getSettings, screenWidth } from "../util/utils_solid";
 import { TopLevelWrapper } from "./page2";
 import { SettingPicker } from "./settings";
 
@@ -95,6 +96,106 @@ const HSplit = {
     },
 };
 
+function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JSX.Element {
+    const [open, setOpen] = createSignal<null | {
+        rect: DOMRect,
+    }>(null);
+
+    let node1!: HTMLDivElement;
+
+    // while open:
+    // - add a focus watcher
+    // - if the user ever moves focus outside of the button | global overlay node:
+    //   - close the menu
+    // reminder:
+    // - when you open the menu, focus should be moved to the menu
+    // - if you close the menu with escape or by tabbing out, focus should be returned
+    //   to the button.
+
+    // TODO:
+    // add portals for our tab thing
+    // like div tabindex="0" nodes that onfocus focus another node.
+    return <>
+        <div ref={node1}><Button onClick={e => {
+            setOpen(c_open => {
+                if (c_open) {
+                    return null;
+                }
+                const button_rect = e.target.getBoundingClientRect();
+                return {
+                    rect: button_rect,
+                };
+            });
+        }}>{open() ? "▴" : "▾"} {props.label}</Button></div>
+        <ShowCond when={open()}>{open_v => {
+            console.log("opening rn…");
+            let node2!: HTMLDivElement;
+
+            let tabout1!: HTMLDivElement; 
+            let tabout2!: HTMLDivElement;
+
+            createEffect(() => {
+                // ok last time I did this I'm pretty sure I started with focus
+                // but then switched to click? I'm not sure why. I guess I'm about
+                // to find out.
+                //
+                // answer: nodes that aren't focusable don't get focused when you click
+                // them.
+
+                const document_evtl = (e: FocusEvent) => {
+                    console.log("got mouseevent", e);
+                    let parentv: HTMLElement | null = e.target as HTMLElement | null;
+                    while(parentv) {
+                        if(parentv === node1) return;
+                        if(parentv === node2) return;
+                        parentv = parentv.parentElement;
+                    }
+                    setOpen(null);
+                };
+
+                // oh I can switch this to use an abortsignal now to auto-remove the listener
+                // that's a December 2021 feature though so I'm not going to try using it yet.
+                document.addEventListener("click", document_evtl, {capture: true, passive: false});
+                onCleanup(() => document.removeEventListener("click", document_evtl, {capture: true}));
+            });
+
+            const node = document.createElement("div");
+            document.body.appendChild(node);
+            onCleanup(() => {
+                node.remove();
+                console.log("removing my node, goodbye.")
+            });
+
+            return <Portal mount={node}>
+                <div tabindex="0" ref={tabout1} />
+                <div ref={n => {
+                    node2 = n;
+
+                    n.style.transformOrigin = "top right";
+                    n.style.transform = "scale(50%)";
+                    n.style.opacity = "0";
+                    n.style.transition = "0.1s opacity, 0.1s transform";
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            n.style.transform = "";
+                            n.style.opacity = "";
+                        });
+                    });
+                }} tabindex="0" class="fixed" style={{
+                    'top': open_v.rect.bottom+"px",
+                    'right': (screenWidth() - open_v.rect.right)+"px",
+                    'z-index': 1000000000,
+                }}>
+                    Hi! Test :)
+                    <Button>one</Button>
+                    <Button>two</Button>
+                </div>
+                <div tabindex="0" ref={tabout2} />
+            </Portal>;
+        }}</ShowCond>
+    </>;
+}
+
 export default function UITestingPage(): JSX.Element {
     faker.seed(123); // this won't work right consistently because it's
     // global state but the code below can be rerun multiple times
@@ -138,7 +239,11 @@ export default function UITestingPage(): JSX.Element {
                         </div>
                     </HSplit.Child>
                     <HSplit.Child><div class="mr-2" /></HSplit.Child>
-                    <HSplit.Child vertical="top"><Button>…</Button></HSplit.Child>
+                    <HSplit.Child vertical="top">
+                        <DropdownButtons label={<>…</>}>
+                            Hi! Content :)
+                        </DropdownButtons>
+                    </HSplit.Child>
                 </HSplit.Container>
                 <ShowBool when={expanded}><div class="mt-2">
                     <img src={faker.image.image(600, 500)} />
@@ -248,7 +353,7 @@ function Username(): JSX.Element {
 
 function Button(props: {
     children: JSX.Element,
-    onClick?: undefined | (() => void),
+    onClick?: undefined | JSX.DOMAttributes<HTMLButtonElement>["onClick"],
 }): JSX.Element {
     return <button class={classes(
         "py-1 px-2 rounded-md",
