@@ -182,6 +182,7 @@ function generatePoints(id: string, controversiality: boolean): Generic.CounterA
         icon_style: "upvote-downvote",
         label: "Vote",
         incremented_label: "Voted",
+        decremented_label: "Voted",
         count_excl_you: Math.floor(10 ** faker.datatype.float({max: 6})) - 50,
         // technically this should say "≤0" if the count is 0
         // we should fix that
