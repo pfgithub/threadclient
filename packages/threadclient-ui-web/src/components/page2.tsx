@@ -149,7 +149,7 @@ export function CollapseButton(props: {
 const HSplit = {
     Container(props: {
         dir: "left" | "right",
-        vertical: "top" | "center" | "bottom" | "baseline"
+        vertical: "top" | "center" | "bottom" | "baseline",
         children: JSX.Element,
     }): JSX.Element {
         return <div class={classes(
@@ -543,11 +543,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             <ShowBool when={!(selfVisible() || hasTitleOrThumbnail())}>
                                 <ShowBool when={default_collapsed} fallback={<>
                                     <div class="whitespace-normal max-lines max-lines-1">
-                                        “{(() => {
+                                        {"“" + (() => {
                                             const res = summarizeBody(props.content.body);
                                             if(res.length > 500) return res.substring(0, 500) + "…";
                                             return res;
-                                        })()}”
+                                        })() + "”"}
                                     </div>
                                 </>}>
                                     <ShowCond when={props.content.actions?.vote} fallback={
