@@ -57,7 +57,10 @@ export async function act(
     client: ThreadClient,
     counter: Generic.CounterAction,
 ): Promise<void> {
-    if('error' in counter.actions) throw new Error("counter is error: "+counter.actions.error);
+    if('error' in counter.actions) {
+        await new Promise(r => setTimeout(r, 500));
+        throw new Error("counter is error: "+counter.actions.error);
+    }
     const action_v = counter.actions[direction ?? "reset"];
     if(action_v == null) throw new Error("action "+direction+" requested when it is not available.");
     await client.act!(action_v);

@@ -689,7 +689,13 @@ export type CounterAction = {
     client_id: string,
 
     unique_id: string | null, // identifier that refers to this counter, unique per-client
-    time: number, // when this was found
+    time: number, // when this was found. TODO: remove this
+
+    // increment_icon: Icon
+    // decrement_icon?: Icon
+    // increment_color: Color
+    // decrement_color?: Color
+    // instead of icon_style, use those^
 
     // TODO: maybe just allow any 15×ANY icon?
     icon_style?: never | "upvote-downvote" | "star" | "heart" | "other",

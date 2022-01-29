@@ -1245,7 +1245,11 @@ export function watchCounterState(
     const res: WatchableCounterState = {
         state: global_state.state,
         emit() {
-            global_state.handlers.forEach(handler => handler());
+            // [...] is used because Set forEach will loop forever if you
+            // add a new item to the set during the loop.
+            [...global_state.handlers].forEach(handler => {
+                handler();
+            });
         },
         onupdate(cb) {
             const uniqueCallback = () => {

@@ -534,7 +534,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             <ShowCond when={props.content.info?.in}>{in_sr => <>
                                 {" in "}<LinkButton
                                     href={in_sr.link}
-                                    style="normal"
+                                    style="previewable"
                                     client_id={in_sr.client_id}
                                 >{in_sr.name}</LinkButton>{" "}
                             </>}</ShowCond>

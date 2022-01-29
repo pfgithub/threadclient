@@ -104,7 +104,26 @@ function generatePostBody(): Generic.Body {
     }
 }
 
-function generatePost(): Generic.PostContent {
+function pastDate(): number {
+    const now = Date.now();
+    return now - Math.floor(10 ** faker.datatype.float({min: 4, max: 11}));
+}
+
+function genCreationEdited() {
+    const creation_date = pastDate();
+    const edit_date = pastDate();
+
+    return {
+        creation_date: creation_date,
+        edited: faker.datatype.boolean() ? {
+            date: edit_date > creation_date ? (
+                edit_date
+            ) : undefined
+        } : undefined,
+    };
+}
+
+function generatePost(id: string): Generic.PostContent {
     // consider some kind of pushSeed() defer popSeed() thing
     // so we don't have to deal with weird global state
 
@@ -118,10 +137,47 @@ function generatePost(): Generic.PostContent {
         show_replies_when_below_pivot: false,
         collapsible: {default_collapsed: true},
         thumbnail: generateThumbnailFor(body),
+
+        info: {
+            ...genCreationEdited(),
+            pinned: faker.datatype.boolean() && faker.datatype.boolean(),
+            in: { // I think we'll want to display this by setting the parent to
+                // the subreddit and then making a small view to show what the subreddit
+                // is.
+                // I'll test that out in ui_testing I guess
+                // nvm I tested that and it just looks kinda bad. maybe I'll
+                // be able to do it somehow like maybe doing a custom opener for it
+                // with a background color or something?
+                name: faker.random.word(),
+                link: "TODO",
+                client_id: "test",
+            },
+        },
+        actions: {
+            vote: generatePoints(id, true),
+        },
     };
 }
 
-function generateComment(): Generic.PostContent {
+function generatePoints(id: string, controversiality: boolean): Generic.CounterAction {
+    return {
+        kind: "counter",
+        client_id: "test",
+        unique_id: "vote_"+id,
+        time: Date.now(),
+        icon_style: "upvote-downvote",
+        label: "Vote",
+        incremented_label: "Voted",
+        count_excl_you: Math.floor(10 ** faker.datatype.float({max: 6})) - 50,
+        // technically this should say "≤0" if the count is 0
+        // we should fix that
+        you: faker.random.arrayElement([undefined, "increment", "decrement"]),
+        actions: {error: "no"},
+        percent: controversiality ? faker.datatype.float({max: 1}) : undefined,
+    };
+}
+
+function generateComment(id: string): Generic.PostContent {
     return {
         kind: "post",
         title: null,
@@ -129,6 +185,13 @@ function generateComment(): Generic.PostContent {
         author: generateAuthor(),
         show_replies_when_below_pivot: true,
         collapsible: {default_collapsed: false},
+
+        info: {
+            ...genCreationEdited(),
+        },
+        actions: {
+            vote: generatePoints(id, false),
+        },
     };
 }
 
@@ -140,9 +203,9 @@ function postKind(id: string): "post" | "comment" {
 function generateContent(id: string): Generic.PostContent {
     const kind = postKind(id);
     if(kind === "post") {
-        return generatePost();
+        return generatePost(id);
     }else if(kind === "comment") {
-        return generateComment();
+        return generateComment(id);
     }else{
         assertNever(kind);
     }
@@ -196,6 +259,10 @@ export async function getPage(
 
     for(const reply of getReplies(root_link)) {
         generate(content, reply);
+        // for(const reply2 of getReplies(reply)) {
+        //     generate(content, reply2);
+        // }
+        // we want to do load mores and stuff
     }
 
     return {
