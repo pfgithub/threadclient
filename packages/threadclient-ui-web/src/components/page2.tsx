@@ -460,6 +460,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                             <button class={classes(
                                 "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
                                 contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
+                                "block",
                             )} onClick={() => setTransitionTarget(t => !t)}>
                                 <SwitchKind item={thumb_any}>{{
                                     image: img => <img
