@@ -271,11 +271,11 @@ function fillReplies(
     depth: number,
     opts: {pivot: boolean},
 ): number {
-    if(root.replies == null) return 0;
+    if(root.replies == null) return maximum;
     if(root.kind === "post" && root.content.kind === "post") {
         if(!opts.pivot && !root.content.show_replies_when_below_pivot) {
             // TODO: replace the replies with a loader
-            return 0;
+            return maximum;
         }
     }
     if(depth <= 0) return maximum; // TODO: replace remaining replies with a loader
