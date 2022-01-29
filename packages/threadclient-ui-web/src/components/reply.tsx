@@ -102,7 +102,6 @@ export function ReplyEditor(props: {
                     replies: null,
                     at_or_above_pivot: true,
                     is_pivot: true,
-                    top_level: true,
                     frame: null,
                     client_id: props.action.client_id,
                 }}/>

@@ -29,7 +29,6 @@ export type ClientPostOpts = {
     client_id: string,
     at_or_above_pivot: boolean,
     is_pivot: boolean,
-    top_level: boolean,
 };
 
 const decorative_alt = "";
@@ -148,9 +147,19 @@ export function CollapseButton(props: {
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const HSplit = {
-    Container(props: {dir: "left" | "right", children: JSX.Element}): JSX.Element {
+    Container(props: {
+        dir: "left" | "right",
+        vertical: "top" | "center" | "bottom" | "baseline"
+        children: JSX.Element,
+    }): JSX.Element {
         return <div class={classes(
-            "flex flex-wrap items-center",
+            "flex flex-wrap",
+            ({
+                top: "items-start",
+                center: "items-center",
+                bottom: "items-end",
+                baseline: "items-baseline",
+            } as const)[props.vertical],
             props.dir === "right" ? "justify-end" : "",
         )}>
             {props.children}
@@ -357,7 +366,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         return !!props.content.thumbnail || !!props.content.title;
     };
     const hasThumbnail = () => {
-        return !!props.content.thumbnail;
+        return !!props.content.thumbnail && !selfVisible();
     };
 
     const settings = getSettings();
@@ -413,14 +422,12 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             setSelfVisible(state || rising);
         })}
         class={classes(
-            "text-sm",
+            props.opts.is_pivot ? [
+                "text-base m-2",
+            ] : "text-sm",
             // "pt-10px",
-            props.content.collapsible !== false ? (
-                props.opts.top_level ? "pl-1" : ""
-            ) : "pl-15px",
+            props.content.collapsible !== false ? "" : "pl-15px",
             "flex flex-row",
-
-            props.opts.top_level ? "-mt-10px -ml-10px" : [],
         )}
         style={{
             "--left-v": "8px",
@@ -429,7 +436,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
         <ShowBool when={props.content.collapsible !== false && (
             props.content.thumbnail != null ? selfVisible() ? true : false : true
         )}>
-            <div class={"flex flex-col items-center mr-1 gap-2 "+(props.opts.top_level ? "sm:px-1" : "sm:pr-1")}>
+            <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
                 <ShowCond when={props.content.actions?.vote}>{vote_action => (
                     <div class={selfVisible() || hasThumbnail() ? "" : " hidden"}>
                         <VerticalIconCounter counter={vote_action} />
@@ -446,7 +453,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             </div>
         </ShowBool>
         <div class="flex-1">
-            <HSplit.Container dir="right">
+            <HSplit.Container dir="right" vertical="center">
                 <ShowCond if={[!selfVisible()]} when={props.content.thumbnail}>{thumb_any => (
                     <ToggleColor>{color => (
                         <HSplit.Child>
@@ -471,7 +478,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 )}</ShowCond>
                 <HSplit.Child fullwidth>
                     <div class={classes(
-                        hasTitleOrThumbnail() ? "text-base" : "text-xs",
+                        (props.opts.is_pivot && selfVisible()) ? "text-3xl" : "text-base",
                     )}>
                         <ShowCond when={props.content.title}>{title => (
                             <span role="heading">
@@ -490,12 +497,15 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     </div>
                     <div class={classes(
                         "text-gray-500",
-                        hasTitleOrThumbnail() ? "" : "text-xs",
+                        "text-sm",
                         selfVisible() || hasThumbnail()
                         ? ""
                         : "filter grayscale text-$collapsed-header-color italic",
-                    )}><HSplit.Container dir="right">
-                        <HSplit.Child><div class="mr-2">
+                    )}><HSplit.Container dir="right" vertical="center">
+                        <HSplit.Child><div class={classes(
+                            "mr-2",
+                            hasThumbnail() ? "block" : "inline-block"
+                        )}>
                             <ShowCond when={props.content.author}>{author => <>
                                 <ShowCond if={[
                                     selfVisible() && settings.author_pfp.value() === "on",
@@ -524,7 +534,11 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                     >{in_sr.name}</LinkButton>{" "}
                                 </>}</ShowCond>
                             </ShowBool>
-                        </div></HSplit.Child>
+                        </div><ShowBool when={!props.opts.is_pivot || !selfVisible()}>
+                            <div class="mr-2 inline-block">
+                                <InfoBar post={props.content} />
+                            </div>
+                        </ShowBool></HSplit.Child>
                         <HSplit.Child fullwidth><div class="mr-2">
                             <ShowBool when={!(selfVisible() || hasTitleOrThumbnail())}>
                                 <ShowBool when={default_collapsed} fallback={<>
@@ -544,9 +558,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                 </ShowBool>
                             </ShowBool>
                         </div></HSplit.Child>
-                        <HSplit.Child><div class="mr-2">
-                            <InfoBar post={props.content} />
-                        </div></HSplit.Child>
                     </HSplit.Container></div>
                 </HSplit.Child>
                 <ShowBool when={!props.opts.is_pivot}>
@@ -559,7 +570,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider
                 visible={() => animState().visible || animState().animating}
             >
-                <section>
+                <section class={props.opts.is_pivot ? "py-4" : ""}>
                     <ShowBool when={animState().visible || animState().animating}>
                         <ShowBool when={selfVisible() && hasThumbnail()}><div class="mt-2"></div></ShowBool>
                         <ShowAnimate when={!contentWarning()} fallback={
@@ -576,7 +587,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </ShowAnimate>
                     </ShowBool>
                 </section>
-                <ShowBool when={props.opts.is_pivot}><div class={hasTitleOrThumbnail() ? "" : "text-xs"}>
+                <ShowBool when={props.opts.is_pivot}><div class="text-sm">
+                    <InfoBar post={props.content} />
                     <PostActions
                         content={props.content}
                         opts={props.opts}
@@ -662,7 +674,6 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                 client_id: post.client_id,
                                 replies: post.replies,
                                 at_or_above_pivot: loader_or_post.at_or_above_pivot,
-                                top_level: false,
                                 is_pivot: loader_or_post.is_pivot,
                             }}
                         />,

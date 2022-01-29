@@ -906,7 +906,6 @@ function renderReplyAction(
                                     frame: r,
                                     client_id: r.client_id,
                                     replies: r.replies,
-                                    top_level: false,
                                 }} />
                             </ul>
                         </>, {color_level: 1}).defer(hsc);

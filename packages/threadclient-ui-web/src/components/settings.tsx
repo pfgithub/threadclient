@@ -130,7 +130,6 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     client_id: "",
                     at_or_above_pivot: false,
                     is_pivot: false,
-                    top_level: true,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
@@ -224,7 +223,6 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     replies: null,
                     at_or_above_pivot: false,
                     is_pivot: false,
-                    top_level: true,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
@@ -290,7 +288,6 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     replies: null,
                     at_or_above_pivot: false,
                     is_pivot: false,
-                    top_level: true,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
