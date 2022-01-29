@@ -79,44 +79,83 @@ function s(number: number, text: string) {
 
 // TODO replace this with a proper thing that can calculate actual "months ago" values
 // returns [time_string, time_until_update]
-export function timeAgoText(start_ms: number, now: number): [string, number] {
+export function timeAgoText(
+    start_ms: number, now: number, opts: {short?: undefined | boolean} = {},
+): [string, number] {
     const ms = now - start_ms;
-    if(ms < 0) return ["in the future "+new Date(start_ms).toISOString(), -ms];
-    if(ms < 60 * 1000) return ["just now", 60 * 1000 - ms];
+    if(ms < 0) return [
+        opts.short ? "later" : "in the future "+new Date(start_ms).toISOString(),
+        -ms,
+    ];
+    if(ms < 60 * 1000) return [
+        opts.short ? "now" : "just now",
+        60 * 1000 - ms,
+    ];
 
     let step = 60 * 1000;
     let next_step = 60;
     if(ms < next_step * step) {
         const minutes = ms / step |0;
-        return [s(minutes, " minutes")+" ago", step - (ms - minutes * step)];
+        return [
+            opts.short ? minutes+"m" : s(minutes, " minutes")+" ago",
+            step - (ms - minutes * step),
+        ];
     }
     step *= next_step;
     next_step = 24;
     if(ms < next_step * step) {
         const hours = ms / step |0;
-        return [s(hours, " hours")+" ago", step - (ms - hours * step)];
+        return [
+            opts.short ? hours+"h" : s(hours, " hours")+" ago",
+            step - (ms - hours * step),
+        ];
     }
     step *= next_step;
     next_step = 30;
     if(ms < next_step * step) {
         const days = ms / step |0;
-        return [s(days, " days")+" ago", step - (ms - days * step)];
+        return [
+            opts.short ? days+"d" : s(days, " days")+" ago",
+            step - (ms - days * step),
+        ];
     }
-    return [new Date(start_ms).toISOString(), -1];
+    const year = new Date(start_ms).getFullYear();
+    if(year === new Date(now).getFullYear()) {
+        return [
+            opts.short ?
+            new Date(start_ms).toLocaleString(undefined, {month: "short"}) :
+            "in "+new Date(start_ms).toLocaleString(undefined, {month: "long"}),
+            -1, // will break if you keep the page open until the next year
+            // I could technically return the time until next year in ms
+            // but setTimeout can only wait a maximum of like one month anyway
+            // so who cares
+        ];
+    }
+    return [
+        opts.short ? "" + year : "in " + year,
+        -1,
+    ];
 }
 
-export function TimeAgo(props: {start: number}): JSX.Element {
+export function timeAgoTextWatchable(
+    start_ms: number, opts: {short?: undefined | boolean} = {},
+): Accessor<string> {
     const [now, setNow] = createSignal(Date.now());
     const label = createMemo(() => {
-        const res_text = timeAgoText(props.start, now());
+        const res_text = timeAgoText(start_ms, now(), opts);
         if(res_text[1] > 0) {
             const timeout = setTimeout(() => setNow(Date.now()), Math.min(res_text[1] + 10, 0x7fffffff));
             onCleanup(() => clearTimeout(timeout));
         }
         return res_text[0];
     });
+    return label;
+}
+
+export function TimeAgo(props: {start: number}): JSX.Element {
+
     return <time datetime={new Date(props.start).toString()} title={"" + new Date(props.start)}>
-        {label}
+        {timeAgoTextWatchable(props.start)}
     </time>;
 }
 

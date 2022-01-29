@@ -1,18 +1,28 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX } from "solid-js";
 import { flatten } from "threadclient-render-flatten";
-import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
+import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo, timeAgoTextWatchable } from "tmeta-util-solid";
 import { clientContent, clientListing, getClientCached, link_styles_v, navigate } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getPageRootContext, getSettings, HideshowProvider,
-    screenWidth, screen_size, ToggleColor
+    sizeLt,
+    ToggleColor
 } from "../util/utils_solid";
 import { PostActions } from "./action";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
-import { CounterCount, VerticalIconCounter } from "./counter";
+import { CounterCount, getCounterState, VerticalIconCounter } from "./counter";
 import { A, LinkButton, UserLink } from "./links";
+import "@fortawesome/fontawesome-free/css/all.css";
+import { assertNever } from "tmeta-util";
+
+function Icon(props: {tag: string, filled: boolean, label: string}): JSX.Element {
+    return <i
+        class={props.tag + " " + (props.filled ? "fas" : "far")}
+        aria-label={props.label}
+    />;
+}
 
 export type ClientPostOpts = {
     clickable: boolean,
@@ -173,6 +183,161 @@ function Button(props: {
         "bg-gray-200 border-b-1 border-gray-500",
         "dark:border-t-1 dark:border-b-0 dark:bg-white dark:border-gray-400",
     )} onClick={props.onClick}>{props.children}</button>;
+}
+
+type InfoBarItem = {
+    value: ["percent" | "number" | "timeago" | "hidden" | "none", number],
+    icon: IconKind,
+    color: IconColor,
+};
+type IconKind = "comments" | "creation_time" | "edit_time" |
+"up_arrow" | "down_arrow" | "controversiality" | "pinned";
+type IconColor = null | "orange" | "purple" | "green";
+
+const tag_from_icon_kind: {[key in IconKind]: [
+    desc: string, free: boolean,
+    tag: string, tag_pro?: undefined | string,
+]} = {
+    // huh I think it would make sense to use "far" for "none" color and
+    // "fas" for any other color
+    comments: ["Comments", true, "fa-comment"],
+    creation_time: ["Posted", true, "fa-clock"],
+    edit_time: ["Edited", true, "fa-edit", "fa-pencil"],
+    up_arrow: ["Points", false, "fa-arrow-up"],
+    down_arrow: ["Points", false, "fa-arrow-down"],
+    controversiality: ["Controversial", true, "fa-smile"],
+    pinned: ["Pinned", false, "fas fa-thumbtack"],
+};
+const class_from_icon_color: {[key in Exclude<IconColor, null>]: string} = {
+    orange: "text-$upvote-color",
+    purple: "text-$downvote-color",
+    green: "text-green-600 dark:text-green-500",
+};
+
+function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
+    const res: InfoBarItem[] = [];
+
+    // TODO make the order user-configurable
+
+    if(post.info?.pinned === true) {
+        res.push({
+            icon: "pinned",
+            value: ["none", -1000],
+            color: "green",
+        })
+    }
+    if(post.actions?.vote) {
+        // TODO support other types of voting
+        // eg: mastodon will be star/unstar so we should use a star icon
+        // and yellow color
+        // the vote thing should have a way to specify:
+        // increment_icon, increment_color, decrement_icon, decrement_color
+        const [stateR] = getCounterState(() => post.actions!.vote!)
+        const state = stateR();
+        const pt_count = state.pt_count;
+        res.push({
+            icon: state.your_vote === "decrement" ? "down_arrow" : "up_arrow",
+            value: pt_count === "hidden"
+            ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
+            : ["number", pt_count],
+            color: state.your_vote === "decrement" ? "purple" :
+            state.your_vote === "increment" ? "orange" : null,
+        });
+        if(post.actions.vote.percent != null) {
+            res.push({
+                icon: "controversiality",
+                value: ["percent", post.actions.vote.percent],
+                color: null,
+            });
+        }
+    }
+    if(post.info?.comments != null) {
+        res.push({
+            icon: "comments",
+            value: ["number", post.info.comments],
+            color: null,
+        });
+    }
+    if(post.info?.creation_date != null) {
+        res.push({
+            icon: "creation_time",
+            value: ["timeago", post.info.creation_date],
+            color: null,
+        });
+    }
+    if(post.info?.edited) {
+        res.push({
+            icon: "edit_time",
+            value: post.info.edited.date == null ? ["none", -1000] :
+            ["timeago", post.info.edited.date],
+            color: null,
+        });
+    }
+
+    return res;
+}
+
+function scoreToString(score: number) {
+    // oh that weird .match(…) is for rounding down
+    // because I couldn't… *10 |0 /10?
+    // idk I'm sure I thought of that when I was programming this
+    // weird
+    if(score < 10_000) return "" + score;
+    if(score < 100_000) return (score / 1_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
+    if(score < 1_000_000) return (score / 1_000 |0) + "k";
+    if(score < 100_000_000) return (score / 1_000_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "m";
+    return (score / 1_000_000 |0) + "m";
+}
+function formatItemString({value}: InfoBarItem): [short: string, long: string] {
+    if(value[0] === "none") return ["", ""];
+    if(value[0] === "percent") return [
+        " "+value[1].toLocaleString(undefined, {style: "percent"}),
+        " "+value[1].toLocaleString(undefined, {style: "percent"}),
+    ];
+    if(value[0] === "timeago") return [
+        " "+timeAgoTextWatchable(value[1], {short: true})(),
+        " "+new Date(value[1]).toLocaleString(),
+    ];
+    if(value[0] === "number") return [
+        " "+scoreToString(value[1]),
+        " "+value[1].toLocaleString(),
+    ];
+    if(value[0] === "hidden") return [
+        " "+"—",
+        " "+"Hidden",
+    ];
+    assertNever(value[0]);
+}
+
+function InfoBarItem(props: {item: InfoBarItem}): JSX.Element {
+    // sizeLt.sm
+    // for larger sizes we can do longer text
+    // eg
+    // [c]12 [u]21.8k [h]83% [t]2y
+    // →
+    // 12 comments, 21.8k points, 83% upvoted, 2 years ago
+
+    const fmt = createMemo(() => formatItemString(props.item));
+    const lblv = () => tag_from_icon_kind[props.item.icon][0]+(props.item.value[0] === "none" ? "" : ":");
+
+    return <span
+        class={props.item.color != null ? class_from_icon_color[props.item.color] : ""}
+        title={lblv() + fmt()[1]}
+    >
+        <Icon
+            tag={tag_from_icon_kind[props.item.icon][2]}
+            filled={tag_from_icon_kind[props.item.icon][1] ? props.item.color != null : true}
+            label={lblv()}
+        />{fmt()[0]}
+    </span>;
+}
+
+function InfoBar(props: {post: Generic.PostContentPost}): JSX.Element {
+    return <div class="text-gray-500 flex flex-wrap gap-2 <sm:text-xs">
+        <For each={getInfoBar(props.post)}>{item => (
+            <InfoBarItem item={item} />
+        )}</For>
+    </div>
 }
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
@@ -374,23 +539,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                                     client_id={in_sr.client_id}
                                 >{in_sr.name}</LinkButton>{" "}
                             </>}</ShowCond>
-                            <ShowCond when={props.content.actions?.vote}>{vote_action => <>
-                                <CounterCount counter={vote_action} />{" "}
-                            </>}</ShowCond>
-                            <ShowCond when={props.content.info}>{content_info => <>
-                                <ShowCond when={content_info.creation_date}>{created => <>
-                                    <TimeAgo start={created} />{" "}
-                                </>}</ShowCond>
-                                <ShowCond when={content_info.edited}>{edited => <>
-                                    {"Edited"}<ShowCond when={edited.date}>{edited_date => <>
-                                        {" "}<TimeAgo start={edited_date} />
-                                    </>}</ShowCond>{" "}
-                                </>}</ShowCond>
-                                <ShowBool when={content_info.pinned ?? false}>{<>
-                                    <span class="text-green-600 dark:text-green-500">Pinned</span>{" "}
-                                </>}</ShowBool>
-                            </>}</ShowCond>
                         </ShowBool>
+                        <InfoBar post={props.content} />
                     </div>
                 </HSplit.Child>
                 <ShowBool when={!props.opts.is_pivot}>

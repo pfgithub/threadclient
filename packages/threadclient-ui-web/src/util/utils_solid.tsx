@@ -194,13 +194,13 @@ window.addEventListener("resize", () => {
 });
 
 // https://windicss.org/utilities/variants.html
-export const screen_size = {
-    sm: 640,
-    md: 768,
-    lg: 1024,
-    xl: 1280,
-    xl2: 1536,
-} as const;
+export const sizeLt = {
+    sm: createMemo(() => screenWidth() < 640),
+    // md: 768,
+    // lg: 1024,
+    // xl: 1280,
+    // xl2: 1536,
+};
 
 type Classes = string | Classes[];
 export function classes(...items: Classes[]): string {

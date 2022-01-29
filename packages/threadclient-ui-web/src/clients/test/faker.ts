@@ -151,7 +151,9 @@ function generateContent(id: string): Generic.PostContent {
 function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.Post>): void {
     const id = id_link.toString();
     const replies = getReplies(id_link);
+
     faker.seed(setSeed(id, "generate"));
+    const content_value = generateContent(id);
 
     saveLink(content, newLink<Generic.Post>(id), {
         url: "/faker"+id,
@@ -162,7 +164,13 @@ function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.P
         },
 
         kind: "post",
-        content: generateContent(id),
+        content: content_value.kind === "post" ? {
+            ...content_value,
+            info: {
+                ...(content_value.info ?? {}),
+                comments: replies.length,
+            },
+        } : content_value,
         internal_data: id,
         display_style: "centered",
     });
