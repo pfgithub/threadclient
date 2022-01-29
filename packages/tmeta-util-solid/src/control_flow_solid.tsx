@@ -84,11 +84,11 @@ export function timeAgoText(
 ): [string, number] {
     const ms = now - start_ms;
     if(ms < 0) return [
-        opts.short ? "later" : "in the future "+new Date(start_ms).toISOString(),
+        opts.short ?? false ? "later" : "in the future "+new Date(start_ms).toISOString(),
         -ms,
     ];
     if(ms < 60 * 1000) return [
-        opts.short ? "now" : "just now",
+        opts.short ?? false ? "now" : "just now",
         60 * 1000 - ms,
     ];
 
@@ -97,7 +97,7 @@ export function timeAgoText(
     if(ms < next_step * step) {
         const minutes = ms / step |0;
         return [
-            opts.short ? minutes+"m" : s(minutes, " minutes")+" ago",
+            opts.short ?? false ? minutes+"m" : s(minutes, " minutes")+" ago",
             step - (ms - minutes * step),
         ];
     }
@@ -106,7 +106,7 @@ export function timeAgoText(
     if(ms < next_step * step) {
         const hours = ms / step |0;
         return [
-            opts.short ? hours+"h" : s(hours, " hours")+" ago",
+            opts.short ?? false ? hours+"h" : s(hours, " hours")+" ago",
             step - (ms - hours * step),
         ];
     }
@@ -115,14 +115,14 @@ export function timeAgoText(
     if(ms < next_step * step) {
         const days = ms / step |0;
         return [
-            opts.short ? days+"d" : s(days, " days")+" ago",
+            opts.short ?? false ? days+"d" : s(days, " days")+" ago",
             step - (ms - days * step),
         ];
     }
     const year = new Date(start_ms).getFullYear();
     if(year === new Date(now).getFullYear()) {
         return [
-            opts.short ?
+            opts.short ?? false ?
             new Date(start_ms).toLocaleString(undefined, {month: "short"}) :
             "in "+new Date(start_ms).toLocaleString(undefined, {month: "long"}),
             -1, // will break if you keep the page open until the next year
@@ -132,7 +132,7 @@ export function timeAgoText(
         ];
     }
     return [
-        opts.short ? "" + year : "in " + year,
+        opts.short ?? false ? "" + year : "in " + year,
         -1,
     ];
 }

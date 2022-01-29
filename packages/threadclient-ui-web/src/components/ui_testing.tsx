@@ -68,6 +68,7 @@ import { SettingPicker } from "./settings";
 // the note is:
 // - comments do not have a title or a thumbnail
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const HSplit = {
     Container(props: {dir: "left" | "right", children: JSX.Element[]}): JSX.Element {
         return <div class={classes(
@@ -75,7 +76,7 @@ const HSplit = {
             props.dir === "right" ? "justify-end" : "",
         )}>
             {props.children}
-        </div>
+        </div>;
     },
     Child(props: {
         vertical?: undefined | "top" | "center" | "bottom",
@@ -89,7 +90,7 @@ const HSplit = {
                 bottom: "self-end",
                 none: "",
             } as const)[props.vertical ?? "none"],
-            props.fullwidth ? "flex-1" : "",
+            props.fullwidth ?? false ? "flex-1" : "",
         )}>{props.children}</div>;
     },
 };

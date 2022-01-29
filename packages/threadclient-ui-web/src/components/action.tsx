@@ -3,7 +3,7 @@ import { createSignal, For, JSX } from "solid-js";
 import { ShowCond } from "tmeta-util-solid";
 import { link_styles_v, renderAction } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { sizeLt } from "../util/utils_solid";
+import { size_lt } from "../util/utils_solid";
 import { Body } from "./body";
 import { Counter } from "./counter";
 import { LinkButton } from "./links";
@@ -21,7 +21,7 @@ export function PostActions(props: ClientPostProps & {
 }): JSX.Element {
     const [showingWindowBelow, setShowingWindowBelow] = createSignal<null | (() => JSX.Element)>(null);
 
-    const mobile = sizeLt.sm;
+    const mobile = size_lt.sm;
 
     return <><section class={"flex flex-wrap gap-2 "+(mobile() ? "flex-col" : "items-center")}>
         {props.children}

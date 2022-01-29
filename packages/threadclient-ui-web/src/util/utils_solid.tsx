@@ -194,7 +194,7 @@ window.addEventListener("resize", () => {
 });
 
 // https://windicss.org/utilities/variants.html
-export const sizeLt = {
+export const size_lt = {
     sm: createMemo(() => screenWidth() < 640),
     // md: 768,
     // lg: 1024,

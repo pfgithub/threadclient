@@ -1,21 +1,19 @@
+import "@fortawesome/fontawesome-free/css/all.css";
 import type * as Generic from "api-types-generic";
-import { createEffect, createMemo, createSignal, For, JSX } from "solid-js";
+import { createMemo, createSignal, For, JSX } from "solid-js";
 import { flatten } from "threadclient-render-flatten";
-import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo, timeAgoTextWatchable } from "tmeta-util-solid";
-import { clientContent, clientListing, getClientCached, link_styles_v, navigate } from "../app";
+import { assertNever } from "tmeta-util";
+import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util-solid";
+import { clientContent, clientListing, getClientCached, link_styles_v } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, DefaultErrorBoundary, getPageRootContext, getSettings, HideshowProvider,
-    sizeLt,
-    ToggleColor
+    classes, DefaultErrorBoundary, getPageRootContext, getSettings, HideshowProvider, ToggleColor
 } from "../util/utils_solid";
 import { PostActions } from "./action";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { CounterCount, getCounterState, VerticalIconCounter } from "./counter";
 import { A, LinkButton, UserLink } from "./links";
-import "@fortawesome/fontawesome-free/css/all.css";
-import { assertNever } from "tmeta-util";
 
 function Icon(props: {tag: string, filled: boolean, label: string}): JSX.Element {
     return <i
@@ -148,6 +146,7 @@ export function CollapseButton(props: {
     </button>;
 }
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const HSplit = {
     Container(props: {dir: "left" | "right", children: JSX.Element}): JSX.Element {
         return <div class={classes(
@@ -155,7 +154,7 @@ const HSplit = {
             props.dir === "right" ? "justify-end" : "",
         )}>
             {props.children}
-        </div>
+        </div>;
     },
     Child(props: {
         vertical?: undefined | "top" | "center" | "bottom",
@@ -169,7 +168,7 @@ const HSplit = {
                 bottom: "self-end",
                 none: "",
             } as const)[props.vertical ?? "none"],
-            props.fullwidth ? "flex-1" : "",
+            props.fullwidth ?? false ? "flex-1" : "",
         )}>{props.children}</div>;
     },
 };
@@ -224,7 +223,7 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
             icon: "pinned",
             value: ["none", -1000],
             color: "green",
-        })
+        });
     }
     if(post.actions?.vote) {
         // TODO support other types of voting
@@ -232,7 +231,7 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
         // and yellow color
         // the vote thing should have a way to specify:
         // increment_icon, increment_color, decrement_icon, decrement_color
-        const [stateR] = getCounterState(() => post.actions!.vote!)
+        const [stateR] = getCounterState(() => post.actions!.vote!);
         const state = stateR();
         const pt_count = state.pt_count;
         res.push({
@@ -337,7 +336,7 @@ function InfoBar(props: {post: Generic.PostContentPost}): JSX.Element {
         <For each={getInfoBar(props.post)}>{item => (
             <InfoBarItem item={item} />
         )}</For>
-    </div>
+    </div>;
 }
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
@@ -375,9 +374,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     //     if(!mobile()) setShowActions(false);
     // });
 
-    const postIsClickable = () => {
-        return props.opts.frame?.url != null && !props.opts.is_pivot;
-    };
+    // const postIsClickable = () => {
+    //     return props.opts.frame?.url != null && !props.opts.is_pivot;
+    // };
     
     const onAddReply = (reply: Generic.Post) => {
         // TODO;
