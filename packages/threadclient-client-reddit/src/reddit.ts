@@ -539,6 +539,8 @@ function createSubscribeAction(subreddit: string, subscribers: number, you_subbe
         kind: "counter",
         client_id: client.id,
 
+        neutral_icon: "join",
+
         unique_id: "/subscribe/"+subreddit+"/",
         time: Date.now(),
 
@@ -2054,6 +2056,11 @@ export function getPointsOn(listing: {
 
         unique_id: "/vote/"+listing.name+"/",
         time: Date.now(),
+    
+        neutral_icon: "up_arrow",
+        decrement_icon: "down_arrow",
+        increment_color: "reddit-upvote",
+        decrement_color: "reddit-downvote",
 
         special: "reddit-points",
 
@@ -2104,6 +2111,11 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
                 {
                     kind: "counter",
                     client_id: client.id,
+
+                    neutral_icon: "envelope_open",
+                    increment_icon: "envelope",
+                    increment_color: "white",
+
                     count_excl_you: "none",
                     you: msg.new ? "increment" : undefined,
                     unique_id: "/unread/"+msg.name+"/",
@@ -2289,14 +2301,14 @@ export function saveButton(fullname: string, saved: boolean): Generic.Action {
         kind: "counter",
         client_id: client.id,
 
+        neutral_icon: "bookmark",
+        increment_color: "green",
+
         unique_id: `/save/${fullname}/`,
         time: Date.now(),
         
         label: "Save",
         incremented_label: "Unsave",
-
-        style: "action-button",
-        incremented_style: "save-button-saved",
 
         count_excl_you: "none",
         you: saved ? "increment" : undefined,
@@ -2955,6 +2967,8 @@ function generateUserSidebar(
             kind: "counter",
             client_id: client.id,
 
+            neutral_icon: "join",
+
             unique_id: "/follow/"+user.data.name+"/",
             time: Date.now(),
 
@@ -3437,7 +3451,14 @@ export const client: ThreadClient = {
             actions: [{
                 kind: "counter",
                 client_id: client.id,
+                
+                neutral_icon: "up_arrow",
+                decrement_icon: "down_arrow",
+                increment_color: "reddit-upvote",
+                decrement_color: "reddit-downvote",
+
                 special: "reddit-points",
+
                 unique_id: null,
                 time: Date.now(),
 

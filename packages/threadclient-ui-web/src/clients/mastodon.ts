@@ -446,6 +446,7 @@ function postToThreadCanError(
                 client_id: client.id,
                 incremented_label: "Favourited",
                 unique_id: host+"/favourite/"+post.id+"/",
+                neutral_icon: "star",
                 time: Date.now(),
 
                 count_excl_you: post.favourites_count + (post.favourited ? -1 : 0),
@@ -893,6 +894,7 @@ export const client: ThreadClient = {
                     client_id: client.id,
                     unique_id: "/follow/"+account_info.id+"/",
                     time: Date.now(),
+                    neutral_icon: "join",
                     label: account_info.locked ? "Request Follow" : "Follow",
                     incremented_label: "Following",
                     count_excl_you: account_info.followers_count === -1

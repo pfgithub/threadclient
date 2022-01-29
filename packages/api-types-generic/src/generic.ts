@@ -684,6 +684,27 @@ export type FlairEmoji = {
     name: string,
 };
 
+export type Icon =
+    | "comments"
+    | "creation_time"
+    | "edit_time"
+    | "up_arrow"
+    | "down_arrow"
+    | "controversiality"
+    | "pinned"
+    | "bookmark"
+    | "envelope"
+    | "envelope_open"
+    | "star"
+    | "join"
+;
+export type Color =
+    | "reddit-upvote"
+    | "reddit-downvote"
+    | "green"
+    | "white"
+;
+
 // a counter or a button with 2-3 states
 export type CounterAction = {
     kind: "counter",
@@ -692,25 +713,15 @@ export type CounterAction = {
     unique_id: string | null, // identifier that refers to this counter, unique per-client
     time: number, // when this was found. TODO: remove this
 
-    // increment_icon: Icon
-    // decrement_icon?: Icon
-    // increment_color: Color
-    // decrement_color?: Color
-    // instead of icon_style, use those^
-
-    // TODO: maybe just allow any 15×ANY icon?
-    icon_style?: never | "upvote-downvote" | "star" | "heart" | "other",
-
-    // TODO: delete
-    special?: undefined | "reddit-points",
+    neutral_icon: Icon,
+    increment_icon?: undefined | Icon,
+    decrement_icon?: undefined | Icon,
+    increment_color?: undefined | Color,
+    decrement_color?: undefined | Color,
 
     label: ActionLabel,
     incremented_label: ActionLabel,
     decremented_label?: undefined | ActionLabel,
-
-    style?: undefined | ButtonStyle,
-    incremented_style?: undefined | ButtonStyle,
-    decremented_style?: undefined | ButtonStyle,
 
     count_excl_you: number | "hidden" | "none",
     you: "increment" | "decrement" | undefined,
@@ -722,6 +733,12 @@ export type CounterAction = {
     } | {error: string},
 
     percent?: undefined | number,
+
+    // TODO: remove these:
+    special?: undefined | "reddit-points",
+    style?: undefined | ButtonStyle,
+    incremented_style?: undefined | ButtonStyle,
+    decremented_style?: undefined | ButtonStyle,
 };
 
 type ButtonStyle = "action-button" | "save-button-saved" | "pill-empty" | "pill-filled";

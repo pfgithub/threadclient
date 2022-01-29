@@ -195,31 +195,33 @@ function Button(props: {
 
 type InfoBarItem = {
     value: ["percent" | "number" | "timeago" | "hidden" | "none", number],
-    icon: IconKind,
-    color: IconColor,
+    icon: Generic.Icon,
+    color: null | Generic.Color,
 };
-type IconKind = "comments" | "creation_time" | "edit_time" |
-"up_arrow" | "down_arrow" | "controversiality" | "pinned";
-type IconColor = null | "orange" | "purple" | "green";
 
-const tag_from_icon_kind: {[key in IconKind]: [
+const tag_from_icon_kind: {[key in Generic.Icon]: [
     desc: string, free: boolean,
     tag: string, tag_pro?: undefined | string,
 ]} = {
-    // huh I think it would make sense to use "far" for "none" color and
-    // "fas" for any other color
+    // TODO: remove desc from this. desc should be supplied by the client.
     comments: ["Comments", true, "fa-comment"],
     creation_time: ["Posted", true, "fa-clock"],
     edit_time: ["Edited", true, "fa-edit", "fa-pencil"],
     up_arrow: ["Points", false, "fa-arrow-up"],
     down_arrow: ["Points", false, "fa-arrow-down"],
     controversiality: ["Controversial", true, "fa-smile"],
-    pinned: ["Pinned", false, "fas fa-thumbtack"],
+    pinned: ["Pinned", false, "fa-thumbtack"],
+    bookmark: ["Bookmark", true, "fa-bookmark"],
+    envelope: ["Envelope", true, "fa-envelope"],
+    envelope_open: ["Open Envelope", true, "fa-envelope-open"],
+    star: ["Star", true, "fa-star"],
+    join: ["Join", true, "fa-plus-square"],
 };
-const class_from_icon_color: {[key in Exclude<IconColor, null>]: string} = {
-    orange: "text-$upvote-color",
-    purple: "text-$downvote-color",
-    green: "text-green-600 dark:text-green-500",
+const class_from_icon_color: {[key in Generic.Color]: string} = {
+    'reddit-upvote': "text-$upvote-color",
+    'reddit-downvote': "text-$downvote-color",
+    'green': "text-green-600 dark:text-green-500",
+    'white': "text-white",
 };
 
 function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
@@ -235,6 +237,7 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
         });
     }
     if(post.actions?.vote) {
+        const voteact = post.actions.vote;
         // TODO support other types of voting
         // eg: mastodon will be star/unstar so we should use a star icon
         // and yellow color
@@ -244,12 +247,19 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
         const state = stateR();
         const pt_count = state.pt_count;
         res.push({
-            icon: state.your_vote === "decrement" ? "down_arrow" : "up_arrow",
             value: pt_count === "hidden"
             ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
             : ["number", pt_count],
-            color: state.your_vote === "decrement" ? "purple" :
-            state.your_vote === "increment" ? "orange" : null,
+            icon: ({
+                none: voteact.neutral_icon,
+                increment: voteact.increment_icon ?? voteact.neutral_icon,
+                decrement: voteact.decrement_icon ?? voteact.neutral_icon,
+            } as const)[state.your_vote ?? "none"],
+            color: ({
+                none: null,
+                increment: voteact.increment_color ?? "white",
+                decrement: voteact.decrement_color ?? "white",
+            } as const)[state.your_vote ?? "none"],
         });
         if(post.actions.vote.percent != null) {
             res.push({

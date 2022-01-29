@@ -179,7 +179,12 @@ function generatePoints(id: string, controversiality: boolean): Generic.CounterA
         client_id: "test",
         unique_id: "vote_"+id,
         time: Date.now(),
-        icon_style: "upvote-downvote",
+        
+        neutral_icon: "up_arrow",
+        decrement_icon: "down_arrow",
+        increment_color: "reddit-upvote",
+        decrement_color: "reddit-downvote",
+
         label: "Vote",
         incremented_label: "Voted",
         decremented_label: "Voted",
