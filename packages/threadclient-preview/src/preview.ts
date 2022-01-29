@@ -254,7 +254,8 @@ export async function gfyLike2(
                     unique_id: "like_"+gfy_link,
                     time: Date.now(),
 
-                    icon_style: "heart",
+                    neutral_icon: "heart",
+
                     special: undefined,
 
                     label: "likes",

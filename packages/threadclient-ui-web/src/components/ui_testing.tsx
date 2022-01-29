@@ -128,7 +128,6 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
             });
         }}>{open() ? "▴" : "▾"} {props.label}</Button></div>
         <ShowCond when={open()}>{open_v => {
-            console.log("opening rn…");
             let node2!: HTMLDivElement;
 
             let tabout1!: HTMLDivElement; 
@@ -142,7 +141,7 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                 // answer: nodes that aren't focusable don't get focused when you click
                 // them.
 
-                const document_evtl = (e: FocusEvent) => {
+                const documentEvhl = (e: FocusEvent) => {
                     console.log("got mouseevent", e);
                     let parentv: HTMLElement | null = e.target as HTMLElement | null;
                     while(parentv) {
@@ -155,15 +154,14 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
 
                 // oh I can switch this to use an abortsignal now to auto-remove the listener
                 // that's a December 2021 feature though so I'm not going to try using it yet.
-                document.addEventListener("click", document_evtl, {capture: true, passive: false});
-                onCleanup(() => document.removeEventListener("click", document_evtl, {capture: true}));
+                document.addEventListener("click", documentEvhl, {capture: true, passive: false});
+                onCleanup(() => document.removeEventListener("click", documentEvhl, {capture: true}));
             });
 
             const node = document.createElement("div");
             document.body.appendChild(node);
             onCleanup(() => {
                 node.remove();
-                console.log("removing my node, goodbye.")
             });
 
             return <Portal mount={node}>

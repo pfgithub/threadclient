@@ -697,6 +697,7 @@ export type Icon =
     | "envelope_open"
     | "star"
     | "join"
+    | "heart"
 ;
 export type Color =
     | "reddit-upvote"

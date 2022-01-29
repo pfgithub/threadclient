@@ -216,6 +216,7 @@ const tag_from_icon_kind: {[key in Generic.Icon]: [
     envelope_open: ["Open Envelope", true, "fa-envelope-open"],
     star: ["Star", true, "fa-star"],
     join: ["Join", true, "fa-plus-square"],
+    heart: ["Heart", true, "fa-heart"],
 };
 const class_from_icon_color: {[key in Generic.Color]: string} = {
     'reddit-upvote': "text-$upvote-color",
