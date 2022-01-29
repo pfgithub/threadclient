@@ -65,7 +65,21 @@ function getReplies(id_link: Generic.Link<Generic.Post>): Generic.Link<Generic.P
 function generateTextBody(): Generic.Body {
     return {
         kind: "richtext",
-        content: new Array(3).fill(0).map(() => rt.p(rt.txt(faker.lorem.paragraph()))),
+        content: new Array(faker.datatype.number({min: 1, max: 4})).fill(0).map(() => (
+            rt.p(rt.txt(faker.lorem.paragraph()))
+        )),
+    };
+}
+function generateShortTextBody(): Generic.Body {
+    return {
+        kind: "richtext",
+        content: [rt.p(rt.txt(faker.lorem.sentence()))],
+    };
+}
+function generateTinyTextBody(): Generic.Body {
+    return {
+        kind: "richtext",
+        content: [rt.p(rt.txt(faker.lorem.word()))],
     };
 }
 
@@ -181,7 +195,11 @@ function generateComment(id: string): Generic.PostContent {
     return {
         kind: "post",
         title: null,
-        body: generateTextBody(),
+        body: faker.random.arrayElement([
+            generateTextBody,
+            generateShortTextBody,
+            generateTinyTextBody,
+        ])(),
         author: generateAuthor(),
         show_replies_when_below_pivot: true,
         collapsible: {default_collapsed: false},
