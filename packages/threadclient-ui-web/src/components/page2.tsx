@@ -493,54 +493,61 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         hasTitleOrThumbnail() ? "" : "text-xs",
                         selfVisible() || hasThumbnail()
                         ? ""
-                        : "filter grayscale text-$collapsed-header-color italic max-lines max-lines-1",
-                    )}>
-                        <ShowCond when={props.content.author}>{author => <>
-                            <ShowCond if={[
-                                selfVisible() && settings.author_pfp.value() === "on",
-                            ]} when={author.pfp} fallback={"By "}>{pfp => <>
-                                <AuthorPfp src_url={pfp.url} />{" "}
+                        : "filter grayscale text-$collapsed-header-color italic",
+                    )}><HSplit.Container dir="right">
+                        <HSplit.Child><div class="mr-2">
+                            <ShowCond when={props.content.author}>{author => <>
+                                <ShowCond if={[
+                                    selfVisible() && settings.author_pfp.value() === "on",
+                                ]} when={author.pfp} fallback={"By "}>{pfp => <>
+                                    <AuthorPfp src_url={pfp.url} />{" "}
+                                </>}</ShowCond>
+                                <UserLink
+                                    client_id={author.client_id}
+                                    href={author.link}
+                                    color_hash={author.color_hash}
+                                >
+                                    {author.name}
+                                </UserLink>{" "}
                             </>}</ShowCond>
-                            <UserLink
-                                client_id={author.client_id}
-                                href={author.link}
-                                color_hash={author.color_hash}
-                            >
-                                {author.name}
-                            </UserLink>{" "}
-                        </>}</ShowCond>
-                        <ShowBool when={selfVisible() || hasTitleOrThumbnail()} fallback={<>
-                            <ShowBool when={default_collapsed} fallback={
-                                <span class="whitespace-normal">
-                                    {"“" + (() => {
-                                        const res = summarizeBody(props.content.body);
-                                        if(res.length > 500) return res.substring(0, 500) + "…";
-                                        return res;
-                                    })() + "”"}
-                                </span>
-                            }>
-                                <ShowCond when={props.content.actions?.vote} fallback={
-                                    "[Collapsed by default]"
-                                }>{vote_action => <>
-                                    <CounterCount counter={vote_action} />{" "}
+                            <ShowBool when={selfVisible() || hasTitleOrThumbnail()}>
+                                <ShowCond when={props.content.author}>{author => <>
+                                    <ShowCond when={author.flair}>{flair => <>
+                                        <Flair flairs={flair} />{" "}
+                                    </>}</ShowCond>
+                                </>}</ShowCond>
+                                <ShowCond when={props.content.info?.in}>{in_sr => <>
+                                    {" in "}<LinkButton
+                                        href={in_sr.link}
+                                        style="previewable"
+                                        client_id={in_sr.client_id}
+                                    >{in_sr.name}</LinkButton>{" "}
                                 </>}</ShowCond>
                             </ShowBool>
-                        </>}>
-                            <ShowCond when={props.content.author}>{author => <>
-                                <ShowCond when={author.flair}>{flair => <>
-                                    <Flair flairs={flair} />{" "}
-                                </>}</ShowCond>
-                            </>}</ShowCond>
-                            <ShowCond when={props.content.info?.in}>{in_sr => <>
-                                {" in "}<LinkButton
-                                    href={in_sr.link}
-                                    style="previewable"
-                                    client_id={in_sr.client_id}
-                                >{in_sr.name}</LinkButton>{" "}
-                            </>}</ShowCond>
-                        </ShowBool>
-                        <InfoBar post={props.content} />
-                    </div>
+                        </div></HSplit.Child>
+                        <HSplit.Child fullwidth><div class="mr-2">
+                            <ShowBool when={!(selfVisible() || hasTitleOrThumbnail())}>
+                                <ShowBool when={default_collapsed} fallback={<>
+                                    <div class="whitespace-normal max-lines max-lines-1">
+                                        “{(() => {
+                                            const res = summarizeBody(props.content.body);
+                                            if(res.length > 500) return res.substring(0, 500) + "…";
+                                            return res;
+                                        })()}”
+                                    </div>
+                                </>}>
+                                    <ShowCond when={props.content.actions?.vote} fallback={
+                                        "[Collapsed by default]"
+                                    }>{vote_action => <>
+                                        <CounterCount counter={vote_action} />{" "}
+                                    </>}</ShowCond>
+                                </ShowBool>
+                            </ShowBool>
+                        </div></HSplit.Child>
+                        <HSplit.Child><div class="mr-2">
+                            <InfoBar post={props.content} />
+                        </div></HSplit.Child>
+                    </HSplit.Container></div>
                 </HSplit.Child>
                 <ShowBool when={!props.opts.is_pivot}>
                     <HSplit.Child vertical="top">
