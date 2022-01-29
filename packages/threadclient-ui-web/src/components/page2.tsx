@@ -634,15 +634,15 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
     // I should be able to move everything into an export function main() I think
     // life hack
 
-    return <div class="m-4">
+    return <div class="m-4 <sm:mx-0">
         <For each={view().body}>{item => <SwitchKind item={item}>{{
             wrapper_start: () => <ToggleColor>{color => <div class={""
                 + " " + color
-                + " h-2 rounded-xl mt-4"
+                + " h-2 sm:rounded-xl mt-4"
             } style="border-bottom-left-radius: 0; border-bottom-right-radius: 0" />}</ToggleColor>,
             wrapper_end: () => <ToggleColor>{color => <div class={""
                 + " " + color
-                + " h-2 rounded-xl mb-4"
+                + " h-2 sm:rounded-xl mb-4"
             } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
             post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
                 <div class="flex flex-row">
