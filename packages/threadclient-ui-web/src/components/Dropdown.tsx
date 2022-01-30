@@ -125,11 +125,13 @@ export default function Dropdown(props: {label: JSX.Element, children: JSX.Eleme
                         n.style.transform = "scale(0.5)";
                         n.style.opacity = "0";
                         setTransition();
+                        n.style.transitionTimingFunction = "ease-in";
                     };
                     const setVisible = () => {
                         n.style.transform = "";
                         n.style.opacity = "";
                         setTransition();
+                        n.style.transitionTimingFunction = "ease-out";
                     };
                     setHidden();
 
