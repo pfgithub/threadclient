@@ -649,6 +649,8 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
     const [loadedData, setLoadedData] = createSignal(
         new Map<Generic.Link<Generic.Loader>, Generic.LoaderResult>(),
     );
+    () => loadedData;
+    () => setLoadedData;
 
     const view = createMemo(() => flatten(props.pivot, {
         collapse_states: new Map(),
