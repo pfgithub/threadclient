@@ -275,11 +275,11 @@ function getActionsFromAction(action: Generic.Action, opts: ClientPostOpts): Act
 function getActions(post: Generic.PostContentPost, opts: ClientPostOpts): ActionItem[] {
     const actions: ActionItem[] = [];
 
-    if(opts.frame?.url) {
+    if(opts.frame?.url != null) {
         actions.push({
             icon: "link",
             color: null,
-            text: post.info?.comments ? (
+            text: post.info?.comments != null ? (
                 post.info.comments.toLocaleString() + " comment"+(
                     post.info.comments === 1 ? "" : "s"
                 )
@@ -535,11 +535,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     // const postIsClickable = () => {
     //     return props.opts.frame?.url != null && !props.opts.is_pivot;
     // };
-    
-    const onAddReply = (reply: Generic.Post) => {
-        // TODO;
-        alert("Reply posted. TODO: display it.");
-    };
     
     // class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
     // // note: screenreader or keyboard users must click the 'view' button

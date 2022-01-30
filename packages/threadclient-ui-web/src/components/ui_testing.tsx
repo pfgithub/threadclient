@@ -1,11 +1,9 @@
 import faker from "@faker-js/faker";
 import "@fortawesome/fontawesome-free/css/all.css";
-import { createEffect, createSignal, For, JSX, onCleanup } from "solid-js";
-import { Portal } from "solid-js/web";
+import { For, JSX } from "solid-js";
 import { ShowBool } from "tmeta-util-solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { classes, getSettings } from "../util/utils_solid";
-import { animationTime } from "./animation";
 import Button from "./Button";
 import Dropdown from "./Dropdown";
 import DropdownButton from "./DropdownButton";
