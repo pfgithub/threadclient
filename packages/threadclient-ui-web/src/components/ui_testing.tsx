@@ -1,10 +1,11 @@
 import faker from "@faker-js/faker";
 import "@fortawesome/fontawesome-free/css/all.css";
-import { For, JSX, createSignal, onCleanup, createEffect } from "solid-js";
+import { For, JSX, createSignal, onCleanup, createEffect, createComputed, untrack, onMount } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ShowBool, ShowCond } from "tmeta-util-solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { classes, getSettings, screenWidth } from "../util/utils_solid";
+import { animationTime } from "./animation";
 import { TopLevelWrapper } from "./page2";
 import { SettingPicker } from "./settings";
 
@@ -121,10 +122,24 @@ function DropdownMenu(props: {}): JSX.Element {
 }
 
 function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JSX.Element {
-    const [open, setOpen] = createSignal<null | {
+    type Position = {
         rect: DOMRect,
         scroll: [number, number],
-    }>(null);
+    };
+    const [position, setPosition] = createSignal<Position>({
+        rect: new DOMRect(0, 0, 0, 0),
+        scroll: [0, 0],
+    });
+    const [target, setTargetRaw] = createSignal<boolean>(false);
+    const [animating, setAnimating] = createSignal<boolean>(false);
+
+    const setTarget = (nvr: boolean | ((pv: boolean) => boolean)) => {
+        setTargetRaw(pv => {
+            const nv = typeof nvr === "boolean" ? nvr : nvr(pv);
+            if(pv !== nv) setAnimating(true);
+            return nv;
+        });
+    }
 
     let node1!: HTMLDivElement;
 
@@ -142,18 +157,15 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
     // like div tabindex="0" nodes that onfocus focus another node.
     return <>
         <div ref={node1}><Button onClick={e => {
-            setOpen(c_open => {
-                if (c_open) {
-                    return null;
-                }
-                const button_rect = e.target.getBoundingClientRect();
-                return {
-                    rect: button_rect,
-                    scroll: [window.scrollX, window.scrollY],
-                };
+            const button_rect = e.target.getBoundingClientRect();
+            setPosition({
+                rect: button_rect,
+                scroll: [window.scrollX, window.scrollY],
+                closing: false,
             });
-        }}>{open() ? "▴" : "▾"} {props.label}</Button></div>
-        <ShowCond when={open()}>{open_v => {
+            setTarget(v => !v);
+        }}>{target() ? "▴" : "▾"} {props.label}</Button></div>
+        <ShowBool when={target() || animating()}>{(() => {
             let node2!: HTMLDivElement;
 
             let tabout1!: HTMLDivElement; 
@@ -168,14 +180,13 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                 // them.
 
                 const documentEvhl = (e: FocusEvent) => {
-                    console.log("got mouseevent", e);
                     let parentv: HTMLElement | null = e.target as HTMLElement | null;
                     while(parentv) {
                         if(parentv === node1) return;
                         if(parentv === node2) return;
                         parentv = parentv.parentElement;
                     }
-                    setOpen(null);
+                    setTarget(false);
                 };
 
                 // oh I can switch this to use an abortsignal now to auto-remove the listener
@@ -192,36 +203,45 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
 
             return <Portal mount={node}>
                 <div tabindex="0" ref={tabout1} />
-                <div ref={n => {
+                <div ontransitionend={() => {
+                    setAnimating(false);
+                }} ref={n => {
                     node2 = n;
 
                     n.style.transformOrigin = "top right";
-                    n.style.transform = "scale(50%)";
-                    n.style.opacity = "0";
-                    n.style.transition = "0.1s opacity, 0.1s transform";
-                    requestAnimationFrame(() => {
+
+                    const setTransition = () => {
+                        n.style.transition = animationTime()+"s opacity, "
+                        +animationTime()+"s transform";
+                    };
+                    const setHidden = () => {
+                        n.style.transform = "scale(50%)";
+                        n.style.opacity = "0";
+                        setTransition();
+                    };
+                    const setVisible = () => {
+                        n.style.transform = "";
+                        n.style.opacity = "";
+                        setTransition();
+                    };
+                    setHidden();
+
+                    createEffect(() => {
+                        const value = target();
                         requestAnimationFrame(() => {
-                            n.style.transform = "";
-                            n.style.opacity = "";
+                            requestAnimationFrame(() => {
+                                if(value) {
+                                    setVisible();
+                                }else{
+                                    setHidden();
+                                }
+                            });
                         });
                     });
-
-                    // ok I want this:
-                    //
-                    // left: max(target_pos - max_width, screen_left + padding)
-                    // right: min(left + max_width, screen_right - padding)
-                    //
-                    // I can do that with css calc()
-                    // where:
-                    //
-                    // max_width = 24rem
-                    // padding = 1rem
-                    // screen_left = 0px
-                    // screen_right = 100vw
                 }} tabindex="0" class="absolute" style={{
-                    'top': (open_v.rect.bottom + open_v.scroll[1])+"px",
+                    'top': (position().rect.bottom + position().scroll[1])+"px",
 
-                    '--dbtn-target-pos': open_v.rect.right + "px",
+                    '--dbtn-target-pos': position().rect.right + "px",
                     '--dbtn-max-width': "24rem",
                     '--dbtn-padding': "1rem",
                     '--dbtn-left': "max("
@@ -241,7 +261,7 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                 </div>
                 <div tabindex="0" ref={tabout2} />
             </Portal>;
-        }}</ShowCond>
+        })()}</ShowBool>
     </>;
 }
 

@@ -6,7 +6,7 @@ import { ShowBool } from "tmeta-util-solid";
 import { navbar } from "../app";
 import { getSettings, Settings } from "../util/utils_solid";
 
-let shift_pressed = false;
+export let shift_pressed = false;
 document.addEventListener("keydown", e => {
     if(e.key === "Shift") shift_pressed = true;
 }, {capture: true});
@@ -16,6 +16,15 @@ document.addEventListener("keyup", e => {
 document.addEventListener("focus", e => {
     shift_pressed = false;
 });
+
+export function animationTime(): number {
+    const settings = getSettings();
+    if(untrack(() => settings.motion.value() === "reduce")) return 0;
+    return untrack(() => (
+        shift_pressed && settings.animation_dev_mode.value() === "shift_slow"
+        ? 3 : settings.animation_time.value()
+    ))
+};
 
 export function animateHeight(
     comment_root: HTMLElement,
@@ -90,10 +99,7 @@ export function animateHeight(
             console.log("ANIMATING", shift_pressed);
             comment_root.style.height = animating() + "px";
             comment_root.style.overflow = "hidden";
-            comment_root.style.transition = untrack(() => (
-                shift_pressed && settings.animation_dev_mode.value() === "shift_slow"
-                ? 3 : settings.animation_time.value()
-            )) + "s height";
+            comment_root.style.transition = animationTime() + "s height";
         }else{
             comment_root.style.removeProperty("height");
             comment_root.style.removeProperty("overflow");
