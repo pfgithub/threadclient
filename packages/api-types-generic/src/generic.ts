@@ -10,6 +10,12 @@ export type Page2 = {
     pivot: Link<Post>,
     content: Page2Content,
 };
+export type LoaderResult = {
+    top: Link<Post>[], // should the items have no parent or a special parent?
+    bottom?: undefined | Link<Post>, // same here, should it have no replies or a special
+    // reply thing
+    content: Page2Content,
+};
 
 // !NOTE: the empty string is not a valid link due to eslint limitations
 export type Link<T> = (string | symbol) & {__is_link: T};

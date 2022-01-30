@@ -915,4 +915,8 @@ export const client: ThreadClient = {
             throw new Error("Other not supported");
         }else assertNever(decoded);
     },
+
+    async loader(action) {
+        return (await import("./test/faker")).loadMore2(action);
+    }
 };

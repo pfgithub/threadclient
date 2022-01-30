@@ -1,6 +1,7 @@
 import faker from "@faker-js/faker";
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
+import { encoderGenerator } from "threadclient-client-base";
 import { assertNever } from "tmeta-util";
 
 
@@ -235,7 +236,7 @@ function generateContent(id: string): Generic.PostContent {
     }
 }
 
-function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.Post>): Generic.Post {
+function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.Post>): void {
     const id = id_link.toString();
     const replies = getReplies(id_link);
 
@@ -262,7 +263,6 @@ function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.P
         display_style: "centered",
     };
     saveLink(content, newLink<Generic.Post>(id), result);
-    return result;
 }
 
 function generatePostImage(w: number, h: number) {
@@ -270,28 +270,112 @@ function generatePostImage(w: number, h: number) {
     return "https://picsum.photos/seed/"+seed+"/"+w+"/"+h+".jpg";
 }
 
+export function loadMore2(loader_enc: Generic.Opaque<"loader">): Generic.LoaderResult {
+    const loader = load_encoder.decode(loader_enc);
+
+    const content: Generic.Page2Content = {};
+
+    if(loader.kind === "horizontal") {
+        const licopy = [...loader.items];
+        fillReplyArray(content, null, licopy, 20, 10);
+        return {
+            content,
+            top: licopy,
+        };
+    }else if(loader.kind === "other") {
+        throw new Error("TODO");
+    }else assertNever(loader);
+}
+
+export type LoaderData = {
+    kind: "horizontal",
+    items: Generic.Link<Generic.Post>[],
+} | {
+    kind: "other",
+};
+export const load_encoder = encoderGenerator<LoaderData, "loader">("loader");
+
+function generateHorizontalLoader(
+    content: Generic.Page2Content,
+    items: Generic.Link<Generic.Post>[],
+    parent: null | Generic.Link<Generic.Post>,
+): Generic.Link<Generic.Loader>[] {
+    if(items.length === 0) return [];
+
+    const id = Symbol("loader") as Generic.Link<Generic.Loader>;
+    saveLink(content, id, {
+        parent: parent,
+        replies: null,
+        url: null,
+        client_id: "test",
+
+        kind: "loader",
+        key: load_encoder.encode({
+            kind: "horizontal",
+            items,
+        }),
+        load_count: items.length,
+    });
+    return [id];
+}
+
+function readLink<T>(content: Generic.Page2Content, link: Generic.Link<T>): T {
+    const res = content[link];
+    if(!res) throw new Error("missing link");
+    if('error' in res) throw new Error("link error; "+res.error);
+    return res.data as T;
+}
+
 function fillReplies(
     content: Generic.Page2Content,
-    root: Generic.Post,
+    root_link: Generic.Link<Generic.Post>,
     maximum: number,
     depth: number,
     opts: {pivot: boolean},
 ): number {
+    generate(content, root_link);
+    maximum -= 1;
+
+    const root = readLink(content, root_link);
+
     if(root.replies == null) return maximum;
     if(root.kind === "post" && root.content.kind === "post") {
         if(!opts.pivot && !root.content.show_replies_when_below_pivot) {
-            // TODO: replace the replies with a loader
+            const items = root.replies.items.splice(0, root.replies.items.length);
+            const loader = generateHorizontalLoader(content, items, root_link);
+            root.replies.items.splice(0, 0, ...loader);
+
             return maximum;
         }
     }
-    if(depth <= 0) return maximum; // TODO: replace remaining replies with a loader
-    for(const reply of root.replies.items) {
-        if(maximum <= 0) return maximum; // TODO: replace remaining replies with a loader
+    if(depth <= 0) {
+        const items = root.replies.items.splice(0, root.replies.items.length);
+        const loader = generateHorizontalLoader(content, items, root_link);
+        root.replies.items.splice(0, 0, ...loader);
 
-        const item = generate(content, reply);
-        maximum -= 1;
+        return maximum;
+    }
+    maximum = fillReplyArray(content, root_link, root.replies.items, maximum, depth);
+    return maximum;
+}
 
-        maximum = fillReplies(content, item, maximum, depth - 1, {pivot: false});
+function fillReplyArray(
+    content: Generic.Page2Content,
+    root: null | Generic.Link<Generic.Post>,
+    rpl_arr: Generic.Link<Generic.Post>[],
+    maximum: number,
+    depth: number,
+): number {
+    for(const [i, reply] of rpl_arr.entries()) {
+        if(maximum <= 0) {
+            const items = rpl_arr.splice(i, rpl_arr.length - i);
+            const loader = generateHorizontalLoader(content, items, root);
+            rpl_arr.splice(i, 0, ...loader);
+
+            return maximum;
+        }
+
+        maximum = fillReplies(content, reply, maximum, depth - 1, {pivot: false});
     }
     return maximum;
 }
@@ -304,8 +388,7 @@ export async function getPage(
     const root_link_text = path === "/" ? "/home" : path;
 
     const root_link = newLink<Generic.Post>(root_link_text);
-    const root_item = generate(content, root_link);
-    fillReplies(content, root_item, 100, 10, {pivot: true}); // we could use a url ?limit= param for this
+    fillReplies(content, root_link, 100, 10, {pivot: true}); // we could use a url ?limit= param for this
 
     const parent = getParent(root_link);
     if(parent) generate(content, parent);
