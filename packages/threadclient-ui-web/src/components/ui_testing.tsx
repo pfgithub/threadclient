@@ -96,10 +96,14 @@ const HSplit = {
     },
 };
 
-function DropdownButton(props: {children: JSX.Element}): JSX.Element {
+function DropdownButton(props: {icon: string, children: JSX.Element}): JSX.Element {
     return <button
         class="w-full block p-2 text-left bg-gray-100 first:rounded-t-md last:rounded-b-md"
-    ><div class="w-full">{props.children}</div></button>;
+    ><div class="w-full">
+        <i class={props.icon} aria-hidden />
+        <span class="ml-2" />
+        {props.children}
+    </div></button>;
 }
 
 function DropdownMenu(props: {}): JSX.Element {
@@ -107,25 +111,12 @@ function DropdownMenu(props: {}): JSX.Element {
     // oh looks like I can switch back to tailwind from windi, they no longer are
     // incredibly slow
 
-    // ok I want this:
-    //
-    // left: max(target_pos - max_width, screen_left + padding)
-    // right: min(left + max_width, screen_right - padding)
-    //
-    // I can do that with css calc()
-    // where:
-    //
-    // max_width = 24fr
-    // padding = 1rem
-    // screen_left = 0px
-    // screen_right = 100vw
-    //
-    // ok I'm going to upgrade to tailwind 3.0 I think after checking out their video
-
-    return <div class="w-full max-w-sm">
-        <DropdownButton>Uplike</DropdownButton>
+    return <div class="w-full">
+        <DropdownButton icon="fas fa-arrow-up"> Uplike</DropdownButton>
         <div class="h-2px" />
-        <DropdownButton>Downlike</DropdownButton>
+        <DropdownButton icon="fas fa-arrow-down"> Downlike</DropdownButton>
+        <div class="h-2px" />
+        <DropdownButton icon="far fa-bookmark"> Save</DropdownButton>
     </div>;
 }
 
@@ -214,9 +205,36 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                             n.style.opacity = "";
                         });
                     });
+
+                    // ok I want this:
+                    //
+                    // left: max(target_pos - max_width, screen_left + padding)
+                    // right: min(left + max_width, screen_right - padding)
+                    //
+                    // I can do that with css calc()
+                    // where:
+                    //
+                    // max_width = 24rem
+                    // padding = 1rem
+                    // screen_left = 0px
+                    // screen_right = 100vw
                 }} tabindex="0" class="absolute" style={{
                     'top': (open_v.rect.bottom + open_v.scroll[1])+"px",
-                    'right': (screenWidth() - open_v.rect.right + open_v.scroll[0])+"px",
+
+                    '--dbtn-target-pos': open_v.rect.right + "px",
+                    '--dbtn-max-width': "24rem",
+                    '--dbtn-padding': "1rem",
+                    '--dbtn-left': "max("
+                        +"calc(var(--dbtn-target-pos) - var(--dbtn-max-width)),"
+                        +"calc(0px + var(--dbtn-padding))"
+                    +")",
+
+                    'left': "var(--dbtn-left)",
+                    'right': "calc(100vw - min("
+                        +"calc(var(--dbtn-left) + var(--dbtn-max-width)),"
+                        +"100vw - var(--dbtn-padding))"
+                    +")",
+
                     'z-index': 1000000000,
                 }}>
                     {props.children}
