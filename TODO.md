@@ -1,5 +1,18 @@
 ## todo
 
+- tailwind css 3 is basically the same as windicss, I can probably switch to it
+- \[!] I have to change eg `w-10px` to `w-[10px]`
+- and stuff like `text-[color:var(--my-var)]` instead of `text-$my-var`
+- https://www.kirillvasiltsov.com/writing/type-check-tailwind-css/ oh wow I could do this
+  but this is the sketchiest thing I've seen in my life
+- https://github.com/thien-do/typed.tw hmm
+- could do something like that. `tw.bg('red').text('white')`
+- huh that could be nice
+- need conditionals. `tw.add(condition ? tw.bg('red') : tw.bg('blue'))`
+- that will work fine
+
+## todo
+
 - along with getting chat messages working,
 - switch unread message count to `/api/v1/me` `.inbox_count`. also this will let us get our username. also we should save.
 
