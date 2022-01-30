@@ -122,7 +122,7 @@ export default function Dropdown(props: {label: JSX.Element, children: JSX.Eleme
                         +animationTime()+"s transform";
                     };
                     const setHidden = () => {
-                        n.style.transform = "scale(50%)";
+                        n.style.transform = "scale(0.5)";
                         n.style.opacity = "0";
                         setTransition();
                     };
