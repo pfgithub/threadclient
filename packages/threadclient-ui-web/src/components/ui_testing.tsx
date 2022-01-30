@@ -141,7 +141,7 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
         });
     };
 
-    let node1!: HTMLDivElement;
+    let node1!: HTMLButtonElement;
 
     // while open:
     // - add a focus watcher
@@ -155,8 +155,22 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
     // TODO:
     // add portals for our tab thing
     // like div tabindex="0" nodes that onfocus focus another node.
+
+    // ok I'm not sure if I can do that without ending up with some extra focus
+    // slots
+
+    // what I can probably do is capture the tab key press and teleport the focus
+    // https://a11y-guidelines.orange.com/en/web/components-examples/dropdown-menu/#
+    // that one cheats, it has the menu right next to the thing in dom
+    // whereas mine is like halfway across the page in dom
+    // https://www.w3.org/WAI/tutorials/menus/flyout/
+    // ok:
+    // - the button should have aria-haspopup
+    // - the button should have aria-expanded={target()}
+    // ok that wasn't very useful
+
     return <>
-        <div ref={node1}><Button onClick={e => {
+        <Button btnref={v => node1 = v} onClick={e => {
             const button_rect = e.target.getBoundingClientRect();
             setPosition({
                 rect: button_rect,
@@ -164,12 +178,13 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                 closing: false,
             });
             setTarget(v => !v);
-        }}>{target() ? "▴" : "▾"} {props.label}</Button></div>
+        }}>{target() ? "▴" : "▾"} {props.label}</Button>
         <ShowBool when={target() || animating()}>{(() => {
             let node2!: HTMLDivElement;
 
-            let tabout1!: HTMLDivElement; 
-            let tabout2!: HTMLDivElement;
+            let tabin1!: HTMLDivElement;
+
+            const [showFocusRing, setShowFocusRing] = createSignal(false);
 
             createEffect(() => {
                 // ok last time I did this I'm pretty sure I started with focus
@@ -201,8 +216,10 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                 node.remove();
             });
 
-            return <Portal mount={node}>
-                <div tabindex="0" ref={tabout1} />
+            return <><div
+                tabindex="0"
+                onfocus={() => tabin1.focus()}
+            /><Portal mount={node}>
                 <div ontransitionend={() => {
                     setAnimating(false);
                 }} ref={n => {
@@ -238,7 +255,17 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                             });
                         });
                     });
-                }} tabindex="0" class="absolute" style={{
+
+                    createEffect(() => {
+                        if(showFocusRing()) {
+                            n.style.outline = "1px dotted var(--outline-color)";
+                        }else{
+                            n.style.outline = "";
+                        }
+                    });
+                }} class={classes(
+                    "absolute",
+                )} style={{
                     'top': (position().rect.bottom + position().scroll[1])+"px",
 
                     '--dbtn-target-pos': position().rect.right + "px",
@@ -257,10 +284,21 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
 
                     'z-index': 1000000000,
                 }}>
+                    <div tabindex="0" onfocus={() => {
+                        node1.focus();
+                    }} />
+                    <div tabindex="0" ref={tabin1} onfocusin={() => {
+                        setShowFocusRing(true);
+                    }} onfocusout={() => {
+                        setShowFocusRing(false);
+                    }} />
                     {props.children}
+                    <div tabindex="0" onfocus={() => {
+                        setTarget(false);
+                        node1.focus();
+                    }} />
                 </div>
-                <div tabindex="0" ref={tabout2} />
-            </Portal>;
+            </Portal></>;
         })()}</ShowBool>
     </>;
 }
@@ -428,8 +466,9 @@ function Username(): JSX.Element {
 function Button(props: {
     children: JSX.Element,
     onClick?: undefined | JSX.DOMAttributes<HTMLButtonElement>["onClick"],
+    btnref?: undefined | ((el: HTMLButtonElement) => void),
 }): JSX.Element {
-    return <button class={classes(
+    return <button ref={props.btnref} class={classes(
         "py-1 px-2 rounded-md",
         "text-gray-600",
         "bg-gray-200 border-b-1 border-gray-500",
