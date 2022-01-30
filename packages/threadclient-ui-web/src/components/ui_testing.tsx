@@ -103,6 +103,25 @@ function DropdownButton(props: {children: JSX.Element}): JSX.Element {
 }
 
 function DropdownMenu(props: {}): JSX.Element {
+    // ok I want this positioned:
+    // oh looks like I can switch back to tailwind from windi, they no longer are
+    // incredibly slow
+
+    // ok I want this:
+    //
+    // left: max(target_pos - max_width, screen_left + padding)
+    // right: min(left + max_width, screen_right - padding)
+    //
+    // I can do that with css calc()
+    // where:
+    //
+    // max_width = 24fr
+    // padding = 1rem
+    // screen_left = 0px
+    // screen_right = 100vw
+    //
+    // ok I'm going to upgrade to tailwind 3.0 I think after checking out their video
+
     return <div class="w-full max-w-sm">
         <DropdownButton>Uplike</DropdownButton>
         <div class="h-2px" />
