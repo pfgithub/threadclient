@@ -704,6 +704,10 @@ export type Icon =
     | "star"
     | "join"
     | "heart"
+    | "code"
+    | "link"
+    | "eye"
+    | "reply"
 ;
 export type Color =
     | "reddit-upvote"

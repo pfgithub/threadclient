@@ -9,16 +9,18 @@ import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getPageRootContext, getSettings, HideshowProvider, ToggleColor
 } from "../util/utils_solid";
-import { PostActions } from "./action";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { CounterCount, getCounterState, VerticalIconCounter } from "./counter";
+import Dropdown from "./Dropdown";
+import DropdownButton from "./DropdownButton";
 import { A, LinkButton, UserLink } from "./links";
 
-function Icon(props: {tag: string, filled: boolean, label: string}): JSX.Element {
+function Icon(props: {tag: string, filled: boolean, label: null | string}): JSX.Element {
     return <i
         class={props.tag + " " + (props.filled ? "fas" : "far")}
-        aria-label={props.label}
+        aria-label={props.label ?? undefined}
+        aria-hidden={props.label == null}
     />;
 }
 
@@ -197,26 +199,30 @@ type InfoBarItem = {
     value: ["percent" | "number" | "timeago" | "hidden" | "none", number],
     icon: Generic.Icon,
     color: null | Generic.Color,
+    text: string,
 };
 
 const tag_from_icon_kind: {[key in Generic.Icon]: [
-    desc: string, free: boolean,
+    free: boolean,
     tag: string, tag_pro?: undefined | string,
 ]} = {
-    // TODO: remove desc from this. desc should be supplied by the client.
-    comments: ["Comments", true, "fa-comment"],
-    creation_time: ["Posted", true, "fa-clock"],
-    edit_time: ["Edited", true, "fa-edit", "fa-pencil"],
-    up_arrow: ["Points", false, "fa-arrow-up"],
-    down_arrow: ["Points", false, "fa-arrow-down"],
-    controversiality: ["Controversial", true, "fa-smile"],
-    pinned: ["Pinned", false, "fa-thumbtack"],
-    bookmark: ["Bookmark", true, "fa-bookmark"],
-    envelope: ["Envelope", true, "fa-envelope"],
-    envelope_open: ["Open Envelope", true, "fa-envelope-open"],
-    star: ["Star", true, "fa-star"],
-    join: ["Join", true, "fa-plus-square"],
-    heart: ["Heart", true, "fa-heart"],
+    comments: [true, "fa-comment"],
+    creation_time: [true, "fa-clock"],
+    edit_time: [true, "fa-edit", "fa-pencil"],
+    up_arrow: [false, "fa-arrow-up"],
+    down_arrow: [false, "fa-arrow-down"],
+    controversiality: [true, "fa-smile"],
+    pinned: [false, "fa-thumbtack"],
+    bookmark: [true, "fa-bookmark"],
+    envelope: [true, "fa-envelope"],
+    envelope_open: [true, "fa-envelope-open"],
+    star: [true, "fa-star"],
+    join: [true, "fa-plus-square"],
+    heart: [true, "fa-heart"],
+    code: [false, "fa-code"],
+    link: [false, "fa-link"],
+    eye: [true, "fa-eye"],
+    reply: [false, "fa-reply"],
 };
 const class_from_icon_color: {[key in Generic.Color]: string} = {
     'reddit-upvote': "text-$upvote-color",
@@ -224,6 +230,127 @@ const class_from_icon_color: {[key in Generic.Color]: string} = {
     'green': "text-green-600 dark:text-green-500",
     'white': "text-gray-300 dark:text-black",
 };
+
+type ActionItem = {
+    icon: Generic.Icon,
+    color: null | Generic.Color,
+    text: string,
+    // disabled: boolean,
+
+    // onClick will be a link | a thing that makes a CancellableAction
+    onClick: "TODO" | {url: string} | (() => void),
+};
+
+function getActionsFromAction(action: Generic.Action, opts: ClientPostOpts): ActionItem[] {
+    const actions: ActionItem[] = [];
+
+    if(action.kind === "counter") {
+        const [stateR] = getCounterState(() => action);
+        const state = stateR();
+        const your_vote = state.your_vote;
+
+        actions.push({
+            icon: action.increment_icon ?? action.neutral_icon,
+            color: your_vote === "increment" ?
+            action.increment_color ?? "white" : null,
+            text: your_vote === "increment" ? "Undo Upvote" : "Upvote",
+            onClick: "TODO",
+        });
+        if(action.decremented_label != null) {
+            actions.push({
+                icon: action.decrement_icon ?? action.neutral_icon,
+                color: your_vote === "decrement" ?
+                    action.decrement_color ?? "white" : null,
+                text: your_vote === "decrement" ? "Undo Downvote" : "Downvote",
+                onClick: "TODO",
+            });
+        }
+    }else{
+        // assertNever(action);
+    }
+
+    return actions;
+}
+
+function getActions(post: Generic.PostContentPost, opts: ClientPostOpts): ActionItem[] {
+    const actions: ActionItem[] = [];
+
+    if(opts.frame?.url) {
+        actions.push({
+            icon: "link",
+            color: null,
+            text: post.info?.comments ? (
+                post.info.comments.toLocaleString() + " comment"+(
+                    post.info.comments === 1 ? "" : "s"
+                )
+            ) : (
+                "Comments"
+            ),
+            onClick: {url: opts.frame.url},
+        });
+    }
+
+    if(post.actions?.vote) {
+        actions.push(...getActionsFromAction(post.actions.vote, opts));
+    }
+
+    if(opts.frame?.replies?.reply) {
+        // if=props.content.show_replies_when_below_pivot && !props.opts.at_or_above_pivot
+        // ?
+        actions.push({
+            icon: "reply",
+            color: null,
+            text: "Reply",
+            onClick: "TODO",
+        });
+    }
+
+    for(const action of post.actions?.other ?? []) {
+        actions.push(...getActionsFromAction(action, opts));
+    }
+
+    if(post.actions?.code) {
+        actions.push(...getActionsFromAction(post.actions.code, opts));
+    }else{
+        actions.push({
+            icon: "code",
+            color: null,
+            text: "Code",
+            onClick: () => {
+                console.log(post, opts);
+            },
+        });
+    }
+
+    return actions;
+}
+
+function DropdownActionButton(props: {action: ActionItem}): JSX.Element {
+    return <DropdownButton icon={
+        <AutoIcon
+            icon={props.action.icon}
+            label={props.action.text}
+            color={props.action.color}
+        />
+    } class={props.action.color == null ? undefined : "font-bold " + class_from_icon_color[props.action.color]}>
+        {props.action.text}
+    </DropdownButton>;
+}
+
+function HorizontalActionButton(props: {action: ActionItem}): JSX.Element {
+    return <Button>
+        <span class={
+            props.action.color == null ? undefined : "font-bold " + class_from_icon_color[props.action.color]
+        }>
+            <AutoIcon
+                icon={props.action.icon}
+                label={props.action.text}
+                color={props.action.color}
+            />{" "}
+            {props.action.text}
+        </span>
+    </Button>;
+}
 
 function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
     const res: InfoBarItem[] = [];
@@ -235,6 +362,7 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
             icon: "pinned",
             value: ["none", -1000],
             color: "green",
+            text: "Pinned",
         });
     }
     if(post.actions?.vote) {
@@ -261,12 +389,14 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
                 increment: voteact.increment_color ?? "white",
                 decrement: voteact.decrement_color ?? "white",
             } as const)[state.your_vote ?? "none"],
+            text: "Points",
         });
         if(post.actions.vote.percent != null) {
             res.push({
                 icon: "controversiality",
                 value: ["percent", post.actions.vote.percent],
                 color: null,
+                text: "Controversiality",
             });
         }
     }
@@ -275,6 +405,7 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
             icon: "comments",
             value: ["number", post.info.comments],
             color: null,
+            text: "Comments",
         });
     }
     if(post.info?.creation_date != null) {
@@ -282,6 +413,7 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
             icon: "creation_time",
             value: ["timeago", post.info.creation_date],
             color: null,
+            text: "Posted",
         });
     }
     if(post.info?.edited) {
@@ -290,6 +422,7 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
             value: post.info.edited.date == null ? ["none", -1000] :
             ["timeago", post.info.edited.date],
             color: null,
+            text: "Edited",
         });
     }
 
@@ -328,6 +461,14 @@ function formatItemString({value}: InfoBarItem): [short: string, long: string] {
     assertNever(value[0]);
 }
 
+function AutoIcon(props: {icon: Generic.Icon, color: null | Generic.Color, label: null | string}): JSX.Element {
+    return <Icon
+        tag={tag_from_icon_kind[props.icon][1]}
+        filled={tag_from_icon_kind[props.icon][0] ? props.color != null : true}
+        label={props.label}
+    />;
+}
+
 function InfoBarItem(props: {item: InfoBarItem}): JSX.Element {
     // sizeLt.sm
     // for larger sizes we can do longer text
@@ -337,17 +478,14 @@ function InfoBarItem(props: {item: InfoBarItem}): JSX.Element {
     // 12 comments, 21.8k points, 83% upvoted, 2 years ago
 
     const fmt = createMemo(() => formatItemString(props.item));
-    const lblv = () => tag_from_icon_kind[props.item.icon][0]+(props.item.value[0] === "none" ? "" : ":");
+    const lblv = () => props.item.text+(props.item.value[0] === "none" ? "" : ":");
 
     return <span
         class={props.item.color != null ? class_from_icon_color[props.item.color] : ""}
         title={lblv() + fmt()[1]}
     >
-        <Icon
-            tag={tag_from_icon_kind[props.item.icon][2]}
-            filled={tag_from_icon_kind[props.item.icon][1] ? props.item.color != null : true}
-            label={lblv()}
-        />{fmt()[0]}
+        <AutoIcon icon={props.item.icon} color={props.item.color} label={lblv()} />
+        {fmt()[0]}
     </span>;
 }
 
@@ -575,7 +713,13 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 <ShowBool when={!props.opts.is_pivot}>
                     <HSplit.Child vertical="top">
                         <div class="pl-2" />
-                        <Button onClick={() => alert("TODO")}>…</Button>
+                        <Dropdown label={"…"}>
+                            <div>
+                                <For each={getActions(props.content, props.opts)}>{action => <>
+                                    <DropdownActionButton action={action} />
+                                </>}</For>
+                            </div>
+                        </Dropdown>
                     </HSplit.Child>
                 </ShowBool>
             </HSplit.Container>
@@ -601,11 +745,12 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                 </section>
                 <ShowBool when={props.opts.is_pivot}><div class="text-sm">
                     <InfoBar post={props.content} />
-                    <PostActions
-                        content={props.content}
-                        opts={props.opts}
-                        onAddReply={onAddReply}
-                    />
+                    <div class="mt-2" />
+                    <div class="flex flex-wrap gap-2">
+                        <For each={getActions(props.content, props.opts)}>{action => <>
+                            <HorizontalActionButton action={action} />
+                        </>}</For>
+                    </div>
                 </div></ShowBool>
             </HideshowProvider></div>
         </div>
