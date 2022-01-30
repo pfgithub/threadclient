@@ -23,8 +23,8 @@ export function animationTime(): number {
     return untrack(() => (
         shift_pressed && settings.animation_dev_mode.value() === "shift_slow"
         ? 3 : settings.animation_time.value()
-    ))
-};
+    ));
+}
 
 export function animateHeight(
     comment_root: HTMLElement,

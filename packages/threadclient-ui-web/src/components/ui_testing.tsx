@@ -1,10 +1,10 @@
 import faker from "@faker-js/faker";
 import "@fortawesome/fontawesome-free/css/all.css";
-import { For, JSX, createSignal, onCleanup, createEffect, createComputed, untrack, onMount } from "solid-js";
+import { createEffect, createSignal, For, JSX, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
-import { ShowBool, ShowCond } from "tmeta-util-solid";
+import { ShowBool } from "tmeta-util-solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
-import { classes, getSettings, screenWidth } from "../util/utils_solid";
+import { classes, getSettings } from "../util/utils_solid";
 import { animationTime } from "./animation";
 import { TopLevelWrapper } from "./page2";
 import { SettingPicker } from "./settings";
@@ -107,7 +107,7 @@ function DropdownButton(props: {icon: string, children: JSX.Element}): JSX.Eleme
     </div></button>;
 }
 
-function DropdownMenu(props: {}): JSX.Element {
+function DropdownMenu(): JSX.Element {
     // ok I want this positioned:
     // oh looks like I can switch back to tailwind from windi, they no longer are
     // incredibly slow
@@ -139,7 +139,7 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
             if(pv !== nv) setAnimating(true);
             return nv;
         });
-    }
+    };
 
     let node1!: HTMLDivElement;
 
