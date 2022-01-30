@@ -59,6 +59,8 @@ export default function Dropdown(props: {label: JSX.Element, children: JSX.Eleme
     // unfortunately
     // https://www.npmjs.com/package/tabbable have to do some sketchy stuff
 
+    // {target() ? "▴" : "▾"}
+
     return <>
         <Button btnref={v => node1 = v} onClick={e => {
             const button_rect = e.target.getBoundingClientRect();
@@ -68,7 +70,7 @@ export default function Dropdown(props: {label: JSX.Element, children: JSX.Eleme
                 closing: false,
             });
             setTarget(v => !v);
-        }}>{target() ? "▴" : "▾"} {props.label}</Button>
+        }}>{props.label}</Button>
         <ShowBool when={target() || animating()}>{(() => {
             let node2!: HTMLDivElement;
 

@@ -705,7 +705,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </div></HSplit.Child>
                     </HSplit.Container></div>
                 </HSplit.Child>
-                <ShowBool when={!props.opts.is_pivot}>
+                <ShowBool when={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
                     <HSplit.Child vertical="top">
                         <div class="pl-2" />
                         <Dropdown label={"…"}>
