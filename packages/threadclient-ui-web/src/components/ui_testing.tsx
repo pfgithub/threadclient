@@ -96,9 +96,24 @@ const HSplit = {
     },
 };
 
+function DropdownButton(props: {children: JSX.Element}): JSX.Element {
+    return <button
+        class="w-full block p-2 text-left bg-gray-100 first:rounded-t-md last:rounded-b-md"
+    ><div class="w-full">{props.children}</div></button>;
+}
+
+function DropdownMenu(props: {}): JSX.Element {
+    return <div class="w-full max-w-sm">
+        <DropdownButton>Uplike</DropdownButton>
+        <div class="h-2px" />
+        <DropdownButton>Downlike</DropdownButton>
+    </div>;
+}
+
 function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JSX.Element {
     const [open, setOpen] = createSignal<null | {
         rect: DOMRect,
+        scroll: [number, number],
     }>(null);
 
     let node1!: HTMLDivElement;
@@ -124,6 +139,7 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                 const button_rect = e.target.getBoundingClientRect();
                 return {
                     rect: button_rect,
+                    scroll: [window.scrollX, window.scrollY],
                 };
             });
         }}>{open() ? "▴" : "▾"} {props.label}</Button></div>
@@ -179,20 +195,21 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
                             n.style.opacity = "";
                         });
                     });
-                }} tabindex="0" class="fixed" style={{
-                    'top': open_v.rect.bottom+"px",
-                    'right': (screenWidth() - open_v.rect.right)+"px",
+                }} tabindex="0" class="absolute" style={{
+                    'top': (open_v.rect.bottom + open_v.scroll[1])+"px",
+                    'right': (screenWidth() - open_v.rect.right + open_v.scroll[0])+"px",
                     'z-index': 1000000000,
                 }}>
-                    Hi! Test :)
-                    <Button>one</Button>
-                    <Button>two</Button>
+                    {props.children}
                 </div>
                 <div tabindex="0" ref={tabout2} />
             </Portal>;
         }}</ShowCond>
     </>;
 }
+
+// function Heading()
+// return div role="heading"
 
 export default function UITestingPage(): JSX.Element {
     faker.seed(123); // this won't work right consistently because it's
@@ -210,6 +227,8 @@ export default function UITestingPage(): JSX.Element {
                 default: "System Default",
             } as const)[v ?? "default"]}
         />
+        <h1>Dropdown menu:</h1>
+        <div class="p-4"><DropdownMenu /></div>
         <h1>Posts, Above or below pivot:</h1>
         <For each={[1, 2]}>{() => {
             const expanded = false;
@@ -239,7 +258,7 @@ export default function UITestingPage(): JSX.Element {
                     <HSplit.Child><div class="mr-2" /></HSplit.Child>
                     <HSplit.Child vertical="top">
                         <DropdownButtons label={<>…</>}>
-                            Hi! Content :)
+                            <DropdownMenu />
                         </DropdownButtons>
                     </HSplit.Child>
                 </HSplit.Container>

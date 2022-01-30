@@ -222,7 +222,7 @@ const class_from_icon_color: {[key in Generic.Color]: string} = {
     'reddit-upvote': "text-$upvote-color",
     'reddit-downvote': "text-$downvote-color",
     'green': "text-green-600 dark:text-green-500",
-    'white': "text-white",
+    'white': "text-gray-300 dark:text-black",
 };
 
 function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
