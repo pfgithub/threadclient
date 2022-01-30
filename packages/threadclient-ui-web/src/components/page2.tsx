@@ -645,6 +645,11 @@ export type ClientPageProps = {
 export default function ClientPage(props: ClientPageProps): JSX.Element {
     // [!] we'll want to fix this up and make it observable and stuff
     // now that page2 is ready to be properly observable, flatten should be too.
+
+    const [loadedData, setLoadedData] = createSignal(
+        new Map<Generic.Link<Generic.Loader>, Generic.LoaderResult>(),
+    );
+
     const view = createMemo(() => flatten(props.pivot, {
         collapse_states: new Map(),
         content: getPageRootContext()(),
@@ -693,12 +698,21 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                             <button
                                 class="text-blue-500 hover:underline"
                                 onClick={() => {
-                                    // fetch the result
-                                    // merge it into global state for the current session
-                                    //
-                                    // this implies props.page should just be a map of key
-                                    // → value rather than the current nested structure
-                                    // ok I'm going to do that let's go
+                                    // ok after fetching:
+                                    // we'll set an override in the flatten data
+                                    // like loaders: Map<Link<loader>, loaded_data>
+                                    // and then flat() will check for that when
+                                    // it sees a loader and use it instead.
+
+                                    // ok we'll add a cancellable Task
+                                    //    that says we're loading the loader
+                                    //    and then when we render a loader, we'll
+                                    //    check if there's a task for it.
+
+                                    // also we can have a neat task view in the bottom
+                                    //    corner of the screen like a little loader and
+                                    //    if you click it it can show allt he tasks.
+
                                     alert("TODO");
                                 }}
                             >
