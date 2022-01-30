@@ -99,7 +99,10 @@ const HSplit = {
 
 function DropdownButton(props: {icon: string, children: JSX.Element}): JSX.Element {
     return <button
-        class="w-full block p-2 text-left bg-gray-100 first:rounded-t-md last:rounded-b-md"
+        class={classes(
+            "w-full block p-2 text-left bg-gray-100 hover:bg-gray-200",
+            "focus-visible:bg-gray-200 first:rounded-t-md last:rounded-b-md"
+        )}
     ><div class="w-full">
         <i class={props.icon} aria-hidden />
         <span class="ml-2" />
@@ -168,6 +171,11 @@ function DropdownButtons(props: {label: JSX.Element, children: JSX.Element}): JS
     // - the button should have aria-haspopup
     // - the button should have aria-expanded={target()}
     // ok that wasn't very useful
+
+    // https://github.com/exogen/react-tab-portal/blob/master/src/utils.js
+    // ok I want that focusBefore/focusAfter fn
+    // unfortunately
+    // https://www.npmjs.com/package/tabbable have to do some sketchy stuff
 
     return <>
         <Button btnref={v => node1 = v} onClick={e => {
