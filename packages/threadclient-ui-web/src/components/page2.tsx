@@ -1,7 +1,7 @@
 import "@fortawesome/fontawesome-free/css/all.css";
 import type * as Generic from "api-types-generic";
 import { createMemo, createSignal, For, JSX } from "solid-js";
-import { flatten } from "threadclient-render-flatten";
+import { flatten } from "./flatten";
 import { assertNever } from "tmeta-util";
 import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util-solid";
 import { clientContent, clientListing, getClientCached, link_styles_v } from "../app";
