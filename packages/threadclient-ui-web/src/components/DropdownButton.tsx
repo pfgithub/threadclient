@@ -1,4 +1,3 @@
-import "@fortawesome/fontawesome-free/css/all.css";
 import { JSX } from "solid-js";
 import { classes } from "../util/utils_solid";
 

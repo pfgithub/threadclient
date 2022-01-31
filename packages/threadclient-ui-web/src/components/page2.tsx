@@ -1,4 +1,3 @@
-import "@fortawesome/fontawesome-free/css/all.css";
 import type * as Generic from "api-types-generic";
 import { createMemo, createSignal, For, JSX } from "solid-js";
 import { flatten } from "./flatten";
@@ -15,14 +14,8 @@ import { CounterCount, getCounterState, VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import DropdownButton from "./DropdownButton";
 import { A, LinkButton, UserLink } from "./links";
-
-function Icon(props: {tag: string, filled: boolean, label: null | string}): JSX.Element {
-    return <i
-        class={props.tag + " " + (props.filled ? "fas" : "far")}
-        aria-label={props.label ?? undefined}
-        aria-hidden={props.label == null}
-    />;
-}
+import Icon from "./Icon";
+import { colorClass } from "./color";
 
 export type ClientPostOpts = {
     clickable: boolean,
@@ -202,37 +195,6 @@ type InfoBarItem = {
     text: string,
 };
 
-const tag_from_icon_kind: {[key in Generic.Icon]: [
-    free: boolean,
-    tag: string, tag_pro?: undefined | string,
-]} = {
-    comments: [true, "fa-comment"],
-    creation_time: [true, "fa-clock"],
-    edit_time: [true, "fa-edit", "fa-pencil"],
-    up_arrow: [false, "fa-arrow-up"],
-    down_arrow: [false, "fa-arrow-down"],
-    controversiality: [true, "fa-smile"],
-    pinned: [false, "fa-thumbtack"],
-    bookmark: [true, "fa-bookmark"],
-    envelope: [true, "fa-envelope"],
-    envelope_open: [true, "fa-envelope-open"],
-    star: [true, "fa-star"],
-    join: [true, "fa-plus-square"],
-    heart: [true, "fa-heart"],
-    code: [false, "fa-code"],
-    link: [false, "fa-link"],
-    eye: [true, "fa-eye"],
-    reply: [false, "fa-reply"],
-};
-const class_from_icon_color: {[key in Generic.Color]: string} = {
-    'reddit-upvote': "text-$upvote-color",
-    'reddit-downvote': "text-$downvote-color",
-    'green': "text-green-600 dark:text-green-500",
-    'white': "text-gray-300 dark:text-black",
-    'yellow': "text-yellow-600 dark:text-yellow-300",
-    'pink': "text-pink-500 dark:text-pink-300",
-};
-
 type ActionItem = {
     icon: Generic.Icon,
     color: null | Generic.Color,
@@ -331,12 +293,12 @@ function getActions(post: Generic.PostContentPost, opts: ClientPostOpts): Action
 
 function DropdownActionButton(props: {action: ActionItem}): JSX.Element {
     return <DropdownButton icon={
-        <AutoIcon
+        <Icon
             icon={props.action.icon}
             label={props.action.text}
-            color={props.action.color}
+            bold={props.action.color != null}
         />
-    } class={props.action.color == null ? undefined : "font-bold " + class_from_icon_color[props.action.color]}>
+    } class={props.action.color == null ? undefined : "font-bold " + colorClass(props.action.color)}>
         {props.action.text}
     </DropdownButton>;
 }
@@ -344,12 +306,12 @@ function DropdownActionButton(props: {action: ActionItem}): JSX.Element {
 function HorizontalActionButton(props: {action: ActionItem}): JSX.Element {
     return <Button>
         <span class={
-            props.action.color == null ? undefined : "font-bold " + class_from_icon_color[props.action.color]
+            props.action.color == null ? undefined : "font-bold " + colorClass(props.action.color)
         }>
-            <AutoIcon
+            <Icon
                 icon={props.action.icon}
                 label={props.action.text}
-                color={props.action.color}
+                bold={props.action.color != null}
             />{" "}
             {props.action.text}
         </span>
@@ -465,14 +427,6 @@ function formatItemString({value}: InfoBarItem): [short: string, long: string] {
     assertNever(value[0]);
 }
 
-function AutoIcon(props: {icon: Generic.Icon, color: null | Generic.Color, label: null | string}): JSX.Element {
-    return <Icon
-        tag={tag_from_icon_kind[props.icon][1]}
-        filled={tag_from_icon_kind[props.icon][0] ? props.color != null : true}
-        label={props.label}
-    />;
-}
-
 function InfoBarItem(props: {item: InfoBarItem}): JSX.Element {
     // sizeLt.sm
     // for larger sizes we can do longer text
@@ -485,10 +439,10 @@ function InfoBarItem(props: {item: InfoBarItem}): JSX.Element {
     const lblv = () => props.item.text+(props.item.value[0] === "none" ? "" : ":");
 
     return <span
-        class={props.item.color != null ? class_from_icon_color[props.item.color] : ""}
+        class={colorClass(props.item.color)}
         title={lblv() + fmt()[1]}
     >
-        <AutoIcon icon={props.item.icon} color={props.item.color} label={lblv()} />
+        <Icon icon={props.item.icon} bold={props.item.color != null} label={lblv()} />
         {fmt()[0]}
     </span>;
 }
