@@ -1,4 +1,3 @@
-import "@fortawesome/fontawesome-free/css/all.css";
 import { createEffect, createSignal, JSX, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ShowBool } from "tmeta-util-solid";
