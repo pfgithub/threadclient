@@ -6,6 +6,8 @@ import {
     CounterState, fetchClient, getPointsText, link_styles_v,
     WatchableCounterState, watchCounterState,
 } from "../app";
+import { colorClass } from "./color";
+import Icon from "./Icon";
 
 export function getCounterState(
     counter: Accessor<Generic.CounterAction>,
@@ -118,43 +120,50 @@ export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
     </span>;
 }
 
-export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JSX.Element {
+export function VerticalIconButton(props: {
+    counter: Generic.CounterAction,
+    mode: "increment" | "decrement",
+}): JSX.Element {
     const [state, setState] = getCounterState(() => props.counter);
 
+    const pressed = () => state().your_vote === props.mode;
+
+    return <button
+        style={{
+            'font-size': "15px",
+            'width': "15px",
+            'height': "15px",
+        }}
+        class={
+            colorClass(pressed() ? props.counter[props.mode]!.color : null)
+        }
+        disabled={state().loading}
+        aria-pressed={pressed()}
+        onclick={() => {
+            void actAuto(
+                pressed() ? undefined : props.mode,
+                state(),
+                setState,
+                props.counter,
+            );
+        }}
+    >
+        <Icon
+            icon={pressed()
+            ? props.counter[props.mode]!.icon
+            : props.counter.neutral_icon
+            ?? props.counter[props.mode]!.icon}
+            label={props.counter[props.mode]![pressed() ? "undo_label" : "label"]}
+            bold={pressed()}
+        />
+    </button>;
+}
+
+export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JSX.Element {
     return <div class={"flex flex-col items-center gap-2px"}>
-        <button
-            class="reddit-vote-button reddit-upvote-button"
-            classList={{"vote-icon-voted": state().your_vote === "increment"}}
-            disabled={state().loading}
-            aria-label="Vote Up"
-            aria-pressed={state().your_vote === "increment"}
-            onclick={() => {
-                void actAuto(
-                    state().your_vote === "increment" ? undefined : "increment",
-                    state(),
-                    setState,
-                    props.counter,
-                );
-            }}
-        >
-            <span>⯅ Vote</span>
-        </button>
-        <ShowBool when={props.counter.decrement != null}><button
-            class="reddit-vote-button reddit-downvote-button"
-            classList={{"vote-icon-voted": state().your_vote === "decrement"}}
-            disabled={state().loading}
-            aria-label="Vote Down"
-            aria-pressed={state().your_vote === "decrement"}
-            onclick={() => {
-                void actAuto(
-                    state().your_vote === "decrement" ? undefined : "decrement",
-                    state(),
-                    setState,
-                    props.counter,
-                );
-            }}
-        >
-            <span>⯆</span>
-        </button></ShowBool>
+        <VerticalIconButton counter={props.counter} mode="increment" />
+        <ShowBool when={props.counter.decrement != null}>
+            <VerticalIconButton counter={props.counter} mode="decrement" />
+        </ShowBool>
     </div>;
 }
