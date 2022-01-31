@@ -87,39 +87,6 @@ export async function actAuto(
     }
 }
 
-export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
-    const [state, setState] = getCounterState(() => props.counter);
-
-    return <span>
-        <button
-            disabled={state().loading}
-            class={link_styles_v[state().your_vote === "increment" ? "action-button-active" : "action-button"]}
-            onclick={() => {
-                void actAuto(
-                    state().your_vote === "increment" ? undefined : "increment",
-                    state(),
-                    setState,
-                    props.counter,
-                );
-            }}
-        >⯅ <CounterCount counter={props.counter} /></button>
-        <ShowBool when={props.counter.decrement != null}>
-            <button
-                disabled={state().loading}
-                class={link_styles_v[state().your_vote === "decrement" ? "action-button-active" : "action-button"]}
-                onclick={() => {
-                    void actAuto(
-                        state().your_vote === "decrement" ? undefined : "decrement",
-                        state(),
-                        setState,
-                        props.counter,
-                    );
-                }}
-            >⯆</button>
-        </ShowBool>
-    </span>;
-}
-
 export function VerticalIconButton(props: {
     counter: Generic.CounterAction,
     mode: "increment" | "decrement",
