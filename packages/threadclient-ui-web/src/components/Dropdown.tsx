@@ -120,11 +120,12 @@ export default function Dropdown(props: {label: JSX.Element, children: JSX.Eleme
                     n.style.transformOrigin = "top right";
 
                     const setTransition = () => {
-                        n.style.transition = animationTime()+"s opacity, "
-                        +animationTime()+"s transform";
+                        const anim_time = animationTime() / 2;
+                        n.style.transition = anim_time+"s opacity, "
+                        +anim_time+"s transform";
                     };
                     const setHidden = () => {
-                        n.style.transform = "scale(0.5)";
+                        n.style.transform = "scale(0.95)";
                         n.style.opacity = "0";
                         setTransition();
                         n.style.transitionTimingFunction = "ease-in";
