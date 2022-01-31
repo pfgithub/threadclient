@@ -103,7 +103,7 @@ function DropdownMenu(): JSX.Element {
     // oh looks like I can switch back to tailwind from windi, they no longer are
     // incredibly slow
 
-    return <div>
+    return <div class="bg-gray-100 p-1 rounded-lg">
         <DropdownButton icon={<i aria-hidden class="fas fa-arrow-up" />}> Uplike</DropdownButton>
         <DropdownButton icon={<i aria-hidden class="fas fa-arrow-down" />}> Downlike</DropdownButton>
         <DropdownButton icon={<i aria-hidden class="far fa-bookmark" />}> Save</DropdownButton>

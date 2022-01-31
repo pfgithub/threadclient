@@ -709,7 +709,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     <HSplit.Child vertical="top">
                         <div class="pl-2" />
                         <Dropdown label={"…"}>
-                            <div>
+                            <div class="bg-gray-100 p-1 rounded-lg">
                                 <For each={getActions(props.content, props.opts)}>{action => <>
                                     <DropdownActionButton action={action} />
                                 </>}</For>
