@@ -101,7 +101,7 @@ export function Counter(props: {counter: Generic.CounterAction}): JSX.Element {
                 );
             }}
         >⯅ <CounterCount counter={props.counter} /></button>
-        <ShowBool when={props.counter.decremented_label != null}>
+        <ShowBool when={props.counter.decrement != null}>
             <button
                 disabled={state().loading}
                 class={link_styles_v[state().your_vote === "decrement" ? "action-button-active" : "action-button"]}
@@ -139,7 +139,7 @@ export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JS
         >
             <span>⯅ Vote</span>
         </button>
-        <ShowBool when={props.counter.decremented_label != null}><button
+        <ShowBool when={props.counter.decrement != null}><button
             class="reddit-vote-button reddit-downvote-button"
             classList={{"vote-icon-voted": state().your_vote === "decrement"}}
             disabled={state().loading}

@@ -713,8 +713,17 @@ export type Color =
     | "reddit-upvote"
     | "reddit-downvote"
     | "green"
+    | "yellow"
+    | "pink"
     | "white"
 ;
+
+type CounterButton = {
+    icon: Icon,
+    color: Color,
+    label: string,
+    undo_label: string,
+};
 
 // a counter or a button with 2-3 states
 export type CounterAction = {
@@ -722,17 +731,10 @@ export type CounterAction = {
     client_id: string,
 
     unique_id: string | null, // identifier that refers to this counter, unique per-client
-    time: number, // when this was found. TODO: remove this
 
-    neutral_icon: Icon,
-    increment_icon?: undefined | Icon,
-    decrement_icon?: undefined | Icon,
-    increment_color?: undefined | Color,
-    decrement_color?: undefined | Color,
-
-    label: ActionLabel,
-    incremented_label: ActionLabel,
-    decremented_label?: undefined | ActionLabel,
+    neutral_icon?: undefined | Icon,
+    increment: CounterButton,
+    decrement: null | CounterButton,
 
     count_excl_you: number | "hidden" | "none",
     you: "increment" | "decrement" | undefined,
@@ -746,6 +748,7 @@ export type CounterAction = {
     percent?: undefined | number,
 
     // TODO: remove these:
+    time: number, // when this was found. TODO: remove this
     special?: undefined | "reddit-points",
     style?: undefined | ButtonStyle,
     incremented_style?: undefined | ButtonStyle,

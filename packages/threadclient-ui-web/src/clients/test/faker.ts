@@ -175,24 +175,48 @@ function generatePost(id: string): Generic.PostContent {
 }
 
 function generatePoints(id: string, controversiality: boolean): Generic.CounterAction {
+    const count_excl_you = Math.floor(10 ** faker.datatype.float({max: 6})) - 50;
+
+    const arrayv: [
+        text: string,
+        text2: string,
+        color: Generic.Color,
+        icon: Generic.Icon,
+        decrement?: undefined | [
+            text: string, text2: string, color: Generic.Color, icon: Generic.Icon,
+        ],
+    ][] = [
+        ["Favourite", "Undo Favourite", "yellow", "star"],
+        ["Like", "Undo Like", "pink", "heart"],
+        ["Upvote", "Undo Upvote", "reddit-upvote", "up_arrow", [
+            "Downvote", "Undo Downvote", "reddit-downvote", "down_arrow",
+        ]]
+    ];
+    const [label, undo_label, color, icon, decrement] = faker.random.arrayElement(arrayv);
+
     return {
         kind: "counter",
         client_id: "test",
         unique_id: "vote_"+id,
         time: Date.now(),
         
-        neutral_icon: "up_arrow",
-        decrement_icon: "down_arrow",
-        increment_color: "reddit-upvote",
-        decrement_color: "reddit-downvote",
+        increment: {
+            icon,
+            color,
+            label,
+            undo_label,
+        },
+        decrement: decrement ? {
+            icon: decrement[3],
+            color: decrement[2],
+            label: decrement[0],
+            undo_label: decrement[1],
+        } : null,
 
-        label: "Vote",
-        incremented_label: "Voted",
-        decremented_label: "Voted",
-        count_excl_you: Math.floor(10 ** faker.datatype.float({max: 6})) - 50,
+        count_excl_you: count_excl_you,
         // technically this should say "≤0" if the count is 0
         // we should fix that
-        you: faker.random.arrayElement([undefined, "increment", "decrement"]),
+        you: faker.random.arrayElement([undefined, "increment", decrement ? "decrement" : undefined]),
         actions: {error: "no"},
         percent: controversiality ? faker.datatype.float({max: 1}) : undefined,
     };
@@ -220,9 +244,22 @@ function generateComment(id: string): Generic.PostContent {
     };
 }
 
-function postKind(id: string): "post" | "comment" {
-    if(id.split("/").length > 3) return "comment";
-    return "post";
+function generateTodo(id: string): Generic.PostContent {
+    return {
+        kind: "post",
+        title: {text: "TODO"},
+        body: {kind: "none"},
+        
+        show_replies_when_below_pivot: false,
+        collapsible: {default_collapsed: true},
+    }
+}
+
+function postKind(id: string): "todo" | "post" | "comment" {
+    const splitlen = id.split("/").length - 1;
+    if(splitlen < 3) return "todo";
+    if(splitlen === 3) return "post";
+    return "comment";
 }
 
 function generateContent(id: string): Generic.PostContent {
@@ -231,6 +268,8 @@ function generateContent(id: string): Generic.PostContent {
         return generatePost(id);
     }else if(kind === "comment") {
         return generateComment(id);
+    }else if(kind === "todo") {
+        return generateTodo(id);
     }else{
         assertNever(kind);
     }

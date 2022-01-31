@@ -229,6 +229,8 @@ const class_from_icon_color: {[key in Generic.Color]: string} = {
     'reddit-downvote': "text-$downvote-color",
     'green': "text-green-600 dark:text-green-500",
     'white': "text-gray-300 dark:text-black",
+    'yellow': "text-yellow-600 dark:text-yellow-300",
+    'pink': "text-pink-500 dark:text-pink-300",
 };
 
 type ActionItem = {
@@ -250,18 +252,20 @@ function getActionsFromAction(action: Generic.Action, opts: ClientPostOpts): Act
         const your_vote = state.your_vote;
 
         actions.push({
-            icon: action.increment_icon ?? action.neutral_icon,
+            icon: action.increment.icon,
             color: your_vote === "increment" ?
-            action.increment_color ?? "white" : null,
-            text: your_vote === "increment" ? "Undo Upvote" : "Upvote",
+            action.increment.color : null,
+            text: your_vote === "increment" ?
+            action.increment.undo_label : action.increment.label,
             onClick: "TODO",
         });
-        if(action.decremented_label != null) {
+        if(action.decrement) {
             actions.push({
-                icon: action.decrement_icon ?? action.neutral_icon,
+                icon: action.decrement.icon,
                 color: your_vote === "decrement" ?
-                    action.decrement_color ?? "white" : null,
-                text: your_vote === "decrement" ? "Undo Downvote" : "Downvote",
+                action.decrement.color : null,
+                text: your_vote === "decrement" ?
+                action.decrement.undo_label : action.decrement.label,
                 onClick: "TODO",
             });
         }
@@ -380,14 +384,14 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
             ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
             : ["number", pt_count],
             icon: ({
-                none: voteact.neutral_icon,
-                increment: voteact.increment_icon ?? voteact.neutral_icon,
-                decrement: voteact.decrement_icon ?? voteact.neutral_icon,
+                none: voteact.neutral_icon ?? voteact.increment.icon,
+                increment: voteact.increment.icon,
+                decrement: voteact.decrement?.icon ?? voteact.increment.icon,
             } as const)[state.your_vote ?? "none"],
             color: ({
                 none: null,
-                increment: voteact.increment_color ?? "white",
-                decrement: voteact.decrement_color ?? "white",
+                increment: voteact.increment.color,
+                decrement: voteact.decrement?.color ?? voteact.increment.color,
             } as const)[state.your_vote ?? "none"],
             text: "Points",
         });

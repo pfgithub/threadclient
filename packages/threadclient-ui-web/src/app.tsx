@@ -1312,9 +1312,9 @@ function renderCounterAction(
     onupdate(() => {
         const {text: pt_text, raw: pt_raw} = getPointsText(state);
         btxt.nodeValue = {
-            increment: action.incremented_label, 
-            decrement: action.decremented_label ?? "ERR",
-            none: action.label
+            increment: action.increment.undo_label, 
+            decrement: action.decrement?.undo_label ?? "ERR",
+            none: action.increment.label
         }[state.your_vote ?? "none"];
         votecount_txt.nodeValue = opts.parens ? "(" + pt_text + ")" : pt_text;
         if(!display_count) votecount_txt.nodeValue = ""; // hmm
@@ -1371,7 +1371,7 @@ function renderCounterAction(
         });
     };
 
-    if(action.decremented_label != null) {
+    if(action.decrement != null) {
         pretxt.nodeValue = "⯅ ";
         wrapper.atxt(" ");
         decr_button = elButton("action-button").adch(

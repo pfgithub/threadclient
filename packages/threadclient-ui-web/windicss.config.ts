@@ -43,6 +43,8 @@ export default defineConfig({
             'cyan': colors.cyan,
             'light-blue': colors.lightBlue,
             'orange': colors.orange,
+            'yellow': colors.yellow,
+            'pink': colors.pink,
             'flair-light': "var(--flair-color)",
             'flair-dark': "var(--flair-color-dark)",
             'body': "var(--body-color)",

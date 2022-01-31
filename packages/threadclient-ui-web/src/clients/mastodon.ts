@@ -442,12 +442,19 @@ function postToThreadCanError(
             {kind: "link", client_id: client.id, url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")},
             {kind: "link", client_id: client.id, url: post.uri, text: "Permalink"},
             {kind: "counter",
-                label: "Favourite",
                 client_id: client.id,
-                incremented_label: "Favourited",
                 unique_id: host+"/favourite/"+post.id+"/",
                 neutral_icon: "star",
                 time: Date.now(),
+
+                increment: {
+                    icon: "star",
+                    color: "yellow",
+                    label: "Favourite",
+                    undo_label: "Unfavourite",
+                    // done_label: "Favourited"
+                },
+                decrement: null,
 
                 count_excl_you: post.favourites_count + (post.favourited ? -1 : 0),
                 you: post.favourited ? "increment" : undefined,
@@ -895,8 +902,13 @@ export const client: ThreadClient = {
                     unique_id: "/follow/"+account_info.id+"/",
                     time: Date.now(),
                     neutral_icon: "join",
-                    label: account_info.locked ? "Request Follow" : "Follow",
-                    incremented_label: "Following",
+                    increment: {
+                        icon: "join",
+                        color: "white",
+                        label: account_info.locked ? "Request Follow" : "Follow",
+                        undo_label: "Following",
+                    },
+                    decrement: null,
                     count_excl_you: account_info.followers_count === -1
                         ? "hidden"
                         : account_info.followers_count + (relation?.following ?? false ? -1 : 0)

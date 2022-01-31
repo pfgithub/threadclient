@@ -539,13 +539,17 @@ function createSubscribeAction(subreddit: string, subscribers: number, you_subbe
         kind: "counter",
         client_id: client.id,
 
-        neutral_icon: "join",
+        increment: {
+            icon: "join",
+            color: "white",
+            label: "Subscribe",
+            undo_label: "Unsubscribe",
+            // done_label: "Subscribed"
+        },
+        decrement: null,
 
         unique_id: "/subscribe/"+subreddit+"/",
         time: Date.now(),
-
-        label: "Subscribe",
-        incremented_label: "Subscribed",
 
         style: "pill-filled",
         incremented_style: "pill-empty",
@@ -2056,17 +2060,23 @@ export function getPointsOn(listing: {
 
         unique_id: "/vote/"+listing.name+"/",
         time: Date.now(),
-    
-        neutral_icon: "up_arrow",
-        decrement_icon: "down_arrow",
-        increment_color: "reddit-upvote",
-        decrement_color: "reddit-downvote",
+
+        increment: {
+            icon: "up_arrow",
+            color: "reddit-upvote",
+            label: "Upvote",
+            undo_label: "Undo Upvote",
+            // done_label: "Upvoted"
+        },
+        decrement: {
+            icon: "down_arrow",
+            color: "reddit-downvote",
+            label: "Downvote",
+            undo_label: "Undo Downvote",
+            // done_label: "Downvoted"
+        },
 
         special: "reddit-points",
-
-        label: "Vote",
-        incremented_label: "Voted",
-        decremented_label: "Voted",
 
         count_excl_you: (listing.score_hidden ?? listing.hide_score ?? false) && listing.score === 1
             ? "hidden"
@@ -2113,15 +2123,21 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
                     client_id: client.id,
 
                     neutral_icon: "envelope_open",
-                    increment_icon: "envelope",
-                    increment_color: "white",
+
+                    increment: {
+                        icon: "envelope",
+                        color: "white",
+                        label: "Mark Unread",
+                        undo_label: "🠶 New",
+                        // undo_label: "Mark Read"
+                        // done_label: "🠶 New"
+                    },
+                    decrement: null,
 
                     count_excl_you: "none",
                     you: msg.new ? "increment" : undefined,
                     unique_id: "/unread/"+msg.name+"/",
                     time: Date.now(),
-                    label: "Mark Unread",
-                    incremented_label: "🠶 New",
                     actions: {
                         increment: act_encoder.encode({kind: "mark_read", direction: "un", fullname: msg.name}),
                         reset: act_encoder.encode({kind: "mark_read", direction: "", fullname: msg.name}),
@@ -2301,14 +2317,16 @@ export function saveButton(fullname: string, saved: boolean): Generic.Action {
         kind: "counter",
         client_id: client.id,
 
-        neutral_icon: "bookmark",
-        increment_color: "green",
+        increment: {
+            icon: "bookmark",
+            color: "green",
+            label: "Save",
+            undo_label: "Unsave",
+        },
+        decrement: null,
 
         unique_id: `/save/${fullname}/`,
         time: Date.now(),
-        
-        label: "Save",
-        incremented_label: "Unsave",
 
         count_excl_you: "none",
         you: saved ? "increment" : undefined,
@@ -2967,13 +2985,17 @@ function generateUserSidebar(
             kind: "counter",
             client_id: client.id,
 
-            neutral_icon: "join",
+            increment: {
+                icon: "join",
+                color: "white",
+                label: "Follow",
+                undo_label: "Unfollow",
+                // _label: "Following"
+            },
+            decrement: null,
 
             unique_id: "/follow/"+user.data.name+"/",
             time: Date.now(),
-
-            label: "Follow",
-            incremented_label: "Following",
 
             style: "pill-filled",
             incremented_style: "pill-empty",
@@ -3452,19 +3474,25 @@ export const client: ThreadClient = {
                 kind: "counter",
                 client_id: client.id,
                 
-                neutral_icon: "up_arrow",
-                decrement_icon: "down_arrow",
-                increment_color: "reddit-upvote",
-                decrement_color: "reddit-downvote",
+                increment: {
+                    icon: "up_arrow",
+                    color: "reddit-upvote",
+                    label: "Upvote",
+                    undo_label: "Undo Upvote",
+                    // done_label: "Upvoted"
+                },
+                decrement: {
+                    icon: "down_arrow",
+                    color: "reddit-downvote",
+                    label: "Downvote",
+                    undo_label: "Undo Downvote",
+                    // done_label: "Downvoted"
+                },
 
                 special: "reddit-points",
 
                 unique_id: null,
                 time: Date.now(),
-
-                label: "Vote",
-                incremented_label: "Voted",
-                decremented_label: "Voted",
 
                 count_excl_you: 0,
                 you: "increment",

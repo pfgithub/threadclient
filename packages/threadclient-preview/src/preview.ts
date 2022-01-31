@@ -258,8 +258,13 @@ export async function gfyLike2(
 
                     special: undefined,
 
-                    label: "likes",
-                    incremented_label: "likes",
+                    increment: {
+                        icon: "heart",
+                        color: "pink",
+                        label: "Like",
+                        undo_label: "Unlike",
+                    },
+                    decrement: null,
 
                     count_excl_you: gif.likes,
                     you: undefined,
