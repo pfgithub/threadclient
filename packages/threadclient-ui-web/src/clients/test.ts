@@ -918,5 +918,9 @@ export const client: ThreadClient = {
 
     async loader(action) {
         return (await import("./test/faker")).loadMore2(action);
-    }
+    },
+
+    async act(action) {
+        return await (await import("./test/faker")).act(action);
+    },
 };

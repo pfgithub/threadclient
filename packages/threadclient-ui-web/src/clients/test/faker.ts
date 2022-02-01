@@ -217,7 +217,11 @@ function generatePoints(id: string, controversiality: boolean): Generic.CounterA
         // technically this should say "≤0" if the count is 0
         // we should fix that
         you: faker.random.arrayElement([undefined, "increment", decrement ? "decrement" : undefined]),
-        actions: {error: "no"},
+        actions: {
+            increment: action_encoder.encode({kind: "void"}),
+            decrement: action_encoder.encode({kind: "void"}),
+            reset: action_encoder.encode({kind: "void"}),
+        },
         percent: controversiality ? faker.datatype.float({max: 1}) : undefined,
     };
 }
@@ -326,6 +330,14 @@ export function loadMore2(loader_enc: Generic.Opaque<"loader">): Generic.LoaderR
     }else assertNever(loader);
 }
 
+export async function act(act_enc: Generic.Opaque<"act">): Promise<void> {
+    const action = action_encoder.decode(act_enc);
+    () => action;
+    await new Promise(r => setTimeout(r, 200));
+    if(Math.random() < 0.1) throw new Error("Action failed");
+    return;
+}
+
 export type LoaderData = {
     kind: "horizontal",
     items: Generic.Link<Generic.Post>[],
@@ -333,6 +345,11 @@ export type LoaderData = {
     kind: "other",
 };
 export const load_encoder = encoderGenerator<LoaderData, "loader">("loader");
+
+export type ActData = {
+    kind: "void",
+};
+export const action_encoder = encoderGenerator<ActData, "act">("act");
 
 function generateHorizontalLoader(
     content: Generic.Page2Content,
