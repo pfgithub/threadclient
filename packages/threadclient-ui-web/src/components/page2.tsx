@@ -1,21 +1,21 @@
 import type * as Generic from "api-types-generic";
 import {
-    Accessor, createMemo, createReaction, createSignal,
-    For, JSX, onCleanup, Setter, untrack,
+    Accessor, createMemo, createSignal,
+    For, JSX, onCleanup, Setter, untrack
 } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
 import { assertNever } from "tmeta-util";
 import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util-solid";
 import { clientContent, clientListing, getClientCached, link_styles_v } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getPageRootContext,
-    getSettings, HideshowProvider, size_lt, ToggleColor,
+    getSettings, HideshowProvider, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { colorClass } from "./color";
 import { CounterCount, getCounterState, VerticalIconCounter } from "./counter";
+import { createMergeMemo } from "./createMergeMemo";
 import Dropdown from "./Dropdown";
 import DropdownButton from "./DropdownButton";
 import { flatten } from "./flatten";
@@ -832,29 +832,6 @@ function getRainbow(n: number): string {
     // this should be @mod not @rem
     // doesn't matter though, n should never be less than 0
     return rainbow[n % rainbow.length]!;
-}
-
-function createMergeMemo<T>(getValue: () => T, opts: {key: string | null}): {data: T} {
-    const [value, setValue] = createStore<{data: T | null}>({data: null});
-
-    const track = createReaction(() => {
-        track(() => setValue(reconcile<{data: T}>({data: getValue()}, {
-            merge: true,
-            key: opts.key,
-        })));
-    });
-    
-    track(() => {
-        setValue(reconcile<{data: T}>({data: getValue()}));
-    });
-
-    // using createReaction/track in order to make sure the effect is guarenteed
-    // to happen before the function returns.
-
-    // with createEffect, the effect will be run for the first time after component
-    // mount, which we don't want.
-
-    return value as {data: T};
 }
 
 export type ClientPageProps = {

@@ -1,12 +1,10 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import {
-    createEffect, createSignal, JSX
-} from "solid-js";
-import { createStore, reconcile, SetStoreFunction } from "solid-js/store";
+import { createSignal, JSX } from "solid-js";
 import { ShowCond } from "tmeta-util-solid";
 import { getClientCached, link_styles_v } from "../app";
 import { localStorageSignal } from "../util/utils_solid";
+import { createMergeMemo } from "./createMergeMemo";
 import { ClientContent, TopLevelWrapper } from "./page2";
 
 type StoreTypeValue = {value: null | Generic.PostContent};
@@ -22,19 +20,10 @@ export function ReplyEditor(props: {
     const [isSending, setSending] = createSignal(false);
     const [sendError, setSendError] = createSignal<string | undefined>(undefined);
 
-    const [diffable, setDiffable] = createStore<StoreTypeValue>({value: null}) as [
-        StoreTypeValue, // I'm not using readonly types in my code because they're annoyinh
-        SetStoreFunction<StoreTypeValue>,
-    ];
-    createEffect(() => {
+    const diffable = createMergeMemo((): Generic.PostContent => {
         const client = getClientCached(props.action.client_id);
-        const resv: Generic.PostContent = client!.previewReply!(content(), props.action.reply_info);
-        setDiffable(reconcile<StoreTypeValue>({value: resv}, {merge: true}));
-        // this does well but unfortunately it doesn't know what to use as keys for lists and it can't really know
-        // because it's text → (opaque parser) → richtext
-        // there's no way to set a custom key function so idk how to do a heuristic for this. a heuristic would be
-        // matching links or stateful components idk
-    });
+        return client!.previewReply!(content(), props.action.reply_info);
+    }, {key: null});
 
     return <div>
         <textarea disabled={isSending()} class="border my-3 w-full resize-y" value={content()} onInput={(e) => {
@@ -97,7 +86,7 @@ export function ReplyEditor(props: {
             <pre class="error"><code>There was an error! {errv}</code></pre>
             <button onclick={() => setSendError(undefined)}>Hide error</button>
         </>}</ShowCond>
-        <ShowCond if={[!empty()]} when={diffable.value}>{value => {
+        <ShowCond if={[!empty()]} when={diffable.data}>{value => {
             console.log("Value changed", value);
             return <TopLevelWrapper restrict_w>
                 <ClientContent listing={value} opts={{
