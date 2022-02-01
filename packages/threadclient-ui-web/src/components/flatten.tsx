@@ -80,8 +80,6 @@ const fi = {
     err: (note: string, data: unknown): FlatItem => ({kind: "error", note, data}),
 };
 
-type CollapseStates = Map<Generic.Link<Generic.Post>, boolean>;
-
 type RenderPostOpts = {
     first_in_wrapper: boolean,
     is_pivot: boolean,

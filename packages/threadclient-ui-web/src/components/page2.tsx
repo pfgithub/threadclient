@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import {
     Accessor, createMemo, createSignal,
-    For, JSX, onCleanup, Setter, untrack
+    For, JSX, onCleanup, Setter
 } from "solid-js";
 import { assertNever } from "tmeta-util";
 import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util-solid";
@@ -18,7 +18,7 @@ import { CounterCount, getCounterState, VerticalIconCounter } from "./counter";
 import { createMergeMemo } from "./createMergeMemo";
 import Dropdown from "./Dropdown";
 import DropdownButton from "./DropdownButton";
-import { CollapseData, CollapseEntry, flatten, getCState } from "./flatten";
+import { CollapseData, flatten, getCState } from "./flatten";
 import Icon from "./Icon";
 import { A, LinkButton, UserLink } from "./links";
 
@@ -511,8 +511,9 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     props.opts.collapse_data && props.opts.id) ?
     ((): [Accessor<boolean>, Setter<boolean>] => {
         if(props.opts.is_pivot) return createSignal(true);
-        const cs = getCState(props.opts.collapse_data!, props.opts.id!);
+        const cs = getCState(props.opts.collapse_data, props.opts.id);
         const setter: Setter<boolean> = (nv) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return !cs.setCollapsed((pv): boolean => {
                 return !(typeof nv === "boolean" ? nv : nv(!pv));
             }) as any; // jkjckdnacjkdsnajkldkl
