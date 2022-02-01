@@ -583,6 +583,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
             setSelfVisible(state || rising);
         })}
         class={classes(
+            // note: can even consider <sm:text-xs
+            // we'll probably want a font size config in the settings
             props.opts.is_pivot ? [
                 "text-base m-2",
             ] : "text-sm",
