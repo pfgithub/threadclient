@@ -488,7 +488,7 @@ html {
     height: 100%;
     border-radius: 3px;
 }
-.collapse-btn:hover .collapse-btn-inner {
+.collapse-btn:hover .collapse-btn-inner, .collapse-btn-hover .collapse-btn-inner {
     background: var(--collapse-line-color-hover);
 }
 .comment-collapsed > .collapse-btn > .collapse-btn-inner, .collapse-btn.collapsed > .collapse-btn-inner {

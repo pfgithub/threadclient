@@ -86,7 +86,7 @@ export function LinkButton(props: {
 }): JSX.Element {
     return <A
         client_id={props.client_id}
-        class={link_styles_v[props.style]}
+        class={link_styles_v[props.style]+" outline-default"}
         href={props.href}
         onClick={props.onClick}
     >{props.children}</A>;

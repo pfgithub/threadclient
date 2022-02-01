@@ -1,6 +1,5 @@
 import type * as Generic from "api-types-generic";
-import { createMemo, createSignal, For, JSX } from "solid-js";
-import { flatten } from "./flatten";
+import { Accessor, createMemo, createSignal, For, JSX, onCleanup, Setter, untrack } from "solid-js";
 import { assertNever } from "tmeta-util";
 import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util-solid";
 import { clientContent, clientListing, getClientCached, link_styles_v } from "../app";
@@ -10,12 +9,13 @@ import {
 } from "../util/utils_solid";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
+import { colorClass } from "./color";
 import { CounterCount, getCounterState, VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import DropdownButton from "./DropdownButton";
-import { A, LinkButton, UserLink } from "./links";
+import { flatten } from "./flatten";
 import Icon from "./Icon";
-import { colorClass } from "./color";
+import { A, LinkButton, UserLink } from "./links";
 
 export type ClientPostOpts = {
     clickable: boolean,
@@ -119,15 +119,54 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
     }}</SwitchKind>;
 }
 
+function getCState(cst: CollapseData, id: Generic.Link<Generic.Post>): CollapseEntry {
+    return untrack((): CollapseEntry => {
+        const csv = cst.map.get(id);
+        if(csv == null) {
+            const [value, setValue] = createSignal<CollapseValue>({
+                hovering: 0,
+                collapsed: false,
+            });
+            const nv: CollapseEntry = {
+                value, setValue,
+            };
+            cst.map.set(id, nv);
+            return nv;
+        }
+        return csv;
+        // huh we should probably gc this once there are no watchers left
+        // not going to worry about that for now
+    });
+}
+
 // we're going to be disabling animations for a bit during this transition
 export function CollapseButton(props: {
     class?: undefined | string,
     collapsed_raw: boolean,
     collapsed_anim: boolean,
     onClick: () => void,
+    real: boolean,
+    cstates?: undefined | CollapseData,
+    id?: undefined | Generic.Link<Generic.Post>,
 }): JSX.Element {
+    let in_hovers = false;
+    onCleanup(() => {
+        if(!props.id || !props.cstates) return;
+        const cst = getCState(props.cstates, props.id);
+
+        if(in_hovers) cst.setValue(v => {
+            return {...v, hovering: v.hovering - 1};
+        });
+        in_hovers = false;
+    });
     return <button
-        class={"collapse-btn z-1 static outline-default "+props.class}
+        class={(
+            props.cstates && props.id ?
+            getCState(props.cstates, props.id).value().hovering > 0 ?
+            "collapse-btn-hover " :
+            "" :
+            ""
+        )+"collapse-btn z-1 static outline-default "+props.class}
         classList={{
             'collapsed': props.collapsed_anim,
         }}
@@ -135,6 +174,26 @@ export function CollapseButton(props: {
         onClick={() => props.onClick()}
         aria-label="Collapse"
         aria-pressed={props.collapsed_raw}
+        tabindex={props.real ? undefined : "-1"}
+        aria-hidden={props.real ? true : undefined}
+        onmouseover={() => {
+            if(!props.id || !props.cstates) return;
+            const cst = getCState(props.cstates, props.id);
+
+            if(!in_hovers) cst.setValue(v => {
+                return {...v, hovering: v.hovering + 1};
+            });
+            in_hovers = true;
+        }}
+        onmouseleave={() => {
+            if(!props.id || !props.cstates) return;
+            const cst = getCState(props.cstates, props.id);
+
+            if(in_hovers) cst.setValue(v => {
+                return {...v, hovering: v.hovering - 1};
+            });
+            in_hovers = false;
+        }}
     >
         <div class="collapse-btn-inner rounded-none"></div>
     </button>;
@@ -551,6 +610,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                     onClick={() => {
                         setTransitionTarget(t => !t);
                     }}
+                    real={true}
                 />
             </div>
         </ShowBool>
@@ -737,12 +797,32 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
     </div>;
 }
 
+type CollapseData = {
+    // map from a Link<Post> to an array of watchers and a current value
+    map: Map<Generic.Link<Generic.Post>, CollapseEntry>,
+};
+type CollapseEntry = {
+    value: Accessor<CollapseValue>,
+    setValue: Setter<CollapseValue>,
+};
+type CollapseValue = {
+    hovering: number,
+    collapsed: boolean,
+};
+
+// // eslint-disable-next-line @typescript-eslint/naming-convention
+// const CollapseContext = createContext<CollapseData>();
+
 export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
 };
 export default function ClientPage(props: ClientPageProps): JSX.Element {
     // [!] we'll want to fix this up and make it observable and stuff
     // now that page2 is ready to be properly observable, flatten should be too.
+
+    const collapse_data: CollapseData = {
+        map: new Map(),
+    };
 
     const [loadedData, setLoadedData] = createSignal(
         new Map<Generic.Link<Generic.Loader>, Generic.LoaderResult>(),
@@ -776,9 +856,16 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
             post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
                 <div class="flex flex-row">
                     <For each={loader_or_post.indent}>{indent => <>
-                        <CollapseButton collapsed_raw={false} collapsed_anim={false} onClick={() => {
-                            alert("todo!");
-                        }} />
+                        <CollapseButton
+                            collapsed_raw={false}
+                            collapsed_anim={false}
+                            onClick={() => {
+                                alert("todo!");
+                            }}
+                            real={false}
+                            cstates={collapse_data}
+                            id={indent.id}
+                        />
                     </>}</For>
                     <div class="flex-1"><ShowBool when={!loader_or_post.first_in_wrapper}>
                         <div class="pt-10px" />
