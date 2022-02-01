@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup, Suspense } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore, reconcile } from "solid-js/store";
 import { ShowCond, SwitchKind } from "tmeta-util-solid";
 import { switchKind } from "../../../tmeta-util/src/util";
 import {
@@ -395,7 +395,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
     let div!: HTMLDivElement;
 
     const boundfn = (index: number) => {
-        setState({kind: "overview", fullscreen_index: index});
+        setState(reconcile({kind: "overview", fullscreen_index: index}, {merge: true}));
         const boundi = div.querySelector(".img-"+index);
         if(!boundi) return {x: 0, y: 0, w: 0};
         const bound = getBound(boundi as HTMLImageElement);
@@ -468,14 +468,14 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                                 });
                                 destroyGallery = () => {
                                     visible_gallery.cleanup();
-                                    setState({kind: "overview", fullscreen_index: undefined});
+                                    setState(reconcile({kind: "overview", fullscreen_index: undefined}, {merge: true}));
                                 };
                             }).catch(e => {
                                 console.log("Error loading gallery component", e);
-                                setState({kind: "image", index: i()});
+                                setState(reconcile({kind: "image", index: i()}, {merge: true}));
                             });
                         }else{
-                            setState({kind: "image", index: i()});
+                            setState(reconcile({kind: "image", index: i()}, {merge: true}));
                         }
                     }}
                 >
@@ -493,18 +493,18 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
         image: sel => <>
             <button
                 class={link_styles_v["outlined-button"]}
-                onclick={() => setState({kind: "image", index: sel.index - 1})}
+                onclick={() => setState(reconcile({kind: "image", index: sel.index - 1}, {merge: true}))}
                 disabled={sel.index <= 0}
             >Prev</button>
             {sel.index + 1}/{props.images.length}
             <button
                 class={link_styles_v["outlined-button"]}
-                onclick={() => setState({kind: "image", index: sel.index + 1})}
+                onclick={() => setState(reconcile({kind: "image", index: sel.index + 1}, {merge: true}))}
                 disabled={sel.index >= props.images.length - 1}
             >Next</button>
             <button
                 class={link_styles_v["outlined-button"]}
-                onclick={() => setState({kind: "overview"})}
+                onclick={() => setState(reconcile({kind: "overview"}, {merge: true}))}
             >Gallery</button>
             <Body body={props.images[sel.index]!.body} autoplay={true} />
         </>,

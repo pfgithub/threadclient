@@ -1,5 +1,6 @@
 import type * as Generic from "api-types-generic";
-import { Accessor, createMemo, createSignal, For, JSX, onCleanup, Setter, untrack } from "solid-js";
+import { Accessor, createEffect, createMemo, createReaction, createSignal, For, JSX, onCleanup, Setter, untrack } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import { assertNever } from "tmeta-util";
 import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util-solid";
 import { clientContent, clientListing, getClientCached, link_styles_v } from "../app";
@@ -829,6 +830,29 @@ function getRainbow(n: number): string {
     return rainbow[n % rainbow.length]!;
 }
 
+function createMergeMemo<T>(getValue: () => T, opts: {key: string | null}): {data: T} {
+    const [value, setValue] = createStore<{data: T | null}>({data: null});
+
+    const track = createReaction(() => {
+        track(() => setValue(reconcile<{data: T}>({data: getValue()}, {
+            merge: true,
+            key: opts.key,
+        })));
+    });
+    
+    track(() => {
+        setValue(reconcile<{data: T}>({data: getValue()}));
+    });
+
+    // using createReaction/track in order to make sure the effect is guarenteed
+    // to happen before the function returns.
+
+    // with createEffect, the effect will be run for the first time after component
+    // mount, which we don't want.
+
+    return value as {data: T};
+}
+
 export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
 };
@@ -846,10 +870,15 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
     () => loadedData;
     () => setLoadedData;
 
-    const view = createMemo(() => flatten(props.pivot, {
-        collapse_states: new Map(),
-        content: getPageRootContext()(),
-    })); // TODO reconcile merge:true I think key:"key" but be careful
+    const view = createMergeMemo(() => {
+        console.log("Reloading data!");
+        return flatten(props.pivot, {
+            collapse_states: new Map(),
+            content: getPageRootContext()(),
+        });
+    }, {key: "id"});
+
+    // TODO reconcile merge:true I think key:"key" but be careful
     // TODO don't delete old items from dom just hide them
 
     // ok I want to delete all the routing code so I can do hmr
@@ -860,7 +889,7 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
     // life hack
 
     return <div class="m-4 <sm:mx-0">
-        <For each={view().body}>{item => <SwitchKind item={item}>{{
+        <For each={view.data.body}>{item => <SwitchKind item={item}>{{
             wrapper_start: () => <ToggleColor>{color => <div class={""
                 + " " + color
                 + " h-2 sm:rounded-xl mt-4"

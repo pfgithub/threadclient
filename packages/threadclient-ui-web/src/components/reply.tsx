@@ -3,7 +3,7 @@ import { rt } from "api-types-generic";
 import {
     createEffect, createSignal, JSX
 } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
+import { createStore, reconcile, SetStoreFunction } from "solid-js/store";
 import { ShowCond } from "tmeta-util-solid";
 import { getClientCached, link_styles_v } from "../app";
 import { localStorageSignal } from "../util/utils_solid";
@@ -22,7 +22,10 @@ export function ReplyEditor(props: {
     const [isSending, setSending] = createSignal(false);
     const [sendError, setSendError] = createSignal<string | undefined>(undefined);
 
-    const [diffable, setDiffable] = createStore<StoreTypeValue>({value: null});
+    const [diffable, setDiffable] = createStore<StoreTypeValue>({value: null}) as [
+        StoreTypeValue, // I'm not using readonly types in my code because they're annoyinh
+        SetStoreFunction<StoreTypeValue>,
+    ];
     createEffect(() => {
         const client = getClientCached(props.action.client_id);
         const resv: Generic.PostContent = client!.previewReply!(content(), props.action.reply_info);

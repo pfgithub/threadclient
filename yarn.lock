@@ -2816,7 +2816,7 @@ __metadata:
     perfect-freehand: ^0.5.2
     polygon-clipping: ^0.15.3
     simplify-geojson: ^1.0.4
-    solid-js: ^1.1.1
+    solid-js: ^1.3.5
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
     typescript: ^4.3.5
@@ -10858,10 +10858,17 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"solid-js@npm:^1.0.3, solid-js@npm:^1.1.1":
+"solid-js@npm:^1.0.3":
   version: 1.1.1
   resolution: "solid-js@npm:1.1.1"
   checksum: 464e46b269067df8e7426306250a97cc6b709e5d4265f770463cf4a8fe37c2c2902f78786173f47060917b19f9ba08facd5bce5cfddf540b9506e8bcdebe37a5
+  languageName: node
+  linkType: hard
+
+"solid-js@npm:^1.3.5":
+  version: 1.3.5
+  resolution: "solid-js@npm:1.3.5"
+  checksum: 36ba77ae4db015052b3cff2c2505233c1d0a753f9abe0d64e8045e084d5cf9581139f6f94ae688b96c0213843656089f7e75176ca025341ddd504fb8675dcc5e
   languageName: node
   linkType: hard
 
@@ -11587,7 +11594,7 @@ fsevents@~2.3.2:
     jszip-cli: ^1.4.24
     kolorist: ^1.5.0
     npm-run-all: ^4.1.5
-    solid-js: ^1.1.1
+    solid-js: ^1.3.5
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
     typescript: ^4.3.5
@@ -11675,7 +11682,7 @@ fsevents@~2.3.2:
     refractor: ^4.2.0
     sass: ^1.38.1
     shaka-player: ^3.2.0
-    solid-js: ^1.1.1
+    solid-js: ^1.3.5
     threadclient-client-base: ^1.0.0
     threadclient-client-hackernews: ^1.0.0
     threadclient-preview: ^1.0.0
@@ -11731,7 +11738,7 @@ fsevents@~2.3.2:
   dependencies:
     eslint: ^7.29.0
     eslint-config-tmeta: ^1.0.0
-    solid-js: ^1.1.1
+    solid-js: ^1.3.5
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
     typescript: ^4.3.5

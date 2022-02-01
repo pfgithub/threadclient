@@ -11,7 +11,7 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "solid-js": "^1.1.1",
+    "solid-js": "^1.3.5",
     "tmeta-util": "^1.0.0"
   },
   "scripts": {
