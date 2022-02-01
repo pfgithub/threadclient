@@ -3,6 +3,7 @@
 // todo import Generic from "api-types-generic";
 // it's a trivial change just change the entrypoint and export.
 import * as Generic from "api-types-generic";
+import { Accessor, createSignal, Setter, untrack } from "solid-js";
 
 // indent: post id[]
 
@@ -97,10 +98,15 @@ function renderPost(
     if(post_read.error != null) return fi.err(post_read.error, post_link);
     const post = post_read.value;
 
-    const self_collapsed = meta.collapse_states.get(post_link) ?? (
+    const default_collapsed = (
         post.kind === "post" ? post.content.kind === "post" ? post.content.collapsible !== false ?
         post.content.collapsible.default_collapsed : false : false : false
     );
+    const self_collapsed = getCState(
+        meta.collapse_data,
+        post_link,
+        {default: default_collapsed},
+    ).collapsed();
 
     const final_indent: CollapseButton = {
         id: post_link,
@@ -153,8 +159,41 @@ function flattenPost(
     return res;
 }
 
+export type CollapseData = {
+    // map from a Link<Post> to an array of watchers and a current value
+    map: Map<Generic.Link<Generic.Post>, CollapseEntry>,
+};
+export type CollapseEntry = {
+    hovering: Accessor<number>,
+    setHovering: Setter<number>,
+    collapsed: Accessor<boolean>,
+    setCollapsed: Setter<boolean>,
+};
+
+export function getCState(cst: CollapseData, id: Generic.Link<Generic.Post>, opts?: {
+    default: boolean,
+} | undefined): CollapseEntry {
+    return untrack((): CollapseEntry => {
+        const csv = cst.map.get(id);
+        if(csv == null) {
+            if(!opts) throw new Error("accessing cstate before it has been created");
+            const [hovering, setHovering] = createSignal(0);
+            const [collapsed, setCollapsed] = createSignal(opts.default);
+            const nv: CollapseEntry = {
+                hovering, setHovering,
+                collapsed, setCollapsed,
+            };
+            cst.map.set(id, nv);
+            return nv;
+        }
+        return csv;
+        // huh we should probably gc this once there are no watchers left
+        // not going to worry about that for now
+    });
+}
+
 type Meta = {
-    collapse_states: CollapseStates,
+    collapse_data: CollapseData,
     content: Generic.Page2Content,
 };
 

@@ -18,7 +18,7 @@ import { CounterCount, getCounterState, VerticalIconCounter } from "./counter";
 import { createMergeMemo } from "./createMergeMemo";
 import Dropdown from "./Dropdown";
 import DropdownButton from "./DropdownButton";
-import { flatten } from "./flatten";
+import { CollapseData, CollapseEntry, flatten, getCState } from "./flatten";
 import Icon from "./Icon";
 import { A, LinkButton, UserLink } from "./links";
 
@@ -29,6 +29,8 @@ export type ClientPostOpts = {
     client_id: string,
     at_or_above_pivot: boolean,
     is_pivot: boolean,
+    collapse_data?: undefined | CollapseData,
+    id?: undefined | Generic.Link<Generic.Post>,
 };
 
 const decorative_alt = "";
@@ -124,26 +126,6 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
     }}</SwitchKind>;
 }
 
-function getCState(cst: CollapseData, id: Generic.Link<Generic.Post>): CollapseEntry {
-    return untrack((): CollapseEntry => {
-        const csv = cst.map.get(id);
-        if(csv == null) {
-            const [value, setValue] = createSignal<CollapseValue>({
-                hovering: 0,
-                collapsed: false,
-            });
-            const nv: CollapseEntry = {
-                value, setValue,
-            };
-            cst.map.set(id, nv);
-            return nv;
-        }
-        return csv;
-        // huh we should probably gc this once there are no watchers left
-        // not going to worry about that for now
-    });
-}
-
 // we're going to be disabling animations for a bit during this transition
 export function CollapseButton(props: {
     class?: undefined | string,
@@ -159,15 +141,13 @@ export function CollapseButton(props: {
         if(!props.id || !props.cstates) return;
         const cst = getCState(props.cstates, props.id);
 
-        if(in_hovers) cst.setValue(v => {
-            return {...v, hovering: v.hovering - 1};
-        });
+        if(in_hovers) cst.setHovering(v => v - 1);
         in_hovers = false;
     });
     return <button
         class={(
             props.cstates && props.id ?
-            getCState(props.cstates, props.id).value().hovering > 0 ?
+            getCState(props.cstates, props.id).hovering() > 0 ?
             "collapse-btn-hover " :
             "" :
             ""
@@ -185,18 +165,14 @@ export function CollapseButton(props: {
             if(!props.id || !props.cstates) return;
             const cst = getCState(props.cstates, props.id);
 
-            if(!in_hovers) cst.setValue(v => {
-                return {...v, hovering: v.hovering + 1};
-            });
+            if(!in_hovers) cst.setHovering(v => v + 1);
             in_hovers = true;
         }}
         onmouseleave={() => {
             if(!props.id || !props.cstates) return;
             const cst = getCState(props.cstates, props.id);
 
-            if(in_hovers) cst.setValue(v => {
-                return {...v, hovering: v.hovering - 1};
-            });
+            if(in_hovers) cst.setHovering(v => v - 1);
             in_hovers = false;
         }}
     >
@@ -456,6 +432,14 @@ function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
         });
     }
 
+    // if(getSettings().dev_mode ==)
+    // res.push({
+    //     icon: "code",
+    //     value: ["number", Date.now() % 999],
+    //     color: null,
+    //     text: "Random",
+    // })
+
     return res;
 }
 
@@ -521,15 +505,30 @@ function InfoBar(props: {post: Generic.PostContentPost}): JSX.Element {
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
 function ClientPost(props: ClientPostProps): JSX.Element {
-    const default_collapsed = props.content.collapsible !== false ? (
-        props.opts.is_pivot ? false :
-        props.content.collapsible.default_collapsed
-    ) : false;
-    const [selfVisible, setSelfVisible] = createSignal(
+    // wow this is sketchy because we're supporting posts that
+    // aren't rendered from <ClientPage />
+    const [transitionTarget, setTransitionTarget]: [Accessor<boolean>, Setter<boolean>] = (
+    props.opts.collapse_data && props.opts.id) ?
+    ((): [Accessor<boolean>, Setter<boolean>] => {
+        if(props.opts.is_pivot) return createSignal(true);
+        const cs = getCState(props.opts.collapse_data!, props.opts.id!);
+        const setter: Setter<boolean> = (nv) => {
+            return !cs.setCollapsed((pv): boolean => {
+                return !(typeof nv === "boolean" ? nv : nv(!pv));
+            }) as any; // jkjckdnacjkdsnajkldkl
+            // why is this setter type so messy aaaa
+        };
+        return [() => !cs.collapsed(), setter];
+    })() : createSignal(
         props.opts.is_pivot ? true :
-        default_collapsed ? false :
+        (props.content.collapsible !== false ? (
+            props.opts.is_pivot ? false :
+            props.content.collapsible.default_collapsed
+        ) : false) ? false :
         true,
     );
+    const [selfVisible, setSelfVisible] = createSignal(transitionTarget());
+
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
     );
@@ -542,7 +541,6 @@ function ClientPost(props: ClientPostProps): JSX.Element {
 
     const settings = getSettings();
 
-    const [transitionTarget, setTransitionTarget] = createSignal(selfVisible());
     const [animState, setAnimState] = createSignal<{visible: boolean, animating: boolean}>({
         visible: selfVisible(),
         animating: false,
@@ -711,7 +709,10 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         </ShowBool></HSplit.Child>
                         <HSplit.Child fullwidth><div class="mr-2">
                             <ShowBool when={!(selfVisible() || hasTitleOrThumbnail())}>
-                                <ShowBool when={default_collapsed} fallback={<>
+                                <ShowBool when={true
+                                    && props.content.collapsible !== false
+                                    && props.content.collapsible.default_collapsed === true
+                                } fallback={<>
                                     <div class="whitespace-normal max-lines max-lines-1">
                                         {"“" + (() => {
                                             const res = summarizeBody(props.content.body);
@@ -804,19 +805,6 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
     </div>;
 }
 
-type CollapseData = {
-    // map from a Link<Post> to an array of watchers and a current value
-    map: Map<Generic.Link<Generic.Post>, CollapseEntry>,
-};
-type CollapseEntry = {
-    value: Accessor<CollapseValue>,
-    setValue: Setter<CollapseValue>,
-};
-type CollapseValue = {
-    hovering: number,
-    collapsed: boolean,
-};
-
 // // eslint-disable-next-line @typescript-eslint/naming-convention
 // const CollapseContext = createContext<CollapseData>();
 
@@ -854,10 +842,10 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
     const view = createMergeMemo(() => {
         console.log("Reloading data!");
         return flatten(props.pivot, {
-            collapse_states: new Map(),
+            collapse_data,
             content: getPageRootContext()(),
         });
-    }, {key: "id"});
+    }, {key: "id", merge: false});
 
     // TODO reconcile merge:true I think key:"key" but be careful
     // TODO don't delete old items from dom just hide them
@@ -905,7 +893,8 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                 collapsed_raw={false}
                                 collapsed_anim={false}
                                 onClick={() => {
-                                    alert("todo!");
+                                    const cs = getCState(collapse_data, indent.id);
+                                    cs.setCollapsed(v => !v);
                                 }}
                                 real={false}
                                 cstates={collapse_data}
@@ -927,6 +916,8 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                     replies: post.replies,
                                     at_or_above_pivot: loader_or_post.at_or_above_pivot,
                                     is_pivot: loader_or_post.is_pivot,
+                                    collapse_data,
+                                    id: loader_or_post.id,
                                 }}
                             />
                         </>,

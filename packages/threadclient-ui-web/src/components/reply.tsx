@@ -23,7 +23,7 @@ export function ReplyEditor(props: {
     const diffable = createMergeMemo((): Generic.PostContent => {
         const client = getClientCached(props.action.client_id);
         return client!.previewReply!(content(), props.action.reply_info);
-    }, {key: null});
+    }, {key: null, merge: true});
 
     return <div>
         <textarea disabled={isSending()} class="border my-3 w-full resize-y" value={content()} onInput={(e) => {

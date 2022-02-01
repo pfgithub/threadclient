@@ -1,12 +1,12 @@
 import { createReaction } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 
-export function createMergeMemo<T>(getValue: () => T, opts: {key: string | null}): {data: T} {
+export function createMergeMemo<T>(getValue: () => T, opts: {key: string | null, merge: boolean}): {data: T} {
     const [value, setValue] = createStore<{data: T | null}>({data: null});
 
     const track = createReaction(() => {
         track(() => setValue(reconcile<{data: T}>({data: getValue()}, {
-            merge: true,
+            merge: opts.merge,
             key: opts.key,
         })));
     });
