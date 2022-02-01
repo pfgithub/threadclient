@@ -878,6 +878,7 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                 "w-1",
                                 "mr-2",
                                 "py-1",
+                                "pl-0.5",
                             )}
                         >
                             <div class={classes(
