@@ -320,7 +320,7 @@ export function loadMore2(loader_enc: Generic.Opaque<"loader">): Generic.LoaderR
 
     if(loader.kind === "horizontal") {
         const licopy = [...loader.items];
-        fillReplyArray(content, null, licopy, 20, 10);
+        fillReplyArray(content, licopy, 20, 10);
         return {
             content,
             top: licopy,
@@ -411,19 +411,19 @@ function fillReplies(
 
         return maximum;
     }
-    maximum = fillReplyArray(content, root_link, root.replies.items, maximum, depth);
+    maximum = fillReplyArray(content, root.replies.items, maximum, depth);
     return maximum;
 }
 
 function fillReplyArray(
     content: Generic.Page2Content,
-    root: null | Generic.Link<Generic.Post>,
     rpl_arr: Generic.Link<Generic.Post>[],
     maximum: number,
     depth: number,
 ): number {
     for(const [i, reply] of rpl_arr.entries()) {
         if(maximum <= 0) {
+            const root = getParent(reply);
             const items = rpl_arr.splice(i, rpl_arr.length - i);
             const loader = generateHorizontalLoader(content, items, root);
             rpl_arr.splice(i, 0, ...loader);
