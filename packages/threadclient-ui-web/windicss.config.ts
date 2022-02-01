@@ -44,6 +44,7 @@ export default defineConfig({
             'light-blue': colors.lightBlue,
             'orange': colors.orange,
             'yellow': colors.yellow,
+            'purple': colors.purple,
             'pink': colors.pink,
             'flair-light': "var(--flair-color)",
             'flair-dark': "var(--flair-color-dark)",

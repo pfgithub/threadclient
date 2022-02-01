@@ -5,7 +5,7 @@ import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util
 import { clientContent, clientListing, getClientCached, link_styles_v } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, DefaultErrorBoundary, getPageRootContext, getSettings, HideshowProvider, ToggleColor
+    classes, DefaultErrorBoundary, getPageRootContext, getSettings, HideshowProvider, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
@@ -596,7 +596,7 @@ function ClientPost(props: ClientPostProps): JSX.Element {
     >
         <ShowBool when={props.content.collapsible !== false && (
             props.content.thumbnail != null ? selfVisible() ? true : false : true
-        )}>
+        ) && !size_lt.sm()}>
             <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
                 <ShowCond when={props.content.actions?.vote}>{vote_action => (
                     <div class={selfVisible() || hasThumbnail() ? "" : " hidden"}>
@@ -813,6 +813,20 @@ type CollapseValue = {
 // // eslint-disable-next-line @typescript-eslint/naming-convention
 // const CollapseContext = createContext<CollapseData>();
 
+const rainbow = [
+    "border-red-500",
+    "border-orange-500",
+    "border-yellow-500",
+    "border-green-500",
+    "border-blue-500",
+    "border-purple-500",
+];
+function getRainbow(n: number): string {
+    // this should be @mod not @rem
+    // doesn't matter though, n should never be less than 0
+    return rainbow[n % rainbow.length]!;
+}
+
 export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
 };
@@ -855,18 +869,31 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
             } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
             post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
                 <div class="flex flex-row">
-                    <For each={loader_or_post.indent}>{indent => <>
-                        <CollapseButton
-                            collapsed_raw={false}
-                            collapsed_anim={false}
-                            onClick={() => {
-                                alert("todo!");
+                    <ShowBool when={!size_lt.sm()} fallback={(
+                        <ShowBool when={loader_or_post.indent.length > 0}><div
+                            style={{
+                                'margin-left': ((loader_or_post.indent.length - 3) * 0.25)+"rem",
                             }}
-                            real={false}
-                            cstates={collapse_data}
-                            id={indent.id}
-                        />
-                    </>}</For>
+                            class={classes(
+                                "border-l-0.25rem",
+                                getRainbow(loader_or_post.indent.length - 1),
+                                "mr-2",
+                            )}
+                        ></div></ShowBool>
+                    )}>
+                        <For each={loader_or_post.indent}>{indent => <>
+                            <CollapseButton
+                                collapsed_raw={false}
+                                collapsed_anim={false}
+                                onClick={() => {
+                                    alert("todo!");
+                                }}
+                                real={false}
+                                cstates={collapse_data}
+                                id={indent.id}
+                            />
+                        </>}</For>
+                    </ShowBool>
                     <div class="flex-1"><ShowBool when={!loader_or_post.first_in_wrapper}>
                         <div class="pt-10px" />
                     </ShowBool><SwitchKind item={loader_or_post.content}>{{
