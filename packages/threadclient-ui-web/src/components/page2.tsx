@@ -814,12 +814,12 @@ type CollapseValue = {
 // const CollapseContext = createContext<CollapseData>();
 
 const rainbow = [
-    "border-red-500",
-    "border-orange-500",
-    "border-yellow-500",
-    "border-green-500",
-    "border-blue-500",
-    "border-purple-500",
+    "bg-red-500",
+    "bg-orange-500",
+    "bg-yellow-500",
+    "bg-green-500",
+    "bg-blue-500",
+    "bg-purple-500",
 ];
 function getRainbow(n: number): string {
     // this should be @mod not @rem
@@ -875,11 +875,17 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                 'margin-left': ((loader_or_post.indent.length - 3) * 0.25)+"rem",
                             }}
                             class={classes(
-                                "border-l-0.25rem",
-                                getRainbow(loader_or_post.indent.length - 1),
+                                "w-1",
                                 "mr-2",
+                                "py-1",
                             )}
-                        ></div></ShowBool>
+                        >
+                            <div class={classes(
+                                "w-full h-full",
+                                getRainbow(loader_or_post.indent.length - 1),
+                                "rounded-md",
+                            )}></div>
+                        </div></ShowBool>
                     )}>
                         <For each={loader_or_post.indent}>{indent => <>
                             <CollapseButton
