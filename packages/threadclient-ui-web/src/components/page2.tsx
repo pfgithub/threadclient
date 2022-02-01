@@ -1,12 +1,16 @@
 import type * as Generic from "api-types-generic";
-import { Accessor, createEffect, createMemo, createReaction, createSignal, For, JSX, onCleanup, Setter, untrack } from "solid-js";
+import {
+    Accessor, createMemo, createReaction, createSignal,
+    For, JSX, onCleanup, Setter, untrack,
+} from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { assertNever } from "tmeta-util";
 import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util-solid";
 import { clientContent, clientListing, getClientCached, link_styles_v } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, DefaultErrorBoundary, getPageRootContext, getSettings, HideshowProvider, size_lt, ToggleColor
+    classes, DefaultErrorBoundary, getPageRootContext,
+    getSettings, HideshowProvider, size_lt, ToggleColor,
 } from "../util/utils_solid";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
