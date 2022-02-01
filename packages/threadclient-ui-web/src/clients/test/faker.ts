@@ -252,7 +252,7 @@ function generateTodo(id: string): Generic.PostContent {
         
         show_replies_when_below_pivot: false,
         collapsible: {default_collapsed: true},
-    }
+    };
 }
 
 function postKind(id: string): "todo" | "post" | "comment" {
