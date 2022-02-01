@@ -903,21 +903,24 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                             />
                         </>}</For>
                     </ShowBool>
-                    <div class="flex-1"><ShowBool when={!loader_or_post.first_in_wrapper}>
-                        <div class="pt-10px" />
-                    </ShowBool><SwitchKind item={loader_or_post.content}>{{
-                        post: post => <ClientContentAny
-                            content={post.content}
-                            opts={{
-                                clickable: false, // TODO
-                                frame: post,
-                                client_id: post.client_id,
-                                replies: post.replies,
-                                at_or_above_pivot: loader_or_post.at_or_above_pivot,
-                                is_pivot: loader_or_post.is_pivot,
-                            }}
-                        />,
-                        loader: loader => (
+                    <div class="flex-1"><SwitchKind item={loader_or_post.content}>{{
+                        post: post => <>
+                            <ShowBool when={!loader_or_post.first_in_wrapper}>
+                                <div class="pt-2" />
+                            </ShowBool>
+                            <ClientContentAny
+                                content={post.content}
+                                opts={{
+                                    clickable: false, // TODO
+                                    frame: post,
+                                    client_id: post.client_id,
+                                    replies: post.replies,
+                                    at_or_above_pivot: loader_or_post.at_or_above_pivot,
+                                    is_pivot: loader_or_post.is_pivot,
+                                }}
+                            />
+                        </>,
+                        loader: loader => <div class="py-1">
                             <button
                                 class="text-blue-500 hover:underline"
                                 onClick={() => {
@@ -944,7 +947,7 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                             >
                                 Load More ({loader.load_count ?? "????"})
                             </button>
-                        ),
+                        </div>,
                     }}</SwitchKind></div>
                 </div>
             </div>}</ToggleColor>,
