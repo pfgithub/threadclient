@@ -137,7 +137,7 @@ function flattenPost(
     if(post_read.error != null) {
         res.push(fi.err(post_read.error, post_link));
         return res;
-    };
+    }
     const post = post_read.value;
 
     const self_indent = [...rres.indent, rres.collapse];
