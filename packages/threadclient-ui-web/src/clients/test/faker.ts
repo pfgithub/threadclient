@@ -313,7 +313,10 @@ function generatePostImage(w: number, h: number) {
     return "https://picsum.photos/seed/"+seed+"/"+w+"/"+h+".jpg";
 }
 
-export function loadMore2(loader_enc: Generic.Opaque<"loader">): Generic.LoaderResult {
+export async function loadMore2(loader_enc: Generic.Opaque<"loader">): Promise<Generic.LoaderResult> {
+    await new Promise(r => setTimeout(r, 200));
+    if(Math.random() < 0.1) throw new Error("Load failed");
+
     const loader = load_encoder.decode(loader_enc);
 
     const content: Generic.Page2Content = {};

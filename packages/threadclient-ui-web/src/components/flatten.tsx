@@ -16,7 +16,7 @@ type CollapseButton = {
     // post_anvdhla
     // | post_ndhcajk: {indent: [{id: "post_anvdhla"}]}
     collapsed: boolean,
-    id: string | symbol,
+    id: Generic.Link<Generic.Post>,
     threaded: boolean,
     // start: boolean, end: boolean,
 };
@@ -71,6 +71,7 @@ type FlatPost = {
 
     is_pivot: boolean,
     at_or_above_pivot: boolean,
+    id: Generic.Link<Generic.Post>,
 };
 
 const fi = {
@@ -78,7 +79,7 @@ const fi = {
     err: (note: string, data: unknown): FlatItem => ({kind: "error", note, data}),
 };
 
-type CollapseStates = Map<string | symbol, boolean>;
+type CollapseStates = Map<Generic.Link<Generic.Post>, boolean>;
 
 type RenderPostOpts = {
     first_in_wrapper: boolean,
@@ -86,16 +87,23 @@ type RenderPostOpts = {
     at_or_above_pivot: boolean,
 };
 
-function renderPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta, opts: RenderPostOpts): FlatPost {
-    const id = "TODO unique id "+post.url+Math.random();
+function renderPost(
+    post_link: Generic.Link<Generic.Post>,
+    parent_indent: CollapseButton[],
+    meta: Meta,
+    opts: RenderPostOpts,
+): FlatItem {
+    const post_read = readLink(meta, post_link);
+    if(post_read.error != null) return fi.err(post_read.error, post_link);
+    const post = post_read.value;
 
-    const self_collapsed = meta.collapse_states.get(id) ?? (
+    const self_collapsed = meta.collapse_states.get(post_link) ?? (
         post.kind === "post" ? post.content.kind === "post" ? post.content.collapsible !== false ?
         post.content.collapsible.default_collapsed : false : false : false
     );
 
     const final_indent: CollapseButton = {
-        id,
+        id: post_link,
         threaded: false,
         collapsed: self_collapsed,
     };
@@ -109,24 +117,37 @@ function renderPost(post: Generic.Post, parent_indent: CollapseButton[], meta: M
 
         is_pivot: opts.is_pivot,
         at_or_above_pivot: opts.at_or_above_pivot,
+        id: post_link,
     };
 }
 
-function flattenPost(post: Generic.Post, parent_indent: CollapseButton[], meta: Meta, rpo: RenderPostOpts): FlatItem[] {
+function flattenPost(
+    post_link: Generic.Link<Generic.Post>,
+    parent_indent: CollapseButton[],
+    meta: Meta,
+    rpo: RenderPostOpts,
+): FlatItem[] {
     const res: FlatItem[] = [];
 
-    const rres = renderPost(post, parent_indent, meta, rpo);
+    const rres = renderPost(post_link, parent_indent, meta, rpo);
     res.push(rres);
 
+    if(rres.kind !== "post") return res;
+    const post_read = readLink(meta, post_link);
+    if(post_read.error != null) {
+        res.push(fi.err(post_read.error, post_link));
+        return res;
+    };
+    const post = post_read.value;
+
     const self_indent = [...rres.indent, rres.collapse];
+
 
     const show_replies = post.kind === "post" ? post.content.kind === "post" ?
         post.content.show_replies_when_below_pivot
     : true : true;
     if(!rres.collapse.collapsed && show_replies) if(post.replies) for(const reply of post.replies.items) {
-        const reply_value = readLinkNoError(meta, reply);
-        if(reply_value.error != null) res.push(fi.err(reply_value.error, reply));
-        else res.push(...flattenPost(reply_value.value, self_indent, meta, {...rpo, first_in_wrapper: false}));
+        res.push(...flattenPost(reply, self_indent, meta, {...rpo, first_in_wrapper: false}));
     }
 
     return res;
@@ -137,12 +158,12 @@ type Meta = {
     content: Generic.Page2Content,
 };
 
-function readLinkNoError<T>(meta: Meta, link: Generic.Link<T>): Generic.ReadLinkResult<T> {
+function readLink<T>(meta: Meta, link: Generic.Link<T>): Generic.ReadLinkResult<T> {
     const root_context = meta.content;
     return Generic.readLink(root_context, link);
 }
-function readLink<T>(meta: Meta, link: Generic.Link<T>): T {
-    const res = readLinkNoError(meta, link);
+function readLinkAssertFound<T>(meta: Meta, link: Generic.Link<T>): T {
+    const res = readLink(meta, link);
     if(res.error != null) {
         console.log("Failed to read link. Link:", link, "Result:", res, "Searching in", meta.content);
         throw new Error("Could not read link; "+res.error);
@@ -153,9 +174,9 @@ function readLink<T>(meta: Meta, link: Generic.Link<T>): T {
 export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): FlatPage {
     const res: FlatItem[] = [];
 
-    const pivot = readLink(meta, pivot_link);
+    const pivot = readLinkAssertFound(meta, pivot_link);
 
-    let highest: Generic.Post = pivot;
+    let highest: Generic.Link<Generic.Post> = pivot_link;
     const above_pivot: FlatItem[] = [];
     let is_pivot = true;
     while(true) {
@@ -168,13 +189,14 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
         above_pivot.unshift({kind: "wrapper_start"});
         is_pivot = false;
 
-        if(!highest.parent) break;
-        const highest_parent = readLinkNoError(meta, highest.parent);
-        if(highest_parent.error != null) {
-            above_pivot.unshift(fi.err(highest_parent.error, highest));
+        const readv = readLink(meta, highest);
+        if(readv.error != null) {
+            above_pivot.unshift(fi.err(readv.error, highest));
             break;
         }
-        highest = highest_parent.value;
+        const readc = readv.value;
+        if(!readc.parent) break;
+        highest = readc.parent;
     }
     res.push(...above_pivot);
 
@@ -185,9 +207,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
         if(pivot.replies?.reply) res.push(fi.todo("(add reply)", pivot));
         for(const reply of pivot.replies.items) {
             res.push({kind: "wrapper_start"});
-            const reply_value = readLinkNoError(meta, reply);
-            if(reply_value.error != null) res.push(fi.err(reply_value.error, reply));
-            else res.push(...flattenPost(reply_value.value, [], meta, {
+            res.push(...flattenPost(reply, [], meta, {
                 first_in_wrapper: true,
                 is_pivot: false,
                 at_or_above_pivot: false,

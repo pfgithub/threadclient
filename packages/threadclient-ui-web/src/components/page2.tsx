@@ -813,7 +813,10 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                     //    corner of the screen like a little loader and
                                     //    if you click it it can show allt he tasks.
 
-                                    alert("TODO");
+                                    // loader_or_post.id
+                                    // getClientCached(loader.client_id)!.loader!(loader.key);
+
+                                    alert("TODO " + loader_or_post.id.toString());
                                 }}
                             >
                                 Load More ({loader.load_count ?? "????"})
