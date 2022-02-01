@@ -13,6 +13,26 @@
 
 ## todo
 
+"post insights"
+
+not sure if there's a public api for this yet, but it's available in the gql api
+which the extension will proxy
+
+```
+{
+  "id":"b73048dbf918",
+  "variables":{
+    "postId":"t3_…",
+    "subredditId":"t5_…",
+  }
+}
+```
+
+(note that while this api request will never return a different data structure, the
+query hash may be removed causing the api to no longer function)
+
+## todo
+
 - along with getting chat messages working,
 - switch unread message count to `/api/v1/me` `.inbox_count`. also this will let us get our username. also we should save.
 
