@@ -7,7 +7,6 @@ import { localStorageSignal } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { ClientContent, TopLevelWrapper } from "./page2";
 
-type StoreTypeValue = {value: null | Generic.PostContent};
 export function ReplyEditor(props: {
     action: Generic.ReplyAction,
     onCancel: () => void,
