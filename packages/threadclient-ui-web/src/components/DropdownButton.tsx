@@ -1,8 +1,9 @@
 import { JSX } from "solid-js";
+import { ShowCond } from "tmeta-util-solid";
 import { classes } from "../util/utils_solid";
 
 export default function DropdownButton(props: {
-    icon: JSX.Element,
+    icon?: undefined | JSX.Element,
     children: JSX.Element,
     class?: undefined | string,
 }): JSX.Element {
@@ -12,8 +13,10 @@ export default function DropdownButton(props: {
             "focus-visible:bg-gray-200 rounded-lg",
         )}
     ><div class={"w-full "+props.class}>
-        {props.icon}
-        <span class="ml-2" />
+        <ShowCond when={props.icon}>{icon => <>
+            {icon}
+            <span class="ml-2" />
+        </>}</ShowCond>
         {props.children}
     </div></button>;
 }

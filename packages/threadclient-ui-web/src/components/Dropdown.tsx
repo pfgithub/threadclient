@@ -5,7 +5,10 @@ import { classes } from "../util/utils_solid";
 import { animationTime } from "./animation";
 import Button from "./Button";
 
-export default function Dropdown(props: {label: JSX.Element, children: JSX.Element}): JSX.Element {
+export default function Dropdown(props: {
+    label: JSX.Element | ((open: () => boolean) => JSX.Element),
+    children: JSX.Element,
+}): JSX.Element {
     type Position = {
         rect: DOMRect,
         scroll: [number, number],
@@ -69,7 +72,9 @@ export default function Dropdown(props: {label: JSX.Element, children: JSX.Eleme
                 closing: false,
             });
             setTarget(v => !v);
-        }}>{props.label}</Button>
+        }}>
+            {typeof props.label === "function" ? props.label(target) : props.label}
+        </Button>
         <ShowBool when={target() || animating()}>{(() => {
             let node2!: HTMLDivElement;
 
@@ -186,7 +191,7 @@ export default function Dropdown(props: {label: JSX.Element, children: JSX.Eleme
                     }} onfocusout={() => {
                         setShowFocusRing(false);
                     }} />
-                    {props.children}
+                    <div class="bg-gray-100 p-1 rounded-lg">{props.children}</div>
                     <div tabindex="0" onfocus={() => {
                         setTarget(false);
                         node1.focus();
