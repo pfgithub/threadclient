@@ -2679,7 +2679,14 @@ let hidePage2!: () => void;
             page2_viewer_initialized = true;
 
             vanillaToSolidBoundary(page2mainel, () => <>
-                <PageRootProvider content={focusedPage().content}>
+                <PageRootProvider
+                    content={focusedPage().content}
+                    addContent={(content) => {
+                        // TODO: throw an error if anything gets overridden for now
+                        // while we figure out what to do there
+                        setFocusedPage(p => ({...p, ...content}));
+                    }}
+                >
                     <ClientPage pivot={focusedPage().pivot} />
                 </PageRootProvider>
             </>, {color_level: 0});

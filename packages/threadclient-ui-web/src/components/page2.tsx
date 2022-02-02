@@ -145,16 +145,17 @@ export function CollapseButton(props: {
         in_hovers = false;
     });
     return <button
-        class={(
+        class={classes(
+            // oh, class= and classList= can't be combined
             props.cstates && props.id ?
             getCState(props.cstates, props.id).hovering() > 0 ?
             "collapse-btn-hover " :
             "" :
-            ""
-        )+"collapse-btn z-1 static outline-default "+props.class}
-        classList={{
-            'collapsed': props.collapsed_anim,
-        }}
+            "",
+            "collapse-btn z-1 static outline-default",
+            props.class ?? "",
+            props.collapsed_anim ? "collapsed" : "",
+        )}
         draggable={true}
         onClick={() => props.onClick()}
         aria-label="Collapse"
@@ -945,6 +946,11 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
 
                                     // loader_or_post.id
                                     // getClientCached(loader.client_id)!.loader!(loader.key);
+
+                                    // addPage2Content({...content, [loader_id]: new value})
+                                    // loader id is a link to something
+                                    // ok wait this is interesting
+                                    // ok let's add a key to loaders and replace that key.
 
                                     alert("TODO " + loader_or_post.id.toString());
                                 }}

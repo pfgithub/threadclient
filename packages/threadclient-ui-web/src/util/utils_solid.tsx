@@ -43,16 +43,33 @@ export function getIsVisible(): (() => boolean) {
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const PageRootContext = createContext<{content: () => Generic.Page2Content}>();
+const PageRootContext = createContext<{
+    content: () => Generic.Page2Content,
+    addContent: (content: Generic.Page2Content) => void,
+}>();
 
-export function PageRootProvider(props: {content: Generic.Page2Content, children: JSX.Element}): JSX.Element {
-    return <PageRootContext.Provider value={{content: () => props.content}}>{props.children}</PageRootContext.Provider>;
+export function PageRootProvider(props: {
+    content: Generic.Page2Content,
+    addContent: (content: Generic.Page2Content) => void,
+    // refocus: (focus: Generic.Link<Generic.Post>) => void, // this should be a navigation
+    // event thing
+    children: JSX.Element,
+}): JSX.Element {
+    return <PageRootContext.Provider value={{
+        content: () => props.content,
+        addContent: props.addContent,
+    }}>{props.children}</PageRootContext.Provider>;
 }
 
 export function getPageRootContext(): () => Generic.Page2Content {
     const page_root_context = useContext(PageRootContext);
     if(!page_root_context) throw new Error("no page root context here.");
     return page_root_context.content;
+}
+export function addPage2Content(content: Generic.Page2Content): void {
+    const page_root_context = useContext(PageRootContext);
+    if(!page_root_context) throw new Error("no page root context here.");
+    page_root_context.addContent(content);
 }
 
 export type ComputeProperty<T> = {
