@@ -319,7 +319,7 @@ export async function loadMore2(
 ): Promise<Generic.LoaderResult> {
     const loader_enc = loader_val.key;
     await new Promise(r => setTimeout(r, 200));
-    if(Math.random() < 0.1) throw new Error("Load failed");
+    if(Math.random() < 0.1) throw new Error("Load failed (random chance)");
 
     const loader = load_encoder.decode(loader_enc);
 

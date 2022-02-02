@@ -9,7 +9,7 @@ import { clientContent, clientListing, getClientCached, link_styles_v } from "..
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getPageRootContext,
-    getSettings, HideshowProvider, size_lt, ToggleColor
+    getSettings, getWholePageRootContext, HideshowProvider, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
@@ -837,13 +837,16 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
         map: new Map(),
     };
 
+    const hprc = getWholePageRootContext();
+
     const view = createMergeMemo(() => {
         console.log("Reloading data!");
         return flatten(props.pivot, {
             collapse_data,
-            content: getPageRootContext()(),
+            content: hprc.content(),
         });
-    }, {key: "id", merge: false});
+    }, {key: "id", merge: true});
+
 
     // TODO reconcile merge:true I think key:"key" but be careful
     // TODO don't delete old items from dom just hide them
@@ -923,30 +926,26 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                             <button
                                 class="text-blue-500 hover:underline"
                                 onClick={() => {
-                                    // ok after fetching:
-                                    // we'll set an override in the flatten data
-                                    // like loaders: Map<Link<loader>, loaded_data>
-                                    // and then flat() will check for that when
-                                    // it sees a loader and use it instead.
+                                    // ok next thing to do:
+                                    // TODO make a cancellable task thing
+                                    // - if the task goes on for more than like 200ms,
+                                    //   show it visibly in a little notifictation like a
+                                    //   loading icon in the bottom right corner you can
+                                    //   click to expand and view tasks
+                                    // - if it errors, show a full notification of the
+                                    //   error
+                                    //
+                                    // while loading:
+                                    // - disable the loader and make it visibly appear
+                                    //   to be loading
 
-                                    // ok we'll add a cancellable Task
-                                    //    that says we're loading the loader
-                                    //    and then when we render a loader, we'll
-                                    //    check if there's a task for it.
-
-                                    // also we can have a neat task view in the bottom
-                                    //    corner of the screen like a little loader and
-                                    //    if you click it it can show allt he tasks.
-
-                                    // loader_or_post.id
-                                    // getClientCached(loader.client_id)!.loader!(loader.key);
-
-                                    // addPage2Content({...content, [loader_id]: new value})
-                                    // loader id is a link to something
-                                    // ok wait this is interesting
-                                    // ok let's add a key to loaders and replace that key.
-
-                                    alert("TODO " + loader_or_post.id.toString());
+                                    getClientCached(loader.client_id)!.loader!(loader_or_post.id, loader).then(r => {
+                                        console.log("adding content", r.content, loader_or_post);
+                                        hprc.addContent(r.content);
+                                    }).catch(e => {
+                                        console.log(e);
+                                        alert("Error; Load failed; "+e.toString());
+                                    });
                                 }}
                             >
                                 Load More ({loader.load_count ?? "????"})

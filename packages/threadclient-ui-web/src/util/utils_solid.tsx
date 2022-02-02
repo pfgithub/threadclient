@@ -42,11 +42,12 @@ export function getIsVisible(): (() => boolean) {
     return visible_state?.visible ?? (() => true);
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const PageRootContext = createContext<{
+export type PageRootContext = {
     content: () => Generic.Page2Content,
     addContent: (content: Generic.Page2Content) => void,
-}>();
+};
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const PageRootContext = createContext<PageRootContext>();
 
 export function PageRootProvider(props: {
     content: Generic.Page2Content,
@@ -66,10 +67,10 @@ export function getPageRootContext(): () => Generic.Page2Content {
     if(!page_root_context) throw new Error("no page root context here.");
     return page_root_context.content;
 }
-export function addPage2Content(content: Generic.Page2Content): void {
+export function getWholePageRootContext(): PageRootContext {
     const page_root_context = useContext(PageRootContext);
     if(!page_root_context) throw new Error("no page root context here.");
-    page_root_context.addContent(content);
+    return page_root_context;
 }
 
 export type ComputeProperty<T> = {

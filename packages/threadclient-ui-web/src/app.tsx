@@ -2684,7 +2684,12 @@ let hidePage2!: () => void;
                     addContent={(content) => {
                         // TODO: throw an error if anything gets overridden for now
                         // while we figure out what to do there
-                        setFocusedPage(p => ({...p, ...content}));
+                        setFocusedPage((p): Generic.Page2 => {
+                            return {
+                                ...p,
+                                content: {...p.content, ...content},
+                            };
+                        });
                     }}
                 >
                     <ClientPage pivot={focusedPage().pivot} />

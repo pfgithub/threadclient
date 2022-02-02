@@ -125,8 +125,31 @@ function renderPost(
     };
 }
 
+function postReplies(post: Generic.Post, meta: Meta): Generic.Link<Generic.PostNotLoaded>[] {
+    const res: Generic.Link<Generic.PostNotLoaded>[] = [];
+    
+    function addReplies(replies: Generic.Link<Generic.Post>[]) {
+        for(const reply of replies) {
+            const readlink = readLink(meta, reply);
+            if(readlink.error != null) {
+                res.push(Symbol("error; "+readlink.error) as Generic.Link<Generic.PostNotLoaded>);
+            }else{
+                const post = readlink.value;
+                if(post.kind === "loaded") {
+                    addReplies(post.replies?.items ?? []);
+                }else{
+                    res.push(reply as Generic.Link<Generic.PostNotLoaded>);
+                }
+            }
+        }
+    }
+    addReplies(post.replies?.items ?? []);
+
+    return res;
+}
+
 function flattenPost(
-    post_link: Generic.Link<Generic.Post>,
+    post_link: Generic.Link<Generic.PostNotLoaded>,
     parent_indent: CollapseButton[],
     meta: Meta,
     rpo: RenderPostOpts,
@@ -140,15 +163,6 @@ function flattenPost(
     }
     const post = post_read.value;
 
-    if(post.kind === "loaded") {
-        let first_in_wrapper = rpo.first_in_wrapper;
-        if(post.replies) for(const reply of post.replies.items) {
-            res.push(...flattenPost(reply, parent_indent, meta, {...rpo, first_in_wrapper}));
-            first_in_wrapper = false;
-        }
-        return res;
-    }
-
     const rres = renderPost(post_link as Generic.Link<Generic.PostNotLoaded>, parent_indent, meta, rpo);
     res.push(rres);
 
@@ -160,7 +174,7 @@ function flattenPost(
     const show_replies = post.kind === "post" ? post.content.kind === "post" ?
         post.content.show_replies_when_below_pivot
     : true : true;
-    if(!rres.collapse.collapsed && show_replies) if(post.replies) for(const reply of post.replies.items) {
+    if(!rres.collapse.collapsed && show_replies) for(const reply of postReplies(post, meta)) {
         res.push(...flattenPost(reply, self_indent, meta, {...rpo, first_in_wrapper: false}));
     }
 
@@ -240,6 +254,8 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArra
             for(const reply of [...post.replies?.items ?? []].reverse()) {
                 void addOne(reply);
             }
+            // should we return the first item of the replies array's parent?
+            // instead of the "loaded"'s parent?
         }else{
             res.push({value: item as Generic.Link<Generic.PostNotLoaded>});
         }
@@ -284,7 +300,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
     if(pivot.replies) {
         res.push({kind: "horizontal_line"});
         if(pivot.replies?.reply) res.push(fi.todo("(add reply)", pivot));
-        for(const reply of pivot.replies.items) {
+        for(const reply of postReplies(pivot, meta)) {
             res.push({kind: "wrapper_start"});
             res.push(...flattenPost(reply, [], meta, {
                 first_in_wrapper: true,
@@ -296,6 +312,8 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
             res.push(fi.todo("*There are no replies*", pivot));
         }
     }
+
+    console.log("FLATTEN RESULT", res, meta, Object.entries(meta.content).length);
 
     return {body: res};
 }
