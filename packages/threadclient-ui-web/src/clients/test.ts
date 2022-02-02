@@ -916,8 +916,8 @@ export const client: ThreadClient = {
         }else assertNever(decoded);
     },
 
-    async loader(action) {
-        return await (await import("./test/faker")).loadMore2(action);
+    async loader(key, action) {
+        return await (await import("./test/faker")).loadMore2(key, action);
     },
 
     async act(action) {

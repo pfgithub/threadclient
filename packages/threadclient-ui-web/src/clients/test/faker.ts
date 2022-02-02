@@ -313,7 +313,11 @@ function generatePostImage(w: number, h: number) {
     return "https://picsum.photos/seed/"+seed+"/"+w+"/"+h+".jpg";
 }
 
-export async function loadMore2(loader_enc: Generic.Opaque<"loader">): Promise<Generic.LoaderResult> {
+export async function loadMore2(
+    key: Generic.Link<Generic.Post>,
+    loader_val: Generic.Loader,
+): Promise<Generic.LoaderResult> {
+    const loader_enc = loader_val.key;
     await new Promise(r => setTimeout(r, 200));
     if(Math.random() < 0.1) throw new Error("Load failed");
 
@@ -324,9 +328,19 @@ export async function loadMore2(loader_enc: Generic.Opaque<"loader">): Promise<G
     if(loader.kind === "horizontal") {
         const licopy = [...loader.items];
         fillReplyArray(content, licopy, 20, 10);
+        saveLink(content, key, {
+            kind: "loaded",
+
+            parent: loader.parent, // TODO? technically it doesn't really matter does it
+            replies: {
+                items: licopy,
+            },
+            
+            url: null,
+            client_id: "test",
+        });
         return {
             content,
-            top: licopy,
         };
     }else if(loader.kind === "other") {
         throw new Error("TODO");
@@ -344,6 +358,7 @@ export async function act(act_enc: Generic.Opaque<"act">): Promise<void> {
 export type LoaderData = {
     kind: "horizontal",
     items: Generic.Link<Generic.Post>[],
+    parent: null | Generic.Link<Generic.Post>,
 } | {
     kind: "other",
 };
@@ -372,6 +387,7 @@ function generateHorizontalLoader(
         key: load_encoder.encode({
             kind: "horizontal",
             items,
+            parent,
         }),
         load_count: items.length,
     });

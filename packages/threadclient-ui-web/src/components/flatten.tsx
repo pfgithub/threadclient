@@ -65,7 +65,7 @@ type FlatItem = {
 
 type FlatPost = {
     kind: "post",
-    content: Generic.Post, // note rather than generic.post we can be fancier to reduce complexity when rendering
+    content: Generic.PostNotLoaded, // note rather than generic.post we can be fancier to reduce complexity when rendering
     indent: CollapseButton[],
     collapse: CollapseButton,
     first_in_wrapper: boolean,
@@ -87,7 +87,7 @@ type RenderPostOpts = {
 };
 
 function renderPost(
-    post_link: Generic.Link<Generic.Post>,
+    post_link: Generic.Link<Generic.PostNotLoaded>,
     parent_indent: CollapseButton[],
     meta: Meta,
     opts: RenderPostOpts,
@@ -133,16 +133,26 @@ function flattenPost(
 ): FlatItem[] {
     const res: FlatItem[] = [];
 
-    const rres = renderPost(post_link, parent_indent, meta, rpo);
-    res.push(rres);
-
-    if(rres.kind !== "post") return res;
     const post_read = readLink(meta, post_link);
     if(post_read.error != null) {
         res.push(fi.err(post_read.error, post_link));
         return res;
     }
     const post = post_read.value;
+
+    if(post.kind === "loaded") {
+        let first_in_wrapper = rpo.first_in_wrapper;
+        if(post.replies) for(const reply of post.replies.items) {
+            res.push(...flattenPost(reply, parent_indent, meta, {...rpo, first_in_wrapper}));
+            first_in_wrapper = false;
+        }
+        return res;
+    }
+
+    const rres = renderPost(post_link as Generic.Link<Generic.PostNotLoaded>, parent_indent, meta, rpo);
+    res.push(rres);
+
+    if(rres.kind !== "post") return res;
 
     const self_indent = [...rres.indent, rres.collapse];
 
@@ -208,34 +218,66 @@ function readLinkAssertFound<T>(meta: Meta, link: Generic.Link<T>): T {
     return res.value;
 }
 
+type HighestArrayItem = ({
+    value: Generic.Link<Generic.PostNotLoaded>,
+} | {
+    error: string,
+}) & {
+    pivot?: undefined | boolean,
+};
+function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArrayItem[] {
+    const res: HighestArrayItem[] = [];
+
+    function addOne(item: Generic.Link<Generic.Post>): Generic.Link<Generic.Post> | null {
+        const loaded = readLink(meta, item);
+        if(loaded.error != null) {
+            res.push({error: loaded.error});
+            return null;
+        }
+        const post = loaded.value;
+
+        if(post.kind === "loaded") {
+            for(const reply of [...post.replies?.items ?? []].reverse()) {
+                void addOne(reply);
+            }
+        }else{
+            res.push({value: item as Generic.Link<Generic.PostNotLoaded>});
+        }
+
+        return post.parent;
+    }
+
+    // for(let highest = post; highest; highest = addOne(highest));
+    let highest: Generic.Link<Generic.Post> | null = post;
+    while(highest) {
+        highest = addOne(highest);
+    }
+
+    const rrlm1 = res[res.length - 1];
+    if(rrlm1) rrlm1.pivot = true;
+
+    return [...res].reverse();
+}
+
 export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): FlatPage {
     const res: FlatItem[] = [];
 
     const pivot = readLinkAssertFound(meta, pivot_link);
 
-    let highest: Generic.Link<Generic.Post> = pivot_link;
-    const above_pivot: FlatItem[] = [];
-    let is_pivot = true;
-    while(true) {
-        above_pivot.unshift({kind: "wrapper_end"});
-        above_pivot.unshift(renderPost(highest, [], meta, {
-            first_in_wrapper: true,
-            at_or_above_pivot: true,
-            is_pivot,
-        }));
-        above_pivot.unshift({kind: "wrapper_start"});
-        is_pivot = false;
-
-        const readv = readLink(meta, highest);
-        if(readv.error != null) {
-            above_pivot.unshift(fi.err(readv.error, highest));
-            break;
+    const highest_arr = highestArray(pivot_link, meta);
+    for(const item of highest_arr) {
+        res.push({kind: "wrapper_start"});
+        if('error' in item) {
+            res.push(fi.err(item.error, highest_arr));
+        }else{
+            res.push(renderPost(item.value, [], meta, {
+                first_in_wrapper: true,
+                at_or_above_pivot: true,
+                is_pivot: item.pivot ?? false,
+            }));
         }
-        const readc = readv.value;
-        if(!readc.parent) break;
-        highest = readc.parent;
+        res.push({kind: "wrapper_end"});
     }
-    res.push(...above_pivot);
 
     // note scroll should probably center at the pivot post and things above should require scrolling
     // up like twitter does

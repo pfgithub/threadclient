@@ -837,12 +837,6 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
         map: new Map(),
     };
 
-    const [loadedData, setLoadedData] = createSignal(
-        new Map<Generic.Link<Generic.Loader>, Generic.LoaderResult>(),
-    );
-    () => loadedData;
-    () => setLoadedData;
-
     const view = createMergeMemo(() => {
         console.log("Reloading data!");
         return flatten(props.pivot, {

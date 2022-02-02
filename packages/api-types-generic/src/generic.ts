@@ -11,9 +11,6 @@ export type Page2 = {
     content: Page2Content,
 };
 export type LoaderResult = {
-    top: Link<Post>[], // should the items have no parent or a special parent?
-    bottom?: undefined | Link<Post>, // same here, should it have no replies or a special
-    // reply thing
     content: Page2Content,
 };
 
@@ -33,7 +30,8 @@ export function readLink<T>(content: Page2Content, link: Link<T>): ReadLinkResul
     }
 }
 
-export type Post = PostData | Loader;
+export type Post = PostNotLoaded | Loaded;
+export type PostNotLoaded = PostData | Loader;
 
 export type PostData = BasePost & {
     kind: "post",
@@ -57,6 +55,10 @@ export type Loader = BasePost & {
     // key is present and display it instead
 
     load_count: null | number,
+};
+
+export type Loaded = BasePost & {
+    kind: "loaded",
 };
 
 export type BasePost = {
