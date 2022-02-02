@@ -589,6 +589,7 @@ function postformat(ld: {indent: string, once: string}, post: TermText[], style:
 
 function renderPost(post: Generic.Post): TermText[][] {
     if(post.kind === "loader") return [["enotpost"]];
+    if(post.kind === "loaded") return [["enotpost"]];
     const {content} = post;
     if(content.kind !== "post") return [["enotpost"]];
 

@@ -134,9 +134,9 @@ function postReplies(post: Generic.Post, meta: Meta): Generic.Link<Generic.PostN
             if(readlink.error != null) {
                 res.push(Symbol("error; "+readlink.error) as Generic.Link<Generic.PostNotLoaded>);
             }else{
-                const post = readlink.value;
-                if(post.kind === "loaded") {
-                    addReplies(post.replies?.items ?? []);
+                const rpli = readlink.value;
+                if(rpli.kind === "loaded") {
+                    addReplies(rpli.replies?.items ?? []);
                 }else{
                     res.push(reply as Generic.Link<Generic.PostNotLoaded>);
                 }
@@ -163,7 +163,7 @@ function flattenPost(
     }
     const post = post_read.value;
 
-    const rres = renderPost(post_link as Generic.Link<Generic.PostNotLoaded>, parent_indent, meta, rpo);
+    const rres = renderPost(post_link, parent_indent, meta, rpo);
     res.push(rres);
 
     if(rres.kind !== "post") return res;
@@ -248,10 +248,10 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArra
             res.push({error: loaded.error});
             return null;
         }
-        const post = loaded.value;
+        const child = loaded.value;
 
-        if(post.kind === "loaded") {
-            for(const reply of [...post.replies?.items ?? []].reverse()) {
+        if(child.kind === "loaded") {
+            for(const reply of [...child.replies?.items ?? []].reverse()) {
                 void addOne(reply);
             }
             // should we return the first item of the replies array's parent?
@@ -260,7 +260,7 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArra
             res.push({value: item as Generic.Link<Generic.PostNotLoaded>});
         }
 
-        return post.parent;
+        return child.parent;
     }
 
     // for(let highest = post; highest; highest = addOne(highest));

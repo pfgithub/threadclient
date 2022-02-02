@@ -8,8 +8,7 @@ import { ShowBool, ShowCond, SwitchKind, timeAgoTextWatchable } from "tmeta-util
 import { clientContent, clientListing, getClientCached, link_styles_v } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, DefaultErrorBoundary, getPageRootContext,
-    getSettings, getWholePageRootContext, HideshowProvider, size_lt, ToggleColor
+    classes, DefaultErrorBoundary, getSettings, getWholePageRootContext, HideshowProvider, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
@@ -942,7 +941,8 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                     getClientCached(loader.client_id)!.loader!(loader_or_post.id, loader).then(r => {
                                         console.log("adding content", r.content, loader_or_post);
                                         hprc.addContent(r.content);
-                                    }).catch(e => {
+                                    }).catch(er => {
+                                        const e = er as unknown as Error;
                                         console.log(e);
                                         alert("Error; Load failed; "+e.toString());
                                     });
