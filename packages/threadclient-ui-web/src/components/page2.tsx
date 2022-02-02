@@ -617,6 +617,8 @@ function ClientPost(props: ClientPostProps): JSX.Element {
                         setTransitionTarget(t => !t);
                     }}
                     real={true}
+                    cstates={props.opts.collapse_data}
+                    id={props.opts.id}
                 />
             </div>
         </ShowBool>
