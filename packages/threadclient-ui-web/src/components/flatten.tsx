@@ -269,8 +269,8 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArra
         highest = addOne(highest);
     }
 
-    const rrlm1 = res[res.length - 1];
-    if(rrlm1) rrlm1.pivot = true;
+    const rrlm0 = res[0];
+    if(rrlm0) rrlm0.pivot = true;
 
     return [...res].reverse();
 }
