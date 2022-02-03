@@ -38,7 +38,7 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
             + " h-2 sm:rounded-xl mb-4"
         } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
         post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
-            <ShowBool when={!loader_or_post.first_in_wrapper}>
+            <ShowBool when={size_lt.sm() && !loader_or_post.first_in_wrapper}>
                 <div class="pt-2" />
             </ShowBool>
             <div class="flex flex-row">
@@ -74,7 +74,10 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                         />
                     </>}</For>
                 </ShowBool>
-                <div class="flex-1"><SwitchKind item={loader_or_post.content}>{{
+                <div class="flex-1">
+                    <ShowBool when={!size_lt.sm() && !loader_or_post.first_in_wrapper}>
+                        <div class="pt-2" />
+                    </ShowBool><SwitchKind item={loader_or_post.content}>{{
                     post: post => <>
                         <ClientContentAny
                             content={post.content}
