@@ -3,8 +3,8 @@ import {
     Accessor, createSignal,
     For, JSX, Setter
 } from "solid-js";
-import { ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
-import { link_styles_v } from "../app";
+import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
+import { link_styles_v, navigate } from "../app";
 import {
     classes, getSettings, HideshowProvider, size_lt, ToggleColor
 } from "../util/utils_solid";
@@ -87,39 +87,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         animating: false,
     });
 
-    // const [showActions, setShowActions] = createSignal(false);
-    // const mobile = () => screenWidth() < screen_size.sm;
-    // createEffect(() => {
-    //     if(!mobile()) setShowActions(false);
-    // });
-
-    // const postIsClickable = () => {
-    //     return props.opts.frame?.url != null && !props.opts.is_pivot;
-    // };
-    
-    // class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
-    // // note: screenreader or keyboard users must click the 'view' button
-    // // or the title if there is one.
-    // // I considered making the "x points x hours ago" a link but it's harder
-    // // to do than it should be because of the {" "} and {", "} those get underlined
-    // onclick={e => {
-    //     if(!postIsClickable()) return;
-    //     if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
-    //     e.stopPropagation();
-    //     // support ctrl click
-    //     const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
-    //     if(e.ctrlKey || e.metaKey || e.altKey) {
-    //         window.open(target_url);
-    //     }else{
-    //         navigate({
-    //             path: target_url,
-    //             // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
-    //             // disabling this for now, we'll fix it in a bit
-    //             // we just need to know what the link to the post is in the
-    //             // post itself
-    //         });
-    //     }
-    // }}
+    const postIsClickable = () => {
+        return props.opts.frame?.url != null && !props.opts.is_pivot;
+    };
 
     return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
@@ -187,7 +157,36 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         </HSplit.Child>
                     )}</ToggleColor>
                 )}</ShowCond>
-                <HSplit.Child fullwidth>
+                <HSplit.Child fullwidth><div
+                    class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
+                    // note: screenreader or keyboard users must click the 'view' button
+                    // or the title if there is one.
+                    // I considered making the "x points x hours ago" a link but it's harder
+                    // to do than it should be because of the {" "} and {", "} those get underlined
+                    onclick={e => {
+                        if(!postIsClickable()) return;
+                        if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
+                        e.stopPropagation();
+
+                        // support ctrl click
+                        const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
+                        if(e.ctrlKey || e.metaKey || e.altKey) {
+                            window.open(target_url);
+                        }else{
+                            if(!transitionTarget()) {
+                                setTransitionTarget(true);
+                                return;
+                            }
+                            navigate({
+                                path: target_url,
+                                // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
+                                // disabling this for now, we'll fix it in a bit
+                                // we just need to know what the link to the post is in the
+                                // post itself
+                            });
+                        }
+                    }}
+                >
                     <div class={classes(
                         (props.opts.is_pivot && selfVisible()) ? "text-3xl" : "text-base",
                     )}>
@@ -273,7 +272,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             </ShowBool>
                         </div></HSplit.Child>
                     </HSplit.Container></div>
-                </HSplit.Child>
+                </div></HSplit.Child>
                 <ShowBool when={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
                     <HSplit.Child vertical="top">
                         <div class="pl-2" />
