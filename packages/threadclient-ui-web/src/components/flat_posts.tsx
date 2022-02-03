@@ -39,7 +39,11 @@ export function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
         res.push({
             value: pt_count === "hidden"
             ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
-            : ["number", pt_count],
+            : ["number", pt_count + ({
+                increment: 1,
+                decrement: -1,
+                none: 0,
+            } as const)[state.your_vote ?? "none"]],
             icon: ({
                 none: voteact.neutral_icon ?? voteact.increment.icon,
                 increment: voteact.increment.icon,
