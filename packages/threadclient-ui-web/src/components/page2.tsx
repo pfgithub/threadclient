@@ -927,19 +927,6 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                 class="text-blue-500 hover:underline"
                                 disabled={loading()}
                                 onClick={() => {
-                                    // ok next thing to do:
-                                    // TODO make a cancellable task thing
-                                    // - if the task goes on for more than like 200ms,
-                                    //   show it visibly in a little notifictation like a
-                                    //   loading icon in the bottom right corner you can
-                                    //   click to expand and view tasks
-                                    // - if it errors, show a full notification of the
-                                    //   error
-                                    //
-                                    // while loading:
-                                    // - disable the loader and make it visibly appear
-                                    //   to be loading
-
                                     setLoading(true);
                                     
                                     addAction(
