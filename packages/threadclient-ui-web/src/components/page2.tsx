@@ -10,6 +10,7 @@ import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getSettings, getWholePageRootContext, HideshowProvider, size_lt, ToggleColor
 } from "../util/utils_solid";
+import { addAction } from "./action_tracker";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { colorClass } from "./color";
@@ -919,9 +920,12 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                 }}
                             />
                         </>,
-                        loader: loader => <div class="py-1">
-                            <button
+                        loader: loader => {
+                            const [loading, setLoading] = createSignal(false);
+                            const [error, setError] = createSignal<null | string>(null);
+                            return <div class="py-1"><button
                                 class="text-blue-500 hover:underline"
+                                disabled={loading()}
                                 onClick={() => {
                                     // ok next thing to do:
                                     // TODO make a cancellable task thing
@@ -936,19 +940,33 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
                                     // - disable the loader and make it visibly appear
                                     //   to be loading
 
-                                    getClientCached(loader.client_id)!.loader!(loader_or_post.id, loader).then(r => {
+                                    setLoading(true);
+                                    
+                                    addAction(
+                                        getClientCached(loader.client_id)!.loader!(loader_or_post.id, loader),
+                                    ).then(r => {
+                                        setLoading(false);
+                                        setError(null);
                                         console.log("adding content", r.content, loader_or_post);
                                         hprc.addContent(r.content);
                                     }).catch(er => {
+                                        setLoading(false);
                                         const e = er as unknown as Error;
                                         console.log(e);
-                                        alert("Error; Load failed; "+e.toString());
+                                        setError(e.toString());
                                     });
                                 }}
-                            >
-                                Load More ({loader.load_count ?? "????"})
-                            </button>
-                        </div>,
+                            >{
+                                loading()
+                                ? "Loading…"
+                                : (error() != null ? "Retry Load" : "Load More")
+                                + (loader.load_count != null ? " ("+loader.load_count+")" : "")
+                            }</button><ShowCond when={error()}>{err => (
+                                <p class="text-red-600 dark:text-red-500">
+                                    Error loading; {err}
+                                </p>
+                            )}</ShowCond></div>;
+                        },
                     }}</SwitchKind></div>
                 </div>
             </div>}</ToggleColor>,
