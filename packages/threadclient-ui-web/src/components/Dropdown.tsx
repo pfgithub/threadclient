@@ -28,7 +28,7 @@ export default function Dropdown(props: {
         });
     };
 
-    let node1!: HTMLButtonElement;
+    let node1!: HTMLElement;
 
     // while open:
     // - add a focus watcher

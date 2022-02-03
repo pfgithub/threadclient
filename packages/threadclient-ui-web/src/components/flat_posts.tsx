@@ -102,6 +102,7 @@ export type ActionItem = {
 
     // onClick will be a link | a thing that makes a CancellableAction
     onClick: "TODO" | {url: string} | (() => void),
+    client_id: string,
 };
 
 export function getActionsFromAction(action: Generic.Action, opts: ClientPostOpts): ActionItem[] {
@@ -119,6 +120,8 @@ export function getActionsFromAction(action: Generic.Action, opts: ClientPostOpt
             text: your_vote === "increment" ?
             action.increment.undo_label : action.increment.label,
             onClick: "TODO",
+
+            client_id: opts.client_id,
         });
         if(action.decrement) {
             actions.push({
@@ -128,6 +131,8 @@ export function getActionsFromAction(action: Generic.Action, opts: ClientPostOpt
                 text: your_vote === "decrement" ?
                 action.decrement.undo_label : action.decrement.label,
                 onClick: "TODO",
+
+                client_id: opts.client_id,
             });
         }
     }else{
@@ -152,6 +157,8 @@ export function getActions(post: Generic.PostContentPost, opts: ClientPostOpts):
                 "Comments"
             ),
             onClick: {url: opts.frame.url},
+
+            client_id: opts.client_id,
         });
     }
 
@@ -167,6 +174,8 @@ export function getActions(post: Generic.PostContentPost, opts: ClientPostOpts):
             color: null,
             text: "Reply",
             onClick: "TODO",
+
+            client_id: opts.client_id,
         });
     }
 
@@ -184,6 +193,8 @@ export function getActions(post: Generic.PostContentPost, opts: ClientPostOpts):
             onClick: () => {
                 console.log(post, opts);
             },
+
+            client_id: opts.client_id,
         });
     }
 

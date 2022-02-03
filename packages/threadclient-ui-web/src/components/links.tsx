@@ -46,19 +46,31 @@ export function PreviewableLink(props: {
 }
 
 export function A(props: {
-    href: string,
+    href?: undefined | string,
     class: string,
     client_id: string,
-    onClick?: undefined | (() => void),
+    onClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
     children: JSX.Element,
+    btnref?: undefined | ((el: HTMLElement) => void),
 }): JSX.Element {
-    const linkValue = createMemo(() => unsafeLinkToSafeLink(props.client_id, props.href));
+    const linkValue = createMemo(() => {
+        if(props.href == null) return ({kind: "none"} as const);
+        return unsafeLinkToSafeLink(props.client_id, props.href);
+    });
     return <SwitchKind item={linkValue()}>{{
-        error: (error) => <a class={props.class + " error"} title={error.title} onclick={(e) => {
-            e.stopPropagation();
-            alert(props.href);
-        }}>{props.children}</a>,
-        mailto: (mailto) => <span title={mailto.title}>{props.children}</span>,
+        error: (error) => <a
+            class={props.class + " error"}
+            title={error.title}
+            onclick={(e) => {
+                e.stopPropagation();
+                alert(props.href);
+            }}
+            ref={v => props.btnref?.(v)}
+        >{props.children}</a>,
+        mailto: (mailto) => <span
+            ref={v => props.btnref?.(v)}
+            title={mailto.title}
+        >{props.children}</span>,
         link: (link) => <a
             class={props.class} href={link.url} target="_blank" rel="noopener noreferrer"
             onclick={(!link.external || props.onClick) ? event => {
@@ -69,11 +81,18 @@ export function A(props: {
                     !isModifiedEvent(event) // ignore clicks with modifier keys
                 ) {
                     event.preventDefault();
-                    if(props.onClick) return props.onClick();
+                    if(props.onClick) return props.onClick(event);
                     navigate({path: link.url});
                 }
             } : undefined}
+            ref={v => props.btnref?.(v)}
         >{props.children}</a>,
+        none: () => <button
+            class={props.class}
+            onclick={props.onClick}
+            children={props.children}
+            ref={v => props.btnref?.(v)}
+        />
     }}</SwitchKind>;
 }
 
