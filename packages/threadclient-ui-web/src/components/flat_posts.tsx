@@ -2,6 +2,7 @@ import type * as Generic from "api-types-generic";
 import { CounterState } from "../app";
 import { addAction } from "./action_tracker";
 import { actAuto, getCounterState } from "./counter";
+import { getCState } from "./flatten";
 import { ClientPostOpts } from "./Post";
 
 export type InfoBarItem = {
@@ -155,6 +156,19 @@ export function getActionsFromAction(action: Generic.Action, opts: ClientPostOpt
 
 export function getActions(post: Generic.PostContentPost, opts: ClientPostOpts): ActionItem[] {
     const actions: ActionItem[] = [];
+
+    if(opts.collapse_data && opts.id && post.collapsible !== false && !opts.is_pivot) {
+        const cs = getCState(opts.collapse_data, opts.id);
+        const collapsed = cs.collapsed();
+        actions.push({
+            icon: collapsed ? "chevron_down" : "chevron_up",
+            color: null,
+            text: collapsed ? "Uncollapse" : "Collapse",
+            onClick: () => cs.setCollapsed(v => !v),
+
+            client_id: opts.client_id
+        });
+    }
 
     if(opts.frame?.url != null) {
         actions.push({

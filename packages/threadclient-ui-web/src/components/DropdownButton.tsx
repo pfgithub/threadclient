@@ -13,7 +13,7 @@ export default function DropdownButton(props: {
     disabled?: undefined | boolean,
 }): JSX.Element {
     return <A
-        onClick={(e) => {
+        onClickNoPreventDefault={(e) => {
             closeAllDropdowns();
             props.onClick?.(e);
         }}

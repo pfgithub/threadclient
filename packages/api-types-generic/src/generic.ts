@@ -710,6 +710,8 @@ export type Icon =
     | "link"
     | "eye"
     | "reply"
+    | "chevron_up"
+    | "chevron_down"
 ;
 export type Color =
     | "reddit-upvote"

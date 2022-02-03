@@ -50,6 +50,8 @@ export function A(props: {
     class: string,
     client_id: string,
     onClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
+    /// preventDefault can be called in here if you want and it will cancel the onclick
+    onClickNoPreventDefault?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
     children: JSX.Element,
     btnref?: undefined | ((el: HTMLElement) => void),
     disabled?: undefined | boolean,
@@ -74,7 +76,8 @@ export function A(props: {
         >{props.children}</span>,
         link: (link) => <a
             class={props.class} href={link.url} target="_blank" rel="noopener noreferrer"
-            onclick={(!link.external || props.onClick) ? event => {
+            onclick={(!link.external || props.onClick || props.onClickNoPreventDefault) ? event => {
+                props.onClickNoPreventDefault?.(event);
                 event.stopPropagation();
                 if (
                     !event.defaultPrevented && // onClick prevented default
@@ -90,7 +93,10 @@ export function A(props: {
         >{props.children}</a>,
         none: () => <button
             class={props.class}
-            onclick={props.onClick}
+            onclick={(event) => {
+                props.onClickNoPreventDefault?.(event);
+                if(!event.defaultPrevented) props.onClick?.(event);
+            }}
             children={props.children}
             ref={v => props.btnref?.(v)}
             disabled={props.disabled}
