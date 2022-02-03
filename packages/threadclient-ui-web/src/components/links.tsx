@@ -52,6 +52,7 @@ export function A(props: {
     onClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
     children: JSX.Element,
     btnref?: undefined | ((el: HTMLElement) => void),
+    disabled?: undefined | boolean,
 }): JSX.Element {
     const linkValue = createMemo(() => {
         if(props.href == null) return ({kind: "none"} as const);
@@ -92,6 +93,7 @@ export function A(props: {
             onclick={props.onClick}
             children={props.children}
             ref={v => props.btnref?.(v)}
+            disabled={props.disabled}
         />
     }}</SwitchKind>;
 }

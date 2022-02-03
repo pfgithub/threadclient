@@ -4,6 +4,7 @@ import {
 } from "solid-js";
 import { assertNever } from "tmeta-util";
 import { timeAgoTextWatchable } from "tmeta-util-solid";
+import { classes } from "../util/utils_solid";
 import { colorClass } from "./color";
 import { getInfoBar, InfoBarItem } from "./flat_posts";
 import Icon from "./Icon";
@@ -52,7 +53,10 @@ function InfoBarItemNode(props: {item: InfoBarItem}): JSX.Element {
     const lblv = () => props.item.text+(props.item.value[0] === "none" ? "" : ":");
 
     return <span
-        class={colorClass(props.item.color)}
+        class={classes(
+            colorClass(props.item.color),
+            props.item.disabled ?? false ? "opacity-50" : "",
+        )}
         title={lblv() + fmt()[1]}
     >
         <Icon icon={props.item.icon} bold={props.item.color != null} label={lblv()} />

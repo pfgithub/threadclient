@@ -1,5 +1,7 @@
 import type * as Generic from "api-types-generic";
-import { getCounterState } from "./counter";
+import { CounterState } from "../app";
+import { addAction } from "./action_tracker";
+import { actAuto, getCounterState } from "./counter";
 import { ClientPostOpts } from "./Post";
 
 export type InfoBarItem = {
@@ -7,6 +9,7 @@ export type InfoBarItem = {
     icon: Generic.Icon,
     color: null | Generic.Color,
     text: string,
+    disabled?: undefined | boolean,
 };
 
 export function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
@@ -47,6 +50,7 @@ export function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
                 decrement: voteact.decrement?.color ?? voteact.increment.color,
             } as const)[state.your_vote ?? "none"],
             text: "Points",
+            disabled: state.loading,
         });
         if(post.actions.vote.percent != null) {
             res.push({
@@ -101,39 +105,46 @@ export type ActionItem = {
     // disabled: boolean,
 
     // onClick will be a link | a thing that makes a CancellableAction
-    onClick: "TODO" | {url: string} | (() => void),
+    onClick: "disabled" | {url: string} | (() => void),
     client_id: string,
 };
+
+function counterAction(
+    action: Generic.CounterAction,
+    [state, setState]: [CounterState, (nv: CounterState) => void],
+    direction: "increment" | "decrement",
+    client_id: string,
+): ActionItem {
+    const your_vote = state.your_vote;
+    return {
+        icon: action[direction]!.icon,
+        color: your_vote === direction ?
+        action[direction]!.color : null,
+        text: your_vote === direction ?
+        action[direction]!.undo_label : action[direction]!.label,
+        onClick: state.loading ? "disabled" : () => {
+            void addAction(actAuto(
+                your_vote === direction ? undefined : direction,
+                state,
+                setState,
+                action,
+            ));
+        },
+
+        client_id: client_id,
+    };
+}
 
 export function getActionsFromAction(action: Generic.Action, opts: ClientPostOpts): ActionItem[] {
     const actions: ActionItem[] = [];
 
     if(action.kind === "counter") {
-        const [stateR] = getCounterState(() => action);
-        const state = stateR();
-        const your_vote = state.your_vote;
+        const [getState, setState] = getCounterState(() => action);
+        const state = getState();
 
-        actions.push({
-            icon: action.increment.icon,
-            color: your_vote === "increment" ?
-            action.increment.color : null,
-            text: your_vote === "increment" ?
-            action.increment.undo_label : action.increment.label,
-            onClick: "TODO",
-
-            client_id: opts.client_id,
-        });
+        actions.push(counterAction(action, [state, setState], "increment", opts.client_id));
         if(action.decrement) {
-            actions.push({
-                icon: action.decrement.icon,
-                color: your_vote === "decrement" ?
-                action.decrement.color : null,
-                text: your_vote === "decrement" ?
-                action.decrement.undo_label : action.decrement.label,
-                onClick: "TODO",
-
-                client_id: opts.client_id,
-            });
+            actions.push(counterAction(action, [state, setState], "decrement", opts.client_id));
         }
     }else{
         // assertNever(action);
@@ -173,7 +184,7 @@ export function getActions(post: Generic.PostContentPost, opts: ClientPostOpts):
             icon: "reply",
             color: null,
             text: "Reply",
-            onClick: "TODO",
+            onClick: () => alert("TODO"),
 
             client_id: opts.client_id,
         });

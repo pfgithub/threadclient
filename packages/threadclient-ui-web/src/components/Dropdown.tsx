@@ -1,9 +1,14 @@
-import { createEffect, createSignal, JSX, onCleanup } from "solid-js";
+import { createEffect, createSignal, JSX, on, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
 import { ShowBool } from "tmeta-util-solid";
 import { classes } from "../util/utils_solid";
 import { animationTime } from "./animation";
 import Button from "./Button";
+
+const [closeDropdowns, setCloseDropdowns] = createSignal(Symbol());
+export function closeAllDropdowns() {
+    setCloseDropdowns(Symbol());
+}
 
 export default function Dropdown(props: {
     label: JSX.Element | ((open: () => boolean) => JSX.Element),
@@ -27,6 +32,10 @@ export default function Dropdown(props: {
             return nv;
         });
     };
+
+    createEffect(on(closeDropdowns, () => {
+        setTarget(false);
+    }, {defer: true}));
 
     let node1!: HTMLElement;
 
