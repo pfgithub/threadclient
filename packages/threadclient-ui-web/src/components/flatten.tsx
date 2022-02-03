@@ -7,13 +7,13 @@ import { Accessor, createSignal, Setter, untrack } from "solid-js";
 
 // indent: post id[]
 
-type FlatPage = {
+export type FlatPage = {
     // header: FlatItem[],
     body: FlatItem[],
     // sidebar: FlatItem[],
 };
 
-type CollapseButton = {
+export type CollapseButton = {
     // post_anvdhla
     // | post_ndhcajk: {indent: [{id: "post_anvdhla"}]}
     collapsed: boolean,
@@ -51,7 +51,7 @@ type CollapseButton = {
 */
 
 // TODO probably add a key: string/symbol for easier diffing
-type FlatItem = {
+export type FlatItem = {
     kind: "wrapper_start" | "wrapper_end" | "horizontal_line",
 } | FlatPost | {
     kind: "todo",
@@ -63,7 +63,7 @@ type FlatItem = {
     data: unknown,
 };
 
-type FlatPost = {
+export type FlatPost = {
     kind: "post",
     content: Generic.PostNotLoaded, // note rather than generic.post we can be fancier to reduce complexity when rendering
     indent: CollapseButton[],

@@ -10,8 +10,8 @@ import {
 } from "../util/utils_solid";
 import { animateHeight } from "./animation";
 import { Body, summarizeBody } from "./body";
+import { Flair } from "./Flair";
 import { A, LinkButton, PreviewableLink, UserLink } from "./links";
-import { Flair } from "./page2";
 export * from "../util/interop_solid";
 
 const generic_linkstyle_mappings: {
