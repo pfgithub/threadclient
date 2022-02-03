@@ -1,6 +1,5 @@
 import "@fortawesome/fontawesome-free/css/all.css";
 import { JSX } from "solid-js";
-import { Dynamic } from "solid-js/web";
 import { classes } from "../util/utils_solid";
 import { A } from "./links";
 

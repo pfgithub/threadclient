@@ -6,7 +6,7 @@ import { animationTime } from "./animation";
 import Button from "./Button";
 
 const [closeDropdowns, setCloseDropdowns] = createSignal(Symbol());
-export function closeAllDropdowns() {
+export function closeAllDropdowns(): void {
     setCloseDropdowns(Symbol());
 }
 
