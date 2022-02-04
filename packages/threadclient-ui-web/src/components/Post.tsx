@@ -6,7 +6,7 @@ import {
 import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, navigate } from "../app";
 import {
-    classes, getSettings, HideshowProvider, size_lt, ToggleColor
+    classes, getSettings, getWholePageRootContext, HideshowProvider, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { DropdownActionButton } from "./ActionButtonDropdown";
 import { HorizontalActionButton } from "./ActionButtonHorizontal";
@@ -90,6 +90,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     const postIsClickable = () => {
         return props.opts.frame?.url != null && !props.opts.is_pivot;
     };
+
+    const hprc = getWholePageRootContext();
 
     return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
@@ -179,6 +181,10 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             }
                             navigate({
                                 path: target_url,
+                                page: props.opts.id ? {
+                                    pivot: props.opts.id,
+                                    content: hprc.content(),
+                                } : undefined,
                                 // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
                                 // disabling this for now, we'll fix it in a bit
                                 // we just need to know what the link to the post is in the
