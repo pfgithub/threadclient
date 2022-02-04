@@ -11,6 +11,15 @@
 - need conditionals. `tw.add(condition ? tw.bg('red') : tw.bg('blue'))`
 - that will work fine
 
+## nothing to do
+
+```
+Error: USERNAME_OUTBOUND_LINKING_DISALLOWED: Linking to users is not allowed.
+```
+
+huh that's a fancy error. there's probably somewhere in the data it will show so we
+can detect it and disable it
+
 ## todo
 
 "post insights"
