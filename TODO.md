@@ -1,5 +1,23 @@
 ## todo
 
+how to upgrade:
+
+- use windi css analyzer to find all classes (eg `mt-5px` and especially arbitrary `mt-34` eg)
+- use tailwind css analyzer to confirm all migrated correctly
+
+\[!] fancy features we get if we upgrade
+
+- https://tailwindcss.com/docs/typography-plugin
+- it now supports `.no-prose` to embed content inside and it's also a lot more
+  customizable now so we may be able to use this for richtext
+- (this is assuming that more prose can be embedded inside a .no-prose tag)
+- (ok it does. relies on some real sketchy 'where' tags)
+- (anyway the reason for this is because it will handle our text sizes better)
+- (`prose-xl` `prose-base` `prose-sm`)
+- (rather than us having to go and code that)
+
+original notes:
+
 - tailwind css 3 is basically the same as windicss, I can probably switch to it
 - \[!] I have to change eg `w-10px` to `w-[10px]`
 - and stuff like `text-[color:var(--my-var)]` instead of `text-$my-var`
