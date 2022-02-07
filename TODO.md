@@ -29,6 +29,23 @@ original notes:
 - need conditionals. `tw.add(condition ? tw.bg('red') : tw.bg('blue'))`
 - that will work fine
 
+## todo
+
+figure out how to patch solidjs to apply this change to createComponent in dev builds
+
+```js
+const prev = createElement;
+createElement = (...a) => {
+  const res = prev(...a);
+  if(res instanceof HTMLElement) {
+      res.setAttribute("data-component", Comp.name);
+  }
+  return res;
+}
+```
+
+just will make it easier to find components
+
 ## nothing to do
 
 ```
