@@ -1,23 +1,49 @@
 import { createMemo, JSX } from 'solid-js';
-import NodeEditor from './NodeEditor';
+import NodeEditor, { NodeSchema, sc } from './NodeEditor';
+
+const person_schema: NodeSchema = sc.object({
+  name: sc.string(),
+  description: sc.string(),
+  attributes: sc.object({
+    administrator: sc.boolean(),
+    moderator: sc.boolean(),
+  }),
+  tags: sc.array(sc.string()),
+});
+
+const buttons_schema: NodeSchema = sc.object({
+  name: sc.string(),
+  id: sc.string(),
+});
+
+// button_schema:
+//   sc.object({
+//     name: string,
+//     id: string,
+//   })
+
+// links:
+//   input_button: button_schema,
+//   output_button: button_schema,
+
+const root_schema: NodeSchema = sc.object({
+  // buttons:
+  //   input:
+  //     sc.all_links("input_button")
+  //   output:
+  //     sc.all_links("output_button")
+  // scenes:
+  //   sc.all_links("scene")
+  // default_scene: sc.link("scene")
+  // layers:
+  //   sc.all_links("layers")
+  person: person_schema,
+});
 
 export default function App(): JSX.Element {
   return (
     <div class="ml-auto mr-auto max-w-2xl w-full h-full bg-gray-800 p-4">
-      <NodeEditor schema={{
-        kind: "object",
-        fields: [
-          {name: "name", value: {kind: "string"}},
-          {name: "description", value: {kind: "string"}},
-          {name: "attributes", value: {kind: "object", fields: [
-            {name: "administrator", value: {kind: "boolean"}},
-            {name: "moderator", value: {kind: "boolean"}},
-          ]}},
-          {name: "tags", value: {kind: "array", child: {
-            kind: "string",
-          }}},
-        ],
-      }} />
+      <NodeEditor schema={root_schema} />
     </div>
   );
 };

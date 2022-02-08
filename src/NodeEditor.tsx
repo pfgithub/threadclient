@@ -2,6 +2,18 @@ import { createSignal, For } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { SwitchKind } from "./App";
 
+export const sc = {
+  object: (obj: {[key: string]: NodeSchema}): ObjectSchema => {
+    return {
+      kind: "object",
+      fields: Object.entries(obj).map(entry => ({name: entry[0], value: entry[1]})),
+    };
+  },
+  string: (): StringSchema => ({kind: "string"}),
+  boolean: (): BooleanSchema => ({kind: "boolean"}),
+  array: (child: NodeSchema): ArraySchema => ({kind: "array", child}),
+} as const;
+
 export type NodeSchema =
   | ObjectSchema
   | StringSchema
@@ -54,8 +66,8 @@ function Button(props: {
 }): JSX.Element {
     return <button
       class={""
-        + "px-2 first:rounded-l-md last:rounded-r-md mr-1 "
-        + (props.active ? "bg-gray-600 " : "bg-gray-700 ")
+        + "px-2 first:rounded-l-md last:rounded-r-md mr-1 last:mr-0 "
+        + (props.active ? "bg-gray-500 " : "bg-gray-700 ")
       }
       onClick={props.onClick}
     >{props.children}</button>;
