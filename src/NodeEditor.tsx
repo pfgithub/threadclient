@@ -44,20 +44,7 @@ function TabOrListEditor<T>(props: {
 
 function ArrayEditorTabbed(props: {schema: ArraySchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
-  const [active, setActive] = createSignal<UUID | null>(null);
-  const isSelected = createSelector(active);
 
-  const entry = (): (null | [UUID, unknown, number]) => {
-    const id = active();
-    if(id == null) return null;
-    const res = value();
-    if(Array.isArray(res)) {
-      const itm_idx = res.findIndex(it => it.array_symbol === id);
-      if(itm_idx === -1) return null;
-      return [id, res[itm_idx], itm_idx];
-    }
-    return null;
-  }
   return <TabOrListEditor
     mode="tab-bar"
     tabs={[...(() => {
