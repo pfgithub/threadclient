@@ -14,11 +14,28 @@ const person_schema: NodeSchema = sc.object({
     moderator: sc.boolean(),
   }),
   tags: sc.array(sc.string()),
+}, {
+  summarize: v => {
+    if(typeof v === "object" && ('name' in v) && typeof v["name"] === "string") {
+      return v["name"];
+    }
+    return "*Unnamed*";
+  }
 });
 
-const buttons_schema: NodeSchema = sc.object({
+const button_schema: NodeSchema = sc.object({
   name: sc.string(),
   id: sc.string(),
+}, {
+  summarize: (v) => {
+    if(typeof v === "object"
+    && ('name' in v)
+    && typeof v["name"] === "string") return v["name"];
+    return "*Unnamed*";
+  },
+});
+const layer_schema: NodeSchema = sc.object({
+  todo: sc.string(),
 });
 
 // button_schema:
@@ -33,13 +50,40 @@ const buttons_schema: NodeSchema = sc.object({
 
 const person_link = Symbol("person_link");
 
+const input_button = Symbol("input_button");
+const output_button = Symbol("output_button");
+const scene = Symbol("scene");
+const layer = Symbol("layer");
+
 const root_schema: RootSchema = {
   root: sc.object({
-    people: sc.allLinks(person_link),
-    root_person: sc.link(person_link),
+    demo1: sc.object({
+      people: sc.allLinks(person_link),
+      root_person: sc.link(person_link),
+    }),
+    rebind: sc.object({
+      buttons: sc.object({
+        input: sc.allLinks(input_button),
+        output: sc.allLinks(output_button),
+      }),
+      default_scene: sc.link(scene),
+
+      // for scenes, we want a map where every input button
+      // maps to an action
+      scenes: sc.allLinks(scene),
+
+      // for layers, we want a map where every input button
+      // maps to undefined | an action
+      layers: sc.allLinks(layer),
+    }),
   }),
   symbols: [
     [person_link, person_schema],
+
+    [input_button, button_schema],
+    [output_button, button_schema],
+    [scene, layer_schema],
+    [layer, layer_schema],
   ],
 };
 // buttons:

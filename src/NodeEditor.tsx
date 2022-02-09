@@ -3,7 +3,7 @@ import { JSX } from "solid-js/jsx-runtime";
 import { SetStoreFunction, Store } from "solid-js/store";
 import { SwitchKind } from "./App";
 import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
-import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema } from "./schema";
+import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize } from "./schema";
 
 function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
@@ -14,7 +14,7 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
       return [];
     })()}>{(item, index) => <div class="space-y-2">
       <div>
-        {index()}
+        {index()}{": "}{summarize(item.array_item, props.schema.child)}
         {" "}
         <Button
           onClick={() => setValue(it => Array.isArray(it) ? it.filter(v => {
@@ -123,6 +123,8 @@ function AllLinksEditor(props: {schema: AllLinksSchema, path: Path}): JSX.Elemen
 function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
   const [choices, setChoices] = modValue(() => ["data", props.schema.tag]);
+  const state = getState();
+  const data_schema = state.root_schema.symbols.find(sym => sym[0] === props.schema.tag)?.[1];
   const isSelected = createSelector(value);
   return <div>
     <select
@@ -140,7 +142,7 @@ function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
         return c;
       })()}>{(choice, i) => {
         return <option value={i()} selected={isSelected(choice.array_symbol)}>
-          {i()}
+          {i()} {summarize(choice.array_item, data_schema)}
         </option>;
       }}</For>
     </select>
