@@ -42,7 +42,7 @@ const layer_schema: NodeSchema = sc.object({
     const state = getState();
     return {
       kind: "object",
-      fields: Object.entries(getValueFromState(["data", input_button], state.state)).map(
+      fields: Object.entries(getValueFromState(["data", input_button], state.state) ?? {}).map(
         ([key, value]): ObjectField => {
           return {
             name: value.array_symbol,
@@ -54,7 +54,7 @@ const layer_schema: NodeSchema = sc.object({
         },
       ),
       opts: {
-        // display_mode: "tab-bar"
+        display_mode: "tab-bar"
       },
     };
   }),

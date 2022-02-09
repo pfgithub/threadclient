@@ -9,6 +9,39 @@ import { UUID, uuid } from "./uuid";
 // switch arrays to use objects
 // and figure out how to make <For> accept a key
 
+function TabOrListEditor<T>(props: {
+  mode: "all" | "tab-bar",
+  tabs: ({
+    key: string | (() => string),
+    title: string,
+  })[],
+  tabData: (id: string) => T | null,
+  children: (data: T) => JSX.Element,
+}): JSX.Element {
+  const [active, setActive] = createSignal<string | null>(null);
+  const isSelected = createSelector(active);
+
+  return <div>
+    <div><For each={props.tabs}>{tab => (
+      <Button
+        active={isSelected(tab.key)}
+        onClick={() => {
+          const key = typeof tab.key === "function" ? tab.key() : tab.key;
+          setActive(v => v === key ? null : key);
+        }}
+      >{tab.title}</Button>
+    )}</For></div>
+    <Show when={(() => {
+      const id = active();
+      if(id == null) return null;
+      return props.tabData(id);
+    })()}>{data => <>
+      <div class="mt-2" />
+      {props.children(data)}
+    </>}</Show>
+  </div>;
+}
+
 function ArrayEditorTabbed(props: {schema: ArraySchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
   const [active, setActive] = createSignal<UUID | null>(null);
@@ -25,46 +58,48 @@ function ArrayEditorTabbed(props: {schema: ArraySchema, path: Path}): JSX.Elemen
     }
     return null;
   }
-  return <div>
-    <div>
-      <For each={(() => {
-        const res = value();
-        if(Array.isArray(res)) return res;
-        return [];
-      })()}>{(item, index) => (
-        <Button
-          active={isSelected(item.array_symbol)}
-          onClick={() => {
-            setActive(v => v === item.array_symbol ? null : item.array_symbol);
-          }}
-        >
-          {summarize(item.array_item, props.schema.child)}
-        </Button>
-      )}</For>
-      <Button onClick={() => {
+  return <TabOrListEditor
+    mode="tab-bar"
+    tabs={[...(() => {
+      const res = value();
+      if(!Array.isArray(res)) return [];
+      return res.map(item => {
+        return {
+          title: summarize(item.array_item, props.schema.child),
+          key: item.array_symbol,
+        };
+      });
+    })(), {
+      title: "+",
+      key: () => {
+        const new_item = {array_symbol: uuid()};
         setValue(it => {
-          const new_item = {array_symbol: uuid()};
           return Array.isArray(it) ? [...it, new_item] : [new_item];
         });
-      }}>+</Button>
-    </div>
-    <Show when={entry()}>{([id, item, item_idx]) => {
-      return <div class="mt-2">
-        <div><Button
-          onClick={() => setValue(it => Array.isArray(it) ? it.filter(v => {
-            return v.array_symbol !== (typeof item === "object" ? item : {})["array_symbol"];
-          }) : (() => {
-            throw new Error("is not array even though is");
-          })())}
-        >Delete</Button></div>
-        <div class="mt-2" />
-        <NodeEditor
-          schema={props.schema.child}
-          path={[...props.path, item_idx, "array_item"]}
-        />
-      </div>;
-    }}</Show>
-  </div>;
+        return new_item.array_symbol;
+      },
+    }]}
+    tabData={(id): [unknown, number] => {
+      const data = value();
+      if(!Array.isArray(data)) return null;
+      const index = data.findIndex(v => v.array_symbol === id);
+      if(index == -1) return null;
+      return [data[index], index];
+    }}
+  >{([item, item_idx]) => <>
+    <div><Button
+      onClick={() => setValue(it => Array.isArray(it) ? it.filter(v => {
+        return v.array_symbol !== (typeof item === "object" ? item : {})["array_symbol"];
+      }) : (() => {
+        throw new Error("is not array even though is");
+      })())}
+    >Delete</Button></div>
+    <div class="mt-2" />
+    <NodeEditor
+      schema={props.schema.child}
+      path={[...props.path, item_idx, "array_item"]}
+    />
+  </>}</TabOrListEditor>;
 }
 
 function ArrayEditorAll(props: {schema: ArraySchema, path: Path}): JSX.Element {

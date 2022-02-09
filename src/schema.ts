@@ -58,6 +58,7 @@ export type ObjectField = {
 };
 export type ObjectOpts = {
   summarize?: undefined | ((v: unknown) => string),
+  display_mode?: undefined | "all" | "tab-bar",
 };
 export type ObjectSchema = {
   kind: "object",
