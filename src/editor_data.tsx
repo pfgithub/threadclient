@@ -1,12 +1,13 @@
 import { createContext, JSX, useContext } from "solid-js";
 import { SetStoreFunction, Store } from "solid-js/store";
 import { RootSchema } from "./schema";
+import { UUID } from "./uuid";
 
-export type Path = (string | number | symbol)[];
+export type Path = (string | number | UUID)[];
 
 export type StateValue = {
   root: unknown,
-  [k: symbol]: unknown[],
+  [k: UUID]: unknown[],
 };
 
 export type State = {

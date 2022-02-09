@@ -10,29 +10,14 @@ class JSONRaw {
   }
 }
 
-type SymMap = {
-  map: Map<symbol, number>,
-  index: number,
-};
-
-function getSymName(sym: symbol, symm: SymMap): string {
-  // TODO: include short summary defined in the schema
-  const num = symm.map.get(sym) ?? (() => {
-    const nv = symm.index++;
-    symm.map.set(sym, nv);
-    return nv;
-  })();
-  return "#"+num;
-}
-
-function stringifySchemaEntry(state: unknown, schema: NodeSchema, sym_map: SymMap): unknown {
+function stringifySchemaEntry(state: unknown, schema: NodeSchema): unknown {
   return switchKind(schema, {
     object: obj => {
       if(typeof state !== "object") return new JSONRaw("#E_NOT_OBJECT");
       return Object.fromEntries(obj.fields.map(field => {
         return [
           field.name,
-          stringifySchemaEntry(state[field.name], field.value, sym_map),
+          stringifySchemaEntry(state[field.name], field.value),
         ];
       }));
     },
@@ -49,7 +34,7 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema, sym_map: SymMa
       return state.map(entry => {
         if(typeof entry !== "object") return new JSONRaw("#E_NOT_ARRAY_CHILD");
         if(!('array_symbol' in entry)) return new JSONRaw("#E_NOT_ARRAY_CHILD");
-        return stringifySchemaEntry(entry.array_item, arr.child, sym_map);
+        return stringifySchemaEntry(entry.array_item, arr.child);
       });
     },
     all_links: al => {
@@ -63,13 +48,13 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema, sym_map: SymMa
         // TODO: keep a map to make unique string keys based on the symbol key
         const sym = value.array_symbol;
         return [
-          getSymName(sym, sym_map),
-          stringifySchemaEntry(value.array_item, schema, sym_map),
+          sym,
+          stringifySchemaEntry(value.array_item, schema),
         ];
       }));
     },
     link: () => {
-      if(typeof state === "symbol") return getSymName(state, sym_map);
+      if(typeof state === "string") return state;
       return new JSONRaw("#E_NOT_LINK");
     },
   });
@@ -77,12 +62,8 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema, sym_map: SymMa
 
 function stringifySchema(state: unknown, schema: NodeSchema): string {
   const escapeString = (str: string): string => str.replaceAll("%", "<%>");
-  const sym_map: SymMap = {
-    map: new Map(),
-    index: 0,
-  };
   return JSON.stringify(
-    stringifySchemaEntry(state, schema, sym_map),
+    stringifySchemaEntry(state, schema),
     (key, value) => {
       if(typeof value === "string") return escapeString(value);
       if(typeof value === "object") {

@@ -4,6 +4,7 @@ import { SetStoreFunction, Store } from "solid-js/store";
 import { SwitchKind } from "./util";
 import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
 import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize } from "./schema";
+import { uuid } from "./uuid";
 
 function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
@@ -36,9 +37,9 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
       </div>
     </div>}</For>
     <div><Button onClick={() => setValue(it => Array.isArray(it) ? [...it, {
-      "array_symbol": Symbol(),
+      "array_symbol": uuid(),
     }] : [{
-      "array_symbol": Symbol(),
+      "array_symbol": uuid(),
     }])}>+ Add</Button></div>
   </div>;
 }

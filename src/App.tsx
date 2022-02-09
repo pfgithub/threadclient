@@ -3,6 +3,7 @@ import { NodeProvider, State } from './editor_data';
 import JsonViewer from './JsonViewer';
 import NodeEditor from './NodeEditor';
 import { NodeSchema, RootSchema, sc } from './schema';
+import { UUID } from './uuid';
 
 const person_schema: NodeSchema = sc.object({
   name: sc.string(),
@@ -54,12 +55,12 @@ const layer_schema: NodeSchema = sc.object({
 // - use uuids instead of symbols
 // - this will keep them stable
 
-const person_link = Symbol("5bdcd7dc-ab06-47c7-9d8b-f9c79dd46284");
+const person_link = "5bdcd7dc-ab06-47c7-9d8b-f9c79dd46284" as UUID;
 
-const input_button = Symbol("0cdfae1d-775f-4f49-9ab4-094633ed1e09");
-const output_button = Symbol("96b24915-2fd0-46e4-b2a7-4d591a36d0fa");
-const scene = Symbol("9a1bb843-89b9-4281-8958-f71d341cbf8a");
-const layer = Symbol("a374e26e-0882-41b1-b6d8-efba29409452");
+const input_button = "0cdfae1d-775f-4f49-9ab4-094633ed1e09" as UUID;
+const output_button = "96b24915-2fd0-46e4-b2a7-4d591a36d0fa" as UUID;
+const scene = "9a1bb843-89b9-4281-8958-f71d341cbf8a" as UUID;
+const layer = "a374e26e-0882-41b1-b6d8-efba29409452" as UUID;
 
 const root_schema: RootSchema = {
   root: sc.object({

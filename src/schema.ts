@@ -1,3 +1,5 @@
+import { UUID } from "./uuid";
+
 export const sc = {
   object: (obj: {[key: string]: NodeSchema}, opts: ObjectOpts = {}): ObjectSchema => {
     return {
@@ -9,8 +11,8 @@ export const sc = {
   string: (): StringSchema => ({kind: "string"}),
   boolean: (): BooleanSchema => ({kind: "boolean"}),
   array: (child: NodeSchema): ArraySchema => ({kind: "array", child}),
-  link: (tag: symbol): LinkSchema => ({kind: "link", tag}),
-  allLinks: (tag: symbol): AllLinksSchema => ({kind: "all_links", tag}),
+  link: (tag: UUID): LinkSchema => ({kind: "link", tag}),
+  allLinks: (tag: UUID): AllLinksSchema => ({kind: "all_links", tag}),
 } as const;
 
 export type NodeSchema =
@@ -24,7 +26,7 @@ export type NodeSchema =
 
 export type RootSchema = {
   root: NodeSchema,
-  symbols: {[key: symbol]: NodeSchema}
+  symbols: {[key: UUID]: NodeSchema}
 };
 
 export type ObjectOpts = {
@@ -51,11 +53,11 @@ export type BooleanSchema = {
 };
 export type LinkSchema = {
   kind: "link",
-  tag: symbol,
+  tag: UUID,
 };
 export type AllLinksSchema = {
   kind: "all_links",
-  tag: symbol,
+  tag: UUID,
 };
 
 // TODO: summarize should return a JSX.Element rather than just a single
