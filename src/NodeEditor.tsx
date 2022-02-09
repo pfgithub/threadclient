@@ -4,14 +4,66 @@ import { SetStoreFunction, Store } from "solid-js/store";
 import { SwitchKind } from "./util";
 import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
 import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize } from "./schema";
-import { uuid } from "./uuid";
+import { UUID, uuid } from "./uuid";
 
-function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
+// switch arrays to use objects
+// and figure out how to make <For> accept a key
+
+function ArrayEditorTabbed(props: {schema: ArraySchema, path: Path}): JSX.Element {
+  const [value, setValue] = modValue(() => props.path);
+  const [active, setActive] = createSignal<UUID | null>(null);
+  const isSelected = createSelector(active);
+
+  const entry = (): (null | [UUID, unknown, number]) => {
+    const id = active();
+    if(id == null) return null;
+    const res = value();
+    if(Array.isArray(res)) {
+      const itm_idx = res.findIndex(it => it.array_symbol === id);
+      if(itm_idx === -1) return null;
+      return [id, res[itm_idx], itm_idx];
+    }
+    return null;
+  }
+  return <div>
+    <div>
+      <For each={(() => {
+        const res = value();
+        if(Array.isArray(res)) return res;
+        return [];
+      })()}>{(item, index) => (
+        <Button
+          active={isSelected(item.array_symbol)}
+          onClick={() => {
+            setActive(v => v === item.array_symbol ? null : item.array_symbol);
+          }}
+        >
+          {summarize(item.array_item, props.schema.child)}
+        </Button>
+      )}</For>
+      <Button onClick={() => {
+        setValue(it => {
+          const new_item = {array_symbol: uuid()};
+          return Array.isArray(it) ? [...it, new_item] : [new_item];
+        });
+      }}>+</Button>
+    </div>
+    <Show when={entry()}>{([id, item, item_idx]) => {
+      return <div class="mt-2">
+        <NodeEditor
+          schema={props.schema.child}
+          path={[...props.path, item_idx, "array_item"]}
+        />
+      </div>;
+    }}</Show>
+  </div>;
+}
+
+function ArrayEditorAll(props: {schema: ArraySchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
   return <div class="space-y-2">
     <For each={(() => {
       const res = value();
-      console.log("array editor value", res);
       if(Array.isArray(res)) return res;
       return [];
     })()}>{(item, index) => <div class="space-y-2">
@@ -36,12 +88,20 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
         />
       </div>
     </div>}</For>
-    <div><Button onClick={() => setValue(it => Array.isArray(it) ? [...it, {
-      "array_symbol": uuid(),
-    }] : [{
-      "array_symbol": uuid(),
-    }])}>+ Add</Button></div>
+    <div><Button onClick={() => {
+      setValue(it => {
+        const new_item = {array_symbol: uuid()};
+        return Array.isArray(it) ? [...it, new_item] : [new_item];
+      });
+    }}>+ Add</Button></div>
   </div>;
+}
+
+function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
+  return (props.schema.opts.view_mode === "tab-bar" ?
+    <ArrayEditorTabbed schema={props.schema} path={props.path} /> :
+    <ArrayEditorAll schema={props.schema} path={props.path} />
+  )
 }
 
 function Button(props: {
@@ -118,7 +178,7 @@ function AllLinksEditor(props: {schema: AllLinksSchema, path: Path}): JSX.Elemen
   const state = getState();
   const dataSchema = () => state.root_schema.symbols[props.schema.tag];
   return <div>
-    <ArrayEditor schema={sc.array(dataSchema())} path={["data", props.schema.tag]} />
+    <ArrayEditor schema={sc.array(dataSchema(), props.schema.opts)} path={["data", props.schema.tag]} />
   </div>;
 }
 

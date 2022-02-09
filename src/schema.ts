@@ -11,9 +11,9 @@ export const sc = {
   },
   string: (): StringSchema => ({kind: "string"}),
   boolean: (): BooleanSchema => ({kind: "boolean"}),
-  array: (child: NodeSchema): ArraySchema => ({kind: "array", child}),
+  array: (child: NodeSchema, opts: ArrayOpts = {}): ArraySchema => ({kind: "array", child, opts}),
   link: (tag: UUID): LinkSchema => ({kind: "link", tag}),
-  allLinks: (tag: UUID): AllLinksSchema => ({kind: "all_links", tag}),
+  allLinks: (tag: UUID, opts: ArrayOpts = {}): AllLinksSchema => ({kind: "all_links", tag, opts}),
   dynamic: (resolver: DynamicResolver): DynamicSchema => ({kind: "dynamic", resolver}),
 } as const;
 
@@ -44,9 +44,13 @@ export type ObjectSchema = {
   fields: ObjectField[],
   opts: ObjectOpts,
 };
+export type ArrayOpts = {
+  view_mode?: undefined | "all" | "tab-bar",
+};
 export type ArraySchema = {
   kind: "array",
   child: NodeSchema,
+  opts: ArrayOpts,
 };
 export type StringSchema = {
   kind: "string",
@@ -61,6 +65,7 @@ export type LinkSchema = {
 export type AllLinksSchema = {
   kind: "all_links",
   tag: UUID,
+  opts: ArrayOpts,
 };
 export type DynamicResolver = (
   path: Path,
