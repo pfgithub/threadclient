@@ -115,9 +115,9 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
 
 function AllLinksEditor(props: {schema: AllLinksSchema, path: Path}): JSX.Element {
   const state = getState();
-  const data_schema = state.root_schema.symbols.find(sym => sym[0] === props.schema.tag)?.[1];
+  const dataSchema = () => state.root_schema.symbols[props.schema.tag];
   return <div>
-    <ArrayEditor schema={sc.array(data_schema)} path={["data", props.schema.tag]} />
+    <ArrayEditor schema={sc.array(dataSchema())} path={["data", props.schema.tag]} />
   </div>;
 }
 
@@ -125,7 +125,7 @@ function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
   const [choices, setChoices] = modValue(() => ["data", props.schema.tag]);
   const state = getState();
-  const data_schema = state.root_schema.symbols.find(sym => sym[0] === props.schema.tag)?.[1];
+  const dataSchema = () => state.root_schema.symbols[props.schema.tag];
   const isSelected = createSelector(value);
   return <div>
     <select
@@ -143,7 +143,7 @@ function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
         return c;
       })()}>{(choice, i) => {
         return <option value={i()} selected={isSelected(choice.array_symbol)}>
-          {i()} {summarize(choice.array_item, data_schema)}
+          {i()} {summarize(choice.array_item, dataSchema())}
         </option>;
       }}</For>
     </select>

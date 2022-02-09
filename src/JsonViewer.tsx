@@ -54,7 +54,7 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema, sym_map: SymMa
     },
     all_links: al => {
       const state = getState();
-      const schema = state.root_schema.symbols.find(v => v[0] === al.tag)?.[1];
+      const schema = state.root_schema.symbols[al.tag];
       if(!schema) return new JSONRaw("#E_SCHEMA_MISSING_SYMBOL");
       const data = state.state.data.data[al.tag];
       if(!data) return {};

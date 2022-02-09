@@ -50,12 +50,16 @@ const layer_schema: NodeSchema = sc.object({
 //   input_button: button_schema,
 //   output_button: button_schema,
 
-const person_link = Symbol("person_link");
+// TODO:
+// - use uuids instead of symbols
+// - this will keep them stable
 
-const input_button = Symbol("input_button");
-const output_button = Symbol("output_button");
-const scene = Symbol("scene");
-const layer = Symbol("layer");
+const person_link = Symbol("5bdcd7dc-ab06-47c7-9d8b-f9c79dd46284");
+
+const input_button = Symbol("0cdfae1d-775f-4f49-9ab4-094633ed1e09");
+const output_button = Symbol("96b24915-2fd0-46e4-b2a7-4d591a36d0fa");
+const scene = Symbol("9a1bb843-89b9-4281-8958-f71d341cbf8a");
+const layer = Symbol("a374e26e-0882-41b1-b6d8-efba29409452");
 
 const root_schema: RootSchema = {
   root: sc.object({
@@ -79,14 +83,14 @@ const root_schema: RootSchema = {
       layers: sc.allLinks(layer),
     }),
   }),
-  symbols: [
-    [person_link, person_schema],
+  symbols: {
+    [person_link]: person_schema,
 
-    [input_button, button_schema],
-    [output_button, button_schema],
-    [scene, layer_schema],
-    [layer, layer_schema],
-  ],
+    [input_button]: button_schema,
+    [output_button]: button_schema,
+    [scene]: layer_schema,
+    [layer]: layer_schema,
+  },
 };
 // buttons:
 //   input:

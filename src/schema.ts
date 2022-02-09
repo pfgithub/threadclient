@@ -24,7 +24,7 @@ export type NodeSchema =
 
 export type RootSchema = {
   root: NodeSchema,
-  symbols: [symbol, NodeSchema][],
+  symbols: {[key: symbol]: NodeSchema}
 };
 
 export type ObjectOpts = {
