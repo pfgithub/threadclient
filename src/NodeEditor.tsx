@@ -50,6 +50,14 @@ function ArrayEditorTabbed(props: {schema: ArraySchema, path: Path}): JSX.Elemen
     </div>
     <Show when={entry()}>{([id, item, item_idx]) => {
       return <div class="mt-2">
+        <div><Button
+          onClick={() => setValue(it => Array.isArray(it) ? it.filter(v => {
+            return v.array_symbol !== (typeof item === "object" ? item : {})["array_symbol"];
+          }) : (() => {
+            throw new Error("is not array even though is");
+          })())}
+        >Delete</Button></div>
+        <div class="mt-2" />
         <NodeEditor
           schema={props.schema.child}
           path={[...props.path, item_idx, "array_item"]}
@@ -72,7 +80,7 @@ function ArrayEditorAll(props: {schema: ArraySchema, path: Path}): JSX.Element {
         {" "}
         <Button
           onClick={() => setValue(it => Array.isArray(it) ? it.filter(v => {
-            return v.array_symbol !== item.array_symbol;
+            return v.array_symbol !== (typeof item === "object" ? item : {})["array_symbol"];
           }) : (() => {
             throw new Error("is not array even though is");
           })())}
@@ -161,7 +169,7 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
   )}>
     <div class="space-y-2">
       <For each={props.schema.fields}>{field => <div>
-        <div>{field.name}</div>
+        <div>{field.opts.title ?? field.name}</div>
         {/* TODO: make the border red if it does not pass validation vv */}
         <div class="pl-2 border-l-[0.5rem] border-gray-700">
           <NodeEditor

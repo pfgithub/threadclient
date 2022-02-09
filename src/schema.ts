@@ -1,11 +1,27 @@
 import { Path } from "./editor_data";
 import { UUID } from "./uuid";
 
+const is_specialfield: unique symbol = Symbol("special_field");
+type SpecialField = {
+  [is_specialfield]: true,
+  value: NodeSchema,
+  opts: FieldOpts,
+};
+
+function isSpecialField(v: NodeSchema | SpecialField): v is SpecialField {
+  return !!v[is_specialfield];
+}
+
 export const sc = {
-  object: (obj: {[key: string]: NodeSchema}, opts: ObjectOpts = {}): ObjectSchema => {
+  field: (value: NodeSchema, opts: FieldOpts = {}): SpecialField => ({[is_specialfield]: true, value, opts}),
+  object: (obj: {[key: string]: NodeSchema | SpecialField}, opts: ObjectOpts = {}): ObjectSchema => {
     return {
       kind: "object",
-      fields: Object.entries(obj).map(entry => ({name: entry[0], value: entry[1]})),
+      fields: Object.entries(obj).map(([key, value]) => ({
+        name: key,
+        value: isSpecialField(value) ? value.value : value,
+        opts: isSpecialField(value) ? value.opts : {},
+      })),
       opts,
     };
   },
@@ -32,12 +48,16 @@ export type RootSchema = {
   symbols: {[key: UUID]: NodeSchema}
 };
 
-export type ObjectOpts = {
-  summarize?: undefined | ((v: unknown) => string),
+export type FieldOpts = {
+  title?: undefined | string,
 };
 export type ObjectField = {
   name: string,
   value: NodeSchema,
+  opts: FieldOpts,
+};
+export type ObjectOpts = {
+  summarize?: undefined | ((v: unknown) => string),
 };
 export type ObjectSchema = {
   kind: "object",

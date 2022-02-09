@@ -2,7 +2,7 @@ import { JSX } from 'solid-js';
 import { getState, getValueFromState, NodeProvider, State } from './editor_data';
 import JsonViewer from './JsonViewer';
 import NodeEditor from './NodeEditor';
-import { NodeSchema, RootSchema, sc } from './schema';
+import { NodeSchema, ObjectField, RootSchema, sc, summarize } from './schema';
 import { UUID } from './uuid';
 
 const person_schema: NodeSchema = sc.object({
@@ -27,26 +27,36 @@ const button_schema: NodeSchema = sc.object({
   id: sc.string(),
 }, {
   summarize: (v) => {
-    if(typeof v === "object"
-    && ('name' in v)
-    && typeof v["name"] === "string") return v["name"];
+    if(typeof v === "object") return "" + v["name"] + " (" + v["id"] + ")";
     return "*Unnamed*";
   },
 });
 const action_schema: NodeSchema = sc.object({
   action: sc.string(),
+  // ok I can hack it with a dynamic schema and an enum or I can make a proper
+  // union schema
 });
 const layer_schema: NodeSchema = sc.object({
   title: sc.string(),
   buttons: sc.dynamic((path) => {
     const state = getState();
-    return sc.object(Object.fromEntries(
-      Object.entries(getValueFromState(["data", input_button], state.state)).map(
-        ([key, value]) => {
-          return [value.array_symbol, action_schema];
+    return {
+      kind: "object",
+      fields: Object.entries(getValueFromState(["data", input_button], state.state)).map(
+        ([key, value]): ObjectField => {
+          return {
+            name: value.array_symbol,
+            value: action_schema,
+            opts: {
+              title: summarize(value.array_item, button_schema),
+            },
+          }
         },
-      )
-    ));
+      ),
+      opts: {
+        // display_mode: "tab-bar"
+      },
+    };
   }),
 }, {
   summarize: (v) => {
