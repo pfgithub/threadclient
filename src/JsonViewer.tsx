@@ -1,5 +1,6 @@
 import { JSX } from "solid-js/jsx-runtime";
 import { switchKind } from "./App";
+import { getState } from "./editor_data";
 import { NodeSchema } from "./schema";
 
 class JSONRaw {
@@ -36,6 +37,18 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema): unknown {
         return stringifySchemaEntry(entry.array_item, arr.child);
       });
     },
+    all_links: al => {
+      const state = getState();
+      const schema = state.root_schema.symbols.find(v => v[0] === al.tag)?.[1];
+      if(!schema) return new JSONRaw("#E_SCHEMA_MISSING_SYMBOL");
+      const data = state.state.data.data[al.tag];
+      if(!Array.isArray(data)) return new JSONRaw("#E_DATA_MISSING_LINK_OBJECT");
+      return data.map((value) => {
+        // TODO: keep a map to make unique string keys based on the symbol key
+        return stringifySchemaEntry(value.array_item, schema);
+      });
+    },
+    link: () => new JSONRaw("@TODO(link)"),
   });
 }
 
@@ -59,10 +72,12 @@ function stringifySchema(state: unknown, schema: NodeSchema): string {
 }
 
 export default function JsonViewer(props: {
-  state: unknown,
   schema: NodeSchema,
+  value: unknown,
 }): JSX.Element {
   return <pre class="font-mono whitespace-pre-wrap">{
-    stringifySchema(props.state, props.schema)
+    // TODO: untrack(() => stringifySchema)
+    // then, track a symbol that changes when setState is called instead
+    stringifySchema(props.value, props.schema)
   }</pre>
 }

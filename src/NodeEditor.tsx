@@ -2,17 +2,11 @@ import { createSignal, For, Show } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { SetStoreFunction, Store } from "solid-js/store";
 import { SwitchKind } from "./App";
-import { ArraySchema, BooleanSchema, NodeSchema, ObjectSchema, StringSchema } from "./schema";
+import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
+import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema } from "./schema";
 
-export type Path = (string | number)[];
-
-export type State = {
-  data: Store<{data: unknown}>,
-  setData: SetStoreFunction<{data: unknown}>,
-};
-
-function ArrayEditor(props: {schema: ArraySchema, path: Path, state: State}): JSX.Element {
-  const [value, setValue] = modValue(() => props.path, () => props.state);
+function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
+  const [value, setValue] = modValue(() => props.path);
   return <div class="space-y-2">
     <For each={(() => {
       const res = value();
@@ -33,8 +27,10 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path, state: State}): JS
       <div class="pl-2 border-l-[0.5rem] border-gray-700">
         <NodeEditor
           schema={props.schema.child}
+          // should we use the item array_symbol rather than
+          // its actual index in the path?
+          // I think that would be a good idea
           path={[...props.path, index(), "array_item"]}
-          state={props.state}
         />
       </div>
     </div>}</For>
@@ -60,17 +56,17 @@ function Button(props: {
     >{props.children}</button>;
 }
 
-function BooleanEditor(props: {schema: BooleanSchema, path: Path, state: State}): JSX.Element {
+function BooleanEditor(props: {schema: BooleanSchema, path: Path}): JSX.Element {
   // we need an unset vs false. true/false/unset.
-  const [value, setValue] = modValue(() => props.path, () => props.state);
+  const [value, setValue] = modValue(() => props.path);
   return <div>
     <Button active={value() === false} onClick={() => setValue(pv => pv === false ? undefined : false)}>Off</Button>
     <Button active={value() === true} onClick={() => setValue(pv => pv === true ? undefined : true)}>On</Button>
   </div>;
 }
 
-function StringEditor(props: {schema: StringSchema, path: Path, state: State}): JSX.Element {
-  const [value, setValue] = modValue(() => props.path, () => props.state);
+function StringEditor(props: {schema: StringSchema, path: Path}): JSX.Element {
+  const [value, setValue] = modValue(() => props.path);
   return <div>
     <Show
       when={typeof value() === "string"}
@@ -89,8 +85,8 @@ function StringEditor(props: {schema: StringSchema, path: Path, state: State}): 
   </div>;
 }
 
-function ObjectEditor(props: {schema: ObjectSchema, path: Path, state: State}): JSX.Element {
-  const [value, setValue] = modValue(() => props.path, () => props.state);
+function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
+  const [value, setValue] = modValue(() => props.path);
   return <Show when={typeof value() === "object"} fallback={(
     <div>
       <Button onClick={() => {
@@ -109,7 +105,6 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path, state: State}): 
           <NodeEditor
             schema={field.value}
             path={[...props.path, field.name]}
-            state={props.state}
           />
         </div>
       </div>}</For>
@@ -117,30 +112,32 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path, state: State}): 
   </Show>;
 }
 
+function AllLinksEditor(props: {schema: AllLinksSchema, path: Path}): JSX.Element {
+  const state = getState();
+  const data_schema = state.root_schema.symbols.find(sym => sym[0] === props.schema.tag)?.[1];
+  return <div>
+    <ArrayEditor schema={sc.array(data_schema)} path={["data", props.schema.tag]} />
+  </div>;
+}
+
+function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
+  return <div>TODO</div>;
+}
+
 function modValue(
   path: () => Path,
-  state: () => State,
 ): [
   value: () => unknown,
   setValue: (cb: (pv: unknown) => unknown) => void,
 ] {
+  const state = getState();
   return [
-    () => getValueFromState(path(), state()),
-    (nv) => setValueFromState(path(), state(), nv),
+    () => getValueFromState(path(), state.state),
+    (nv) => setValueFromState(path(), state.state, nv),
   ];
 }
-function getValueFromState(path: Path, state: State): unknown {
-  let node = state.data;
-  for(const entry of path) {
-    node = node[entry];
-  }
-  return node;
-}
-function setValueFromState(path: Path, state: State, value: unknown) {
-  state.setData(...path as unknown as ["data"], value);
-}
 
-function NodeEditor(props: {schema: NodeSchema, path: Path, state: State}): JSX.Element {
+function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
   return <div ref={node => {
     console.log("transitioning");
     node.className = "opacity-0";
@@ -154,10 +151,12 @@ function NodeEditor(props: {schema: NodeSchema, path: Path, state: State}): JSX.
     });
   }}>
     <SwitchKind item={props.schema}>{{
-      object: obj => <ObjectEditor schema={obj} path={props.path} state={props.state} />,
-      string: str => <StringEditor schema={str} path={props.path} state={props.state} />,
-      boolean: bool => <BooleanEditor schema={bool} path={props.path} state={props.state} />,
-      array: arr => <ArrayEditor schema={arr} path={props.path} state={props.state} />,
+      object: obj => <ObjectEditor schema={obj} path={props.path} />,
+      string: str => <StringEditor schema={str} path={props.path} />,
+      boolean: bool => <BooleanEditor schema={bool} path={props.path} />,
+      array: arr => <ArrayEditor schema={arr} path={props.path} />,
+      all_links: al => <AllLinksEditor schema={al} path={props.path} />,
+      link: link => <LinkEditor schema={link} path={props.path} />,
     }}</SwitchKind>
   </div>;
 }
