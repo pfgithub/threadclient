@@ -1,5 +1,5 @@
 import { JSX } from "solid-js/jsx-runtime";
-import { switchKind } from "./App";
+import { switchKind } from "./util";
 import { getState } from "./editor_data";
 import { NodeSchema } from "./schema";
 
@@ -57,7 +57,8 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema, sym_map: SymMa
       const schema = state.root_schema.symbols.find(v => v[0] === al.tag)?.[1];
       if(!schema) return new JSONRaw("#E_SCHEMA_MISSING_SYMBOL");
       const data = state.state.data.data[al.tag];
-      if(!Array.isArray(data)) return new JSONRaw("#E_DATA_MISSING_LINK_OBJECT");
+      if(!data) return {};
+      if(!Array.isArray(data)) return new JSONRaw("#E_DATA_BAD_LINK_OBJECT");
       return Object.fromEntries(data.map((value) => {
         // TODO: keep a map to make unique string keys based on the symbol key
         const sym = value.array_symbol;

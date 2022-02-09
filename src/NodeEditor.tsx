@@ -1,7 +1,7 @@
 import { createSelector, createSignal, For, Show } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { SetStoreFunction, Store } from "solid-js/store";
-import { SwitchKind } from "./App";
+import { SwitchKind } from "./util";
 import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
 import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize } from "./schema";
 
@@ -10,6 +10,7 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
   return <div class="space-y-2">
     <For each={(() => {
       const res = value();
+      console.log("array editor value", res);
       if(Array.isArray(res)) return res;
       return [];
     })()}>{(item, index) => <div class="space-y-2">

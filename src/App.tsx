@@ -1,10 +1,8 @@
-import { createMemo, JSX } from 'solid-js';
-import { createStore } from "solid-js/store";
-import { NodeProvider, StateValue } from './editor_data';
+import { JSX } from 'solid-js';
+import { NodeProvider, State } from './editor_data';
 import JsonViewer from './JsonViewer';
 import NodeEditor from './NodeEditor';
 import { NodeSchema, RootSchema, sc } from './schema';
-
 
 const person_schema: NodeSchema = sc.object({
   name: sc.string(),
@@ -26,6 +24,7 @@ const person_schema: NodeSchema = sc.object({
 const button_schema: NodeSchema = sc.object({
   name: sc.string(),
   id: sc.string(),
+  entry: sc.string(),
 }, {
   summarize: (v) => {
     if(typeof v === "object"
@@ -34,8 +33,11 @@ const button_schema: NodeSchema = sc.object({
     return "*Unnamed*";
   },
 });
+const action_schema: NodeSchema = sc.object({
+  action: sc.string(),
+});
 const layer_schema: NodeSchema = sc.object({
-  todo: sc.string(),
+  todo: action_schema,
 });
 
 // button_schema:
@@ -97,24 +99,12 @@ const root_schema: RootSchema = {
 // layers:
 //   sc.all_links("layers")
 
-export default function App(): JSX.Element {
-  const [data, setData] = createStore<{data: StateValue}>({
-    // in order to add links, we'll switch this to contian link kinds and arrays
-    // of values. it will no longer be directly JSON.toString() able, instead you'll
-    // have to stringify based on the schema
-    //
-    // actually maybe don't do that. maybe keep it tostringable
-    //
-    // hmm idk
-    data: {
-      root: undefined,
-      ...Object.fromEntries(root_schema.symbols.map(sym => [sym[0], []])),
-    },
-  });
-
+export default function App(props: {
+  state: State,
+}): JSX.Element {
   return <NodeProvider
     root={root_schema}
-    state={{data, setData}}
+    state={props.state}
   >
     <div class="grid gap-20 md:grid-cols-2 max-w-6xl mx-auto h-full">
       <div class="bg-gray-800 p-4">
@@ -126,40 +116,9 @@ export default function App(): JSX.Element {
       <div class="bg-gray-800 p-4">
         <JsonViewer
           schema={root_schema.root}
-          value={data.data.root}
+          value={props.state.data.data.root}
         />
       </div>
     </div>
   </NodeProvider>;
 };
-
-export type Include<T, U> = T extends U ? T : never;
-
-export function kindIs<K extends string, T extends {kind: string}>(value: T, key: K): Include<T, {kind: K}> | null {
-    return value.kind === key ? value as unknown as null : null;
-}
-
-export type MatchFn<T, Key, R> = (value: Include<T, {kind: Key}>) => R;
-
-export function switchKindCB<U>(item: {kind: string}, choices: {[key: string]: (item: any) => U}): () => U {
-    const match = choices[item.kind] ?? choices["unsupported"] ?? (() => {
-        throw new Error("condition "+item.kind+" was not handled and no unsupported branch");
-    });
-    return () => match(item);
-}
-export function switchKind<T extends {kind: string}, U>(
-    item: T,
-    choices: {[Key in T["kind"]]: MatchFn<T, Key, U>},
-): U {
-    return switchKindCB<U>(item, choices)();
-}
-
-export function SwitchKind<T extends {kind: string}>(props: {
-  item: T,
-  children: {[Key in T["kind"]]: MatchFn<T, Key, JSX.Element>},
-}): JSX.Element {
-  return createMemo(() => {
-      const match = switchKindCB<JSX.Element>(props.item, props.children);
-      return match();
-  });
-}
