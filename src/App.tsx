@@ -83,7 +83,7 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema): unknown {
 function stringifySchema(state: unknown, schema: NodeSchema): string {
   const escapeString = (str: string): string => str.replaceAll("%", "<%>");
   return JSON.stringify(
-    stringifySchemaEntry(state, root_schema),
+    stringifySchemaEntry(state, schema),
     (key, value) => {
       if(typeof value === "string") return escapeString(value);
       if(typeof value === "object") {
