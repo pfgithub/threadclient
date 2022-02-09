@@ -1,5 +1,8 @@
 import { createMemo, JSX } from 'solid-js';
-import NodeEditor, { NodeSchema, sc } from './NodeEditor';
+import { createStore } from "solid-js/store";
+import NodeEditor from './NodeEditor';
+import { NodeSchema, sc } from './schema';
+
 
 const person_schema: NodeSchema = sc.object({
   name: sc.string(),
@@ -40,10 +43,56 @@ const root_schema: NodeSchema = sc.object({
   person: person_schema,
 });
 
+function stringifySchema(state: unknown, schema: NodeSchema): unknown {
+  return switchKind(schema, {
+    object: obj => {
+      if(typeof state !== "object") return "#E_NOT_OBJECT";
+      return Object.fromEntries(obj.fields.map(field => {
+        return [
+          field.name,
+          stringifySchema(state[field.name], field.value),
+        ];
+      }));
+    },
+    string: () => {
+      if(typeof state === "string") return state;
+      return "#E_NOT_STRING";
+    },
+    boolean: () => {
+      if(typeof state === "boolean") return state;
+      return "#E_NOT_BOOLEAN";
+    },
+    array: arr => {
+      if(!Array.isArray(state)) return "#E_NOT_ARRAY";
+      return state.map(entry => {
+        if(typeof entry !== "object") return "#E_NOT_ARRAY_CHILD";
+        if(!('array_symbol' in entry)) return "#E_NOT_ARRAY_CHILD";
+        return stringifySchema(entry.array_item, arr.child);
+      });
+    },
+  });
+}
+
 export default function App(): JSX.Element {
+  const [data, setData] = createStore({
+    // in order to add links, we'll switch this to contian link kinds and arrays
+    // of values. it will no longer be directly JSON.toString() able, instead you'll
+    // have to stringify based on the schema
+    //
+    // actually maybe don't do that. maybe keep it tostringable
+    //
+    // hmm idk
+    data: undefined,
+  });
+
   return (
-    <div class="ml-auto mr-auto max-w-2xl w-full h-full bg-gray-800 p-4">
-      <NodeEditor schema={root_schema} />
+    <div class="grid gap-20 md:grid-cols-2 max-w-6xl mx-auto h-full">
+      <div class="bg-gray-800 p-4">
+        <NodeEditor schema={root_schema} path={["data"]} state={{data, setData}} />
+      </div>
+      <div class="bg-gray-800 p-4 font-mono whitespace-pre-wrap">
+        {JSON.stringify(stringifySchema(data.data, root_schema), null, " ")}
+      </div>
     </div>
   );
 };
