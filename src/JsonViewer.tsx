@@ -1,6 +1,6 @@
 import { JSX } from "solid-js/jsx-runtime";
 import { switchKind } from "./util";
-import { getState } from "./editor_data";
+import { getState, getValueFromState, Path } from "./editor_data";
 import { NodeSchema } from "./schema";
 
 class JSONRaw {
@@ -10,14 +10,16 @@ class JSONRaw {
   }
 }
 
-function stringifySchemaEntry(state: unknown, schema: NodeSchema): unknown {
+function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
+  const root_state = getState();
+  const state = getValueFromState(path, root_state.state);
   return switchKind(schema, {
     object: obj => {
       if(typeof state !== "object") return new JSONRaw("#E_NOT_OBJECT");
       return Object.fromEntries(obj.fields.map(field => {
         return [
           field.name,
-          stringifySchemaEntry(state[field.name], field.value),
+          stringifySchemaEntry([...path, field.name], field.value),
         ];
       }));
     },
@@ -31,10 +33,10 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema): unknown {
     },
     array: arr => {
       if(!Array.isArray(state)) return new JSONRaw("#E_NOT_ARRAY");
-      return state.map(entry => {
+      return state.map((entry, key) => {
         if(typeof entry !== "object") return new JSONRaw("#E_NOT_ARRAY_CHILD");
         if(!('array_symbol' in entry)) return new JSONRaw("#E_NOT_ARRAY_CHILD");
-        return stringifySchemaEntry(entry.array_item, arr.child);
+        return stringifySchemaEntry([...path, key, "array_item"], arr.child);
       });
     },
     all_links: al => {
@@ -44,12 +46,12 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema): unknown {
       const data = state.state.data.data[al.tag];
       if(!data) return {};
       if(!Array.isArray(data)) return new JSONRaw("#E_DATA_BAD_LINK_OBJECT");
-      return Object.fromEntries(data.map((value) => {
+      return Object.fromEntries(data.map((value, key) => {
         // TODO: keep a map to make unique string keys based on the symbol key
         const sym = value.array_symbol;
         return [
           sym,
-          stringifySchemaEntry(value.array_item, schema),
+          stringifySchemaEntry(["data", al.tag, key, "array_item"], schema),
         ];
       }));
     },
@@ -57,13 +59,16 @@ function stringifySchemaEntry(state: unknown, schema: NodeSchema): unknown {
       if(typeof state === "string") return state;
       return new JSONRaw("#E_NOT_LINK");
     },
+    dynamic: dyn => {
+      return stringifySchemaEntry(path, dyn.resolver(path))
+    },
   });
 }
 
-function stringifySchema(state: unknown, schema: NodeSchema): string {
+function stringifySchema(path: Path, schema: NodeSchema): string {
   const escapeString = (str: string): string => str.replaceAll("%", "<%>");
   return JSON.stringify(
-    stringifySchemaEntry(state, schema),
+    stringifySchemaEntry(path, schema),
     (key, value) => {
       if(typeof value === "string") return escapeString(value);
       if(typeof value === "object") {
@@ -81,11 +86,11 @@ function stringifySchema(state: unknown, schema: NodeSchema): string {
 
 export default function JsonViewer(props: {
   schema: NodeSchema,
-  value: unknown,
+  path: Path,
 }): JSX.Element {
   return <pre class="font-mono whitespace-pre-wrap">{
     // TODO: untrack(() => stringifySchema)
     // then, track a symbol that changes when setState is called instead
-    stringifySchema(props.value, props.schema)
+    stringifySchema(props.path, props.schema)
   }</pre>
 }

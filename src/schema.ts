@@ -1,3 +1,4 @@
+import { Path } from "./editor_data";
 import { UUID } from "./uuid";
 
 export const sc = {
@@ -13,6 +14,7 @@ export const sc = {
   array: (child: NodeSchema): ArraySchema => ({kind: "array", child}),
   link: (tag: UUID): LinkSchema => ({kind: "link", tag}),
   allLinks: (tag: UUID): AllLinksSchema => ({kind: "all_links", tag}),
+  dynamic: (resolver: DynamicResolver): DynamicSchema => ({kind: "dynamic", resolver}),
 } as const;
 
 export type NodeSchema =
@@ -22,6 +24,7 @@ export type NodeSchema =
   | ArraySchema
   | LinkSchema
   | AllLinksSchema
+  | DynamicSchema
 ;
 
 export type RootSchema = {
@@ -58,6 +61,13 @@ export type LinkSchema = {
 export type AllLinksSchema = {
   kind: "all_links",
   tag: UUID,
+};
+export type DynamicResolver = (
+  path: Path,
+) => NodeSchema;
+export type DynamicSchema = {
+  kind: "dynamic",
+  resolver: DynamicResolver,
 };
 
 // TODO: summarize should return a JSX.Element rather than just a single

@@ -184,6 +184,7 @@ function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
       array: arr => <ArrayEditor schema={arr} path={props.path} />,
       all_links: al => <AllLinksEditor schema={al} path={props.path} />,
       link: link => <LinkEditor schema={link} path={props.path} />,
+      dynamic: dynamic => <NodeEditor schema={dynamic.resolver(props.path)} path={props.path} />
     }}</SwitchKind>
   </div>;
 }

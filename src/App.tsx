@@ -1,5 +1,5 @@
 import { JSX } from 'solid-js';
-import { NodeProvider, State } from './editor_data';
+import { getState, getValueFromState, NodeProvider, State } from './editor_data';
 import JsonViewer from './JsonViewer';
 import NodeEditor from './NodeEditor';
 import { NodeSchema, RootSchema, sc } from './schema';
@@ -25,7 +25,6 @@ const person_schema: NodeSchema = sc.object({
 const button_schema: NodeSchema = sc.object({
   name: sc.string(),
   id: sc.string(),
-  entry: sc.string(),
 }, {
   summarize: (v) => {
     if(typeof v === "object"
@@ -38,7 +37,24 @@ const action_schema: NodeSchema = sc.object({
   action: sc.string(),
 });
 const layer_schema: NodeSchema = sc.object({
-  todo: action_schema,
+  title: sc.string(),
+  buttons: sc.dynamic((path) => {
+    const state = getState();
+    return sc.object(Object.fromEntries(
+      Object.entries(getValueFromState(["data", input_button], state.state)).map(
+        ([key, value]) => {
+          return [value.array_symbol, action_schema];
+        },
+      )
+    ));
+  }),
+}, {
+  summarize: (v) => {
+    if(typeof v === "object"
+    && ('title' in v)
+    && typeof v["title"] === "string") return v["title"];
+    return "*Unnamed*";
+  },
 });
 
 // button_schema:
@@ -121,7 +137,7 @@ export default function App(props: {
       <div class="bg-gray-800 p-4">
         <JsonViewer
           schema={root_schema.root}
-          value={props.state.data.data.root}
+          path={["data", "root"]}
         />
       </div>
     </div>

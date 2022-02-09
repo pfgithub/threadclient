@@ -18,6 +18,10 @@ export type State = {
 export function getValueFromState(path: Path, state: State): unknown {
   let node = state.data;
   for(const entry of path) {
+    if(!node) {
+      console.log("EPATH", path);
+      throw new Error("path is undefined. path: `"+path.join(" / ")+"`");
+    }
     node = node[entry];
   }
   return node;
