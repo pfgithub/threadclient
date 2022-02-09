@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createSelector, createSignal, For, Show } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { SetStoreFunction, Store } from "solid-js/store";
 import { SwitchKind } from "./App";
@@ -121,7 +121,30 @@ function AllLinksEditor(props: {schema: AllLinksSchema, path: Path}): JSX.Elemen
 }
 
 function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
-  return <div>TODO</div>;
+  const [value, setValue] = modValue(() => props.path);
+  const [choices, setChoices] = modValue(() => ["data", props.schema.tag]);
+  const isSelected = createSelector(value);
+  return <div>
+    <select
+      class="bg-gray-700 px-1 rounded-md"
+      onInput={(e) => {
+        const val = e.currentTarget.value;
+        if(val === "") return setValue(undefined);
+        setValue(choices()[val].array_symbol);
+      }}
+    >
+      <option value={""} selected={isSelected(undefined)}>None</option>
+      <For each={(() => {
+        const c = choices();
+        if(!Array.isArray(c)) return [];
+        return c;
+      })()}>{(choice, i) => {
+        return <option value={i()} selected={isSelected(choice.array_symbol)}>
+          {i()}
+        </option>;
+      }}</For>
+    </select>
+  </div>;
 }
 
 function modValue(
