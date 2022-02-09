@@ -43,34 +43,59 @@ const root_schema: NodeSchema = sc.object({
   person: person_schema,
 });
 
-function stringifySchema(state: unknown, schema: NodeSchema): unknown {
+class JSONRaw {
+  message: string;
+  constructor(text: string) {
+    this.message = text;
+  }
+}
+
+function stringifySchemaEntry(state: unknown, schema: NodeSchema): unknown {
   return switchKind(schema, {
     object: obj => {
-      if(typeof state !== "object") return "#E_NOT_OBJECT";
+      if(typeof state !== "object") return new JSONRaw("#E_NOT_OBJECT");
       return Object.fromEntries(obj.fields.map(field => {
         return [
           field.name,
-          stringifySchema(state[field.name], field.value),
+          stringifySchemaEntry(state[field.name], field.value),
         ];
       }));
     },
     string: () => {
       if(typeof state === "string") return state;
-      return "#E_NOT_STRING";
+      return new JSONRaw("#E_NOT_STRING");
     },
     boolean: () => {
       if(typeof state === "boolean") return state;
-      return "#E_NOT_BOOLEAN";
+      return new JSONRaw("#E_NOT_BOOLEAN");
     },
     array: arr => {
-      if(!Array.isArray(state)) return "#E_NOT_ARRAY";
+      if(!Array.isArray(state)) return new JSONRaw("#E_NOT_ARRAY");
       return state.map(entry => {
-        if(typeof entry !== "object") return "#E_NOT_ARRAY_CHILD";
-        if(!('array_symbol' in entry)) return "#E_NOT_ARRAY_CHILD";
-        return stringifySchema(entry.array_item, arr.child);
+        if(typeof entry !== "object") return new JSONRaw("#E_NOT_ARRAY_CHILD");
+        if(!('array_symbol' in entry)) return new JSONRaw("#E_NOT_ARRAY_CHILD");
+        return stringifySchemaEntry(entry.array_item, arr.child);
       });
     },
   });
+}
+
+function stringifySchema(state: unknown, schema: NodeSchema): string {
+  const escapeString = (str: string): string => str.replaceAll("%", "<%>");
+  return JSON.stringify(
+    stringifySchemaEntry(state, root_schema),
+    (key, value) => {
+      if(typeof value === "string") return escapeString(value);
+      if(typeof value === "object") {
+        if(value instanceof JSONRaw) return "%"+escapeString(value.message)+"%";
+        return Object.fromEntries(
+          Object.entries(value).map(([k, v]) => [escapeString(k), v]),
+        );
+      }
+      return value;
+    },
+    " ",
+  ).replaceAll("\"%", "").replaceAll("%\"", "").replaceAll("<%>", "%");
 }
 
 export default function App(): JSX.Element {
@@ -91,7 +116,7 @@ export default function App(): JSX.Element {
         <NodeEditor schema={root_schema} path={["data"]} state={{data, setData}} />
       </div>
       <div class="bg-gray-800 p-4 font-mono whitespace-pre-wrap">
-        {JSON.stringify(stringifySchema(data.data, root_schema), null, " ")}
+        {stringifySchema(data.data, root_schema)}
       </div>
     </div>
   );
