@@ -88,6 +88,7 @@ function stringifySchema(state: unknown, schema: NodeSchema): string {
       if(typeof value === "string") return escapeString(value);
       if(typeof value === "object") {
         if(value instanceof JSONRaw) return "%"+escapeString(value.message)+"%";
+        if(Array.isArray(value)) return value;
         return Object.fromEntries(
           Object.entries(value).map(([k, v]) => [escapeString(k), v]),
         );
