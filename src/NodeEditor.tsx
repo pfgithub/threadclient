@@ -119,44 +119,6 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
   }}</TabOrListEditor>;
 }
 
-function ArrayEditorAll(props: {schema: ArraySchema, path: Path}): JSX.Element {
-  const [value, setValue] = modValue(() => props.path);
-  return <div class="space-y-2">
-    <For each={(() => {
-      const res = value();
-      if(Array.isArray(res)) return res;
-      return [];
-    })()}>{(item, index) => <div class="space-y-2">
-      <div>
-        {index()}{": "}{summarize(item.array_item, props.schema.child)}
-        {" "}
-        <Button
-          onClick={() => setValue(it => Array.isArray(it) ? it.filter(v => {
-            return v.array_symbol !== (typeof item === "object" ? item : {})["array_symbol"];
-          }) : (() => {
-            throw new Error("is not array even though is");
-          })())}
-        >X</Button>
-      </div>
-      <div class="pl-2 border-l-[0.5rem] border-gray-700">
-        <NodeEditor
-          schema={props.schema.child}
-          // should we use the item array_symbol rather than
-          // its actual index in the path?
-          // I think that would be a good idea
-          path={[...props.path, index(), "array_item"]}
-        />
-      </div>
-    </div>}</For>
-    <div><Button onClick={() => {
-      setValue(it => {
-        const new_item = {array_symbol: uuid()};
-        return Array.isArray(it) ? [...it, new_item] : [new_item];
-      });
-    }}>+ Add</Button></div>
-  </div>;
-}
-
 function Button(props: {
   onClick: () => void,
   children: JSX.Element,
