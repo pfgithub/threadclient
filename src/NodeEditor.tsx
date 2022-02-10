@@ -1,10 +1,10 @@
-import { createSelector, createSignal, For, Show } from "solid-js";
+import { Accessor, createMemo, createSelector, createSignal, For, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
-import { SetStoreFunction, Store } from "solid-js/store";
 import { SwitchKind } from "./util";
 import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
 import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize } from "./schema";
-import { UUID, uuid } from "./uuid";
+import { uuid } from "./uuid";
+import { Key } from "./Key";
 
 // switch arrays to use objects
 // and figure out how to make <For> accept a key
@@ -15,38 +15,64 @@ function TabOrListEditor<T>(props: {
     key: string | (() => string),
     title: string,
   })[],
-  tabData: (id: string) => T | null,
-  children: (data: T) => JSX.Element,
+  children: (key: string) => JSX.Element,
 }): JSX.Element {
-  const [active, setActive] = createSignal<string | null>(null);
-  const isSelected = createSelector(active);
+  return createMemo((): JSX.Element => {
+    if(props.mode === "tab-bar") return untrack((): JSX.Element => {
+      const [active, setActive] = createSignal<string | null>(null);
+      const isSelected = createSelector(active);
 
-  return <div>
-    <div><For each={props.tabs}>{tab => (
-      <Button
-        active={isSelected(tab.key)}
-        onClick={() => {
-          const key = typeof tab.key === "function" ? tab.key() : tab.key;
-          setActive(v => v === key ? null : key);
-        }}
-      >{tab.title}</Button>
-    )}</For></div>
-    <Show when={(() => {
-      const id = active();
-      if(id == null) return null;
-      return props.tabData(id);
-    })()}>{data => <>
-      <div class="mt-2" />
-      {props.children(data)}
-    </>}</Show>
-  </div>;
+      const tabs = createMemo(() => props.tabs);
+    
+      return <div>
+        <div><For each={tabs()}>{tab => (
+          <Button
+            active={isSelected(tab.key)}
+            onClick={() => {
+              const key = typeof tab.key === "function" ? tab.key() : tab.key;
+              setActive(v => v === key ? null : key);
+            }}
+          >{tab.title}</Button>
+        )}</For></div>
+        <Show when={(() => {
+          const id = active();
+          if(id == null) return null;
+          const tab = tabs().find(t => t.key === id);
+          if(tab == null) return null;
+          return [id] as const;
+        })()}>{([id]) => <>
+          <div class="mt-2" />
+          {untrack(() => props.children(id))}
+        </>}</Show>
+      </div>;
+    });
+    return untrack((): JSX.Element => {
+      return <div class="space-y-2">
+        <Key each={props.tabs} by={tab => tab.key}>{(tab, _, key: string | (() => string)) => {
+          return <div>{
+            typeof key === "function" ? <div>
+              <Button onClick={() => {
+                if(typeof key !== "function") return alert("EBAD");
+                key();
+              }}>{tab().title}</Button>
+            </div> : <div>
+              <div>{tab().title}</div>
+              <div class="pl-2 border-l-[0.5rem] border-gray-700">
+                {untrack(() => props.children(key))}
+              </div>
+            </div>
+          }</div>;
+        }}</Key>
+      </div>;
+    });
+  });
 }
 
-function ArrayEditorTabbed(props: {schema: ArraySchema, path: Path}): JSX.Element {
+function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
 
   return <TabOrListEditor
-    mode="tab-bar"
+    mode={props.schema.opts.view_mode}
     tabs={[...(() => {
       const res = value();
       if(!Array.isArray(res)) return [];
@@ -66,27 +92,31 @@ function ArrayEditorTabbed(props: {schema: ArraySchema, path: Path}): JSX.Elemen
         return new_item.array_symbol;
       },
     }]}
-    tabData={(id): [unknown, number] => {
-      const data = value();
-      if(!Array.isArray(data)) return null;
-      const index = data.findIndex(v => v.array_symbol === id);
-      if(index == -1) return null;
-      return [data[index], index];
-    }}
-  >{([item, item_idx]) => <>
-    <div><Button
-      onClick={() => setValue(it => Array.isArray(it) ? it.filter(v => {
-        return v.array_symbol !== (typeof item === "object" ? item : {})["array_symbol"];
-      }) : (() => {
-        throw new Error("is not array even though is");
-      })())}
-    >Delete</Button></div>
-    <div class="mt-2" />
-    <NodeEditor
-      schema={props.schema.child}
-      path={[...props.path, item_idx, "array_item"]}
-    />
-  </>}</TabOrListEditor>;
+  >{(key) => {
+    const itemIdx = () => {
+      const res = value();
+      if(!Array.isArray(res)) throw new Error("no item idx?");
+      const index = res.findIndex(item => item.array_symbol === key);
+      if(index === -1) throw new Error("rendering item not in array?");
+      return index;
+    };
+    return <>
+      <div><Button
+        onClick={() => {
+          setValue(it => Array.isArray(it) ? it.filter(v => {
+            return v.array_symbol !== key;
+          }) : (() => {
+            throw new Error("is not array even though is");
+          })())
+        }}
+      >Delete</Button></div>
+      <div class="mt-2" />
+      <NodeEditor
+        schema={props.schema.child}
+        path={[...props.path, itemIdx(), "array_item"]}
+      />
+    </>;
+  }}</TabOrListEditor>;
 }
 
 function ArrayEditorAll(props: {schema: ArraySchema, path: Path}): JSX.Element {
@@ -125,13 +155,6 @@ function ArrayEditorAll(props: {schema: ArraySchema, path: Path}): JSX.Element {
       });
     }}>+ Add</Button></div>
   </div>;
-}
-
-function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
-  return (props.schema.opts.view_mode === "tab-bar" ?
-    <ArrayEditorTabbed schema={props.schema} path={props.path} /> :
-    <ArrayEditorAll schema={props.schema} path={props.path} />
-  )
 }
 
 function Button(props: {

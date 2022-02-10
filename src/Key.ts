@@ -8,10 +8,10 @@ import {
   Accessor
 } from "solid-js";
 
-export function Key<T>(props: {
+export function Key<T, U>(props: {
   each: T[],
-  by: (item: T) => unknown,
-  children: (item: Accessor<T>, i: Accessor<number>) => JSX.Element,
+  by: (item: T) => U,
+  children: (item: Accessor<T>, i: Accessor<number>, key: U) => JSX.Element,
 }) {
   const key = props.by;
   const mapFn = props.children;
@@ -32,10 +32,10 @@ export function Key<T>(props: {
         const lookup = prev.get(keyValue);
         if (!lookup) {
           mapped[i] = createRoot((dispose) => {
-            disposers.set(key, dispose);
+            disposers.set(keyValue, dispose);
             const index = createSignal(i);
             const item = createSignal(listItem);
-            const result = mapFn(item[0], index[0]);
+            const result = mapFn(item[0], index[0], keyValue);
             newNodes.set(keyValue, { index, item, result });
             return result;
           });
@@ -46,9 +46,12 @@ export function Key<T>(props: {
           newNodes.set(keyValue, lookup);
         }
       }
-      // disposal
       for (const old of prev.keys()) {
-        if (!newNodes.has(old)) disposers.get(old)();
+        if (!newNodes.has(old)) {
+          const disposer = disposers.get(old);
+          disposers.delete(old);
+          disposer();
+        }
       }
       prev = newNodes;
       return mapped;
