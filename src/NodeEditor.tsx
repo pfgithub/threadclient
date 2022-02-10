@@ -23,6 +23,14 @@ function TabOrListEditor<T>(props: {
       const isSelected = createSelector(active);
 
       const tabs = createMemo(() => props.tabs);
+
+      const showingID = createMemo(() => {
+        const id = active();
+        if(id == null) return null;
+        const tab = tabs().find(t => t.key === id);
+        if(tab == null) return null;
+        return id;
+      });
     
       return <div>
         <div><For each={tabs()}>{tab => (
@@ -34,13 +42,7 @@ function TabOrListEditor<T>(props: {
             }}
           >{tab.title}</Button>
         )}</For></div>
-        <Show when={(() => {
-          const id = active();
-          if(id == null) return null;
-          const tab = tabs().find(t => t.key === id);
-          if(tab == null) return null;
-          return [id] as const;
-        })()}>{([id]) => <>
+        <Show when={showingID()}>{(id) => <>
           <div class="mt-2" />
           {untrack(() => props.children(id))}
         </>}</Show>
@@ -97,7 +99,7 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
       const res = value();
       if(!Array.isArray(res)) throw new Error("no item idx?");
       const index = res.findIndex(item => item.array_symbol === key);
-      if(index === -1) throw new Error("rendering item not in array?");
+      if(index === -1) throw new Error("rendering item not in array? "+key);
       return index;
     };
     return <>
