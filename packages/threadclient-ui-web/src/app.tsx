@@ -2,6 +2,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
+import xeora from "refractor/lang/xeora";
 import { createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
@@ -2624,13 +2625,14 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         // await new Promise(r => 0);
         if(!client.getThread || client.getPage && getSettings().page_version.value() === "2") {
             const page2 = await client.getPage!(current_path);
+            const page: MutablePage2HistoryNode = {page: page2};
 
             // const {default: ClientPage} = await import("./components/page2");
             loader_area.remove();
 
-            if(hsc.visible) showPage2(page2);
+            if(hsc.visible) showPage2(page);
             hsc.on("hide", () => hidePage2());
-            hsc.on("show", () => showPage2(page2));
+            hsc.on("show", () => showPage2(page));
         }else{
             const listing = await client.getThread(current_path);
             loader_area.remove();
@@ -2646,52 +2648,32 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 }
 
 
-let showPage2!: (page: Generic.Page2) => void;
+type MutablePage2HistoryNode = {
+    page: Generic.Page2,
+};
+
+let showPage2!: (page: MutablePage2HistoryNode) => void;
 let hidePage2!: () => void;
 
 {
     const [focusedPage, setFocusedPage] = createSignal<Generic.Page2>(null as unknown as Generic.Page2);
     let page2_viewer_initialized = false;
-    showPage2 = (page: Generic.Page2) => {
-        console.log("showing page2", page);
+    showPage2 = (pgin: MutablePage2HistoryNode) => {
+        console.log("showing page2", pgin.page);
         page2mainel.style.display = "";
 
-        // todo don't do this mess
-        // oh this thing is for finding a title. huh. yeah remove this, it's bad.
-        // make it better.
-        let p2title: undefined | string;
-        let display_style: "centered" | "fullscreen" | undefined;
-        let focus_outer = page.content[page.pivot];
-        while(focus_outer && !('error' in focus_outer)) {
-            const focus = focus_outer.data as Generic.Post;
-            if(focus.kind === "post" && focus.content.kind === "post") {
-                if(focus.content.title) {
-                    if(p2title == null) p2title = focus.content.title.text;
-                }
-                if(display_style == null) display_style = focus.display_style;
-            }
-            focus_outer = focus.parent ? page.content[focus.parent] : undefined;
-        }
-        document.title = p2title ?? "«err no title»";
-        // todo remove the stuff above this comment, it should be handled in flatten.ts
-
-        setFocusedPage(page);
+        setFocusedPage(pgin.page);
 
         if(!page2_viewer_initialized) {
             page2_viewer_initialized = true;
 
+            // TODO: set page title in here
             vanillaToSolidBoundary(page2mainel, () => <>
                 <PageRootProvider
                     content={focusedPage().content}
                     addContent={(content) => {
-                        // TODO: throw an error if anything gets overridden for now
-                        // while we figure out what to do there
-                        setFocusedPage((p): Generic.Page2 => {
-                            return {
-                                ...p,
-                                content: {...p.content, ...content},
-                            };
-                        });
+                        pgin.page = {...pgin.page, content: {...pgin.page.content, ...content}};
+                        setFocusedPage(pgin.page);
                     }}
                 >
                     <ClientPage pivot={focusedPage().pivot} />
@@ -2769,7 +2751,7 @@ export type NavigationEntryNode = {
     removeSelf: () => void, hide: () => void, show: () => void,
 } | {
     kind: "t2",
-    page2: Generic.Page2,
+    page2: MutablePage2HistoryNode,
 };
 export type NavigationEntry = {url: string, node: NavigationEntryNode};
 
@@ -3123,11 +3105,12 @@ export function onNavigate(to_index: number, url: URLLike, page: undefined | Gen
 
     if(page) {
         const page2 = page;
-    
-        showPage2(page2);
+        const pagemut: MutablePage2HistoryNode = {page: page2};
+
+        showPage2(pagemut);
         nav_history[to_index] = {node: {
             kind: "t2",
-            page2,
+            page2: pagemut,
         }, url: thisurl};
 
         return;
