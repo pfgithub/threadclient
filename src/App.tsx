@@ -98,7 +98,7 @@ const root_schema: RootSchema = {
       buttons: sc.object({
         input: sc.allLinks(input_button, {view_mode: "tab-bar"}),
         output: sc.allLinks(output_button, {view_mode: "tab-bar"}),
-      }),
+      }, {display_mode: "tab-bar"}),
       default_scene: sc.link(scene),
 
       // for scenes, we want a map where every input button
@@ -108,8 +108,8 @@ const root_schema: RootSchema = {
       // for layers, we want a map where every input button
       // maps to undefined | an action
       layers: sc.allLinks(layer, {view_mode: "tab-bar"}),
-    }),
-  }),
+    }, {display_mode: "tab-bar"}),
+  }, {display_mode: "tab-bar"}),
   symbols: {
     [person_link]: person_schema,
 

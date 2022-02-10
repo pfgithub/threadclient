@@ -20,6 +20,8 @@ function TabOrListEditor<T>(props: {
   return createMemo((): JSX.Element => {
     if(props.mode === "tab-bar") return untrack((): JSX.Element => {
       const [active, setActive] = createSignal<string | null>(null);
+      // TODO: active, setActive should be stored in state somehow
+      // maybe have a seperate state thing for active values or something
       const isSelected = createSelector(active);
 
       const tabs = createMemo(() => props.tabs);
