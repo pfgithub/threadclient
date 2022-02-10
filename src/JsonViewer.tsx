@@ -39,6 +39,16 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
         return stringifySchemaEntry([...path, key, "array_item"], arr.child);
       });
     },
+    union: uni => {
+      if(typeof state !== "object") return new JSONRaw("#E_NOT_UNION");
+      const tag = state[uni.tag_field];
+      const choice = uni.choices.find(c => c.name === tag);
+      if(!choice) return new JSONRaw("#E_BAD_TAG");
+      return {
+        [uni.tag_field]: tag,
+        ...stringifySchemaEntry([...path, choice.name], choice.value) as Object,
+      };
+    },
     all_links: al => {
       const state = getState();
       const schema = state.root_schema.symbols[al.tag];
@@ -81,7 +91,9 @@ function stringifySchema(path: Path, schema: NodeSchema): string {
       return value;
     },
     " ",
-  ).replaceAll("\"%", "").replaceAll("%\"", "").replaceAll("<%>", "%");
+  ).replaceAll(/"%(.+?)%"/g, (_, full_str) => {
+    return JSON.parse('"'+full_str+'"');
+  }).replaceAll("<%>", "%");
 }
 
 export default function JsonViewer(props: {

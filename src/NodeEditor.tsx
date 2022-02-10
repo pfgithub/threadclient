@@ -1,10 +1,11 @@
-import { Accessor, createMemo, createSelector, createSignal, For, Show, untrack } from "solid-js";
+import { Accessor, createMemo, createSelector, createSignal, For, Setter, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { SwitchKind } from "./util";
 import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
-import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize } from "./schema";
+import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
 import { uuid } from "./uuid";
 import { Key } from "./Key";
+import { object_active_field } from "./symbols";
 
 // switch arrays to use objects
 // and figure out how to make <For> accept a key
@@ -15,11 +16,12 @@ function TabOrListEditor<T>(props: {
     key: string | (() => string),
     title: string,
   })[],
-  children: (key: string) => JSX.Element,
+  active: [() => unknown, (cb: (pv: unknown) => unknown) => void],
+  children: (key: unknown) => JSX.Element,
 }): JSX.Element {
   return createMemo((): JSX.Element => {
     if(props.mode === "tab-bar") return untrack((): JSX.Element => {
-      const [active, setActive] = createSignal<string | null>(null);
+      const [active, setActive] = props.active;
       // TODO: active, setActive should be stored in state somehow
       // maybe have a seperate state thing for active values or something
       const isSelected = createSelector(active);
@@ -73,7 +75,15 @@ function TabOrListEditor<T>(props: {
 }
 
 function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
+  // TODO internally store arrays in an object
+  // huh, if we mark it with a symbol we can make our data tostringable without
+  // having to know the schema
   const [value, setValue] = modValue(() => props.path);
+
+  // modValue(() => [...props.path, object_active_field]
+  const [active, setActive] = createSignal(null);
+
+  const state = getState();
 
   return <TabOrListEditor
     mode={props.schema.opts.view_mode}
@@ -95,6 +105,17 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
         });
         return new_item.array_symbol;
       },
+    }]}
+    active={[() => {
+      const v = value();
+      if(typeof v === "object") return v[object_active_field];
+      return null;
+    }, (cb) => {
+      const v = value();
+      if(typeof v === "object") {
+        setValueFromState([...props.path, object_active_field], state.state, cb(v[object_active_field]));
+      }
+      return null;
     }]}
   >{(key) => {
     const itemIdx = () => {
@@ -184,6 +205,7 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
         key: field.name,
         title: field.opts.title ?? field.name,
       }))}
+      active={modValue(() => [...props.path, object_active_field])}
     >{key => {
       const field = props.schema.fields.find(field => field.name === key);
       if(!field) throw new Error("unreachable");
@@ -193,6 +215,36 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
           schema={field.value}
           path={[...props.path, field.name]}
         />
+      </div>;
+    }}</TabOrListEditor>
+  </Show>;
+}
+
+function UnionEditor(props: {schema: UnionSchema, path: Path}): JSX.Element {
+  const [value, setValue] = modValue(() => props.path);
+  return <Show when={typeof value() === "object"} fallback={(
+    <div>
+      <Button onClick={() => {
+        setValue(() => ({}));
+      }}>
+        Create Union
+      </Button>
+      {" (value: "+value()+")"}
+    </div>
+  )}>
+    <TabOrListEditor
+      mode={"tab-bar"}
+      tabs={props.schema.choices.map(choice => ({
+        key: choice.name,
+        title: choice.name,
+      }))}
+      active={modValue(() => [...props.path, props.schema.tag_field])}
+    >{key => {
+      const field = props.schema.choices.find(field => field.name === key);
+      if(!field) throw new Error("unreachable");
+
+      return <div>
+        <NodeEditor schema={field.value} path={[...props.path, field.name]} />
       </div>;
     }}</TabOrListEditor>
   </Show>;
@@ -266,6 +318,7 @@ function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
       string: str => <StringEditor schema={str} path={props.path} />,
       boolean: bool => <BooleanEditor schema={bool} path={props.path} />,
       array: arr => <ArrayEditor schema={arr} path={props.path} />,
+      union: uni => <UnionEditor schema={uni} path={props.path} />,
       all_links: al => <AllLinksEditor schema={al} path={props.path} />,
       link: link => <LinkEditor schema={link} path={props.path} />,
       dynamic: dynamic => <NodeEditor schema={dynamic.resolver(props.path)} path={props.path} />

@@ -5,6 +5,13 @@ import NodeEditor from './NodeEditor';
 import { NodeSchema, ObjectField, RootSchema, sc, summarize } from './schema';
 import { UUID } from './uuid';
 
+const person_link = "5bdcd7dc-ab06-47c7-9d8b-f9c79dd46284" as UUID;
+
+const input_button = "0cdfae1d-775f-4f49-9ab4-094633ed1e09" as UUID;
+const output_button = "96b24915-2fd0-46e4-b2a7-4d591a36d0fa" as UUID;
+const scene = "9a1bb843-89b9-4281-8958-f71d341cbf8a" as UUID;
+const layer = "a374e26e-0882-41b1-b6d8-efba29409452" as UUID;
+
 const person_schema: NodeSchema = sc.object({
   name: sc.string(),
   description: sc.string(),
@@ -31,10 +38,13 @@ const button_schema: NodeSchema = sc.object({
     return "*Unnamed*";
   },
 });
-const action_schema: NodeSchema = sc.object({
-  action: sc.string(),
-  // ok I can hack it with a dynamic schema and an enum or I can make a proper
-  // union schema
+const action_schema: NodeSchema = sc.union("action", {
+  press: sc.object({
+    buttons: sc.array(sc.link(output_button)),
+  }),
+  hold_layer: sc.object({
+    layers: sc.array(sc.link(layer)),
+  }),
 });
 const layer_schema: NodeSchema = sc.object({
   title: sc.string(),
@@ -66,27 +76,6 @@ const layer_schema: NodeSchema = sc.object({
     return "*Unnamed*";
   },
 });
-
-// button_schema:
-//   sc.object({
-//     name: string,
-//     id: string,
-//   })
-
-// links:
-//   input_button: button_schema,
-//   output_button: button_schema,
-
-// TODO:
-// - use uuids instead of symbols
-// - this will keep them stable
-
-const person_link = "5bdcd7dc-ab06-47c7-9d8b-f9c79dd46284" as UUID;
-
-const input_button = "0cdfae1d-775f-4f49-9ab4-094633ed1e09" as UUID;
-const output_button = "96b24915-2fd0-46e4-b2a7-4d591a36d0fa" as UUID;
-const scene = "9a1bb843-89b9-4281-8958-f71d341cbf8a" as UUID;
-const layer = "a374e26e-0882-41b1-b6d8-efba29409452" as UUID;
 
 const root_schema: RootSchema = {
   root: sc.object({

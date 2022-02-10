@@ -17,7 +17,7 @@ export const sc = {
   object: (obj: {[key: string]: NodeSchema | SpecialField}, opts: ObjectOpts = {}): ObjectSchema => {
     return {
       kind: "object",
-      fields: Object.entries(obj).map(([key, value]) => ({
+      fields: Object.entries(obj).map(([key, value]): ObjectField => ({
         name: key,
         value: isSpecialField(value) ? value.value : value,
         opts: isSpecialField(value) ? value.opts : {},
@@ -25,6 +25,14 @@ export const sc = {
       opts,
     };
   },
+  union: (tag_field: string, uni: {[key: string]: ObjectSchema}): UnionSchema => ({
+    kind: "union",
+    tag_field: tag_field,
+    choices: Object.entries(uni).map(([key, value]): UnionField => ({
+      name: key,
+      value: value,
+    })),
+  }),
   string: (): StringSchema => ({kind: "string"}),
   boolean: (): BooleanSchema => ({kind: "boolean"}),
   array: (child: NodeSchema, opts: ArrayOpts = {}): ArraySchema => ({kind: "array", child, opts}),
@@ -38,6 +46,7 @@ export type NodeSchema =
   | StringSchema
   | BooleanSchema
   | ArraySchema
+  | UnionSchema
   | LinkSchema
   | AllLinksSchema
   | DynamicSchema
@@ -64,6 +73,8 @@ export type ObjectSchema = {
   kind: "object",
   fields: ObjectField[],
   opts: ObjectOpts,
+  // to put union fields inside an object we could have an option here
+  // to flatten the result
 };
 export type ArrayOpts = {
   view_mode?: undefined | "all" | "tab-bar",
@@ -72,6 +83,15 @@ export type ArraySchema = {
   kind: "array",
   child: NodeSchema,
   opts: ArrayOpts,
+};
+export type UnionField = {
+  name: string,
+  value: ObjectSchema,
+};
+export type UnionSchema = {
+  kind: "union",
+  tag_field: string,
+  choices: UnionField[],
 };
 export type StringSchema = {
   kind: "string",

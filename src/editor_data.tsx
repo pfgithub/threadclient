@@ -3,7 +3,7 @@ import { SetStoreFunction, Store } from "solid-js/store";
 import { RootSchema } from "./schema";
 import { UUID } from "./uuid";
 
-export type Path = (string | number | UUID)[];
+export type Path = (string | number | UUID | symbol)[];
 
 export type StateValue = {
   root: unknown,
@@ -52,4 +52,10 @@ export function getState(): ContextData {
   return useContext(NodeContext) ?? (() => {
     throw new Error("nodecontext not available");
   })()
+}
+
+if(import.meta.hot) {
+  import.meta.hot.accept((new_module) => {
+      alert("cannot reload editor_data.tsx, please refresh page.");
+  });
 }
