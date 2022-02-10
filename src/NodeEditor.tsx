@@ -10,7 +10,7 @@ import { Key } from "./Key";
 // and figure out how to make <For> accept a key
 
 function TabOrListEditor<T>(props: {
-  mode: "all" | "tab-bar",
+  mode: undefined | "all" | "tab-bar",
   tabs: ({
     key: string | (() => string),
     title: string,
@@ -174,18 +174,23 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
       {" (value: "+value()+")"}
     </div>
   )}>
-    <div class="space-y-2">
-      <For each={props.schema.fields}>{field => <div>
-        <div>{field.opts.title ?? field.name}</div>
-        {/* TODO: make the border red if it does not pass validation vv */}
-        <div class="pl-2 border-l-[0.5rem] border-gray-700">
-          <NodeEditor
-            schema={field.value}
-            path={[...props.path, field.name]}
-          />
-        </div>
-      </div>}</For>
-    </div>
+    <TabOrListEditor
+      mode={props.schema.opts.display_mode}
+      tabs={props.schema.fields.map(field => ({
+        key: field.name,
+        title: field.opts.title ?? field.name,
+      }))}
+    >{key => {
+      const field = props.schema.fields.find(field => field.name === key);
+      if(!field) throw new Error("unreachable");
+
+      return <div>
+        <NodeEditor
+          schema={field.value}
+          path={[...props.path, field.name]}
+        />
+      </div>;
+    }}</TabOrListEditor>
   </Show>;
 }
 
