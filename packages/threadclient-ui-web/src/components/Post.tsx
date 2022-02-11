@@ -6,7 +6,7 @@ import {
 import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, navigate } from "../app";
 import {
-    classes, getSettings, getWholePageRootContext, HideshowProvider, size_lt, ToggleColor
+    classes, getSettings, getWholePageRootContextOpt, HideshowProvider, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { DropdownActionButton } from "./ActionButtonDropdown";
 import { HorizontalActionButton } from "./ActionButtonHorizontal";
@@ -91,7 +91,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         return props.opts.frame?.url != null && !props.opts.is_pivot;
     };
 
-    const hprc = getWholePageRootContext();
+    const hprc = getWholePageRootContextOpt();
 
     return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
@@ -181,7 +181,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             }
                             navigate({
                                 path: target_url,
-                                page: props.opts.id ? {
+                                page: props.opts.id && hprc ? {
                                     pivot: props.opts.id,
                                     content: hprc.content(),
                                 } : undefined,

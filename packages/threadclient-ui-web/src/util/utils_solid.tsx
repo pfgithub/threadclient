@@ -67,8 +67,11 @@ export function getPageRootContext(): () => Generic.Page2Content {
     if(!page_root_context) throw new Error("no page root context here.");
     return page_root_context.content;
 }
+export function getWholePageRootContextOpt(): undefined | PageRootContext {
+    return useContext(PageRootContext);
+}
 export function getWholePageRootContext(): PageRootContext {
-    const page_root_context = useContext(PageRootContext);
+    const page_root_context = getWholePageRootContextOpt();
     if(!page_root_context) throw new Error("no page root context here.");
     return page_root_context;
 }
