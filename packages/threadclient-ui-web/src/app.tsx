@@ -2,7 +2,6 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
-import xeora from "refractor/lang/xeora";
 import { createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";

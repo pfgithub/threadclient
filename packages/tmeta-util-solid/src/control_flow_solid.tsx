@@ -23,7 +23,7 @@ export function Show<T>(props: {
 }): JSX.Element {
     return createMemo(() => {
         if (
-            ('if' in props ? props.if : true) &&
+            ('if' in props ? (props.if ?? false) : true) &&
             ('when' in props ? props.when != null : true)
         ) {
             const child = props.children;
