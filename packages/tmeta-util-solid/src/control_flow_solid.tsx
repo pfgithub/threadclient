@@ -21,9 +21,10 @@ export function Show<T>(props: {
     children: (item: T) => JSX.Element,
     fallback?: undefined | JSX.Element,
 }): JSX.Element {
+    const ifcond = createMemo(() => ('if' in props ? (props.if ?? false) : true));
     return createMemo(() => {
         if (
-            ('if' in props ? (props.if ?? false) : true) &&
+            ifcond() &&
             ('when' in props ? props.when != null : true)
         ) {
             const child = props.children;

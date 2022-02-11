@@ -5,6 +5,7 @@ import { classes } from "../util/utils_solid";
 import { animationTime } from "./animation";
 import Button from "./Button";
 
+// huh we can createsignal(undefined, {equals: false})
 const [closeDropdowns, setCloseDropdowns] = createSignal(Symbol());
 export function closeAllDropdowns(): void {
     setCloseDropdowns(Symbol());
