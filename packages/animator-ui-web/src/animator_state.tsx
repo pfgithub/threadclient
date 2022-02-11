@@ -13,7 +13,7 @@ import {
 import * as stor from "firebase/storage";
 import { batch, createSignal, For, JSX, onCleanup } from "solid-js";
 import { createStore, reconcile, Store } from "solid-js/store";
-import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
+import { allowedToAcceptClick, Show, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import { kindIs } from "../../tmeta-util/src/util";
 import Animator from "./animator";
 import {
@@ -187,11 +187,11 @@ function EmailAccount(props: {pushPage: PushPage, popPage: PopPage, loading: boo
                     })());
                 }}
             >
-                <ShowBool when={selfLoading() === "create_account"} fallback={
+                <Show if={selfLoading() === "create_account"} fallback={
                     <>Create Account</>
                 }>
                     <Loader />
-                </ShowBool>
+                </Show>
             </FormButton>
             <FormButton style="green" class={
                 "sm:min-w-max sm:w-30"
@@ -202,21 +202,21 @@ function EmailAccount(props: {pushPage: PushPage, popPage: PopPage, loading: boo
                     await addUserData(signed_in.user.uid);
                 })());
             }}>
-                <ShowBool when={selfLoading() === "log_in"} fallback={
+                <Show if={selfLoading() === "log_in"} fallback={
                     <>Log In</>
                 }>
                     <Loader />
-                </ShowBool>
+                </Show>
             </FormButton>
         </div>
-        <ShowCond when={error()}>{emsg => <>
+        <Show when={error()}>{emsg => <>
             <div class="pb-2"></div>
             <p class="text-sm text-gray-700">
                 <span class="text-red-600">
                     Error! {emsg}
                 </span>
             </p>
-        </>}</ShowCond>
+        </>}</Show>
     </>;
 }
 
@@ -357,11 +357,11 @@ function CreateProjectPage(props: {replacePage: ReplacePage, popPage: PopPage}):
                 });
             }}
         >
-            <ShowBool when={loading() !== "create_project"} fallback={
+            <Show if={loading() !== "create_project"} fallback={
                 <Loader />
             }>
                 Create Project
-            </ShowBool>
+            </Show>
         </FormButton>
         <ul class="text-red-600">
             <For each={errors()}>{error => <li>{error}</li>}</For>
@@ -493,12 +493,12 @@ function MainPage(props: {pushPage: PushPage, popPage: PopPage}): JSX.Element {
     // or, even better: support saving in demo mode, but just to the local device. have a button somewhere
     // to create an account and upload the data.
 
-    return <ShowBool when={loading() !== "account"} fallback={
+    return <Show if={loading() !== "account"} fallback={
         <div class="flex flex-row justify-center">
             <Loader />
         </div>
     }>
-        <ShowCond when={currentUser()} fallback={<>
+        <Show when={currentUser()} fallback={<>
             <FormTitle>Animator</FormTitle>
             <div class="pb-4" />
             <FormButton disabled={disabled()} class="w-full" style="gray" onClick={() => {
@@ -529,9 +529,9 @@ function MainPage(props: {pushPage: PushPage, popPage: PopPage}): JSX.Element {
                         setError("" + e.toString());
                     });
                 }}>
-                    <ShowBool when={loading() !== "log_out"} fallback={<Loader />}>
+                    <Show if={loading() !== "log_out"} fallback={<Loader />}>
                         Log Out
-                    </ShowBool>
+                    </Show>
                 </FormButton>
                 <FormButton disabled={disabled()} class="flex-1" style="gray" onClick={() => {
                     props.pushPage({kind: "sample_projects"});
@@ -539,16 +539,16 @@ function MainPage(props: {pushPage: PushPage, popPage: PopPage}): JSX.Element {
                     Demo Mode
                 </FormButton>
             </div>
-        </>}</ShowCond>
-        <ShowCond when={error()}>{emsg => <>
+        </>}</Show>
+        <Show when={error()}>{emsg => <>
             <div class="pb-2"></div>
             <p class="text-sm text-gray-700">
                 <span class="text-red-600">
                     Error! {emsg}
                 </span>
             </p>
-        </>}</ShowCond>
-    </ShowBool>;
+        </>}</Show>
+    </Show>;
 }
 
 function ConnectScreen(props: {_?: undefined}): JSX.Element {
@@ -576,7 +576,7 @@ function ConnectScreen(props: {_?: undefined}): JSX.Element {
     // display the loading inline in the button and disable everything until the page has loaded.
     // if the page load results in an error, navigate to an error page.
 
-    return <ShowCond when={kindIs(page(), "animator")} fallback={
+    return <Show when={kindIs(page(), "animator")} fallback={
         <FullscreenCenter horizontal><div class="w-full max-w-md py-50">
             <div class="p-4 shadow-md bg-white border">
                 <SwitchKind item={page()}>{{
@@ -600,7 +600,7 @@ function ConnectScreen(props: {_?: undefined}): JSX.Element {
                 <Animator state={animator.state} applyAction={animator.applyAction} />
             </InitializeAudio>
         </DefaultErrorBoundary>;
-    }}</ShowCond>;
+    }}</Show>;
 }
 
 type DemoConfig = Config & {
@@ -1085,13 +1085,13 @@ function AnimatorLoaderPage(props: {popPage: PopPage, replacePage: ReplacePage, 
 
     return <>
         <BackButton popPage={props.popPage} />
-        <ShowCond when={error()} fallback={<div>
+        <Show when={error()} fallback={<div>
             <Loader />{" "}{loadState()}…
         </div>}>{err => <>
             <p class="text-sm text-red-600">
                 Error while {loadState()}: {err}
             </p>
-        </>}</ShowCond>
+        </>}</Show>
     </>;
 }
 
@@ -1118,7 +1118,7 @@ function InitializeAudio(props: {children: JSX.Element, state: State}): JSX.Elem
     const [tested, setTested] = createSignal(window.__audio_initialized);
     const [testing, setTesting] = createSignal(false);
 
-    return <ShowBool when={tested()} fallback={
+    return <Show if={tested()} fallback={
         <button
             class="w-full h-full flex flex-col flex-wrap items-center justify-center bg-gray-100"
             disabled={testing()}
@@ -1140,12 +1140,12 @@ function InitializeAudio(props: {children: JSX.Element, state: State}): JSX.Elem
                     + "sm:min-w-max sm:w-30 "
                 }
             >
-                <ShowBool when={!testing()} fallback={<Loader />}>
+                <Show if={!testing()} fallback={<Loader />}>
                     Start
-                </ShowBool>
+                </Show>
             </span>
         </button>
-    }>{props.children}</ShowBool>;
+    }>{props.children}</Show>;
 }
 
 function FullscreenCenter(props: {children: JSX.Element, horizontal?: undefined | boolean}): JSX.Element {

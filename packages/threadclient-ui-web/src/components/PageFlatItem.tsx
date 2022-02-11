@@ -3,7 +3,7 @@ import {
     For,
     JSX
 } from "solid-js";
-import { ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
+import { Show, SwitchKind } from "tmeta-util-solid";
 import { getClientCached } from "../app";
 import {
     classes, getWholePageRootContext, size_lt, ToggleColor
@@ -38,12 +38,12 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
             + " h-2 sm:rounded-xl mb-4"
         } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
         post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
-            <ShowBool when={size_lt.sm() && !loader_or_post.first_in_wrapper}>
+            <Show if={size_lt.sm() && !loader_or_post.first_in_wrapper}>
                 <div class="pt-2" />
-            </ShowBool>
+            </Show>
             <div class="flex flex-row">
-                <ShowBool when={!size_lt.sm()} fallback={(
-                    <ShowBool when={loader_or_post.indent.length > 0}><div
+                <Show if={!size_lt.sm()} fallback={(
+                    <Show if={loader_or_post.indent.length > 0}><div
                         style={{
                             'margin-left': ((loader_or_post.indent.length - 3) * 0.25)+"rem",
                         }}
@@ -58,7 +58,7 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                             getRainbow(loader_or_post.indent.length - 1),
                             "rounded-md",
                         )}></div>
-                    </div></ShowBool>
+                    </div></Show>
                 )}>
                     <For each={loader_or_post.indent}>{indent => <>
                         <CollapseButton
@@ -73,10 +73,10 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                             id={indent.id}
                         />
                     </>}</For>
-                </ShowBool>
-                <div class="flex-1"><ShowBool when={!size_lt.sm() && !loader_or_post.first_in_wrapper}>
+                </Show>
+                <div class="flex-1"><Show if={!size_lt.sm() && !loader_or_post.first_in_wrapper}>
                     <div class="pt-2" />
-                </ShowBool><SwitchKind item={loader_or_post.content}>{{
+                </Show><SwitchKind item={loader_or_post.content}>{{
                     post: post => <>
                         <ClientContentAny
                             content={post.content}
@@ -121,11 +121,11 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                             ? "Loading…"
                             : (error() != null ? "Retry Load" : "Load More")
                             + (loader.load_count != null ? " ("+loader.load_count+")" : "")
-                        }</button><ShowCond when={error()}>{err => (
+                        }</button><Show when={error()}>{err => (
                             <p class="text-red-600 dark:text-red-500">
                                 Error loading; {err}
                             </p>
-                        )}</ShowCond></div>;
+                        )}</Show></div>;
                     },
                 }}</SwitchKind></div>
             </div>

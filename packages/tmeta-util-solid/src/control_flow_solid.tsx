@@ -11,30 +11,23 @@ export function SwitchKind<T extends {kind: string}>(props: {
     });
 }
 
-export function ShowBool(props: {
-    when: boolean,
-    fallback?: undefined | JSX.Element,
+export function Show<T>(props: {
+    if: boolean,
     children: JSX.Element,
-}): JSX.Element {
-    const condition = createMemo(() => props.when, undefined, {
-        equals: (a: boolean, b: boolean) => !a === !b,
-    });
-    return createMemo(() => {
-        if(condition()) return props.children;
-        return props.fallback;
-    });
-}
-export function ShowCond<T>(props: {
-    // if: boolean, // would be nice for this to be optional but not allow undefined
-    if?: undefined | [boolean],
-    when: T | undefined | null,
     fallback?: undefined | JSX.Element,
+} | {
+    if?: never | boolean,
+    when: T | undefined | null,
     children: (item: T) => JSX.Element,
+    fallback?: undefined | JSX.Element,
 }): JSX.Element {
     return createMemo(() => {
-        if ((props.if?.[0] ?? true) && props.when != null) {
+        if (
+            ('if' in props ? props.if : true) &&
+            ('when' in props ? props.when != null : true)
+        ) {
             const child = props.children;
-            return untrack(() => child(props.when!));
+            return typeof child === "function" ? untrack(() => child((props as unknown as {when: T}).when)) : child;
         }
         return props.fallback;
     });

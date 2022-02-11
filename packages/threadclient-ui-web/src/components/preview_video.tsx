@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import type shaka_types from "shaka-player";
 import { createEffect, createMemo, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
-import { ShowCond, SwitchKind } from "tmeta-util-solid";
+import { Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, zoomableImage } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getIsVisible, getSettings, Icon } from "../util/utils_solid";
@@ -508,7 +508,7 @@ function PreviewRealVideo(props: {
                 autoplay={props.autoplay}
                 custom_controls={customControls()}
             />
-            <ShowCond when={state.error_overlay}>{overlay => (
+            <Show when={state.error_overlay}>{overlay => (
                 <div
                     class={classes(
                         "absolute top-0 left-0 bottom-0 right-0 p-4 bg-rgray-900 bg-opacity-75",
@@ -517,7 +517,7 @@ function PreviewRealVideo(props: {
                 >
                     <p>Error! {overlay}</p>
                 </div>
-            )}</ShowCond>
+            )}</Show>
             <button
                 class={classes(
                     "block absolute top-0 left-0 bottom-0 right-0 w-full h-full",
@@ -626,11 +626,11 @@ function PreviewRealVideo(props: {
                     <div class="absolute h-full bg-rgray-700" style={{
                         'width': (state.current_time / state.max_time * 100) + "%",
                     }}></div>
-                    <ShowCond when={seek()}>{seek_state => (
+                    <Show when={seek()}>{seek_state => (
                         <div class="absolute h-full bg-rgray-900 bg-opacity-50" style={{
                             'width': (seek_state.percent * 100) + "%",
                         }}></div>
-                    )}</ShowCond>
+                    )}</Show>
                 </div>
                 <div
                     class="flex flex-wrap items-center transform transition-transform origin-bottom"
@@ -756,7 +756,7 @@ function PreviewRealVideo(props: {
                 });
             }}
         >
-            <ShowCond when={props.source.preview}>{preview_sources => (
+            <Show when={props.source.preview}>{preview_sources => (
                 <video
                     ref={video_el => {
                         createEffect(() => {
@@ -772,7 +772,7 @@ function PreviewRealVideo(props: {
                         <source src={preview_source.url} />
                     )}</For>
                 </video>
-            )}</ShowCond>
+            )}</Show>
             <div ref={div => {
                 createEffect(() => {
                     const hp = seek();
@@ -790,9 +790,9 @@ export default function PreviewVideo(props: {
     autoplay: boolean,
 }): JSX.Element {
     return <div>
-        <ShowCond when={props.video.caption}>{caption => (
+        <Show when={props.video.caption}>{caption => (
             <div>Caption: {caption}</div>
-        )}</ShowCond>
+        )}</Show>
         <SwitchKind item={props.video.source}>{{
             video: video => <PreviewRealVideo video={props.video} source={video} autoplay={props.autoplay} />,
             img: img => <SolidToVanillaBoundary getValue={hsc => {

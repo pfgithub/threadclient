@@ -1,5 +1,5 @@
 import { createSignal, ErrorBoundary, JSX } from "solid-js";
-import { ShowBool } from "../../tmeta-util-solid/src/control_flow_solid";
+import { Show } from "../../tmeta-util-solid/src/control_flow_solid";
 
 export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Element}): JSX.Element {
     const [showContent, setShowContent] = createSignal(true);
@@ -23,10 +23,10 @@ export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Elemen
             ) : "Something went wrong"} /></pre>
         </div>;
     }}>
-        <ShowBool when={showContent()} fallback={
+        <Show if={showContent()} fallback={
             <>Retrying...</>
         }>
             {props.children}
-        </ShowBool>
+        </Show>
     </ErrorBoundary>;
 }

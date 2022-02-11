@@ -2,7 +2,7 @@ import {
     Accessor,
     createEffect, createSignal, JSX, on, untrack
 } from "solid-js";
-import { ShowBool } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 import { navbar } from "../app";
 import { getSettings, Settings } from "../util/utils_solid";
 
@@ -108,7 +108,7 @@ export function animateHeight(
     });
 }
 
-// if={[condition]} when={[condition]}
+// if={condition} when={condition}
 // it's hard to have a when= in showAnimate because if the thing
 // is removed you probably don't want to keep around a copy of it
 export function ShowAnimate(props: {
@@ -126,16 +126,16 @@ export function ShowAnimate(props: {
             v.style.display = show().main || (props.fallback != null) ? "block" : "none";
         });
     }}>
-        <ShowBool when={show().main || show().animating}>
+        <Show if={show().main || show().animating}>
             <div class={show().animating && !show().main ? "hidden" : ""}>
                 {props.children}
             </div>
-        </ShowBool>
-        <ShowBool when={!show().main || show().animating}>
+        </Show>
+        <Show if={!show().main || show().animating}>
             <div class={show().animating && show().main ? "hidden" : ""}>
                 {props.fallback}
             </div>
-        </ShowBool>
+        </Show>
     </div>;
 }
 

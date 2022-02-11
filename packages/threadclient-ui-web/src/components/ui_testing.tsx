@@ -1,7 +1,7 @@
 import faker from "@faker-js/faker";
 import "@fortawesome/fontawesome-free/css/all.css";
 import { For, JSX } from "solid-js";
-import { ShowBool } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { classes, getSettings } from "../util/utils_solid";
 import Button from "./Button";
@@ -164,9 +164,9 @@ export default function UITestingPage(): JSX.Element {
                         </Dropdown>
                     </HSplit.Child>
                 </HSplit.Container>
-                <ShowBool when={expanded}><div class="mt-2">
+                <Show if={expanded}><div class="mt-2">
                     <img src={faker.image.image(600, 500)} />
-                </div></ShowBool>
+                </div></Show>
             </div></TopLevelWrapper></section>;
         }}</For>
         <h1>Post, At pivot:</h1>

@@ -5,7 +5,7 @@ import {
     createSignal, ErrorBoundary, JSX, onCleanup, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
-import { localStorageSignal, ShowBool } from "tmeta-util-solid";
+import { localStorageSignal, Show } from "tmeta-util-solid";
 import { link_styles_v } from "../app";
 
 export { localStorageSignal };
@@ -198,9 +198,9 @@ const global_settings = createRoot((): Settings => {
     return res;
 });
 
-render(() => <ShowBool when={getSettings().author_pfp.value() === "off"}>
+render(() => <Show if={getSettings().author_pfp.value() === "off"}>
     <style>{".cfg-reddit-pfp {display: none;}"}</style>
-</ShowBool>, el("div").adto(document.head));
+</Show>, el("div").adto(document.head));
 
 export function getSettings(): Settings { // TODO getClient: (): ThreadClient =}
     return global_settings;
@@ -268,10 +268,10 @@ export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Elemen
             >Retry</button>
         </div>;
     }}>
-        <ShowBool when={showContent()} fallback={
+        <Show if={showContent()} fallback={
             <>Retrying...</>
         }>
             {props.children}
-        </ShowBool>
+        </Show>
     </ErrorBoundary>;
 }

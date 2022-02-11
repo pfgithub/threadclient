@@ -1,6 +1,6 @@
 import { createEffect, createSignal, JSX, on, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
-import { ShowBool } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 import { classes } from "../util/utils_solid";
 import { animationTime } from "./animation";
 import Button from "./Button";
@@ -84,7 +84,7 @@ export default function Dropdown(props: {
         }}>
             {typeof props.label === "function" ? props.label(target) : props.label}
         </Button>
-        <ShowBool when={target() || animating()}>{(() => {
+        <Show if={target() || animating()}>{(() => {
             let node2!: HTMLDivElement;
 
             let tabin1!: HTMLDivElement;
@@ -207,6 +207,6 @@ export default function Dropdown(props: {
                     }} />
                 </div>
             </Portal></>;
-        })()}</ShowBool>
+        })()}</Show>
     </>;
 }

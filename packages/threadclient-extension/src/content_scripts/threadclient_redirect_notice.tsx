@@ -1,7 +1,7 @@
 import { JSX, createSignal, Accessor, Setter } from "solid-js";
 import { render } from "solid-js/web";
 import { NotificationsType } from "./content_script";
-import { ShowBool } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 
 declare module "solid-js" {
     // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -35,7 +35,7 @@ export function showNotifications(
     // consider thread.pfg.pw/#https://…
     // apparently the # isn't sent to the webserver which is kinda neat
     render(() => <>
-        <ShowBool when={notifications().ask_to_redirect}>
+        <Show if={notifications().ask_to_redirect}>
             <Notification>
                 <a class="text-blue-500 hover:underline" href={"https://thread.pfg.pw/"+currentURL()}>
                     Redirect to ThreadClient
@@ -47,6 +47,6 @@ export function showNotifications(
                     }));
                 }}>Close</button>
             </Notification>
-        </ShowBool>
+        </Show>
     </>, shadow_dom);
 }

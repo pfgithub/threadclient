@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup, Suspense } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { ShowCond, SwitchKind } from "tmeta-util-solid";
+import { Show, SwitchKind } from "tmeta-util-solid";
 import { switchKind } from "../../../tmeta-util/src/util";
 import {
     fetchClient,
@@ -39,7 +39,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
     return <SwitchKind item={props.body}>{{
         text: text => {
             const [a] = createResource(text, textToBody);
-            return <ShowCond when={a()}>{b => <Body body={b} autoplay={false} />}</ShowCond>;
+            return <Show when={a()}>{b => <Body body={b} autoplay={false} />}</Show>;
         },
         link: link => {
             const previewBody: () => {
@@ -58,9 +58,9 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                     href={link.url}
                     style={"normal"}
                 >{link.url}</LinkButton></div>
-                <ShowCond when={previewBody()}>{preview_opts => (
+                <Show when={previewBody()}>{preview_opts => (
                     <Body body={preview_opts.body} autoplay={props.autoplay} />
-                )}</ShowCond>
+                )}</Show>
             </div>;
         },
         none: () => <></>,
@@ -74,7 +74,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 <div class="border p-2">
                     <div class="font-bold">{removed.removal_message.title}</div>
                     <div>{removed.removal_message.body}</div>
-                    <ShowCond when={
+                    <Show when={
                         //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
                         (loadState().kind !== "loaded" ? true : undefined) && removed.fetch_path
                     }>{path => {
@@ -113,7 +113,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                             }}
                             disabled={loadState().kind === "loading" || loadState().kind === "loaded"}
                         >{{none: "View", loading: "...", error: "Retry", loaded: "never"}[loadState().kind]}</button>;
-                    }}</ShowCond>
+                    }}</Show>
                 </div>
                 <Body body={removed.body} autoplay={props.autoplay} />
                 <SwitchKind item={loadState()}>{{
@@ -163,9 +163,9 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 }).adto(div);
                 return div;
             }} />
-            <ShowCond when={image.caption}>{caption => (
+            <Show when={image.caption}>{caption => (
                 <div>Caption: {caption}</div>
-            )}</ShowCond>
+            )}</Show>
         </div>,
         video: video => <PreviewVideo video={video} autoplay={props.autoplay} />,
         audio: audio => <audio ref={audio_el => {
@@ -198,7 +198,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
         }} />,
         twitch_clip: twitch => {
             const [a] = createResource(twitch.slug, getTwitchClip);
-            return <ShowCond when={a()}>{b => <Body body={b} autoplay={false} />}</ShowCond>;
+            return <Show when={a()}>{b => <Body body={b} autoplay={false} />}</Show>;
         },
         reddit_suggested_embed: se => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");

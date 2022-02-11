@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import "prism-themes/themes/prism-atom-dark.css"; // vsc dark is missing markdown styles
 import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch } from "solid-js";
 import { assertNever, switchKind } from "tmeta-util";
-import { ShowBool, ShowCond, SwitchKind, TimeAgo } from "tmeta-util-solid";
+import { Show, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
@@ -66,7 +66,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
             return <span
                 class="relative bg-spoiler-color-hover rounded"
             >
-                <ShowBool when={!opened()}>
+                <Show if={!opened()}>
                     <button
                         class={"absolute top-0 left-0 bottom-0 right-0 w-full h-full "
                             +"rounded bg-spoiler-color hover:bg-spoiler-color-hover cursor-pointer"
@@ -74,7 +74,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                         title="Click to reveal spoiler"
                         onclick={() => setOpened(true)}
                     ></button>
-                </ShowBool>
+                </Show>
                 <span
                     class={classes(
                         "rounded",
@@ -237,7 +237,7 @@ export function CodeBlock(props: {
         "language-"+(language() ?? "none"),
         "!whitespace-pre-wrap",
     ])}>
-        <ShowBool when={allowHighlighted()}><div class={classes([
+        <Show if={allowHighlighted()}><div class={classes([
             "absolute",
             "top-0 right-0",
             "transition-opacity",
@@ -248,7 +248,7 @@ export function CodeBlock(props: {
             "bg-gray-100 rounded",
             "p-2 px-3",
         ])}>
-            <ShowBool when={!!prism() && menuOpen()} fallback={
+            <Show if={!!prism() && menuOpen()} fallback={
                 <button
                     class={classes([
                         "font-sans",
@@ -273,9 +273,9 @@ export function CodeBlock(props: {
                         <option value={lang}>{lang}</option>
                     )}</For>
                 </select>
-            </ShowBool>
-        </div></ShowBool>
-        <ShowCond when={highlighted()} fallback={
+            </Show>
+        </div></Show>
+        <Show when={highlighted()} fallback={
             /* !whitespace-pre-wrap is required here due to a weird issue
             in the browser where somehow the less important white-space: pre
             that in devtools is striked out is somehow used instead of
@@ -284,7 +284,7 @@ export function CodeBlock(props: {
             <code class="!whitespace-pre-wrap">{props.text}</code>
         }>{hl => <>
             <div innerHTML={hl} />
-        </>}</ShowCond>
+        </>}</Show>
     </pre>;
 }
 
@@ -313,7 +313,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
     const [previewOpen, setPreviewOpen] = createSignal<{open: boolean, temporary: boolean}>(
         {open: false, temporary: false},
     );
-    return <ShowBool when={human().link !== "error"}><div class="my-2">
+    return <Show if={human().link !== "error"}><div class="my-2">
         <ToggleColor>{color => <A
             client_id={props.link.client_id}
             class={classes(
@@ -328,33 +328,33 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
             } : undefined}
         >
             <div class="max-lines max-lines-1 select-none">
-                <ShowCond when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</ShowCond>
+                <Show when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</Show>
                 {props.link.title}
             </div>
-            <ShowBool when={!previewOpen().open || previewOpen().temporary}>
+            <Show if={!previewOpen().open || previewOpen().temporary}>
                 <div style={{display: previewOpen().open ? "none" : "block"}}>
                     <div
                         class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400 select-none"
                     >
-                        <ShowBool when={!linkPreview() && human().external}>
+                        <Show if={!linkPreview() && human().external}>
                             <ExternalIcon />{" "}
-                        </ShowBool>
+                        </Show>
                         {human().link}
                     </div>
                 </div>
-            </ShowBool>
+            </Show>
         </A>}</ToggleColor>
-        <ShowCond when={linkPreview()}>{preview => <><div ref={v => animateHeight(
+        <Show when={linkPreview()}>{preview => <><div ref={v => animateHeight(
             v, settings, preview.visible, (state, rising, temporary) => {
                 setPreviewOpen({open: state || rising, temporary});
             },
         )}>
-            <ShowBool when={previewOpen().open || previewOpen().temporary}>
+            <Show if={previewOpen().open || previewOpen().temporary}>
                 <div style={{display: previewOpen().open ? "block" : "none"}}>
                     <Body body={preview.body} autoplay={true} />
                 </div>
-            </ShowBool>
-        </div><ShowBool when={previewOpen().open || previewOpen().temporary}>
+            </Show>
+        </div><Show if={previewOpen().open || previewOpen().temporary}>
             <div style={{display: previewOpen().open ? "block" : "none"}}>
                 <ToggleColor>{color => <A
                     client_id={props.link.client_id}
@@ -366,15 +366,15 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                     href={props.link.url}
                 >
                     <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400 select-none">
-                        <ShowBool when={human().external}>
+                        <Show if={human().external}>
                             <ExternalIcon />{" "}
-                        </ShowBool>
+                        </Show>
                         {human().link}
                     </div>
                 </A>}</ToggleColor>
             </div>
-        </ShowBool></>}</ShowCond>
-    </div></ShowBool>;
+        </Show></>}</Show>
+    </div></Show>;
 }
 
 export function RichtextParagraphs(props: {
@@ -386,11 +386,11 @@ export function RichtextParagraphs(props: {
         <div classList={{'my-2': !(props.tight ?? false)}}>
             <RichtextParagraph paragraph={paragraph} />
         </div>
-        <ShowBool when={settings.link_helpers.value() === "show"}>
+        <Show if={settings.link_helpers.value() === "show"}>
             <For each={extractLinks(paragraph)}>{link => (
                 <MobileLinkPreview link={link} />
             )}</For>
-        </ShowBool>
+        </Show>
     </>}</For>;
 }
 

@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { Accessor, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import type { ThreadClient } from "threadclient-client-base";
-import { ShowBool, ShowCond } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 import {
     CounterState, fetchClient, getPointsText, WatchableCounterState, watchCounterState
 } from "../app";
@@ -44,9 +44,9 @@ export function CounterCount(props: {counter: Generic.CounterAction}): JSX.Eleme
     };
     return <>
         <span title={ptTxt().raw}>{ptTxt().text} {"point" + "s"}</span>
-        <ShowCond when={props.counter.percent}>{percent => (
+        <Show when={props.counter.percent}>{percent => (
             " " + percent.toLocaleString(undefined, {style: "percent"}) + " upvoted"
-        )}</ShowCond>
+        )}</Show>
     </>;
     // TODO make that "points" text customizable
     // eg in mastodon this would be for a star
@@ -128,8 +128,8 @@ export function VerticalIconButton(props: {
 export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JSX.Element {
     return <div class={"flex flex-col items-center gap-2px"}>
         <VerticalIconButton counter={props.counter} mode="increment" />
-        <ShowBool when={props.counter.decrement != null}>
+        <Show if={props.counter.decrement != null}>
             <VerticalIconButton counter={props.counter} mode="decrement" />
-        </ShowBool>
+        </Show>
     </div>;
 }

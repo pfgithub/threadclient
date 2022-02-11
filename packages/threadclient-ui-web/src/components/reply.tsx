@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import { createSignal, JSX } from "solid-js";
-import { ShowCond } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 import { getClientCached, link_styles_v } from "../app";
 import { localStorageSignal } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
@@ -81,11 +81,11 @@ export function ReplyEditor(props: {
                 props.onCancel();
             }}>Cancel<div /></button>
         </div>
-        <ShowCond when={sendError()}>{errv => <>
+        <Show when={sendError()}>{errv => <>
             <pre class="error"><code>There was an error! {errv}</code></pre>
             <button onclick={() => setSendError(undefined)}>Hide error</button>
-        </>}</ShowCond>
-        <ShowCond if={[!empty()]} when={diffable.data}>{value => {
+        </>}</Show>
+        <Show if={!empty()} when={diffable.data}>{value => {
             console.log("Value changed", value);
             return <TopLevelWrapper restrict_w>
                 <ClientContent listing={value} opts={{
@@ -97,6 +97,6 @@ export function ReplyEditor(props: {
                     client_id: props.action.client_id,
                 }}/>
             </TopLevelWrapper>;
-        }}</ShowCond>
+        }}</Show>
     </div>;
 }

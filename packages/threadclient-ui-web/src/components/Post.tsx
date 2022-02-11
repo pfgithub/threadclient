@@ -3,7 +3,7 @@ import {
     Accessor, createSignal,
     For, JSX, Setter
 } from "solid-js";
-import { allowedToAcceptClick, ShowBool, ShowCond, SwitchKind } from "tmeta-util-solid";
+import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, navigate } from "../app";
 import {
     classes, getSettings, getWholePageRootContextOpt, HideshowProvider, size_lt, ToggleColor
@@ -112,15 +112,15 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             "--left-v": "8px",
         }}
     >
-        <ShowBool when={props.content.collapsible !== false && (
+        <Show if={props.content.collapsible !== false && (
             props.content.thumbnail != null ? selfVisible() ? true : false : true
         ) && !size_lt.sm()}>
             <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
-                <ShowCond when={props.content.actions?.vote}>{vote_action => (
+                <Show when={props.content.actions?.vote}>{vote_action => (
                     <div class={selfVisible() || hasThumbnail() ? "" : " hidden"}>
                         <VerticalIconCounter counter={vote_action} />
                     </div>
-                )}</ShowCond>
+                )}</Show>
                 <CollapseButton
                     class="flex-1"
                     collapsed_raw={!transitionTarget()}
@@ -133,10 +133,10 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     id={props.opts.id}
                 />
             </div>
-        </ShowBool>
+        </Show>
         <div class="flex-1">
             <HSplit.Container dir="right" vertical="center">
-                <ShowCond if={[!selfVisible()]} when={props.content.thumbnail}>{thumb_any => (
+                <Show if={!selfVisible()} when={props.content.thumbnail}>{thumb_any => (
                     <ToggleColor>{color => (
                         <HSplit.Child>
                             <button class={classes(
@@ -158,7 +158,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             </button>
                         </HSplit.Child>
                     )}</ToggleColor>
-                )}</ShowCond>
+                )}</Show>
                 <HSplit.Child fullwidth><div
                     class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
                     // note: screenreader or keyboard users must click the 'view' button
@@ -196,9 +196,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     <div class={classes(
                         (props.opts.is_pivot && selfVisible()) ? "text-3xl" : "text-base",
                     )}>
-                        <ShowCond when={props.content.title}>{title => (
+                        <Show when={props.content.title}>{title => (
                             <span role="heading">
-                                <ShowCond when={props.opts.frame?.url} fallback={(
+                                <Show when={props.opts.frame?.url} fallback={(
                                     title.text
                                 )}>{url => (
                                     <A
@@ -206,9 +206,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                         href={url}
                                         class="hover:underline"
                                     >{title.text}</A>
-                                )}</ShowCond>
+                                )}</Show>
                             </span>
-                        )}</ShowCond>
+                        )}</Show>
                         <Flair flairs={props.content.flair ?? []} />
                     </div>
                     <div class={classes(
@@ -222,12 +222,12 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             "mr-2",
                             hasThumbnail() ? "block" : "inline-block"
                         )}>
-                            <ShowCond when={props.content.author}>{author => <>
-                                <ShowCond if={[
-                                    selfVisible() && settings.author_pfp.value() === "on",
-                                ]} when={author.pfp} fallback={"By "}>{pfp => <>
+                            <Show when={props.content.author}>{author => <>
+                                <Show if={
+                                    selfVisible() && settings.author_pfp.value() === "on"
+                                } when={author.pfp} fallback={"By "}>{pfp => <>
                                     <AuthorPfp src_url={pfp.url} />{" "}
-                                </>}</ShowCond>
+                                </>}</Show>
                                 <UserLink
                                     client_id={author.client_id}
                                     href={author.link}
@@ -235,29 +235,29 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 >
                                     {author.name}
                                 </UserLink>{" "}
-                            </>}</ShowCond>
-                            <ShowBool when={selfVisible() || hasTitleOrThumbnail()}>
-                                <ShowCond when={props.content.author}>{author => <>
-                                    <ShowCond when={author.flair}>{flair => <>
+                            </>}</Show>
+                            <Show if={selfVisible() || hasTitleOrThumbnail()}>
+                                <Show when={props.content.author}>{author => <>
+                                    <Show when={author.flair}>{flair => <>
                                         <Flair flairs={flair} />{" "}
-                                    </>}</ShowCond>
-                                </>}</ShowCond>
-                                <ShowCond when={props.content.info?.in}>{in_sr => <>
+                                    </>}</Show>
+                                </>}</Show>
+                                <Show when={props.content.info?.in}>{in_sr => <>
                                     {" in "}<LinkButton
                                         href={in_sr.link}
                                         style="previewable"
                                         client_id={in_sr.client_id}
                                     >{in_sr.name}</LinkButton>{" "}
-                                </>}</ShowCond>
-                            </ShowBool>
-                        </div><ShowBool when={!props.opts.is_pivot || !selfVisible()}>
+                                </>}</Show>
+                            </Show>
+                        </div><Show if={!props.opts.is_pivot || !selfVisible()}>
                             <div class="mr-2 inline-block">
                                 <InfoBar post={props.content} />
                             </div>
-                        </ShowBool></HSplit.Child>
+                        </Show></HSplit.Child>
                         <HSplit.Child fullwidth><div class="mr-2">
-                            <ShowBool when={!(selfVisible() || hasTitleOrThumbnail())}>
-                                <ShowBool when={true
+                            <Show if={!(selfVisible() || hasTitleOrThumbnail())}>
+                                <Show if={true
                                     && props.content.collapsible !== false
                                     && props.content.collapsible.default_collapsed === true
                                 } fallback={<>
@@ -269,17 +269,17 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                         })() + "”"}
                                     </div>
                                 </>}>
-                                    <ShowCond when={props.content.actions?.vote} fallback={
+                                    <Show when={props.content.actions?.vote} fallback={
                                         "[Collapsed by default]"
                                     }>{vote_action => <>
                                         <CounterCount counter={vote_action} />{" "}
-                                    </>}</ShowCond>
-                                </ShowBool>
-                            </ShowBool>
+                                    </>}</Show>
+                                </Show>
+                            </Show>
                         </div></HSplit.Child>
                     </HSplit.Container></div>
                 </div></HSplit.Child>
-                <ShowBool when={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
+                <Show if={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
                     <HSplit.Child vertical="top">
                         <div class="pl-2" />
                         <Dropdown label={"…"}>
@@ -288,14 +288,14 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             </>}</For>
                         </Dropdown>
                     </HSplit.Child>
-                </ShowBool>
+                </Show>
             </HSplit.Container>
             <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider
                 visible={() => animState().visible || animState().animating}
             >
                 <section class={props.opts.is_pivot ? "py-4" : ""}>
-                    <ShowBool when={animState().visible || animState().animating}>
-                        <ShowBool when={selfVisible() && hasThumbnail()}><div class="mt-2"></div></ShowBool>
+                    <Show if={animState().visible || animState().animating}>
+                        <Show if={selfVisible() && hasThumbnail()}><div class="mt-2"></div></Show>
                         <ShowAnimate when={!contentWarning()} fallback={
                             <>
                                 Content Warning:{" "}
@@ -308,9 +308,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         }>
                             <Body body={props.content.body} autoplay={false} />
                         </ShowAnimate>
-                    </ShowBool>
+                    </Show>
                 </section>
-                <ShowBool when={props.opts.is_pivot}><div class="text-sm">
+                <Show if={props.opts.is_pivot}><div class="text-sm">
                     <InfoBar post={props.content} />
                     <div class="mt-2" />
                     <div class="flex flex-wrap gap-2">
@@ -318,7 +318,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             <HorizontalActionButton action={action} />
                         </>}</For>
                     </div>
-                </div></ShowBool>
+                </div></Show>
             </HideshowProvider></div>
         </div>
     </article>;

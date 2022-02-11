@@ -1,6 +1,6 @@
 import { rt } from "api-types-generic";
 import { createSignal, For, JSX } from "solid-js";
-import { ShowBool, ShowCond } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 import { variables } from "virtual:_variables";
 import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
 import { ComputeProperty, getSettings } from "../util/utils_solid";
@@ -27,7 +27,7 @@ function UpdateStatus(): JSX.Element {
         Current Version: {variables.version.trim()} ({variables.build_time})
         {"\n"}
         Available for Offline Use: {availableForOfflineUse() ? "yes" : "maybe"}
-        <ShowBool when={updateAvailable()}>
+        <Show if={updateAvailable()}>
             {"\n"}
             An update is available.{" "}
             <button
@@ -44,7 +44,7 @@ function UpdateStatus(): JSX.Element {
                     });
                 }}
             >Update Now</button>
-        </ShowBool>
+        </Show>
     </p>;
 }
 
@@ -62,13 +62,13 @@ export function SettingPicker<T extends string>(props: {
                     props.setting.compute.setOverride(option);
                 }}
             >
-                <ShowCond when={option}
+                <Show when={option}
                     fallback={
                         <>{props.name(undefined)} ({props.name(props.setting.compute.base())})</>
                     }
                 >{opt => <>
                     {props.name(opt)}
-                </>}</ShowCond>
+                </>}</Show>
             </button>
         </>}</For>
     </div>;
@@ -249,13 +249,13 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                             setting.compute.setOverride(option);
                         }}
                     >
-                        <ShowCond when={option}
+                        <Show when={option}
                             fallback={
                                 <>{name(undefined)} ({name(setting.compute.base())})</>
                             }
                         >{opt => <>
                             {name(opt)}
-                        </>}</ShowCond>
+                        </>}</Show>
                     </button>;
                 }}</For></div>
                 <SettingPicker

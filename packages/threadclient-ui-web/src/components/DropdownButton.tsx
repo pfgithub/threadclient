@@ -1,5 +1,5 @@
 import { JSX } from "solid-js";
-import { ShowCond } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 import { classes } from "../util/utils_solid";
 import { closeAllDropdowns } from "./Dropdown";
 import { A } from "./links";
@@ -26,10 +26,10 @@ export default function DropdownButton(props: {
         )}
         disabled={props.disabled}
     ><div class={"w-full "+props.class}>
-        <ShowCond when={props.icon}>{icon => <>
+        <Show when={props.icon}>{icon => <>
             {icon}
             <span class="ml-2" />
-        </>}</ShowCond>
+        </>}</Show>
         {props.children}
     </div></A>;
 }

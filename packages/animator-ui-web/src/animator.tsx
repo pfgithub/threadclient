@@ -12,7 +12,7 @@
 import getStroke from "perfect-freehand";
 import { MultiPolygon, Polygon } from "polygon-clipping";
 import { createEffect, createMemo, createSignal, JSX, onCleanup } from "solid-js";
-import { ShowBool } from "../../tmeta-util-solid/src/control_flow_solid";
+import { Show } from "../../tmeta-util-solid/src/control_flow_solid";
 import { switchKind } from "../../tmeta-util/src/util";
 import { Action, findFrameIndex, State } from "./apply_action";
 import { EventPoint, recognizeGestures } from "./gesture_recognizer";
@@ -35,9 +35,9 @@ export default function Animator(props: {state: State, applyAction: (action: Act
 
     return <div class="h-full">
         <DrawCurrentFrame state={props.state} applyAction={props.applyAction} />
-        <ShowBool when={!fullscreen()}>
+        <Show if={!fullscreen()}>
             <GestureRecognizer state={props.state} applyAction={props.applyAction} />
-        </ShowBool>
+        </Show>
     </div>;
 }
 

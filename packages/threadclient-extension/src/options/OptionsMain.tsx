@@ -1,6 +1,6 @@
 import { JSX } from "solid-js";
 import { render } from "solid-js/web";
-import { localStorageSignal, ShowBool } from "tmeta-util-solid";
+import { localStorageSignal, Show } from "tmeta-util-solid";
 // import browser from "webextension-polyfill";
 
 function Section(opts: {title: string, children: JSX.Element}): JSX.Element {
@@ -23,7 +23,7 @@ function Options(): JSX.Element {
             <p>"options loaded (dev: "+__DEV__+")"</p>
             <Section title="Chat Unread Indicators">
                 <p>Chat indicators are {chatIndicatorsEnabled() ? "enabled" : "not enabled"}.</p>
-                <ShowBool when={chatIndicatorsEnabled()} fallback={
+                <Show if={chatIndicatorsEnabled()} fallback={
                     <p>
                         <a
                             href="https://www.reddit.com/#tc-chat-unread-indicators"
@@ -37,7 +37,7 @@ function Options(): JSX.Element {
                     <p>
                         TODO add a button to test if chat unread indicators are working.
                     </p>
-                </ShowBool>
+                </Show>
             </Section>
             <Section title="Developer Settings">
                 <p>Dev mode is {devMode() === "true" ? "on" : "off"}.</p>

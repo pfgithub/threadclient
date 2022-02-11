@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { createMemo, createSignal, JSX } from "solid-js";
-import { ShowCond, SwitchKind } from "tmeta-util-solid";
+import { Show, SwitchKind } from "tmeta-util-solid";
 import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsafeLinkToSafeLink } from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { ShowAnimate } from "./animation";
@@ -33,15 +33,15 @@ export function PreviewableLink(props: {
             lp.setVisible(!lp.visible());
         } : undefined}>
             {props.children}
-            <ShowCond when={linkPreview()}>{preview_opts => <>
+            <Show when={linkPreview()}>{preview_opts => <>
                 {" "}{preview_opts.visible() ? "▾" : "▸"}
-            </>}</ShowCond>
+            </>}</Show>
         </LinkButton>
-        <ShowCond when={linkPreview()}>{preview_opts => (
+        <Show when={linkPreview()}>{preview_opts => (
             <ShowAnimate when={preview_opts.visible()}>
                 <Body autoplay={true} body={preview_opts.body} />
             </ShowAnimate>
-        )}</ShowCond>
+        )}</Show>
     </>;
 }
 
