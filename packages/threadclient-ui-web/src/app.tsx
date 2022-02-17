@@ -2999,10 +2999,11 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 
         (async () => {
             const {client} = await import("threadclient-client-reddit");
-            const {stringify} = await import("json-recursive");
+            const {stringify} = await import("@effectful/serialization");
             const v = await client.getPage!("/"+path.join("/")+search);
-            setText(JSON.stringify(stringify(v)));
+            setText(stringify(v));
         })().catch(e => {
+            console.log("err;", e);
             setText((e as Error).toString() + "\n" + (e as Error).stack);
         });
 

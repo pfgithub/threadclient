@@ -1,6 +1,6 @@
 import * as Generic from "api-types-generic";
 import { promises as fs } from "fs";
-import { destringify } from "json-recursive";
+import { parse } from "@effectful/serialization";
 import * as os from "os";
 import * as path from "path";
 import * as readline from "readline";
@@ -401,7 +401,7 @@ export async function main(opts: {
             process.stdout.write("$> ");
         };
         const resolve = async (resstr: string) => {
-            const parsed = destringify(
+            const parsed = parse(
                 await fs.readFile(__dirname + "/example_content/"+resstr, "utf-8"),
             ) as Generic.Page2;
 

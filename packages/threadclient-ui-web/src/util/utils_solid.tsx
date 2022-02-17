@@ -106,6 +106,7 @@ export type Settings = {
     motion: ComputeProperty<Motion>,
     animation_time: ComputeProperty<number>,
     animation_dev_mode: ComputeProperty<AnimationDevMode>,
+    signature: ComputeProperty<string>,
 };
 
 type SerializerDeserializer<T> = {
@@ -189,6 +190,7 @@ const global_settings = createRoot((): Settings => {
             deserialize: (str) => str != null && str !== "" ? JSON.parse(str) as number : undefined,
         }),
         animation_dev_mode: localStorageProperty("animation_dev_mode", () => "none", {}),
+        signature: localStorageProperty("signature", () => "", {}),
     };
 
     createEffect(() => {

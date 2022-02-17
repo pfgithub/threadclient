@@ -1,5 +1,11 @@
 ## todo
 
+consider using a WeakMap to store post data linked to navigation entries?
+
+so when the nav entries get deleted the post data does too
+
+## todo
+
 how to upgrade:
 
 - use windi css analyzer to find all classes (eg `mt-5px` and especially arbitrary `mt-34` eg)

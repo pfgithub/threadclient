@@ -1369,6 +1369,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@effectful/serialization@npm:^1.4.2":
+  version: 1.4.2
+  resolution: "@effectful/serialization@npm:1.4.2"
+  dependencies:
+    base64-arraybuffer: ^1.0.1
+  checksum: e67d5538ac512829c393a9dd287563eff460435c20d46a1fe88d771a6adda6117c0bb75259d8dc175d9ad22e6b00f9ca8642863a3af171a43f5b09d2e5c50787
+  languageName: node
+  linkType: hard
+
 "@eslint/eslintrc@npm:^0.4.3":
   version: 0.4.3
   resolution: "@eslint/eslintrc@npm:0.4.3"
@@ -3267,6 +3276,13 @@ __metadata:
   version: 1.0.2
   resolution: "balanced-match@npm:1.0.2"
   checksum: 9706c088a283058a8a99e0bf91b0a2f75497f185980d9ffa8b304de1d9e58ebda7c72c07ebf01dadedaac5b2907b2c6f566f660d62bd336c3468e960403b9d65
+  languageName: node
+  linkType: hard
+
+"base64-arraybuffer@npm:^1.0.1":
+  version: 1.0.2
+  resolution: "base64-arraybuffer@npm:1.0.2"
+  checksum: 15e6400d2d028bf18be4ed97702b11418f8f8779fb8c743251c863b726638d52f69571d4cc1843224da7838abef0949c670bde46936663c45ad078e89fee5c62
   languageName: node
   linkType: hard
 
@@ -7610,17 +7626,6 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"json-recursive@^1.0.0, json-recursive@workspace:packages/json-recursive":
-  version: 0.0.0-use.local
-  resolution: "json-recursive@workspace:packages/json-recursive"
-  dependencies:
-    eslint: ^7.29.0
-    eslint-config-tmeta: ^1.0.0
-    tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
-  languageName: unknown
-  linkType: soft
-
 "json-schema-traverse@npm:^0.4.1":
   version: 0.4.1
   resolution: "json-schema-traverse@npm:0.4.1"
@@ -11638,11 +11643,11 @@ fsevents@~2.3.2:
   version: 0.0.0-use.local
   resolution: "threadclient-ui-terminal@workspace:packages/threadclient-ui-terminal"
   dependencies:
+    "@effectful/serialization": ^1.4.2
     api-types-generic: ^1.0.0
     eslint: ^7.29.0
     eslint-config-tmeta: ^1.0.0
     esno: ^0.12.1
-    json-recursive: ^1.0.0
     node-fetch: ^3.1.0
     threadclient-client-base: ^1.0.0
     threadclient-client-reddit: ^1.0.0
@@ -11657,6 +11662,7 @@ fsevents@~2.3.2:
   version: 0.0.0-use.local
   resolution: "threadclient-ui-web@workspace:packages/threadclient-ui-web"
   dependencies:
+    "@effectful/serialization": ^1.4.2
     "@faker-js/faker": ^6.0.0-alpha.5
     "@fortawesome/fontawesome-free": ^5.15.4
     "@types/babel__core": ^7.1.15
