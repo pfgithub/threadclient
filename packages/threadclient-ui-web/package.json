@@ -44,7 +44,7 @@
     "workbox-window": "^6.2.4"
   },
   "dependencies": {
-    "@effectful/serialization": "^1.4.2",
+    "@effectful/serialization": "^1.4.6",
     "@faker-js/faker": "^6.0.0-alpha.5",
     "@fortawesome/fontawesome-free": "^5.15.4",
     "commonmark": "^0.30.0",

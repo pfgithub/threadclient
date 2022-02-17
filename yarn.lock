@@ -1369,12 +1369,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effectful/serialization@npm:^1.4.2":
-  version: 1.4.2
-  resolution: "@effectful/serialization@npm:1.4.2"
+"@effectful/serialization@npm:^1.4.6":
+  version: 1.4.6
+  resolution: "@effectful/serialization@npm:1.4.6"
   dependencies:
     base64-arraybuffer: ^1.0.1
-  checksum: e67d5538ac512829c393a9dd287563eff460435c20d46a1fe88d771a6adda6117c0bb75259d8dc175d9ad22e6b00f9ca8642863a3af171a43f5b09d2e5c50787
+  checksum: 5de4dc57cdbad2277003aaaa877209c5317eb5079afbf7232e93cfc0cfa9084a1da2ed16f91cc89d4c41a7768470e6b91501aca51c3524fde36cd3ad2a7365f1
   languageName: node
   linkType: hard
 
@@ -11643,7 +11643,7 @@ fsevents@~2.3.2:
   version: 0.0.0-use.local
   resolution: "threadclient-ui-terminal@workspace:packages/threadclient-ui-terminal"
   dependencies:
-    "@effectful/serialization": ^1.4.2
+    "@effectful/serialization": ^1.4.6
     api-types-generic: ^1.0.0
     eslint: ^7.29.0
     eslint-config-tmeta: ^1.0.0
@@ -11662,7 +11662,7 @@ fsevents@~2.3.2:
   version: 0.0.0-use.local
   resolution: "threadclient-ui-web@workspace:packages/threadclient-ui-web"
   dependencies:
-    "@effectful/serialization": ^1.4.2
+    "@effectful/serialization": ^1.4.6
     "@faker-js/faker": ^6.0.0-alpha.5
     "@fortawesome/fontawesome-free": ^5.15.4
     "@types/babel__core": ^7.1.15
