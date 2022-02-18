@@ -315,9 +315,9 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                 <p class="my-2">
                     Uses the new page2 renderer.
                 </p>
-                <h3 class="text-lg font-light text-gray-600">Cors Proxy</h3>
+                <h3 class="text-lg font-light text-gray-600">Developer Mode</h3>
                 <SettingPicker
-                    setting={settings.cors_proxy}
+                    setting={settings.developer_mode}
                     options={["on", "off", undefined]}
                     name={v => ({
                         'on': "On",
@@ -326,9 +326,7 @@ export function SettingsPage(props: {_?: undefined}): JSX.Element {
                     } as const)[v ?? "default"]}
                 />
                 <p class="my-2">
-                    Uses a proxy to bypass CORS restrictions. This will allow
-                    for improved rendering of twitter link previews and enable
-                    scrubbing in animated gifs.
+                    Shows additional buttons or something
                 </p>
             </ShowAnimate>
         </SettingsSection>

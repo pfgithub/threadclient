@@ -90,7 +90,7 @@ export type UpdateNotifications = "on" | "off";
 export type CustomVideoControls = "browser" | "custom";
 export type PageVersion = "1" | "2";
 export type LinkHelpers = "show" | "hide";
-export type CorsProxy = "on" | "off";
+export type DeveloperMode = "on" | "off";
 export type GalleryDisplay = "fullscreen" | "inline"; // if the gallery view prefers fullscreen when available
 export type Motion = "full" | "reduce";
 export type AnimationDevMode = "none" | "shift_slow";
@@ -101,7 +101,7 @@ export type Settings = {
     custom_video_controls: ComputeProperty<CustomVideoControls>,
     page_version: ComputeProperty<PageVersion>,
     link_helpers: ComputeProperty<LinkHelpers>,
-    cors_proxy: ComputeProperty<CorsProxy>,
+    developer_mode: ComputeProperty<DeveloperMode>,
     gallery_display: ComputeProperty<GalleryDisplay>,
     motion: ComputeProperty<Motion>,
     animation_time: ComputeProperty<number>,
@@ -180,7 +180,7 @@ const global_settings = createRoot((): Settings => {
         custom_video_controls: localStorageProperty("custom_video_controls", () => "browser", {}),
         page_version: localStorageProperty("page_version", () => "1", {}),
         link_helpers: localStorageProperty("link_helpers", () => "show", {}),
-        cors_proxy: localStorageProperty("cors_proxy", () => "off", {}),
+        developer_mode: localStorageProperty("cors_proxy", () => "off", {}),
         gallery_display: localStorageProperty("gallery_display", () => "fullscreen", {}),
         motion: localStorageProperty("motion",
             signalFromMatchMedia("(prefers-reduced-motion: reduce)", "reduce", "full"),
