@@ -12,6 +12,11 @@ function isSpecialField(v: NodeSchema | SpecialField): v is SpecialField {
   return !!v[is_specialfield];
 }
 
+// TODO I want to be able to specify eg:
+// sc.object<TypescriptType>() and have it check that the fields I put match that type
+
+// also that way I can make a renderer for a thing that renders
+// DeepPartial<TypescriptType>
 export const sc = {
   field: (value: NodeSchema, opts: FieldOpts = {}): SpecialField => ({[is_specialfield]: true, value, opts}),
   object: (obj: {[key: string]: NodeSchema | SpecialField}, opts: ObjectOpts = {}): ObjectSchema => {

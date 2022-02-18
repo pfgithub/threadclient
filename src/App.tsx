@@ -77,6 +77,29 @@ const layer_schema: NodeSchema = sc.object({
   },
 });
 
+const resources_schema = sc.array(sc.object({
+  resource: sc.string(), // sc.link(resource)
+  cost: sc.string(),
+}), {
+  view_mode: "tab-bar",
+});
+
+const clicker_schema: NodeSchema = sc.union("type", {
+  none: sc.object({}),
+  spacer: sc.object({}),
+  separator: sc.object({}),
+  counter: sc.object({
+    name: sc.string(),
+    description: sc.string(),
+  }),
+  button: sc.object({
+    name: sc.string(),
+    price: resources_schema, // sc.opt(),
+    requirements: resources_schema, // sc.opt(),
+    effects: resources_schema, // sc.opt(),
+  }),
+});
+
 const root_schema: RootSchema = {
   root: sc.object({
     demo1: sc.object({
@@ -98,6 +121,10 @@ const root_schema: RootSchema = {
       // maps to undefined | an action
       layers: sc.allLinks(layer, {view_mode: "tab-bar"}),
     }, {display_mode: "tab-bar"}),
+
+    // there should be a view mode that displays as a list but only one selected item
+    // has its editors rendered, the rest are shown as a fancy rendered object
+    clicker: sc.array(clicker_schema),
   }, {display_mode: "tab-bar"}),
   symbols: {
     [person_link]: person_schema,
