@@ -591,6 +591,108 @@ function postformat(ld: {indent: string, once: string}, post: TermText[], style:
     return [styl({indent: [ld.indent], fg: stylv}, styl({indent: [postmarker]}, ld.once, ...post))];
 }
 
+type InfoBarItem = {
+    value: ["percent" | "number" | "timeago" | "hidden" | "none", number],
+    icon: Generic.Icon,
+    color: null | Generic.Color,
+    text: string,
+    disabled?: undefined | boolean,
+};
+
+function generateInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
+    // this can probably be unified between web and terminal, but TODO because web has the special counter
+    // stuff and uses solid js tracking
+
+    // otherwise this is basically the same code though
+    // yeah we should definitely unify
+
+    const res: InfoBarItem[] = [];
+
+    if(post.info?.pinned === true) {
+        res.push({
+            icon: "pinned",
+            value: ["none", -1000],
+            color: "green",
+            text: "Pinned",
+        });
+    }
+    if(post.actions?.vote) {
+        const voteact = post.actions.vote;
+        const pt_count = voteact.count_excl_you;
+        res.push({
+            value: pt_count === "hidden"
+            ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
+            : ["number", pt_count + ({
+                increment: 1,
+                decrement: -1,
+                none: 0,
+            } as const)[voteact.you ?? "none"]],
+            icon: ({
+                none: voteact.neutral_icon ?? voteact.increment.icon,
+                increment: voteact.increment.icon,
+                decrement: voteact.decrement?.icon ?? voteact.increment.icon,
+            } as const)[voteact.you ?? "none"],
+            color: ({
+                none: null,
+                increment: voteact.increment.color,
+                decrement: voteact.decrement?.color ?? voteact.increment.color,
+            } as const)[voteact.you ?? "none"],
+            text: "Points",
+            disabled: false,
+        });
+        if(post.actions.vote.percent != null) {
+            res.push({
+                icon: "controversiality",
+                value: ["percent", post.actions.vote.percent],
+                color: null,
+                text: "Controversiality",
+            });
+        }
+    }
+    if(post.info?.comments != null) {
+        res.push({
+            icon: "comments",
+            value: ["number", post.info.comments],
+            color: null,
+            text: "Comments",
+        });
+    }
+    if(post.info?.creation_date != null) {
+        res.push({
+            icon: "creation_time",
+            value: ["timeago", post.info.creation_date],
+            color: null,
+            text: "Posted",
+        });
+    }
+    if(post.info?.edited) {
+        res.push({
+            icon: "edit_time",
+            value: post.info.edited.date == null ? ["none", -1000] :
+            ["timeago", post.info.edited.date],
+            color: null,
+            text: "Edited",
+        });
+    }
+
+    return res;
+}
+const generic_icon_to_unicode_icon: {[key in Generic.Icon]?: undefined | string} = {
+    // if we require a powerline font / nerd font, we can use fontawesome icons
+
+    //pinned: "[pinned]",
+    up_arrow: "↑",
+    down_arrow: "↓",
+    controversiality: "☺",
+    //comments: "[comments]",
+    //creation_time: "[created]",
+    //edit_time: "[edited]",
+};
+function renderInfoBarItem(item: InfoBarItem): TermText[] {
+    const icon = generic_icon_to_unicode_icon[item.icon] ?? item.icon.toUpperCase();
+    return icon + " " + item.value[1];
+}
+
 function renderPost(post: Generic.Post): TermText[][] {
     if(post.kind === "loader") return [["enotpost"]];
     if(post.kind === "loaded") return [["enotpost"]];
@@ -603,8 +705,11 @@ function renderPost(post: Generic.Post): TermText[][] {
         postr.push([content.title.text]);
         postr.push([]);
     }
-    if(content.author) {
-        postr.push(["by "+content.author.name]);
+    {
+        postr.push(arrayjoin([
+            (content.author ? ["by "+content.author.name] : []), // TODO color
+            ...generateInfoBar(content).map(itm => renderInfoBarItem(itm)),
+        ], () => ["   "]));
         postr.push([]);
     }
     postr.push(printBody(content.body));

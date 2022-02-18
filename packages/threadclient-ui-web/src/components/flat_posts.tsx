@@ -28,11 +28,6 @@ export function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
     }
     if(post.actions?.vote) {
         const voteact = post.actions.vote;
-        // TODO support other types of voting
-        // eg: mastodon will be star/unstar so we should use a star icon
-        // and yellow color
-        // the vote thing should have a way to specify:
-        // increment_icon, increment_color, decrement_icon, decrement_color
         const [stateR] = getCounterState(() => post.actions!.vote!);
         const state = stateR();
         const pt_count = state.pt_count;
