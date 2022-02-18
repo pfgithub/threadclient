@@ -1,5 +1,5 @@
 import type * as Generic from "api-types-generic";
-import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup, Suspense } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { switchKind } from "../../../tmeta-util/src/util";

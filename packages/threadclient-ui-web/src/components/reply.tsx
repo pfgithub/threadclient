@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { createEffect, createSignal, JSX } from "solid-js";
+import { createSignal, JSX } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { getClientCached, link_styles_v } from "../app";
 import { getSettings, localStorageSignal } from "../util/utils_solid";
