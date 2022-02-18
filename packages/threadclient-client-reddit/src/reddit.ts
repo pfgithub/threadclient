@@ -3459,7 +3459,7 @@ export const client: ThreadClient = {
             link: "no link",
             layout: "reddit-comment",
             info: {
-                time: Date.now(),
+                time: false,
                 edited: false,
                 author: {
                     name: "TODO You",
@@ -3492,7 +3492,7 @@ export const client: ThreadClient = {
                 special: "reddit-points",
 
                 unique_id: null,
-                time: Date.now(),
+                time: 0,
 
                 count_excl_you: 0,
                 you: "increment",

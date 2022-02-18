@@ -40,27 +40,23 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             //       note: perf consideration: maybe add some way to tell components if
             //       they should be allowed to diff or not - most don't have to diff, it
             //       's only eg when you're writing a reply that you want diffing here.
+
             const [a] = createResource<Generic.Body, Generic.BodyText>(
                 () => JSON.parse(JSON.stringify(text)) as typeof text,
                 v => textToBody(v),
             );
             const c = createMemo<Generic.Body | undefined>((prev) => {
                 const val = a();
-                console.log("memo update! val, prev:", val, prev);
                 return val ?? prev;
             }, undefined);
-            createEffect(() => {
-                console.log("a is", a());
-            });
-            createEffect(() => {
-                console.log("c is", c());
-            });
-            // TODO:  <div a.loading ? "opacity-50"></div>
-            return <Show when={c()} fallback={
+
+            // TODO: start an animation that changes opacity after like 200ms rather
+            // than setting it instantly
+            return <div class={a.loading ? "opacity-50" : "opacity-100"}><Show when={c()} fallback={
                 <>Loading…</>
             }>{b => {
                 return <Body body={b} autoplay={false} />;
-            }}</Show>;
+            }}</Show></div>;
         },
         link: link => {
             const previewBody: () => {

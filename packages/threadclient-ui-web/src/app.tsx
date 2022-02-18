@@ -375,7 +375,9 @@ function renderBodyMayError(
     const frame = el("div").adto(content);
     vanillaToSolidBoundary(
         frame,
-        () => <Body body={body} autoplay={opts.autoplay} />,
+        () => {
+            return <Body body={body} autoplay={opts.autoplay} />;
+        },
         {color_level: 1},
     ).defer(hsc);
 
