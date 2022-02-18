@@ -177,7 +177,9 @@ async function displayBody(body: Generic.Body, signal: AbortSignal): Promise<voi
     if(body.kind === "captioned_image") {
         if(body.caption != null) console.log("caption: "+body.caption);
         if(body.alt != null) console.log("alt: "+body.alt);
+        process.stdout.write("downloading image…");
         const imgv = await downloadimage(body.url, signal);
+        process.stdout.write("\r"+eoltxt);
 
         // image viewers:
         // - in-terminal:
