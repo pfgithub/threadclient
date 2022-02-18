@@ -1,4 +1,4 @@
-import { createEffect, createSignal, JSX, onCleanup } from "solid-js";
+import { createEffect, createSignal, JSX, onCleanup, untrack } from "solid-js";
 import { render } from "solid-js/web";
 import { hideshow, HideShowCleanup } from "../app";
 import { ColorDepthContext, getIsVisible, HideshowProvider } from "./utils_solid";
@@ -17,7 +17,7 @@ export function vanillaToSolidBoundary(
 
         return <HideshowProvider visible={cvisible}>
             <ColorDepthContext.Provider value={{i: opts.color_level}}>
-                {solidNode()}
+                {untrack(() => solidNode())}
             </ColorDepthContext.Provider>
         </HideshowProvider>;
     }, frame);

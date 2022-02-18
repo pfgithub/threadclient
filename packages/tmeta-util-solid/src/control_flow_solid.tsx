@@ -7,7 +7,7 @@ export function SwitchKind<T extends {kind: string}>(props: {
 }): JSX.Element {
     return createMemo(() => {
         const match = switchKindCB<JSX.Element>(props.item, props.children);
-        return match();
+        return untrack(() => match());
     });
 }
 
