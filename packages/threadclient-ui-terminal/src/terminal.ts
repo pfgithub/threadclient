@@ -49,6 +49,8 @@ function unlink(content: Generic.Page2Content, link: Generic.Link<Generic.Post>)
     return value.value;
 }
 
+// TODO: at top level, return VisualNode[]
+// at or above the parent should be navigable with the up/down arrow keys rather than left/right
 function generateVisualParentsAroundPost(
     content: Generic.Page2Content,
     post: Generic.Post,
