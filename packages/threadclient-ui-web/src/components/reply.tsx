@@ -1,19 +1,32 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { createSignal, JSX } from "solid-js";
+import { createEffect, createSignal, JSX } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { getClientCached, link_styles_v } from "../app";
-import { localStorageSignal } from "../util/utils_solid";
+import { getSettings, localStorageSignal } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { ClientContent, TopLevelWrapper } from "./page2";
 
-export function ReplyEditor(props: {
+export default function ReplyEditor(props: {
     action: Generic.ReplyAction,
     onCancel: () => void,
     onAddReply: (response: Generic.PostData) => void,
 }): JSX.Element {
-    const [rawContent, setContent] = localStorageSignal("comment-draft-"+props.action.client_id+"-"+props.action.key);
-    const content = () => rawContent() ?? "";
+    const settings = getSettings();
+    const [baseContent, setBaseContent] = localStorageSignal(
+        "comment-draft-"+props.action.client_id+"-"+props.action.key,
+        // TODO indexeddb so we can query all the drafts and stuff
+        // and keep a link to the post to show if you want to continue a draft
+    );
+    const [showSignature, setShowSignature] = createSignal(true);
+    const content = () => {
+        const v = baseContent() ?? "";
+        const signature = settings.signature.value();
+        if(showSignature() && signature.trim()) {
+            return v + (v.trim() ? "\n\n" : "") + signature;
+        }
+        return v;
+    };
     const empty = () => content().trim() === "";
 
     const [isSending, setSending] = createSignal(false);
@@ -25,10 +38,23 @@ export function ReplyEditor(props: {
     }, {key: null, merge: true});
 
     return <div>
-        <textarea disabled={isSending()} class="border my-3 w-full resize-y" value={content()} onInput={(e) => {
-            setContent(e.currentTarget.value);
-        }} />
-        <div class="flex space-x-1">
+        <textarea
+            disabled={isSending()}
+            class="border my-3 w-full resize-y"
+            value={baseContent() ?? ""}
+            onInput={(e) => {
+                setBaseContent(e.currentTarget.value);
+            }}
+        />
+        <Show if={!!settings.signature.value().trim()}>
+            <label class="my-3">
+                <input type="checkbox" checked={showSignature()} onInput={nv => {
+                    setShowSignature(nv.currentTarget.checked);
+                }} />
+                {" "}Show my signature on this post
+            </label>
+        </Show>
+        <div class="flex space-x-1 my-3">
             <button
                 disabled={empty() || isSending()}
                 class={link_styles_v[empty() ? "pill-empty" : "pill-filled"]}
@@ -45,7 +71,7 @@ export function ReplyEditor(props: {
                         // terrible idea, but like…
                         // it could be fun
                         // might not look good
-                        setContent(null); // trust that the response is succesful
+                        setBaseContent(null); // trust that the response is succesful
                         props.onAddReply({
                             kind: "post",
                             internal_data: r.raw_value,

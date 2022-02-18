@@ -291,6 +291,25 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
+        <SettingsSection title="Signature">
+            <textarea
+                class="w-full bg-gray-100 p-2 placeholder-gray-400"
+                rows={4}
+                value={settings.signature.value()}
+                onInput={v => {
+                    settings.signature.compute.setOverride(v.currentTarget.value || undefined);
+                }}
+                placeholder={"~ Sent from my Samsung Smart Fridge"}
+            />
+            <p class="my-4">
+                Set a signature to be added to the end of all your posts. TODO:
+                You should be able to specify signatures per-account rather than
+                globally. This would also allow showing a preview of what the signature
+                will look lile. TODO: show a preview editor here. that will be doable
+                once this is per-account because accounts will be associated with a
+                client.
+            </p>
+        </SettingsSection>
         <SettingsSection title="Developer Options">
             <p class="my-2">
                 Leave all these default. Changing these will break things.{" "}

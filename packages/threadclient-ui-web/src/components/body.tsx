@@ -29,17 +29,38 @@ const PreviewVideo = lazy(() => import("./preview_video"));
 
 export function Body(props: {body: Generic.Body, autoplay: boolean}): JSX.Element {
     return <DefaultErrorBoundary data={props.body}>
-        <Suspense fallback={<div>Loading...</div>}>
-            <BodyMayError body={props.body} autoplay={props.autoplay} />
-        </Suspense>
+        <BodyMayError body={props.body} autoplay={props.autoplay} />
     </DefaultErrorBoundary>;
 }
 
 function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Element {
     return <SwitchKind item={props.body}>{{
         text: text => {
-            const [a] = createResource(text, textToBody);
-            return <Show when={a()}>{b => <Body body={b} autoplay={false} />}</Show>;
+            // TODO: diff the value
+            //       note: perf consideration: maybe add some way to tell components if
+            //       they should be allowed to diff or not - most don't have to diff, it
+            //       's only eg when you're writing a reply that you want diffing here.
+            const [a] = createResource<Generic.Body, Generic.BodyText>(
+                () => JSON.parse(JSON.stringify(text)) as typeof text,
+                v => textToBody(v),
+            );
+            const c = createMemo<Generic.Body | undefined>((prev) => {
+                const val = a();
+                console.log("memo update! val, prev:", val, prev);
+                return val ?? prev;
+            }, undefined);
+            createEffect(() => {
+                console.log("a is", a());
+            });
+            createEffect(() => {
+                console.log("c is", c());
+            });
+            // TODO:  <div a.loading ? "opacity-50"></div>
+            return <Show when={c()} fallback={
+                <>Loading…</>
+            }>{b => {
+                return <Body body={b} autoplay={false} />;
+            }}</Show>;
         },
         link: link => {
             const previewBody: () => {

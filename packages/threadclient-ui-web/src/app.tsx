@@ -14,7 +14,7 @@ import { Flair } from "./components/Flair";
 import { Homepage } from "./components/homepage";
 import { ClientContentAny } from "./components/page2";
 import ClientPage from "./components/PageRoot";
-import { ReplyEditor } from "./components/reply";
+import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {
@@ -333,19 +333,20 @@ export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditM
 });
 
 export async function textToBody(body: Generic.BodyText): Promise<Generic.Body> {
+    const content = body.content;
     if(body.markdown_format === "reddit") {
         const [mdr, htr] = await Promise.all([
             getRedditMarkdownRenderer(),
             import("threadclient-client-reddit/src/html_to_richtext"),
         ]);
-        const safe_html = mdr.renderMd(body.content);
+        const safe_html = mdr.renderMd(content);
         return {kind: "richtext", content: htr.parseContentHTML(safe_html, body.client_id)};
     }else if(body.markdown_format === "none") {
-        return {kind: "richtext", content: [rt.p(rt.txt(body.content))]};
+        return {kind: "richtext", content: [rt.p(rt.txt(content))]};
     }else if(body.markdown_format === "reddit_html") {
         const htr = await import("threadclient-client-reddit/src/html_to_richtext");
-        console.log(body.content);
-        return {kind: "richtext", content: htr.parseContentHTML(body.content, body.client_id)};
+        console.log(content);
+        return {kind: "richtext", content: htr.parseContentHTML(content, body.client_id)};
     }else assertNever(body.markdown_format);
 }
 
