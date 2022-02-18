@@ -74,7 +74,7 @@ export function SettingPicker<T extends string>(props: {
     </div>;
 }
 
-export function SettingsPage(props: {_?: undefined}): JSX.Element {
+export default function SettingsPage(props: {_?: undefined}): JSX.Element {
     const [showDevSettings, setShowDevSettings] = createSignal(false);
     const settings = getSettings();
 

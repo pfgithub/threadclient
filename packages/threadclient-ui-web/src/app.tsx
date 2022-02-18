@@ -2776,7 +2776,7 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
 }
 
 function settingsPage(): HideShowCleanup<HTMLDivElement> {
-    return fetchPromiseThen(import("./components/settings"), ({SettingsPage}) => {
+    return fetchPromiseThen(import("./components/settings"), ({default: SettingsPage}) => {
         const res = el("div");
         const hsc = hideshow(res);
         vanillaToSolidBoundary(res, () => <SettingsPage />, {color_level: 0}).defer(hsc);
