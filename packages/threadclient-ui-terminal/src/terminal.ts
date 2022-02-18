@@ -688,18 +688,18 @@ const generic_icon_to_unicode_icon: {[key in Generic.Icon]?: undefined | string}
     //creation_time: "[created]",
     //edit_time: "[edited]",
 };
-function renderInfoBarItem(item: InfoBarItem): TermText[] {
+function renderInfoBarItem(item: InfoBarItem): TermText {
     const icon = generic_icon_to_unicode_icon[item.icon] ?? item.icon.toUpperCase();
     return icon + " " + item.value[1];
 }
 
-function renderPost(post: Generic.Post): TermText[][] {
+function renderPost(post: Generic.Post): TermText {
     if(post.kind === "loader") return [["enotpost"]];
     if(post.kind === "loaded") return [["enotpost"]];
     const {content} = post;
     if(content.kind !== "post") return [["enotpost"]];
 
-    const postr: TermText[][] = [];
+    const postr: TermText[] = []; // lines
 
     if(content.title) {
         postr.push([content.title.text]);
