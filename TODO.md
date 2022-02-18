@@ -1,5 +1,17 @@
 ## todo
 
+support pushshift
+
+you should be able to go to `https://api.pushshift.io/reddit/search/submission`
+
+and maybe even configure all the parameters and stuff
+
+https://github.com/pushshift/api
+
+I just want to display the results nicely
+
+## todo
+
 consider using a WeakMap to store post data linked to navigation entries?
 
 so when the nav entries get deleted the post data does too

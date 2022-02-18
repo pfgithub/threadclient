@@ -693,7 +693,13 @@ function renderInfoBarItem(item: InfoBarItem): TermText {
     return icon + " " + item.value[1];
 }
 
-function renderPost(post: Generic.Post): TermText {
+// TODO:
+// it needs to be more clear what TermText[] is
+// because TermText = TermText[] | string
+// so uuh
+// maybe we can make TermText not contain TermText[] and then use a helper fn
+// I can't do this right now because I don't have a typescript language server
+function renderPost(post: Generic.Post): TermText[] {
     if(post.kind === "loader") return [["enotpost"]];
     if(post.kind === "loaded") return [["enotpost"]];
     const {content} = post;
