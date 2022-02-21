@@ -1,5 +1,7 @@
 import { JSX } from "solid-js/jsx-runtime";
 import { SetStoreFunction, Store } from "solid-js/store";
+import { Path } from "./editor_data";
+import { RichtextSchema } from "./schema";
 
 const keyed_by = Symbol();
 
@@ -9,11 +11,6 @@ export type TextEditorNode = {
         value: TextEditorNode,
         [keyed_by]: symbol,
     }[];
-};
-
-export type RootState = {
-    data: Store<{data: TextEditorNode}>,
-    setData: SetStoreFunction<{data: unknown}>,
 };
 
 // // a little composable leaf node
@@ -41,19 +38,25 @@ export type RootState = {
 // - pressing enter in a text should insert a newline. if there is already
 //   a newline, it should make a new paragraph.
 
-export function TextEditor(props: {
-    state: RootState,
+
+// maybe arrays should be stored as objects and handled with object.entries()
+
+// ok I'm literally replicating nodeeditor give me a second I'm merging this in
+
+export function EditorNode(props: {
+    path: Path,
 }): JSX.Element {
-    // this stylinng can probably be provided by the root node
-    return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
-        todo
+    return <div>
+        TODO node
     </div>;
 }
 
-export default function TextApp(props: {
-    state: RootState,
+export function RichtextEditor(props: {
+    schema: RichtextSchema,
+    path: Path,
 }): JSX.Element {
-    return <div class="mx-auto max-w-2xl bg-gray-800 p-4 h-full">
-        <TextEditor state={props.state} />
+    // this stylinng can probably be provided by the root node
+    return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
+        <EditorNode path={props.path} />
     </div>;
 }

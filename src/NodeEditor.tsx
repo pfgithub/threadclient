@@ -6,6 +6,7 @@ import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, Obj
 import { uuid } from "./uuid";
 import { Key } from "./Key";
 import { object_active_field } from "./symbols";
+import { RichtextEditor } from "./TextEditor";
 
 // switch arrays to use objects
 // and figure out how to make <For> accept a key
@@ -319,6 +320,7 @@ function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
       boolean: bool => <BooleanEditor schema={bool} path={props.path} />,
       array: arr => <ArrayEditor schema={arr} path={props.path} />,
       union: uni => <UnionEditor schema={uni} path={props.path} />,
+      richtext: rt => <RichtextEditor schema={rt} path={props.path} />,
       all_links: al => <AllLinksEditor schema={al} path={props.path} />,
       link: link => <LinkEditor schema={link} path={props.path} />,
       dynamic: dynamic => <NodeEditor schema={dynamic.resolver(props.path)} path={props.path} />

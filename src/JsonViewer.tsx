@@ -49,6 +49,9 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
         ...stringifySchemaEntry([...path, choice.name], choice.value) as Object,
       };
     },
+    richtext: rt => {
+      return new JSONRaw("#TODO_RICHTEXT");
+    },
     all_links: al => {
       const state = getState();
       const schema = state.root_schema.symbols[al.tag];

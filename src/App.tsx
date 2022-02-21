@@ -125,6 +125,8 @@ const root_schema: RootSchema = {
     // there should be a view mode that displays as a list but only one selected item
     // has its editors rendered, the rest are shown as a fancy rendered object
     clicker: sc.array(clicker_schema),
+
+    text_editor: sc.richtext(),
   }, {display_mode: "tab-bar"}),
   symbols: {
     [person_link]: person_schema,

@@ -38,6 +38,7 @@ export const sc = {
       value: value,
     })),
   }),
+  richtext: (): RichtextSchema => ({kind: "richtext"}),
   string: (): StringSchema => ({kind: "string"}),
   boolean: (): BooleanSchema => ({kind: "boolean"}),
   array: (child: NodeSchema, opts: ArrayOpts = {}): ArraySchema => ({kind: "array", child, opts}),
@@ -55,6 +56,7 @@ export type NodeSchema =
   | LinkSchema
   | AllLinksSchema
   | DynamicSchema
+  | RichtextSchema
 ;
 
 export type RootSchema = {
@@ -97,6 +99,9 @@ export type UnionSchema = {
   kind: "union",
   tag_field: string,
   choices: UnionField[],
+};
+export type RichtextSchema = {
+  kind: "richtext",
 };
 export type StringSchema = {
   kind: "string",
