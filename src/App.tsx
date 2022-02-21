@@ -22,7 +22,7 @@ const person_schema: NodeSchema = sc.object({
   tags: sc.array(sc.string()),
 }, {
   summarize: v => {
-    if(typeof v === "object" && ('name' in v) && typeof v["name"] === "string") {
+    if(v != null && typeof v === "object" && ('name' in v) && typeof v["name"] === "string") {
       return v["name"];
     }
     return "*Unnamed*";
@@ -34,7 +34,7 @@ const button_schema: NodeSchema = sc.object({
   id: sc.string(),
 }, {
   summarize: (v) => {
-    if(typeof v === "object") return "" + v["name"] + " (" + v["id"] + ")";
+    if(v != null && typeof v === "object") return "" + v["name"] + " (" + v["id"] + ")";
     return "*Unnamed*";
   },
 });
@@ -55,10 +55,10 @@ const layer_schema: NodeSchema = sc.object({
       fields: Object.entries(getValueFromState(["data", input_button], state.state) ?? {}).map(
         ([key, value]): ObjectField => {
           return {
-            name: value.array_symbol,
+            name: key,
             value: action_schema,
             opts: {
-              title: summarize(value.array_item, button_schema),
+              title: summarize(value, button_schema),
             },
           }
         },
@@ -70,7 +70,7 @@ const layer_schema: NodeSchema = sc.object({
   }),
 }, {
   summarize: (v) => {
-    if(typeof v === "object"
+    if(v != null && typeof v === "object"
     && ('title' in v)
     && typeof v["title"] === "string") return v["title"];
     return "*Unnamed*";

@@ -3,7 +3,7 @@ import { JSX } from "solid-js/jsx-runtime";
 import { SwitchKind } from "./util";
 import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
 import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
-import { uuid } from "./uuid";
+import { UUID, uuid } from "./uuid";
 import { Key } from "./Key";
 import { object_active_field } from "./symbols";
 import { RichtextEditor } from "./TextEditor";
@@ -81,65 +81,49 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
   // having to know the schema
   const [value, setValue] = modValue(() => props.path);
 
-  // modValue(() => [...props.path, object_active_field]
-  const [active, setActive] = createSignal(null);
-
   const state = getState();
 
   return <TabOrListEditor
     mode={props.schema.opts.view_mode}
     tabs={[...(() => {
       const res = value();
-      if(!Array.isArray(res)) return [];
-      return res.map(item => {
+      if(typeof res !== "object") return [];
+      return Object.entries(res).map(([key, item]) => {
         return {
-          title: summarize(item.array_item, props.schema.child),
-          key: item.array_symbol,
+          title: summarize(item, props.schema.child),
+          key,
         };
       });
     })(), {
       title: "+",
-      key: () => {
-        const new_item = {array_symbol: uuid()};
+      key: (): string => {
+        const nsym = uuid();
         setValue(it => {
-          return Array.isArray(it) ? [...it, new_item] : [new_item];
+          const nv = {...(it != null && typeof it === "object" ? it : {}), [nsym]: null};
+          console.log(it, nv);
+          return nv;
         });
-        return new_item.array_symbol;
+        return nsym;
       },
     }]}
-    active={[() => {
-      const v = value();
-      if(typeof v === "object") return v[object_active_field];
-      return null;
-    }, (cb) => {
-      const v = value();
-      if(typeof v === "object") {
-        setValueFromState([...props.path, object_active_field], state.state, cb(v[object_active_field]));
-      }
-      return null;
-    }]}
+    active={modValue(() => [...props.path, object_active_field])}
   >{(key) => {
-    const itemIdx = () => {
-      const res = value();
-      if(!Array.isArray(res)) throw new Error("no item idx?");
-      const index = res.findIndex(item => item.array_symbol === key);
-      if(index === -1) throw new Error("rendering item not in array? "+key);
-      return index;
-    };
     return <>
       <div><Button
         onClick={() => {
-          setValue(it => Array.isArray(it) ? it.filter(v => {
-            return v.array_symbol !== key;
-          }) : (() => {
-            throw new Error("is not array even though is");
-          })())
+          setValue(it => Object.fromEntries(
+            it != null && typeof it === "object" ? (
+              Object.entries(it).filter(([k]) => k !== key)
+            ) : (() => {
+              throw new Error("is not array even though is");
+            })(),
+          ));
         }}
       >Delete</Button></div>
       <div class="mt-2" />
       <NodeEditor
         schema={props.schema.child}
-        path={[...props.path, itemIdx(), "array_item"]}
+        path={[...props.path, key as UUID]}
       />
     </>;
   }}</TabOrListEditor>;
@@ -190,7 +174,10 @@ function StringEditor(props: {schema: StringSchema, path: Path}): JSX.Element {
 
 function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
-  return <Show when={typeof value() === "object"} fallback={(
+  return <Show when={(() => {
+    const v = value();
+    return v != null && typeof v === "object";
+  })()} fallback={(
     <div>
       <Button onClick={() => {
         setValue(() => ({}));
@@ -223,7 +210,10 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
 
 function UnionEditor(props: {schema: UnionSchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
-  return <Show when={typeof value() === "object"} fallback={(
+  return <Show when={(() => {
+    const v = value();
+    return v != null && typeof v === "object";
+  })()} fallback={(
     <div>
       <Button onClick={() => {
         setValue(() => ({}));
@@ -271,17 +261,17 @@ function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
       onInput={(e) => {
         const val = e.currentTarget.value;
         if(val === "") return setValue(undefined);
-        setValue(choices()[val].array_symbol);
+        setValue(() => val);
       }}
     >
       <option value={""} selected={isSelected(undefined)}>None</option>
       <For each={(() => {
         const c = choices();
-        if(!Array.isArray(c)) return [];
-        return c;
-      })()}>{(choice, i) => {
-        return <option value={i()} selected={isSelected(choice.array_symbol)}>
-          {i()} {summarize(choice.array_item, dataSchema())}
+        if(typeof c !== "object") return [];
+        return Object.entries(c);
+      })()}>{([k, v], i) => {
+        return <option value={k} selected={isSelected(k)}>
+          {i()} {summarize(v, dataSchema())}
         </option>;
       }}</For>
     </select>

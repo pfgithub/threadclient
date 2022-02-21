@@ -1,5 +1,5 @@
-import { createContext, JSX, useContext } from "solid-js";
-import { SetStoreFunction, Store } from "solid-js/store";
+import { createContext, JSX, untrack, useContext } from "solid-js";
+import { reconcile, SetStoreFunction, Store } from "solid-js/store";
 import { RootSchema } from "./schema";
 import { UUID } from "./uuid";
 
@@ -19,15 +19,17 @@ export function getValueFromState(path: Path, state: State): unknown {
   let node = state.data;
   for(const entry of path) {
     if(!node) {
-      console.log("EPATH", path);
-      throw new Error("path is undefined. path: `"+path.join(" / ")+"`");
+      console.log("EPATH", path, "AT ENTRY", entry, "WHOLE STATE", state);
+      throw new Error("path is undefined. path: `"+path.map(v => v.toString()).join(" / ")+"`");
     }
     node = node[entry];
   }
   return node;
 }
 export function setValueFromState(path: Path, state: State, value: unknown) {
-  state.setData(...path as unknown as ["data"], value);
+  state.setData(...path as unknown as ["data"], reconcile(
+    typeof value === "function" ? value(untrack(() => getValueFromState(path, state))) : value,
+  ));
 }
 
 export type ContextData = {
