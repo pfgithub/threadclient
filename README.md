@@ -39,3 +39,4 @@ next step is making a mockup real ui to see how it could look
   - change arrays to be objects with symbol keys utilizing js object property order
   - search for regex `array_item|array_symbol` and fix all of those locations
   - oh I have to enable typescript strict mode this is unusable
+    - oh wow we're not ready for strict mode
