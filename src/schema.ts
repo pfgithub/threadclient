@@ -102,6 +102,16 @@ export type UnionSchema = {
 };
 export type RichtextSchema = {
   kind: "richtext",
+
+  // merge: (a: node, b: node): undefined | node
+  // node_types:
+  // - root:
+  //   - paragraph:
+  //     - text (bold | italic | …)
+  //     - inline_code
+  //   - multiline_code_block
+
+  // and then we need to specify renderers, probably seperately?
 };
 export type StringSchema = {
   kind: "string",
