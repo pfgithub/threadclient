@@ -10,12 +10,14 @@ class JSONRaw {
   }
 }
 
+// export type StringifyResult = {[key: string]: StringifyResult} | StringifyResult[] | …
+
 function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
   const root_state = getState();
   const state = getValueFromState(path, root_state.state);
   return switchKind(schema, {
     object: obj => {
-      if(typeof state !== "object") return new JSONRaw("#E_NOT_OBJECT");
+      if(state == null || typeof state !== "object") return new JSONRaw("#E_NOT_OBJECT");
       return Object.fromEntries(obj.fields.map(field => {
         return [
           field.name,
@@ -31,12 +33,12 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
       if(typeof state === "boolean") return state;
       return new JSONRaw("#E_NOT_BOOLEAN");
     },
-    array: () => {
-      if(typeof state !== "object") return new JSONRaw("#E_NOT_ARRAY");
-      return Object.values(state);
+    array: arr => {
+      if(state == null || typeof state !== "object") return new JSONRaw("#E_NOT_ARRAY");
+      return Object.keys(state).map(key => stringifySchemaEntry([...path, key], arr.child));
     },
     union: uni => {
-      if(typeof state !== "object") return new JSONRaw("#E_NOT_UNION");
+      if(state == null || typeof state !== "object") return new JSONRaw("#E_NOT_UNION");
       const tag = state[uni.tag_field];
       const choice = uni.choices.find(c => c.name === tag);
       if(!choice) return new JSONRaw("#E_BAD_TAG");
@@ -55,7 +57,7 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
       const data = state.state.data.data[al.tag];
       if(!data) return {};
       if(typeof data !== "object") return new JSONRaw("#E_DATA_BAD_LINK_OBJECT");
-      return data;
+      return Object.keys(data).map(key => stringifySchemaEntry(["data", al.tag, key], schema));
     },
     link: () => {
       if(typeof state === "string") return state;
