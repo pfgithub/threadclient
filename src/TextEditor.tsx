@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Show } from "solid-js";
+import { createEffect, createRenderEffect, createSignal, For, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic } from "solid-js/web";
 import { Button } from "./components";
@@ -90,41 +90,42 @@ const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
 //
 // this is not necessary, I can just use attributes
 
-export function EditorSpan(props: {
-    children: JSX.Element,
-    // ^ children: (props: {
-    //     get selection: [start: CursorIndex | null, end: CursorIndex | null],
-    //     onSelect: (start: index | null, end: index | null) => void
-    //     - use selectionChange events combined with document.getSelection().focusOffset
-    //       - we might do our own selectionChange event delegation to avoid overhead and
-    //         properly handle whatever it is
-    //   }) = > JSX.Element,
-    //   length: number,
-    //   node_path: Path,
+export type CursorIndex = number;
 
-    // this will hold events.
-    //
-    // moveCursor(pos: CursorIndex): CursorIndex | Progress
-    // eg: given a cursor position and a direction, find a new cursor position
-    //     by moving n chars in direction / moving to the nearest word border.
-    //     if it's not in the node, we have to return how far left to go.
-    //
-    // replaceRange(left: CursorIndex, right: CursorIndex, value: string)
-    //
-    // split(point: CursorIndex)
-    //
-    // ime stuff:
-    // - fetchSurrounding
-    // - 
-    // screenreader stuff:
-    // - idk yet
-    //
-    // hmm maybe lots of this isn't right
-    // a bunch of this should be done top-down to the nodes directly I think
-    //
-    // yeah this should be top-down
+// replaceRange()
+// getSurrounding()
+
+export function EditorSpan(props: {
+    children: (props: {
+        selection: CursorIndex | null,
+        onSelect: (v: CursorIndex | null) => void,
+    }) => JSX.Element,
 }): JSX.Element {
-    return <Dynamic component="bce:editor-node">{props.children}</Dynamic>;
+    const [ci, setCI] = createSignal<CursorIndex | null>(null);
+    return <Dynamic component="bce:editor-node">
+        {untrack(() => props.children({
+            // this is just <props.children />
+            get selection() {
+                return ci();
+            },
+            onSelect: (nv) => {
+                setCI(nv);
+            },
+        }))}
+    </Dynamic>;
+}
+
+export function TextNode(props: {
+    value: string
+}): JSX.Element {
+    const el = document.createTextNode("");
+    createRenderEffect(() => {
+        el.nodeValue = props.value;
+    });
+    if('ref' in props) {
+        (props as unknown as {ref: (v: Node) => void}).ref(el);
+    }
+    return el;
 }
 
 export function Leaf(props: {
@@ -133,28 +134,51 @@ export function Leaf(props: {
     // TODO the returned node will have information in it to allow for handling
     // left arrow, right arrow, select, …
 
+    let text_node_1: Text | null = null;
+    let text_node_2: Text | null = null;
+
     const [value, setValue] = modValue(() => props.path);
     const [editing, setEditing] = createSignal(false);
-    return <EditorSpan><Show when={editing()} fallback={<>
-        <span onClick={() => setEditing(true)}>{(() => {
-            const v = value();
-            if(typeof v !== "string") return "";
-            return v;
-        })()}</span>
-    </>}><textarea
-        class="bg-transparent w-full"
-        rows={5}
-        value={(() => {
-            const v = value();
-            if(typeof v !== "string") return "";
-            return v;
-        })()}
-        onInput={e => setValue(() => e.currentTarget.value)}
-        onBlur={() => setEditing(false)}
-        ref={v => createEffect(() => v.focus())}
+    return <EditorSpan>{(iprops) => {
+        return <Show when={editing()} fallback={<>
+            <span onClick={e => {
+                // we actually want a selectionchange event which is on the document.
+                // so there should be one handler in the editor root that
+                // dispatches events to leaves within its root.
+                const sel = document.getSelection();
+                if(sel.focusNode === text_node_1) {
+                    iprops.onSelect(sel.focusOffset);
+                }else if(sel.focusNode === text_node_2){
+                    iprops.onSelect(text_node_1.nodeValue.length + sel.focusOffset);
+                }else{
+                    iprops.onSelect(null);
+                }
+            }}>
+                <span><TextNode
+                    ref={text_node_1}
+                    value={("" + value()).substring(0, iprops.selection ?? undefined)}
+                /></span>
+                <Show when={iprops.selection != null}>
+                    <span class="inline-block bg-white w-[1px] absolute select-none pointer-events-none transform translate-x-[-50%] text-transparent" aria-hidden>
+                        |
+                    </span>
+                </Show>
+                <span><TextNode
+                    ref={text_node_2}
+                    value={("" + value()).substring(iprops.selection ?? Infinity)}
+                /></span>
+            </span>
+        </>}><textarea
+            class="bg-transparent w-full"
+            rows={5}
+            value={"" + value()}
+            onInput={e => setValue(() => e.currentTarget.value)}
+            onBlur={() => setEditing(false)}
+            ref={v => createEffect(() => v.focus())}
 
-        // data-editor-leaf-node={…}
-    /></Show></EditorSpan>;
+            // data-editor-leaf-node={…}
+        /></Show>;
+    }}</EditorSpan>;
     // return <EditorSelectable …automatic stuff />
 }
 
