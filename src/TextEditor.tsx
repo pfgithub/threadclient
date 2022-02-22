@@ -138,7 +138,6 @@ export function Leaf(props: {
     let text_node_2: Text | null = null;
 
     const [value, setValue] = modValue(() => props.path);
-    const [editing, setEditing] = createSignal(false);
     return <EditorSpan>{(iprops) => <>
         <span onClick={e => {
             // we actually want a selectionchange event which is on the document.
