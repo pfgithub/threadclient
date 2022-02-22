@@ -139,46 +139,40 @@ export function Leaf(props: {
 
     const [value, setValue] = modValue(() => props.path);
     const [editing, setEditing] = createSignal(false);
-    return <EditorSpan>{(iprops) => {
-        return <Show when={editing()} fallback={<>
-            <span onClick={e => {
-                // we actually want a selectionchange event which is on the document.
-                // so there should be one handler in the editor root that
-                // dispatches events to leaves within its root.
-                const sel = document.getSelection();
-                if(sel.focusNode === text_node_1) {
-                    iprops.onSelect(sel.focusOffset);
-                }else if(sel.focusNode === text_node_2){
-                    iprops.onSelect(text_node_1.nodeValue.length + sel.focusOffset);
-                }else{
-                    iprops.onSelect(null);
-                }
-            }}>
-                <span><TextNode
-                    ref={text_node_1}
-                    value={("" + value()).substring(0, iprops.selection ?? undefined)}
-                /></span>
-                <Show when={iprops.selection != null}>
-                    <span class="inline-block bg-white w-[1px] absolute select-none pointer-events-none transform translate-x-[-50%] text-transparent" aria-hidden>
-                        |
-                    </span>
-                </Show>
-                <span><TextNode
-                    ref={text_node_2}
-                    value={("" + value()).substring(iprops.selection ?? Infinity)}
-                /></span>
-            </span>
-        </>}><textarea
-            class="bg-transparent w-full"
-            rows={5}
-            value={"" + value()}
-            onInput={e => setValue(() => e.currentTarget.value)}
-            onBlur={() => setEditing(false)}
-            ref={v => createEffect(() => v.focus())}
-
-            // data-editor-leaf-node={…}
-        /></Show>;
-    }}</EditorSpan>;
+    return <EditorSpan>{(iprops) => <>
+        <span onClick={e => {
+            // we actually want a selectionchange event which is on the document.
+            // so there should be one handler in the editor root that
+            // dispatches events to leaves within its root.
+            const sel = document.getSelection();
+            if(sel.focusNode === text_node_1) {
+                iprops.onSelect(sel.focusOffset);
+            }else if(sel.focusNode === text_node_2){
+                iprops.onSelect(text_node_1.nodeValue.length + sel.focusOffset);
+            }else{
+                iprops.onSelect(null);
+            }
+        }}>
+            <span><TextNode
+                ref={text_node_1}
+                value={("" + value()).substring(0, iprops.selection ?? undefined)}
+            /></span>
+            <Show when={iprops.selection != null}>
+                <span class={[
+                    "absolute",
+                    "inline-block bg-white w-[1px] text-transparent",
+                    "select-none pointer-events-none",
+                    "transform translate-x-[-50%]",
+                ].join(" ")} aria-hidden>
+                    |
+                </span>
+            </Show>
+            <span><TextNode
+                ref={text_node_2}
+                value={("" + value()).substring(iprops.selection ?? Infinity)}
+            /></span>
+        </span>
+    </>}</EditorSpan>;
     // return <EditorSelectable …automatic stuff />
 }
 
