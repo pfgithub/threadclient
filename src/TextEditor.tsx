@@ -92,6 +92,15 @@ const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
 
 export function EditorSpan(props: {
     children: JSX.Element,
+    // ^ children: (props: {
+    //     get selection: [start: CursorIndex | null, end: CursorIndex | null],
+    //     onSelect: (start: index | null, end: index | null) => void
+    //     - use selectionChange events combined with document.getSelection().focusOffset
+    //       - we might do our own selectionChange event delegation to avoid overhead and
+    //         properly handle whatever it is
+    //   }) = > JSX.Element,
+    //   length: number,
+    //   node_path: Path,
 
     // this will hold events.
     //

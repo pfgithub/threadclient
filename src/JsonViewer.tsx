@@ -48,7 +48,7 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
       };
     },
     richtext: rt => {
-      return new JSONRaw("#TODO_RICHTEXT");
+      return state; // #TODO_RICHTEXT
     },
     all_links: al => {
       const state = getState();
