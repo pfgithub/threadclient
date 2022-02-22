@@ -55,7 +55,7 @@ const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
         </p>;
     },
     multiline_code_block(props): JSX.Element {
-        return <pre class="bg-gray-800 p-2 rounded-md"><code>
+        return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap"><code>
             <Leaf path={[...props.path, "text"]} />
         </code></pre>;
     },
@@ -78,6 +78,46 @@ const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
     },
 };
 
+// class EditorSpanElement extends HTMLElement {
+//     constructor() {
+//         super();
+//     }
+// }
+// customElements.define("editor-span", EditorSpanElement);
+//
+// ^ no hmr and the workaround is complicated
+// https://stackoverflow.com/questions/47805288/modifying-a-custom-element-class-after-its-been-defined
+//
+// this is not necessary, I can just use attributes
+
+export function EditorSpan(props: {
+    children: JSX.Element,
+
+    // this will hold events.
+    //
+    // moveCursor(pos: CursorIndex): CursorIndex | Progress
+    // eg: given a cursor position and a direction, find a new cursor position
+    //     by moving n chars in direction / moving to the nearest word border.
+    //     if it's not in the node, we have to return how far left to go.
+    //
+    // replaceRange(left: CursorIndex, right: CursorIndex, value: string)
+    //
+    // split(point: CursorIndex)
+    //
+    // ime stuff:
+    // - fetchSurrounding
+    // - 
+    // screenreader stuff:
+    // - idk yet
+    //
+    // hmm maybe lots of this isn't right
+    // a bunch of this should be done top-down to the nodes directly I think
+    //
+    // yeah this should be top-down
+}): JSX.Element {
+    return <Dynamic component="bce:editor-node">{props.children}</Dynamic>;
+}
+
 export function Leaf(props: {
     path: Path, // Path<string>
 }): JSX.Element {
@@ -86,7 +126,7 @@ export function Leaf(props: {
 
     const [value, setValue] = modValue(() => props.path);
     const [editing, setEditing] = createSignal(false);
-    return <Show when={editing()} fallback={<>
+    return <EditorSpan><Show when={editing()} fallback={<>
         <span onClick={() => setEditing(true)}>{(() => {
             const v = value();
             if(typeof v !== "string") return "";
@@ -105,7 +145,7 @@ export function Leaf(props: {
         ref={v => createEffect(() => v.focus())}
 
         // data-editor-leaf-node={…}
-    /></Show>;
+    /></Show></EditorSpan>;
     // return <EditorSelectable …automatic stuff />
 }
 
