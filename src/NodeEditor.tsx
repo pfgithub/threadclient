@@ -1,12 +1,13 @@
-import { Accessor, createMemo, createSelector, createSignal, For, Setter, Show, untrack } from "solid-js";
+import { createMemo, createSelector, For, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
-import { SwitchKind } from "./util";
-import { getState, getValueFromState, Path, setValueFromState, State } from "./editor_data";
-import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
-import { UUID, uuid } from "./uuid";
+import { Button } from "./components";
+import { getState, modValue, Path } from "./editor_data";
 import { Key } from "./Key";
+import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
 import { object_active_field } from "./symbols";
 import { RichtextEditor } from "./TextEditor";
+import { SwitchKind } from "./util";
+import { UUID, uuid } from "./uuid";
 
 // switch arrays to use objects
 // and figure out how to make <For> accept a key
@@ -127,20 +128,6 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
       />
     </>;
   }}</TabOrListEditor>;
-}
-
-function Button(props: {
-  onClick: () => void,
-  children: JSX.Element,
-  active?: undefined | boolean,
-}): JSX.Element {
-    return <button
-      class={""
-        + "px-2 first:rounded-l-md last:rounded-r-md mr-1 last:mr-0 "
-        + (props.active ? "bg-gray-500 " : "bg-gray-700 ")
-      }
-      onClick={props.onClick}
-    >{props.children}</button>;
 }
 
 function BooleanEditor(props: {schema: BooleanSchema, path: Path}): JSX.Element {
@@ -276,19 +263,6 @@ function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
       }}</For>
     </select>
   </div>;
-}
-
-function modValue(
-  path: () => Path,
-): [
-  value: () => unknown,
-  setValue: (cb: (pv: unknown) => unknown) => void,
-] {
-  const state = getState();
-  return [
-    () => getValueFromState(path(), state.state),
-    (nv) => setValueFromState(path(), state.state, nv),
-  ];
 }
 
 function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {

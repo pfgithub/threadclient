@@ -56,7 +56,21 @@ export function getState(): ContextData {
   })()
 }
 
+export function modValue(
+  path: () => Path,
+): [
+  value: () => unknown,
+  setValue: (cb: (pv: unknown) => unknown) => void,
+] {
+  const state = getState();
+  return [
+    () => getValueFromState(path(), state.state),
+    (nv) => setValueFromState(path(), state.state, nv),
+  ];
+}
+
 if(import.meta.hot) {
+  // TODO move const nodecontext into its own file and only do this there
   import.meta.hot.accept((new_module) => {
       alert("cannot reload editor_data.tsx, please refresh page.");
   });
