@@ -1,6 +1,6 @@
-import { createEffect, createRenderEffect, createSignal, For, Show, untrack } from "solid-js";
+import { createContext, createEffect, createRenderEffect, createSelector, createSignal, For, Show, untrack, useContext } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
-import { Dynamic } from "solid-js/web";
+import { Dynamic, insert } from "solid-js/web";
 import { Button } from "./components";
 import { modValue, Path } from "./editor_data";
 import { RichtextSchema } from "./schema";
@@ -8,10 +8,24 @@ import { uuid, UUID } from "./uuid";
 
 const keyed_by = Symbol();
 
+// for input:
+// - contenteditable="true"
+// - carat-color: transparent;
+// - actually don't. we'll have to hack around cursor movements.
+//   - for up and down movement we can just measure textnode ranges and do a binary
+//     search or something
+
 // this will be user provided eventually
 // just doing it like this for now because it will be easier to get started
 
 // actually we should probably make it user provided now I think
+
+export type Selection = [editor_node: HTMLElement, index: CursorIndex] | null;
+
+export type TextEditorRoot = {
+    node: TextEditorRootNode,
+    selection: Selection,
+};
 
 export type TextEditorRootNode = {
     kind: "root",
@@ -100,19 +114,32 @@ export function EditorSpan(props: {
         selection: CursorIndex | null,
         onSelect: (v: CursorIndex | null) => void,
     }) => JSX.Element,
+    replaceRange: (start: CursorIndex, end: CursorIndex, text: string) => void,
 }): JSX.Element {
-    const [ci, setCI] = createSignal<CursorIndex | null>(null);
-    return <Dynamic component="bce:editor-node">
+    const ctx = useContext(TEContext)!;
+    const [selection, setSelection] = modValue(() => [...ctx.root_path(), "selection"]);
+
+    const node: HTMLElement = document.createElement("bce:editor-node");
+    node.setAttribute("data-editor-id", ctx.editor_id);
+    // so we can querySelector the root node for bce:editor-node[data-editor-id="…"]
+    insert(node, <>
         {untrack(() => props.children({
             // this is just <props.children />
             get selection() {
-                return ci();
+                console.log("updating selection");
+                if(!ctx.selected(node)) return null;
+                const selxn = selection() as Selection;
+                if(selxn == null) return null;
+                return selxn[1];
             },
             onSelect: (nv) => {
-                setCI(nv);
+                const nr: Selection = nv == null ? null : [node, nv];
+                console.log("Set selection", nr);
+                setSelection(() => nr);
             },
         }))}
-    </Dynamic>;
+    </>);
+    return node;
 }
 
 export function TextNode(props: {
@@ -138,7 +165,15 @@ export function Leaf(props: {
     let text_node_2: Text | null = null;
 
     const [value, setValue] = modValue(() => props.path);
-    return <EditorSpan>{(iprops) => <>
+    return <EditorSpan replaceRange={(start, end, text) => {
+        // I want to easily be able to do eg:
+        // on enter key:
+        // - splitNode(position)
+        setValue(pv => {
+            const v = "" + pv;
+            return v.substring(0, start) + text + v.substring(end);
+        });
+    }}>{(iprops) => <>
         <span onClick={e => {
             // we actually want a selectionchange event which is on the document.
             // so there should be one handler in the editor root that
@@ -157,14 +192,7 @@ export function Leaf(props: {
                 value={("" + value()).substring(0, iprops.selection ?? undefined)}
             /></span>
             <Show when={iprops.selection != null}>
-                <span class={[
-                    "absolute",
-                    "inline-block bg-white w-[1px] text-transparent",
-                    "select-none pointer-events-none",
-                    "transform translate-x-[-50%]",
-                ].join(" ")} aria-hidden>
-                    |
-                </span>
+                <Caret />
             </Show>
             <span><TextNode
                 ref={text_node_2}
@@ -173,6 +201,17 @@ export function Leaf(props: {
         </span>
     </>}</EditorSpan>;
     // return <EditorSelectable …automatic stuff />
+}
+
+export function Caret(): JSX.Element {
+    return <span class={[
+        "absolute",
+        "inline-block bg-white w-[1px] text-transparent",
+        "select-none pointer-events-none",
+        "transform translate-x-[-50%]",
+    ].join(" ")} aria-hidden>
+        |
+    </span>;
 }
 
 export function EditorChildren(props: {
@@ -197,7 +236,7 @@ export function EditorNode(props: {
         return k;
     };
     return <Dynamic component={node_renderers[nodeKind()] ?? ((props: {path: Path}) => (
-        <div class="text-red-500">E_NOT_FOUND {nodeKind()}</div>
+        <div class="text-red-500">E_NOT_FOUND {"kind:"+nodeKind()}</div>
     ))} path={props.path} />
 }
 
@@ -209,11 +248,28 @@ REDUCERS:
 
 */
 
+const TEContext = createContext<{
+    root_path: () => Path,
+    selected: (key: HTMLElement | null) => boolean,
+    editor_id: UUID,
+}>();
+
 export function RichtextEditor(props: {
     schema: RichtextSchema,
     path: Path,
 }): JSX.Element {
     const [value, setValue] = modValue(() => props.path);
+
+    const editor_id = uuid();
+
+    const selector = createSelector<HTMLElement | null, HTMLElement | null>(() => {
+        const v = value();
+        console.log("updating selector value", v);
+        if(v == null || typeof v !== "object") return null;
+        const sel = v["selection"] as Selection;
+        if(sel == null) return null;
+        return sel[0];
+    });
 
     // this stylinng can probably be provided by the root node
     return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
@@ -251,10 +307,20 @@ export function RichtextEditor(props: {
                         },
                     },
                 };
-                setValue(() => nv);
+                const nv_n: TextEditorRoot = {
+                    node: nv,
+                    selection: null,
+                };
+                setValue(() => nv_n);
             }}>click to create</Button>
         </div>}>
-            <EditorNode path={props.path} />
+            <TEContext.Provider value={{
+                root_path: () => props.path,
+                selected: selector,
+                editor_id,
+            }}>
+                <EditorNode path={[...props.path, "node"]} />
+            </TEContext.Provider>
         </Show>
     </div>;
 }
