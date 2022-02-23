@@ -80,6 +80,15 @@ import { uuid, UUID } from "./uuid";
 //
 // alternatively, we can use the enter key for that
 
+// https://brooknovak.wordpress.com/2013/06/11/find-the-character-position-using-javascript-fast-big-pages-all-browsers-no-preprocessing/
+// that's outdated so it doesn't know you can measure ranges now
+//
+// but basically we'll want to search the text node by measuring ranges and stuff
+//
+// this is really annoying because the browser already knows all this information
+// (it's possible it has forgotten it if it just renders to a canvas and then
+//  discards that info)
+
 export type Selection = [editor_node: HTMLElement, index: CursorIndex] | null;
 
 export type TextEditorRoot = {
