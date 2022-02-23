@@ -2,6 +2,8 @@ import { JSX } from "solid-js/jsx-runtime";
 import { switchKind } from "./util";
 import { getState, getValueFromState, Path } from "./editor_data";
 import { NodeSchema } from "./schema";
+import { createSelector, createSignal } from "solid-js";
+import { Button } from "./components";
 
 class JSONRaw {
   message: string;
@@ -95,9 +97,25 @@ export default function JsonViewer(props: {
   schema: NodeSchema,
   path: Path,
 }): JSX.Element {
-  return <pre class="font-mono whitespace-pre-wrap">{
-    // TODO: untrack(() => stringifySchema)
-    // then, track a symbol that changes when setState is called instead
-    stringifySchema(props.path, props.schema)
-  }</pre>
+  const root_state = getState();
+  const [viewMode, setViewMode] = createSignal<"rendered" | "internal">("rendered");
+  const vmsel = createSelector(viewMode);
+  // we might actually get rid of rendered view for now. serialization and deserialization
+  // of data is important but that should be user-defined.
+  //
+  // internal is useful because it's what we should actually store and what the program
+  // edits.
+  return <div class="space-y-2">
+    <div>
+      <Button active={vmsel("rendered")} onClick={() => setViewMode("rendered")}>rendered</Button>
+      <Button active={vmsel("internal")} onClick={() => setViewMode("internal")}>internal</Button>
+    </div>
+    <pre class="font-mono whitespace-pre-wrap">{
+      // TODO: untrack(() => stringifySchema)
+      // then, track a symbol that changes when setState is called instead
+      viewMode() === "rendered"
+      ? stringifySchema(props.path, props.schema)
+      : JSON.stringify(root_state.state.data.data, null, " ")
+    }</pre>
+  </div>;
 }
