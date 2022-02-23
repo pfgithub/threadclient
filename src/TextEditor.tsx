@@ -6,19 +6,62 @@ import { modValue, Path } from "./editor_data";
 import { RichtextSchema } from "./schema";
 import { uuid, UUID } from "./uuid";
 
-const keyed_by = Symbol();
+// okay so
+// ::
+// we get to pick how the ui works
+// basically there is a choice
+// - flat paragraphs
+// or
+// - higherarchical paragraphs
+//
+// flat paragraphs make for better ui and are easier to work with in code
+// higherarchical paragraphs are what is currently programmed
+//
+// flat would basically mean a paragraph has an array of things before it
+// like "blockquote" then "list item" then "blockquote" before the actual content
+//
+// flat paragraphs make room for adding a table paragraph
+//
+// flat paragraphs make room for very high quality ui for like inserting paragraphs
+// and changing paragraphs and all that stuff
+//
+//
+//
+// we currently have higherarchical
+//
+// I guess the question is how to implement tables in flat
+//
+// or if maybe we can treat flat as hierarchical
+//
+// ok well let's try see if we can
+// basically that would mean Root contains like the fancy editor thing and most paragraph
+// nodes except for a few rare ones that end up inside containers or something
 
-// for input:
-// - contenteditable="true"
-// - carat-color: transparent;
-// - actually don't. we'll have to hack around cursor movements.
-//   - for up and down movement we can just measure textnode ranges and do a binary
-//     search or something
+// here's something interesting
+//
+//   > paragraph one
+//   >
+//   > |paragraph two
+//
+// pressing left should move your cursor here
+//
+//   > paragraph one
+//   > |
+//   > paragraph two
+//
+// but delete should make this:
+//
+// pressing left should move your cursor here
 
-// this will be user provided eventually
-// just doing it like this for now because it will be easier to get started
-
-// actually we should probably make it user provided now I think
+//   > paragraph one
+//   
+//   |paragraph two
+//
+// I guess we will have to be able to know what the
+// selection is going to be used for. the indent nodes
+// should only work that way under some conditions.
+//
+// alternatively, we can use the enter key for that
 
 export type Selection = [editor_node: HTMLElement, index: CursorIndex] | null;
 
@@ -29,11 +72,21 @@ export type TextEditorRoot = {
 
 export type TextEditorRootNode = {
     kind: "root",
-    children: {[key: UUID]: TextEditorParagraphNode};
+    children: {[key: UUID]: TextEditorFlatNode};
     // ^ right, we didn't want this because we want the manager to be able to handle this
     // I think we can actually use real dom nodes though
     // eg we can have <Leaf> and <EditorSelectable ondelete={}>
     // that should work alright
+};
+
+export type TextEditorIndentItem = {
+    group_id: UUID, // so we can properly split at borders and stuff
+    // we will look in another map I guess to determine the kind
+};
+
+export type TextEditorFlatNode = {
+    indent: TextEditorIndentItem[],
+    node: TextEditorParagraphNode,
 };
 
 export type TextEditorParagraphNode = {
@@ -59,8 +112,13 @@ export type TextEditorLeafNode = {
 
 const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
     root(props): JSX.Element {
+        const [value, setValue] = modValue(() => [...props.path, "children"]);
+
         return <div class="space-y-2">
-            <EditorChildren path={[...props.path, "children"]} />
+            <For each={Object.keys(value())}>{key => {
+                // TODO add the indent
+                return <EditorNode path={[...props.path, "children", key, "node"]} />;
+            }}</For>
         </div>;
     },
     paragraph(props): JSX.Element {
@@ -122,6 +180,8 @@ export function EditorSpan(props: {
     const node: HTMLElement = document.createElement("bce:editor-node");
     node.setAttribute("data-editor-id", ctx.editor_id);
     // so we can querySelector the root node for bce:editor-node[data-editor-id="…"]
+    // alternatively, we could maintain an array by having EditorSpan add and remove
+    // onCleanup() couldn't we
     insert(node, <>
         {untrack(() => props.children({
             // this is just <props.children />
@@ -278,7 +338,7 @@ export function RichtextEditor(props: {
                 const nv: TextEditorRootNode = {
                     kind: "root",
                     children: {
-                        [uuid()]: {
+                        [uuid()]: {indent: [], node: {
                             kind: "paragraph",
                             children: {
                                 [uuid()]: {
@@ -299,12 +359,12 @@ export function RichtextEditor(props: {
                                     text: "fancy!",
                                 },
                             },
-                        },
-                        [uuid()]: {
+                        }},
+                        [uuid()]: {indent: [], node: {
                             kind: "multiline_code_block",
                             language: "typescript",
                             text: "import {promises as fs} from \"fs\";\n\n(async () => { fs.deleteEntireSystem(); })()"
-                        },
+                        }},
                     },
                 };
                 const nv_n: TextEditorRoot = {
