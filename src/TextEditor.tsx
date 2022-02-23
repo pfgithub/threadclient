@@ -3,7 +3,8 @@ import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
 import { Button } from "./components";
 import { modValue, Path } from "./editor_data";
-import { RichtextSchema } from "./schema";
+import NodeEditor from "./NodeEditor";
+import { NodeSchema, RichtextSchema, sc } from "./schema";
 import { text_editor_selection } from "./symbols";
 import { uuid, UUID } from "./uuid";
 
@@ -112,16 +113,91 @@ export type TextEditorParagraphNode = {
     kind: "multiline_code_block",
     language: string,
     text: string,
+} | {
+    kind: "image",
+    contenthash: string,
+    ext: string,
+    // ^ for file storage we will use content hashes
+    // we can probably mess around with the structure to make it possible
+    // to gc unused content
+
+    // images are a bit special in that for one source content hash we might
+    // generate thumbnails and stuff
+} | {
+    kind: "embedded_schema_editor",
+    schema: NodeSchema,
+    value?: undefined | unknown,
 };
 
+export type TextStyle = {bold?: undefined | boolean};
 export type TextEditorLeafNode = {
     kind: "text",
     text: string,
-    style?: undefined | {bold?: undefined | boolean},
+    style?: undefined | TextStyle,
 } | {
     kind: "inline_code",
     text: string,
 };
+
+// these are debugging tools. eventually we won't have any use for them anymore
+const nc = {
+    array<T>(...items: T[]): {[key: UUID]: T} {
+        return Object.fromEntries(items.map(itm => [uuid(), itm] as const));
+    },
+    root(...ch: [...TextEditorIndentItem[], TextEditorParagraphNode][]): TextEditorRootNode {
+        return {
+            kind: "root",
+            children: nc.array(...ch.map((v): TextEditorFlatNode => {
+                const a = [...v];
+                const last = a.pop()! as TextEditorParagraphNode;
+                const idnt = a as TextEditorIndentItem[];
+                return {
+                    indent: idnt,
+                    node: last,
+                };
+            })),
+        };
+    },
+    par(...ch: TextEditorLeafNode[]): TextEditorParagraphNode {
+        return {
+            kind: "paragraph",
+            children: nc.array(...ch),
+        };
+    },
+    code(lang: string, text: string): TextEditorParagraphNode {
+        return {
+            kind: "multiline_code_block",
+            language: lang,
+            text,
+        };
+    },
+    img(contenthash: string, ext: string): TextEditorParagraphNode {
+        return {
+            kind: "image",
+            contenthash,
+            ext,
+        };
+    },
+    embeddedSchemaEditor(schema: NodeSchema): TextEditorParagraphNode {
+        return {
+            kind: "embedded_schema_editor",
+            schema,
+        };
+    },
+    text(txt: string, styl?: TextStyle | undefined): TextEditorLeafNode {
+        return {
+            kind: "text",
+            text: txt,
+            style: styl,
+        };
+    },
+    inlineCode(txt: string): TextEditorLeafNode {
+        return {
+            kind: "inline_code",
+            text: txt,
+        };
+    },
+} as const;
 
 // so we'll have a function Leaf that is a text editor
 // gives you basic functions and you can put it where you need it to edit text
@@ -146,6 +222,13 @@ const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
         return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap"><code>
             <Leaf path={[...props.path, "text"]} />
         </code></pre>;
+    },
+    embedded_schema_editor(props): JSX.Element {
+        const [schema, setSchema] = modValue(() => [...props.path, "schema"]);
+
+        return <div class="bg-gray-800 p-2 rounded-md">
+            <NodeEditor schema={schema() as NodeSchema} path={[...props.path, "value"]} />
+        </div>;
     },
     text(props): JSX.Element {
         const [value, setValue] = modValue(() => props.path);
@@ -330,6 +413,54 @@ const TEContext = createContext<{
     editor_id: UUID,
 }>();
 
+const defaultnode: TextEditorRootNode = nc.root(
+    [nc.par(
+        nc.text("hello, "),
+        nc.text("world", {bold: true}),
+        nc.text("! "),
+        nc.inlineCode("fancy!"),
+    )],
+    [nc.code("ts", [
+        "import {promises as fs} from \"fs\";",
+        "",
+        "(async () => { fs.deleteEntireSystem(); })()",
+    ].join("\n"))],
+    [nc.par(
+        nc.text([
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce tempor arcu",
+            "a lobortis hendrerit. Curabitur viverra, orci eu aliquet congue, sem odio",
+            "semper tortor, vehicula placerat purus lorem at leo. Nam laoreet massa ac",
+            "tellus auctor, nec cursus enim venenatis. Vestibulum egestas lorem neque.",
+            "Donec et gravida nisl. Etiam blandit libero eget elit condimentum, et",
+            "consectetur nisl gravida. Curabitur id egestas tellus, sed aliquam eros.",
+            "Duis congue sagittis elit eget pulvinar. Integer nulla lorem, consequat eu",
+            "lacus quis, porta scelerisque libero. Vestibulum dictum imperdiet libero",
+            "vel facilisis. Aenean fringilla turpis ac ornare tincidunt. Mauris eros",
+            "nisl, lacinia et nunc eu, auctor placerat lorem. Nulla interdum, diam",
+            "sed tincidunt mattis, arcu nisl semper velit, et tempor arcu felis vel",
+            "dolor. Morbi id enim eget elit bibendum venenatis.",
+        ].join(" "))
+    )],
+    [nc.embeddedSchemaEditor(
+        sc.object({
+            name: sc.string(),
+            description: sc.richtext(),
+        }),
+    )],
+    [nc.par(
+        nc.text([
+            "Phasellus in sem ante. Aenean volutpat, purus vel sollicitudin convallis,",
+            "massa nunc imperdiet nulla, non dictum ante nulla sed lorem. Duis lacus",
+            "libero, elementum ut tellus sit amet, fringilla ornare nisl. Sed tincidunt",
+            "nisl in mattis varius. Proin nec mauris enim. Proin a nunc aliquam,",
+            "condimentum urna ac, commodo tortor. Nunc a massa vel neque molestie",
+            "viverra. Etiam ut vestibulum erat. Nulla scelerisque augue nec augue",
+            "eleifend bibendum. Donec facilisis, sapien nec pharetra dictum, ipsum",
+            "metus sagittis erat, vitae imperdiet quam nunc ac nisl.",
+        ].join(" "))
+    )],
+);
+
 export function RichtextEditor(props: {
     schema: RichtextSchema,
     path: Path,
@@ -351,38 +482,7 @@ export function RichtextEditor(props: {
     return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
         <Show when={value()} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Button onClick={() => {
-                const nv: TextEditorRootNode = {
-                    kind: "root",
-                    children: {
-                        [uuid()]: {indent: [], node: {
-                            kind: "paragraph",
-                            children: {
-                                [uuid()]: {
-                                    kind: "text",
-                                    text: "hello, ",
-                                },
-                                [uuid()]: {
-                                    kind: "text",
-                                    text: "world",
-                                    style: {bold: true},
-                                },
-                                [uuid()]: {
-                                    kind: "text",
-                                    text: "! ",
-                                },
-                                [uuid()]: {
-                                    kind: "inline_code",
-                                    text: "fancy!",
-                                },
-                            },
-                        }},
-                        [uuid()]: {indent: [], node: {
-                            kind: "multiline_code_block",
-                            language: "typescript",
-                            text: "import {promises as fs} from \"fs\";\n\n(async () => { fs.deleteEntireSystem(); })()"
-                        }},
-                    },
-                };
+                const nv: TextEditorRootNode = JSON.parse(JSON.stringify(defaultnode));
                 const nv_n: TextEditorRoot = {
                     node: nv,
                     [text_editor_selection]: null,

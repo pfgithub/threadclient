@@ -98,7 +98,7 @@ export default function JsonViewer(props: {
   path: Path,
 }): JSX.Element {
   const root_state = getState();
-  const [viewMode, setViewMode] = createSignal<"rendered" | "internal">("rendered");
+  const [viewMode, setViewMode] = createSignal<"rendered" | "internal">("internal");
   const vmsel = createSelector(viewMode);
   // we might actually get rid of rendered view for now. serialization and deserialization
   // of data is important but that should be user-defined.
