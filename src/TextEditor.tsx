@@ -6,6 +6,21 @@ import { modValue, Path } from "./editor_data";
 import { RichtextSchema } from "./schema";
 import { uuid, UUID } from "./uuid";
 
+// [!]NOTES
+// we're going to do binary-search based text leaf measurement
+// so::
+// - for pressing the up arrow, do that
+// but we can also:
+// - rather than using browser selection, we can use pointer events manually
+//   ourselves for selecting text
+// - that'll be way nicer than trying to hack around the text selection api I think
+// so basically:
+// - make a range over the text node
+// - measure
+//
+// oh and once we're doing that, we can also do that for showing the cursor
+// that may be more difficult though
+
 // okay so
 // ::
 // we get to pick how the ui works
