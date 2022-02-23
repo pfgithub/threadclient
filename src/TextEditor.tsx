@@ -4,6 +4,7 @@ import { Dynamic, insert } from "solid-js/web";
 import { Button } from "./components";
 import { modValue, Path } from "./editor_data";
 import { RichtextSchema } from "./schema";
+import { text_editor_selection } from "./symbols";
 import { uuid, UUID } from "./uuid";
 
 // [!]NOTES
@@ -82,7 +83,7 @@ export type Selection = [editor_node: HTMLElement, index: CursorIndex] | null;
 
 export type TextEditorRoot = {
     node: TextEditorRootNode,
-    selection: Selection,
+    [text_editor_selection]: Selection,
 };
 
 export type TextEditorRootNode = {
@@ -190,7 +191,7 @@ export function EditorSpan(props: {
     replaceRange: (start: CursorIndex, end: CursorIndex, text: string) => void,
 }): JSX.Element {
     const ctx = useContext(TEContext)!;
-    const [selection, setSelection] = modValue(() => [...ctx.root_path(), "selection"]);
+    const [selection, setSelection] = modValue(() => [...ctx.root_path(), text_editor_selection]);
 
     const node: HTMLElement = document.createElement("bce:editor-node");
     node.setAttribute("data-editor-id", ctx.editor_id);
@@ -341,7 +342,7 @@ export function RichtextEditor(props: {
         const v = value();
         console.log("updating selector value", v);
         if(v == null || typeof v !== "object") return null;
-        const sel = v["selection"] as Selection;
+        const sel = v[text_editor_selection] as Selection;
         if(sel == null) return null;
         return sel[0];
     });
@@ -384,7 +385,7 @@ export function RichtextEditor(props: {
                 };
                 const nv_n: TextEditorRoot = {
                     node: nv,
-                    selection: null,
+                    [text_editor_selection]: null,
                 };
                 setValue(() => nv_n);
             }}>click to create</Button>
