@@ -1,5 +1,6 @@
 import { JSX } from 'solid-js';
 import { getState, getValueFromState, NodeProvider, State } from './editor_data';
+import { asObject, asString, isObject } from './guards';
 import JsonViewer from './JsonViewer';
 import NodeEditor from './NodeEditor';
 import { NodeSchema, ObjectField, RootSchema, sc, summarize } from './schema';
@@ -21,11 +22,9 @@ const person_schema: NodeSchema = sc.object({
   }),
   tags: sc.array(sc.string()),
 }, {
-  summarize: v => {
-    if(v != null && typeof v === "object" && ('name' in v) && typeof v["name"] === "string") {
-      return v["name"];
-    }
-    return "*Unnamed*";
+  summarize: v_in => {
+    const v = asObject(v_in) ?? {};
+    return asString(v["name"]) ?? "*Unnamed*";
   }
 });
 
@@ -34,7 +33,10 @@ const button_schema: NodeSchema = sc.object({
   id: sc.string(),
 }, {
   summarize: (v) => {
-    if(v != null && typeof v === "object") return "" + v["name"] + " (" + v["id"] + ")";
+    // readas(sc.object(), v) => proxy where accessing things returns undefined | value
+    // so then we can do (v.name ?? "") + " (" + (v.id ?? "") + ")"
+
+    if(isObject(v)) return "" + v["name"] + " (" + v["id"] + ")";
     return "*Unnamed*";
   },
 });
@@ -50,9 +52,10 @@ const layer_schema: NodeSchema = sc.object({
   title: sc.string(),
   buttons: sc.dynamic((path) => {
     const state = getState();
+    const objv = asObject(getValueFromState(["data", input_button], state.state)) ?? {};
     return {
       kind: "object",
-      fields: Object.entries(getValueFromState(["data", input_button], state.state) ?? {}).map(
+      fields: Object.entries(objv).map(
         ([key, value]): ObjectField => {
           return {
             name: key,
@@ -70,8 +73,7 @@ const layer_schema: NodeSchema = sc.object({
   }),
 }, {
   summarize: (v) => {
-    if(v != null && typeof v === "object"
-    && ('title' in v)
+    if(isObject(v)
     && typeof v["title"] === "string") return v["title"];
     return "*Unnamed*";
   },

@@ -2,6 +2,7 @@ import { createMemo, createSelector, For, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Button } from "./components";
 import { getState, modValue, Path } from "./editor_data";
+import { isObject } from "./guards";
 import { Key } from "./Key";
 import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
 import { object_active_field } from "./symbols";
@@ -88,7 +89,7 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
     mode={props.schema.opts.view_mode}
     tabs={[...(() => {
       const res = value();
-      if(typeof res !== "object") return [];
+      if(!isObject(res)) return [];
       return Object.entries(res).map(([key, item]) => {
         return {
           title: summarize(item, props.schema.child),
@@ -247,14 +248,14 @@ function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
       class="bg-gray-700 px-1 rounded-md"
       onInput={(e) => {
         const val = e.currentTarget.value;
-        if(val === "") return setValue(undefined);
+        if(val === "") return setValue(() => undefined);
         setValue(() => val);
       }}
     >
       <option value={""} selected={isSelected(undefined)}>None</option>
       <For each={(() => {
         const c = choices();
-        if(typeof c !== "object") return [];
+        if(!isObject(c)) return [];
         return Object.entries(c);
       })()}>{([k, v], i) => {
         return <option value={k} selected={isSelected(k)}>

@@ -9,7 +9,7 @@ type SpecialField = {
 };
 
 function isSpecialField(v: NodeSchema | SpecialField): v is SpecialField {
-  return !!v[is_specialfield];
+  return is_specialfield in v;
 }
 
 // TODO I want to be able to specify eg:

@@ -3,6 +3,7 @@ import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
 import { Button } from "./components";
 import { modValue, Path } from "./editor_data";
+import { asObject, asString, isObject, isString } from "./guards";
 import NodeEditor from "./NodeEditor";
 import { NodeSchema, RichtextSchema, sc } from "./schema";
 import { text_editor_selection } from "./symbols";
@@ -216,7 +217,7 @@ const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
         const [value, setValue] = modValue(() => [...props.path, "children"]);
 
         return <div class="space-y-2">
-            <For each={Object.keys(value())}>{key => {
+            <For each={Object.keys(asObject(value()) ?? {})}>{key => {
                 // TODO add the indent
                 return <EditorNode path={[...props.path, "children", key, "node"]} />;
             }}</For>
@@ -243,9 +244,9 @@ const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
         const [value, setValue] = modValue(() => props.path);
         return <span class={(() => {
             const v = value();
-            if(v == null || typeof v !== "object") return "";
+            if(!isObject(v)) return "";
             const style = v["style"];
-            if(style == null || typeof style !== "object") return "";
+            if(!isObject(style)) return "";
 
             let styles: string[] = [];
             if(style["bold"]) styles.push("font-bold");
@@ -347,10 +348,11 @@ export function Leaf(props: {
             // so there should be one handler in the editor root that
             // dispatches events to leaves within its root.
             const sel = document.getSelection();
+            if(!sel) return;
             if(sel.focusNode === text_node_1) {
                 iprops.onSelect(sel.focusOffset);
             }else if(sel.focusNode === text_node_2){
-                iprops.onSelect(text_node_1.nodeValue.length + sel.focusOffset);
+                iprops.onSelect(text_node_1!.data.length + sel.focusOffset);
             }else{
                 iprops.onSelect(null);
             }
@@ -387,7 +389,7 @@ export function EditorChildren(props: {
 }): JSX.Element {
     const [value, setValue] = modValue(() => props.path);
 
-    return <For each={Object.keys(value())}>{key => {
+    return <For each={Object.keys(asObject(value()) ?? {})}>{key => {
         return <EditorNode path={[...props.path, key]} />;
     }}</For>;
 }
@@ -397,13 +399,9 @@ export function EditorNode(props: {
 }): JSX.Element {
     const [value, setValue] = modValue(() => props.path);
     const nodeKind = (): null | string => {
-        const v = value();
-        if(v == null || typeof v !== "object") return null;
-        const k = value()["kind"];
-        if(k == null || typeof k !== "string") return null;
-        return k;
+        return asString((asObject(value()) ?? {})["kind"]);
     };
-    return <Dynamic component={node_renderers[nodeKind()] ?? ((props: {path: Path}) => (
+    return <Dynamic component={node_renderers[nodeKind() ?? "null"] ?? ((props: {path: Path}) => (
         <div class="text-red-500">E_NOT_FOUND {"kind:"+nodeKind()}</div>
     ))} path={props.path} />
 }
@@ -481,7 +479,7 @@ export function RichtextEditor(props: {
     const selector = createSelector<HTMLElement | null, HTMLElement | null>(() => {
         const v = value();
         console.log("updating selector value", v);
-        if(v == null || typeof v !== "object") return null;
+        if(!isObject(v)) return null;
         const sel = v[text_editor_selection] as Selection;
         if(sel == null) return null;
         return sel[0];

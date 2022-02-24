@@ -8,7 +8,7 @@ import './index.css';
 render(() => {
   // this should really be a solid router thing
   const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
-  const [jsoneditorData, setJeData] = createStore<{data: StateValue}>({
+  const [jsoneditorData, setJeData] = createStore<{data: unknown}>({
     data: {
       root: undefined,
     },

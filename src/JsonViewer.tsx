@@ -4,6 +4,7 @@ import { getState, getValueFromState, Path } from "./editor_data";
 import { NodeSchema } from "./schema";
 import { createSelector, createSignal } from "solid-js";
 import { Button } from "./components";
+import { isObject } from "./guards";
 
 class JSONRaw {
   message: string;
@@ -19,7 +20,7 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
   const state = getValueFromState(path, root_state.state);
   return switchKind(schema, {
     object: obj => {
-      if(state == null || typeof state !== "object") return new JSONRaw("#E_NOT_OBJECT");
+      if(!isObject(state)) return new JSONRaw("#E_NOT_OBJECT");
       return Object.fromEntries(obj.fields.map(field => {
         return [
           field.name,
@@ -36,11 +37,11 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
       return new JSONRaw("#E_NOT_BOOLEAN");
     },
     array: arr => {
-      if(state == null || typeof state !== "object") return new JSONRaw("#E_NOT_ARRAY");
+      if(!isObject(state)) return new JSONRaw("#E_NOT_ARRAY");
       return Object.keys(state).map(key => stringifySchemaEntry([...path, key], arr.child));
     },
     union: uni => {
-      if(state == null || typeof state !== "object") return new JSONRaw("#E_NOT_UNION");
+      if(!isObject(state)) return new JSONRaw("#E_NOT_UNION");
       const tag = state[uni.tag_field];
       const choice = uni.choices.find(c => c.name === tag);
       if(!choice) return new JSONRaw("#E_BAD_TAG");
@@ -58,7 +59,7 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
       if(!schema) return new JSONRaw("#E_SCHEMA_MISSING_SYMBOL");
       const data = state.state.data.data[al.tag];
       if(!data) return {};
-      if(typeof data !== "object") return new JSONRaw("#E_DATA_BAD_LINK_OBJECT");
+      if(!isObject(data)) return new JSONRaw("#E_DATA_BAD_LINK_OBJECT");
       return Object.keys(data).map(key => stringifySchemaEntry(["data", al.tag, key], schema));
     },
     link: () => {

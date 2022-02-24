@@ -1,5 +1,6 @@
 import { createContext, JSX, untrack, useContext } from "solid-js";
 import { reconcile, SetStoreFunction, Store } from "solid-js/store";
+import { isObject } from "./guards";
 import { RootSchema } from "./schema";
 import { UUID } from "./uuid";
 
@@ -11,14 +12,14 @@ export type StateValue = {
 };
 
 export type State = {
-  data: Store<{data: StateValue}>,
+  data: Store<{data: unknown}>,
   setData: SetStoreFunction<{data: unknown}>,
 };
 
 export function getValueFromState(path: Path, state: State): unknown {
-  let node = state.data;
+  let node: unknown = state.data;
   for(const entry of path) {
-    if(!node) {
+    if(!isObject(node)) {
       console.log("EPATH", path, "AT ENTRY", entry, "WHOLE STATE", state);
       throw new Error("path is undefined. path: `"+path.map(v => v.toString()).join(" / ")+"`");
     }

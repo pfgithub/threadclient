@@ -5,7 +5,8 @@ import {
   onCleanup,
   untrack,
   JSX,
-  Accessor
+  Accessor,
+  Signal
 } from "solid-js";
 
 export function Key<T, U>(props: {
@@ -13,18 +14,24 @@ export function Key<T, U>(props: {
   by: (item: T) => U,
   children: (item: Accessor<T>, i: Accessor<number>, key: U) => JSX.Element,
 }) {
+  type PrevNode = {
+    index: Signal<number>,
+    item: Signal<T>,
+    result: JSX.Element,
+  };
+
   const key = props.by;
   const mapFn = props.children;
-  const disposers = new Map();
-  let prev = new Map();
+  const disposers = new Map<U, () => void>();
+  let prev = new Map<U, PrevNode>();
   onCleanup(() => {
     for (const disposer of disposers.values()) disposer();
   });
 
   return createMemo(() => {
     const list = props.each || [];
-    const mapped = [];
-    const newNodes = new Map();
+    const mapped: JSX.Element[] = [];
+    const newNodes = new Map<U, PrevNode>();
     return untrack(() => {
       for (let i = 0; i < list.length; i++) {
         const listItem = list[i];
@@ -41,14 +48,14 @@ export function Key<T, U>(props: {
           });
         } else {
           lookup.index[1](i);
-          lookup.item[1](listItem);
+          lookup.item[1](() => listItem);
           mapped[i] = lookup.result;
           newNodes.set(keyValue, lookup);
         }
       }
       for (const old of prev.keys()) {
         if (!newNodes.has(old)) {
-          const disposer = disposers.get(old);
+          const disposer = disposers.get(old)!;
           disposers.delete(old);
           disposer();
         }
