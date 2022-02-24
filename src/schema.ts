@@ -1,5 +1,5 @@
 import { Path } from "./editor_data";
-import { UUID } from "./uuid";
+import { uuid, UUID } from "./uuid";
 
 const is_specialfield: unique symbol = Symbol("special_field");
 type SpecialField = {
@@ -22,21 +22,21 @@ export const sc = {
   object: (obj: {[key: string]: NodeSchema | SpecialField}, opts: ObjectOpts = {}): ObjectSchema => {
     return {
       kind: "object",
-      fields: Object.entries(obj).map(([key, value]): ObjectField => ({
+      fields: Object.fromEntries(Object.entries(obj).map(([key, value]): [UUID, ObjectField] => ["<!>"+key as UUID, {
         name: key,
         value: isSpecialField(value) ? value.value : value,
         opts: isSpecialField(value) ? value.opts : {},
-      })),
+      }])),
       opts,
     };
   },
   union: (tag_field: string, uni: {[key: string]: ObjectSchema}): UnionSchema => ({
     kind: "union",
     tag_field: tag_field,
-    choices: Object.entries(uni).map(([key, value]): UnionField => ({
+    choices: Object.fromEntries(Object.entries(uni).map(([key, value]): [UUID, UnionField] => ["<!>"+key as UUID, {
       name: key,
       value: value,
-    })),
+    }])),
   }),
   richtext: (): RichtextSchema => ({kind: "richtext"}),
   string: (): StringSchema => ({kind: "string"}),
@@ -78,7 +78,7 @@ export type ObjectOpts = {
 };
 export type ObjectSchema = {
   kind: "object",
-  fields: ObjectField[],
+  fields: {[key: UUID]: ObjectField},
   opts: ObjectOpts,
   // to put union fields inside an object we could have an option here
   // to flatten the result
@@ -98,7 +98,8 @@ export type UnionField = {
 export type UnionSchema = {
   kind: "union",
   tag_field: string,
-  choices: UnionField[],
+  // ^ TODO don't use this in internal data to store the active field
+  choices: {[key: string]: UnionField},
 };
 export type RichtextSchema = {
   kind: "richtext",

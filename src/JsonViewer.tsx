@@ -4,7 +4,7 @@ import { getState, getValueFromState, Path } from "./editor_data";
 import { NodeSchema } from "./schema";
 import { createSelector, createSignal } from "solid-js";
 import { Button } from "./components";
-import { isObject } from "./guards";
+import { asObject, asString, isObject } from "./guards";
 
 class JSONRaw {
   message: string;
@@ -21,10 +21,10 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
   return switchKind(schema, {
     object: obj => {
       if(!isObject(state)) return new JSONRaw("#E_NOT_OBJECT");
-      return Object.fromEntries(obj.fields.map(field => {
+      return Object.fromEntries(Object.entries(obj.fields).map(([key, field]) => {
         return [
           field.name,
-          stringifySchemaEntry([...path, field.name], field.value),
+          stringifySchemaEntry([...path, key], field.value),
         ];
       }));
     },
@@ -42,22 +42,24 @@ function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
     },
     union: uni => {
       if(!isObject(state)) return new JSONRaw("#E_NOT_UNION");
-      const tag = state[uni.tag_field];
-      const choice = uni.choices.find(c => c.name === tag);
+      const tag = asString(state[uni.tag_field]) ?? "";
+      const choice = uni.choices[tag];
       if(!choice) return new JSONRaw("#E_BAD_TAG");
+      console.log("uni choice", choice);
+      const value = stringifySchemaEntry([...path, tag], choice.value);
       return {
-        [uni.tag_field]: tag,
-        ...stringifySchemaEntry([...path, choice.name], choice.value) as Object,
+        [uni.tag_field]: choice.name,
+        ...(value instanceof JSONRaw ? {error: value} : value as Object),
       };
     },
     richtext: rt => {
-      return state; // #TODO_RICHTEXT
+      return new JSONRaw("#TODO_RICHTEXT");
     },
     all_links: al => {
       const state = getState();
       const schema = state.root_schema.symbols[al.tag];
       if(!schema) return new JSONRaw("#E_SCHEMA_MISSING_SYMBOL");
-      const data = state.state.data.data[al.tag];
+      const data = asObject(state.state.data.data)![al.tag];
       if(!data) return {};
       if(!isObject(data)) return new JSONRaw("#E_DATA_BAD_LINK_OBJECT");
       return Object.keys(data).map(key => stringifySchemaEntry(["data", al.tag, key], schema));

@@ -55,17 +55,17 @@ const layer_schema: NodeSchema = sc.object({
     const objv = asObject(getValueFromState(["data", input_button], state.state)) ?? {};
     return {
       kind: "object",
-      fields: Object.entries(objv).map(
-        ([key, value]): ObjectField => {
-          return {
-            name: key,
+      fields: Object.fromEntries(Object.entries(objv).map(
+        ([key, value]): [UUID, ObjectField] => {
+          return [key as UUID, {
+            name: asString((asObject(value) ?? {}).name) ?? "*unnamed*",
             value: action_schema,
             opts: {
               title: summarize(value, button_schema),
             },
-          }
+          }];
         },
-      ),
+      )),
       opts: {
         display_mode: "tab-bar"
       },

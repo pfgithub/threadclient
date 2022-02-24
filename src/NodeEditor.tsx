@@ -177,19 +177,19 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
   )}>
     <TabOrListEditor
       mode={props.schema.opts.display_mode}
-      tabs={props.schema.fields.map(field => ({
-        key: field.name,
+      tabs={Object.entries(props.schema.fields).map(([key, field]) => ({
+        key,
         title: field.opts.title ?? field.name,
       }))}
       active={modValue(() => [...props.path, object_active_field])}
     >{key => {
-      const field = props.schema.fields.find(field => field.name === key);
+      const field = props.schema.fields[key as UUID];
       if(!field) throw new Error("unreachable");
 
       return <div>
         <NodeEditor
           schema={field.value}
-          path={[...props.path, field.name]}
+          path={[...props.path, key as UUID]}
         />
       </div>;
     }}</TabOrListEditor>
@@ -213,17 +213,17 @@ function UnionEditor(props: {schema: UnionSchema, path: Path}): JSX.Element {
   )}>
     <TabOrListEditor
       mode={"tab-bar"}
-      tabs={props.schema.choices.map(choice => ({
-        key: choice.name,
+      tabs={Object.entries(props.schema.choices).map(([key, choice]) => ({
+        key,
         title: choice.name,
       }))}
       active={modValue(() => [...props.path, props.schema.tag_field])}
     >{key => {
-      const field = props.schema.choices.find(field => field.name === key);
+      const field = props.schema.choices[key as UUID];
       if(!field) throw new Error("unreachable");
 
       return <div>
-        <NodeEditor schema={field.value} path={[...props.path, field.name]} />
+        <NodeEditor schema={field.value} path={[...props.path, key as UUID]} />
       </div>;
     }}</TabOrListEditor>
   </Show>;
