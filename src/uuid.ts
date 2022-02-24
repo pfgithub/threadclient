@@ -1,23 +1,23 @@
 export type UUID = string & {__is_uuid: true};
 
-/// generates a 16-character unique string (48 bytes utf-8)
+/// generates a unique string
 export function uuid(): UUID {
-  return [
+  return btoa([
     ...crypto.getRandomValues(new Uint8Array(16))
   ].map(byte => {
-    // // btoa chars
-    // return String.fromCodePoint(byte);
+    // btoa chars
+    return String.fromCodePoint(byte);
     // (make sure to call btoa on the joined output)
 
-    // // latin characters with accents. may have normalization issues. 32 bytes utf-8.
-    // return String.fromCodePoint(byte + 256);
+    // // // latin characters with accents. may have normalization issues. 32 bytes utf-8.
+    // // return String.fromCodePoint(byte + 256);
 
-    // // braille patterns 0..255. 48 bytes utf-8.
-    // return String.fromCodePoint(byte + 10240);
+    // // // braille patterns 0..255. 48 bytes utf-8.
+    // // return String.fromCodePoint(byte + 10240);
 
-    // yi syllables 0..255. 48 bytes utf-8.
-    return String.fromCodePoint(byte + 40960);
-  }).join("") as UUID;
+    // // yi syllables 0..255. 48 bytes utf-8.
+    // return String.fromCodePoint(byte + 40960);
+  }).join("")) as UUID;
 }
 
 // woah I need to look at uuidv5
