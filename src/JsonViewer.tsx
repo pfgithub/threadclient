@@ -107,6 +107,23 @@ export default function JsonViewer(props: {
     return asString(viewModeRaw()) ?? "internal";
   };
   const vmsel = createSelector(viewMode);
+
+  // ok I want to display json data with a real json viewer
+  // this means we need to keep state for objects eg: collapsed
+  // so we can use a what's it called
+  // WeakMap
+  // either that or store the data directly in the object with a custom symbol key
+  // actually that would be fine too
+  // oh huh
+  //
+  // a note:
+  // symbol keys can actually be per-viewer
+  // they are not persisted
+  //
+  // so I think we should treat symbol keys as per-viewer for now and then eventually
+  // we'll program them to actually be per-viewer when we replace the store with
+  // our own thing.
+
   // we might actually get rid of rendered view for now. serialization and deserialization
   // of data is important but that should be user-defined.
   //
