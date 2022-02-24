@@ -17,7 +17,10 @@ export function uuid(): UUID {
 
     // // yi syllables 0..255. 48 bytes utf-8.
     // return String.fromCodePoint(byte + 40960);
-  }).join("")) as UUID;
+
+    // vv: we're giving up a tiny bit of entropy to keep it
+    // all a-zA-Z0-9
+  }).join("")).replaceAll("/", "a").replaceAll("+", "b").replaceAll("=", "") as UUID;
 }
 
 // woah I need to look at uuidv5
