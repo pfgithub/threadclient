@@ -7,84 +7,17 @@ import { Button } from "./components";
 import { asObject, asString, isObject } from "./guards";
 import { json_viewer_view_mode } from "./symbols";
 
-class JSONRaw {
+export class JSONRaw {
   message: string;
   constructor(text: string) {
     this.message = text;
   }
 }
 
-// export type StringifyResult = {[key: string]: StringifyResult} | StringifyResult[] | …
-
-// ::
-// can we implement this as a proxy over an object?
-// I'd like to be able to define serialization for an object and then
-// use it combined with solid js dependency tracking
-// that would be useful eg for: moving schema definitions into the actual data
-
-function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
-  const root_state = getState();
-  const state = getValueFromState(path, root_state.state);
-  return switchKind(schema, {
-    object: obj => {
-      if(!isObject(state)) return new JSONRaw("#E_NOT_OBJECT");
-      return Object.fromEntries(Object.entries(obj.fields).map(([key, field]) => {
-        return [
-          field.name,
-          stringifySchemaEntry([...path, key], field.value),
-        ];
-      }));
-    },
-    string: () => {
-      if(typeof state === "string") return state;
-      return new JSONRaw("#E_NOT_STRING");
-    },
-    boolean: () => {
-      if(typeof state === "boolean") return state;
-      return new JSONRaw("#E_NOT_BOOLEAN");
-    },
-    array: arr => {
-      if(!isObject(state)) return new JSONRaw("#E_NOT_ARRAY");
-      return Object.keys(state).map(key => stringifySchemaEntry([...path, key], arr.child));
-    },
-    union: uni => {
-      if(!isObject(state)) return new JSONRaw("#E_NOT_UNION");
-      const tag = asString(state[uni.tag_field]) ?? "";
-      const choice = uni.choices[tag];
-      if(!choice) return new JSONRaw("#E_BAD_TAG");
-      console.log("uni choice", choice);
-      const value = stringifySchemaEntry([...path, tag], choice.value);
-      return {
-        [uni.tag_field]: choice.name,
-        ...(value instanceof JSONRaw ? {error: value} : value as Object),
-      };
-    },
-    richtext: rt => {
-      return new JSONRaw("#TODO_RICHTEXT");
-    },
-    all_links: al => {
-      const state = getState();
-      const schema = state.root_schema.symbols[al.tag];
-      if(!schema) return new JSONRaw("#E_SCHEMA_MISSING_SYMBOL");
-      const data = asObject(state.state.data.data)![al.tag];
-      if(!data) return {};
-      if(!isObject(data)) return new JSONRaw("#E_DATA_BAD_LINK_OBJECT");
-      return Object.keys(data).map(key => stringifySchemaEntry(["data", al.tag, key], schema));
-    },
-    link: () => {
-      if(typeof state === "string") return state;
-      return new JSONRaw("#E_NOT_LINK");
-    },
-    dynamic: dyn => {
-      return stringifySchemaEntry(path, dyn.resolver(path))
-    },
-  });
-}
-
-function stringifySchema(path: Path, schema: NodeSchema): string {
+export function stringifyWithJsonRaw(value: unknown): string {
   const escapeString = (str: string): string => str.replaceAll("%", "<%>");
   return JSON.stringify(
-    stringifySchemaEntry(path, schema),
+    value,
     (key, value) => {
       if(typeof value === "string") return escapeString(value);
       if(value != null && typeof value === "object") {
@@ -148,7 +81,7 @@ export default function JsonViewer(props: {
       // TODO: untrack(() => stringifySchema)
       // then, track a symbol that changes when setState is called instead
       viewMode() === "rendered"
-      ? stringifySchema(props.path, props.schema)
+      ? "TODO allow the schema creator to define their own stringification"
       : JSON.stringify(root_state.state.data.data, null, " ")
     }</pre>
   </div>;
