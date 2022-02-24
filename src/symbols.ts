@@ -1,5 +1,6 @@
 export const object_active_field = Symbol("object_active_field");
 export const text_editor_selection = Symbol("text_editor_selection");
+export const json_viewer_view_mode = Symbol("json_viewer_view_mode");
 
 if(import.meta.hot) {
     import.meta.hot.accept((new_module) => {

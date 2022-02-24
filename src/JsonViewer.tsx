@@ -1,10 +1,11 @@
 import { JSX } from "solid-js/jsx-runtime";
 import { switchKind } from "./util";
-import { getState, getValueFromState, Path } from "./editor_data";
+import { getState, getValueFromState, modValue, Path } from "./editor_data";
 import { NodeSchema } from "./schema";
 import { createSelector, createSignal } from "solid-js";
 import { Button } from "./components";
 import { asObject, asString, isObject } from "./guards";
+import { json_viewer_view_mode } from "./symbols";
 
 class JSONRaw {
   message: string;
@@ -101,7 +102,10 @@ export default function JsonViewer(props: {
   path: Path,
 }): JSX.Element {
   const root_state = getState();
-  const [viewMode, setViewMode] = createSignal<"rendered" | "internal">("internal");
+  const [viewModeRaw, setViewMode] = modValue(() => ["data", json_viewer_view_mode]);
+  const viewMode = () => {
+    return asString(viewModeRaw()) ?? "internal";
+  };
   const vmsel = createSelector(viewMode);
   // we might actually get rid of rendered view for now. serialization and deserialization
   // of data is important but that should be user-defined.
@@ -110,8 +114,8 @@ export default function JsonViewer(props: {
   // edits.
   return <div class="space-y-2">
     <div>
-      <Button active={vmsel("rendered")} onClick={() => setViewMode("rendered")}>rendered</Button>
-      <Button active={vmsel("internal")} onClick={() => setViewMode("internal")}>internal</Button>
+      <Button active={vmsel("rendered")} onClick={() => setViewMode(() => "rendered")}>rendered</Button>
+      <Button active={vmsel("internal")} onClick={() => setViewMode(() => "internal")}>internal</Button>
     </div>
     <pre class="font-mono whitespace-pre-wrap">{
       // TODO: untrack(() => stringifySchema)
