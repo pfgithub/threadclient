@@ -6,12 +6,12 @@ import NodeEditor from './NodeEditor';
 import { NodeSchema, ObjectField, RootSchema, sc, summarize } from './schema';
 import { UUID } from './uuid';
 
-const person_link = "5bdcd7dc-ab06-47c7-9d8b-f9c79dd46284" as UUID;
+const person_link = "<!>person" as UUID;
 
-const input_button = "0cdfae1d-775f-4f49-9ab4-094633ed1e09" as UUID;
-const output_button = "96b24915-2fd0-46e4-b2a7-4d591a36d0fa" as UUID;
-const scene = "9a1bb843-89b9-4281-8958-f71d341cbf8a" as UUID;
-const layer = "a374e26e-0882-41b1-b6d8-efba29409452" as UUID;
+const input_button = "<!>input_button" as UUID;
+const output_button = "<!>output_button" as UUID;
+const scene = "<!>scene" as UUID;
+const layer = "<!>layer" as UUID;
 
 const person_schema = sc.object({
   name: sc.string(),
