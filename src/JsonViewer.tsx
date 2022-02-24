@@ -123,6 +123,10 @@ export default function JsonViewer(props: {
   // so I think we should treat symbol keys as per-viewer for now and then eventually
   // we'll program them to actually be per-viewer when we replace the store with
   // our own thing.
+  //
+  // [!] oh wait
+  // what if we display the same data twice within the viewer
+  // just don't do that for now I guess
 
   // we might actually get rid of rendered view for now. serialization and deserialization
   // of data is important but that should be user-defined.
