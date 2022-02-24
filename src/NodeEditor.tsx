@@ -1,4 +1,4 @@
-import { createMemo, createSelector, For, Show, untrack } from "solid-js";
+import { createMemo, createSelector, ErrorBoundary, For, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Button } from "./components";
 import { getState, modValue, Path } from "./editor_data";
@@ -82,8 +82,6 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
   // huh, if we mark it with a symbol we can make our data tostringable without
   // having to know the schema
   const [value, setValue] = modValue(() => props.path);
-
-  const state = getState();
 
   return <TabOrListEditor
     mode={props.schema.opts.view_mode}
@@ -230,11 +228,17 @@ function UnionEditor(props: {schema: UnionSchema, path: Path}): JSX.Element {
 }
 
 function AllLinksEditor(props: {schema: AllLinksSchema, path: Path}): JSX.Element {
+  const content_path = () => ["data", props.schema.tag];
+  const [value, setValue] = modValue(content_path);
   const state = getState();
   const dataSchema = () => state.root_schema.symbols[props.schema.tag];
-  return <div>
-    <ArrayEditor schema={sc.array(dataSchema(), props.schema.opts)} path={["data", props.schema.tag]} />
-  </div>;
+  return <Show when={isObject(value())} fallback={<div>
+    <Button onClick={() => {
+      setValue(() => ({}));
+    }}>Create AllLinks</Button>
+  </div>}><div>
+    <ArrayEditor schema={sc.array(dataSchema(), props.schema.opts)} path={content_path()} />
+  </div></Show>;
 }
 
 function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
@@ -278,7 +282,19 @@ function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
         }, {once: true});
       });
     });
-  }}>
+  }}><ErrorBoundary fallback={(err: Error, reset) => <>
+    <div class="space-x-1">
+      <span><Button onClick={() => reset()}>Reset</Button></span>
+      <span><Button onClick={() => {
+        console.log(err, props);
+        console.log(JSON.parse(JSON.stringify(props)));
+      }}>Code</Button></span>
+    </div>
+    <details>
+      <summary class="text-gray-300"><span class="text-red-500">Error: </span>{err.toString().replace("Error: ", "")}</summary>
+      <p>{err.stack ?? ""}</p>
+    </details>
+  </>}>
     <SwitchKind item={props.schema}>{{
       object: obj => <ObjectEditor schema={obj} path={props.path} />,
       string: str => <StringEditor schema={str} path={props.path} />,
@@ -290,7 +306,7 @@ function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
       link: link => <LinkEditor schema={link} path={props.path} />,
       dynamic: dynamic => <NodeEditor schema={dynamic.resolver(props.path)} path={props.path} />
     }}</SwitchKind>
-  </div>;
+  </ErrorBoundary></div>;
 }
 
 export default NodeEditor;

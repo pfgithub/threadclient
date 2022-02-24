@@ -13,7 +13,7 @@ const output_button = "96b24915-2fd0-46e4-b2a7-4d591a36d0fa" as UUID;
 const scene = "9a1bb843-89b9-4281-8958-f71d341cbf8a" as UUID;
 const layer = "a374e26e-0882-41b1-b6d8-efba29409452" as UUID;
 
-const person_schema: NodeSchema = sc.object({
+const person_schema = sc.object({
   name: sc.string(),
   description: sc.string(),
   attributes: sc.object({
@@ -23,20 +23,21 @@ const person_schema: NodeSchema = sc.object({
   tags: sc.array(sc.string()),
 }, {
   summarize: v_in => {
+    const [name_field] = Object.keys(person_schema.fields);
+  
     const v = asObject(v_in) ?? {};
-    return asString(v["name"]) ?? "*Unnamed*";
+    return asString(v[name_field]) ?? "*Unnamed*";
   }
 });
 
-const button_schema: NodeSchema = sc.object({
+const button_schema = sc.object({
   name: sc.string(),
   id: sc.string(),
 }, {
   summarize: (v) => {
-    // readas(sc.object(), v) => proxy where accessing things returns undefined | value
-    // so then we can do (v.name ?? "") + " (" + (v.id ?? "") + ")"
+    const [name_field, id_field] = Object.keys(button_schema.fields);
 
-    if(isObject(v)) return "" + v["name"] + " (" + v["id"] + ")";
+    if(isObject(v)) return "" + asString(v[name_field]) + " (" + asString(v[id_field]) + ")";
     return "*Unnamed*";
   },
 });
