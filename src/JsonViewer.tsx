@@ -16,6 +16,12 @@ class JSONRaw {
 
 // export type StringifyResult = {[key: string]: StringifyResult} | StringifyResult[] | …
 
+// ::
+// can we implement this as a proxy over an object?
+// I'd like to be able to define serialization for an object and then
+// use it combined with solid js dependency tracking
+// that would be useful eg for: moving schema definitions into the actual data
+
 function stringifySchemaEntry(path: Path, schema: NodeSchema): unknown {
   const root_state = getState();
   const state = getValueFromState(path, root_state.state);
