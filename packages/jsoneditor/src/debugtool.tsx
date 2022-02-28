@@ -18,10 +18,10 @@ export default function Debugtool(props: {
                     width: rect.width + "px",
                     height: rect.height + "px",
                     'z-index': 2147483647,
+                    opacity: 100,
     
-                    'transition': anim_time+"ms opacity",
+                    transition: anim_time+"ms opacity",
                 }}
-                class="opacity-100"
                 ref={el => {
                     onMount(() => {
                         requestAnimationFrame(() => {
@@ -31,12 +31,11 @@ export default function Debugtool(props: {
                 }}
             >
                 <div
-                    class={[
-                        "w-full h-full border-box",
-                        "border-4",
-                    ].join(" ")}
                     style={{
-                        'border-color': "hsl("+h+", 100%, 50%)",
+                        'width': "100%",
+                        'height': "100%",
+                        'box-sizing': "border-box",
+                        'border': "4px solid hsl("+h+", 100%, 50%)",
                     }}
                 />
             </div> as HTMLDivElement;
@@ -88,6 +87,8 @@ export default function Debugtool(props: {
     return <div
         ref={nodes_go_here}
         aria-hidden
-        class="pointer-events-none"
+        style={{
+            'pointer-events': "none",
+        }}
     />;
 }
