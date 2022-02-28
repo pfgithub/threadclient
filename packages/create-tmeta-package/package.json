@@ -5,9 +5,9 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "@types/node": "^16.11.26",
+    "@types/node": "^17.0.21",
     "enquirer": "^2.3.6",
-    "eslint": "^7.32.0",
+    "eslint": "^8.10.0",
     "eslint-config-tmeta": "^1.0.0",
     "ts-node": "^10.5.0",
     "tsconfig-tmeta": "^1.0.0",
