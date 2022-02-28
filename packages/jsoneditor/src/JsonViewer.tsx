@@ -36,6 +36,12 @@ export function stringifyWithJsonRaw(value: unknown): string {
   }).replaceAll("<%>", "%");
 }
 
+export function StoreViewer(props: {
+  value: unknown
+}): JSX.Element {
+  return <pre class="font-mono whitespace-pre-wrap">{JSON.stringify(props.value, null, " ")}</pre>;
+}
+
 export default function JsonViewer(props: {
   schema: NodeSchema,
   path: Path,
@@ -77,12 +83,12 @@ export default function JsonViewer(props: {
       <Button active={vmsel("rendered")} onClick={() => setViewMode(() => "rendered")}>rendered</Button>
       <Button active={vmsel("internal")} onClick={() => setViewMode(() => "internal")}>internal</Button>
     </div>
-    <pre class="font-mono whitespace-pre-wrap">{
-      // TODO: untrack(() => stringifySchema)
-      // then, track a symbol that changes when setState is called instead
-      viewMode() === "rendered"
-      ? "TODO allow the schema creator to define their own stringification"
-      : JSON.stringify(root_state.state.data.data, null, " ")
-    }</pre>
+    {
+      viewMode() === "internal"
+      ? <StoreViewer value={root_state.state.data.data} />
+      : <pre class="font-mono whitespace-pre-wrap">
+        {"TODO allow the schema creator to define their own stringification"}
+      </pre>
+    }
   </div>;
 }
