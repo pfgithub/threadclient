@@ -1,8 +1,8 @@
 import { createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { ErrorBoundary, render, Show } from 'solid-js/web';
+import { Debugtool } from 'tmeta-util-solid';
 import App from './App';
-import Debugtool from './debugtool';
 import { StateValue } from './editor_data';
 import './index.css';
 

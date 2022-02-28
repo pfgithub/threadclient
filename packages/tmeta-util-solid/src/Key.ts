@@ -13,7 +13,7 @@ export function Key<T, U>(props: {
   each: T[],
   by: (item: T) => U,
   children: (item: Accessor<T>, i: Accessor<number>, key: U) => JSX.Element,
-}) {
+}): JSX.Element {
   type PrevNode = {
     index: Signal<number>,
     item: Signal<T>,
@@ -29,38 +29,37 @@ export function Key<T, U>(props: {
   });
 
   return createMemo(() => {
-    const list = props.each || [];
+    const list = props.each;
     const mapped: JSX.Element[] = [];
-    const newNodes = new Map<U, PrevNode>();
+    const new_nodes = new Map<U, PrevNode>();
     return untrack(() => {
-      for (let i = 0; i < list.length; i++) {
-        const listItem = list[i];
-        const keyValue = key(listItem);
-        const lookup = prev.get(keyValue);
+      list.forEach((list_item, i) => {
+        const key_value = key(list_item);
+        const lookup = prev.get(key_value);
         if (!lookup) {
           mapped[i] = createRoot((dispose) => {
-            disposers.set(keyValue, dispose);
+            disposers.set(key_value, dispose);
             const index = createSignal(i);
-            const item = createSignal(listItem);
-            const result = mapFn(item[0], index[0], keyValue);
-            newNodes.set(keyValue, { index, item, result });
+            const item = createSignal(list_item);
+            const result = mapFn(item[0], index[0], key_value);
+            new_nodes.set(key_value, { index, item, result });
             return result;
           });
         } else {
           lookup.index[1](i);
-          lookup.item[1](() => listItem);
+          lookup.item[1](() => list_item);
           mapped[i] = lookup.result;
-          newNodes.set(keyValue, lookup);
+          new_nodes.set(key_value, lookup);
         }
-      }
+      });
       for (const old of prev.keys()) {
-        if (!newNodes.has(old)) {
+        if (!new_nodes.has(old)) {
           const disposer = disposers.get(old)!;
           disposers.delete(old);
           disposer();
         }
       }
-      prev = newNodes;
+      prev = new_nodes;
       return mapped;
     });
   });

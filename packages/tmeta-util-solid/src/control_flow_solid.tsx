@@ -1,6 +1,9 @@
 import { Accessor, createMemo, createSignal, JSX, onCleanup, untrack } from "solid-js";
 import { MatchFn, switchKindCB } from "tmeta-util";
 
+export { default as Debugtool } from "./debugtool";
+export { Key } from "./Key";
+
 export function SwitchKind<T extends {kind: string}>(props: {
     item: T,
     children: {[Key in T["kind"]]: MatchFn<T, Key, JSX.Element>},

@@ -1,9 +1,9 @@
 import { createMemo, createSelector, ErrorBoundary, For, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
+import { Key } from "tmeta-util-solid";
 import { Button } from "./components";
 import { getState, modValue, Path } from "./editor_data";
 import { isObject } from "./guards";
-import { Key } from "./Key";
 import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
 import { object_active_field } from "./symbols";
 import { RichtextEditor } from "./TextEditor";
