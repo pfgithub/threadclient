@@ -56,12 +56,12 @@ export function StoreViewerElement(props: {
     const pvt = typeof pv;
     if(pvt === "object" && pv != null) return untrack((): JSX.Element => {
       const ntries = createMemo(() => Object.entries(props.value as object));
-      return <>{"{"}<Key each={ntries()} by={(v) => v[0]}>{(item, index) => {
-        return <>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
+      return <span>{"{"}<Key each={ntries()} by={(v) => v[0]}>{(item, index) => {
+        return <span>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
           <span class={color()}>{JSON.stringify(item()[0])}</span>{": "}
           <StoreViewerElement value={item()[1]} level={props.level + 1} />
-        </>;
-      }}</Key>{(ntries().length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</>;
+        </span>;
+      }}</Key>{(ntries().length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
     }); else return untrack((): JSX.Element => {
       return <span class={color()}>{JSON.stringify(pv)}</span>;
     });

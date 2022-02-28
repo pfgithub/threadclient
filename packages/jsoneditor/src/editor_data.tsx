@@ -30,6 +30,7 @@ export function getValueFromState(path: Path, state: State): unknown {
 export function setValueFromState(path: Path, state: State, value: unknown) {
   state.setData(...path as unknown as ["data"], reconcile(
     typeof value === "function" ? value(untrack(() => getValueFromState(path, state))) : value,
+    {merge: false},
   ));
 }
 
