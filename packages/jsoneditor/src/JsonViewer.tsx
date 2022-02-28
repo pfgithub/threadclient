@@ -69,7 +69,6 @@ export function StoreViewerElement(props: {
 }
 export function StoreViewer(props: {
   value: unknown,
-  indent: string,
 }): JSX.Element {
   return <pre class="font-mono whitespace-pre-wrap">
     <StoreViewerElement value={props.value} level={0} />
