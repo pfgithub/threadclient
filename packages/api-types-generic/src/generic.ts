@@ -789,7 +789,7 @@ export type SentReport = {
     body: Body,
 };
 
-function rtkind<C extends string, T, I extends unknown = undefined>(kind: C, data: T, children?: I[]): (
+function rtkind<C extends string, T, I = undefined>(kind: C, data: T, children?: I[]): (
     {kind: C} & (I extends undefined ? {__nothing: 0} : {children: I[]}) & T
 ) {
     return {

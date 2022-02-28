@@ -52,15 +52,21 @@ module.exports = {
                 if(unsupported_nodes.has(node.type)) return;
 
                 if(node.type === "TSConditionalType" || node.type === "ConditionalExpression") {
+                    // these are [!]DISABLED because neither typescript nor normal
+                    // js report parenthesis expressions anymore when they have no
+                    // semantic meaning. but I need to know about parenthesis expressions
+                    // to properly lint the code
+                    //
+                    // I'm going to have to make my own indent rule that doesn't use
+                    // babel parsing aren't I
+                    //
+                    // I guess for now I can workaround by looking between the test
+                    // and the consequent and getting the last token or something?
+                    //
+                    // I really don't like this
                     if(node.type === "ConditionalExpression") return;
-                    // a ? (
-                    //    b
-                    // ) : (
-                    //    c
-                    // )
-                    // is the style I want to force.
-                    // unfortunately, those parenthesis don't show up
-                    // as nodes so I can't actually check this easily
+                    if(node.type === "TSConditionalType") return;
+
                     const items = node.type === "TSConditionalType" ? [
                         {node: node.checkType, name: "condition"},
                         {node: node.extendsType, name: "extends"},
@@ -115,10 +121,8 @@ module.exports = {
 
                 if(node.type === "TSIntersectionType") {
                     const token = source_code.getFirstToken(node);
-                    if(token.type !== "Punctuator" || token.value !== "&") {
-                        if(node.types.length >= 2) {
-                            first_loc = source_code.getFirstToken(node.types[1]).loc.start;
-                        }
+                    if(token.type === "Punctuator" && token.value === "&") {
+                        first_loc = source_code.getFirstToken(node.types[0]).loc.start;
                     }
                 }
 

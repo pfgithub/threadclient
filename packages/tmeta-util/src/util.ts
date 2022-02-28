@@ -189,7 +189,7 @@ function routerBased<ParentOpts extends BaseParentOpts, Out>(is_root: boolean): 
         parseSub(opts: ParentOpts, path: string[]): Out | null {
             for(const route of routes) {
                 const out = route(opts, path);
-                if(out) return out;
+                if(out != null) return out;
             }
             return null;
         },

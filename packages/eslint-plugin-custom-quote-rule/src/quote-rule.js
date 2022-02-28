@@ -108,7 +108,7 @@ function default_rule(context) {
 
 module.exports = {
     rules: {
-        'quote-style': {create: default_rule},
+        'quote-style': {create: default_rule, meta: {fixable: "code"}},
         'func-style': require("./func-style"),
         'indent': require("./indent"),
         'explicit-optional-key': require("./explicit-optional-key"),
