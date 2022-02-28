@@ -60,11 +60,17 @@ export default function Debugtool(props: {
         const observer = new MutationObserver((mutations_list) => {
             const time = Date.now();
             const touched_nodes: Set<Node> = new Set();
+            const addNodeList = (node_list: NodeList) => {
+                node_list.forEach(node => {
+                    touched_nodes.add(node);
+                    addNodeList(node.childNodes);
+                });
+            };
             for(const mutation of mutations_list) {
                 if(mutation.type === "attributes") {
                     touched_nodes.add(mutation.target);
                 }else if(mutation.type === "childList") {
-                    mutation.addedNodes.forEach(node => touched_nodes.add(node));
+                    addNodeList(mutation.addedNodes);
                     // [!] we should actually add the node and all its children
                     //     (excluding text node children - just the parent node is)
                     //     (enough. no reason to waste lots of performance getting bounds
