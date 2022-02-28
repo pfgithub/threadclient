@@ -2,8 +2,11 @@ import { createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { ErrorBoundary, render, Show } from 'solid-js/web';
 import App from './App';
+import Debugtool from './debugtool';
 import { StateValue } from './editor_data';
 import './index.css';
+
+const root_el = document.getElementById('root') as HTMLElement;
 
 render(() => {
   // this should really be a solid router thing
@@ -32,4 +35,9 @@ render(() => {
       <App state={{data: jsoneditorData, setData: setJeData}} />
     </>}</Show>
   </ErrorBoundary>;
-}, document.getElementById('root') as HTMLElement);
+}, root_el);
+
+const belowbody = document.createElement("div");
+document.body.appendChild(belowbody);
+
+render(() => <Debugtool observe_root={root_el} />, belowbody);
