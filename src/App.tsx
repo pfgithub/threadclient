@@ -41,7 +41,7 @@ const button_schema = sc.object({
     return "*Unnamed*";
   },
 });
-const action_schema: NodeSchema = sc.union("action", {
+const action_schema: NodeSchema = sc.union({
   press: sc.object({
     buttons: sc.array(sc.link(output_button)),
   }),
@@ -87,7 +87,7 @@ const resources_schema = sc.array(sc.object({
   view_mode: "tab-bar",
 });
 
-const clicker_schema: NodeSchema = sc.union("type", {
+const clicker_schema: NodeSchema = sc.union({
   none: sc.object({}),
   spacer: sc.object({}),
   separator: sc.object({}),

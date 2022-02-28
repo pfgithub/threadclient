@@ -198,11 +198,15 @@ function UnionEditor(props: {schema: UnionSchema, path: Path}): JSX.Element {
   const [value, setValue] = modValue(() => props.path);
   return <Show when={(() => {
     const v = value();
-    return v != null && typeof v === "object";
+    if(!isObject(v)) return false;
+    if(!isObject(v["values"])) return false;
+    return true;
   })()} fallback={(
     <div>
       <Button onClick={() => {
-        setValue(() => ({}));
+        setValue(() => ({
+          values: {},
+        }));
       }}>
         Create Union
       </Button>
@@ -215,13 +219,13 @@ function UnionEditor(props: {schema: UnionSchema, path: Path}): JSX.Element {
         key,
         title: choice.name,
       }))}
-      active={modValue(() => [...props.path, props.schema.tag_field])}
+      active={modValue(() => [...props.path, "active"])}
     >{key => {
       const field = props.schema.choices[key as UUID];
       if(!field) throw new Error("unreachable");
 
       return <div>
-        <NodeEditor schema={field.value} path={[...props.path, key as UUID]} />
+        <NodeEditor schema={field.value} path={[...props.path, "values", key as UUID]} />
       </div>;
     }}</TabOrListEditor>
   </Show>;

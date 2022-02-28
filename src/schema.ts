@@ -30,9 +30,8 @@ export const sc = {
       opts,
     };
   },
-  union: (tag_field: string, uni: {[key: string]: ObjectSchema}): UnionSchema => ({
+  union: (uni: {[key: string]: ObjectSchema}): UnionSchema => ({
     kind: "union",
-    tag_field: tag_field,
     choices: Object.fromEntries(Object.entries(uni).map(([key, value]): [UUID, UnionField] => ["<!>"+key as UUID, {
       name: key,
       value: value,
@@ -47,9 +46,9 @@ export const sc = {
   dynamic: (resolver: DynamicResolver): DynamicSchema => ({kind: "dynamic", resolver}),
 
   // TODO:
-  optional: (...args: any[]) => undefined as unknown as NodeSchema,
-  enum: (...args: any[]) => undefined as unknown as NodeSchema,
-  function: (...args: any[]) => undefined as unknown as NodeSchema,
+  optional: (...args: any[]) => ({}) as unknown as NodeSchema,
+  enum: (...args: any[]) => ({}) as unknown as NodeSchema,
+  function: (...args: any[]) => ({}) as unknown as NodeSchema,
 } as const;
 
 export type NodeSchema =
@@ -136,13 +135,9 @@ const union_field = sc.object({
 });
 export type UnionSchema = {
   kind: "union",
-  tag_field: string,
-  // ^ TODO don't use this in internal data to store the active field
   choices: {[key: string]: UnionField},
 };
 const union_schema = sc.object({
-  tag_field: sc.string(), // <- todo remove this as it only exists for json stringification
-  // and we want to use custom serializers/deserializers
   choices: sc.array(union_field),
 });
 export type RichtextSchema = {
@@ -196,7 +191,7 @@ const dynamic_schema = sc.object({
 });
 
 
-Object.assign(node_schema, sc.union("UNUSED", {
+Object.assign(node_schema, sc.union({
   object_schema,
   string_schema,
   boolean_schema,
