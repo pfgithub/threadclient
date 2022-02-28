@@ -8,7 +8,7 @@ export default function Debugtool(props: {
     const renderChange = (rect: DOMRect, time: number) => {
         createRoot(dispose => {
             const h = ((time / 10) % 360) |0;
-            const anim_time = 500;
+            const anim_time = 1000;
             setTimeout(() => dispose(), anim_time); // ontraisitionend wasn't triggering?
             const new_node = <div
                 style={{

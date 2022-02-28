@@ -275,18 +275,7 @@ function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
 }
 
 function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
-  return <div ref={node => {
-    console.log("transitioning");
-    node.className = "opacity-0";
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        node.className = "opacity-100 transition-opacity duration-200";
-        node.addEventListener("transitionend", () => {
-          node.className = "";
-        }, {once: true});
-      });
-    });
-  }}><ErrorBoundary fallback={(err: Error, reset) => <>
+  return <div><ErrorBoundary fallback={(err: Error, reset) => <>
     <div class="space-x-1">
       <span><Button onClick={() => reset()}>Reset</Button></span>
       <span><Button onClick={() => {
