@@ -5,15 +5,15 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "eslint": "^7.29.0",
+    "eslint": "^7.32.0",
     "eslint-config-tmeta": "^1.0.0",
     "firebase-bolt": "^0.8.4",
     "firebase-bolt-compiler": "^1.2.9",
     "tsconfig-tmeta": "^1.0.0",
     "typescript": "^4.5.5",
-    "vite": "^2.5.1",
-    "vite-plugin-solid": "^2.0.1",
-    "vite-plugin-windicss": "^1.3.0"
+    "vite": "^2.8.5",
+    "vite-plugin-solid": "^2.2.5",
+    "vite-plugin-windicss": "^1.8.1"
   },
   "scripts": {
     "dev": "vite",
@@ -24,11 +24,11 @@
     "firebase-codegen": "firebase-bolt src/security-rules.bolt --output src/generated/security-rules.json && echo '/* eslint-disable */' > src/generated/security-rules.ts && firebase-bolt-compiler < src/security-rules.bolt >> src/generated/security-rules.ts"
   },
   "dependencies": {
-    "firebase": "^9.0.0",
-    "perfect-freehand": "^0.5.2",
+    "firebase": "^9.6.7",
+    "perfect-freehand": "^0.5.4",
     "polygon-clipping": "^0.15.3",
     "simplify-geojson": "^1.0.4",
-    "solid-js": "^1.3.5",
+    "solid-js": "^1.3.9",
     "tmeta-util": "^1.0.0"
   }
 }

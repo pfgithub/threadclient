@@ -5,7 +5,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "eslint": "^7.29.0",
+    "eslint": "^7.32.0",
     "eslint-config-tmeta": "^1.0.0",
     "esno": "^0.12.1",
     "tmeta-util": "^1.0.0",
@@ -15,7 +15,7 @@
   "dependencies": {
     "@effectful/serialization": "^1.4.6",
     "api-types-generic": "^1.0.0",
-    "node-fetch": "^3.1.0",
+    "node-fetch": "^3.2.0",
     "threadclient-client-base": "^1.0.0",
     "threadclient-client-reddit": "^1.0.0",
     "threadclient-preview": "^1.0.0"
