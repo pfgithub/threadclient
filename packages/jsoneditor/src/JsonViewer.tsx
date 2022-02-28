@@ -54,9 +54,7 @@ export function StoreViewerElement(props: {
     const color = () => colors[props.level % colors.length |0]!;
     const pv = props.value;
     const pvt = typeof pv;
-    if(pv == null) return untrack((): JSX.Element => {
-      return <>{"" + pv}</>;
-    }); if(pvt === "object") return untrack((): JSX.Element => {
+    if(pvt === "object" && pv != null) return untrack((): JSX.Element => {
       const ntries = createMemo(() => Object.entries(props.value as object));
       return <>{"{"}<Key each={ntries()} by={(v) => v[0]}>{(item, index) => {
         return <>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
