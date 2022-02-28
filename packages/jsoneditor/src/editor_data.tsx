@@ -4,7 +4,7 @@ import { isObject } from "./guards";
 import { RootSchema } from "./schema";
 import { UUID } from "./uuid";
 
-export type Path = (string | number | UUID | symbol)[];
+export type Path = (string | number | UUID)[];
 
 export type StateValue = {
   root: unknown,

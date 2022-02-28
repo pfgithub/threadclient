@@ -1,11 +1,10 @@
-import { createMemo, createSelector, ErrorBoundary, For, Show, untrack } from "solid-js";
+import { createMemo, createSelector, createSignal, ErrorBoundary, For, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Key } from "tmeta-util-solid";
 import { Button } from "./components";
 import { getState, modValue, Path } from "./editor_data";
 import { isObject } from "./guards";
 import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
-import { object_active_field } from "./symbols";
 import { RichtextEditor } from "./TextEditor";
 import { SwitchKind } from "./util";
 import { UUID, uuid } from "./uuid";
@@ -106,7 +105,7 @@ function ArrayEditor(props: {schema: ArraySchema, path: Path}): JSX.Element {
         return nsym;
       },
     }]}
-    active={modValue(() => [...props.path, object_active_field])}
+    active={createSignal<unknown>(undefined)}
   >{(key) => {
     return <>
       <div><Button
@@ -179,7 +178,7 @@ function ObjectEditor(props: {schema: ObjectSchema, path: Path}): JSX.Element {
         key,
         title: field.opts.title ?? field.name,
       }))}
-      active={modValue(() => [...props.path, object_active_field])}
+      active={createSignal<unknown>(undefined)}
     >{key => {
       const field = props.schema.fields[key as UUID];
       if(!field) throw new Error("unreachable");

@@ -1,12 +1,10 @@
-import { JSX } from "solid-js/jsx-runtime";
-import { switchKind } from "./util";
-import { getState, getValueFromState, modValue, Path } from "./editor_data";
-import { NodeSchema } from "./schema";
 import { createMemo, createSelector, createSignal, untrack } from "solid-js";
-import { Button } from "./components";
-import { asObject, asString, isObject } from "./guards";
-import { json_viewer_view_mode } from "./symbols";
+import { JSX } from "solid-js/jsx-runtime";
 import { Key } from "tmeta-util-solid";
+import { Button } from "./components";
+import { getState, Path } from "./editor_data";
+import { asString } from "./guards";
+import { NodeSchema } from "./schema";
 
 export class JSONRaw {
   message: string;
@@ -63,7 +61,7 @@ export function StoreViewerElement(props: {
         </span>;
       }}</Key>{(ntries().length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
     }); else return untrack((): JSX.Element => {
-      return <span class={color()}>{JSON.stringify(pv)}</span>;
+      return <span class={color()}>{pv === undefined ? "#E_UNDEFINED" : JSON.stringify(pv)}</span>;
     });
   });
 }
@@ -80,7 +78,7 @@ export default function JsonViewer(props: {
   path: Path,
 }): JSX.Element {
   const root_state = getState();
-  const [viewModeRaw, setViewMode] = modValue(() => ["data", json_viewer_view_mode]);
+  const [viewModeRaw, setViewMode] = createSignal<unknown>(undefined);
   const viewMode = () => {
     return asString(viewModeRaw()) ?? "internal";
   };

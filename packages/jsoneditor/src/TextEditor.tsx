@@ -1,12 +1,11 @@
-import { createContext, createEffect, createRenderEffect, createSelector, createSignal, For, Show, untrack, useContext } from "solid-js";
+import { createContext, createRenderEffect, createSelector, createSignal, For, Show, Signal, untrack, useContext } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
 import { Button } from "./components";
 import { modValue, Path } from "./editor_data";
-import { asObject, asString, isObject, isString } from "./guards";
+import { asObject, asString, isObject } from "./guards";
 import NodeEditor from "./NodeEditor";
 import { NodeSchema, RichtextSchema, sc } from "./schema";
-import { text_editor_selection } from "./symbols";
 import { uuid, UUID } from "./uuid";
 
 // [!]NOTES
@@ -94,7 +93,6 @@ export type Selection = [editor_node: HTMLElement, index: CursorIndex] | null;
 
 export type TextEditorRoot = {
     node: TextEditorRootNode,
-    [text_editor_selection]: Selection,
 };
 
 export type TextEditorRootNode = {
@@ -284,7 +282,7 @@ export function EditorSpan(props: {
     replaceRange: (start: CursorIndex, end: CursorIndex, text: string) => void,
 }): JSX.Element {
     const ctx = useContext(TEContext)!;
-    const [selection, setSelection] = modValue(() => [...ctx.root_path(), text_editor_selection]);
+    const [selection, setSelection] = ctx.selection;
 
     const node: HTMLElement = document.createElement("bce:editor-node");
     node.setAttribute("data-editor-id", ctx.editor_id);
@@ -417,6 +415,7 @@ REDUCERS:
 const TEContext = createContext<{
     root_path: () => Path,
     selected: (key: HTMLElement | null) => boolean,
+    selection: Signal<Selection>,
     editor_id: UUID,
 }>();
 
@@ -473,14 +472,13 @@ export function RichtextEditor(props: {
     path: Path,
 }): JSX.Element {
     const [value, setValue] = modValue(() => props.path);
+    const [selected, setSelected] = createSignal<Selection>(null);
 
     const editor_id = uuid();
 
     const selector = createSelector<HTMLElement | null, HTMLElement | null>(() => {
-        const v = value();
-        console.log("updating selector value", v);
-        if(!isObject(v)) return null;
-        const sel = v[text_editor_selection] as Selection;
+        const sel = selected();
+        console.log("updating selector value", sel);
         if(sel == null) return null;
         return sel[0];
     });
@@ -492,7 +490,6 @@ export function RichtextEditor(props: {
                 const nv: TextEditorRootNode = JSON.parse(JSON.stringify(defaultnode));
                 const nv_n: TextEditorRoot = {
                     node: nv,
-                    [text_editor_selection]: null,
                 };
                 setValue(() => nv_n);
             }}>click to create</Button>
@@ -500,6 +497,7 @@ export function RichtextEditor(props: {
             <TEContext.Provider value={{
                 root_path: () => props.path,
                 selected: selector,
+                selection: [selected, setSelected],
                 editor_id,
             }}>
                 <EditorNode path={[...props.path, "node"]} />
