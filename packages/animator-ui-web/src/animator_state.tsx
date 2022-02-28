@@ -1187,10 +1187,10 @@ function createDbWatch<T>(db_ref: Query): [Store<DbValue<T>>] {
     const unsub = onValue(db_ref, snapshot => {
         console.log("got value", snapshot);
         const snap_value = snapshot.val() as T;
-        setState(reconcile<DbValue<T>>({kind: "loaded", value: snap_value}, {merge: true}));
+        setState(reconcile({kind: "loaded", value: snap_value}, {merge: true}));
     }, err => {
         console.log(err);
-        setState(reconcile<DbValue<T>>({kind: "error", message: err.toString()}, {merge: true}));
+        setState(reconcile({kind: "error", message: err.toString()}, {merge: true}));
     });
     onCleanup(() => unsub());
 

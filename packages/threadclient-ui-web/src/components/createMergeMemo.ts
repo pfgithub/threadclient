@@ -5,14 +5,14 @@ export function createMergeMemo<T>(getValue: () => T, opts: {key: string | null,
     const [value, setValue] = createStore<{data: T | null}>({data: null});
 
     const track = createReaction(() => {
-        track(() => setValue(reconcile<{data: T}>({data: getValue()}, {
+        track(() => setValue("data", reconcile(getValue(), {
             merge: opts.merge,
             key: opts.key,
         })));
     });
     
     track(() => {
-        setValue(reconcile<{data: T}>({data: getValue()}));
+        setValue("data", reconcile(getValue()));
     });
 
     // using createReaction/track in order to make sure the effect is guarenteed

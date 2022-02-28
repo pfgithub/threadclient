@@ -202,7 +202,7 @@ function NativeVideoElement(props: {
         for(let i = 0; i < video_el.buffered.length; i++) {
             bufres.push({start: video_el.buffered.start(i), end: video_el.buffered.end(i)});
         }
-        props.setState(produce<VideoState>(s => {
+        props.setState(produce(s => {
             console.log(shaka_player?.seekRange());
             if(shaka_player && shaka_player.isLive()) {
                 const seek_range = shaka_player.seekRange();
