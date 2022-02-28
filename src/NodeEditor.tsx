@@ -308,7 +308,10 @@ function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
       richtext: rt => <RichtextEditor schema={rt} path={props.path} />,
       all_links: al => <AllLinksEditor schema={al} path={props.path} />,
       link: link => <LinkEditor schema={link} path={props.path} />,
-      dynamic: dynamic => <NodeEditor schema={dynamic.resolver(props.path)} path={props.path} />
+      dynamic: dynamic => <NodeEditor schema={dynamic.resolver(props.path)} path={props.path} />,
+      optional: opt => <div>TODO opt</div>,
+      enum: enm => <div>TODO enm</div>,
+      function: fn => <div>TODO fn</div>,
     }}</SwitchKind>
   </ErrorBoundary></div>;
 }

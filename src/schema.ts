@@ -1,5 +1,5 @@
 import { Path } from "./editor_data";
-import { uuid, UUID } from "./uuid";
+import { UUID } from "./uuid";
 
 const is_specialfield: unique symbol = Symbol("special_field");
 type SpecialField = {
@@ -46,9 +46,11 @@ export const sc = {
   dynamic: (resolver: DynamicResolver): DynamicSchema => ({kind: "dynamic", resolver}),
 
   // TODO:
-  optional: (...args: any[]) => ({}) as unknown as NodeSchema,
-  enum: (...args: any[]) => ({}) as unknown as NodeSchema,
-  function: (...args: any[]) => ({}) as unknown as NodeSchema,
+  optional: (child: NodeSchema): OptionalSchema => ({kind: "optional", child}),
+  enum: (...choices: string[]): EnumSchema => ({kind: "enum", choices: Object.fromEntries(
+    choices.map((key) => ["<!>"+key as UUID, key] as const)
+  )}),
+  function: (arg: string, retv: NodeSchema): FunctionSchema => ({kind: "function", arg, retv}),
 } as const;
 
 export type NodeSchema =
@@ -61,44 +63,28 @@ export type NodeSchema =
   | AllLinksSchema
   | DynamicSchema
   | RichtextSchema
+  | OptionalSchema
+  | EnumSchema
+  | FunctionSchema
 ;
-const node_schema: NodeSchema = {} as NodeSchema;
-
-const all_symbols = "<!>all_symbols" as UUID;
 
 export type RootSchema = {
   root: NodeSchema,
   symbols: {[key: UUID]: NodeSchema}
 };
-const root_schema = sc.object({
-  root: sc.link(all_symbols),
-  symbols: sc.allLinks(all_symbols),
-});
 
 export type FieldOpts = {
   title?: undefined | string,
 };
-const field_opts = sc.object({
-  title: sc.optional(sc.string()),
-});
 export type ObjectField = {
   name: string,
   value: NodeSchema,
   opts: FieldOpts,
 };
-const object_field = sc.object({
-  name: sc.string(),
-  value: node_schema,
-  opts: field_opts,
-});
 export type ObjectOpts = {
   summarize?: undefined | ((v: unknown) => string),
   display_mode?: undefined | "all" | "tab-bar",
 };
-const object_opts = sc.object({
-  summarize: sc.optional(sc.function("self", sc.string())),
-  display_mode: sc.enum("all", "tab-bar", {default: "all"}),
-});
 export type ObjectSchema = {
   kind: "object",
   fields: {[key: UUID]: ObjectField},
@@ -106,43 +92,25 @@ export type ObjectSchema = {
   // to put union fields inside an object we could have an option here
   // to flatten the result
 };
-const object_schema = sc.object({
-  fields: sc.array(object_field),
-  opts: object_opts,
-});
 export type ArrayOpts = {
   view_mode?: undefined | "all" | "tab-bar",
 };
-const array_opts = sc.object({
-  view_mode: sc.enum("all", "tab-bar", {default: "all"}),
-});
 export type ArraySchema = {
   kind: "array",
   child: NodeSchema,
   opts: ArrayOpts,
 };
-const array_schema = sc.object({
-  child: node_schema,
-  opts: array_opts,
-});
 export type UnionField = {
   name: string,
   value: ObjectSchema,
 };
-const union_field = sc.object({
-  name: sc.string(),
-  value: object_schema, // <- todo node_schema
-});
 export type UnionSchema = {
   kind: "union",
   choices: {[key: string]: UnionField},
 };
-const union_schema = sc.object({
-  choices: sc.array(union_field),
-});
 export type RichtextSchema = {
   kind: "richtext",
-
+  
   // merge: (a: node, b: node): undefined | node
   // node_types:
   // - root:
@@ -150,61 +118,46 @@ export type RichtextSchema = {
   //     - text (bold | italic | …)
   //     - inline_code
   //   - multiline_code_block
-
+  
   // and then we need to specify renderers, probably seperately?
 };
-const richtext_schema = sc.object({});
 export type StringSchema = {
   kind: "string",
 };
-const string_schema = sc.object({});
 export type BooleanSchema = {
   kind: "boolean",
 };
-const boolean_schema = sc.object({});
 export type LinkSchema = {
   kind: "link",
   tag: UUID,
 };
-const link_schema = sc.object({
-  tag: sc.link(all_symbols),
-});
 export type AllLinksSchema = {
   kind: "all_links",
   tag: UUID,
   opts: ArrayOpts,
 };
-const all_links_schema = sc.object({
-  tag: sc.link(all_symbols),
-  opts: array_opts,
-});
 export type DynamicResolver = (
   path: Path,
 ) => NodeSchema;
-const dynamic_resolver_schema = sc.function("path", node_schema);
 export type DynamicSchema = {
   kind: "dynamic",
   resolver: DynamicResolver,
 };
-const dynamic_schema = sc.object({
-  resolver: dynamic_resolver_schema,
-});
 
+export type OptionalSchema = {
+  kind: "optional",
+  child: NodeSchema,
+};
+export type EnumSchema = {
+  kind: "enum",
+  choices: {[key: UUID]: string},
+};
+export type FunctionSchema = {
+  kind: "function",
+  arg: string, // todo
+  retv: NodeSchema,
+};
 
-Object.assign(node_schema, sc.union({
-  object_schema,
-  string_schema,
-  boolean_schema,
-  array_schema,
-  union_schema,
-  link_schema,
-  all_links_schema,
-  dynamic_schema,
-  richtext_schema,
-}));
-
-// TODO: summarize should return a JSX.Element rather than just a single
-// string.
 export function summarize(value: unknown, schema: NodeSchema): string {
   if(schema != null && schema.kind === "object") {
     return schema.opts.summarize?.(value) ?? "E_NO_SUMMARY";
