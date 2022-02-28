@@ -27,7 +27,7 @@ module.exports = {
         // "indent": ["warn", 4, {'SwitchCase': 1, 'offsetTernaryExpressions': true, 'ignoredNodes': ["ConditionalExpression"]}],
         "@typescript-eslint/brace-style": ["warn", "1tbs", {allowSingleLine: true}],
         "@typescript-eslint/semi": ["warn", "always", {omitLastInOneLineBlock: true}],
-        "custom-quote-rule/member-delimiter-style": [1, {
+        "@typescript-eslint/member-delimiter-style": [1, {
             multiline: {delimiter: "comma", requireLast: true},
             singleline: {delimiter: "comma", requireLast: false},
             overrides: {
@@ -36,6 +36,7 @@ module.exports = {
                     singleline: {delimiter: "semi", requireLast: false}
                 },
             },
+            multilineDetection: "last-member",
         }],
         "custom-quote-rule/func-style": "warn",
         "max-len": ["warn", 120, {ignoreComments: true}],
