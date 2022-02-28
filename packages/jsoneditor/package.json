@@ -1,11 +1,13 @@
 {
-  "name": "vite-template-solid",
+  "name": "jsoneditor",
   "version": "0.0.0",
   "description": "",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "lint": "true",
+    "test": "true"
   },
   "license": "MIT",
   "devDependencies": {
