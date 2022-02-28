@@ -2,10 +2,11 @@ import { JSX } from "solid-js/jsx-runtime";
 import { switchKind } from "./util";
 import { getState, getValueFromState, modValue, Path } from "./editor_data";
 import { NodeSchema } from "./schema";
-import { createSelector, createSignal } from "solid-js";
+import { createMemo, createSelector, createSignal, untrack } from "solid-js";
 import { Button } from "./components";
 import { asObject, asString, isObject } from "./guards";
 import { json_viewer_view_mode } from "./symbols";
+import { Key } from "tmeta-util-solid";
 
 export class JSONRaw {
   message: string;
@@ -36,10 +37,45 @@ export function stringifyWithJsonRaw(value: unknown): string {
   }).replaceAll("<%>", "%");
 }
 
-export function StoreViewer(props: {
-  value: unknown
+const colors = [
+  "text-red-300",
+  "text-orange-300",
+  "text-yellow-300",
+  "text-green-300",
+  "text-blue-300",
+  "text-purple-300",
+];
+
+export function StoreViewerElement(props: {
+  value: unknown,
+  level: number,
 }): JSX.Element {
-  return <pre class="font-mono whitespace-pre-wrap">{JSON.stringify(props.value, null, " ")}</pre>;
+  return createMemo((): JSX.Element => {
+    const color = () => colors[props.level % colors.length |0]!;
+    const pv = props.value;
+    const pvt = typeof pv;
+    if(pv == null) return untrack((): JSX.Element => {
+      return <>{"" + pv}</>;
+    }); if(pvt === "object") return untrack((): JSX.Element => {
+      const ntries = createMemo(() => Object.entries(props.value as object));
+      return <>{"{"}<Key each={ntries()} by={(v) => v[0]}>{(item, index) => {
+        return <>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
+          <span class={color()}>{JSON.stringify(item()[0])}</span>{": "}
+          <StoreViewerElement value={item()[1]} level={props.level + 1} />
+        </>;
+      }}</Key>{(ntries().length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</>;
+    }); else return untrack((): JSX.Element => {
+      return <span class={color()}>{JSON.stringify(pv)}</span>;
+    });
+  });
+}
+export function StoreViewer(props: {
+  value: unknown,
+  indent: string,
+}): JSX.Element {
+  return <pre class="font-mono whitespace-pre-wrap">
+    <StoreViewerElement value={props.value} level={0} />
+  </pre>;
 }
 
 export default function JsonViewer(props: {
