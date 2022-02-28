@@ -3046,6 +3046,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             const title = updateTitle(hsc, client.id);
             title.setTitle("Loading "+client.id+"…");
 
+            //eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             renderClientPage(client, JSON.parse(localStorage.getItem("saved-post") ?? "{}"), frame, title);
 
             return hsc;

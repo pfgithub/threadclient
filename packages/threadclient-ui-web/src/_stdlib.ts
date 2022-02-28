@@ -38,8 +38,8 @@ declare global {
 	}
 }
 
-//@ts-ignore
-//eslint-disable-next-line @typescript-eslint/no-unsafe-return
+//@ts-expect-error
+//eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
 window.el = (...a) => document.createElement(...a);
 window.txt = (txt: string) => document.createTextNode(txt);
 window.anychange = (itms, cb) => {itms.forEach(itm => itm.oninput = () => cb()); cb(); return cb};
@@ -48,7 +48,8 @@ Node.prototype.attr = function(atrs) {Object.entries(atrs).forEach(([k, v]) => v
 Node.prototype.adto = function(prnt) {prnt.appendChild(this); return this};
 Node.prototype.adch = function(...chlds) {chlds.forEach(chld => this.appendChild(chld)); return this};
 Node.prototype.atxt = function(txta) {this.appendChild(txt(txta)); return this};
-//@ts-ignore
+//@ts-expect-error
+//eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 Node.prototype.onev = function(...a) {this.addEventListener(...a); return this};
 Node.prototype.clss = function(...clss) {clss.forEach(clitm => clitm.split(/[. ]/g).filter(q => q).map(itm => (this as unknown as HTMLElement).classList.add(itm))); return this};
 Node.prototype.styl = function(styl) {Object.entries(styl).forEach(([k, v]) => this.style.setProperty(k, v)); return this};
