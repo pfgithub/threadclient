@@ -12,21 +12,21 @@ export default function Debugtool(props: {
             setTimeout(() => dispose(), anim_time); // ontraisitionend wasn't triggering?
             const new_node = <div
                 style={{
-                    position: "fixed",
-                    top: rect.top + "px",
-                    left: rect.left + "px",
-                    width: rect.width + "px",
-                    height: rect.height + "px",
+                    'position': "fixed",
+                    'top': rect.top + "px",
+                    'left': rect.left + "px",
+                    'width': rect.width + "px",
+                    'height': rect.height + "px",
                     'z-index': 2147483647,
-                    opacity: 100,
+                    'opacity': 100,
     
-                    transition: anim_time+"ms opacity",
+                    'transition': anim_time+"ms opacity",
                 }}
                 ref={el => {
                     onMount(() => {
                         requestAnimationFrame(() => {
                             el.style.opacity = "0";
-                        })
+                        });
                     });
                 }}
             >
@@ -83,7 +83,7 @@ export default function Debugtool(props: {
             characterData: true,
         });
         onCleanup(() => observer.disconnect());
-    })
+    });
     return <div
         ref={nodes_go_here}
         aria-hidden

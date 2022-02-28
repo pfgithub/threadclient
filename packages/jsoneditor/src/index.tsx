@@ -3,7 +3,6 @@ import { createStore } from 'solid-js/store';
 import { ErrorBoundary, render, Show } from 'solid-js/web';
 import { Debugtool } from 'tmeta-util-solid';
 import App from './App';
-import { StateValue } from './editor_data';
 import './index.css';
 
 const root_el = document.getElementById('root') as HTMLElement;
