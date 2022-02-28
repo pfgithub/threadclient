@@ -3236,7 +3236,7 @@ __metadata:
     solid-js: ^1.3.5
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.5.5
     vite: ^2.5.1
     vite-plugin-solid: ^2.0.1
     vite-plugin-windicss: ^1.3.0
@@ -3338,7 +3338,7 @@ __metadata:
     eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -3349,7 +3349,7 @@ __metadata:
     eslint: ^7.29.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -3360,7 +3360,7 @@ __metadata:
     eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -3372,7 +3372,7 @@ __metadata:
     eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -3383,7 +3383,7 @@ __metadata:
     eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -3394,7 +3394,7 @@ __metadata:
     eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -4736,7 +4736,7 @@ __metadata:
     eslint-config-tmeta: ^1.0.0
     ts-node: ^10.2.1
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -12632,7 +12632,7 @@ fsevents@~2.3.2:
     eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -12644,7 +12644,7 @@ fsevents@~2.3.2:
     eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -12656,7 +12656,7 @@ fsevents@~2.3.2:
     eslint: ^7.29.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -12678,7 +12678,7 @@ fsevents@~2.3.2:
     solid-js: ^1.3.5
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.5.5
     vite: ^2.5.1
     vite-plugin-solid: ^2.0.1
     vite-plugin-windicss: ^1.3.0
@@ -12697,7 +12697,7 @@ fsevents@~2.3.2:
     eslint-config-tmeta: ^1.0.0
     threadclient-preview-vreddit: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -12711,7 +12711,7 @@ fsevents@~2.3.2:
     eslint-config-tmeta: ^1.0.0
     threadclient-preview-vreddit: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -12730,7 +12730,7 @@ fsevents@~2.3.2:
     threadclient-preview: ^1.0.0
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -12771,7 +12771,7 @@ fsevents@~2.3.2:
     tmeta-util: ^1.0.0
     tmeta-util-solid: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
     vite: ^2.5.1
     vite-plugin-pwa: ^0.11.2
     vite-plugin-solid: ^2.0.1
@@ -12823,7 +12823,7 @@ fsevents@~2.3.2:
     solid-js: ^1.3.5
     tmeta-util: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.3.5
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -12834,7 +12834,7 @@ fsevents@~2.3.2:
     eslint: ^7.32.0
     eslint-config-tmeta: ^1.0.0
     tsconfig-tmeta: ^1.0.0
-    typescript: ^4.4.2
+    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
@@ -13132,16 +13132,6 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"typescript@^4.3.5, typescript@^4.4.2":
-  version: 4.4.2
-  resolution: "typescript@npm:4.4.2"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 194e08e9d1971d667d6fd1a0554616b7022312a2319d70e81a64e502a265992061ee7817ed9a69b52bbabe7a9b85e7938cb8c11c433e40a516b277f8c4dacd51
-  languageName: node
-  linkType: hard
-
 "typescript@npm:^4.5.5":
   version: 4.5.5
   resolution: "typescript@npm:4.5.5"
@@ -13149,16 +13139,6 @@ fsevents@~2.3.2:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 506f4c919dc8aeaafa92068c997f1d213b9df4d9756d0fae1a1e7ab66b585ab3498050e236113a1c9e57ee08c21ec6814ca7a7f61378c058d79af50a4b1f5a5e
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@^4.3.5#~builtin<compat/typescript>, typescript@patch:typescript@^4.4.2#~builtin<compat/typescript>":
-  version: 4.4.2
-  resolution: "typescript@patch:typescript@npm%3A4.4.2#~builtin<compat/typescript>::version=4.4.2&hash=493e53"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 1f30617046271a94d6821fe9da9c4705111e0a2f5479269c82f65aa76b2421ff90def8838dd35b1aa464d015248b06c89ff867bd282f4822b5ee18b7f92f95ee
   languageName: node
   linkType: hard
 
