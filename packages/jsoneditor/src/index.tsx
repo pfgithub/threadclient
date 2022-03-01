@@ -3,24 +3,26 @@ import { createStore } from 'solid-js/store';
 import { ErrorBoundary, render, Show } from 'solid-js/web';
 import { Debugtool } from 'tmeta-util-solid';
 import App from './App';
+import { object, wrap } from './app_data';
 import './index.css';
+import { UUID } from './uuid';
 
 const root_el = document.getElementById('root') as HTMLElement;
 
 render(() => {
   // this should really be a solid router thing
   const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
-  const [jsoneditorData, setJeData] = createStore<{data: unknown}>({
-    data: {
-      root: undefined,
-    },
-  });
+  const state = wrap(object({
+    ["data" as UUID]: wrap(object({
+      ["root" as UUID]: wrap(null),
+    })),
+  }));
   return <ErrorBoundary fallback={(err, reset) => {
     console.log("app error", err);
     return <div>
       <p>App errored.</p>
       <button onClick={() => reset()} class="bg-gray-700 mr-2">Reset</button>
-      <button onClick={() => console.log(jsoneditorData, setJeData)} class="bg-gray-700">Code</button>
+      <button onClick={() => console.log(state)} class="bg-gray-700">Code</button>
       <pre class="text-red-500 whitespace-pre-wrap">
         {err.toString() + "\n" + err.stack}
       </pre>
@@ -31,7 +33,7 @@ render(() => {
         <button class="bg-gray-700 rounded-md block w-full p-2" onClick={() => setTab("jsoneditor")}>JSON Editor</button>
       </div>
     </>}>{tabv => <>
-      <App state={{data: jsoneditorData, setData: setJeData}} />
+      <App state={state} />
     </>}</Show>
   </ErrorBoundary>;
 }, root_el);

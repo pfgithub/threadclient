@@ -52,6 +52,8 @@ export default function Debugtool(props: {
             const range = document.createRange();
             range.selectNode(node);
             renderChange(range.getBoundingClientRect(), time);
+        }else if(node instanceof Comment) {
+            // ignore
         }else{
             console.log("EBADNODE", node);
         }

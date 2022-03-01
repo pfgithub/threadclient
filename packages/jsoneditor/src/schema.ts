@@ -1,3 +1,4 @@
+import { State } from "./app_data";
 import { Path } from "./editor_data";
 import { UUID } from "./uuid";
 
@@ -84,7 +85,7 @@ export type ObjectField = {
   opts: FieldOpts,
 };
 export type ObjectOpts = {
-  summarize?: undefined | ((v: unknown) => string),
+  summarize?: undefined | ((v: State) => string),
   display_mode?: undefined | "all" | "tab-bar",
 };
 export type ObjectSchema = {
@@ -139,7 +140,7 @@ export type AllLinksSchema = {
   opts: ArrayOpts,
 };
 export type DynamicResolver = (
-  path: Path,
+  state: State,
 ) => NodeSchema;
 export type DynamicSchema = {
   kind: "dynamic",
@@ -163,7 +164,7 @@ export type ColorSchema = {
   kind: "color",
 };
 
-export function summarize(value: unknown, schema: NodeSchema): string {
+export function summarize(value: State, schema: NodeSchema): string {
   if(schema != null && schema.kind === "object") {
     return schema.opts.summarize?.(value) ?? "E_NO_SUMMARY";
   }

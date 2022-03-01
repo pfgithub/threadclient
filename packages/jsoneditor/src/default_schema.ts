@@ -1,4 +1,5 @@
-import { getState, getValueFromState } from "./editor_data";
+import { get, object } from "./app_data";
+import { getState } from "./editor_data";
 import { asObject, asString, isObject } from "./guards";
 import { NodeSchema, ObjectField, RootSchema, sc, summarize } from "./schema";
 import { UUID } from "./uuid";
@@ -101,8 +102,9 @@ const person_schema = sc.object({
   summarize: v_in => {
     const [name_field] = Object.keys(person_schema.fields);
 
-    const v = asObject(v_in) ?? {};
-    return asString(v[name_field]) ?? "*Unnamed*";
+    const v = asObject(get(v_in));
+    if(!v) return "*Unnamed*";
+    return asString(get(v[name_field as UUID])) ?? "*Unnamed*";
   }
 });
 
@@ -110,10 +112,12 @@ const button_schema = sc.object({
   name: sc.string(),
   id: sc.string(),
 }, {
-  summarize: (v) => {
+  summarize: (vq) => {
     const [name_field, id_field] = Object.keys(button_schema.fields);
 
-    if(isObject(v)) return "" + asString(v[name_field]) + " (" + asString(v[id_field]) + ")";
+    const v = get(vq);
+
+    if(isObject(v)) return "" + asString(get(v[name_field as UUID])) + " (" + asString(get(v[id_field as UUID])) + ")";
     return "*Unnamed*";
   },
 });
@@ -125,17 +129,20 @@ const action_schema: NodeSchema = sc.union({
     layers: sc.array(sc.link(layer)),
   }),
 });
-const layer_schema: NodeSchema = sc.object({
+const layer_schema = sc.object({
   title: sc.string(),
   buttons: sc.dynamic((path) => {
+    const [name_field] = Object.keys(button_schema.fields);
     const state = getState();
-    const objv = asObject(getValueFromState(["data", input_button], state.state)) ?? {};
+    const objv = asObject(
+      get(asObject(get(asObject(get(state.state))!["data" as UUID]))![input_button])
+    ) ?? object({});
     return {
       kind: "object",
       fields: Object.fromEntries(Object.entries(objv).map(
         ([key, value]): [UUID, ObjectField] => {
           return [key as UUID, {
-            name: asString((asObject(value) ?? {}).name) ?? "*unnamed*",
+            name: asString(get((asObject(get(value)) ?? object({}))[name_field as UUID])) ?? "*unnamed*",
             value: action_schema,
             opts: {
               title: summarize(value, button_schema),
@@ -149,10 +156,11 @@ const layer_schema: NodeSchema = sc.object({
     };
   }),
 }, {
-  summarize: (v) => {
-    if(isObject(v)
-    && typeof v["title"] === "string") return v["title"];
-    return "*Unnamed*";
+  summarize: (vw) => {
+    const title_uuid = Object.keys(layer_schema.fields)[0]! as UUID;
+    const cv = (asObject(get(vw)) ?? object({}))[title_uuid];
+    if(cv == null) return "*Unnamed*";
+    return asString(get(cv)) ?? "*Unnamed*";
   },
 });
 

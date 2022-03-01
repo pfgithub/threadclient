@@ -1,10 +1,12 @@
-import { createMemo, createSelector, createSignal, untrack } from "solid-js";
+import { createEffect, createMemo, createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Key } from "tmeta-util-solid";
+import { get, State, StateValue } from "./app_data";
 import { Button } from "./components";
 import { getState, Path } from "./editor_data";
-import { asString } from "./guards";
+import { asObject, asString } from "./guards";
 import { NodeSchema } from "./schema";
+import { UUID } from "./uuid";
 
 export class JSONRaw {
   message: string;
@@ -45,40 +47,57 @@ const colors = [
 ];
 
 export function StoreViewerElement(props: {
-  value: unknown,
+  state: State,
   level: number,
 }): JSX.Element {
+  const color = () => colors[props.level % colors.length |0]!;
+
   return createMemo((): JSX.Element => {
-    const color = () => colors[props.level % colors.length |0]!;
-    const pv = props.value;
-    const pvt = typeof pv;
-    if(pvt === "object" && pv != null) return untrack((): JSX.Element => {
-      const ntries = createMemo(() => Object.entries(props.value as object));
-      return <span>{"{"}<Key each={ntries()} by={(v) => v[0]}>{(item, index) => {
+    const pv = get(props.state);
+    console.log("MEMO UPDATED", pv);
+    if(typeof pv === "object" && pv != null) return untrack((): JSX.Element => {
+      const ntries = createMemo<[UUID, State][]>((prev_value) => {
+        const ntrieson = Object.entries(pv as object);
+        console.log("gotntrieson", pv, ntrieson);
+        const res = ntrieson as [UUID, State][];
+        if(!prev_value) return res;
+
+        const prev_map = new Map<UUID, [UUID, State]>();
+        for(const ntry of prev_value) prev_map.set(ntry[0], ntry);
+        return res.map(([k, v]) => {
+          const itm = prev_map.get(k);
+          if(itm && itm[1] === v) return itm;
+          return [k, v];
+        })
+      });
+      return <span>{"{"}<For each={ntries()}>{(item, index) => {
         return <span>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
-          <span class={color()}>{JSON.stringify(item()[0])}</span>{": "}
-          <StoreViewerElement value={item()[1]} level={props.level + 1} />
+          <span class={color()}>{JSON.stringify(item[0])}</span>{": "}
+          <StoreViewerElement state={item[1]} level={props.level + 1} />
         </span>;
-      }}</Key>{(ntries().length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
+      }}</For>{(ntries().length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
     }); else return untrack((): JSX.Element => {
       return <span class={color()}>{pv === undefined ? "#E_UNDEFINED" : JSON.stringify(pv)}</span>;
     });
   });
 }
 export function StoreViewer(props: {
-  value: unknown,
+  state: State,
 }): JSX.Element {
   return <pre class="font-mono whitespace-pre-wrap">
-    <StoreViewerElement value={props.value} level={0} />
+    <StoreViewerElement state={props.state} level={0} />
+    {"\n\n\n---\n\n"}
+    {JSON.stringify(props.state, null, " ")}
+    {"\n\n---\n\n"}
+    <div><Button onClick={() => console.log({value: props.state, get})}>log</Button></div>
   </pre>;
 }
 
 export default function JsonViewer(props: {
   schema: NodeSchema,
-  path: Path,
 }): JSX.Element {
   const root_state = getState();
-  const [viewModeRaw, setViewMode] = createSignal<unknown>(undefined);
+  const [viewModeRaw, setViewMode] = createSignal<StateValue>(undefined);
   const viewMode = () => {
     return asString(viewModeRaw()) ?? "internal";
   };
@@ -116,7 +135,7 @@ export default function JsonViewer(props: {
     </div>
     {
       viewMode() === "internal"
-      ? <StoreViewer value={root_state.state.data.data} />
+      ? <StoreViewer state={root_state.state} />
       : <pre class="font-mono whitespace-pre-wrap">
         {"TODO allow the schema creator to define their own stringification"}
       </pre>

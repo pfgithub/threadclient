@@ -1,38 +1,11 @@
 import { createContext, JSX, untrack, useContext } from "solid-js";
 import { reconcile, SetStoreFunction, Store } from "solid-js/store";
+import { State } from "./app_data";
 import { isObject } from "./guards";
 import { RootSchema } from "./schema";
 import { UUID } from "./uuid";
 
 export type Path = (string | UUID)[];
-
-export type StateValue = {
-  root: unknown,
-  [k: UUID]: unknown[],
-};
-
-export type State = {
-  data: Store<{data: unknown}>,
-  setData: SetStoreFunction<{data: unknown}>,
-};
-
-export function getValueFromState(path: Path, state: State): unknown {
-  let node: unknown = state.data;
-  for(const entry of path) {
-    if(!isObject(node)) {
-      console.log("EPATH", path, "AT ENTRY", entry, "WHOLE STATE", state);
-      throw new Error("path is undefined. path: `"+path.map(v => v.toString()).join(" / ")+"`");
-    }
-    node = node[entry];
-  }
-  return node;
-}
-export function setValueFromState(path: Path, state: State, value: unknown) {
-  state.setData(...path as unknown as ["data"], reconcile(
-    typeof value === "function" ? value(untrack(() => getValueFromState(path, state))) : value,
-    {merge: false},
-  ));
-}
 
 export type ContextData = {
   root_schema: RootSchema,
@@ -56,19 +29,6 @@ export function getState(): ContextData {
   return useContext(NodeContext) ?? (() => {
     throw new Error("nodecontext not available");
   })()
-}
-
-export function modValue(
-  path: () => Path,
-): [
-  value: () => unknown,
-  setValue: (cb: (pv: unknown) => unknown) => void,
-] {
-  const state = getState();
-  return [
-    () => getValueFromState(path(), state.state),
-    (nv) => setValueFromState(path(), state.state, nv),
-  ];
 }
 
 if(import.meta.hot) {

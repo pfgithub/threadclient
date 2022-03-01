@@ -1,8 +1,9 @@
 import { createContext, createRenderEffect, createSelector, createSignal, For, Show, Signal, untrack, useContext } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
+import { State } from "./app_data";
 import { Button } from "./components";
-import { modValue, Path } from "./editor_data";
+import { Path } from "./editor_data";
 import { asObject, asString, isObject } from "./guards";
 import NodeEditor from "./NodeEditor";
 import { NodeSchema, RichtextSchema, sc } from "./schema";
@@ -469,7 +470,7 @@ const defaultnode: TextEditorRootNode = nc.root(
 
 export function RichtextEditor(props: {
     schema: RichtextSchema,
-    path: Path,
+    state: State,
 }): JSX.Element {
     const [value, setValue] = modValue(() => props.path);
     const [selected, setSelected] = createSignal<Selection>(null);

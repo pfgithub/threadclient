@@ -1,15 +1,22 @@
-export function isObject(v: unknown): v is {[key: string | symbol]: unknown} {
+import { StateObject, State, StateValue } from "./app_data";
+import { UUID } from "./uuid";
+
+export function isObject(v: StateValue): v is StateObject {
     return v != null && typeof v === "object";
 }
 
-export function asObject(v: unknown): {[key: string | symbol]: unknown} | null {
+export function asObject(v: StateValue): StateObject | null {
     return isObject(v) ? v : null;
 }
 
-export function isString(v: unknown): v is string {
+export function isString(v: StateValue): v is string {
     return typeof v === "string";
 }
 
-export function asString(v: unknown): string | null {
+export function asString(v: StateValue): string | null {
     return isString(v) ? v : null;
+}
+
+export function unreachable(): never {
+    throw new Error("Expected unreachable");
 }
