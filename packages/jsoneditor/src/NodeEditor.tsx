@@ -118,7 +118,7 @@ function ArrayEditor(props: {schema: ArraySchema, state: State}): JSX.Element {
       <div class="mt-2" />
       <NodeEditor
         schema={props.schema.child}
-        state={asObject(props.state())?.[key as UUID]!}
+        state={props.state.getKey(key as UUID)}
       />
     </>;
   }}</TabOrListEditor>;
@@ -209,9 +209,9 @@ function UnionEditor(props: {schema: UnionSchema, state: State}): JSX.Element {
         title: choice.name,
       }))}
       active={[
-        () => asObject(props.state())!["active" as UUID]!(),
+        () => props.state.getKey("active" as UUID)(),
         (nv) => {
-          setReconcile(asObject(props.state())!["active" as UUID], nv);
+          setReconcile(props.state.getKey("active" as UUID), nv);
         }
       ]}
     >{key => {
@@ -219,7 +219,10 @@ function UnionEditor(props: {schema: UnionSchema, state: State}): JSX.Element {
       if(!field) throw new Error("unreachable");
 
       return <div>
-        <NodeEditor schema={field.value} state={asObject(asObject(props.state())!["values" as UUID]!())![key as UUID]!} />
+        <NodeEditor
+          schema={field.value}
+          state={props.state.getKey("values" as UUID).getKey(key as UUID)}
+        />
       </div>;
     }}</TabOrListEditor>
   </Show>;
@@ -227,7 +230,7 @@ function UnionEditor(props: {schema: UnionSchema, state: State}): JSX.Element {
 
 function AllLinksEditor(props: {schema: AllLinksSchema, state: State}): JSX.Element {
   const state = getState();
-  const contentState = () => asObject(asObject(state.state())!["data" as UUID]())![props.schema.tag];
+  const contentState = () => state.state.getKey("data" as UUID).getKey(props.schema.tag);
   const dataSchema = () => state.root_schema.symbols[props.schema.tag];
   return <Show when={isObject(contentState()())} fallback={<div>
     <Button onClick={() => {
@@ -240,7 +243,7 @@ function AllLinksEditor(props: {schema: AllLinksSchema, state: State}): JSX.Elem
 
 function LinkEditor(props: {schema: LinkSchema, state: State}): JSX.Element {
   const state = getState();
-  const choices = () => asObject(asObject(state.state())!["data" as UUID]())![props.schema.tag];
+  const choices = () => state.state.getKey("data" as UUID).getKey(props.schema.tag);
   const dataSchema = () => state.root_schema.symbols[props.schema.tag];
   const isSelected = createSelector(() => props.state());
   return <div>

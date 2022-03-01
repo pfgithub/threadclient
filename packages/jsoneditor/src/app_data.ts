@@ -53,11 +53,13 @@ export type StateValue = StateObject | string | boolean | bigint | null | undefi
 type StateFn = (() => StateValue);
 type StateProps = {
     [internal_value]: Signal<StateValue>,
-
-    toJSON: (this: State) => unknown, // TODO put this in a prototype rather than wasting
-    // space in every node
 };
-export type State = StateFn & StateProps;
+type StatePrototype = {
+    toJSON: (this: State) => unknown,
+
+    getKey(this: State, key: UUID): State,
+};
+export type State = StateFn & StateProps & StatePrototype;
 
 const handler: ProxyHandler<StateObject> = {
     ownKeys(target) {
@@ -113,24 +115,32 @@ export function object(value: StateObjectUser): StateObject {
     }, handler);
 }
 
+const state_prototype: StatePrototype = {
+    toJSON: function() {
+        const res = get(this);
+        if(!isObject(res)) return res;
+        const keys = Object.keys(res);
+        return Object.fromEntries(keys.map(key => [key, res[key as UUID]] as const))
+    },
+    getKey: function(key: UUID) {
+        const val = get(this);
+        if(!isObject(val)) throw new Error("cannot get key on ¬object");
+        return val[key]!;
+    },
+};
 export function wrap(value: StateValue): State {
     const fn: StateFn = (() => {
         return get(res);
     });
     const props: StateProps = {
         [internal_value]: createSignal(value),
-        toJSON: function() {
-            const res = get(this);
-            if(!isObject(res)) return res;
-            const keys = Object.keys(res);
-            return Object.fromEntries(keys.map(key => [key, res[key as UUID]] as const))
-        },
     };
-    const res = Object.assign(fn as State, props);
+    const res = Object.assign(fn as State, props, state_prototype);
+    // res.prototype = state_prototype; // ha! jk you can't do this because it doesn't pass the this prop
     return res;
 }
 
-function get(node: State): StateValue {
+export function get(node: State): StateValue {
     return node[internal_value][0]();
 }
 

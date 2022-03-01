@@ -1,10 +1,9 @@
-import { createEffect, createMemo, createSelector, createSignal, For, untrack } from "solid-js";
+import { createMemo, createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
-import { Key } from "tmeta-util-solid";
 import { State, StateValue } from "./app_data";
 import { Button } from "./components";
-import { getState, Path } from "./editor_data";
-import { asObject, asString } from "./guards";
+import { getState } from "./editor_data";
+import { asString } from "./guards";
 import { NodeSchema } from "./schema";
 import { UUID } from "./uuid";
 

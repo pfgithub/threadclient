@@ -2,7 +2,6 @@ import { JSX } from 'solid-js';
 import { State } from './app_data';
 import { root_schema } from './default_schema';
 import { NodeProvider } from './editor_data';
-import { asObject } from './guards';
 import JsonViewer from './JsonViewer';
 import NodeEditor from './NodeEditor';
 import { UUID } from './uuid';
@@ -18,7 +17,7 @@ export default function App(props: {
       <div class="bg-gray-800 p-4">
         <NodeEditor
           schema={root_schema.root}
-          state={asObject(asObject(props.state())!["data" as UUID]())!["root" as UUID]}
+          state={props.state.getKey("data" as UUID).getKey("root" as UUID)}
         />
       </div>
       <div class="bg-gray-800 p-4">
