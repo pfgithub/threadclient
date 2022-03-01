@@ -76,14 +76,12 @@ export type State = {
 const handler: ProxyHandler<StateObject> = {
     ownKeys(target) {
         const res = target[internal_keys]![0]();
-        console.log("Getting own keys", res);
         return res;
     },
     get(target, key) {
         if(typeof key === "symbol") {
             if(key === internal_is_wrapped) return true;
             if(key === internal_keys) return target[internal_keys];
-            console.log("TRYING TO ACCESS WITH SYMBOL", key);
             throw new Error("unsupported symbol access");
         }
 
@@ -99,7 +97,6 @@ function fakeUpdate(target: StateObject, key: UUID, signal: Signal<StateValue>) 
     }
     const orig = signal[1];
     signal[1] = (...a) => {
-        console.log("FAKE VALUE INSERTING REAL VALUE", ...a);
         target[internal_keys]![1](v => {
             if(v.includes(key)) {
                 console.warn("attempting to double-add key?", v, target, key, signal);
@@ -163,7 +160,6 @@ function setReconcileInternal(node: State, value: (pv: StateValue) => StateValue
     }
     if(pv === nv) return;
     if(!isObject(pv) || !isObject(nv)) {
-        console.log("UPDATED LEAF", pv, nv);
         return setOverwrite(node, () => nv);
     }
 
@@ -189,7 +185,6 @@ function setReconcileInternal(node: State, value: (pv: StateValue) => StateValue
     // - (arrays have a keys prop but are not defined for unknown uuids)
     // - (objects cannot return their keys and have no order (for json stringification, return sorted order))
     for(const key of to_remove) {
-        console.log("REMOVED LEAF", key);
         fakeUpdate(pv, key, pv[key][internal_value]);
     }
 }

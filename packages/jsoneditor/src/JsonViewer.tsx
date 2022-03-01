@@ -54,11 +54,9 @@ export function StoreViewerElement(props: {
 
   return createMemo((): JSX.Element => {
     const pv = get(props.state);
-    console.log("MEMO UPDATED", pv);
     if(typeof pv === "object" && pv != null) return untrack((): JSX.Element => {
       const ntries = createMemo<[UUID, State][]>((prev_value) => {
         const ntrieson = Object.entries(pv as object);
-        console.log("gotntrieson", pv, ntrieson);
         const res = ntrieson as [UUID, State][];
         if(!prev_value) return res;
 

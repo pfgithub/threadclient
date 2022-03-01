@@ -82,7 +82,6 @@ function ArrayEditor(props: {schema: ArraySchema, state: State}): JSX.Element {
     const nsym = uuid();
     setReconcile(props.state, it => {
       const nv = {...(asObject(it) ?? {}), [nsym]: null};
-      console.log(it, nv);
       return object(nv);
     });
     return nsym;
