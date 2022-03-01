@@ -2,7 +2,7 @@ import { createSignal } from 'solid-js';
 import { ErrorBoundary, render, Show } from 'solid-js/web';
 import { Debugtool } from 'tmeta-util-solid';
 import App from './App';
-import { object, wrap } from './app_data';
+import { autoObject, object, wrap } from './app_data';
 import './index.css';
 import { UUID } from './uuid';
 
@@ -11,10 +11,10 @@ const root_el = document.getElementById('root') as HTMLElement;
 render(() => {
   // this should really be a solid router thing
   const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
-  const state = wrap(object({
-    ["data" as UUID]: wrap(object({
-      ["root" as UUID]: wrap(null),
-    })),
+  const state = wrap(autoObject({
+    data: {
+      root: null,
+    },
   }));
   return <ErrorBoundary fallback={(err, reset) => {
     console.log("app error", err);

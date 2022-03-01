@@ -140,6 +140,25 @@ export function wrap(value: StateValue): State {
     return res;
 }
 
+export function autoObject(v: unknown): StateValue {
+    if(v === null) return null;
+    if(v === undefined) return undefined;
+    if(typeof v === "object") {
+        if(Array.isArray(v)) {
+            console.log(v);
+            throw new Error("arrays not allowed");
+            // TODO: auto convert?
+        }
+        return object(Object.fromEntries(Object.entries(v).map(([k, v]) => {
+            return [k as UUID, wrap(autoObject(v))] as const;
+        })));
+    }
+    if(typeof v === "string") return v;
+    if(typeof v === "boolean") return v;
+    if(typeof v === "bigint") return v;
+    throw new Error("unsupported auto "+(typeof v));
+}
+
 export function get(node: State): StateValue {
     return node[internal_value][0]();
 }

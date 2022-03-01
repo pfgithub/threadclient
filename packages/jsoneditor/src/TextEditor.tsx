@@ -1,7 +1,7 @@
 import { createContext, createRenderEffect, createSelector, createSignal, For, Show, Signal, untrack, useContext } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
-import { State } from "./app_data";
+import { autoObject, setReconcile, State } from "./app_data";
 import { Button } from "./components";
 import { Path } from "./editor_data";
 import { asObject, asString, isObject } from "./guards";
@@ -106,12 +106,12 @@ export type TextEditorRootNode = {
 };
 
 export type TextEditorIndentItem = {
-    group_id: UUID, // so we can properly split at borders and stuff
+    //GROUP_ID so we can properly split at borders and stuff
     // we will look in another map I guess to determine the kind
 };
 
 export type TextEditorFlatNode = {
-    indent: TextEditorIndentItem[],
+    indent: {[group_id: UUID]: TextEditorIndentItem},
     node: TextEditorParagraphNode,
 };
 
@@ -161,7 +161,7 @@ const nc = {
                 const last = a.pop()! as TextEditorParagraphNode;
                 const idnt = a as TextEditorIndentItem[];
                 return {
-                    indent: idnt,
+                    indent: Object.fromEntries(idnt.map((v, i) => (["<!>"+i as UUID, v]))),
                     node: last,
                 };
             })),
@@ -211,50 +211,45 @@ const nc = {
 // so we'll have a function Leaf that is a text editor
 // gives you basic functions and you can put it where you need it to edit text
 
-const node_renderers: {[key: string]: (props: {path: Path}) => JSX.Element} = {
+const node_renderers: {[key: string]: (props: {state: State}) => JSX.Element} = {
     root(props): JSX.Element {
-        const [value, setValue] = modValue(() => [...props.path, "children"]);
-
         return <div class="space-y-2">
-            <For each={Object.keys(asObject(value()) ?? {})}>{key => {
+            <For each={Object.keys(asObject(props.state.getKey("children" as UUID)()) ?? {})}>{key => {
                 // TODO add the indent
-                return <EditorNode path={[...props.path, "children", key, "node"]} />;
+                return <EditorNode state={props.state.getKey("children" as UUID).getKey(key as UUID).getKey("node" as UUID)} />;
             }}</For>
         </div>;
     },
     paragraph(props): JSX.Element {
         return <p>
-            <EditorChildren path={[...props.path, "children"]} />
+            <EditorChildren state={props.state.getKey("children" as UUID)} />
         </p>;
     },
     multiline_code_block(props): JSX.Element {
         return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap"><code>
-            <Leaf path={[...props.path, "text"]} />
+            <Leaf state={props.state.getKey("text" as UUID)} />
         </code></pre>;
     },
     embedded_schema_editor(props): JSX.Element {
-        const [schema, setSchema] = modValue(() => [...props.path, "schema"]);
-
         return <div class="bg-gray-800 p-2 rounded-md">
-            <NodeEditor schema={schema() as NodeSchema} path={[...props.path, "value"]} />
+            {"ETODO"/*<NodeEditor schema={schema() as NodeSchema} path={[...props.path, "value"]} />*/}
         </div>;
     },
     text(props): JSX.Element {
-        const [value, setValue] = modValue(() => props.path);
         return <span class={(() => {
-            const v = value();
+            const v = props.state();
             if(!isObject(v)) return "";
-            const style = v["style"];
+            const style = v["style" as UUID]();
             if(!isObject(style)) return "";
 
             let styles: string[] = [];
-            if(style["bold"]) styles.push("font-bold");
+            if(style["bold" as UUID]()) styles.push("font-bold");
 
             return styles.join(" ");
-        })()}><Leaf path={[...props.path, "text"]} /></span>;
+        })()}><Leaf state={props.state.getKey("text" as UUID)} /></span>;
     },
     inline_code(props): JSX.Element {
-        return <code class="bg-gray-800 p-1 rounded-md"><Leaf path={[...props.path, "text"]} /></code>;
+        return <code class="bg-gray-800 p-1 rounded-md"><Leaf state={props.state.getKey("text" as UUID)} /></code>;
     },
 };
 
@@ -324,7 +319,7 @@ export function TextNode(props: {
 }
 
 export function Leaf(props: {
-    path: Path, // Path<string>
+    state: State, // State<string>
 }): JSX.Element {
     // TODO the returned node will have information in it to allow for handling
     // left arrow, right arrow, select, …
@@ -332,12 +327,11 @@ export function Leaf(props: {
     let text_node_1: Text | null = null;
     let text_node_2: Text | null = null;
 
-    const [value, setValue] = modValue(() => props.path);
     return <EditorSpan replaceRange={(start, end, text) => {
         // I want to easily be able to do eg:
         // on enter key:
         // - splitNode(position)
-        setValue(pv => {
+        setReconcile(props.state, pv => {
             const v = "" + pv;
             return v.substring(0, start) + text + v.substring(end);
         });
@@ -358,14 +352,14 @@ export function Leaf(props: {
         }}>
             <span><TextNode
                 ref={text_node_1}
-                value={("" + value()).substring(0, iprops.selection ?? undefined)}
+                value={("" + props.state()).substring(0, iprops.selection ?? undefined)}
             /></span>
             <Show when={iprops.selection != null}>
                 <Caret />
             </Show>
             <span><TextNode
                 ref={text_node_2}
-                value={("" + value()).substring(iprops.selection ?? Infinity)}
+                value={("" + props.state()).substring(iprops.selection ?? Infinity)}
             /></span>
         </span>
     </>}</EditorSpan>;
@@ -384,25 +378,24 @@ export function Caret(): JSX.Element {
 }
 
 export function EditorChildren(props: {
-    path: Path, // Path<{[key: UUID]: TextEditorNode}>
+    state: State, // State<{[key: UUID]: TextEditorNode}>
 }): JSX.Element {
-    const [value, setValue] = modValue(() => props.path);
-
-    return <For each={Object.keys(asObject(value()) ?? {})}>{key => {
-        return <EditorNode path={[...props.path, key]} />;
+    return <For each={Object.keys(asObject(props.state()) ?? {})}>{key => {
+        return <EditorNode state={props.state.getKey(key as UUID)} />;
     }}</For>;
 }
 
 export function EditorNode(props: {
-    path: Path, // Path<TextEditorNode>
+    state: State, // State<TextEditorNode>
 }): JSX.Element {
-    const [value, setValue] = modValue(() => props.path);
     const nodeKind = (): null | string => {
-        return asString((asObject(value()) ?? {})["kind"]);
+        const v = asObject(props.state());
+        if(!v) return null;
+        return asString(v["kind" as UUID]());
     };
-    return <Dynamic component={node_renderers[nodeKind() ?? "null"] ?? ((props: {path: Path}) => (
+    return <Dynamic component={node_renderers[nodeKind() ?? "null"] ?? ((props: {state: State}) => (
         <div class="text-red-500">E_NOT_FOUND {"kind:"+nodeKind()}</div>
-    ))} path={props.path} />
+    ))} state={props.state} />
 }
 
 /*
@@ -414,7 +407,7 @@ REDUCERS:
 */
 
 const TEContext = createContext<{
-    root_path: () => Path,
+    root_state: () => State,
     selected: (key: HTMLElement | null) => boolean,
     selection: Signal<Selection>,
     editor_id: UUID,
@@ -472,7 +465,6 @@ export function RichtextEditor(props: {
     schema: RichtextSchema,
     state: State,
 }): JSX.Element {
-    const [value, setValue] = modValue(() => props.path);
     const [selected, setSelected] = createSignal<Selection>(null);
 
     const editor_id = uuid();
@@ -486,22 +478,22 @@ export function RichtextEditor(props: {
 
     // this stylinng can probably be provided by the root node
     return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
-        <Show when={value()} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
+        <Show when={isObject(props.state())} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Button onClick={() => {
                 const nv: TextEditorRootNode = JSON.parse(JSON.stringify(defaultnode));
                 const nv_n: TextEditorRoot = {
                     node: nv,
                 };
-                setValue(() => nv_n);
+                setReconcile(props.state, () => autoObject(nv_n));
             }}>click to create</Button>
         </div>}>
             <TEContext.Provider value={{
-                root_path: () => props.path,
+                root_state: () => props.state,
                 selected: selector,
                 selection: [selected, setSelected],
                 editor_id,
             }}>
-                <EditorNode path={[...props.path, "node"]} />
+                <EditorNode state={props.state.getKey("node" as UUID)} />
             </TEContext.Provider>
         </Show>
     </div>;
