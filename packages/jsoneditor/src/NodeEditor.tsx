@@ -4,7 +4,7 @@ import { Key } from "tmeta-util-solid";
 import { Button } from "./components";
 import { getState, modValue, Path } from "./editor_data";
 import { isObject } from "./guards";
-import { AllLinksSchema, ArraySchema, BooleanSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
+import { AllLinksSchema, ArraySchema, BooleanSchema, ColorSchema, LinkSchema, NodeSchema, ObjectSchema, sc, StringSchema, summarize, UnionSchema } from "./schema";
 import { RichtextEditor } from "./TextEditor";
 import { SwitchKind } from "./util";
 import { UUID, uuid } from "./uuid";
@@ -273,6 +273,26 @@ function LinkEditor(props: {schema: LinkSchema, path: Path}): JSX.Element {
   </div>;
 }
 
+function ColorEditor(props: {schema: ColorSchema, path: Path}): JSX.Element {
+  const [value, setValue] = modValue(() => props.path);
+  // we should show just the color and the picker should show in a dropdown
+  // also I should just use someone's premade color picker shouldn't I
+  // no reason to make my own
+  return <div>
+    <div class="w-64 h-64 rounded-md overflow-hidden" style={{
+      "background-color": "#00FF00",
+    }}>
+      <div class="w-full h-full" style={{
+        "background": "linear-gradient(to right, #FFFFFFFF, #FFFFFF00)",
+      }}>
+        <div class="w-full h-full" style={{
+          "background": "linear-gradient(to bottom, #00000000, #000000FF)",
+        }} />
+      </div>
+    </div>
+  </div>;
+}
+
 function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
   return <div><ErrorBoundary fallback={(err: Error, reset) => <>
     <div class="space-x-1">
@@ -300,6 +320,7 @@ function NodeEditor(props: {schema: NodeSchema, path: Path}): JSX.Element {
       optional: opt => <div>TODO opt</div>,
       enum: enm => <div>TODO enm</div>,
       function: fn => <div>TODO fn</div>,
+      color: col => <ColorEditor schema={col} path={props.path} />,
     }}</SwitchKind>
   </ErrorBoundary></div>;
 }

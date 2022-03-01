@@ -51,6 +51,7 @@ export const sc = {
     choices.map((key) => ["<!>"+key as UUID, key] as const)
   )}),
   function: (arg: string, retv: NodeSchema): FunctionSchema => ({kind: "function", arg, retv}),
+  color: (): ColorSchema => ({kind: "color"}),
 } as const;
 
 export type NodeSchema =
@@ -66,6 +67,7 @@ export type NodeSchema =
   | OptionalSchema
   | EnumSchema
   | FunctionSchema
+  | ColorSchema
 ;
 
 export type RootSchema = {
@@ -156,6 +158,9 @@ export type FunctionSchema = {
   kind: "function",
   arg: string, // todo
   retv: NodeSchema,
+};
+export type ColorSchema = {
+  kind: "color",
 };
 
 export function summarize(value: unknown, schema: NodeSchema): string {

@@ -68,6 +68,7 @@ const function_schema = sc.object({
   arg: sc.string(),
   retv: node_link_schema,
 });
+const color_schema = sc.object({});
 
 export const node_schema: NodeSchema = sc.union({
   object_schema,
@@ -82,6 +83,7 @@ export const node_schema: NodeSchema = sc.union({
   optional_schema,
   enum_schema,
   function_schema,
+  color_schema,
 });
 // right. we'll define stringification fns that render to
 // js schema types
@@ -182,6 +184,7 @@ export const root_schema: RootSchema = {
     demo1: sc.object({
       people: sc.allLinks(person_link),
       root_person: sc.link(person_link),
+      color: sc.color(),
     }),
     rebind: sc.object({
       buttons: sc.object({
