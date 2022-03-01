@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Key } from "tmeta-util-solid";
-import { get, State, StateValue } from "./app_data";
+import { State, StateValue } from "./app_data";
 import { Button } from "./components";
 import { getState, Path } from "./editor_data";
 import { asObject, asString } from "./guards";
@@ -53,7 +53,7 @@ export function StoreViewerElement(props: {
   const color = () => colors[props.level % colors.length |0]!;
 
   return createMemo((): JSX.Element => {
-    const pv = get(props.state);
+    const pv = props.state();
     if(typeof pv === "object" && pv != null) return untrack((): JSX.Element => {
       const ntries = createMemo<[UUID, State][]>((prev_value) => {
         const ntrieson = Object.entries(pv as object);
@@ -87,7 +87,7 @@ export function StoreViewer(props: {
     {"\n\n\n---\n\n"}
     {JSON.stringify(props.state, null, " ")}
     {"\n\n---\n\n"}
-    <div><Button onClick={() => console.log({value: props.state, get})}>log</Button></div>
+    <div><Button onClick={() => console.log({value: props.state})}>log</Button></div>
   </pre>;
 }
 

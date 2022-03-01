@@ -1,7 +1,7 @@
 import { createMemo, createSelector, createSignal, ErrorBoundary, For, Show, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Key } from "tmeta-util-solid";
-import { get, object, setReconcile, State, StateValue, wrap } from "./app_data";
+import { object, setReconcile, State, StateValue, wrap } from "./app_data";
 import { Button } from "./components";
 import { getState } from "./editor_data";
 import { asObject, asString, isObject, isString } from "./guards";
@@ -89,7 +89,7 @@ function ArrayEditor(props: {schema: ArraySchema, state: State}): JSX.Element {
   return <TabOrListEditor
     mode={props.schema.opts.view_mode}
     tabs={[...(() => {
-      const res = get(props.state);
+      const res = props.state();
       if(!isObject(res)) return [];
       return Object.entries(res).map(([key, item]) => {
         return {
@@ -118,7 +118,7 @@ function ArrayEditor(props: {schema: ArraySchema, state: State}): JSX.Element {
       <div class="mt-2" />
       <NodeEditor
         schema={props.schema.child}
-        state={asObject(get(props.state))?.[key as UUID]!}
+        state={asObject(props.state())?.[key as UUID]!}
       />
     </>;
   }}</TabOrListEditor>;
@@ -127,15 +127,15 @@ function ArrayEditor(props: {schema: ArraySchema, state: State}): JSX.Element {
 function BooleanEditor(props: {schema: BooleanSchema, state: State}): JSX.Element {
   // we need an unset vs false. true/false/unset.
   return <div>
-    <Button active={get(props.state) === false} onClick={() => setReconcile(props.state, pv => pv === false ? null : false)}>Off</Button>
-    <Button active={get(props.state) === true} onClick={() => setReconcile(props.state, pv => pv === true ? null : true)}>On</Button>
+    <Button active={props.state() === false} onClick={() => setReconcile(props.state, pv => pv === false ? null : false)}>Off</Button>
+    <Button active={props.state() === true} onClick={() => setReconcile(props.state, pv => pv === true ? null : true)}>On</Button>
   </div>;
 }
 
 function StringEditor(props: {schema: StringSchema, state: State}): JSX.Element {
   return <div>
     <Show
-      when={typeof isString(get(props.state))}
+      when={typeof isString(props.state())}
       fallback={(
         <Button onClick={() => setReconcile(props.state, () => "")}>Create String</Button>
       )}
@@ -143,7 +143,7 @@ function StringEditor(props: {schema: StringSchema, state: State}): JSX.Element 
       <input
         type="text"
         class="w-full bg-gray-700 rounded-sm px-1"
-        value={asString(get(props.state)) ?? ""}
+        value={asString(props.state()) ?? ""}
         // onChange here maybe?
         onInput={e => setReconcile(props.state, () => e.currentTarget.value)}
       />
@@ -152,14 +152,14 @@ function StringEditor(props: {schema: StringSchema, state: State}): JSX.Element 
 }
 
 function ObjectEditor(props: {schema: ObjectSchema, state: State}): JSX.Element {
-  return <Show when={isObject(get(props.state))} fallback={(
+  return <Show when={isObject(props.state())} fallback={(
     <div>
       <Button onClick={() => {
         setReconcile(props.state, () => object({}));
       }}>
         Create Object
       </Button>
-      {" (value: "+get(props.state)+")"}
+      {" (value: "+props.state()+")"}
     </div>
   )}>
     <TabOrListEditor
@@ -176,7 +176,7 @@ function ObjectEditor(props: {schema: ObjectSchema, state: State}): JSX.Element 
       return <div>
         <NodeEditor
           schema={field.value}
-          state={asObject(get(props.state))?.[key as UUID]!}
+          state={asObject(props.state())?.[key as UUID]!}
         />
       </div>;
     }}</TabOrListEditor>
@@ -185,9 +185,9 @@ function ObjectEditor(props: {schema: ObjectSchema, state: State}): JSX.Element 
 
 function UnionEditor(props: {schema: UnionSchema, state: State}): JSX.Element {
   return <Show when={(() => {
-    const v = get(props.state);
+    const v = props.state();
     if(!isObject(v)) return false;
-    const value = get(v["values" as UUID]);
+    const value = v["values" as UUID]();
     if(!isObject(value)) return false;
     return true;
   })()} fallback={(
@@ -199,7 +199,7 @@ function UnionEditor(props: {schema: UnionSchema, state: State}): JSX.Element {
       }}>
         Create Union
       </Button>
-      {" (value: "+get(props.state)+")"}
+      {" (value: "+props.state()+")"}
     </div>
   )}>
     <TabOrListEditor
@@ -209,9 +209,9 @@ function UnionEditor(props: {schema: UnionSchema, state: State}): JSX.Element {
         title: choice.name,
       }))}
       active={[
-        () => get(asObject(get(props.state))!["active" as UUID]!),
+        () => asObject(props.state())!["active" as UUID]!(),
         (nv) => {
-          setReconcile(asObject(get(props.state))!["active" as UUID], nv);
+          setReconcile(asObject(props.state())!["active" as UUID], nv);
         }
       ]}
     >{key => {
@@ -219,7 +219,7 @@ function UnionEditor(props: {schema: UnionSchema, state: State}): JSX.Element {
       if(!field) throw new Error("unreachable");
 
       return <div>
-        <NodeEditor schema={field.value} state={asObject(get(asObject(get(props.state))!["values" as UUID]!))![key as UUID]!} />
+        <NodeEditor schema={field.value} state={asObject(asObject(props.state())!["values" as UUID]!())![key as UUID]!} />
       </div>;
     }}</TabOrListEditor>
   </Show>;
@@ -227,9 +227,9 @@ function UnionEditor(props: {schema: UnionSchema, state: State}): JSX.Element {
 
 function AllLinksEditor(props: {schema: AllLinksSchema, state: State}): JSX.Element {
   const state = getState();
-  const contentState = () => asObject(get(asObject(get(state.state))!["data" as UUID]))![props.schema.tag];
+  const contentState = () => asObject(asObject(state.state())!["data" as UUID]())![props.schema.tag];
   const dataSchema = () => state.root_schema.symbols[props.schema.tag];
-  return <Show when={isObject(get(contentState()))} fallback={<div>
+  return <Show when={isObject(contentState()())} fallback={<div>
     <Button onClick={() => {
       setReconcile(contentState(), () => object({}));
     }}>Create AllLinks</Button>
@@ -240,9 +240,9 @@ function AllLinksEditor(props: {schema: AllLinksSchema, state: State}): JSX.Elem
 
 function LinkEditor(props: {schema: LinkSchema, state: State}): JSX.Element {
   const state = getState();
-  const choices = () => asObject(get(asObject(get(state.state))!["data" as UUID]))![props.schema.tag];
+  const choices = () => asObject(asObject(state.state())!["data" as UUID]())![props.schema.tag];
   const dataSchema = () => state.root_schema.symbols[props.schema.tag];
-  const isSelected = createSelector(() => get(props.state));
+  const isSelected = createSelector(() => props.state());
   return <div>
     <select
       class="bg-gray-700 px-1 rounded-md"
@@ -254,7 +254,7 @@ function LinkEditor(props: {schema: LinkSchema, state: State}): JSX.Element {
     >
       <option value={""} selected={isSelected(undefined)}>None</option>
       <For each={(() => {
-        const c = get(choices());
+        const c = choices()();
         if(!isObject(c)) return [];
         return Object.entries(c);
       })()}>{([key, value], i) => {

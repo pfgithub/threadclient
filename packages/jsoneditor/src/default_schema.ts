@@ -1,4 +1,4 @@
-import { get, object } from "./app_data";
+import { object } from "./app_data";
 import { getState } from "./editor_data";
 import { asObject, asString, isObject } from "./guards";
 import { NodeSchema, ObjectField, RootSchema, sc, summarize } from "./schema";
@@ -102,9 +102,9 @@ const person_schema = sc.object({
   summarize: v_in => {
     const [name_field] = Object.keys(person_schema.fields);
 
-    const v = asObject(get(v_in));
+    const v = asObject(v_in());
     if(!v) return "*Unnamed*";
-    return asString(get(v[name_field as UUID])) ?? "*Unnamed*";
+    return asString(v[name_field as UUID]()) ?? "*Unnamed*";
   }
 });
 
@@ -115,9 +115,9 @@ const button_schema = sc.object({
   summarize: (vq) => {
     const [name_field, id_field] = Object.keys(button_schema.fields);
 
-    const v = get(vq);
+    const v = vq();
 
-    if(isObject(v)) return "" + asString(get(v[name_field as UUID])) + " (" + asString(get(v[id_field as UUID])) + ")";
+    if(isObject(v)) return "" + asString(v[name_field as UUID]()) + " (" + asString(v[id_field as UUID]()) + ")";
     return "*Unnamed*";
   },
 });
@@ -135,14 +135,14 @@ const layer_schema = sc.object({
     const [name_field] = Object.keys(button_schema.fields);
     const state = getState();
     const objv = asObject(
-      get(asObject(get(asObject(get(state.state))!["data" as UUID]))![input_button])
+      asObject(asObject(state.state())!["data" as UUID]())![input_button]()
     ) ?? object({});
     return {
       kind: "object",
       fields: Object.fromEntries(Object.entries(objv).map(
         ([key, value]): [UUID, ObjectField] => {
           return [key as UUID, {
-            name: asString(get((asObject(get(value)) ?? object({}))[name_field as UUID])) ?? "*unnamed*",
+            name: asString((asObject(value()) ?? object({}))[name_field as UUID]()) ?? "*unnamed*",
             value: action_schema,
             opts: {
               title: summarize(value, button_schema),
@@ -158,9 +158,9 @@ const layer_schema = sc.object({
 }, {
   summarize: (vw) => {
     const title_uuid = Object.keys(layer_schema.fields)[0]! as UUID;
-    const cv = (asObject(get(vw)) ?? object({}))[title_uuid];
+    const cv = (asObject(vw()) ?? object({}))[title_uuid];
     if(cv == null) return "*Unnamed*";
-    return asString(get(cv)) ?? "*Unnamed*";
+    return asString(cv()) ?? "*Unnamed*";
   },
 });
 

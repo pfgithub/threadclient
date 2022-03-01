@@ -50,28 +50,14 @@ export type StateValue = StateObject | string | boolean | bigint | null | undefi
 //     // [!] an undefined value cannot be observed
 // } | string | boolean | bigint | null;
 
-export type State = {
-    // instead of this, we could make state a function
-    // like
-
-    // root()["some-prop"]()
-    // instead of
-    // get(get(root)["some-prop"])
-    // that could be neat maybe
-    // we still have that keys issue
-
-    // also consider wrapping with the proxy in the getter
-    // it's identical but better maybe?
-    // nah it's probably worse for perf and not meaningfully better for code
-
-    // root().some_prop.setOverwrite("new_value")
-    // vs set(get(root).some_prop, "new_value")
-
+type StateFn = (() => StateValue);
+type StateProps = {
     [internal_value]: Signal<StateValue>,
 
     toJSON: (this: State) => unknown, // TODO put this in a prototype rather than wasting
     // space in every node
 };
+export type State = StateFn & StateProps;
 
 const handler: ProxyHandler<StateObject> = {
     ownKeys(target) {
@@ -128,7 +114,10 @@ export function object(value: StateObjectUser): StateObject {
 }
 
 export function wrap(value: StateValue): State {
-    return {
+    const fn: StateFn = (() => {
+        return get(res);
+    });
+    const props: StateProps = {
         [internal_value]: createSignal(value),
         toJSON: function() {
             const res = get(this);
@@ -137,9 +126,11 @@ export function wrap(value: StateValue): State {
             return Object.fromEntries(keys.map(key => [key, res[key as UUID]] as const))
         },
     };
+    const res = Object.assign(fn as State, props);
+    return res;
 }
 
-export function get(node: State): StateValue {
+function get(node: State): StateValue {
     return node[internal_value][0]();
 }
 
