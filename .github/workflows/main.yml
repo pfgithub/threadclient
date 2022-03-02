@@ -4,8 +4,7 @@ name: CI
 
 # Controls when the action will run.
 on:
-  on:
-    workflow_dispatch: {}
+  workflow_dispatch: {}
   pull_request:
     branches: [main]
 
