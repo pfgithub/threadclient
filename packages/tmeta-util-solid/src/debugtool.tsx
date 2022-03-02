@@ -1,9 +1,17 @@
 import { createEffect, createRoot, JSX, onCleanup, onMount } from "solid-js";
 
+// TODO:
+// consider rendering with react devtools drawBoxAroundElement
+// https://github.com/pfgithub/domframework/blob/master/demo/src/drawBoxAroundElement.js
+
 export default function Debugtool(props: {
     observe_root: HTMLElement,
 }): JSX.Element {
     let nodes_go_here!: HTMLDivElement;
+    
+    const opts = {
+        text_node_highlighting: true,
+    };
 
     const renderChange = (winsz: [number, number], rect: DOMRect, time: number) => {
         if(rect.bottom < 0 || rect.right < 0 || rect.left > winsz[0] || rect.top > winsz[1]) {
@@ -76,23 +84,17 @@ export default function Debugtool(props: {
                     touched_nodes.add(mutation.target);
                 }else if(mutation.type === "childList") {
                     addNodeList(mutation.addedNodes);
-                    // [!] we should actually add the node and all its children
-                    //     (excluding text node children - just the parent node is)
-                    //     (enough. no reason to waste lots of performance getting bounds
-                    //      for individual text ranges.)
                 }else if(mutation.type === "characterData") {
                     touched_nodes.add(mutation.target);
                 }
             }
-            if(touched_nodes.size > 200) {
-                // 1. remove text nodes
+            if(!opts.text_node_highlighting) {
                 for(const node of [...touched_nodes]) {
                     if(node instanceof Text) {
                         if(node.parentNode) touched_nodes.add(node.parentNode);
                         touched_nodes.delete(node);
                     }
                 }
-                // 2. todo more optimization
             }
             const ssz: [number, number] = [window.innerWidth, window.innerHeight];
             touched_nodes.forEach(node => onAddNode(ssz, node, Date.now()));
