@@ -6,6 +6,7 @@ import { getWholePageRootContext } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { CollapseData, flatten } from "./flatten";
 import PageFlatItem from "./PageFlatItem";
+import { array_key } from "./symbols";
 
 export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
@@ -26,7 +27,7 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
             collapse_data,
             content: hprc.content(),
         });
-    }, {key: "id", merge: true});
+    }, {key: array_key, merge: true});
 
     return <div class="m-4 <sm:mx-0">
         <For each={view.data.body}>{item => (

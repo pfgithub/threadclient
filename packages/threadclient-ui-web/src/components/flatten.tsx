@@ -4,12 +4,15 @@
 // it's a trivial change just change the entrypoint and export.
 import * as Generic from "api-types-generic";
 import { Accessor, createSignal, Setter, untrack } from "solid-js";
+import { array_key } from "./symbols";
 
 // indent: post id[]
 
 export type FlatPage = {
     // header: FlatItem[],
-    body: FlatItem[],
+    body: (FlatItem & {
+        [array_key]: unknown,
+    })[],
     // sidebar: FlatItem[],
 };
 
@@ -51,7 +54,7 @@ export type CollapseButton = {
 */
 
 // TODO probably add a key: string/symbol for easier diffing
-export type FlatItem = {
+export type FlatItem = ({
     kind: "wrapper_start" | "wrapper_end" | "horizontal_line",
 } | FlatPost | {
     kind: "todo",
@@ -61,7 +64,7 @@ export type FlatItem = {
     kind: "error",
     note: string,
     data: unknown,
-};
+});
 
 export type FlatPost = {
     kind: "post",
@@ -315,5 +318,16 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
 
     console.log("FLATTEN RESULT", res, meta, Object.entries(meta.content).length);
 
-    return {body: res};
+    let i_excl_post = 0;
+    return {body: res.map(itm => {
+        const key: {v: unknown} = (() => {
+            if(itm.kind === "post") {
+                return {v: itm.id};
+            }
+            i_excl_post += 1;
+            return {v: i_excl_post};
+            // hmm. this isn't great keying. we can do better
+        })();
+        return {...itm, [array_key]: key.v};
+    })};
 }
