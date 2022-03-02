@@ -3,8 +3,13 @@ import { createSignal } from "solid-js";
 import { ThreadClient } from "threadclient-client-base";
 import { registerSW } from "virtual:pwa-register";
 import { variables } from "virtual:_variables";
-import { elButton, GlobalCounter, HistoryState, navigate, NavigationEntry, onNavigate, URLLike } from "./app";
+import {
+    elButton, GlobalCounter, HistoryState, navigate, NavigationEntry,
+    onNavigate, startDebugTool, URLLike,
+} from "./app";
 import { getSettings } from "./util/utils_solid";
+
+export let rootel!: HTMLElement;
 
 export let global_counter_info!: Map<string, GlobalCounter>;
 export let alertarea: HTMLElement | undefined;
@@ -26,6 +31,9 @@ export function setCurrentHistoryIndex(new_index: number): void {
 }
 
 export function main(): void {
+    rootel = document.createElement("threadclient");
+    document.body.appendChild(rootel);
+
     global_counter_info = new Map<string, GlobalCounter>();
 
     window.onpopstate = (ev: PopStateEvent) => {
@@ -48,11 +56,11 @@ export function main(): void {
     navigate_event_handlers = [];
     
     current_history_index = 0;
-    bodytop = el("div").adto(document.body);
+    bodytop = el("div").adto(rootel);
     
     const pagever = getSettings().page_version.value();
     if(pagever === "1" || pagever === "2") {
-        const frame = el("nav").clss("navbar", "bg-postcolor-100", "transition-opacity").adto(document.body);
+        const frame = el("nav").clss("navbar", "bg-postcolor-100", "transition-opacity").adto(rootel);
         navbar = frame;
         // todo use style.top = xpx position absolute and then when fixed use top=0 fixed
     
@@ -114,13 +122,13 @@ export function main(): void {
         //     navbar.classList.toggle("opacity-0", window.visualViewport.scale > 1);
         // }); // fun but unnecessary
     }else{
-        const frame = el("nav").adto(document.body);
+        const frame = el("nav").adto(rootel);
         navbar = frame;
     }
     
     console.log("ThreadClient built on "+variables.build_time);
 
-    page2mainel = el("div").adto(body);
+    page2mainel = el("div").adto(rootel);
     
     // MISSING:
     // availableForOfflineUse, setAvailableForOfflineUse
@@ -141,7 +149,9 @@ export function main(): void {
     setTimeout(() => rmdarkreader(), 0);
 
 
-    alertarea = el("div").adto(document.body).clss("alert-area");
+    alertarea = el("div").adto(rootel).clss("alert-area");
+
+    startDebugTool(rootel);
 }
 
 const [availableForOfflineUse, setAvailableForOfflineUse] = createSignal(false);

@@ -7,7 +7,7 @@ import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { gfyLike2, previewLink } from "threadclient-preview";
 import { escapeHTML } from "tmeta-util";
-import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
+import { allowedToAcceptClick, Debugtool, Show, TimeAgo } from "tmeta-util-solid";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
 import { Flair } from "./components/Flair";
@@ -20,7 +20,7 @@ import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {
     alertarea, client_cache, current_history_index, global_counter_info,
     navbar,
-    navigate_event_handlers, nav_history, page2mainel, session_name, setCurrentHistoryIndex
+    navigate_event_handlers, nav_history, page2mainel, rootel, session_name, setCurrentHistoryIndex
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings, PageRootProvider } from "./util/utils_solid";
@@ -1529,7 +1529,7 @@ function renderMenu(menu: Generic.Menu): HideShowCleanup<HTMLElement> {
                     if(!submenu_v) {
                         submenu_v = renderSubmenu(subitems).clss(
                             "absolute z-10 flex flex-col shadow bg-gray-100 p-3 rounded w-max max-w-7xl"
-                        ).adto(document.body);
+                        ).adto(rootel);
                         const bbox = itcontainer.getBoundingClientRect();
                         submenu_v.styl({
                             left: bbox.left+"px",
@@ -2925,7 +2925,7 @@ export function fetchPromiseThen<T>(
     promise: Promise<T>,
     cb: (v: T) => HideShowCleanup<HTMLDivElement>,
 ): HideShowCleanup<HTMLDivElement> {
-    const wrapper = el("div").adto(document.body);
+    const wrapper = el("div").adto(rootel);
     const hsc = hideshow(wrapper);
     const loader_container = el("div").adto(wrapper);
     el("span").atxt("Fetching client…").adto(loader_container);
@@ -3121,7 +3121,7 @@ export function onNavigate(to_index: number, url: URLLike, page: undefined | Gen
     }
 
     const hsc = hideshow();
-    const node = renderPath(url.pathname, url.search).defer(hsc).adto(document.body);
+    const node = renderPath(url.pathname, url.search).defer(hsc).adto(rootel);
     hsc.on("cleanup", () => node.remove());
     hsc.on("hide", () => node.style.display = "none");
     hsc.on("show", () => node.style.display = "");
@@ -3136,6 +3136,19 @@ export function onNavigate(to_index: number, url: URLLike, page: undefined | Gen
     nav_history[to_index] = {node: naventry, url: thisurl};
 }
 
+
+export function startDebugTool(root: HTMLElement) {
+    const belowbody = document.createElement("div");
+    document.body.appendChild(belowbody);
+
+    const settings = getSettings();
+
+    render(() => <Show if={settings.developer_mode.value() === "on"}>
+        <Debugtool observe_root={root} />
+    </Show>, belowbody);
+    // <Show when={enabled in settings}>
+    //     <Lazy v={import("").debugtool}>
+}
 
 
 console.log("APP.TSX WAS RELOADED.");

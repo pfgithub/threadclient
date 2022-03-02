@@ -1,6 +1,7 @@
 import { createEffect, createSignal, JSX, on, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Show } from "tmeta-util-solid";
+import { rootel } from "../router";
 import { classes } from "../util/utils_solid";
 import { animationTime } from "./animation";
 import Button from "./Button";
@@ -117,7 +118,7 @@ export default function Dropdown(props: {
             });
 
             const node = document.createElement("div");
-            document.body.appendChild(node);
+            rootel.appendChild(node);
             onCleanup(() => {
                 node.remove();
             });

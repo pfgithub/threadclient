@@ -8,6 +8,7 @@ import "photoswipe/dist/photoswipe.css";
 import "photoswipe/dist/default-skin/default-skin.css";
 
 import "./gallery.scss";
+import { rootel } from "../router";
 
 export function showGallery(
     images: Generic.GalleryItem[],
@@ -23,7 +24,7 @@ export function showGallery(
     const pwspel = el("div").clss("pwsp")
         .attr({'tabindex': "-1", 'role': "dialog", 'aria-hidden': "true"})
         .styl({'top': "0", 'left': "0", 'bottom': "0", 'right': "0", 'z-index': "10000000000"})
-        .adto(document.body)
+        .adto(rootel)
     ;
 
     pwspel.innerHTML = (`

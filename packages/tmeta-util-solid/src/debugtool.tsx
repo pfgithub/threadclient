@@ -5,7 +5,10 @@ export default function Debugtool(props: {
 }): JSX.Element {
     let nodes_go_here!: HTMLDivElement;
 
-    const renderChange = (rect: DOMRect, time: number) => {
+    const renderChange = (winsz: [number, number], rect: DOMRect, time: number) => {
+        if(rect.bottom < 0 || rect.right < 0 || rect.left > winsz[0] || rect.top > winsz[1]) {
+            return; // skip
+        }
         createRoot(dispose => {
             const h = ((time / 10) % 360) |0;
             const anim_time = 1000;
@@ -45,13 +48,13 @@ export default function Debugtool(props: {
         });
     };
 
-    const onAddNode = (node: Node, time: number) => {
+    const onAddNode = (ssz: [number, number], node: Node, time: number) => {
         if(node instanceof Element) {
-            renderChange(node.getBoundingClientRect(), time);
+            renderChange(ssz, node.getBoundingClientRect(), time);
         }else if(node instanceof Text) {
             const range = document.createRange();
             range.selectNode(node);
-            renderChange(range.getBoundingClientRect(), time);
+            renderChange(ssz, range.getBoundingClientRect(), time);
         }else if(node instanceof Comment) {
             // ignore
         }else{
@@ -60,7 +63,7 @@ export default function Debugtool(props: {
     };
     createEffect(() => {
         const observer = new MutationObserver((mutations_list) => {
-            const time = Date.now();
+            // const time = Date.now();
             const touched_nodes: Set<Node> = new Set();
             const addNodeList = (node_list: NodeList) => {
                 node_list.forEach(node => {
@@ -81,7 +84,18 @@ export default function Debugtool(props: {
                     touched_nodes.add(mutation.target);
                 }
             }
-            touched_nodes.forEach(node => onAddNode(node, time));
+            if(touched_nodes.size > 200) {
+                // 1. remove text nodes
+                for(const node of [...touched_nodes]) {
+                    if(node instanceof Text) {
+                        if(node.parentNode) touched_nodes.add(node.parentNode);
+                        touched_nodes.delete(node);
+                    }
+                }
+                // 2. todo more optimization
+            }
+            const ssz: [number, number] = [window.innerWidth, window.innerHeight];
+            touched_nodes.forEach(node => onAddNode(ssz, node, Date.now()));
         });
 
         observer.observe(props.observe_root, {
