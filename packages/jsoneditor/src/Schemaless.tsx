@@ -1,16 +1,16 @@
 import { children, createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Show } from "tmeta-util-solid";
-import { object, setReconcile, State, StateObject } from "./app_data";
+import { object, setReconcile, State, StateObject, wrap } from "./app_data";
 import { Button } from "./components";
 import { ContextData, getState } from "./editor_data";
 import { asObject, asString, isObject, isString } from "./guards";
 import { RichtextEditor } from "./TextEditor";
-import { UUID } from "./uuid";
+import { uuid, UUID } from "./uuid";
 
 function ObjectEditor(props: {
     state: State,
-    children: (obj: StateObject) => JSX.Element,
+    children: (obj: StateObject, root: State) => JSX.Element,
 }): JSX.Element {
     return <Show if={isObject(props.state())} fallback={(
       <div>
@@ -22,7 +22,7 @@ function ObjectEditor(props: {
         {" (value: "+props.state()+")"}
       </div>
     )}>
-        {props.children(asObject(props.state())!)}
+        {props.children(asObject(props.state())!, props.state)}
     </Show>;
 }
 
@@ -80,13 +80,14 @@ function Tabs(props: {
 }
 function Tab(props: {
     title: string,
-    children: JSX.Element,
+    children?: JSX.Element,
+    onClick?: () => void,
 }): JSX.Element {
     const res: Tab = {
         [tabsym]: true,
         buttonComponent(btnprops) {
             return <Button
-                onClick={() => btnprops.setSelected(v => !v)}
+                onClick={props.onClick ?? (() => btnprops.setSelected(v => !v))}
                 active={btnprops.selected}
             >
                 {props.title}
@@ -162,13 +163,19 @@ function Demo1Editor(props: {state: State}): JSX.Element {
     return <ObjectEditor state={props.state}>{obj => <>
         <div class="space-y-2">
             <HeadingValue title="people">
-                <ObjectEditor state={linkRoot(cxd, person_link)}>{alllinks => <>
+                <ObjectEditor state={linkRoot(cxd, person_link)}>{(alllinks, al_root) => <>
                     <Tabs>
                         <For each={Object.keys(alllinks)}>{link_key => <>
                             <Tab title={link_key}>
                                 <PersonEditor state={alllinks[link_key as UUID]} />
                             </Tab>
                         </>}</For>
+                        <Tab title={"+"} onClick={() => {
+                            setReconcile(al_root, (v): StateObject => object({
+                                ...asObject(v) ?? {},
+                                [uuid()]: wrap(null),
+                            }))
+                        }} />
                     </Tabs>
                 </>}</ObjectEditor>
             </HeadingValue>

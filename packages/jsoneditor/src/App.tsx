@@ -4,7 +4,6 @@ import { root_schema } from './default_schema';
 import Design from './design';
 import { NodeProvider } from './editor_data';
 import JsonViewer from './JsonViewer';
-import NodeEditor from './NodeEditor';
 import Schemaless from './Schemaless';
 import { UUID } from './uuid';
 
@@ -55,10 +54,9 @@ export default function App(props: {
   state: State,
 }): JSX.Element {
   const windows: {[key: string]: Window} = {
-    node_editor: {
-      title: "Node Editor",
-      component: () => <NodeEditor
-        schema={root_schema.root}
+    schemaless: {
+      title: "Schemaless",
+      component: () => <Schemaless
         state={props.state.getKey("data" as UUID).getKey("root" as UUID)}
       />,
     },
@@ -72,19 +70,13 @@ export default function App(props: {
       title: "Design",
       component: () => <Design />,
     },
-    schemaless: {
-      title: "Schemaless",
-      component: () => <Schemaless
-        state={props.state.getKey("data" as UUID).getKey("root" as UUID)}
-      />,
-    },
   };
   return <NodeProvider
     root={root_schema}
     state={props.state}
   >
     <div class="grid gap-20 md:grid-cols-2 max-w-6xl mx-auto h-full">
-      <AnyWindow choices={windows} default={"node_editor"} />
+      <AnyWindow choices={windows} default={"schemaless"} />
       <AnyWindow choices={windows} default={"json_viewer"} />
     </div>
   </NodeProvider>;

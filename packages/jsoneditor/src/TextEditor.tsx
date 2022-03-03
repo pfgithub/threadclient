@@ -3,10 +3,8 @@ import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
 import { autoObject, setReconcile, State } from "./app_data";
 import { Button } from "./components";
-import { Path } from "./editor_data";
 import { asObject, asString, isObject } from "./guards";
-import NodeEditor from "./NodeEditor";
-import { NodeSchema, RichtextSchema, sc } from "./schema";
+import { NodeSchema, sc } from "./schema";
 import { uuid, UUID } from "./uuid";
 
 // [!]NOTES
