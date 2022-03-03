@@ -259,10 +259,10 @@ function LinkEditor(props: {schema: LinkSchema, state: State}): JSX.Element {
       <For each={(() => {
         const c = choices()();
         if(!isObject(c)) return [];
-        return Object.entries(c);
-      })()}>{([key, value], i) => {
+        return Object.keys(c);
+      })()}>{(key, i) => {
         return <option value={key} selected={isSelected(key)}>
-          {i()} {summarize(value, dataSchema())}
+          {i()} {summarize(asObject(choices()())![key as UUID], dataSchema())}
         </option>;
       }}</For>
     </select>
