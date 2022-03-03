@@ -462,7 +462,6 @@ const defaultnode: TextEditorRootNode = nc.root(
 );
 
 export function RichtextEditor(props: {
-    schema: RichtextSchema,
     state: State,
 }): JSX.Element {
     const [selected, setSelected] = createSignal<Selection>(null);

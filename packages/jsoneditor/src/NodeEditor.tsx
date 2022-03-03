@@ -314,7 +314,7 @@ function NodeEditor(props: {schema: NodeSchema, state: State}): JSX.Element {
       boolean: bool => <BooleanEditor schema={bool} state={props.state} />,
       array: arr => <ArrayEditor schema={arr} state={props.state} />,
       union: uni => <UnionEditor schema={uni} state={props.state} />,
-      richtext: rt => <RichtextEditor schema={rt} state={props.state} />,
+      richtext: rt => <RichtextEditor state={props.state} />,
       all_links: al => <AllLinksEditor schema={al} state={props.state} />,
       link: link => <LinkEditor schema={link} state={props.state} />,
       dynamic: dynamic => <NodeEditor schema={dynamic.resolver(props.state)} state={props.state} />,

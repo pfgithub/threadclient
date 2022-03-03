@@ -5,6 +5,7 @@ import { object, setReconcile, State, StateObject } from "./app_data";
 import { Button } from "./components";
 import { ContextData, getState } from "./editor_data";
 import { asObject, asString, isObject, isString } from "./guards";
+import { RichtextEditor } from "./TextEditor";
 import { UUID } from "./uuid";
 
 function ObjectEditor(props: {
@@ -206,7 +207,7 @@ export default function Schemaless(props: {state: State}): JSX.Element {
                 clicker
             </Tab>
             <Tab title="text_editor">
-                text_editor
+                <RichtextEditor state={obj["<!>text_editor" as UUID]} />
             </Tab>
             <Tab title="schema">
                 schema
