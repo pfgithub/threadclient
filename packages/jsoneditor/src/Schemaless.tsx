@@ -3,7 +3,8 @@ import { JSX } from "solid-js/jsx-runtime";
 import { Show } from "tmeta-util-solid";
 import { object, setReconcile, State, StateObject } from "./app_data";
 import { Button } from "./components";
-import { asObject, isObject } from "./guards";
+import { ContextData, getState } from "./editor_data";
+import { asObject, asString, isObject, isString } from "./guards";
 import { UUID } from "./uuid";
 
 function ObjectEditor(props: {
@@ -49,6 +50,7 @@ function Tabs(props: {
         }
         return res.map((v: unknown) => {
             if(!isTab(v)) {
+                console.log("bad tabs child", v);
                 throw new Error("tabs child is not tab");
             }
             return v;
@@ -106,11 +108,68 @@ function HeadingValue(props: {
     </div>;
 }
 
+function linkRoot(cxd: ContextData, link: UUID): State {
+    return cxd.state.getKey("data" as UUID).getKey(link);
+}
+
+function StringEditor(props: {state: State}): JSX.Element {
+    return <div>
+        <Show
+            if={isString(props.state())}
+            fallback={(
+                <Button onClick={() => setReconcile(props.state, () => "")}>Create String</Button>
+            )}
+        >
+            <input
+                type="text"
+                class="w-full bg-gray-700 rounded-sm px-1"
+                value={asString(props.state()) ?? ""}
+                // onChange here maybe?
+                onInput={e => setReconcile(props.state, () => e.currentTarget.value)}
+            />
+        </Show>
+    </div>;
+}
+
+/// -------------------
+/// -------------------
+/// ---[ user code ]---
+/// -------------------
+/// -------------------
+
+const person_link = "<!>person" as UUID; 
+
+function PersonEditor(props: {state: State}): JSX.Element {
+    return <ObjectEditor state={props.state}>{obj => <>
+        <HeadingValue title="name">
+            <StringEditor state={obj["<!>name" as UUID]} />
+        </HeadingValue>
+        <HeadingValue title="description">
+            <StringEditor state={obj["<!>description" as UUID]} />
+        </HeadingValue>
+        <HeadingValue title="attributes">
+            TODO
+        </HeadingValue>
+        <HeadingValue title="tags">
+            TODO
+        </HeadingValue>
+    </>}</ObjectEditor>;
+}
+
 function Demo1Editor(props: {state: State}): JSX.Element {
+    const cxd = getState();
     return <ObjectEditor state={props.state}>{obj => <>
         <div class="space-y-2">
             <HeadingValue title="people">
-                todo
+                <ObjectEditor state={linkRoot(cxd, person_link)}>{alllinks => <>
+                    <Tabs>
+                        <For each={Object.keys(alllinks)}>{link_key => <>
+                            <Tab title={link_key}>
+                                <PersonEditor state={alllinks[link_key as UUID]} />
+                            </Tab>
+                        </>}</For>
+                    </Tabs>
+                </>}</ObjectEditor>
             </HeadingValue>
             <HeadingValue title="root_person">
                 todo
@@ -122,11 +181,23 @@ function Demo1Editor(props: {state: State}): JSX.Element {
     </>}</ObjectEditor>;
 }
 
+// [!] if I'm going to be doing schemaless I need typed State values.
+//     like State should know that it should be an object containing these
+//     fields and stuff.
+
+// basically it won't allow you to getkey a field that doesn't exist
+// but it's not saying that the actual structure is guarenteed to match what the
+// types say. the helper functions will still return null | [actual value] but what
+// will be fun is eg asString on a thing expected to be object could error
+
+// basically state will have a <T> thing and also links you define will have <T>
+// to say what should be in them
+
 export default function Schemaless(props: {state: State}): JSX.Element {
     return <ObjectEditor state={props.state}>{obj => <>
         <Tabs>
             <Tab title="demo1">
-                <Demo1Editor state={props.state.getKey("<!>demo1" as UUID)} />
+                <Demo1Editor state={obj["<!>demo1" as UUID]} />
             </Tab>
             <Tab title="rebind">
                 rebind
