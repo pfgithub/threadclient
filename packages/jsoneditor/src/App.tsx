@@ -1,10 +1,11 @@
-import { createSelector, createSignal, For, JSX } from 'solid-js';
+import { createSelector, createSignal, ErrorBoundary, For, JSX, untrack } from 'solid-js';
 import { State } from './app_data';
 import { root_schema } from './default_schema';
 import Design from './design';
 import { NodeProvider } from './editor_data';
 import JsonViewer from './JsonViewer';
 import NodeEditor from './NodeEditor';
+import Schemaless from './Schemaless';
 import { UUID } from './uuid';
 
 type Window = {
@@ -31,7 +32,21 @@ function AnyWindow(props: {
       }}</For>
     </select>
     <div>
-      {props.choices[selection()]?.component()}
+      <ErrorBoundary fallback={(err, reset) => {
+        console.log("app error", err);
+        return <div>
+          <p>App errored.</p>
+          <button onClick={() => reset()} class="bg-gray-700 mr-2">Reset</button>
+          <pre class="text-red-500 whitespace-pre-wrap">
+            {err.toString() + "\n" + err.stack}
+          </pre>
+        </div>
+      }}>
+        {(() => {
+          const v = props.choices[selection()]?.component;
+          return untrack(() => v());
+        })()}
+      </ErrorBoundary>
     </div>
   </div>;
 }
@@ -56,6 +71,12 @@ export default function App(props: {
     design: {
       title: "Design",
       component: () => <Design />,
+    },
+    schemaless: {
+      title: "Schemaless",
+      component: () => <Schemaless
+        state={props.state.getKey("data" as UUID).getKey("root" as UUID)}
+      />,
     },
   };
   return <NodeProvider
