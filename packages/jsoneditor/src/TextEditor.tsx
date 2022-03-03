@@ -1,7 +1,7 @@
 import { createContext, createRenderEffect, createSelector, createSignal, For, Show, Signal, untrack, useContext } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
-import { autoObject, setReconcile, State } from "./app_data";
+import { autoObject, ERROR, object, ScNode, ScObject, setReconcile, State, wrap } from "./app_data";
 import { Button } from "./components";
 import { asObject, asString, isObject } from "./guards";
 import { NodeSchema, sc } from "./schema";
@@ -90,37 +90,41 @@ import { uuid, UUID } from "./uuid";
 
 export type Selection = [editor_node: HTMLElement, index: CursorIndex] | null;
 
-export type TextEditorRoot = {
+export type Richtext = TextEditorRoot;
+export type TextEditorRoot = ScObject<{
     node: TextEditorRootNode,
-};
+}>;
 
-export type TextEditorRootNode = {
+export type TextEditorRootNode = ScObject<{
     kind: "root",
-    children: {[key: UUID]: TextEditorFlatNode};
+    children: ScObject<{[key: UUID]: TextEditorFlatNode}>;
     // ^ right, we didn't want this because we want the manager to be able to handle this
     // I think we can actually use real dom nodes though
     // eg we can have <Leaf> and <EditorSelectable ondelete={}>
     // that should work alright
-};
+}>;
 
-export type TextEditorIndentItem = {
+export type TextEditorIndentItem = ScObject<{
+    __nothing: null,
     //GROUP_ID so we can properly split at borders and stuff
     // we will look in another map I guess to determine the kind
-};
+}>;
 
-export type TextEditorFlatNode = {
-    indent: {[group_id: UUID]: TextEditorIndentItem},
+export type TextEditorFlatNode = ScObject<{
+    indent: ScObject<{[group_id: string]: TextEditorIndentItem}>,
     node: TextEditorParagraphNode,
-};
+}>;
 
-export type TextEditorParagraphNode = {
+export type TextEditorParagraphNodeParagraph = ScObject<{
     kind: "paragraph",
-    children: {[key: UUID]: TextEditorLeafNode};
-} | {
+    children: ScObject<{[key: string]: TextEditorLeafNode}>;
+}>;
+export type TextEditorParagraphNodeMultilineCodeBlock = ScObject<{
     kind: "multiline_code_block",
     language: string,
     text: string,
-} | {
+}>;
+export type TextEditorParagraphNodeImage = ScObject<{
     kind: "image",
     contenthash: string,
     ext: string,
@@ -130,102 +134,127 @@ export type TextEditorParagraphNode = {
 
     // images are a bit special in that for one source content hash we might
     // generate thumbnails and stuff
-} | {
+}>;
+export type TextEditorParagraphNodeEmbeddedSchemaEditor = ScObject<{
     kind: "embedded_schema_editor",
-    schema: NodeSchema,
-    value?: undefined | unknown,
-};
+}>;
+export type TextEditorParagraphNode =
+    | TextEditorParagraphNodeParagraph
+    | TextEditorParagraphNodeMultilineCodeBlock
+    | TextEditorParagraphNodeImage
+    | TextEditorParagraphNodeEmbeddedSchemaEditor
+;
 
-export type TextStyle = {bold?: undefined | boolean};
-export type TextEditorLeafNode = {
+export type TextStyle = ScObject<{bold?: undefined | boolean}>;
+export type TextEditorLeafNodeText = ScObject<{
     kind: "text",
     text: string,
     style?: undefined | TextStyle,
-} | {
+}>;
+export type TextEditorLeafNodeInlineCode = ScObject<{
     kind: "inline_code",
     text: string,
-};
+}>;
+export type TextEditorLeafNode = TextEditorLeafNodeText | TextEditorLeafNodeInlineCode;
 
-// these are debugging tools. eventually we won't have any use for them anymore
+type TextEditorAnyNode = TextEditorRootNode | TextEditorParagraphNode | TextEditorLeafNode;
+// ^ TODO: remove this. temporary hack.
+
 const nc = {
-    array<T>(...items: T[]): {[key: UUID]: T} {
-        return Object.fromEntries(items.map(itm => [uuid(), itm] as const));
+    array<T extends ScNode>(...items: T[]): ScObject<{[key: string]: T}> {
+        return object(Object.fromEntries(items.map(itm => [uuid(), wrap(itm)] as const)));
     },
     root(...ch: [...TextEditorIndentItem[], TextEditorParagraphNode][]): TextEditorRootNode {
-        return {
-            kind: "root",
-            children: nc.array(...ch.map((v): TextEditorFlatNode => {
+        return object({
+            kind: wrap("root"),
+            children: wrap(nc.array(...ch.map((v): TextEditorFlatNode => {
                 const a = [...v];
                 const last = a.pop()! as TextEditorParagraphNode;
                 const idnt = a as TextEditorIndentItem[];
-                return {
-                    indent: Object.fromEntries(idnt.map((v, i) => (["<!>"+i as UUID, v]))),
-                    node: last,
-                };
-            })),
-        };
+                return object({
+                    indent: wrap(object(Object.fromEntries(idnt.map((v, i) => (["<!>"+i, wrap(v)]))))),
+                    node: wrap(last),
+                });
+            }))),
+        });
     },
     par(...ch: TextEditorLeafNode[]): TextEditorParagraphNode {
-        return {
-            kind: "paragraph",
-            children: nc.array(...ch),
-        };
+        return object({
+            kind: wrap("paragraph"),
+            children: wrap(nc.array(...ch)),
+        });
     },
     code(lang: string, text: string): TextEditorParagraphNode {
-        return {
-            kind: "multiline_code_block",
-            language: lang,
-            text,
-        };
+        return object({
+            kind: wrap("multiline_code_block"),
+            language: wrap(lang),
+            text: wrap(text),
+        });
     },
     img(contenthash: string, ext: string): TextEditorParagraphNode {
-        return {
-            kind: "image",
-            contenthash,
-            ext,
-        };
+        return object({
+            kind: wrap("image"),
+            contenthash: wrap(contenthash),
+            ext: wrap(ext),
+        });
     },
     embeddedSchemaEditor(schema: NodeSchema): TextEditorParagraphNode {
-        return {
-            kind: "embedded_schema_editor",
-            schema,
-        };
+        return object({
+            kind: wrap("embedded_schema_editor"),
+        });
     },
     text(txt: string, styl?: TextStyle | undefined): TextEditorLeafNode {
-        return {
-            kind: "text",
-            text: txt,
-            style: styl,
-        };
+        return object({
+            kind: wrap("text"),
+            text: wrap(txt),
+            style: wrap(styl),
+        });
     },
     inlineCode(txt: string): TextEditorLeafNode {
-        return {
-            kind: "inline_code",
-            text: txt,
-        };
+        return object({
+            kind: wrap("inline_code"),
+            text: wrap(txt),
+        });
     },
 } as const;
 
 // so we'll have a function Leaf that is a text editor
 // gives you basic functions and you can put it where you need it to edit text
 
-const node_renderers: {[key: string]: (props: {state: State}) => JSX.Element} = {
-    root(props): JSX.Element {
+type ItsBroken<K extends {[key in GetStateType<TextEditorAnyNode["kind"]>]: TextEditorAnyNode}> = K;
+type ItsBroken2 = ItsBroken<{
+    root: TextEditorRootNode,
+
+    paragraph: TextEditorParagraphNodeParagraph,
+    multiline_code_block: TextEditorParagraphNodeMultilineCodeBlock,
+    image: TextEditorParagraphNodeImage,
+    embedded_schema_editor: TextEditorParagraphNodeEmbeddedSchemaEditor,
+
+    text: TextEditorLeafNodeText,
+    inline_code: TextEditorLeafNodeInlineCode,
+}>;
+type IncludeKind<key extends GetStateType<TextEditorAnyNode["kind"]>> = ItsBroken2[key];
+
+type GetStateType<T extends State<ScNode>> = T extends State<infer U> ? U : ERROR;
+const node_renderers: {
+    [key in GetStateType<TextEditorAnyNode["kind"]>]?: (props: {state: State<IncludeKind<key>>}) => JSX.Element
+} = {
+    root(props: {state: State<TextEditorRootNode>}): JSX.Element {
         return <div class="space-y-2">
-            <For each={Object.keys(asObject(props.state.getKey("children" as UUID)()) ?? {})}>{key => {
+            <For each={Object.keys(asObject(props.state.getKey("children")()) ?? {})}>{key => {
                 // TODO add the indent
-                return <EditorNode state={props.state.getKey("children" as UUID).getKey(key as UUID).getKey("node" as UUID)} />;
+                return <EditorNode state={props.state.getKey("children").getKey(key).getKey("node")} />;
             }}</For>
         </div>;
     },
     paragraph(props): JSX.Element {
         return <p>
-            <EditorChildren state={props.state.getKey("children" as UUID)} />
+            <EditorChildren state={props.state.getKey("children")} />
         </p>;
     },
     multiline_code_block(props): JSX.Element {
         return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap"><code>
-            <Leaf state={props.state.getKey("text" as UUID)} />
+            <Leaf state={props.state.getKey("text")} />
         </code></pre>;
     },
     embedded_schema_editor(props): JSX.Element {
@@ -237,17 +266,17 @@ const node_renderers: {[key: string]: (props: {state: State}) => JSX.Element} = 
         return <span class={(() => {
             const v = props.state();
             if(!isObject(v)) return "";
-            const style = v["style" as UUID]();
+            const style = v["style"]();
             if(!isObject(style)) return "";
 
             let styles: string[] = [];
-            if(style["bold" as UUID]()) styles.push("font-bold");
+            if(style["bold"]()) styles.push("font-bold");
 
             return styles.join(" ");
-        })()}><Leaf state={props.state.getKey("text" as UUID)} /></span>;
+        })()}><Leaf state={props.state.getKey("text")} /></span>;
     },
     inline_code(props): JSX.Element {
-        return <code class="bg-gray-800 p-1 rounded-md"><Leaf state={props.state.getKey("text" as UUID)} /></code>;
+        return <code class="bg-gray-800 p-1 rounded-md"><Leaf state={props.state.getKey("text")} /></code>;
     },
 };
 
@@ -317,7 +346,7 @@ export function TextNode(props: {
 }
 
 export function Leaf(props: {
-    state: State, // State<string>
+    state: State<string>, // State<string>
 }): JSX.Element {
     // TODO the returned node will have information in it to allow for handling
     // left arrow, right arrow, select, …
@@ -376,22 +405,24 @@ export function Caret(): JSX.Element {
 }
 
 export function EditorChildren(props: {
-    state: State, // State<{[key: UUID]: TextEditorNode}>
+    state: State<ScObject<{[key: string]: TextEditorAnyNode}>>,
 }): JSX.Element {
     return <For each={Object.keys(asObject(props.state()) ?? {})}>{key => {
-        return <EditorNode state={props.state.getKey(key as UUID)} />;
+        return <EditorNode state={props.state.getKey(key)} />;
     }}</For>;
 }
 
 export function EditorNode(props: {
-    state: State, // State<TextEditorNode>
+    state: State<TextEditorAnyNode>,
 }): JSX.Element {
     const nodeKind = (): null | string => {
         const v = asObject(props.state());
         if(!v) return null;
         return asString(v["kind" as UUID]());
     };
-    return <Dynamic component={node_renderers[nodeKind() ?? "null"] ?? ((props: {state: State}) => (
+    return <Dynamic component={(node_renderers as {
+        [key: string]: (props: {state: State<TextEditorAnyNode>}) => JSX.Element
+    })[nodeKind() ?? "null"] ?? ((props: {state: State<TextEditorAnyNode>}) => (
         <div class="text-red-500">E_NOT_FOUND {"kind:"+nodeKind()}</div>
     ))} state={props.state} />
 }
@@ -405,16 +436,16 @@ REDUCERS:
 */
 
 const TEContext = createContext<{
-    root_state: () => State,
+    root_state: () => State<Richtext>,
     selected: (key: HTMLElement | null) => boolean,
     selection: Signal<Selection>,
     editor_id: UUID,
 }>();
 
-const defaultnode: TextEditorRootNode = nc.root(
+const defaultnode = (): TextEditorRootNode => nc.root(
     [nc.par(
         nc.text("hello, "),
-        nc.text("world", {bold: true}),
+        nc.text("world", object({bold: wrap(true)})),
         nc.text("! "),
         nc.inlineCode("fancy!"),
     )],
@@ -460,7 +491,7 @@ const defaultnode: TextEditorRootNode = nc.root(
 );
 
 export function RichtextEditor(props: {
-    state: State,
+    state: State<Richtext>,
 }): JSX.Element {
     const [selected, setSelected] = createSignal<Selection>(null);
 
@@ -477,11 +508,9 @@ export function RichtextEditor(props: {
     return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
         <Show when={isObject(props.state())} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Button onClick={() => {
-                const nv: TextEditorRootNode = JSON.parse(JSON.stringify(defaultnode));
-                const nv_n: TextEditorRoot = {
-                    node: nv,
-                };
-                setReconcile(props.state, () => autoObject(nv_n));
+                setReconcile(props.state, (): TextEditorRoot => object({
+                    node: wrap(defaultnode()),
+                }));
             }}>click to create</Button>
         </div>}>
             <TEContext.Provider value={{
@@ -490,7 +519,7 @@ export function RichtextEditor(props: {
                 selection: [selected, setSelected],
                 editor_id,
             }}>
-                <EditorNode state={props.state.getKey("node" as UUID)} />
+                <EditorNode state={props.state.getKey("node")} />
             </TEContext.Provider>
         </Show>
     </div>;

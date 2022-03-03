@@ -1,11 +1,10 @@
-import { StateObject, State, StateValue } from "./app_data";
-import { UUID } from "./uuid";
+import { ScObject, StateValue } from "./app_data";
 
-export function isObject(v: StateValue): v is StateObject {
+export function isObject(v: StateValue): v is ScObject {
     return v != null && typeof v === "object";
 }
 
-export function asObject(v: StateValue): StateObject | null {
+export function asObject(v: StateValue): ScObject | null {
     return isObject(v) ? v : null;
 }
 

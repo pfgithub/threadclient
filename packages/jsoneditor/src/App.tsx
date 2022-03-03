@@ -1,5 +1,5 @@
 import { createSelector, createSignal, ErrorBoundary, For, JSX, untrack } from 'solid-js';
-import { State } from './app_data';
+import { ScNode, State } from './app_data';
 import { root_schema } from './default_schema';
 import Design from './design';
 import { NodeProvider } from './editor_data';
@@ -51,13 +51,13 @@ function AnyWindow(props: {
 }
 
 export default function App(props: {
-  state: State,
+  state: State<ScNode>,
 }): JSX.Element {
   const windows: {[key: string]: Window} = {
     schemaless: {
       title: "Schemaless",
       component: () => <Schemaless
-        state={props.state.getKey("data" as UUID).getKey("root" as UUID)}
+        state={(props.state.getKey("data") as unknown as State<ScNode>).getKey("root") as any}
       />,
     },
     json_viewer: {

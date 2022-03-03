@@ -33,35 +33,50 @@ const internal_keys = Symbol("internal_keys");
 const internal_value = Symbol("internal_value");
 const internal_is_wrapped = Symbol("internal_is_wrapped");
 
-export type StateObjectUser = {
-    [key: UUID]: State,
-};
-export type StateObject = {
-    // :( https://github.com/microsoft/TypeScript/issues/47594
-    // [!] defined for all uuid keys
-    [key: UUID]: State,
-    [internal_keys]: Signal<UUID[]>,
-};
-export type StateValue = StateObject | string | boolean | bigint | null | undefined;
 
-// export type NodeValue = {
-//     [internal_keys]: Signal<UUID[]>,
-//     [key: UUID]: Node,
-//     // [!] an undefined value cannot be observed
-// } | string | boolean | bigint | null;
+export type LinkType<T extends ScNode> = {uuid: UUID, __fake_type?: undefined | {value: T}};
 
-type StateFn = (() => StateValue);
-type StateProps = {
+
+// scnode needs to be able to specify the goal
+// like the actual value can be anything but we hope it's <T>
+// so then you can use asObject(v) and it returns T | null
+export type ScNode = ScObject<{[key: string]: ScNode}> | ScString | ScBoolean | ScBigint | ScNull | ScUndefined;
+
+export type ScObjectUser<T extends {[key: string]: ScNode} = {[key: string]: ScNode}> = {
+    [k in keyof T]: State<T[k]>
+};
+export type ScObjectReal = {
+    [internal_keys]: Signal<string[]>,
+};
+export type ScObject<T extends {[key: string]: ScNode} = {[key: string]: ScNode}> = ScObjectUser<T> & ScObjectReal;
+export type ScLink<T extends LinkType<ScNode>> = UUID;
+export type ScString = string;
+export type ScBoolean = boolean;
+export type ScBigint = bigint;
+export type ScNull = null;
+export type ScUndefined = undefined;
+
+export type StateValue = ScNode;
+export type AnyValue = ScNode;
+
+const enever = Symbol("E_NEVER");
+export type ERROR = (typeof enever) & {__IS_ERROR: true};
+
+type StateFn<T extends ScNode> = (() => StateValue);
+type StateProps<T extends ScNode> = {
     [internal_value]: Signal<StateValue>,
 };
-type StatePrototype = {
-    toJSON: (this: State) => unknown,
+type StatePrototype<T extends ScNode> = {
+    toJSON: (this: State<T>) => unknown,
 
-    getKey(this: State, key: UUID): State,
+    // vv this type isn't right - someobject.getKey("a") shouldn't be allowed
+    //    because someobject only knows its goal not what the actual type is so the
+    //    first getkey may error because someobject is not an object
+    getKey<Key extends string>(this: State<T>, key: Key): T extends never ? ERROR : T extends {[k in Key]: infer W} ? W : ERROR,
 };
-export type State = StateFn & StateProps & StatePrototype;
+export type State<T extends ScNode> = StateFn<T> & StateProps<T> & StatePrototype<T>;
 
-const handler: ProxyHandler<StateObject> = {
+const handler: ProxyHandler<ScObject> = {
     ownKeys(target) {
         const res = target[internal_keys]![0]();
         return res;
@@ -69,16 +84,19 @@ const handler: ProxyHandler<StateObject> = {
     get(target, key) {
         if(typeof key === "symbol") {
             if(key === internal_is_wrapped) return true;
+
+            // vv wait why is internal_keys even a real field on the object
+            // shouldn't it only exist within the proxy? idk
             if(key === internal_keys) return target[internal_keys];
             throw new Error("unsupported symbol access");
         }
 
-        const res: State = target[key as UUID] ??= createFake(target, key as UUID);
+        const res: State<ScNode> = target[key as UUID] ??= createFake(target, key as UUID);
         return res;
     },
 };
 
-function fakeUpdate(target: StateObject, key: UUID, signal: Signal<StateValue>) {
+function fakeUpdate(target: ScObject, key: string, signal: Signal<StateValue>) {
     if('__SIGNAL_IS_FAKEUPDATE' in signal) {
         console.warn("attempting to wrap a value as fakeupdate that is already wrapped");
         return;
@@ -98,13 +116,13 @@ function fakeUpdate(target: StateObject, key: UUID, signal: Signal<StateValue>) 
     };
 }
 
-function createFake(target: StateObject, key: UUID): State {
+function createFake<R extends ScObject>(target: R, key: string): State<undefined> {
     const res = wrap(undefined);
     fakeUpdate(target, key, res[internal_value]);
     return res;
 }
 
-export function object(value: StateObjectUser): StateObject {
+export function object<T extends ScObjectUser>(value: T): T & ScObjectReal {
     // does not have to be recursive because values already have to be wrapped
     // like you can't call wrap({a: "b"}) you have to wrap({a: wrap("b")})
     return new Proxy({
@@ -112,31 +130,32 @@ export function object(value: StateObjectUser): StateObject {
         [internal_keys]: createSignal(Object.keys(value) as UUID[], {equals: (prev, next) => {
             return JSON.stringify(prev) === JSON.stringify(next);
         }}),
-    }, handler);
+    }, handler) as (T & ScObjectReal);
 }
 
-const state_prototype: StatePrototype = {
-    toJSON: function() {
+const state_prototype: StatePrototype<ScNode> = {
+    toJSON: function(this: State<ScNode>) {
         const res = get(this);
         if(!isObject(res)) return res;
         const keys = Object.keys(res);
         return Object.fromEntries(keys.map(key => [key, res[key as UUID]] as const))
     },
-    getKey: function(key: UUID) {
+    getKey: function<Key extends string>(this: State<ScObject>, key: Key) {
         const val = get(this);
         if(!isObject(val)) throw new Error("cannot get key on ¬object");
-        return val[key]!;
+        return val[key]! as any;
     },
 };
-export function wrap(value: StateValue): State {
-    const fn: StateFn = (() => {
+export function wrap<T extends ScNode>(value: T): State<T> {
+    const fn: StateFn<T> = (() => {
         return get(res);
     });
-    const props: StateProps = {
-        [internal_value]: createSignal(value),
+    const props: StateProps<T> = {
+        [internal_value]: createSignal(value as ScNode),
     };
-    const res = Object.assign(fn as State, props, state_prototype);
-    // res.prototype = state_prototype; // ha! jk you can't do this because it doesn't pass the this prop
+    const res = Object.assign(fn as State<T>, props, state_prototype);
+    // res.prototype = state_prototype;
+    // ^ TODO: this should be `res.__proto__ = …;` ← that will work correctly
     return res;
 }
 
@@ -159,19 +178,19 @@ export function autoObject(v: unknown): StateValue {
     throw new Error("unsupported auto "+(typeof v));
 }
 
-export function get(node: State): StateValue {
+export function get<T extends ScNode>(node: State<T>): AnyValue {
     return node[internal_value][0]();
 }
 
 // TODO: optionally specify if it should be one level deep or recursive (default)
-export function setReconcile(node: State, value: (pv: StateValue) => StateValue): void {
+export function setReconcile<T extends ScNode>(node: State<T>, value: (pv: AnyValue) => T): void {
     untrack(() => {
         batch(() => {
             setReconcileInternal(node, value);
         });
     });
 }
-function setReconcileInternal(node: State, value: (pv: StateValue) => StateValue): void {
+function setReconcileInternal<T extends ScNode>(node: State<T>, value: (pv: AnyValue) => T): void {
     const pv = get(node);
     const nv = value(pv);
 
@@ -208,7 +227,7 @@ function setReconcileInternal(node: State, value: (pv: StateValue) => StateValue
         fakeUpdate(pv, key, pv[key][internal_value]);
     }
 }
-export function setOverwrite(node: State, value: (pv: StateValue) => StateValue): void {
+export function setOverwrite<T extends ScNode>(node: State<T>, value: (pv: AnyValue) => T): void {
     node[internal_value][1](pv => value(pv));
 }
 
