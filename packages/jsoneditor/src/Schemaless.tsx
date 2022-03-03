@@ -1,4 +1,4 @@
-import { children, createSelector, createSignal, For, untrack } from "solid-js";
+import { children as createChildren, createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Show } from "tmeta-util-solid";
 import { LinkType, object, ScLink, ScNode, ScObject, ScString, setReconcile, State, wrap } from "./app_data";
@@ -44,12 +44,14 @@ function Tabs(props: {
     const [selection, setSelection] = createSignal<Tab | null>(null);
     const isSelected = createSelector(selection);
 
+    const children = createChildren(() => props.children);
+
     const tabs = () => {
-        let res = children(() => props.children)();
+        let res = children();
         if(!Array.isArray(res)) {
             res = [res];
         }
-        return res.map((v: unknown) => {
+        return res.filter(v => v).map((v: unknown) => {
             if(!isTab(v)) {
                 console.log("bad tabs child", v);
                 throw new Error("tabs child is not tab");
@@ -79,7 +81,7 @@ function Tabs(props: {
     </div>;
 }
 function Tab(props: {
-    title: string,
+    title: JSX.Element,
     children?: JSX.Element,
     onClick?: () => void,
 }): JSX.Element {
