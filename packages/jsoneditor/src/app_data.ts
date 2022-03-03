@@ -153,9 +153,8 @@ export function wrap<T extends ScNode>(value: T): State<T> {
     const props: StateProps<T> = {
         [internal_value]: createSignal(value as ScNode),
     };
-    const res = Object.assign(fn as State<T>, props, state_prototype);
-    // res.prototype = state_prototype;
-    // ^ TODO: this should be `res.__proto__ = …;` ← that will work correctly
+    const res = Object.assign(fn as State<T>, props);
+    Object.setPrototypeOf(res, state_prototype);
     return res;
 }
 
