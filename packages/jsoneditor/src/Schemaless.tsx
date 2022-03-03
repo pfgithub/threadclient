@@ -4,6 +4,7 @@ import { Show } from "tmeta-util-solid";
 import { object, setReconcile, State, StateObject } from "./app_data";
 import { Button } from "./components";
 import { asObject, isObject } from "./guards";
+import { UUID } from "./uuid";
 
 function ObjectEditor(props: {
     state: State,
@@ -93,26 +94,52 @@ function Tab(props: {
     return res as unknown as JSX.Element;
 }
 
-export default function Schemaless(props: {state: State}): JSX.Element {
+function HeadingValue(props: {
+    title: string,
+    children?: JSX.Element,
+}): JSX.Element {
     return <div>
-        <ObjectEditor state={props.state}>{obj => <>
-            <Tabs>
-                <Tab title="demo1">
-                    demo1
-                </Tab>
-                <Tab title="rebind">
-                    rebind
-                </Tab>
-                <Tab title="clicker">
-                    clicker
-                </Tab>
-                <Tab title="text_editor">
-                    text_editor
-                </Tab>
-                <Tab title="schema">
-                    schema
-                </Tab>
-            </Tabs>
-        </>}</ObjectEditor>
+        <div>{props.title}</div>
+        <div class="pl-2 border-l-[0.5rem] border-gray-700">
+            {props.children}
+        </div>
     </div>;
+}
+
+function Demo1Editor(props: {state: State}): JSX.Element {
+    return <ObjectEditor state={props.state}>{obj => <>
+        <div class="space-y-2">
+            <HeadingValue title="people">
+                todo
+            </HeadingValue>
+            <HeadingValue title="root_person">
+                todo
+            </HeadingValue>
+            <HeadingValue title="color">
+                todo
+            </HeadingValue>
+        </div>
+    </>}</ObjectEditor>;
+}
+
+export default function Schemaless(props: {state: State}): JSX.Element {
+    return <ObjectEditor state={props.state}>{obj => <>
+        <Tabs>
+            <Tab title="demo1">
+                <Demo1Editor state={props.state.getKey("<!>demo1" as UUID)} />
+            </Tab>
+            <Tab title="rebind">
+                rebind
+            </Tab>
+            <Tab title="clicker">
+                clicker
+            </Tab>
+            <Tab title="text_editor">
+                text_editor
+            </Tab>
+            <Tab title="schema">
+                schema
+            </Tab>
+        </Tabs>
+    </>}</ObjectEditor>;
 }
