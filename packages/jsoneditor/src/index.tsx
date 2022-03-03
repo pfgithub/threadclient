@@ -2,19 +2,19 @@ import { createSignal } from 'solid-js';
 import { ErrorBoundary, render, Show } from 'solid-js/web';
 import { Debugtool } from 'tmeta-util-solid';
 import App from './App';
-import { autoObject, object, wrap } from './app_data';
+import { object, State, wrap } from './app_data';
+import { RootState } from './editor_data';
 import './index.css';
-import { UUID } from './uuid';
 
 const root_el = document.getElementById('root') as HTMLElement;
 
 render(() => {
   // this should really be a solid router thing
   const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
-  const state = wrap(autoObject({
-    data: {
-      root: null,
-    },
+  const state: State<RootState> = wrap(object({
+    data: wrap(object({
+      root: wrap(null),
+    })),
   }));
   return <ErrorBoundary fallback={(err, reset) => {
     console.log("app error", err);

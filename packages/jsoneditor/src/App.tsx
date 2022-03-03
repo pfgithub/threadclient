@@ -1,6 +1,5 @@
 import { createSelector, createSignal, ErrorBoundary, For, JSX, untrack } from 'solid-js';
 import { ScNode, State } from './app_data';
-import { root_schema } from './default_schema';
 import Design from './design';
 import { NodeProvider, RootState } from './editor_data';
 import JsonViewer from './JsonViewer';
@@ -62,9 +61,7 @@ export default function App(props: {
     },
     json_viewer: {
       title: "JSON Viewer",
-      component: () => <JsonViewer
-        schema={root_schema.root}
-      />,
+      component: () => <JsonViewer />,
     },
     design: {
       title: "Design",
@@ -72,7 +69,6 @@ export default function App(props: {
     },
   };
   return <NodeProvider
-    root={root_schema}
     state={props.state}
   >
     <div class="grid gap-20 md:grid-cols-2 max-w-6xl mx-auto h-full">

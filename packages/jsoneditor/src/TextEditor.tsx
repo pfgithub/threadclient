@@ -1,10 +1,9 @@
 import { createContext, createRenderEffect, createSelector, createSignal, For, Show, Signal, untrack, useContext } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
-import { autoObject, ERROR, object, ScNode, ScObject, setReconcile, State, wrap } from "./app_data";
+import { ERROR, object, ScNode, ScObject, setReconcile, State, wrap } from "./app_data";
 import { Button } from "./components";
 import { asObject, asString, isObject } from "./guards";
-import { NodeSchema, sc } from "./schema";
 import { uuid, UUID } from "./uuid";
 
 // [!]NOTES
@@ -198,7 +197,7 @@ const nc = {
             ext: wrap(ext),
         });
     },
-    embeddedSchemaEditor(schema: NodeSchema): TextEditorParagraphNode {
+    embeddedSchemaEditor(): TextEditorParagraphNode {
         return object({
             kind: wrap("embedded_schema_editor"),
         });
@@ -470,12 +469,7 @@ const defaultnode = (): TextEditorRootNode => nc.root(
             "dolor. Morbi id enim eget elit bibendum venenatis.",
         ].join(" "))
     )],
-    [nc.embeddedSchemaEditor(
-        sc.object({
-            name: sc.string(),
-            description: sc.richtext(),
-        }),
-    )],
+    [nc.embeddedSchemaEditor()],
     [nc.par(
         nc.text([
             "Phasellus in sem ante. Aenean volutpat, purus vel sollicitudin convallis,",

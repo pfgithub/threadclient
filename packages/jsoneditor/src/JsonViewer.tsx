@@ -1,10 +1,9 @@
 import { createMemo, createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
-import { State, StateValue } from "./app_data";
+import { ScNode, State, StateValue } from "./app_data";
 import { Button } from "./components";
 import { getState } from "./editor_data";
 import { asString } from "./guards";
-import { NodeSchema } from "./schema";
 import { UUID } from "./uuid";
 
 export class JSONRaw {
@@ -46,7 +45,7 @@ const colors = [
 ];
 
 export function StoreViewerElement(props: {
-  state: State,
+  state: State<ScNode>,
   level: number,
 }): JSX.Element {
   const color = () => colors[props.level % colors.length |0]!;
@@ -54,12 +53,12 @@ export function StoreViewerElement(props: {
   return createMemo((): JSX.Element => {
     const pv = props.state();
     if(typeof pv === "object" && pv != null) return untrack((): JSX.Element => {
-      const ntries = createMemo<[UUID, State][]>((prev_value) => {
+      const ntries = createMemo<[UUID, State<ScNode>][]>((prev_value) => {
         const ntrieson = Object.entries(pv as object);
-        const res = ntrieson as [UUID, State][];
+        const res = ntrieson as [UUID, State<ScNode>][];
         if(!prev_value) return res;
 
-        const prev_map = new Map<UUID, [UUID, State]>();
+        const prev_map = new Map<UUID, [UUID, State<ScNode>]>();
         for(const ntry of prev_value) prev_map.set(ntry[0], ntry);
         return res.map(([k, v]) => {
           const itm = prev_map.get(k);
@@ -79,7 +78,7 @@ export function StoreViewerElement(props: {
   });
 }
 export function StoreViewer(props: {
-  state: State,
+  state: State<ScNode>,
 }): JSX.Element {
   return <pre class="font-mono whitespace-pre-wrap">
     <StoreViewerElement state={props.state} level={0} />
@@ -90,9 +89,7 @@ export function StoreViewer(props: {
   </pre>;
 }
 
-export default function JsonViewer(props: {
-  schema: NodeSchema,
-}): JSX.Element {
+export default function JsonViewer(): JSX.Element {
   const root_state = getState();
   const [viewModeRaw, setViewMode] = createSignal<StateValue>(undefined);
   const viewMode = () => {
