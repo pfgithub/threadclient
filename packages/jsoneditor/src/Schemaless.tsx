@@ -113,7 +113,7 @@ function HeadingValue(props: {
 }
 
 function linkRoot<T extends LinkType<ScNode>>(cxd: ContextData, link: T): T extends LinkType<infer U> ? State<U> : never {
-    return cxd.state.getKey("data" as UUID).getKey(link);
+    return cxd.state.getKey("data").getKey(link.uuid) as T extends LinkType<infer U> ? State<U> : never;
 }
 
 function StringEditor(props: {state: State<string>}): JSX.Element {
@@ -222,8 +222,8 @@ type Schema = ScObject<{
     text_editor: Richtext,
 }>;
 
-export default function Schemaless(props: {state: State<Schema>}): JSX.Element {
-    return <ObjectEditor state={props.state}>{obj => <>
+export default function Schemaless(props: {state: State<ScNode>}): JSX.Element {
+    return <ObjectEditor state={props.state as State<Schema>}>{obj => <>
         <Tabs>
             <Tab title="demo1">
                 <Demo1Editor state={obj.demo1} />

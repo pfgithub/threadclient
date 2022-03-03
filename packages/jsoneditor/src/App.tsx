@@ -2,7 +2,7 @@ import { createSelector, createSignal, ErrorBoundary, For, JSX, untrack } from '
 import { ScNode, State } from './app_data';
 import { root_schema } from './default_schema';
 import Design from './design';
-import { NodeProvider } from './editor_data';
+import { NodeProvider, RootState } from './editor_data';
 import JsonViewer from './JsonViewer';
 import Schemaless from './Schemaless';
 import { UUID } from './uuid';
@@ -51,13 +51,13 @@ function AnyWindow(props: {
 }
 
 export default function App(props: {
-  state: State<ScNode>,
+  state: State<RootState>,
 }): JSX.Element {
   const windows: {[key: string]: Window} = {
     schemaless: {
       title: "Schemaless",
       component: () => <Schemaless
-        state={(props.state.getKey("data") as unknown as State<ScNode>).getKey("root") as any}
+        state={props.state.getKey("data").getKey("root")}
       />,
     },
     json_viewer: {
