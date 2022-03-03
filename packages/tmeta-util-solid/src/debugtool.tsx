@@ -20,8 +20,8 @@ export default function Debugtool(props: {
         createRoot(dispose => {
             const h = ((time / 10) % 360) |0;
             const anim_time = 1000;
-            setTimeout(() => dispose(), anim_time); // ontraisitionend wasn't triggering?
             const new_node = <div
+                ontransitionend={() => dispose()}
                 style={{
                     'position': "fixed",
                     'top': rect.top + "px",
@@ -35,9 +35,9 @@ export default function Debugtool(props: {
                 }}
                 ref={el => {
                     onMount(() => {
-                        requestAnimationFrame(() => {
-                            el.style.opacity = "0";
-                        });
+                        // https://stackoverflow.com/questions/24148403/trigger-css-transition-on-appended-element
+                        el.offsetWidth;
+                        el.style.opacity = "0";
                     });
                 }}
             >
