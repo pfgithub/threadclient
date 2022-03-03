@@ -21,7 +21,10 @@ export default function Debugtool(props: {
             const h = ((time / 10) % 360) |0;
             const anim_time = 1000;
             const new_node = <div
-                ontransitionend={() => dispose()}
+                ontransitionend={e => {
+                    if(e.target !== e.currentTarget) return;
+                    dispose();
+                }}
                 style={{
                     'position': "fixed",
                     'top': rect.top + "px",

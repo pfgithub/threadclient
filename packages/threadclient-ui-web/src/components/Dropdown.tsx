@@ -127,7 +127,8 @@ export default function Dropdown(props: {
                 tabindex="0"
                 onfocus={() => tabin1.focus()}
             /><Portal mount={node}>
-                <div ontransitionend={() => {
+                <div ontransitionend={e => {
+                    if(e.target !== e.currentTarget) return;
                     setAnimating(false);
                 }} ref={n => {
                     node2 = n;

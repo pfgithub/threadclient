@@ -345,7 +345,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     } as const)[v ?? "default"]}
                 />
                 <p class="my-2">
-                    Shows additional buttons or something
+                    Highlight updates
                 </p>
             </ShowAnimate>
         </SettingsSection>

@@ -740,6 +740,7 @@ function PreviewRealVideo(props: {
         <div
             class="absolute pointer-events-none transition-opacity"
             ontransitionend={(e) => {
+                if(e.target !== e.currentTarget) return;
                 if(!seek()) {
                     e.currentTarget.style.visibility = "hidden";
                 }

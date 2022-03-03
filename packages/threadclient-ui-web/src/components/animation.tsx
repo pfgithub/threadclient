@@ -33,7 +33,8 @@ export function animateHeight(
     setState: (state: boolean, rising: boolean, temporary: boolean) => void,
 ): void {
     const [animating, setAnimating] = createSignal<number | null>(null);
-    comment_root.addEventListener("transitionend", () => {
+    comment_root.addEventListener("transitionend", e => {
+        if(e.target !== e.currentTarget) return;
         setAnimating(null);
         setState(transitionTarget(), false, false);
     });
