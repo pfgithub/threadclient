@@ -39,6 +39,8 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
         } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
         post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
             <Show if={size_lt.sm() && !loader_or_post.first_in_wrapper}>
+                {/* I forgot - why is this duplicated and in different places for loaders vs for posts? */}
+                {/* feels like it should be the same for both and there was some weird reason it couldn't be */}
                 <div class="pt-2" />
             </Show>
             <div class="flex flex-row">
@@ -70,6 +72,7 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                             }}
                             real={false}
                             cstates={props.collapse_data}
+                            threaded={indent.threaded}
                             id={indent.id}
                         />
                     </>}</For>

@@ -87,6 +87,7 @@ type RenderPostOpts = {
     first_in_wrapper: boolean,
     is_pivot: boolean,
     at_or_above_pivot: boolean,
+    threaded: boolean,
 };
 
 function renderPost(
@@ -118,7 +119,12 @@ function renderPost(
     return {
         kind: "post",
         content: post,
-        indent: parent_indent,
+        indent: opts.threaded ? parent_indent.map((idnt, i, a) => {
+            if(i === a.length - 1) {
+                return {...idnt, threaded: true};
+            }
+            return idnt;
+        }) : parent_indent,
         collapse: final_indent,
         first_in_wrapper: opts.first_in_wrapper,
 
@@ -171,16 +177,24 @@ function flattenPost(
 
     if(rres.kind !== "post") return res;
 
-    const self_indent = [...rres.indent, rres.collapse];
-
+    const indent_incl_self = [...rres.indent, rres.collapse];
 
     const show_replies = post.kind === "post" ? post.content.kind === "post" ?
         post.content.show_replies_when_below_pivot
     : true : true;
-    if(!rres.collapse.collapsed && show_replies) for(const reply of postReplies(post, meta)) {
-        res.push(...flattenPost(reply, self_indent, meta, {...rpo, first_in_wrapper: false}));
-    }
 
+    if(!rres.collapse.collapsed && show_replies) {
+        const replies = postReplies(post, meta);
+        for(const reply of replies) {
+            res.push(...flattenPost(
+                reply,
+                rpo.threaded ? rres.indent : indent_incl_self,
+                meta,
+                {...rpo, first_in_wrapper: false, threaded: replies.length === 1},
+            ));
+        }
+    }
+        
     return res;
 }
 
@@ -293,6 +307,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
                 first_in_wrapper: true,
                 at_or_above_pivot: true,
                 is_pivot: item.pivot ?? false,
+                threaded: false,
             }));
         }
         res.push({kind: "wrapper_end"});
@@ -309,6 +324,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
                 first_in_wrapper: true,
                 is_pivot: false,
                 at_or_above_pivot: false,
+                threaded: false,
             }));
             res.push({kind: "wrapper_end"});
         } if(pivot.replies.items.length === 0) {

@@ -32,6 +32,7 @@ export function CollapseButton(props: {
     onClick: () => void,
     real: boolean,
     cstates?: undefined | CollapseData,
+    threaded?: undefined | boolean,
     id?: undefined | Generic.Link<Generic.Post>,
 }): JSX.Element {
     let in_hovers = false;
@@ -44,15 +45,11 @@ export function CollapseButton(props: {
     });
     return <button
         class={classes(
-            // oh, class= and classList= can't be combined
-            props.cstates && props.id ?
-            getCState(props.cstates, props.id).hovering() > 0 ?
-            "collapse-btn-hover " :
-            "" :
-            "",
-            "collapse-btn z-1 static outline-default",
+            "w-15px box-border cursor-pointer min-h-13px pl-6px pr-6px",
+            "z-1 static outline-default",
             props.class ?? "",
             props.collapsed_anim ? "collapsed" : "",
+            props.threaded ?? false ? "relative threaded" : "",
         )}
         draggable={true}
         onClick={() => props.onClick()}
@@ -75,6 +72,11 @@ export function CollapseButton(props: {
             in_hovers = false;
         }}
     >
-        <div class="collapse-btn-inner rounded-none"></div>
+        <div class={classes(
+            "w-3px h-full",
+            props.cstates && props.id && getCState(props.cstates, props.id).hovering() > 0 ?
+            "bg-$collapse-line-color-hover" : 
+            "bg-$collapse-line-color",
+        )}></div>
     </button>;
 }

@@ -51,7 +51,8 @@ function getReplies(id_link: Generic.Link<Generic.Post>): Generic.Link<Generic.P
 
     const kind = postKind(id);
     if(kind === "comment") {
-        const count = faker.datatype.number(3);
+        let count = faker.datatype.number(3);
+        if(count > 2) count = 1;
         return new Array(count).fill(0).map(() => {
             return newLink<Generic.Post>(id + "/" + faker.random.alphaNumeric(6));
         });
