@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
-import { Accessor, children as useChildren, createMemo, JSX } from "solid-js";
-import { Show } from "tmeta-util-solid";
+import { Accessor, children as useChildren, createMemo, For, JSX } from "solid-js";
+import { Show, SwitchKind } from "tmeta-util-solid";
 import { CounterState } from "../app";
 import { addAction } from "./action_tracker";
 import { actAuto, getCounterState } from "./counter";
@@ -28,6 +28,10 @@ function InfoBarItems(props: {post: Generic.PostContentPost}): JSX.Element {
     //         <ConfigurableOrderItem key="" title="">
     //     and then have configurableorder reorder its children automatically based
     //     on what you configure
+    // [!] its children would be required to be static; no children() call for it, just
+    //     an assertion that props.children is an array. this is because it needs to
+    //     be able to know what all the things it even has to reorder are and that can't
+    //     change.
     return <>
         <Show if={props.post.info?.pinned === true}>
             <InfoBarItemRaw
@@ -104,6 +108,9 @@ function InfoBarItems(props: {post: Generic.PostContentPost}): JSX.Element {
     </>;
 }
 
+// v to make this even better we could handle adding a proxy with a unique symbol
+// ourselves and give you the guard function and child element function. this is good
+// enough for now though
 function useTypesafeChildren<T extends {[key: string]: unknown}>(
     rawChildrenAccessor: Accessor<JSX.Element>, guard: (v: unknown) => v is T,
 ): Accessor<T[]> {
@@ -137,118 +144,153 @@ export type ActionItem = {
     client_id: string,
 };
 
-function counterAction(
+function CounterAction(props: {
     action: Generic.CounterAction,
-    [state, setState]: [CounterState, (nv: CounterState) => void],
+    state: CounterState,
+    setState: (nv: CounterState) => void,
     direction: "increment" | "decrement",
     client_id: string,
-): ActionItem {
-    const your_vote = state.your_vote;
-    return {
-        icon: action[direction]!.icon,
-        color: your_vote === direction ?
-        action[direction]!.color : null,
-        text: your_vote === direction ?
-        action[direction]!.undo_label : action[direction]!.label,
-        onClick: state.loading ? "disabled" : () => {
-            void addAction(actAuto(
-                your_vote === direction ? undefined : direction,
-                state,
-                setState,
-                action,
-            ));
-        },
-
-        client_id: client_id,
-    };
-}
-
-export function getActionsFromAction(action: Generic.Action, opts: ClientPostOpts): ActionItem[] {
-    const actions: ActionItem[] = [];
-
-    if(action.kind === "counter") {
-        const [getState, setState] = getCounterState(() => action);
-        const state = getState();
-
-        actions.push(counterAction(action, [state, setState], "increment", opts.client_id));
-        if(action.decrement) {
-            actions.push(counterAction(action, [state, setState], "decrement", opts.client_id));
-        }
-    }else{
-        // assertNever(action);
-    }
-
-    return actions;
-}
-
-export function getActions(post: Generic.PostContentPost, opts: ClientPostOpts): ActionItem[] {
-    const actions: ActionItem[] = [];
-
-    if(opts.collapse_data && opts.id && post.collapsible !== false && !opts.is_pivot) {
-        const cs = getCState(opts.collapse_data, opts.id);
-        const collapsed = cs.collapsed();
-        actions.push({
-            icon: collapsed ? "chevron_down" : "chevron_up",
-            color: null,
-            text: collapsed ? "Uncollapse" : "Collapse",
-            onClick: () => cs.setCollapsed(v => !v),
-
-            client_id: opts.client_id
-        });
-    }
-
-    if(opts.frame?.url != null) {
-        actions.push({
-            icon: "link",
-            color: null,
-            text: post.info?.comments != null ? (
-                post.info.comments.toLocaleString() + " comment"+(
-                    post.info.comments === 1 ? "" : "s"
-                )
-            ) : (
-                "Comments"
-            ),
-            onClick: {url: opts.frame.url},
-
-            client_id: opts.client_id,
-        });
-    }
-
-    if(post.actions?.vote) {
-        actions.push(...getActionsFromAction(post.actions.vote, opts));
-    }
-
-    if(opts.frame?.replies?.reply) {
-        // if=props.content.show_replies_when_below_pivot && !props.opts.at_or_above_pivot
-        // ?
-        actions.push({
-            icon: "reply",
-            color: null,
-            text: "Reply",
-            onClick: () => alert("TODO"),
-
-            client_id: opts.client_id,
-        });
-    }
-
-    for(const action of post.actions?.other ?? []) {
-        actions.push(...getActionsFromAction(action, opts));
-    }
-
-    if(post.actions?.code) {
-        actions.push(...getActionsFromAction(post.actions.code, opts));
-    }else{
-        actions.push({
-            icon: "code",
-            color: null,
-            text: "Code",
-            onClick: () => {
-                console.log(post, opts);
+}): JSX.Element {
+    return <ActionItemRaw {...((): ActionItem => {
+        const {action, state, setState, direction, client_id} = props;
+        const your_vote = state.your_vote;
+        return {
+            icon: action[direction]!.icon,
+            color: your_vote === direction ?
+            action[direction]!.color : null,
+            text: your_vote === direction ?
+            action[direction]!.undo_label : action[direction]!.label,
+            onClick: state.loading ? "disabled" : () => {
+                void addAction(actAuto(
+                    your_vote === direction ? undefined : direction,
+                    state,
+                    setState,
+                    action,
+                ));
             },
+    
+            client_id: client_id,
+        };
+    })()} />;
+}
 
-            client_id: opts.client_id,
-        });
-    }
+function GetActionsFromAction(props: {action: Generic.Action, opts: ClientPostOpts}): JSX.Element {
+    return <SwitchKind item={props.action} fallback={v => <>
+        <ActionItemRaw
+            icon="code"
+            color={null} // grayed out maybe
+            text={"TODO "+v.kind}
+            onClick="disabled"
 
-    return actions;
+            client_id="*UNUSED*"
+        />
+    </>}>{{
+        counter: voteact => {
+            const [getState, setState] = getCounterState(() => voteact);
+            return <>
+                <CounterAction {...{
+                    action: voteact,
+                    state: getState(),
+                    setState,
+                    direction: "increment",
+                    client_id: props.opts.client_id,
+                }} />
+                <Show if={voteact.decrement != null}>
+                    <CounterAction {...{
+                        action: voteact,
+                        state: getState(),
+                        setState,
+                        direction: "decrement",
+                        client_id: props.opts.client_id,
+                    }} />
+                </Show>
+            </>;
+        },
+    }}</SwitchKind>;
+}
+
+function ActionItemRaw(props: ActionItem): JSX.Element {
+    return props as unknown as JSX.Element;
+}
+
+function ActionBarItems(props: {
+    post: Generic.PostContentPost,
+    opts: ClientPostOpts,
+}): JSX.Element {
+    return <>
+        {/* now I want a <Show whenAll={{a, b, c}}>{(props) => } */}
+        {props.opts.collapse_data && props.opts.id && props.post.collapsible !== false && !props.opts.is_pivot ? <>
+            <ActionItemRaw {...((): ActionItem => {
+                const cs = getCState(props.opts.collapse_data, props.opts.id);
+                const collapsed = cs.collapsed();
+                return {
+                    icon: collapsed ? "chevron_down" : "chevron_up",
+                    color: null,
+                    text: collapsed ? "Uncollapse" : "Collapse",
+                    onClick: () => cs.setCollapsed(v => !v),
+
+                    client_id: props.opts.client_id,
+                };
+            })()}/>
+        </> : null}
+
+        {props.opts.frame?.url != null ? <>
+            <ActionItemRaw
+                icon="link"
+                color={null}
+                text={props.post.info?.comments != null ? (
+                    props.post.info.comments.toLocaleString() + " comment"+(
+                        props.post.info.comments === 1 ? "" : "s"
+                    )
+                ) : (
+                    "Comments"
+                )}
+                onClick={{url: props.opts.frame.url}}
+
+                client_id={props.opts.client_id}
+            />
+        </> : null}
+
+        <Show when={props.post.actions?.vote}>{voteact => (
+            <GetActionsFromAction action={voteact} opts={props.opts} />
+        )}</Show>
+
+        <Show when={props.opts.frame?.replies?.reply}>{reply => (
+            <ActionItemRaw
+                icon="reply"
+                color={null}
+                text="Reply"
+                onClick={() => alert("TODO")}
+
+                client_id={props.opts.client_id}
+                // wait a sec can't I just make the useActionBar call
+                // add client id automatically
+            />
+        )}</Show>
+
+        <For each={props.post.actions?.other ?? []}>{action => (
+            <GetActionsFromAction action={action} opts={props.opts} />
+        )}</For>
+
+        <Show when={props.post.actions?.code} fallback={(
+            <ActionItemRaw
+                icon="code"
+                color={null}
+                text="Code"
+                onClick={() => {
+                    console.log(props.post, props.opts);
+                }}
+
+                client_id={props.opts.client_id}
+            />
+        )}>{codeact => (
+            <GetActionsFromAction action={codeact} opts={props.opts} />
+        )}</Show>
+    </>;
+}
+
+export function useActions(post: () => Generic.PostContentPost, opts: () => ClientPostOpts): () => ActionItem[] {
+    return useTypesafeChildren(() => <ActionBarItems post={post()} opts={opts()} />, (v): v is ActionItem => {
+        return true;
+    });
 }

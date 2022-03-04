@@ -17,7 +17,7 @@ import { CounterCount, VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import { Flair } from "./Flair";
 import { CollapseData, getCState } from "./flatten";
-import { getActions } from "./flat_posts";
+import { useActions } from "./flat_posts";
 import { HSplit } from "./HSplit";
 import InfoBar from "./InfoBar";
 import { A, LinkButton, UserLink } from "./links";
@@ -92,6 +92,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     };
 
     const hprc = getWholePageRootContextOpt();
+
+    const getActions = useActions(() => props.content, () => props.opts);
 
     return <article
         ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
@@ -283,7 +285,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     <HSplit.Child vertical="top">
                         <div class="pl-2" />
                         <Dropdown label={"…"}>
-                            <For each={getActions(props.content, props.opts)}>{action => <>
+                            <For each={getActions()}>{action => <>
                                 <DropdownActionButton action={action} />
                             </>}</For>
                         </Dropdown>
@@ -314,7 +316,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     <InfoBar post={props.content} />
                     <div class="mt-2" />
                     <div class="flex flex-wrap gap-2">
-                        <For each={getActions(props.content, props.opts)}>{action => <>
+                        <For each={getActions()}>{action => <>
                             <HorizontalActionButton action={action} />
                         </>}</For>
                     </div>

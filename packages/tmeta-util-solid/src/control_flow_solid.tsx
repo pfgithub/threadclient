@@ -4,12 +4,21 @@ import { MatchFn, switchKindCB } from "tmeta-util";
 export { default as Debugtool } from "./debugtool";
 export { Key } from "./Key";
 
+/// note that the key 'unsupported' is special-cased to be equivalent to `fallback={}`
 export function SwitchKind<T extends {kind: string}>(props: {
     item: T,
     children: {[Key in T["kind"]]: MatchFn<T, Key, JSX.Element>},
+} | {
+    item: T,
+    fallback: MatchFn<T, string, JSX.Element>, // there is probably some messy way it would be possible to make this all the keys that were
+    // not explicitly matched in children. not sure how though
+    children: {[Key in T["kind"]]?: undefined | MatchFn<T, Key, JSX.Element>},
 }): JSX.Element {
     return createMemo(() => {
-        const match = switchKindCB<JSX.Element>(props.item, props.children);
+        const match = switchKindCB<JSX.Element>(props.item, 'fallback' in props ? {
+            ...props.children,
+            unsupported: props.fallback,
+        } : props.children);
         return untrack(() => match());
     });
 }
