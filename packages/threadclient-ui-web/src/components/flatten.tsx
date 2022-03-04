@@ -191,7 +191,9 @@ function flattenPost(
 
     if((rpo.threaded || !rres.collapse.collapsed) && show_replies) {
         const replies = postReplies(post, meta);
-        const replies_threaded = replies.length === 1;
+        const replies_threaded = replies.length === 1 && (rpo.threaded ? true : (
+            readLink(meta, replies[0]!).value?.replies?.items.length === 1
+        ));
         for(const reply of replies) {
             res.push(...flattenPost(
                 reply,
