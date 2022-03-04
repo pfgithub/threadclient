@@ -188,12 +188,13 @@ function flattenPost(
 
     if((rpo.threaded || !rres.collapse.collapsed) && show_replies) {
         const replies = postReplies(post, meta);
+        const replies_threaded = replies.length === 1;
         for(const reply of replies) {
             res.push(...flattenPost(
                 reply,
-                rpo.threaded ? indent_excl_self : indent_incl_self,
+                rpo.threaded && replies_threaded ? indent_excl_self : indent_incl_self,
                 meta,
-                {...rpo, first_in_wrapper: false, threaded: replies.length === 1},
+                {...rpo, first_in_wrapper: false, threaded: replies_threaded},
             ));
         }
     }
