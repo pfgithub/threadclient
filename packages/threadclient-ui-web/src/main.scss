@@ -497,7 +497,7 @@ html {
 .replies > .comment > .post.layout-commentlike > .collapse-btn {
     bottom: 0;
 }
-.post.layout-commentlike.comment-collapsed > .collapse-btn, .collapse-btn.collapsed {
+.post.layout-commentlike.comment-collapsed > .collapse-btn, .collapse-btn.collapsed, .bgimg-collapse-btn-collapsed {
     background-color: rgba(0, 0, 0, 0);
     // prettier-ignore
     background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAA"

@@ -1,5 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { JSX, onCleanup } from "solid-js";
+import { Show } from "tmeta-util-solid";
 import {
     classes
 } from "../util/utils_solid";
@@ -48,7 +49,7 @@ export function CollapseButton(props: {
             "w-15px box-border cursor-pointer min-h-13px pl-6px pr-6px",
             "z-1 static outline-default",
             props.class ?? "",
-            props.collapsed_anim ? "collapsed" : "",
+            props.collapsed_anim ? "bgimg-collapse-btn-collapsed" : "",
             props.threaded ?? false ? "threaded-new" : "",
         )}
         draggable={true}
@@ -72,11 +73,13 @@ export function CollapseButton(props: {
             in_hovers = false;
         }}
     >
-        <div class={classes(
-            "w-3px h-full",
-            props.cstates && props.id && getCState(props.cstates, props.id).hovering() > 0 ?
-            "bg-$collapse-line-color-hover" : 
-            "bg-$collapse-line-color",
-        )}></div>
+        <Show if={!props.collapsed_anim}>
+            <div class={classes(
+                "w-3px h-full",
+                props.cstates && props.id && getCState(props.cstates, props.id).hovering() > 0 ?
+                "bg-$collapse-line-color-hover" : 
+                "bg-$collapse-line-color",
+            )}></div>
+        </Show>
     </button>;
 }
