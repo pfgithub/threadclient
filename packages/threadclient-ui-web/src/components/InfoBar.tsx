@@ -6,7 +6,7 @@ import { assertNever } from "tmeta-util";
 import { timeAgoTextWatchable } from "tmeta-util-solid";
 import { classes } from "../util/utils_solid";
 import { colorClass } from "./color";
-import { getInfoBar, InfoBarItem } from "./flat_posts";
+import { InfoBarItem, useInfoBar } from "./flat_posts";
 import Icon from "./Icon";
 
 function scoreToString(score: number) {
@@ -41,7 +41,7 @@ function formatItemString({value}: InfoBarItem): [short: string, long: string] {
     assertNever(value[0]);
 }
 
-function InfoBarItemNode(props: {item: InfoBarItem}): JSX.Element {
+export function InfoBarItemNode(props: {item: InfoBarItem}): JSX.Element {
     // sizeLt.sm
     // for larger sizes we can do longer text
     // eg
@@ -65,8 +65,9 @@ function InfoBarItemNode(props: {item: InfoBarItem}): JSX.Element {
 }
 
 export default function InfoBar(props: {post: Generic.PostContentPost}): JSX.Element {
+    const getInfoBar = useInfoBar(() => props.post);
     return <div class="text-gray-500 flex flex-wrap gap-2 <sm:text-xs">
-        <For each={getInfoBar(props.post)}>{item => (
+        <For each={getInfoBar()}>{item => (
             <InfoBarItemNode item={item} />
         )}</For>
     </div>;

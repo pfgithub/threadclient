@@ -1,4 +1,6 @@
 import type * as Generic from "api-types-generic";
+import { Accessor, children as useChildren, createMemo, JSX } from "solid-js";
+import { Show } from "tmeta-util-solid";
 import { CounterState } from "../app";
 import { addAction } from "./action_tracker";
 import { actAuto, getCounterState } from "./counter";
@@ -13,89 +15,115 @@ export type InfoBarItem = {
     disabled?: undefined | boolean,
 };
 
-export function getInfoBar(post: Generic.PostContentPost): InfoBarItem[] {
-    const res: InfoBarItem[] = [];
+function InfoBarItemRaw(props: InfoBarItem): JSX.Element {
+    return props as unknown as JSX.Element; // has getters so no need to memo it
+    // oh that's annoying I want to do {...props, [symbol_is_infobar_item]: true}
+    // can't because of the getters. I'd have to use solid spread() or use a proxy
+}
 
+function InfoBarItems(props: {post: Generic.PostContentPost}): JSX.Element {
     // TODO make the order user-configurable
+    //     we should be able to make a
+    //     <ConfigurableOrder>
+    //         <ConfigurableOrderItem key="" title="">
+    //     and then have configurableorder reorder its children automatically based
+    //     on what you configure
+    return <>
+        <Show if={props.post.info?.pinned === true}>
+            <InfoBarItemRaw
+                icon="pinned"
+                value={["none", -1000]}
+                color="green"
+                text="Pinned"
+            />
+        </Show>
+        <Show when={props.post.actions?.vote}>{voteact => {
+            const [stateR] = getCounterState(() => voteact);
+            // const state = stateR();
+            const ptCount = () => stateR().pt_count;
+            return <>
+                <InfoBarItemRaw {...(() => {
+                    const pt_count = ptCount();
+                    const state = stateR();
+                    return {
+                        value: pt_count === "hidden"
+                        ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
+                        : ["number", pt_count + ({
+                            increment: 1,
+                            decrement: -1,
+                            none: 0,
+                        } as const)[state.your_vote ?? "none"]],
+                        icon: ({
+                            none: voteact.neutral_icon ?? voteact.increment.icon,
+                            increment: voteact.increment.icon,
+                            decrement: voteact.decrement?.icon ?? voteact.increment.icon,
+                        } as const)[state.your_vote ?? "none"],
+                        color: ({
+                            none: null,
+                            increment: voteact.increment.color,
+                            decrement: voteact.decrement?.color ?? voteact.increment.color,
+                        } as const)[state.your_vote ?? "none"],
+                        text: "Points",
+                        disabled: state.loading,
+                    };
+                })()} />
+                <Show when={voteact.percent}>{percent => (
+                    <InfoBarItemRaw
+                        icon="controversiality"
+                        value={["percent", percent]}
+                        color={null}
+                        text="Controversiality"
+                    />
+                )}</Show>
+            </>;
+        }}</Show>
+        <Show when={props.post.info?.comments}>{comments => (
+            <InfoBarItemRaw
+                icon="comments"
+                value={["number", comments]}
+                color={null}
+                text="Comments"
+            />
+        )}</Show>
+        <Show when={props.post.info?.creation_date}>{creation_date => (
+            <InfoBarItemRaw
+                icon="creation_time"
+                value={["timeago", creation_date]}
+                color={null}
+                text="Posted"
+            />
+        )}</Show>
+        <Show when={props.post.info?.edited}>{edited => (
+            <InfoBarItemRaw
+                icon="edit_time"
+                value={edited.date == null ? ["none", -1000] : ["timeago", edited.date]}
+                color={null}
+                text="Edited"
+            />
+        )}</Show>
+    </>;
+}
 
-    if(post.info?.pinned === true) {
-        res.push({
-            icon: "pinned",
-            value: ["none", -1000],
-            color: "green",
-            text: "Pinned",
-        });
-    }
-    if(post.actions?.vote) {
-        const voteact = post.actions.vote;
-        const [stateR] = getCounterState(() => post.actions!.vote!);
-        const state = stateR();
-        const pt_count = state.pt_count;
-        res.push({
-            value: pt_count === "hidden"
-            ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
-            : ["number", pt_count + ({
-                increment: 1,
-                decrement: -1,
-                none: 0,
-            } as const)[state.your_vote ?? "none"]],
-            icon: ({
-                none: voteact.neutral_icon ?? voteact.increment.icon,
-                increment: voteact.increment.icon,
-                decrement: voteact.decrement?.icon ?? voteact.increment.icon,
-            } as const)[state.your_vote ?? "none"],
-            color: ({
-                none: null,
-                increment: voteact.increment.color,
-                decrement: voteact.decrement?.color ?? voteact.increment.color,
-            } as const)[state.your_vote ?? "none"],
-            text: "Points",
-            disabled: state.loading,
-        });
-        if(post.actions.vote.percent != null) {
-            res.push({
-                icon: "controversiality",
-                value: ["percent", post.actions.vote.percent],
-                color: null,
-                text: "Controversiality",
-            });
+function useTypesafeChildren<T extends {[key: string]: unknown}>(
+    rawChildrenAccessor: Accessor<JSX.Element>, guard: (v: unknown) => v is T,
+): Accessor<T[]> {
+    const children = useChildren(rawChildrenAccessor);
+    return createMemo((): T[] => {
+        let cv = children();
+        if(!Array.isArray(cv)) {
+            cv = [cv];
         }
-    }
-    if(post.info?.comments != null) {
-        res.push({
-            icon: "comments",
-            value: ["number", post.info.comments],
-            color: null,
-            text: "Comments",
+        return cv.filter(itm => itm).map((v): T => {
+            if(!guard(v)) throw new Error("invalid typesafechildren child item");
+            return v;
         });
-    }
-    if(post.info?.creation_date != null) {
-        res.push({
-            icon: "creation_time",
-            value: ["timeago", post.info.creation_date],
-            color: null,
-            text: "Posted",
-        });
-    }
-    if(post.info?.edited) {
-        res.push({
-            icon: "edit_time",
-            value: post.info.edited.date == null ? ["none", -1000] :
-            ["timeago", post.info.edited.date],
-            color: null,
-            text: "Edited",
-        });
-    }
+    });
+}
 
-    // if(getSettings().dev_mode ==)
-    // res.push({
-    //     icon: "code",
-    //     value: ["number", Date.now() % 999],
-    //     color: null,
-    //     text: "Random",
-    // })
-
-    return res;
+export function useInfoBar(post: () => Generic.PostContentPost): () => InfoBarItem[] {
+    return useTypesafeChildren(() => <InfoBarItems post={post()} />, (v): v is InfoBarItem => {
+        return true;
+    });
 }
 
 export type ActionItem = {
