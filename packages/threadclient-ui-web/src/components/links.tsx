@@ -11,12 +11,14 @@ export function PreviewableLink(props: {
     href: string,
     client_id: string,
     children: JSX.Element,
+    allow_preview: boolean,
 }): JSX.Element {
     const linkPreview: () => {
         visible: () => boolean,
         setVisible: (a: boolean) => void,
         body: Generic.Body,
     } | undefined = createMemo(() => {
+        if(!props.allow_preview) return undefined;
         const body = previewLink(props.href, {});
         if(!body) return undefined;
         const [visible, setVisible] = createSignal(false);
@@ -28,10 +30,11 @@ export function PreviewableLink(props: {
             client_id={props.client_id}
             href={props.href}
             style={linkPreview() ? "previewable" : "normal"}
-        onClick={linkPreview() ? () => {
-            const lp = linkPreview()!;
-            lp.setVisible(!lp.visible());
-        } : undefined}>
+            onClick={linkPreview() ? () => {
+                const lp = linkPreview()!;
+                lp.setVisible(!lp.visible());
+            } : undefined}
+        >
             {props.children}
             <Show when={linkPreview()}>{preview_opts => <>
                 {" "}{preview_opts.visible() ? "▾" : "▸"}
@@ -76,7 +79,12 @@ export function A(props: {
         >{props.children}</span>,
         link: (link) => <a
             class={props.class} href={link.url} target="_blank" rel="noopener noreferrer"
-            onclick={(!link.external || props.onClick || props.onClickNoPreventDefault) ? event => {
+            onclick={event => {
+                // onclick is not allowed to be observable so always add it
+                if(link.external && !props.onClick && !props.onClickNoPreventDefault) {
+                    return;
+                }
+
                 props.onClickNoPreventDefault?.(event);
                 event.stopPropagation();
                 if (
@@ -88,7 +96,7 @@ export function A(props: {
                     if(props.onClick) return props.onClick(event);
                     navigate({path: link.url});
                 }
-            } : undefined}
+            }}
             ref={v => props.btnref?.(v)}
         >{props.children}</a>,
         none: () => <button

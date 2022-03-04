@@ -22,6 +22,7 @@ function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
     // used to do this: el("span").atxt("«no text»").adto(reslink);
     // but that doesn't work in many conditions
     const styleIsLink = () => (props.rts.style ?? "link") === "link";
+    const settings = getSettings();
     return <span title={props.rts.title}><Switch>
         <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => (
             <UserLink client_id={props.rts.client_id} color_hash={color_hash} href={props.rts.url}>
@@ -32,6 +33,7 @@ function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
             <PreviewableLink
                 client_id={props.rts.client_id}
                 href={props.rts.url}
+                allow_preview={settings.link_helpers.value() === "hide"}
             >
                 <RichtextSpans spans={props.rts.children} />
             </PreviewableLink>
