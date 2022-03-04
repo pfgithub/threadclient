@@ -33,7 +33,7 @@ function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
             <PreviewableLink
                 client_id={props.rts.client_id}
                 href={props.rts.url}
-                allow_preview={settings.link_helpers.value() === "hide"}
+                allow_preview={settings.linkHelpers() === "hide"}
             >
                 <RichtextSpans spans={props.rts.children} />
             </PreviewableLink>
@@ -388,7 +388,7 @@ export function RichtextParagraphs(props: {
         <div classList={{'my-2': !(props.tight ?? false)}}>
             <RichtextParagraph paragraph={paragraph} />
         </div>
-        <Show if={settings.link_helpers.value() === "show"}>
+        <Show if={settings.linkHelpers() === "show"}>
             <For each={extractLinks(paragraph)}>{link => (
                 <MobileLinkPreview link={link} />
             )}</For>

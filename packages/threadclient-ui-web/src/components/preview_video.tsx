@@ -411,7 +411,7 @@ function PreviewRealVideo(props: {
     const settings = getSettings();
 
     const customControls = () => {
-        return settings.custom_video_controls.value() === "custom" || !!state.live;
+        return settings.customVideoControls() === "custom" || !!state.live;
     };
 
     // note: once menus are added, expandControls() has to return true if any menu is open

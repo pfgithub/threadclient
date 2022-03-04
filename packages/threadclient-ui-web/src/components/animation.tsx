@@ -19,10 +19,10 @@ document.addEventListener("focus", e => {
 
 export function animationTime(): number {
     const settings = getSettings();
-    if(untrack(() => settings.motion.value() === "reduce")) return 0;
+    if(untrack(() => settings.motion() === "reduce")) return 0;
     return untrack(() => (
-        shift_pressed && settings.animation_dev_mode.value() === "shift_slow"
-        ? 3 : settings.animation_time.value()
+        shift_pressed && settings.animationDevMode() === "shift_slow"
+        ? 3 : settings.animationTime()
     ));
 }
 
@@ -63,7 +63,7 @@ export function animateHeight(
         }
 
         const target = transitionTarget();
-        if(settings.motion.value() === "reduce" || settings.animation_time.value() === 0) {
+        if(settings.motion() === "reduce" || settings.animationTime() === 0) {
             setState(target, false, false);
             return;
         }

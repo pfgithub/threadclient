@@ -21,7 +21,7 @@ export default function ReplyEditor(props: {
     const [showSignature, setShowSignature] = createSignal(true);
     const content = () => {
         const v = baseContent() ?? "";
-        const signature = settings.signature.value();
+        const signature = settings.signature();
         if(showSignature() && signature.trim()) {
             return v + (v.trim() ? "\n\n" : "") + signature;
         }
@@ -46,7 +46,7 @@ export default function ReplyEditor(props: {
                 setBaseContent(e.currentTarget.value);
             }}
         />
-        <Show if={!!settings.signature.value().trim()}>
+        <Show if={!!settings.signature().trim()}>
             <label class="my-3">
                 <input type="checkbox" checked={showSignature()} onInput={nv => {
                     setShowSignature(nv.currentTarget.checked);

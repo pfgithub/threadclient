@@ -56,15 +56,15 @@ export function SettingPicker<T extends string>(props: {
     return <div>
         <For each={props.options}>{option => <>
             <button
-                class={menuButtonStyle(props.setting.compute.override() === option)}
-                aria-checked={props.setting.compute.override() === option}
+                class={menuButtonStyle(props.setting.override() === option)}
+                aria-checked={props.setting.override() === option}
                 onclick={() => {
-                    props.setting.compute.setOverride(option);
+                    props.setting.setOverride(option);
                 }}
             >
                 <Show when={option}
                     fallback={
-                        <>{props.name(undefined)} ({props.name(props.setting.compute.base())})</>
+                        <>{props.name(undefined)} ({props.name(props.setting.base())})</>
                     }
                 >{opt => <>
                     {props.name(opt)}
@@ -81,7 +81,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
     return <main class="client-wrapper"><div class="display-comments-view">
         <SettingsSection title="Color Scheme">
             <SettingPicker
-                setting={settings.color_scheme}
+                setting={settings.colorScheme}
                 options={["light", "dark", undefined]}
                 name={v => ({
                     light: "Light",
@@ -92,7 +92,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Profile Images">
             <SettingPicker
-                setting={settings.author_pfp}
+                setting={settings.authorPfp}
                 options={["on", "off", undefined]}
                 name={v => ({
                     on: "On",
@@ -135,7 +135,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Update Notices">
             <SettingPicker
-                setting={settings.update_notifications}
+                setting={settings.updateNotifications}
                 options={["on", "off", undefined]}
                 name={v => ({
                     on: "On",
@@ -152,7 +152,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Link Helpers">
             <SettingPicker
-                setting={settings.link_helpers}
+                setting={settings.linkHelpers}
                 options={["show", "hide", undefined]}
                 name={v => ({
                     show: "Show",
@@ -180,7 +180,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Custom Video Controls">
             <SettingPicker
-                setting={settings.custom_video_controls}
+                setting={settings.customVideoControls}
                 options={["browser", "custom", undefined]}
                 name={v => ({
                     browser: "Browser",
@@ -236,22 +236,22 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "System Default",
                 } as const)[v ?? "default"]}
             />
-            <ShowAnimate when={settings.motion.value() === "full"}>
+            <ShowAnimate when={settings.motion() === "full"}>
                 <div><For each={[0, 0.1, 0.2, 0.3, undefined]}>{option => {
-                    const setting = settings.animation_time;
+                    const setting = settings.animationTime;
                     const name = (v: number | undefined) => {
                         if(v == null) return "Default";
                         return "" + v + "s";
                     };
                     return <button
-                        class={menuButtonStyle(setting.compute.override() === option)}
+                        class={menuButtonStyle(setting.override() === option)}
                         onclick={() => {
-                            setting.compute.setOverride(option);
+                            setting.setOverride(option);
                         }}
                     >
                         <Show when={option}
                             fallback={
-                                <>{name(undefined)} ({name(setting.compute.base())})</>
+                                <>{name(undefined)} ({name(setting.base())})</>
                             }
                         >{opt => <>
                             {name(opt)}
@@ -259,7 +259,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     </button>;
                 }}</For></div>
                 <SettingPicker
-                    setting={settings.animation_dev_mode}
+                    setting={settings.animationDevMode}
                     options={["none", "shift_slow", undefined]}
                     name={v => ({
                         none: "None",
@@ -295,9 +295,9 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
             <textarea
                 class="w-full bg-gray-100 p-2 placeholder-gray-400"
                 rows={4}
-                value={settings.signature.value()}
+                value={settings.signature()}
                 onInput={v => {
-                    settings.signature.compute.setOverride(v.currentTarget.value || undefined);
+                    settings.signature.setOverride(v.currentTarget.value || undefined);
                 }}
                 placeholder={"~ Sent from my Samsung Smart Fridge"}
             />
@@ -323,7 +323,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
             >
                 <h3 class="text-lg font-light text-gray-600">Page Version</h3>
                 <SettingPicker
-                    setting={settings.page_version}
+                    setting={settings.pageVersion}
                     options={["1", "2", undefined]}
                     name={v => ({
                         '1': "V1",
@@ -336,7 +336,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 </p>
                 <h3 class="text-lg font-light text-gray-600">Developer Mode</h3>
                 <SettingPicker
-                    setting={settings.developer_mode}
+                    setting={settings.highlightRerenders}
                     options={["on", "off", undefined]}
                     name={v => ({
                         'on': "On",

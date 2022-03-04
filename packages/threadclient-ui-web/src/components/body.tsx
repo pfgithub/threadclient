@@ -407,7 +407,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
 
     const settings = getSettings();
     const supportsFullscreen = createMemo(() => props.images.every(img => img.body.kind === "captioned_image"));
-    const usesFullscreen = () => supportsFullscreen() && settings.gallery_display.value() === "fullscreen";
+    const usesFullscreen = () => supportsFullscreen() && settings.galleryDisplay() === "fullscreen";
 
     let div!: HTMLDivElement;
 

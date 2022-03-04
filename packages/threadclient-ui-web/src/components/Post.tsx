@@ -226,7 +226,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         )}>
                             <Show when={props.content.author}>{author => <>
                                 <Show if={
-                                    selfVisible() && settings.author_pfp.value() === "on"
+                                    selfVisible() && settings.authorPfp() === "on"
                                 } when={author.pfp} fallback={"By "}>{pfp => <>
                                     <AuthorPfp src_url={pfp.url} />{" "}
                                 </>}</Show>

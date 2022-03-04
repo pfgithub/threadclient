@@ -58,7 +58,7 @@ export function main(): void {
     current_history_index = 0;
     bodytop = el("div").adto(rootel);
     
-    const pagever = getSettings().page_version.value();
+    const pagever = getSettings().pageVersion();
     if(pagever === "1" || pagever === "2") {
         const frame = el("nav").clss("navbar", "bg-postcolor-100", "transition-opacity").adto(rootel);
         navbar = frame;
@@ -163,7 +163,7 @@ export const updateSW = registerSW({
         console.log("An update to ThreadClient is available");
         setUpdateAvailable(true);
         const settings = getSettings();
-        if(settings.update_notifications.value() === "on") {
+        if(settings.updateNotifications() === "on") {
             const alert = el("div").clss("alert").adto(alertarea!);
             el("div").clss("alert-body").adto(alert).atxt("An update to ThreadClient is available.");
             elButton("pill-empty").atxt("Ignore").adto(alert).onev("click", (e) => {

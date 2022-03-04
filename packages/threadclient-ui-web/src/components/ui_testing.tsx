@@ -121,7 +121,7 @@ export default function UITestingPage(): JSX.Element {
 
     return <div class="m-4 <sm:mx-0 text-gray-800">
         <SettingPicker
-            setting={settings.color_scheme}
+            setting={settings.colorScheme}
             options={["light", "dark", undefined]}
             name={v => ({
                 light: "Light",

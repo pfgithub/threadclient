@@ -2625,7 +2625,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        if(!client.getThread || client.getPage && getSettings().page_version.value() === "2") {
+        if(!client.getThread || client.getPage && getSettings().pageVersion() === "2") {
             const page2 = await client.getPage!(current_path);
             const page: MutablePage2HistoryNode = {page: page2};
 
@@ -3151,7 +3151,7 @@ export function startDebugTool(root: HTMLElement) {
 
     const settings = getSettings();
 
-    render(() => <Show if={settings.developer_mode.value() === "on"}>
+    render(() => <Show if={settings.highlightRerenders() === "on"}>
         <Debugtool observe_root={root} />
     </Show>, belowbody);
     // <Show when={enabled in settings}>

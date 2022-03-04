@@ -76,14 +76,13 @@ export function getWholePageRootContext(): PageRootContext {
     return page_root_context;
 }
 
-export type ComputeProperty<T> = {
-    value: () => T,
-    compute: {
-        base: () => T,
-        override: () => T | undefined,
-        setOverride(value: T | undefined): void,
-    },
+type ComputePropertyFn<T> = (() => T);
+type ComputePropertyOpts<T> = {
+    base: () => T,
+    override: () => T | undefined,
+    setOverride(value: T | undefined): void,
 };
+export type ComputeProperty<T> = ComputePropertyFn<T> & ComputePropertyOpts<T>;
 export type ColorScheme = "light" | "dark";
 export type AuthorPfp = "on" | "off";
 export type UpdateNotifications = "on" | "off";
@@ -95,17 +94,17 @@ export type GalleryDisplay = "fullscreen" | "inline"; // if the gallery view pre
 export type Motion = "full" | "reduce";
 export type AnimationDevMode = "none" | "shift_slow";
 export type Settings = {
-    color_scheme: ComputeProperty<ColorScheme>,
-    author_pfp: ComputeProperty<AuthorPfp>,
-    update_notifications: ComputeProperty<UpdateNotifications>,
-    custom_video_controls: ComputeProperty<CustomVideoControls>,
-    page_version: ComputeProperty<PageVersion>,
-    link_helpers: ComputeProperty<LinkHelpers>,
-    developer_mode: ComputeProperty<DeveloperMode>,
-    gallery_display: ComputeProperty<GalleryDisplay>,
+    colorScheme: ComputeProperty<ColorScheme>,
+    authorPfp: ComputeProperty<AuthorPfp>,
+    updateNotifications: ComputeProperty<UpdateNotifications>,
+    customVideoControls: ComputeProperty<CustomVideoControls>,
+    pageVersion: ComputeProperty<PageVersion>,
+    linkHelpers: ComputeProperty<LinkHelpers>,
+    highlightRerenders: ComputeProperty<DeveloperMode>,
+    galleryDisplay: ComputeProperty<GalleryDisplay>,
     motion: ComputeProperty<Motion>,
-    animation_time: ComputeProperty<number>,
-    animation_dev_mode: ComputeProperty<AnimationDevMode>,
+    animationTime: ComputeProperty<number>,
+    animationDevMode: ComputeProperty<AnimationDevMode>,
     signature: ComputeProperty<string>,
 };
 
@@ -133,25 +132,24 @@ function localStorageProperty<
     };
     window.addEventListener("storage", onStorageUpdate);
 
-    return {
-        value: () => override() ?? accessBase(),
-        compute: {
-            base: accessBase,
-            override,
-            setOverride: (value) => {
-                if(value == null) {
-                    localStorage.removeItem(ls_key);
-                }else{
-                    localStorage.setItem(ls_key,
-                        serializer.serialize
-                        ? serializer.serialize(value)
-                        : value as unknown as string,
-                    );
-                }
-                onStorageUpdate();
-            },
+    const fn: ComputePropertyFn<T> = () => override() ?? accessBase();
+    const opts: ComputePropertyOpts<T> = {
+        base: accessBase,
+        override,
+        setOverride: (value) => {
+            if(value == null) {
+                localStorage.removeItem(ls_key);
+            }else{
+                localStorage.setItem(ls_key,
+                    serializer.serialize
+                    ? serializer.serialize(value)
+                    : value as unknown as string,
+                );
+            }
+            onStorageUpdate();
         },
     };
+    return Object.assign(fn, opts);
 }
 
 function signalFromMatchMedia<True extends string, False extends string>(
@@ -172,35 +170,35 @@ function signalFromMatchMedia<True extends string, False extends string>(
 
 const global_settings = createRoot((): Settings => {
     const res: Settings = {
-        color_scheme: localStorageProperty("color-scheme",
+        colorScheme: localStorageProperty("color-scheme",
             signalFromMatchMedia("(prefers-color-scheme: dark)", "dark", "light"),
         {}),
-        author_pfp: localStorageProperty("pfp-cfg", () => "on", {}),
-        update_notifications: localStorageProperty("update_notices", () => "on", {}),
-        custom_video_controls: localStorageProperty("custom_video_controls", () => "browser", {}),
-        page_version: localStorageProperty("page_version", () => "1", {}),
-        link_helpers: localStorageProperty("link_helpers", () => "show", {}),
-        developer_mode: localStorageProperty("cors_proxy", () => "off", {}),
-        gallery_display: localStorageProperty("gallery_display", () => "fullscreen", {}),
+        authorPfp: localStorageProperty("pfp-cfg", () => "on", {}),
+        updateNotifications: localStorageProperty("update_notices", () => "on", {}),
+        customVideoControls: localStorageProperty("custom_video_controls", () => "browser", {}),
+        pageVersion: localStorageProperty("page_version", () => "1", {}),
+        linkHelpers: localStorageProperty("link_helpers", () => "show", {}),
+        highlightRerenders: localStorageProperty("cors_proxy", () => "off", {}),
+        galleryDisplay: localStorageProperty("gallery_display", () => "fullscreen", {}),
         motion: localStorageProperty("motion",
             signalFromMatchMedia("(prefers-reduced-motion: reduce)", "reduce", "full"),
         {}), // can do a hacky * {transition-duration: 0s !important} if I want to
-        animation_time: localStorageProperty("animation_time", () => 0.2, {
+        animationTime: localStorageProperty("animation_time", () => 0.2, {
             serialize: (value) => JSON.stringify(value),
             deserialize: (str) => str != null && str !== "" ? JSON.parse(str) as number : undefined,
         }),
-        animation_dev_mode: localStorageProperty("animation_dev_mode", () => "none", {}),
+        animationDevMode: localStorageProperty("animation_dev_mode", () => "none", {}),
         signature: localStorageProperty("signature", () => "", {}),
     };
 
     createEffect(() => {
-        document.documentElement.classList.toggle("dark", res.color_scheme.value() === "dark");
+        document.documentElement.classList.toggle("dark", res.colorScheme() === "dark");
     });
 
     return res;
 });
 
-render(() => <Show if={getSettings().author_pfp.value() === "off"}>
+render(() => <Show if={getSettings().authorPfp() === "off"}>
     <style>{".cfg-reddit-pfp {display: none;}"}</style>
 </Show>, el("div").adto(document.head));
 
