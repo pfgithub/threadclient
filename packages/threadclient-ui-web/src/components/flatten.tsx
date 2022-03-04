@@ -76,6 +76,7 @@ export type FlatPost = {
     is_pivot: boolean,
     at_or_above_pivot: boolean,
     threaded: boolean,
+    depth: number,
     id: Generic.Link<Generic.Post>,
 };
 
@@ -89,6 +90,7 @@ type RenderPostOpts = {
     is_pivot: boolean,
     at_or_above_pivot: boolean,
     threaded: boolean,
+    depth: number,
 };
 
 function renderPost(
@@ -132,6 +134,7 @@ function renderPost(
         is_pivot: opts.is_pivot,
         at_or_above_pivot: opts.at_or_above_pivot,
         threaded: opts.threaded,
+        depth: opts.depth,
         id: post_link,
     };
 }
@@ -194,7 +197,7 @@ function flattenPost(
                 reply,
                 rpo.threaded && replies_threaded ? indent_excl_self : indent_incl_self,
                 meta,
-                {...rpo, first_in_wrapper: false, threaded: replies_threaded},
+                {...rpo, first_in_wrapper: false, threaded: replies_threaded, depth: rpo.depth + 1},
             ));
         }
     }
@@ -312,6 +315,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
                 at_or_above_pivot: true,
                 is_pivot: item.pivot ?? false,
                 threaded: false,
+                depth: 0,
             }));
         }
         res.push({kind: "wrapper_end"});
@@ -329,6 +333,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
                 is_pivot: false,
                 at_or_above_pivot: false,
                 threaded: false,
+                depth: 0,
             }));
             res.push({kind: "wrapper_end"});
         } if(pivot.replies.items.length === 0) {

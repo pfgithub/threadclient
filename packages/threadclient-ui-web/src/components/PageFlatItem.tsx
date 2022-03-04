@@ -53,7 +53,7 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                     >
                         <div class={classes(
                             "w-full h-full",
-                            getRainbow(loader_or_post.indent.length - 1),
+                            getRainbow(loader_or_post.depth - 1),
                             "rounded-md",
                         )}></div>
                     </div></Show>
