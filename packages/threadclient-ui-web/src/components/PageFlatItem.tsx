@@ -73,7 +73,9 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                         />
                     </>}</For>
                 </Show>
-                <div class="flex-1"><Show if={!loader_or_post.first_in_wrapper}>
+                <div
+                    class={"flex-1 "+(size_lt.sm() && loader_or_post.threaded ? "threaded-new" : "")}
+                ><Show if={!loader_or_post.first_in_wrapper}>
                     <div class="pt-2" />
                 </Show><SwitchKind item={loader_or_post.content}>{{
                     post: post => <>

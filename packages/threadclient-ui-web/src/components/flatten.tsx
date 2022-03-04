@@ -75,6 +75,7 @@ export type FlatPost = {
 
     is_pivot: boolean,
     at_or_above_pivot: boolean,
+    threaded: boolean,
     id: Generic.Link<Generic.Post>,
 };
 
@@ -130,6 +131,7 @@ function renderPost(
 
         is_pivot: opts.is_pivot,
         at_or_above_pivot: opts.at_or_above_pivot,
+        threaded: opts.threaded,
         id: post_link,
     };
 }
