@@ -184,7 +184,7 @@ function flattenPost(
         post.content.show_replies_when_below_pivot
     : true : true;
 
-    if(!rres.collapse.collapsed && show_replies) {
+    if((rpo.threaded || !rres.collapse.collapsed) && show_replies) {
         const replies = postReplies(post, meta);
         for(const reply of replies) {
             res.push(...flattenPost(
