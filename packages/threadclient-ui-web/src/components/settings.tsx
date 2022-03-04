@@ -5,8 +5,10 @@ import { variables } from "virtual:_variables";
 import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
 import { ComputeProperty, getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
+import { Body } from "./body";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
+import * as Generic from "api-types-generic";
 export * from "../util/interop_solid";
 
 function SettingsSection(props: {title: string, children?: undefined | JSX.Element}): JSX.Element {
@@ -215,6 +217,50 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                                 },
                             ],
                         },
+                    },
+                }} opts={{
+                    clickable: false,
+                    frame: null,
+                    client_id: "n/a",
+                    replies: null,
+                    at_or_above_pivot: false,
+                    is_pivot: false,
+                }} />
+            </TopLevelWrapper>
+        </SettingsSection>
+        <SettingsSection title="Image Galleries">
+            <SettingPicker
+                setting={settings.galleryDisplay}
+                options={["fullscreen", "inline", undefined]}
+                name={v => ({
+                    fullscreen: "Fullscreen",
+                    inline: "Inline",
+                    default: "Default",
+                } as const)[v ?? "fullscreen"]}
+            />
+            <p class="my-4">
+                Chooses if image galleries should display in fullscreen or inline. Note
+                that not all galleries are supported for fullscreen display.
+            </p>
+            <TopLevelWrapper restrict_w>
+                <ClientContent listing={{
+                    kind: "post",
+
+                    title: {text: "Gallery Example"},
+                    collapsible: {default_collapsed: true},
+                    show_replies_when_below_pivot: false,
+                    body: {
+                        kind: "gallery",
+                        images: new Array(20).fill(0).map((__, i): Generic.GalleryItem => ({
+                            thumb: "https://picsum.photos/seed/"+(i + 1)+"/140/140.jpg",
+                            aspect: 1.0,
+                            body: {
+                                kind: "captioned_image",
+                                w: 650,
+                                h: 365,
+                                url: "https://picsum.photos/seed/"+(i + 1)+"/650/365.jpg",
+                            },
+                        })),
                     },
                 }} opts={{
                     clickable: false,
