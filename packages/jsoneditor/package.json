@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "lint": "true",
+    "lint": "echo TODO eslint src --max-warnings 0 && tsc --noEmit",
     "test": "true"
   },
   "license": "MIT",
