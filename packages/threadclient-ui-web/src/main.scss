@@ -995,3 +995,11 @@ summary {
 .dark .hover-outline:hover {
     outline-color: var(--cool-gray-300);
 }
+
+.threaded-new:before {
+    content: "⤷";
+    position: absolute;
+    background-color: var(--postcolor-100);
+    pointer-events: none;
+    transform: translate(-0.75rem, 0.25rem);
+}

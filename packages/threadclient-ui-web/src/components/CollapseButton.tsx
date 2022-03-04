@@ -49,7 +49,7 @@ export function CollapseButton(props: {
             "z-1 static outline-default",
             props.class ?? "",
             props.collapsed_anim ? "collapsed" : "",
-            props.threaded ?? false ? "relative threaded" : "",
+            props.threaded ?? false ? "threaded-new" : "",
         )}
         draggable={true}
         onClick={() => props.onClick()}

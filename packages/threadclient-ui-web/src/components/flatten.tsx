@@ -177,7 +177,8 @@ function flattenPost(
 
     if(rres.kind !== "post") return res;
 
-    const indent_incl_self = [...rres.indent, rres.collapse];
+    const indent_excl_self = rres.indent.map(v => v.threaded ? {...v, threaded: false} : v);
+    const indent_incl_self = [...indent_excl_self, rres.collapse];
 
     const show_replies = post.kind === "post" ? post.content.kind === "post" ?
         post.content.show_replies_when_below_pivot
@@ -188,7 +189,7 @@ function flattenPost(
         for(const reply of replies) {
             res.push(...flattenPost(
                 reply,
-                rpo.threaded ? rres.indent : indent_incl_self,
+                rpo.threaded ? indent_excl_self : indent_incl_self,
                 meta,
                 {...rpo, first_in_wrapper: false, threaded: replies.length === 1},
             ));
