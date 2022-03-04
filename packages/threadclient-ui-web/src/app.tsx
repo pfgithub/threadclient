@@ -2811,7 +2811,7 @@ function pwaStartPage(): HideShowCleanup<HTMLDivElement> {
     return hsc;
 }
 
-export type URLLike = {search: string, pathname: string};
+export type URLLike = {search: string, pathname: string, hash: string};
 
 export type HSEvent = "hide" | "show" | "cleanup";
 export type HideShowCleanup<T> = {
@@ -3071,7 +3071,15 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 //    else
 //    - gone below item
 
-export function onNavigate(to_index: number, url: URLLike, page: undefined | Generic.Page2): void {
+export function onNavigate(to_index: number, url_in: URLLike, page: undefined | Generic.Page2): void {
+    const url = url_in.pathname === "/" && url_in.search === "" && url_in.hash.length > 2 ? (() => {
+        try {
+            return new URL("https://thread.pfg.pw/"+url_in.hash.substring(1));
+        }catch(e) {
+            return url_in;
+        }
+    })() : url_in;
+
     console.log("Navigating", to_index, url, nav_history, page);
 
     document.title = "ThreadClient";
