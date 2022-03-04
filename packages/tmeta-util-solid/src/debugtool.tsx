@@ -17,6 +17,24 @@ export default function Debugtool(props: {
         if(rect.bottom < 0 || rect.right < 0 || rect.left > winsz[0] || rect.top > winsz[1]) {
             return; // skip
         }
+        // const top = Math.max(rect.top - 4, 0);
+        // const left = Math.max(rect.left - 4, 0);
+        // const width = Math.min(rect.left + rect.width + 8, winsz[0]) - rect.left;
+        // const height = Math.min(rect.bottom + rect.height + 8, winsz[0]) - rect.bottom;
+        let top = rect.top;
+        let left = rect.left;
+        let width = rect.width;
+        let height = rect.height;
+        if(width < 8) {
+            const diff = 8 - width;
+            left -= diff;
+            width += diff * 2;
+        }
+        if(height < 8) {
+            const diff = 8 - height;
+            top -= diff;
+            height += diff * 2;
+        }
         createRoot(dispose => {
             const h = ((time / 10) % 360) |0;
             const anim_time = 1000;
@@ -27,10 +45,10 @@ export default function Debugtool(props: {
                 }}
                 style={{
                     'position': "fixed",
-                    'top': rect.top + "px",
-                    'left': rect.left + "px",
-                    'width': rect.width + "px",
-                    'height': rect.height + "px",
+                    'top': top + "px",
+                    'left': left + "px",
+                    'width': width + "px",
+                    'height': height + "px",
                     'z-index': 2147483647,
                     'opacity': 100,
     
@@ -49,7 +67,7 @@ export default function Debugtool(props: {
                         'width': "100%",
                         'height': "100%",
                         'box-sizing': "border-box",
-                        'border': "4px solid hsl("+h+", 100%, 50%)",
+                        'border': "1px solid hsl("+h+", 100%, 50%)",
                     }}
                 />
             </div> as HTMLDivElement;
