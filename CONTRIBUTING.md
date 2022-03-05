@@ -5,7 +5,12 @@
 Requires:
 
 - nodejs
-- [yarn](https://yarnpkg.com/) package manager (install with `npm install --global yarn`)
+- [yarn](https://yarnpkg.com/getting-started/install/) package manager
+
+```
+git clone --depth 1 https://github.com/pfgithub/threadclient.git
+cd threadclient
+```
 
 ```
 yarn install
