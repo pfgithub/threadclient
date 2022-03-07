@@ -301,6 +301,19 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArra
     return [...res].reverse();
 }
 
+// comments:
+// we could easily move this to createTypesafeChildren
+// do we want to though?
+//
+// - I think the answer is no
+// - because:
+//   - when we repivot, we want to reuse children too
+//   - but solid js wouldn't make that trivial. it would rerender anything that uses
+//     children. not what we want.
+
+// ok I have to think about what my goal with repivoting is and how to keep the data
+// structured well for repivoting with minimal perf impact
+
 export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): FlatPage {
     const res: FlatItem[] = [];
 
