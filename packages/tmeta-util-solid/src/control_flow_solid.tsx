@@ -1,4 +1,4 @@
-import { Accessor, createMemo, createSignal, JSX, onCleanup, untrack } from "solid-js";
+import { Accessor, createMemo, createSignal, JSX, onCleanup, untrack, children as useChildren } from "solid-js";
 import { MatchFn, switchKindCB } from "tmeta-util";
 
 export { default as Debugtool } from "./debugtool";
@@ -184,4 +184,62 @@ export function localStorageSignal(key: string): [Accessor<string | null>, (nv: 
         }
         setValue(new_value);
     }];
+}
+
+function isTypesafeChildrenValue<T>(tsch: TypesafeChildren<T>, valu: unknown): valu is TypesafeChildrenValue<T> {
+    if(valu == null || typeof valu !== "object") return false;
+    return (valu as {[key: string]: unknown})["key"] === tsch.sym;
+}
+function useTypesafeChildren<T>(
+    rawChildrenAccessor: Accessor<JSX.Element>, value: (v: unknown) => T,
+): Accessor<T[]> {
+    const children = useChildren(rawChildrenAccessor);
+    return createMemo((): T[] => {
+        let cv = children();
+        if(!Array.isArray(cv)) {
+            cv = [cv];
+        }
+        return cv.filter(itm => itm).map(value);
+    });
+}
+
+type TypesafeChildrenFn<T> = (
+    (props: T) => JSX.Element
+);
+type TypesafeChildrenData<T> = {
+    useChildren: (ch: Accessor<JSX.Element>) => Accessor<T[]>,
+    sym: symbol,
+};
+type TypesafeChildrenValue<T> = {
+    key: symbol,
+    value: T,
+};
+
+type TypesafeChildren<T> = TypesafeChildrenData<T> & TypesafeChildrenFn<T>;
+
+export function createTypesafeChildren<T>(): TypesafeChildren<T> {
+    const sym_key = Symbol("" + Math.random());
+
+    const resFn: TypesafeChildrenFn<T> = (props) => {
+        const res: TypesafeChildrenValue<T> = {
+            key: sym_key,
+            value: props,
+        };
+        return res as unknown as JSX.Element;
+    };
+    const res_data: TypesafeChildrenData<T> = {
+        useChildren: (children) => {
+            return useTypesafeChildren<T>(children, v => {
+                if(!isTypesafeChildrenValue<T>(res, v)) {
+                    console.log("Ebad_tsch_child", res, v);
+                    throw new Error("bad tsch child");
+                }
+                return v.value;
+            });
+        },
+        sym: sym_key,
+    };
+
+    const res: TypesafeChildren<T> = Object.assign(resFn, res_data);
+    return res;
 }

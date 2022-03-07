@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
-import { Accessor, children as useChildren, createMemo, For, JSX } from "solid-js";
-import { Show, SwitchKind } from "tmeta-util-solid";
+import { For, JSX } from "solid-js";
+import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
 import { CounterState } from "../app";
 import { addAction } from "./action_tracker";
 import { actAuto, getCounterState } from "./counter";
@@ -14,12 +14,6 @@ export type InfoBarItem = {
     text: string,
     disabled?: undefined | boolean,
 };
-
-function InfoBarItemRaw(props: InfoBarItem): JSX.Element {
-    return props as unknown as JSX.Element; // has getters so no need to memo it
-    // oh that's annoying I want to do {...props, [symbol_is_infobar_item]: true}
-    // can't because of the getters. I'd have to use solid spread() or use a proxy
-}
 
 function InfoBarItems(props: {post: Generic.PostContentPost}): JSX.Element {
     // TODO make the order user-configurable
@@ -108,29 +102,10 @@ function InfoBarItems(props: {post: Generic.PostContentPost}): JSX.Element {
     </>;
 }
 
-// v to make this even better we could handle adding a proxy with a unique symbol
-// ourselves and give you the guard function and child element function. this is good
-// enough for now though
-function useTypesafeChildren<T extends {[key: string]: unknown}>(
-    rawChildrenAccessor: Accessor<JSX.Element>, guard: (v: unknown) => v is T,
-): Accessor<T[]> {
-    const children = useChildren(rawChildrenAccessor);
-    return createMemo((): T[] => {
-        let cv = children();
-        if(!Array.isArray(cv)) {
-            cv = [cv];
-        }
-        return cv.filter(itm => itm).map((v): T => {
-            if(!guard(v)) throw new Error("invalid typesafechildren child item");
-            return v;
-        });
-    });
-}
+const InfoBarItemRaw = createTypesafeChildren<InfoBarItem>();
 
 export function useInfoBar(post: () => Generic.PostContentPost): () => InfoBarItem[] {
-    return useTypesafeChildren(() => <InfoBarItems post={post()} />, (v): v is InfoBarItem => {
-        return true;
-    });
+    return InfoBarItemRaw.useChildren(() => <InfoBarItems post={post()} />);
 }
 
 export type ActionItem = {
@@ -209,10 +184,6 @@ function GetActionsFromAction(props: {action: Generic.Action, opts: ClientPostOp
     }}</SwitchKind>;
 }
 
-function ActionItemRaw(props: ActionItem): JSX.Element {
-    return props as unknown as JSX.Element;
-}
-
 function ActionBarItems(props: {
     post: Generic.PostContentPost,
     opts: ClientPostOpts,
@@ -289,8 +260,8 @@ function ActionBarItems(props: {
     </>;
 }
 
+const ActionItemRaw = createTypesafeChildren<ActionItem>();
+
 export function useActions(post: () => Generic.PostContentPost, opts: () => ClientPostOpts): () => ActionItem[] {
-    return useTypesafeChildren(() => <ActionBarItems post={post()} opts={opts()} />, (v): v is ActionItem => {
-        return true;
-    });
+    return ActionItemRaw.useChildren(() => <ActionBarItems post={post()} opts={opts()} />);
 }

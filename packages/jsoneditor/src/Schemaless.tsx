@@ -1,6 +1,6 @@
 import { children as createChildren, createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
-import { Show } from "tmeta-util-solid";
+import { Show, createTypesafeChildren } from "tmeta-util-solid";
 import { LinkType, object, ScLink, ScNode, ScObject, ScString, setReconcile, State, wrap } from "./app_data";
 import { Button } from "./components";
 import { ContextData, getState } from "./editor_data";
@@ -28,7 +28,6 @@ function ObjectEditor<T extends ScObject>(props: {
 
 const tabsym = Symbol("__is_tab");
 type Tab = {
-    [tabsym]: true,
     buttonComponent: (props: {
         selected: boolean,
         setSelected(cb: (pv: boolean) => boolean): void,
@@ -38,6 +37,7 @@ type Tab = {
 function isTab(v: unknown): v is Tab {
     return v != null && typeof v === "object" && tabsym in v;
 }
+const TabRaw = createTypesafeChildren<Tab>();
 function Tabs(props: {
     children: JSX.Element,
 }): JSX.Element {
@@ -46,19 +46,7 @@ function Tabs(props: {
 
     const children = createChildren(() => props.children);
 
-    const tabs = () => {
-        let res = children();
-        if(!Array.isArray(res)) {
-            res = [res];
-        }
-        return res.filter(v => v).map((v: unknown) => {
-            if(!isTab(v)) {
-                console.log("bad tabs child", v);
-                throw new Error("tabs child is not tab");
-            }
-            return v;
-        })
-    };
+    const tabs = TabRaw.useChildren(() => props.children);
 
     return <div>
         <div>
@@ -85,19 +73,17 @@ function Tab(props: {
     children?: JSX.Element,
     onClick?: () => void,
 }): JSX.Element {
-    const res: Tab = {
-        [tabsym]: true,
-        buttonComponent(btnprops) {
+    return <TabRaw
+        buttonComponent={btnprops => {
             return <Button
                 onClick={props.onClick ?? (() => btnprops.setSelected(v => !v))}
                 active={btnprops.selected}
             >
                 {props.title}
             </Button>;
-        },
-        children: <>{props.children}</>,
-    };
-    return res as unknown as JSX.Element;
+        }}
+        children={<>{props.children}</>}
+    />;
 }
 
 function HeadingValue(props: {

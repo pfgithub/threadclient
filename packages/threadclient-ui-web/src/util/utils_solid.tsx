@@ -1,8 +1,7 @@
 import type * as Generic from "api-types-generic";
 import {
     Accessor, createContext, createEffect, createMemo,
-    createRoot,
-    createSignal, ErrorBoundary, JSX, onCleanup, useContext
+    createRoot, createSignal, ErrorBoundary, JSX, onCleanup, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
