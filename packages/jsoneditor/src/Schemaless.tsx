@@ -44,8 +44,6 @@ function Tabs(props: {
     const [selection, setSelection] = createSignal<Tab | null>(null);
     const isSelected = createSelector(selection);
 
-    const children = createChildren(() => props.children);
-
     const tabs = TabRaw.useChildren(() => props.children);
 
     return <div>
