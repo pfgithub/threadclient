@@ -114,6 +114,7 @@ function fakeUpdate(target: ScObject, key: string, signal: Signal<StateValue>) {
         delete (signal as any)['__SIGNAL_IS_FAKEUPDATE'];
         return orig(...a);
     };
+    (orig as any)['__SIGNAL_IS_FAKEUPDATE'] = true;
 }
 
 function createFake<R extends ScObject>(target: R, key: string): State<undefined> {

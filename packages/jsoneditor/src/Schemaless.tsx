@@ -177,6 +177,42 @@ function Demo1Editor(props: {state: State<Demo1>}): JSX.Element {
     </>}</ObjectEditor>;
 }
 
+type Button = ScObject<{
+    name: string,
+    id: string,
+}>;
+type Scene = ScObject<{
+    name: string,
+    button_map: ScObject<{[key: string]: Actions}>,
+}>;
+type Actions = ScObject<{
+    [key: string]: Action,
+}>;
+type Action = ScObject<{
+    __todo: string,
+}>;
+type Rebind = ScObject<{
+    buttons: ScObject<{
+        input: ScObject<{[key: string]: Button}>,
+        output: ScObject<{[key: string]: Button}>,
+    }>,
+    scenes: ScObject<{[key: string]: Scene}>,
+    default_scene: string,
+}>;
+
+function RebindEditor(props: {state: State<Rebind>}): JSX.Element {
+    const cxd = getState();
+    return <ObjectEditor state={props.state}>{obj => <>
+        TODO
+    </>}</ObjectEditor>;
+    // ^ I think objecteditor is not good
+    // instead let's just use state.getsomething
+
+    // yeah objecteditor is really useless
+
+    // ok
+}
+
 // [!] if I'm going to be doing schemaless I need typed State values.
 //     like State should know that it should be an object containing these
 //     fields and stuff.
@@ -203,6 +239,7 @@ type Demo1 = ScObject<{
 }>;
 type Schema = ScObject<{
     demo1: Demo1,
+    rebind: Rebind,
     text_editor: Richtext,
 }>;
 
@@ -213,7 +250,7 @@ export default function Schemaless(props: {state: State<ScNode>}): JSX.Element {
                 <Demo1Editor state={obj.demo1} />
             </Tab>
             <Tab title="rebind">
-                rebind
+                <RebindEditor state={obj.rebind} />
             </Tab>
             <Tab title="clicker">
                 clicker
