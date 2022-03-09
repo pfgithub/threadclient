@@ -1,5 +1,5 @@
 import { batch, createSignal, Signal, untrack } from "solid-js";
-import { unreachable } from "./guards";
+import { asObject2, unreachable } from "./guards";
 
 type UkObject = {[key: string]: UkAnyData};
 type UkString = string;
@@ -65,20 +65,7 @@ type HolderParent = {
 };
 type HolderValue = string | bigint | undefined | null | {
     keys: Signal<Set<string>>,
-    // [!] this value will be edited directly without triggering
-    // the parent signal. child signals must be called.
-    existing_or_observed_props: Map<string, HolderSolid<any>>,
 };
-// I forgot why I avoided classes even for stuff like this
-// literally I said right there "holdersolid implements holder"
-// and yet it errors at every use even though it's already erroring here telling me
-// that holdersolid does not properly implement holder
-//
-// like literally i told you it implements holder. stop telling me everywhere "oh you
-// haven't finished programming yet so i will add extra useless errors everywhere"
-//
-// oh also it doesn't make easy differentiation between the prototype and object fields
-// and other stuff it is very annoying
 class HolderSolid<T> implements Holder<T> {
     [holder_sym] = true as const;
 
@@ -87,31 +74,26 @@ class HolderSolid<T> implements Holder<T> {
     #parent: HolderParent | null;
     
     #value: Signal<HolderValue>;
+    #existing_or_observed_props: Map<string, HolderSolid<any>>;
 
     constructor(parent: HolderParent | null) {
-        this.#value = createSignal(undefined);
         this.#parent = parent;
+
+        this.#value = createSignal(undefined);
+        this.#existing_or_observed_props = new Map();
     }
 
+    // [!] .get() *does not track value*. pretty neat don't you think?
     get: Holder<T>["get"] = (key) => {
         if(typeof key !== "string") throw new Error("Holders only allow string keys");
 
-        const value = this.#value[0]();
-        if(value == null || typeof value !== "object") {
-            const res: Holder<any> = new HolderSolid<any>({
-                holder: this,
-                our_key: key,
-            });
-            return res;
-        }
-
-        let res = value.existing_or_observed_props.get(key);
+        let res = this.#existing_or_observed_props.get(key);
         if(!res) {
             const nv: HolderSolid<any> = new HolderSolid<any>({
                 holder: this,
                 our_key: key,
             });
-            value.existing_or_observed_props.set(key, nv);
+            this.#existing_or_observed_props.set(key, nv);
             res = nv;
         }
         const ress: Holder<any> = res;
@@ -139,52 +121,104 @@ class HolderSolid<T> implements Holder<T> {
         }));
     }
 
-    #createChild(child_key: string, child_value: HolderSolid<any>): void {
-        this.#value[1](pv => {
-            if(pv != null && typeof pv === "object") {
-                // add the key if it does not exist
-                pv.keys[1](keys => {
-                    if(!keys.has(child_key)) {
-                        return new Set([...keys, child_key]);
-                    }
-                    return keys;
-                });
-                // done. don't emit a change to value, just to keys.
-                return pv;
-            }
-
-            // turn value into an object that contains the child element
-            return {
-                keys: createSignal(new Set(child_key)),
-                existing_or_observed_props: new Map([
-                    [child_key, child_value],
-                ]),
-            };
-        })
+    // only necessary to call if a node is being changed from `undefined`
+    #notifyAboutChildUpdate(child_key: string): void {
+        const prev_value = this.#value[0]();
+        if(prev_value != null && typeof prev_value === "object") {
+            // update our object with the new keys
+            prev_value.keys[1](keys => {
+                if(!keys.has(child_key)) {
+                    return new Set([...keys, child_key]);
+                }
+                return keys;
+            });
+        }else{
+            // notify our parent of our update
+            if(this.#parent) this.#parent.holder.#notifyAboutChildUpdate(this.#parent.our_key, this);
+            // turn ourself into an object
+            this.#value[1](prev => {
+                if(prev != null && typeof prev_value === "object") unreachable();
+                return {
+                    keys: createSignal(new Set([child_key])),
+                };
+            });
+        }
     }
+    /*
+    ok here's the logic it should be 34loc
+
+    // 1: notify the parent of the update
+
+    const pv = get(node);
+    const nv = value(pv);
+
+
+    if(pv === nv) return;
+    if(!isObject(pv) || !isObject(nv)) {
+        return setOverwrite(node, () => nv);
+    }
+
+    const old_keys = Object.keys(pv) as UUID[];
+    const new_keys = Object.keys(nv) as UUID[];
+
+    const to_remove = new Set(old_keys);
+    for(const new_key of new_keys) to_remove.delete(new_key);
+
+    // update all new keys
+    for(const key of new_keys) {
+        setReconcileInternal(pv[key]!, () => {
+            return nv[key]![internal_value][0]();
+        });
+    }
+
+    // update keys array
+    pv[internal_keys]![1](new_keys);
+
+    // remove all old keys
+    // - (aka redefine them as fake keys aka leak memory)
+    // - (TODO fix by seperating arrays from objects)
+    // - (arrays have a keys prop but are not defined for unknown uuids)
+    // - (objects cannot return their keys and have no order (for json stringification, return sorted order))
+    for(const key of to_remove) {
+        fakeUpdate(pv, key, pv[key][internal_value]);
+    }
+    */
     #setInternal(cb: (pv: L1Unknown<{[key: string]: unknown}>) => L1Wrapped<unknown>): void {
-        // notify parent (ts issue #42734 otherwise we could optional chain)
-        if(this.#parent) this.#parent.holder.#createChild(this.#parent.our_key, this);
+        // [1]: notify our parent of the update
+        if(this.#parent) this.#parent.holder.#notifyAboutChildUpdate(this.#parent.our_key);
 
         // reconcile content
         // (note: update parents of any holders if they need updating)
 
         const nv = cb(l1unwrap(this.#value[0]()));
-        if(nv instanceof HolderSolid) {
-            if(nv === this) return; // nothing to do
-            throw new Error("ETODO");
-        }
 
         if(typeof nv !== "object") {
-            this.#value[1](() => nv);
+            // [!] if this is an object, we need to delete all the keys
+            this.#value[1](pv => {
+                if(pv != null && typeof pv === "object") {
+                    for(const key of pv.keys[0]()) {
+                        this.
+                    }
+                }
+                return nv;
+            });
         }
 
+        const old_keys = asObject2(this.#value[0]())?.keys[0]() ?? [];
+        const new_keys = Object.keys(nv);
+
+        const to_remove = new Set(old_keys);
+        for(const new_key of new_keys) to_remove.delete(new_key);
+
+        // update all new keys
         for(const [key, value] of Object.entries(nv)) {
             const v = this.get(key as any);
             if(!(v instanceof HolderSolid)) unreachable();
             v.#setInternal(() => value as any);
         }
-        // TODO we need to setinternal all old values to undefined
+        // update keys array
+        // set all old keys to undefined but do not add them to keys.
+        //     [?] consider making undefined identical to `key does not exist`?
     
         const pv = this.#value[0](); // don't call this above that for loop^ setInternal changes it
         if(pv == null || typeof pv !== "object") unreachable();
