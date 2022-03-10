@@ -56,7 +56,7 @@ export function StoreViewerElement(props: {
       return <span>{"{"}<For each={pv.keys()}>{(key, index) => {
         return <span>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
           <span class={color()}>{JSON.stringify(key)}</span>{": "}
-          <StoreViewerElement node={props.node.get(key)} level={props.level + 1} />
+          <StoreViewerElement node={(props.node as Node<any>).get(key as any)} level={props.level + 1} />
         </span>;
       }}</For>{(pv.keys().length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
     }); else return untrack((): JSX.Element => {

@@ -9,6 +9,8 @@ import { asObject, isObject, unreachable } from "./guards";
 const _error = Symbol("error");
 type ERROR = typeof _error;
 
+type Primitive = string | bigint | boolean | null | undefined;
+
 export class Node<T> implements Path<T> {
     __ts_value: T = undefined as unknown as T;
 
@@ -19,41 +21,49 @@ export class Node<T> implements Path<T> {
         this._internal_path = path;
     }
 
-    get<K extends T extends {[key in infer U]: unknown} ? U : T extends unknown ? string : ERROR>(key: K): (
-        Node<T extends {[key in K]: infer U} ? U : ERROR>
-    ) {
+    get<
+        Q extends {[key: string]: unknown} | null | undefined,
+        K extends keyof Exclude<Q, null | undefined>,
+    >(this: Node<Q>, key: K): Node<Exclude<Q, null | undefined>[K]> {
         return new Node(this.#root, [...this._internal_path, key as string]);
     }
 
-    readKeys(): string[] | null {
+    readKeys(this: Node<{[key: string]: unknown}>): string[] | null {
         const v = this.readPrimitive();
         if(v != null && typeof v === "object") {
-            return v.keys();
+            return v.keys() as any;
         }
-        return null;
+        return null as any;
     }
 
-    readPrimitive(): string | bigint | null | undefined | {
+    readPrimitive(): Primitive | {
         keys: () => string[],
     } {
         const value = readValue(this.#root, this);
         if(isObject(value)) {
             return {
-                keys: createMemo(() => {
+                keys: () => {
                     getNodeSignal(this.#root, [...this._internal_path, {v: "keys"}]).view();
                     return untrack(() => (
                         Object.keys(asObject(readValue(this.#root, this))!)
                     ));
-                }),
+                },
             };
         }
-        return value as string | bigint | null | undefined;
+        return value as Primitive;
     }
 
-    readString<T extends string>(): T | "unsupported" | null {
-        const value = readValue(this.#root, this);
+    readString<Q extends string>(this: Node<Q>): Q | "unsupported" | null {
+        const value = this.readPrimitive();
         if(typeof value === "string") {
-            return value as T | "unsupported";
+            return value as Q | "unsupported";
+        }
+        return null;
+    }
+    readBoolean(this: Node<boolean | null | undefined>): boolean | null {
+        const value = this.readPrimitive();
+        if(typeof value === "boolean") {
+            return value;
         }
         return null;
     }

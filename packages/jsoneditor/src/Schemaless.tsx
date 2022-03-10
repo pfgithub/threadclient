@@ -228,7 +228,7 @@ export default function Schemaless(props: {node: Node<Schema>}): JSX.Element {
                 clicker
             </Tab>
             <Tab title="text_editor">
-                <RichtextEditor state={props.node.get("text_editor")} />
+                <RichtextEditor node={props.node.get("text_editor")} />
             </Tab>
             <Tab title="schema">
                 schema
