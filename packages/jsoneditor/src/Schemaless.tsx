@@ -1,10 +1,10 @@
 import { createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
-import { anKeys, AnNode, anSetReconcile, anString } from "./app_data";
+import { anKeys, AnNode, anSetReconcile, anSetReconcileIncomplete, anString } from "./app_data";
 import { Button, Buttons } from "./components";
 import { getState } from "./editor_data";
-import { asObject } from "./guards";
+import { asObject, unreachable } from "./guards";
 import { Richtext, RichtextEditor } from "./TextEditor";
 import { uuid, UUID } from "./uuid";
 
@@ -48,9 +48,14 @@ function Tabs(props: {
         </div>}</Show>
     </div>;
 }
-function Tab(props: {
+function Tab<T>(props: {
     title: JSX.Element,
     children?: JSX.Element,
+    onClick?: () => void,
+} | {
+    title: JSX.Element,
+    data: T,
+    children: (v: T) => JSX.Element,
     onClick?: () => void,
 }): JSX.Element {
     return <TabRaw
@@ -62,7 +67,13 @@ function Tab(props: {
                 {props.title}
             </Button>;
         }}
-        children={<>{props.children}</>}
+        children={<>{(() => {
+            if('data' in props) {
+                const data = props.data;
+                return untrack(() => props.children(data));
+            }
+            return untrack(() => props.children);
+        })()}</>}
     />;
 }
 
@@ -190,9 +201,46 @@ type Rebind = {
     default_scene: string,
 };
 
+// function With<T>(props: {value: T, children: (v: T) => JSX.Element})
+// equivalent to <>{() => {const value = …; return untrack(() => )}}
+
+function summarizeButton(node: AnNode<Button>): string {
+    return anString(node.name) || "*Unnamed*";
+}
+
+function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Element {
+    return <div class="space-y-2">
+        <ArrayEditorBase node={props.node}>{(node) => <HeadingValue title={summarizeButton(node)}>
+            <div class="space-y-2">
+                <StringEditor node={node.name} />
+                <StringEditor node={node.id} />
+            </div>
+        </HeadingValue>}</ArrayEditorBase>
+        <Buttons><Button onClick={() => anSetReconcileIncomplete<Button>(props.node[uuid()], pv => {
+            if(pv != null) unreachable();
+            return {};
+        })}>+</Button></Buttons>
+    </div>;
+}
+
 function RebindEditor(props: {node: AnNode<Rebind>}): JSX.Element {
     const cxd = getState();
-    return <>TODO</>;
+    return <Tabs>
+        <Tab title="buttons" data={props.node.buttons}>{buttons => <>
+            {/* TODO HSplit I think */}
+            <Tabs>
+                <Tab title="input" data={buttons.input}>{input => <>
+                    <ButtonsEditor node={input} />
+                </>}</Tab>
+                <Tab title="output" data={buttons.output}>{output => <>
+                    <ButtonsEditor node={output} />
+                </>}</Tab>
+            </Tabs>
+        </>}</Tab>
+        <Tab title="scenes">
+            pick default scene
+        </Tab>
+    </Tabs>;
 }
 
 // [!] if I'm going to be doing schemaless I need typed State values.
