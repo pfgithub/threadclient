@@ -97,6 +97,19 @@ function StringEditor(props: {node: Node<string>}): JSX.Element {
     </div>;
 }
 
+function ArrayEditorBase<T>(props: {
+    node: Node<{[key: string]: T}>,
+    children: (node: Node<T>, key: string, root: Node<{[key: string]: T}>) => JSX.Element,
+}): JSX.Element {
+    return <For each={props.node.readKeys()}>{key => <>
+        {(() => {
+            const root = props.node;
+            const node = root.get(key);
+            return untrack(() => props.children(node, key, root));
+        })()}
+    </>}</For>;
+}
+
 /// -------------------
 /// -------------------
 /// ---[ user code ]---
@@ -130,21 +143,19 @@ function Demo1Editor(props: {node: Node<Demo1>}): JSX.Element {
     return <>
         <div class="space-y-2">
             <HeadingValue title="people">
-                <>
-                    <Tabs>
-                        <For each={props.node.get("people").readKeys()}>{link_key => <>
-                            <Tab title={link_key}>
-                                <PersonEditor node={props.node.get("people").get(link_key)} />
-                            </Tab>
-                        </>}</For>
-                        <Tab title={"+"} onClick={() => {
-                            props.node.get("people").setReconcile((v): {[key: string]: Person} => ({
-                                ...(v != null && typeof v === "object" ? v : {}),
-                                [uuid()]: undefined as any,
-                            }));
-                        }} />
-                    </Tabs>
-                </>
+                <Tabs>
+                    <ArrayEditorBase node={props.node.get("people")}>{(person, key) => <>
+                        <Tab title={person.get("name").readString() ?? key}>
+                            <PersonEditor node={person} />
+                        </Tab>
+                    </>}</ArrayEditorBase>
+                    <Tab title={"+"} onClick={() => {
+                        props.node.get("people").setReconcile((v): {[key: string]: Person} => ({
+                            ...(v != null && typeof v === "object" ? v : {}),
+                            [uuid()]: undefined as any,
+                        }));
+                    }} />
+                </Tabs>
             </HeadingValue>
             <HeadingValue title="root_person">
                 todo
