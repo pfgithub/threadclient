@@ -9,11 +9,11 @@ export function asObject(v: StateValue): ScObject | null {
     return isObject(v) ? v : null;
 }
 
-export function isObject2<T>(v: T): v is Include<T, object> {
+export function isObject2(v: unknown): v is {[key: string]: unknown} {
     return v != null && typeof v === "object";
 }
 
-export function asObject2<T>(v: T): Include<T, object> | null {
+export function asObject2(v: unknown): {[key: string]: unknown} | null {
     return isObject2(v) ? v : null;
 }
 
