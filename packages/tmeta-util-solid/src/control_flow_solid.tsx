@@ -213,6 +213,7 @@ type TypesafeChildrenData<T> = {
 type TypesafeChildrenValue<T> = {
     key: symbol,
     value: T,
+    toString: () => JSX.Element,
 };
 
 type TypesafeChildren<T> = TypesafeChildrenData<T> & TypesafeChildrenFn<T>;
@@ -224,6 +225,15 @@ export function createTypesafeChildren<T>(): TypesafeChildren<T> {
         const res: TypesafeChildrenValue<T> = {
             key: sym_key,
             value: props,
+            toString() {
+                throw new Error("TypesafeChild not allowed in DOM");
+                
+                // huh. we want this to behave differently if it's
+                // found using children() vs if it's found in insertElement
+                // - in children, it should return the object
+                // - in insertElement, it should show an error message
+                // return <span class="text-red-500">test?</span>;
+            },
         };
         return res as unknown as JSX.Element;
     };

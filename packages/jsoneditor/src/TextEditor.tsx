@@ -2,7 +2,7 @@ import { createContext, createRenderEffect, createSelector, createSignal, For, S
 import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
 import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_data";
-import { Button } from "./components";
+import { Button, Buttons } from "./components";
 import { asObject, asString, isObject } from "./guards";
 import { Include } from "./util";
 import { uuid, UUID } from "./uuid";
@@ -481,11 +481,11 @@ export function RichtextEditor(props: {
     // this stylinng can probably be provided by the root node
     return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
         <Show when={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
-            <Button onClick={() => {
+            <Buttons><Button onClick={() => {
                 anSetReconcile(props.node, (): TextEditorRoot => ({
                     node: defaultnode(),
                 }));
-            }}>click to create</Button>
+            }}>click to create</Button></Buttons>
         </div>}>
             <TEContext.Provider value={{
                 selected: selector,

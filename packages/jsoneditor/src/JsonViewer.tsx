@@ -1,7 +1,7 @@
 import { createMemo, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { anGet, anKeys, AnNode } from "./app_data";
-import { Button } from "./components";
+import { Button, Buttons } from "./components";
 import { getState } from "./editor_data";
 
 export class JSONRaw {
@@ -70,7 +70,7 @@ export function StoreViewer(props: {
     {"\n\n\n---\n\n"}
     {/*JSON.stringify(props.state, null, " ")*/"todo"}
     {"\n\n---\n\n"}
-    <div><Button onClick={() => console.log({value: props.node})}>log</Button></div>
+    <Buttons><Button onClick={() => console.log({value: props.node})}>log</Button></Buttons>
   </pre>;
 }
 

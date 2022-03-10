@@ -1,15 +1,27 @@
-import { JSX } from "solid-js/jsx-runtime";
+import { For, JSX } from "solid-js";
+import { createTypesafeChildren } from "tmeta-util-solid";
 
-export function Button(props: {
+type Button = {
     onClick: () => void,
     children: JSX.Element,
     active?: undefined | boolean,
-  }): JSX.Element {
-      return <button
-        class={""
-          + "px-2 first:rounded-l-md last:rounded-r-md mr-1 last:mr-0 "
-          + (props.active ? "bg-gray-500 " : "bg-gray-700 ")
-        }
-        onClick={props.onClick}
-      >{props.children}</button>;
-  }
+};
+
+export const Button = createTypesafeChildren<Button>();
+
+export function Buttons(props: {
+    children: JSX.Element,
+}): JSX.Element {
+    const ch = Button.useChildren(() => props.children);
+    return <div>
+        <For each={ch()}>{child => (
+            <button
+                class={""
+                    + "px-2 first:rounded-l-md last:rounded-r-md mr-1 last:mr-0 "
+                    + (child.active ? "bg-gray-500 " : "bg-gray-700 ")
+                }
+                onClick={child.onClick}
+            >{child.children}</button>
+        )}</For>
+    </div>;
+}

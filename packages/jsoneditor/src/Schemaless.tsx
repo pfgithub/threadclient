@@ -2,7 +2,7 @@ import { createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { anKeys, AnNode, anSetReconcile, anString } from "./app_data";
-import { Button } from "./components";
+import { Button, Buttons } from "./components";
 import { getState } from "./editor_data";
 import { asObject } from "./guards";
 import { Richtext, RichtextEditor } from "./TextEditor";
@@ -29,9 +29,9 @@ function Tabs(props: {
     const tabs = TabRaw.useChildren(() => props.children);
 
     return <div>
-        <div>
-            <For each={tabs()}>{tab => (
-                <>{untrack(() => tab.buttonComponent({
+        <Buttons>
+            <For each={tabs()}>{tab => <>
+                {untrack(() => tab.buttonComponent({
                     get selected() {
                         return isSelected(tab);
                     },
@@ -40,9 +40,9 @@ function Tabs(props: {
                             return cb(v === tab) ? tab : null;
                         });
                     },
-                }))}</>
-            )}</For>
-        </div>
+                }))}
+            </>}</For>
+        </Buttons>
         <Show when={selection()}>{selxn => <div class="mt-2">
             {selxn.children}
         </div>}</Show>
@@ -82,9 +82,9 @@ function StringEditor(props: {node: AnNode<string>}): JSX.Element {
     return <div>
         <Show
             if={anString(props.node) != null}
-            fallback={(
+            fallback={<Buttons>
                 <Button onClick={() => anSetReconcile(props.node, () => "")}>Create String</Button>
-            )}
+            </Buttons>}
         >
             <input
                 type="text"
