@@ -1,30 +1,12 @@
-import { children as createChildren, createSelector, createSignal, For, untrack } from "solid-js";
+import { createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
-import { Show, createTypesafeChildren } from "tmeta-util-solid";
-import { LinkType, object, ScLink, ScNode, ScObject, ScString, setReconcile, State, wrap } from "./app_data";
+import { createTypesafeChildren, Show } from "tmeta-util-solid";
+import { Node } from "./app_data";
 import { Button } from "./components";
-import { ContextData, getState } from "./editor_data";
-import { asObject, asString, isObject, isString } from "./guards";
+import { getState } from "./editor_data";
+import { asObject } from "./guards";
 import { Richtext, RichtextEditor } from "./TextEditor";
 import { uuid, UUID } from "./uuid";
-
-function ObjectEditor<T extends ScObject>(props: {
-    state: State<T>,
-    children: (obj: T, root: State<T>) => JSX.Element,
-}): JSX.Element {
-    return <Show if={isObject(props.state())} fallback={(
-      <div>
-        <Button onClick={() => {
-          setReconcile(props.state, () => object({}));
-        }}>
-            Create Object
-        </Button>
-        {" (value: "+props.state()+")"}
-      </div>
-    )}>
-        {props.children(asObject(props.state())! as T, props.state)}
-    </Show>;
-}
 
 const tabsym = Symbol("__is_tab");
 type Tab = {
@@ -96,24 +78,20 @@ function HeadingValue(props: {
     </div>;
 }
 
-function linkRoot<T extends LinkType<ScNode>>(cxd: ContextData, link: T): T extends LinkType<infer U> ? State<U> : never {
-    return cxd.state.getKey("data").getKey(link.uuid) as T extends LinkType<infer U> ? State<U> : never;
-}
-
-function StringEditor(props: {state: State<string>}): JSX.Element {
+function StringEditor(props: {node: Node<string>}): JSX.Element {
     return <div>
         <Show
-            if={isString(props.state())}
+            if={props.node.readString() != null}
             fallback={(
-                <Button onClick={() => setReconcile(props.state, () => "")}>Create String</Button>
+                <Button onClick={() => props.node.setReconcile(() => "")}>Create String</Button>
             )}
         >
             <input
                 type="text"
                 class="w-full bg-gray-700 rounded-sm px-1"
-                value={asString(props.state()) ?? ""}
+                value={props.node.readString() ?? ""}
                 // onChange here maybe?
-                onInput={e => setReconcile(props.state, () => e.currentTarget.value)}
+                onInput={e => props.node.setReconcile(() => e.currentTarget.value)}
             />
         </Show>
     </div>;
@@ -125,17 +103,18 @@ function StringEditor(props: {state: State<string>}): JSX.Element {
 /// -------------------
 /// -------------------
 
-const person_link: LinkType<ScObject<{[key: string]: Person}>> = {
-    uuid: "<!>person" as UUID,
-};
+// v TODO
+// const person_link: LinkType<ScObject<{[key: string]: Person}>> = {
+//     uuid: "<!>person" as UUID,
+// };
 
-function PersonEditor(props: {state: State<Person>}): JSX.Element {
-    return <ObjectEditor state={props.state}>{obj => <>
+function PersonEditor(props: {node: Node<Person>}): JSX.Element {
+    return <>
         <HeadingValue title="name">
-            <StringEditor state={obj.name} />
+            <StringEditor node={props.node.get("name")} />
         </HeadingValue>
         <HeadingValue title="description">
-            <StringEditor state={obj.description} />
+            <StringEditor node={props.node.get("description")} />
         </HeadingValue>
         <HeadingValue title="attributes">
             TODO
@@ -143,29 +122,29 @@ function PersonEditor(props: {state: State<Person>}): JSX.Element {
         <HeadingValue title="tags">
             TODO
         </HeadingValue>
-    </>}</ObjectEditor>;
+    </>;
 }
 
-function Demo1Editor(props: {state: State<Demo1>}): JSX.Element {
+function Demo1Editor(props: {node: Node<Demo1>}): JSX.Element {
     const cxd = getState();
-    return <ObjectEditor state={props.state}>{obj => <>
+    return <>
         <div class="space-y-2">
             <HeadingValue title="people">
-                <ObjectEditor state={linkRoot(cxd, person_link)}>{(alllinks, al_root) => <>
+                <>
                     <Tabs>
-                        <For each={Object.keys(alllinks)}>{link_key => <>
+                        <For each={props.node.get("people").readKeys()}>{link_key => <>
                             <Tab title={link_key}>
-                                <PersonEditor state={alllinks[link_key]} />
+                                <PersonEditor node={props.node.get("people").get(link_key)} />
                             </Tab>
                         </>}</For>
                         <Tab title={"+"} onClick={() => {
-                            setReconcile(al_root, (v) => object({
-                                ...(asObject(v) ?? {}),
-                                [uuid()]: wrap(null),
-                            }) as ScObject<{[key: string]: Person}>)
+                            props.node.get("people").setReconcile((v): {[key: string]: Person} => ({
+                                ...(v != null && typeof v === "object" ? v : {}),
+                                [uuid()]: undefined as any,
+                            }));
                         }} />
                     </Tabs>
-                </>}</ObjectEditor>
+                </>
             </HeadingValue>
             <HeadingValue title="root_person">
                 todo
@@ -174,43 +153,35 @@ function Demo1Editor(props: {state: State<Demo1>}): JSX.Element {
                 todo
             </HeadingValue>
         </div>
-    </>}</ObjectEditor>;
+    </>;
 }
 
-type Button = ScObject<{
+type Button = {
     name: string,
     id: string,
-}>;
-type Scene = ScObject<{
+};
+type Scene = {
     name: string,
-    button_map: ScObject<{[key: string]: Actions}>,
-}>;
-type Actions = ScObject<{
+    button_map: {[key: string]: Actions},
+};
+type Actions = {
     [key: string]: Action,
-}>;
-type Action = ScObject<{
+};
+type Action = {
     __todo: string,
-}>;
-type Rebind = ScObject<{
-    buttons: ScObject<{
-        input: ScObject<{[key: string]: Button}>,
-        output: ScObject<{[key: string]: Button}>,
-    }>,
-    scenes: ScObject<{[key: string]: Scene}>,
+};
+type Rebind = {
+    buttons: {
+        input: {[key: string]: Button},
+        output: {[key: string]: Button},
+    },
+    scenes: {[key: string]: Scene},
     default_scene: string,
-}>;
+};
 
-function RebindEditor(props: {state: State<Rebind>}): JSX.Element {
+function RebindEditor(props: {node: Node<Rebind>}): JSX.Element {
     const cxd = getState();
-    return <ObjectEditor state={props.state}>{obj => <>
-        TODO
-    </>}</ObjectEditor>;
-    // ^ I think objecteditor is not good
-    // instead let's just use state.getsomething
-
-    // yeah objecteditor is really useless
-
-    // ok
+    return <>TODO</>;
 }
 
 // [!] if I'm going to be doing schemaless I need typed State values.
@@ -230,37 +201,38 @@ function RebindEditor(props: {state: State<Rebind>}): JSX.Element {
 // if we want to though, we will be able to make an AutoEditor that infers
 // schema based on what you provide it.
 
-type Person = ScObject<{
-    name: ScString,
-    description: ScString,
-}>;
-type Demo1 = ScObject<{
-    root_person: ScLink<typeof person_link>,
-}>;
-type Schema = ScObject<{
+type Person = {
+    name: string,
+    description: string,
+};
+type Demo1 = {
+    people: {[key: string]: Person},
+    // root_person: ScLink<typeof person_link>, // TODO
+};
+type Schema = {
     demo1: Demo1,
     rebind: Rebind,
     text_editor: Richtext,
-}>;
+};
 
-export default function Schemaless(props: {state: State<ScNode>}): JSX.Element {
-    return <ObjectEditor state={props.state as State<Schema>}>{obj => <>
+export default function Schemaless(props: {node: Node<Schema>}): JSX.Element {
+    return <>
         <Tabs>
             <Tab title="demo1">
-                <Demo1Editor state={obj.demo1} />
+                <Demo1Editor node={props.node.get("demo1")} />
             </Tab>
             <Tab title="rebind">
-                <RebindEditor state={obj.rebind} />
+                <RebindEditor node={props.node.get("rebind")} />
             </Tab>
             <Tab title="clicker">
                 clicker
             </Tab>
             <Tab title="text_editor">
-                <RichtextEditor state={obj.text_editor} />
+                <RichtextEditor state={props.node.get("text_editor")} />
             </Tab>
             <Tab title="schema">
                 schema
             </Tab>
         </Tabs>
-    </>}</ObjectEditor>;
+    </>;
 }

@@ -3,10 +3,67 @@
 //     just have one big Set<string path, void signal>
 //     and then one big object that is the actual value
 
-import { batch, createSignal, Signal, untrack } from "solid-js";
+import { batch, createMemo, createSignal, Signal, untrack } from "solid-js";
 import { asObject, isObject, unreachable } from "./guards";
 
-export type Node<T> = {
+const _error = Symbol("error");
+type ERROR = typeof _error;
+
+export class Node<T> implements Path<T> {
+    __ts_value: T = undefined as unknown as T;
+
+    #root: Root;
+    _internal_path: string[];
+    constructor(root: Root, path: string[]) {
+        this.#root = root;
+        this._internal_path = path;
+    }
+
+    get<K extends T extends {[key in infer U]: unknown} ? U : T extends unknown ? string : ERROR>(key: K): (
+        Node<T extends {[key in K]: infer U} ? U : ERROR>
+    ) {
+        return new Node(this.#root, [...this._internal_path, key as string]);
+    }
+
+    readKeys(): string[] | null {
+        const v = this.readPrimitive();
+        if(v != null && typeof v === "object") {
+            return v.keys();
+        }
+        return null;
+    }
+
+    readPrimitive(): string | bigint | null | undefined | {
+        keys: () => string[],
+    } {
+        const value = readValue(this.#root, this);
+        if(isObject(value)) {
+            return {
+                keys: createMemo(() => {
+                    getNodeSignal(this.#root, [...this._internal_path, {v: "keys"}]).view();
+                    return untrack(() => (
+                        Object.keys(asObject(readValue(this.#root, this))!)
+                    ));
+                }),
+            };
+        }
+        return value as string | bigint | null | undefined;
+    }
+
+    readString<T extends string>(): T | "unsupported" | null {
+        const value = readValue(this.#root, this);
+        if(typeof value === "string") {
+            return value as T | "unsupported";
+        }
+        return null;
+    }
+
+    setReconcile<T>(nvCb: (pv: unknown) => T): void {
+        return setReconcile(this.#root, this, nvCb);
+    }
+
+}
+type Path<T> = {
     // ok path will be string[] and maybe a {"keys": ""} object for tracking object
     // keys.    
     _internal_path: string[];
@@ -23,15 +80,35 @@ export type Root = {
 
     // if I want I can store the actual data inside of nodes but idk
 };
+export function createAppData<T>(): Node<T> {
+    const root: Root = {
+        watched_nodes: new Map(),
+        data: undefined,
+        all_contents: new Set(),
+    };
+    return new Node(root, []);
+}
 
-function getNodeSignal(root: Root, path: (string | {v: "keys"})[]): Signal<undefined> {
+function getNodeSignal(root: Root, path: (string | {v: "keys"})[]): {
+    view: () => void,
+    emit: () => void,
+} {
     const track_str = JSON.stringify(path);
     let signal = root.watched_nodes.get(track_str);
     if(!signal) {
         signal = createSignal(undefined, {equals: () => false});
         root.watched_nodes.set(track_str, signal);
     }
-    return signal;
+    return {
+        view: () => {
+            signal![0]();
+            console.log("observing signal", JSON.stringify(path));
+        },
+        emit: () => {
+            signal![1](undefined);
+            console.log("emitting signal", JSON.stringify(path));
+        },
+    };
 }
 
 // wow we basically just remade our modValue thing from solid js store but
@@ -39,9 +116,9 @@ function getNodeSignal(root: Root, path: (string | {v: "keys"})[]): Signal<undef
 // to it
 //     (that does mean setting a node to undefined requires alerting a bunch of consumers
 //      but that's okay)
-export function readValue(root: Root, node: Node<unknown>): unknown {
+export function readValue(root: Root, node: Path<unknown>): unknown {
     // track reads
-    getNodeSignal(root, node._internal_path)[0]();
+    getNodeSignal(root, node._internal_path).view();
 
     let ntry = root.data;
     for(const itm of node._internal_path) {
@@ -55,15 +132,7 @@ export function readValue(root: Root, node: Node<unknown>): unknown {
     return ntry;
 }
 
-export function readString<T extends string>(root: Root, node: Node<T>): T | "unsupported" | null {
-    const value = readValue(root, node);
-    if(typeof value === "string") {
-        return value as T | "unsupported";
-    }
-    return null;
-}
-
-export function write<T>(root: Root, node: Node<T>, nvCb: (pv: unknown) => T): void {
+export function setReconcile<T>(root: Root, node: Path<T>, nvCb: (pv: unknown) => T): void {
     untrack(() => batch(() => {
         const pv = readValue(root, node);
         const nv = nvCb(pv);
@@ -76,27 +145,39 @@ export function write<T>(root: Root, node: Node<T>, nvCb: (pv: unknown) => T): v
             key: "data",
         };
         for(const [i, path_node] of node._internal_path.entries()) {
-            const v = ntry.parent[ntry.key];
-            if(isObject(v)) {
-                ntry = {
-                    parent: v,
-                    key: path_node,
-                };
-            }else{
-                // make it an object
-                const prev_value = ntry.parent;
-                const new_value = {...ntry.parent, [ntry.key]: {}};
-                ntry.parent = new_value;
+            let v = ntry.parent[ntry.key];
+            if(Object.hasOwnProperty.call(ntry.parent, ntry.key) && isObject(v)) {
+                // we're good!
+            } else {
+                // turn it into an object
+                v = {};
+                if(!Object.hasOwnProperty.call(ntry.parent, ntry.key) && i - 1 >= 0) {
+                    const parent_path = node._internal_path.slice(0, i - 1);
+                    getNodeSignal(root, [...parent_path, {v: "keys"}]).emit();
+                }
+                ntry.parent[ntry.key] = v;
 
-                // emit its signals
-                const obj_path = node._internal_path.slice(0, i + 1);
-                emitDiffSignals(root, obj_path, prev_value, new_value);
+                const obj_path = node._internal_path.slice(0, i);
+                console.log("had to create object at", JSON.stringify(obj_path));
+                getNodeSignal(root, obj_path).emit();
+            }
+            ntry = {
+                parent: v as {[key: string]: unknown},
+                key: path_node,
+            };
+        }
+
+        if(!Object.hasOwnProperty.call(ntry.parent, ntry.key)) {
+            // [!] duplicated code
+            const pathlen = node._internal_path.length;
+            if(pathlen - 1 >= 0) {
+                const parent_path = node._internal_path.slice(0, pathlen - 1);
+                getNodeSignal(root, [...parent_path, {v: "keys"}]).emit();
             }
         }
 
-        // update the object [!] oh wait is this okay? [!] i think it is because uuh
         // [!] we might end up with stale references. if that's not acceptable, we'll have
-        //     to reconcile properly.
+        //     to reconcile properly. this should be okay though I think.
         ntry.parent[ntry.key] = nv;
 
         // emit its signals
@@ -116,10 +197,16 @@ function emitDiffSignals<T>(root: Root, path: string[], old_value: unknown, new_
 
     // assert there are no cyclical references
     if(isObject(old_value)) {
-        if(!root.all_contents.delete(old_value)) unreachable();
+        if(!root.all_contents.delete(old_value)) {
+            console.warn("E_NOT_IN_DB", old_value);
+            unreachable();
+        }
     }
     if(isObject(new_value)) {
-        if(root.all_contents.has(new_value)) unreachable();
+        if(root.all_contents.has(new_value)) {
+            console.warn("E_DOUBLE_INSERT", new_value);
+            unreachable();
+        }
         root.all_contents.add(new_value);
     }
 
@@ -133,23 +220,24 @@ function emitDiffSignals<T>(root: Root, path: string[], old_value: unknown, new_
     if(isObject(new_value)) {
         const pv = asObject(old_value) ?? {};
         for(const key of new_keys) {
-            emitDiffSignals(root, [...path, key], pv, new_value[key]);
+            console.log("emit4key", key, pv[key], new_value[key]);
+            emitDiffSignals(root, [...path, key], pv[key], new_value[key]);
         }
     }
     // emit keys changed
-    if(deleted_keys.size > 0) {
-        getNodeSignal(root, [...path, {v: "keys"}])[1](undefined);
+    if(JSON.stringify(old_keys) !== JSON.stringify(new_keys)) {
+        getNodeSignal(root, [...path, {v: "keys"}]).emit();
     }
     // emit signals for removed keys
     if(true) {
         const pv = asObject(old_value) ?? {};
         const nv = asObject(new_value) ?? {};
         for(const key of deleted_keys) {
-            emitDiffSignals(root, [...path, key], pv, nv);
+            emitDiffSignals(root, [...path, key], pv[key], nv[key]);
         }
     }
     // emit an update signal unless both old and new are objects
     if(!(isObject(old_value) && isObject(new_value))) {
-        getNodeSignal(root, path)[1](undefined);
+        getNodeSignal(root, path).emit();
     }
 }

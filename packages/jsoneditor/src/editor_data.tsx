@@ -1,24 +1,24 @@
 import { createContext, JSX, useContext } from "solid-js";
-import { ScNode, ScObject, State } from "./app_data";
+import { Node } from "./app_data";
 import { UUID } from "./uuid";
 
 export type Path = (string | UUID)[];
 
-export type RootState = ScObject<{
-  data: ScObject<{
-    root: ScNode,
-    [key: string]: ScNode,
-  }>,
-}>;
+export type RootState = {
+  data: {
+    root: unknown,
+    [key: string]: unknown,
+  },
+};
 
 export type ContextData = {
-  state: State<RootState>,
+  state: Node<RootState>,
 };
 
 const NodeContext = createContext<ContextData>();
 
 export function NodeProvider(props: {
-  state: State<RootState>,
+  state: Node<RootState>,
   children: JSX.Element,
 }): JSX.Element {
   return <NodeContext.Provider value={{
