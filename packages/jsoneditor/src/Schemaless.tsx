@@ -1,7 +1,7 @@
 import { createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
-import { Node } from "./app_data";
+import { anKeys, AnNode, anSetReconcile, anString } from "./app_data";
 import { Button } from "./components";
 import { getState } from "./editor_data";
 import { asObject } from "./guards";
@@ -78,33 +78,33 @@ function HeadingValue(props: {
     </div>;
 }
 
-function StringEditor(props: {node: Node<string>}): JSX.Element {
+function StringEditor(props: {node: AnNode<string>}): JSX.Element {
     return <div>
         <Show
-            if={props.node.readString() != null}
+            if={anString(props.node) != null}
             fallback={(
-                <Button onClick={() => props.node.setReconcile(() => "")}>Create String</Button>
+                <Button onClick={() => anSetReconcile(props.node, () => "")}>Create String</Button>
             )}
         >
             <input
                 type="text"
                 class="w-full bg-gray-700 rounded-sm px-1"
-                value={props.node.readString() ?? ""}
+                value={anString(props.node) ?? ""}
                 // onChange here maybe?
-                onInput={e => props.node.setReconcile(() => e.currentTarget.value)}
+                onInput={e => anSetReconcile(props.node, () => e.currentTarget.value)}
             />
         </Show>
     </div>;
 }
 
 function ArrayEditorBase<T>(props: {
-    node: Node<{[key: string]: T}>,
-    children: (node: Node<T>, key: string, root: Node<{[key: string]: T}>) => JSX.Element,
+    node: AnNode<{[key: string]: T}>,
+    children: (node: AnNode<T>, key: string, root: AnNode<{[key: string]: T}>) => JSX.Element,
 }): JSX.Element {
-    return <For each={props.node.readKeys()}>{key => <>
+    return <For each={anKeys(props.node)}>{key => <>
         {(() => {
-            const root = props.node;
-            const node = root.get(key);
+            const root = props.node; // tracks props.node
+            const node = root[key]; // doesn't track anything
             return untrack(() => props.children(node, key, root));
         })()}
     </>}</For>;
@@ -121,13 +121,13 @@ function ArrayEditorBase<T>(props: {
 //     uuid: "<!>person" as UUID,
 // };
 
-function PersonEditor(props: {node: Node<Person>}): JSX.Element {
+function PersonEditor(props: {node: AnNode<Person>}): JSX.Element {
     return <>
         <HeadingValue title="name">
-            <StringEditor node={props.node.get("name")} />
+            <StringEditor node={props.node.name} />
         </HeadingValue>
         <HeadingValue title="description">
-            <StringEditor node={props.node.get("description")} />
+            <StringEditor node={props.node.description} />
         </HeadingValue>
         <HeadingValue title="attributes">
             TODO
@@ -138,19 +138,19 @@ function PersonEditor(props: {node: Node<Person>}): JSX.Element {
     </>;
 }
 
-function Demo1Editor(props: {node: Node<Demo1>}): JSX.Element {
+function Demo1Editor(props: {node: AnNode<Demo1>}): JSX.Element {
     const cxd = getState();
     return <>
         <div class="space-y-2">
             <HeadingValue title="people">
                 <Tabs>
-                    <ArrayEditorBase node={props.node.get("people")}>{(person, key) => <>
-                        <Tab title={person.get("name").readString() ?? key}>
+                    <ArrayEditorBase node={props.node.people}>{(person, key) => <>
+                        <Tab title={anString(person.name) ?? key}>
                             <PersonEditor node={person} />
                         </Tab>
                     </>}</ArrayEditorBase>
                     <Tab title={"+"} onClick={() => {
-                        props.node.get("people").setReconcile((v): {[key: string]: Person} => ({
+                        anSetReconcile(props.node.people, (v): {[key: string]: Person} => ({
                             ...(v != null && typeof v === "object" ? v : {}),
                             [uuid()]: undefined as any,
                         }));
@@ -190,7 +190,7 @@ type Rebind = {
     default_scene: string,
 };
 
-function RebindEditor(props: {node: Node<Rebind>}): JSX.Element {
+function RebindEditor(props: {node: AnNode<Rebind>}): JSX.Element {
     const cxd = getState();
     return <>TODO</>;
 }
@@ -226,20 +226,20 @@ type Schema = {
     text_editor: Richtext,
 };
 
-export default function Schemaless(props: {node: Node<Schema>}): JSX.Element {
+export default function Schemaless(props: {node: AnNode<Schema>}): JSX.Element {
     return <>
         <Tabs>
             <Tab title="demo1">
-                <Demo1Editor node={props.node.get("demo1")} />
+                <Demo1Editor node={props.node.demo1} />
             </Tab>
             <Tab title="rebind">
-                <RebindEditor node={props.node.get("rebind")} />
+                <RebindEditor node={props.node.rebind} />
             </Tab>
             <Tab title="clicker">
                 clicker
             </Tab>
             <Tab title="text_editor">
-                <RichtextEditor node={props.node.get("text_editor")} />
+                <RichtextEditor node={props.node.text_editor} />
             </Tab>
             <Tab title="schema">
                 schema

@@ -1,7 +1,7 @@
 import { createContext, createRenderEffect, createSelector, createSignal, For, Show, Signal, untrack, useContext } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
-import { Node as AdNode } from "./app_data";
+import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_data";
 import { Button } from "./components";
 import { asObject, asString, isObject } from "./guards";
 import { Include } from "./util";
@@ -222,24 +222,24 @@ const nc = {
 // gives you basic functions and you can put it where you need it to edit text
 
 const node_renderers: {
-    [key in TextEditorAnyNode["kind"]]?: (props: {node: AdNode<Include<TextEditorAnyNode, {kind: key}>>}) => JSX.Element
+    [key in TextEditorAnyNode["kind"]]?: (props: {node: AnNode<Include<TextEditorAnyNode, {kind: key}>>}) => JSX.Element
 } = {
-    root(props: {node: AdNode<TextEditorRootNode>}): JSX.Element {
+    root(props: {node: AnNode<TextEditorRootNode>}): JSX.Element {
         return <div class="space-y-2">
-            <For each={props.node.get("children").readKeys()}>{key => {
+            <For each={anKeys(props.node.children)}>{key => {
                 // TODO add the indent
-                return <EditorNode node={props.node.get("children").get(key as UUID).get("node")} />;
+                return <EditorNode node={props.node.children[key as UUID].node} />;
             }}</For>
         </div>;
     },
     paragraph(props): JSX.Element {
         return <p>
-            <EditorChildren node={props.node.get("children")} />
+            <EditorChildren node={props.node.children} />
         </p>;
     },
     multiline_code_block(props): JSX.Element {
         return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap"><code>
-            <Leaf node={props.node.get("text")} />
+            <Leaf node={props.node.text} />
         </code></pre>;
     },
     embedded_schema_editor(props): JSX.Element {
@@ -251,14 +251,14 @@ const node_renderers: {
         return <span class={(() => {
 
             let styles: string[] = [];
-            const style = props.node.get("style");
-            if(style.get("bold").readBoolean() ?? false) styles.push("font-bold");
+            const style = props.node.style;
+            if(anBool(style.bold) ?? false) styles.push("font-bold");
 
             return styles.join(" ");
-        })()}><Leaf node={props.node.get("text")} /></span>;
+        })()}><Leaf node={props.node.text} /></span>;
     },
     inline_code(props): JSX.Element {
-        return <code class="bg-gray-800 p-1 rounded-md"><Leaf node={props.node.get("text")} /></code>;
+        return <code class="bg-gray-800 p-1 rounded-md"><Leaf node={props.node.text} /></code>;
     },
 };
 
@@ -328,7 +328,7 @@ export function TextNode(props: {
 }
 
 export function Leaf(props: {
-    node: AdNode<string>, // State<string>
+    node: AnNode<string>, // State<string>
 }): JSX.Element {
     // TODO the returned node will have information in it to allow for handling
     // left arrow, right arrow, select, …
@@ -340,7 +340,7 @@ export function Leaf(props: {
         // I want to easily be able to do eg:
         // on enter key:
         // - splitNode(position)
-        props.node.setReconcile(pv => {
+        anSetReconcile(props.node, pv => {
             const v = "" + pv;
             return v.substring(0, start) + text + v.substring(end);
         });
@@ -361,14 +361,14 @@ export function Leaf(props: {
         }}>
             <span><TextNode
                 ref={text_node_1}
-                value={("" + props.node.readString()).substring(0, iprops.selection ?? undefined)}
+                value={("" + anString(props.node)).substring(0, iprops.selection ?? undefined)}
             /></span>
             <Show when={iprops.selection != null}>
                 <Caret />
             </Show>
             <span><TextNode
                 ref={text_node_2}
-                value={("" + props.node.readString()).substring(iprops.selection ?? Infinity)}
+                value={("" + anString(props.node)).substring(iprops.selection ?? Infinity)}
             /></span>
         </span>
     </>}</EditorSpan>;
@@ -387,22 +387,22 @@ export function Caret(): JSX.Element {
 }
 
 export function EditorChildren(props: {
-    node: AdNode<{[key: string]: TextEditorAnyNode}>,
+    node: AnNode<{[key: string]: TextEditorAnyNode}>,
 }): JSX.Element {
-    return <For each={props.node.readKeys()}>{key => {
-        return <EditorNode node={props.node.get(key)} />;
+    return <For each={anKeys(props.node)}>{key => {
+        return <EditorNode node={props.node[key]} />;
     }}</For>;
 }
 
 type demo = keyof TextEditorAnyNode;
 
 export function EditorNode(props: {
-    node: AdNode<TextEditorAnyNode>,
+    node: AnNode<TextEditorAnyNode>,
 }): JSX.Element {
-    const nodeKind = () => props.node.get("kind").readString();
+    const nodeKind = () => anString(props.node.kind);
     return <Dynamic component={(node_renderers as {
-        [key: string]: (props: {node: AdNode<TextEditorAnyNode>}) => JSX.Element
-    })[nodeKind() ?? "null"] ?? ((props: {state: AdNode<TextEditorAnyNode>}) => (
+        [key: string]: (props: {node: AnNode<TextEditorAnyNode>}) => JSX.Element
+    })[nodeKind() ?? "null"] ?? ((props: {state: AnNode<TextEditorAnyNode>}) => (
         <div class="text-red-500">E_NOT_FOUND {"kind:"+nodeKind()}</div>
     ))} node={props.node} />
 }
@@ -465,7 +465,7 @@ const defaultnode = (): TextEditorRootNode => nc.root(
 );
 
 export function RichtextEditor(props: {
-    node: AdNode<Richtext>,
+    node: AnNode<Richtext>,
 }): JSX.Element {
     const [selected, setSelected] = createSignal<Selection>(null);
 
@@ -480,9 +480,9 @@ export function RichtextEditor(props: {
 
     // this stylinng can probably be provided by the root node
     return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
-        <Show when={isObject(props.node.readPrimitive())} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
+        <Show when={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Button onClick={() => {
-                props.node.setReconcile((): TextEditorRoot => ({
+                anSetReconcile(props.node, (): TextEditorRoot => ({
                     node: defaultnode(),
                 }));
             }}>click to create</Button>
@@ -492,7 +492,7 @@ export function RichtextEditor(props: {
                 selection: [selected, setSelected],
                 editor_id,
             }}>
-                <EditorNode node={props.node.get("node")} />
+                <EditorNode node={props.node.node} />
             </TEContext.Provider>
         </Show>
     </div>;

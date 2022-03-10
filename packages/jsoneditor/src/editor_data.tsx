@@ -1,5 +1,5 @@
 import { createContext, JSX, useContext } from "solid-js";
-import { Node } from "./app_data";
+import { AnNode } from "./app_data";
 import { UUID } from "./uuid";
 
 export type Path = (string | UUID)[];
@@ -12,17 +12,17 @@ export type RootState = {
 };
 
 export type ContextData = {
-  state: Node<RootState>,
+  node: AnNode<RootState>,
 };
 
 const NodeContext = createContext<ContextData>();
 
 export function NodeProvider(props: {
-  state: Node<RootState>,
+  node: AnNode<RootState>,
   children: JSX.Element,
 }): JSX.Element {
   return <NodeContext.Provider value={{
-    state: props.state,
+    node: props.node,
   }}>{props.children}</NodeContext.Provider>;
 }
 

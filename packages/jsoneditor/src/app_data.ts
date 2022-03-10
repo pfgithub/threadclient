@@ -5,81 +5,102 @@
 
 import { batch, createMemo, createSignal, Signal, untrack } from "solid-js";
 import { asObject, isObject, unreachable } from "./guards";
+import { Include } from "./util";
 
-const _error = Symbol("error");
-type ERROR = typeof _error;
+const symbol_value = Symbol("value");
+const symbol_path = Symbol("path");
+const symbol_root = Symbol("root");
+const object_sym = Symbol("object");
+const nothing = Symbol("nothing");
+export type IncludeBackup<T, U> = Include<T, U> extends never ? {[nothing]: undefined} : Include<T, U>;
+export type AnNodeData<T> = {
+    [symbol_value]: T, // exists in ts only, for typechecking.
+    [symbol_path]: string[],
+    [symbol_root]: Root,
+};
+export type AnNode<T> = AnNodeData<T> & IncludeBackup<(T extends Primitive ? {
+    [nothing]: undefined,
+} : T extends {[key in string]: unknown} ? {
+    [object_sym]: undefined,
+} & {
+    [key in keyof T]-?: AnNode<T[key]>
+} : never), {
+    [object_sym]: undefined,
+}>;
+
+const an_proxy_handler: ProxyHandler<AnNodeData<any>> = {
+    get(target, prop, reciever) {
+        if(typeof prop !== "string") {
+            return Reflect.get(target, prop, reciever);
+        }
+        return anConstructor(target[symbol_root], [...target[symbol_path], prop]);
+    },
+    ownKeys(target) {
+        const res = Reflect.ownKeys(target);
+        if(res.find(w => typeof w !== "symbol")) unreachable();
+
+        return [...res, ...anKeys(target)];
+    },
+};
+function anConstructor<T>(root: Root, path: string[]): AnNode<T> {
+    const data: AnNodeData<T> = {
+        [symbol_value]: undefined as any,
+        [symbol_path]: [...path],
+        [symbol_root]: root,
+    };
+    return new Proxy(data, an_proxy_handler) as AnNode<T>;
+}
+
+// maybe it was better having get() return a keys() fn if it's an object
+export function anKeys(node: AnNodeData<any>): string[] {
+    const value = readValue(node[symbol_root], node[symbol_path]);
+    getNodeSignal(node[symbol_root], [...node[symbol_path], {v: "keys"}]).view();
+    return Object.keys(asObject(value) ?? {});
+}
+export function anGet(node: AnNodeData<any>): Primitive | {__is_object: true} {
+    const value = readValue(node[symbol_root], node[symbol_path]);
+    if(isObject(value)) return {__is_object: true};
+    return value as Primitive;
+}
+export function anString<T extends string | null | undefined>(node: AnNodeData<T>): T | "unsupported" | null {
+    const value = anGet(node);
+    if(typeof value === "string") return value as T | "unsupported";
+    return null;
+}
+export function anBool(node: AnNodeData<boolean | null | undefined>): boolean | null {
+    const value = anGet(node);
+    if(typeof value === "boolean") return value;
+    return null;
+}
+export function anSetReconcile<T>(node: AnNodeData<T>, nv: (pv: unknown) => T): void {
+    return anSetReconcileIncomplete(node, nv);
+}
+export function anSetReconcileIncomplete<T>(node: AnNodeData<T>, nv: (pv: unknown) => Partial<T>): void {
+    setReconcile(node[symbol_root], node[symbol_path], nv);
+}
+
+(() => {
+    type Person = {
+        name: string,
+        tags: {[key: string]: string},
+        options?: undefined | {
+            media?: undefined | boolean,
+        },
+        settings: {
+            media: boolean,
+        },
+    };
+    let example!: AnNode<Person>;
+
+    const name: string = anString(example.name) ?? "*unnamed*";
+    const options = example.options;
+    const media = options.media;
+    const value = anBool(media);
+    const value2 = anBool(example.settings.media);
+});
 
 type Primitive = string | bigint | boolean | null | undefined;
 
-export class Node<T> implements Path<T> {
-    __ts_value: T = undefined as unknown as T;
-
-    #root: Root;
-    _internal_path: string[];
-    constructor(root: Root, path: string[]) {
-        this.#root = root;
-        this._internal_path = path;
-    }
-
-    get<
-        Q extends {[key: string]: unknown} | null | undefined,
-        K extends keyof Exclude<Q, null | undefined>,
-    >(this: Node<Q>, key: K): Node<Exclude<Q, null | undefined>[K]> {
-        return new Node(this.#root, [...this._internal_path, key as string]);
-    }
-
-    readKeys(this: Node<{[key: string]: unknown}>): string[] | null {
-        const v = this.readPrimitive();
-        if(v != null && typeof v === "object") {
-            return v.keys() as any;
-        }
-        return null as any;
-    }
-
-    readPrimitive(): Primitive | {
-        keys: () => string[],
-    } {
-        const value = readValue(this.#root, this);
-        if(isObject(value)) {
-            return {
-                keys: () => {
-                    getNodeSignal(this.#root, [...this._internal_path, {v: "keys"}]).view();
-                    return untrack(() => (
-                        Object.keys(asObject(readValue(this.#root, this))!)
-                    ));
-                },
-            };
-        }
-        return value as Primitive;
-    }
-
-    readString<Q extends string>(this: Node<Q>): Q | "unsupported" | null {
-        const value = this.readPrimitive();
-        if(typeof value === "string") {
-            return value as Q | "unsupported";
-        }
-        return null;
-    }
-    readBoolean(this: Node<boolean | null | undefined>): boolean | null {
-        const value = this.readPrimitive();
-        if(typeof value === "boolean") {
-            return value;
-        }
-        return null;
-    }
-
-    setReconcile<T>(nvCb: (pv: unknown) => T): void {
-        return setReconcile(this.#root, this, nvCb);
-    }
-
-}
-type Path<T> = {
-    // ok path will be string[] and maybe a {"keys": ""} object for tracking object
-    // keys.    
-    _internal_path: string[];
-
-    // we can add a prototype with fns like readvalue, readstring, …
-};
 export type Root = {
     // note: see if we can use a weakmap for this
     // we'll have to use the same path array for every watched nodes access
@@ -90,13 +111,13 @@ export type Root = {
 
     // if I want I can store the actual data inside of nodes but idk
 };
-export function createAppData<T>(): Node<T> {
+export function createAppData<T>(): AnNode<T> {
     const root: Root = {
         watched_nodes: new Map(),
         data: undefined,
         all_contents: new Set(),
     };
-    return new Node(root, []);
+    return anConstructor(root, []);
 }
 
 function getNodeSignal(root: Root, path: (string | {v: "keys"})[]): {
@@ -126,12 +147,12 @@ function getNodeSignal(root: Root, path: (string | {v: "keys"})[]): {
 // to it
 //     (that does mean setting a node to undefined requires alerting a bunch of consumers
 //      but that's okay)
-export function readValue(root: Root, node: Path<unknown>): unknown {
+function readValue(root: Root, path: string[]): unknown {
     // track reads
-    getNodeSignal(root, node._internal_path).view();
+    getNodeSignal(root, path).view();
 
     let ntry = root.data;
-    for(const itm of node._internal_path) {
+    for(const itm of path) {
         if(isObject(ntry)) {
             ntry = ntry[itm];
         }else{
@@ -142,9 +163,9 @@ export function readValue(root: Root, node: Path<unknown>): unknown {
     return ntry;
 }
 
-export function setReconcile<T>(root: Root, node: Path<T>, nvCb: (pv: unknown) => T): void {
+function setReconcile<T>(root: Root, path: string[], nvCb: (pv: unknown) => T): void {
     untrack(() => batch(() => {
-        const pv = readValue(root, node);
+        const pv = readValue(root, path);
         const nv = nvCb(pv);
 
         let ntry: {
@@ -154,7 +175,7 @@ export function setReconcile<T>(root: Root, node: Path<T>, nvCb: (pv: unknown) =
             parent: root,
             key: "data",
         };
-        for(const [i, path_node] of node._internal_path.entries()) {
+        for(const [i, path_node] of path.entries()) {
             let v = ntry.parent[ntry.key];
             if(Object.hasOwnProperty.call(ntry.parent, ntry.key) && isObject(v)) {
                 // we're good!
@@ -162,12 +183,12 @@ export function setReconcile<T>(root: Root, node: Path<T>, nvCb: (pv: unknown) =
                 // turn it into an object
                 v = {};
                 if(!Object.hasOwnProperty.call(ntry.parent, ntry.key) && i - 1 >= 0) {
-                    const parent_path = node._internal_path.slice(0, i - 1);
+                    const parent_path = path.slice(0, i - 1);
                     getNodeSignal(root, [...parent_path, {v: "keys"}]).emit();
                 }
                 ntry.parent[ntry.key] = v;
 
-                const obj_path = node._internal_path.slice(0, i);
+                const obj_path = path.slice(0, i);
                 console.log("had to create object at", JSON.stringify(obj_path));
                 getNodeSignal(root, obj_path).emit();
             }
@@ -179,9 +200,9 @@ export function setReconcile<T>(root: Root, node: Path<T>, nvCb: (pv: unknown) =
 
         if(!Object.hasOwnProperty.call(ntry.parent, ntry.key)) {
             // [!] duplicated code
-            const pathlen = node._internal_path.length;
+            const pathlen = path.length;
             if(pathlen - 1 >= 0) {
-                const parent_path = node._internal_path.slice(0, pathlen - 1);
+                const parent_path = path.slice(0, pathlen - 1);
                 getNodeSignal(root, [...parent_path, {v: "keys"}]).emit();
             }
         }
@@ -191,7 +212,7 @@ export function setReconcile<T>(root: Root, node: Path<T>, nvCb: (pv: unknown) =
         ntry.parent[ntry.key] = nv;
 
         // emit its signals
-        emitDiffSignals(root, node._internal_path, pv, nv);
+        emitDiffSignals(root, path, pv, nv);
     }));
 }
 function emitDiffSignals<T>(root: Root, path: string[], old_value: unknown, new_value: T): void {

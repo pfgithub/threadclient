@@ -1,10 +1,8 @@
-import { createMemo, createSelector, createSignal, For, untrack } from "solid-js";
+import { createMemo, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
-import { Node, Root } from "./app_data";
+import { anGet, anKeys, AnNode } from "./app_data";
 import { Button } from "./components";
 import { getState } from "./editor_data";
-import { asString } from "./guards";
-import { UUID } from "./uuid";
 
 export class JSONRaw {
   message: string;
@@ -45,27 +43,27 @@ const colors = [
 ];
 
 export function StoreViewerElement(props: {
-  node: Node<unknown>,
+  node: AnNode<unknown>,
   level: number,
 }): JSX.Element {
   const color = () => colors[props.level % colors.length |0]!;
 
   return createMemo((): JSX.Element => {
-    const pv = props.node.readPrimitive();
+    const pv = anGet(props.node);
     if(typeof pv === "object" && pv != null) return untrack((): JSX.Element => {
-      return <span>{"{"}<For each={pv.keys()}>{(key, index) => {
+      return <span>{"{"}<For each={anKeys(props.node)}>{(key, index) => {
         return <span>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
           <span class={color()}>{JSON.stringify(key)}</span>{": "}
-          <StoreViewerElement node={(props.node as Node<any>).get(key as any)} level={props.level + 1} />
+          <StoreViewerElement node={(props.node as any)[key]} level={props.level + 1} />
         </span>;
-      }}</For>{(pv.keys().length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
+      }}</For>{(anKeys(props.node).length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
     }); else return untrack((): JSX.Element => {
       return <span class={color()}>{pv === undefined ? "#E_UNDEFINED" : JSON.stringify(pv)}</span>;
     });
   });
 }
 export function StoreViewer(props: {
-  node: Node<unknown>,
+  node: AnNode<unknown>,
 }): JSX.Element {
   return <pre class="font-mono whitespace-pre-wrap">
     <StoreViewerElement node={props.node} level={0} />
@@ -79,6 +77,6 @@ export function StoreViewer(props: {
 export default function JsonViewer(): JSX.Element {
   const root_state = getState();
   return <div class="space-y-2">
-    <StoreViewer node={root_state.state} />
+    <StoreViewer node={root_state.node as any} />
   </div>;
 }
