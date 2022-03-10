@@ -4,7 +4,7 @@
 //     and then one big object that is the actual value
 
 import { batch, createSignal, Signal, untrack } from "solid-js";
-import { asObject2, isObject2, unreachable } from "./guards";
+import { asObject, isObject, unreachable } from "./guards";
 
 export type Node<T> = {
     // ok path will be string[] and maybe a {"keys": ""} object for tracking object
@@ -45,7 +45,7 @@ export function readValue(root: Root, node: Node<unknown>): unknown {
 
     let ntry = root.data;
     for(const itm of node._internal_path) {
-        if(isObject2(ntry)) {
+        if(isObject(ntry)) {
             ntry = ntry[itm];
         }else{
             ntry = undefined;
@@ -77,7 +77,7 @@ export function write<T>(root: Root, node: Node<T>, nvCb: (pv: unknown) => T): v
         };
         for(const [i, path_node] of node._internal_path.entries()) {
             const v = ntry.parent[ntry.key];
-            if(isObject2(v)) {
+            if(isObject(v)) {
                 ntry = {
                     parent: v,
                     key: path_node,
@@ -115,23 +115,23 @@ function emitDiffSignals<T>(root: Root, path: string[], old_value: unknown, new_
     // }
 
     // assert there are no cyclical references
-    if(isObject2(old_value)) {
+    if(isObject(old_value)) {
         if(!root.all_contents.delete(old_value)) unreachable();
     }
-    if(isObject2(new_value)) {
+    if(isObject(new_value)) {
         if(root.all_contents.has(new_value)) unreachable();
         root.all_contents.add(new_value);
     }
 
-    const old_keys = isObject2(old_value) ? Object.keys(old_value) : [];
-    const new_keys = isObject2(new_value) ? Object.keys(new_value) : [];
+    const old_keys = isObject(old_value) ? Object.keys(old_value) : [];
+    const new_keys = isObject(new_value) ? Object.keys(new_value) : [];
 
     const deleted_keys = new Set(old_keys);
     for(const key of new_keys) deleted_keys.delete(key);
 
     // emit diff signals for all new leaves
-    if(isObject2(new_value)) {
-        const pv = asObject2(old_value) ?? {};
+    if(isObject(new_value)) {
+        const pv = asObject(old_value) ?? {};
         for(const key of new_keys) {
             emitDiffSignals(root, [...path, key], pv, new_value[key]);
         }
@@ -142,14 +142,14 @@ function emitDiffSignals<T>(root: Root, path: string[], old_value: unknown, new_
     }
     // emit signals for removed keys
     if(true) {
-        const pv = asObject2(old_value) ?? {};
-        const nv = asObject2(new_value) ?? {};
+        const pv = asObject(old_value) ?? {};
+        const nv = asObject(new_value) ?? {};
         for(const key of deleted_keys) {
             emitDiffSignals(root, [...path, key], pv, nv);
         }
     }
     // emit an update signal unless both old and new are objects
-    if(!(isObject2(old_value) && isObject2(new_value))) {
+    if(!(isObject(old_value) && isObject(new_value))) {
         getNodeSignal(root, path)[1](undefined);
     }
 }
