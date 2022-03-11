@@ -230,13 +230,13 @@ function emitDiffSignals<T>(root: Root, path: string[], old_value: unknown, new_
     if(isObject(old_value)) {
         if(!root.all_contents.delete(old_value)) {
             console.warn("E_NOT_IN_DB", old_value);
-            unreachable();
+            // unreachable();
         }
     }
     if(isObject(new_value)) {
         if(root.all_contents.has(new_value)) {
             console.warn("E_DOUBLE_INSERT", new_value);
-            unreachable();
+            // unreachable();
         }
         root.all_contents.add(new_value);
     }

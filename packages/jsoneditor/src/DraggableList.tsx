@@ -2,6 +2,29 @@ import { Accessor, batch, createContext, createEffect, createMemo, createSignal,
 
 // ok I'd rather use a library for this but I can't find one
 
+// consider:
+
+/*
+
+<DraggableList>
+    <For each={someArray()}>
+        <DraggableListItem />
+    </For>
+</DraggableList>
+
+I think the reason not to do that is because draggablelist needs to be able
+to reorder that array
+
+I'll just stick with this for now. I could maybe do eg
+
+<DraggableList>{(key, dragging) =>
+    <DraggableListItem>
+}</DraggableList>
+
+just to improve the classes but that's not really necessary
+
+*/
+
 const drop_spot_symbol = Symbol();
 type DropHolder = {
     [drop_spot_symbol]: {
@@ -26,7 +49,7 @@ export function DraggableList(props: {
     wrapper_class: string,
     nodeClass: (selfIsDragging: () => boolean) => string,
     setItems: (cb: (prev: string[]) => string[]) => void,
-    children: (key: string) => JSX.Element,
+    children: (key: string, dragging: Accessor<boolean>) => JSX.Element,
 }): JSX.Element {
     const list_symbol = Symbol();
     const [dragging, setDragging] = createSignal<Dragging>(null, {equals: (a, b) => {
@@ -140,7 +163,7 @@ export function DraggableList(props: {
                     set cleanFn(v) {cleanFn = v},
                     get cleanFn() {return cleanFn},
                 }}>
-                    {untrack(() => props.children(key))}
+                    {untrack(() => props.children(key, selfIsDragging))}
                 </DragState.Provider>
             </div>
         </div>;

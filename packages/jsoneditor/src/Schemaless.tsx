@@ -3,6 +3,7 @@ import { JSX } from "solid-js/jsx-runtime";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { anBool, anKeys, AnNode, anSetReconcile, anSetReconcileIncomplete, anString } from "./app_data";
 import { Button, Buttons } from "./components";
+import { DragButton, DraggableList } from "./DraggableList";
 import { getState } from "./editor_data";
 import { asObject, unreachable } from "./guards";
 import { Richtext, RichtextEditor } from "./TextEditor";
@@ -131,6 +132,37 @@ export function ArrayEditorBase<T>(props: {
     </>}</For>;
 }
 
+function ListEditor<T>(props: {
+    node: AnNode<{[key: string]: T}>,
+    children: (node: AnNode<T>) => JSX.Element,
+}): JSX.Element {
+    return <div><DraggableList
+        items={anKeys(props.node)}
+        setItems={cb => {
+            anSetReconcile(props.node, v => {
+                const pv = asObject(v) ?? {};
+                const nv = cb(Object.keys(pv));
+                return Object.fromEntries(nv.map(key => [key, pv[key]!]));
+            });
+        }}
+        wrapper_class="pt-2 first:pt-0"
+        nodeClass={() => ""}
+    >{(key, dragging) => {
+        return <div class={"transition-opacity " + (dragging() ? "opacity-80 rounded-md relative shadow-md" : "")}>
+            <Show if={dragging()}>
+                <div class="absolute w-full h-full p-2 -mt-2 -ml-2 box-content bg-gray-900 rounded-md"></div>
+            </Show>
+            <div class={"flex flex-row flex-wrap gap-2 "+(dragging() ? "relative z-10" : "")}>
+                <DragButton class={dragging => "p-2 rounded-md "+(dragging() ? "bg-gray-500" : "bg-gray-700")}>≡</DragButton>
+                {(() => {
+                    const node = props.node;
+                    return untrack(() => props.children(node[key]));
+                })}
+            </div>
+        </div>;
+    }}</DraggableList></div>;
+}
+
 /// -------------------
 /// -------------------
 /// ---[ user code ]---
@@ -220,12 +252,12 @@ function summarizeButton(node: AnNode<Button>): string {
 
 function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Element {
     return <div class="space-y-2">
-        <ArrayEditorBase node={props.node}>{(node) => <HeadingValue title={summarizeButton(node)}>
-            <div class="space-y-2">
+        <ListEditor node={props.node}>{node => (
+            <div class="space-y-2 flex-1">
                 <StringEditor node={node.name} />
                 <StringEditor node={node.id} />
             </div>
-        </HeadingValue>}</ArrayEditorBase>
+        )}</ListEditor>
         <Buttons><Button onClick={() => anSetReconcileIncomplete<Button>(props.node[uuid()], pv => {
             if(pv != null) unreachable();
             return {};
