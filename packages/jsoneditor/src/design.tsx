@@ -61,9 +61,12 @@ function isDropHolder(v: unknown): v is DropHolder & HTMLElement {
     return v != null && typeof v === "object" && drop_spot_symbol in v;
 }
 
-function DraggableList(): JSX.Element {
+function DraggableList(props: {
+    items: string[],
+    setItems: (cb: (prev: string[]) => string[]) => void,
+    children: (key: string) => JSX.Element,
+}): JSX.Element {
     const list_symbol = Symbol();
-    const [items, setItems] = createSignal(new Array(30).fill(0).map((_, i) => ({key: "" + i})));
     const [dragging, setDragging] = createSignal<null | {
         item: number,
         hovering: number,
@@ -74,7 +77,7 @@ function DraggableList(): JSX.Element {
     }});
     const [flipState, setFlipState] = createSignal(0);
     return <div>
-        <For each={items()}>{(item, index) => {
+        <For each={props.items}>{(key, index) => {
             let wrapper_el!: HTMLDivElement;
             let viewer_el!: HTMLDivElement;
             let cleanFn: (() => void) | undefined;
@@ -160,8 +163,7 @@ function DraggableList(): JSX.Element {
                 ].join(" ")}
             >
                 <div class="flex-1 p-2">
-                    Collapsed Item {item.key} (state: {Math.random()})
-                    {untrack(() => <div style={{height: (Math.random() * 20 |0) + "px"}} />)}
+                    {untrack(() => props.children(key))}
                 </div>
                 <button
                     class={[
@@ -226,7 +228,7 @@ function DraggableList(): JSX.Element {
                                 
                                 // 2. setItems() (the dom will update immediately)
                                 const target = drag_target.hovering;
-                                setItems(prev => {
+                                props.setItems(prev => {
                                     const dup = [...prev];
                                     const value = dup.splice(self, 1); // delete self
                                     dup.splice(target, 0, ...value);
@@ -262,7 +264,37 @@ function DraggableList(): JSX.Element {
 }
 
 export default function Design(): JSX.Element {
+    const [items, setItems] = createSignal(Object.fromEntries(new Array(30).fill(0).map((_, i) => {
+        // javascript does not keep key order when the key can be parsed as a number
+        // …
+        // i love javascript
+        // it is very consistent
+        //
+        // literally look at this
+        // Object.keys({"1": "a", "0": "b"})
+        // ["0", "1"]
+        //
+        // this is defined in some spec somewhere
+        return ["_" + i, {
+            data: "my data for "+i,
+        }] as const;
+    })));
+
     return <div>
-        <DraggableList />
+        <DraggableList
+            items={Object.keys(items())}
+            setItems={cb => {
+                setItems(it => {
+                    const oldv = Object.keys(it);
+                    const newv = cb(oldv);
+                    const res = Object.fromEntries(newv.map(key => [key, it[key]!] as const));
+                    console.log("upd", newv, Object.keys(res));
+                    return res;
+                });
+            }}
+        >{key => <>
+            Collapsed item {key} (state {Math.random()})
+            {untrack(() => <div style={{height: (Math.random() * 20 |0) + "px"}} />)}
+        </>}</DraggableList>
     </div>;
 }
