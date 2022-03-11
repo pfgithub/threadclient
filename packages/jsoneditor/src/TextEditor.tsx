@@ -3,6 +3,7 @@ import { JSX } from "solid-js/jsx-runtime";
 import { Dynamic, insert } from "solid-js/web";
 import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_data";
 import { Button, Buttons } from "./components";
+import { DragButton, DraggableList } from "./DraggableList";
 import { asObject, asString, isObject } from "./guards";
 import { Include } from "./util";
 import { uuid, UUID } from "./uuid";
@@ -226,10 +227,27 @@ const node_renderers: {
 } = {
     root(props: {node: AnNode<TextEditorRootNode>}): JSX.Element {
         return <div class="space-y-2">
-            <For each={anKeys(props.node.children)}>{key => {
+            <DraggableList
+                items={anKeys(props.node.children)}
+                setItems={cb => {
+                    anSetReconcile(props.node.children, v => {
+                        const pv = asObject(v) ?? {};
+                        const nv = cb(Object.keys(pv));
+                        return Object.fromEntries(nv.map(key => [key, pv[key]!]));
+                    });
+                }}
+
+                wrapper_class=""
+                nodeClass={() => ""}
+            >{(key, dragging) => {
                 // TODO add the indent
-                return <EditorNode node={props.node.children[key as UUID].node} />;
-            }}</For>
+                return <div class="flex flex-row flex-wrap gap-2">
+                    <DragButton class={dragging => "px-2 rounded-md "+(dragging() ? "bg-gray-500" : "")}>≡</DragButton>
+                    <div class="flex-1">
+                        <EditorNode node={props.node.children[key as UUID].node} />
+                    </div>
+                </div>;
+            }}</DraggableList>
         </div>;
     },
     paragraph(props): JSX.Element {
