@@ -1,29 +1,15 @@
 import { Accessor, batch, createContext, createEffect, createMemo, createSignal, For, JSX, onCleanup, Setter, untrack, useContext } from "solid-js";
 
-// ok I'd rather use a library for this but I can't find one
-
-// consider:
-
-/*
-
-<DraggableList>
-    <For each={someArray()}>
-        <DraggableListItem />
-    </For>
-</DraggableList>
-
-I think the reason not to do that is because draggablelist needs to be able
-to reorder that array
-
-I'll just stick with this for now. I could maybe do eg
-
-<DraggableList>{(key, dragging) =>
-    <DraggableListItem>
-}</DraggableList>
-
-just to improve the classes but that's not really necessary
-
-*/
+// TODO items:
+// - when you start dragging, we should collapse items into summaries. it is
+//   incredibly unfun to try to drag something around if it covers half the screen and all
+//   the other items in the list do too
+//
+// - we need to add keyboard support
+//   - focus to grab
+//   - up/down to move
+//   - onClick to drop (space/enter)
+//   - escape or focus out to cancel
 
 const drop_spot_symbol = Symbol();
 type DropHolder = {
