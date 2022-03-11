@@ -253,23 +253,6 @@ function RebindEditor(props: {node: AnNode<Rebind>}): JSX.Element {
     </Tabs>;
 }
 
-// [!] if I'm going to be doing schemaless I need typed State values.
-//     like State should know that it should be an object containing these
-//     fields and stuff.
-
-// basically it won't allow you to getkey a field that doesn't exist
-// but it's not saying that the actual structure is guarenteed to match what the
-// types say. the helper functions will still return null | [actual value] but what
-// will be fun is eg asString on a thing expected to be object could error
-
-// basically state will have a <T> thing and also links you define will have <T>
-// to say what should be in them
-
-// ok so the idea herevv
-// we will define schema types and then define the editor
-// if we want to though, we will be able to make an AutoEditor that infers
-// schema based on what you provide it.
-
 type Person = {
     name: string,
     description: string,
