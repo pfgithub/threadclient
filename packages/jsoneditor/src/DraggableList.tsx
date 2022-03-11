@@ -216,8 +216,10 @@ export function DragButton(props: {
 
                 // console.log(e.target);
 
-                if(isDropHolder(e.target) && e.target[drop_spot_symbol].owner === state.list_symbol) {
-                    updateDragging(e.target[drop_spot_symbol].index);
+                const target = document.elementFromPoint(e.clientX, e.clientY);
+
+                if(isDropHolder(target) && target[drop_spot_symbol].owner === state.list_symbol) {
+                    updateDragging(target[drop_spot_symbol].index);
                 }else{
                     updateDragging(state.index());
                 }
