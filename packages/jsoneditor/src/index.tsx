@@ -1,17 +1,18 @@
 import { createSignal } from 'solid-js';
-import { ErrorBoundary, render, Show } from 'solid-js/web';
-import { Debugtool } from 'tmeta-util-solid';
+import { ErrorBoundary, render } from 'solid-js/web';
+import { Debugtool, Show } from 'tmeta-util-solid';
 import App from './App';
-import { createAppData } from './app_data';
+import { anBool, createAppData } from './app_data';
 import { RootState } from './editor_data';
 import './index.css';
 
 const root_el = document.getElementById('root') as HTMLElement;
 
+// this should really be a solid router thing
+const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
+
+const root = createAppData<RootState>();
 render(() => {
-  // this should really be a solid router thing
-  const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
-  const root = createAppData<RootState>();
   return <ErrorBoundary fallback={(err, reset) => {
     console.log("app error", err);
     return <div>
@@ -36,4 +37,6 @@ render(() => {
 const belowbody = document.createElement("div");
 document.body.appendChild(belowbody);
 
-render(() => <Debugtool observe_root={root_el} />, belowbody);
+render(() => <Show if={anBool(root.settings.highlight_updates) ?? true}>
+  <Debugtool observe_root={root_el} />
+</Show>, belowbody);

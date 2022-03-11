@@ -1,14 +1,13 @@
 import { createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js/jsx-runtime";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
-import { anKeys, AnNode, anSetReconcile, anSetReconcileIncomplete, anString } from "./app_data";
+import { anBool, anKeys, AnNode, anSetReconcile, anSetReconcileIncomplete, anString } from "./app_data";
 import { Button, Buttons } from "./components";
 import { getState } from "./editor_data";
 import { asObject, unreachable } from "./guards";
 import { Richtext, RichtextEditor } from "./TextEditor";
 import { uuid, UUID } from "./uuid";
 
-const tabsym = Symbol("__is_tab");
 type Tab = {
     buttonComponent: (props: {
         selected: boolean,
@@ -16,11 +15,8 @@ type Tab = {
     }) => JSX.Element,
     children: JSX.Element,
 };
-function isTab(v: unknown): v is Tab {
-    return v != null && typeof v === "object" && tabsym in v;
-}
 const TabRaw = createTypesafeChildren<Tab>();
-function Tabs(props: {
+export function Tabs(props: {
     children: JSX.Element,
 }): JSX.Element {
     const [selection, setSelection] = createSignal<Tab | null>(null);
@@ -48,7 +44,7 @@ function Tabs(props: {
         </div>}</Show>
     </div>;
 }
-function Tab<T>(props: {
+export function Tab<T>(props: {
     title: JSX.Element,
     children?: JSX.Element,
     onClick?: () => void,
@@ -77,7 +73,7 @@ function Tab<T>(props: {
     />;
 }
 
-function HeadingValue(props: {
+export function HeadingValue(props: {
     title: string,
     children?: JSX.Element,
 }): JSX.Element {
@@ -89,7 +85,7 @@ function HeadingValue(props: {
     </div>;
 }
 
-function StringEditor(props: {node: AnNode<string>}): JSX.Element {
+export function StringEditor(props: {node: AnNode<string>}): JSX.Element {
     return <div>
         <Show
             if={anString(props.node) != null}
@@ -108,7 +104,21 @@ function StringEditor(props: {node: AnNode<string>}): JSX.Element {
     </div>;
 }
 
-function ArrayEditorBase<T>(props: {
+export function BoolEditor(props: {node: AnNode<boolean>}): JSX.Element {
+    const selector = createSelector(() => anBool(props.node));
+    return <Buttons>
+        <Button
+            onClick={() => anSetReconcile(props.node, v => v === true ? null : true)}
+            active={selector(true)}
+        >On</Button>
+        <Button
+            onClick={() => anSetReconcile(props.node, v => v === false ? null : false)}
+            active={selector(false)}
+        >Off</Button>
+    </Buttons>;
+}
+
+export function ArrayEditorBase<T>(props: {
     node: AnNode<{[key: string]: T}>,
     children: (node: AnNode<T>, key: string, root: AnNode<{[key: string]: T}>) => JSX.Element,
 }): JSX.Element {

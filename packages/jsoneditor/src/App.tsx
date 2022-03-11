@@ -4,6 +4,7 @@ import Design from './design';
 import { NodeProvider, RootState } from './editor_data';
 import JsonViewer from './JsonViewer';
 import Schemaless from './Schemaless';
+import Settings from './Settings';
 
 type Window = {
   component: () => JSX.Element,
@@ -65,6 +66,10 @@ export default function App(props: {
     design: {
       title: "Design",
       component: () => <Design />,
+    },
+    settings: {
+      title: "Settings",
+      component: () => <Settings node={props.node.settings} />,
     },
   };
   return <NodeProvider
