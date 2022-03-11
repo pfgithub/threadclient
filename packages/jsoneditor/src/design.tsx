@@ -1,4 +1,4 @@
-import { batch, createEffect, createMemo, createSignal, For, JSX, onCleanup, untrack } from "solid-js";
+import { Accessor, batch, createContext, createEffect, createMemo, createSignal, For, JSX, onCleanup, Setter, untrack, useContext } from "solid-js";
 
 // ok so:
 // Ideally we find a library that does this because dom animations are horribly painful
@@ -61,43 +61,48 @@ function isDropHolder(v: unknown): v is DropHolder & HTMLElement {
     return v != null && typeof v === "object" && drop_spot_symbol in v;
 }
 
-function DraggableList(props: {
+type Dragging = null | {
+    item: number,
+    hovering: number,
+    height: number,
+};
+type SelfDragging = null | {x: Number, y: number};
+
+export function DraggableList(props: {
     items: string[],
+    wrapper_class: string,
+    nodeClass: (selfIsDragging: () => boolean) => string,
     setItems: (cb: (prev: string[]) => string[]) => void,
     children: (key: string) => JSX.Element,
 }): JSX.Element {
     const list_symbol = Symbol();
-    const [dragging, setDragging] = createSignal<null | {
-        item: number,
-        hovering: number,
-        height: number,
-    }>(null, {equals: (a, b) => {
+    const [dragging, setDragging] = createSignal<Dragging>(null, {equals: (a, b) => {
         if(!a || !b) return a === b;
         return a.item === b.item && a.hovering === b.hovering && a.height === b.height;
     }});
     const [flipState, setFlipState] = createSignal(0);
-    return <div>
-        <For each={props.items}>{(key, index) => {
-            let wrapper_el!: HTMLDivElement;
-            let viewer_el!: HTMLDivElement;
-            let cleanFn: (() => void) | undefined;
-            const [selfDragging, setSelfDragging] = createSignal<null | {x: Number, y: number}>(null);
-            const selfIsDragging = createMemo(() => selfDragging() != null);
-            onCleanup(() => {
-                cleanFn?.();
+    return <For each={props.items}>{(key, index) => {
+        let wrapper_el!: HTMLDivElement;
+        let viewer_el!: HTMLDivElement;
+        let cleanFn: (() => void) | undefined;
+        const [selfDragging, setSelfDragging] = createSignal<SelfDragging>(null);
+        const selfIsDragging = createMemo(() => selfDragging() != null);
+        onCleanup(() => {
+            cleanFn?.();
+        });
+        return <div class={props.wrapper_class} ref={(el) => {
+            wrapper_el = el;
+            createEffect(() => (el as unknown as DropHolder)[drop_spot_symbol] = {
+                owner: list_symbol,
+                index: index(),
             });
-            return <div class="pt-2 first:pt-0" ref={(el) => {
-                wrapper_el = el;
-                createEffect(() => (el as unknown as DropHolder)[drop_spot_symbol] = {
-                    owner: list_symbol,
-                    index: index(),
-                });
-                createEffect(() => {
-                    const dr = selfDragging();
-                    el.style.zIndex = dr ? "1" : "";
-                    el.style.position = dr ? "relative" : "";
-                });
-            }}><div
+            createEffect(() => {
+                const dr = selfDragging();
+                el.style.zIndex = dr ? "1" : "";
+                el.style.position = dr ? "relative" : "";
+            });
+        }}>
+            <div
                 ref={el => {
                     viewer_el = el;
                     createEffect(() => {
@@ -157,110 +162,159 @@ function DraggableList(props: {
                         el.style.transform = "";
                     });
                 }}
-                class={[
-                    "bg-gray-700 rounded-md flex flex-row flex-wrap",
-                    selfIsDragging() ? "opacity-80 shadow-md" : ""
-                ].join(" ")}
+                class={props.nodeClass(selfIsDragging)}
             >
-                <div class="flex-1 p-2">
+                <DragState.Provider value={{
+                    selfIsDragging,
+                    
+                    dragging,
+                    setDragging,
+
+                    get wrapper_el() {return wrapper_el},
+
+                    index,
+
+                    selfDragging,
+                    setSelfDragging,
+
+                    list_symbol,
+
+                    flipState,
+                    setFlipState,
+
+                    setItems: (v) => props.setItems(v),
+
+                    set cleanFn(v) {cleanFn = v},
+                    get cleanFn() {return cleanFn},
+                }}>
                     {untrack(() => props.children(key))}
-                </div>
-                <button
-                    class={[
-                        "px-4 rounded-md",
-                        selfIsDragging() ? "bg-gray-500" : "hover:bg-gray-600",
-                    ].join(" ")}
-                    onPointerDown={e => {
-                        if(!e.isPrimary) return; // ignore
-                        if(dragging()) return;
-                        e.preventDefault();
+                </DragState.Provider>
+            </div>
+        </div>;
+    }}</For>;
+}
 
-                        const rect = wrapper_el.getBoundingClientRect();
+const DragState = createContext<{
+    selfIsDragging: () => boolean,
 
-                        const updateDragging = (hover_idx: number) => {
-                            setDragging({
-                                item: index(),
-                                hovering: hover_idx,
-                                height: rect.height,
-                            });
-                        };
-                        setSelfDragging({x: 0, y: 0});
-                        updateDragging(index());
-                        
-                        let start_pos_x = e.pageX;
-                        let start_pos_y = e.pageY;
+    dragging: Accessor<Dragging>,
+    setDragging: Setter<Dragging>,
 
-                        const updatePtr = (e: PointerEvent) => {
-                            console.log(e.pageY, start_pos_y);
+    wrapper_el: HTMLElement,
 
-                            const pos_x = e.pageX - start_pos_x;
-                            const pos_y = e.pageY - start_pos_y;
-                            setSelfDragging({x: pos_x, y: pos_y});
+    index: () => number,
 
-                            if(isDropHolder(e.target) && e.target[drop_spot_symbol].owner === list_symbol) {
-                                updateDragging(e.target[drop_spot_symbol].index);
-                            }else{
-                                updateDragging(index());
-                            }
-                        };
-                        const onptrmove = (e: PointerEvent) => batch(() => {
-                            if(!e.isPrimary) return;
-                            e.preventDefault();
-                            e.stopImmediatePropagation();
+    selfDragging: Accessor<SelfDragging>,
+    setSelfDragging: Setter<SelfDragging>,
 
-                            updatePtr(e);
-                        });
-                        const onptrup = (e: PointerEvent) => {
-                            if(!e.isPrimary) return;
-                            e.preventDefault();
-                            e.stopImmediatePropagation();
+    list_symbol: symbol,
 
-                            updatePtr(e);
+    flipState: Accessor<number>,
+    setFlipState: Setter<number>,
 
-                            const drag_target = dragging();
-                            const self = index();
-                            if(drag_target && drag_target.hovering !== self) {
-                                // perform the following steps
-                                // 1. send a signal asking anyone involved to measure
-                                //    themselves, then clear their transition and
-                                //    transform
-                                setFlipState(1);
-                                
-                                // 2. setItems() (the dom will update immediately)
-                                const target = drag_target.hovering;
-                                props.setItems(prev => {
-                                    const dup = [...prev];
-                                    const value = dup.splice(self, 1); // delete self
-                                    dup.splice(target, 0, ...value);
-                                    return dup;
-                                });
+    setItems: (nv: (pv: string[]) => string[]) => void,
 
-                                // 3. send a signal asking people to set up their
-                                //    transforms
-                                setFlipState(2);
-                            }
+    cleanFn: (() => void) | undefined,
+}>();
 
-                            batch(() => {
-                                setFlipState(0);
-                                unregister();
-                            });
-                        };
-                        document.addEventListener("pointermove", onptrmove, {capture: true});
-                        document.addEventListener("pointerup", onptrup, {capture: true});
-                        const unregister = () => batch(() => {
-                            setDragging(null);
-                            setSelfDragging(null);
-                            document.removeEventListener("pointermove", onptrmove, {capture: true});
-                            document.removeEventListener("pointerup", onptrup, {capture: true});
-                            cleanFn = undefined;
-                        });
-                        if(cleanFn) throw new Error("attempt to double register fn");
-                        cleanFn = unregister;
-                    }}
-                >≡</button>
-            </div></div>;
-        }}</For>
-    </div>;
+export function DragButton(props: {
+    class: (selfIsDragging: () => boolean) => string,
+    children: JSX.Element,
+}) {
+    const state = useContext(DragState);
+    if(!state) throw new Error("dragbutton used outside of draggable");
+    return <button
+        class={props.class(state.selfIsDragging)}
+        onPointerDown={e => {
+            if(!e.isPrimary) return; // ignore
+            if(state.dragging()) return;
+            e.preventDefault();
+
+            const rect = state.wrapper_el.getBoundingClientRect();
+
+            const updateDragging = (hover_idx: number) => {
+                state.setDragging({
+                    item: state.index(),
+                    hovering: hover_idx,
+                    height: rect.height,
+                });
+            };
+            state.setSelfDragging({x: 0, y: 0});
+            updateDragging(state.index());
+            
+            let start_pos_x = e.pageX;
+            let start_pos_y = e.pageY;
+
+            const updatePtr = (e: PointerEvent) => {
+                console.log(e.pageY, start_pos_y);
+
+                const pos_x = e.pageX - start_pos_x;
+                const pos_y = e.pageY - start_pos_y;
+                state.setSelfDragging({x: pos_x, y: pos_y});
+
+                if(isDropHolder(e.target) && e.target[drop_spot_symbol].owner === state.list_symbol) {
+                    updateDragging(e.target[drop_spot_symbol].index);
+                }else{
+                    updateDragging(state.index());
+                }
+            };
+            const onptrmove = (e: PointerEvent) => batch(() => {
+                if(!e.isPrimary) return;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                updatePtr(e);
+            });
+            const onptrup = (e: PointerEvent) => {
+                if(!e.isPrimary) return;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                updatePtr(e);
+
+                const drag_target = state.dragging();
+                const self = state.index();
+                if(drag_target && drag_target.hovering !== self) {
+                    // perform the following steps
+                    // 1. send a signal asking anyone involved to measure
+                    //    themselves, then clear their transition and
+                    //    transform
+                    state.setFlipState(1);
+                    
+                    // 2. setItems() (the dom will update immediately)
+                    const target = drag_target.hovering;
+                    state.setItems(prev => {
+                        const dup = [...prev];
+                        const value = dup.splice(self, 1); // delete self
+                        dup.splice(target, 0, ...value);
+                        return dup;
+                    });
+
+                    // 3. send a signal asking people to set up their
+                    //    transforms
+                    state.setFlipState(2);
+                }
+
+                batch(() => {
+                    state.setFlipState(0);
+                    unregister();
+                });
+            };
+            document.addEventListener("pointermove", onptrmove, {capture: true});
+            document.addEventListener("pointerup", onptrup, {capture: true});
+            const unregister = () => batch(() => {
+                state.cleanFn = undefined;
+                state.setDragging(null);
+                state.setSelfDragging(null);
+                document.removeEventListener("pointermove", onptrmove, {capture: true});
+                document.removeEventListener("pointerup", onptrup, {capture: true});
+            });
+            if(state.cleanFn) throw new Error("attempt to double register fn");
+            state.cleanFn = unregister;
+        }}
+    >
+        {props.children}
+    </button>;
 }
 
 export default function Design(): JSX.Element {
@@ -292,9 +346,22 @@ export default function Design(): JSX.Element {
                     return res;
                 });
             }}
+            wrapper_class="pt-2 first:pt-0"
+            nodeClass={selfIsDragging => [
+                "bg-gray-700 rounded-md flex flex-row flex-wrap",
+                selfIsDragging() ? "opacity-80 shadow-md" : ""
+            ].join(" ")}
         >{key => <>
-            Collapsed item {key} (state {Math.random()})
-            {untrack(() => <div style={{height: (Math.random() * 20 |0) + "px"}} />)}
+            <div class="flex-1 p-2">
+                Collapsed item {key} (state {Math.random()})
+                {untrack(() => <div style={{height: (Math.random() * 20 |0) + "px"}} />)}
+            </div>
+            <DragButton class={selfIsDragging => [
+                    "px-4 rounded-md",
+                    selfIsDragging() ? "bg-gray-500" : "hover:bg-gray-600",
+            ].join(" ")}>
+                ≡
+            </DragButton>
         </>}</DraggableList>
     </div>;
 }
