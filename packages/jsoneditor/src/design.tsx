@@ -1,4 +1,4 @@
-import { batch, createEffect, createSignal, For, JSX, onCleanup } from "solid-js";
+import { batch, createEffect, createMemo, createSignal, For, JSX, onCleanup, untrack } from "solid-js";
 
 // ok so:
 // Ideally we find a library that does this because dom animations are horribly painful
@@ -78,7 +78,8 @@ function DraggableList(): JSX.Element {
             let wrapper_el!: HTMLDivElement;
             let viewer_el!: HTMLDivElement;
             let cleanFn: (() => void) | undefined;
-            let [selfDragging, setSelfDragging] = createSignal<null | {x: Number, y: number}>(null);
+            const [selfDragging, setSelfDragging] = createSignal<null | {x: Number, y: number}>(null);
+            const selfIsDragging = createMemo(() => selfDragging() != null);
             onCleanup(() => {
                 cleanFn?.();
             });
@@ -122,7 +123,7 @@ function DraggableList(): JSX.Element {
                                 console.log(el.style.transform);
                                 stored_rect = null;
                                 el.offsetHeight; // trigger reflow
-                                el.style.transition = "0.2s transform";
+                                el.style.transition = "0.2s transform ease-out";
                             }
                             return;
                         }
@@ -153,14 +154,20 @@ function DraggableList(): JSX.Element {
                         el.style.transform = "";
                     });
                 }}
-                class="bg-gray-700 rounded-md flex flex-row flex-wrap"
+                class={[
+                    "bg-gray-700 rounded-md flex flex-row flex-wrap",
+                    selfIsDragging() ? "opacity-80 shadow-md" : ""
+                ].join(" ")}
             >
                 <div class="flex-1 p-2">
                     Collapsed Item {item.key} (state: {Math.random()})
-                    <div style={{height: (Math.random() * 10 |0) + "px"}} />
+                    {untrack(() => <div style={{height: (Math.random() * 20 |0) + "px"}} />)}
                 </div>
                 <button
-                    class="px-4 hover:bg-gray-500 rounded-md"
+                    class={[
+                        "px-4 rounded-md",
+                        selfIsDragging() ? "bg-gray-500" : "hover:bg-gray-600",
+                    ].join(" ")}
                     onPointerDown={e => {
                         if(!e.isPrimary) return; // ignore
                         if(dragging()) return;
