@@ -178,6 +178,25 @@ function DraggableList(): JSX.Element {
                             e.stopImmediatePropagation();
 
                             updatePtr(e);
+
+                            const drag_target = dragging();
+                            const self = index();
+                            if(drag_target && drag_target.hovering !== self) {
+                                // ok 0 1 2 3
+                                // ok so if it's < self, insert at the position before
+                                // if > self, insert at position after (+1)
+                                // ez
+                                // wait actually we can just remove at the index
+                                // and then we don't have to do any math
+                                const target = drag_target.hovering;
+                                setItems(prev => {
+                                    const dup = [...prev];
+                                    const value = dup.splice(self, 1); // delete self
+                                    dup.splice(target, 0, ...value);
+                                    return dup;
+                                });
+                            }
+
                             unregister();
                         });
                         document.addEventListener("pointermove", onptrmove, {capture: true});
