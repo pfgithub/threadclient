@@ -90,7 +90,6 @@ export function DraggableList(props: {
                                 const diff_y = stored_rect.y - current_rect.y;
                                 el.style.transition = "";
                                 el.style.transform = "translate("+diff_x+"px, "+diff_y+"px)";
-                                console.log(el.style.transform);
                                 stored_rect = null;
                                 el.offsetHeight; // trigger reflow
                                 el.style.transition = "0.2s transform ease-out";
@@ -187,6 +186,9 @@ export function DragButton(props: {
     if(!state) throw new Error("dragbutton used outside of draggable");
     return <button
         class={props.class(state.selfIsDragging)}
+        style={{
+            "touch-action": "none",
+        }}
         onPointerDown={e => {
             if(!e.isPrimary) return; // ignore
             if(state.dragging()) return;
@@ -208,11 +210,11 @@ export function DragButton(props: {
             let start_pos_y = e.pageY;
 
             const updatePtr = (e: PointerEvent) => {
-                console.log(e.pageY, start_pos_y);
-
                 const pos_x = e.pageX - start_pos_x;
                 const pos_y = e.pageY - start_pos_y;
                 state.setSelfDragging({x: pos_x, y: pos_y});
+
+                // console.log(e.target);
 
                 if(isDropHolder(e.target) && e.target[drop_spot_symbol].owner === state.list_symbol) {
                     updateDragging(e.target[drop_spot_symbol].index);
@@ -262,14 +264,23 @@ export function DragButton(props: {
                     unregister();
                 });
             };
+            const onptrcancel = (e: PointerEvent) => {
+                if(!e.isPrimary) return;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                batch(() => unregister());
+            };
             document.addEventListener("pointermove", onptrmove, {capture: true});
             document.addEventListener("pointerup", onptrup, {capture: true});
+            document.addEventListener("pointercancel", onptrcancel, {capture: true});
             const unregister = () => batch(() => {
                 state.cleanFn = undefined;
                 state.setDragging(null);
                 state.setSelfDragging(null);
                 document.removeEventListener("pointermove", onptrmove, {capture: true});
                 document.removeEventListener("pointerup", onptrup, {capture: true});
+                document.removeEventListener("pointercancel", onptrcancel, {capture: true});
             });
             if(state.cleanFn) throw new Error("attempt to double register fn");
             state.cleanFn = unregister;
