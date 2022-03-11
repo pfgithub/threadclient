@@ -9,6 +9,9 @@ export type RootState = {
     root: unknown,
     [key: string]: unknown,
   },
+  settings: {
+    highlight_updates: boolean,
+  },
 };
 
 export type ContextData = {
