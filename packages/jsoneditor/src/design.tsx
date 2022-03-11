@@ -87,6 +87,11 @@ function DraggableList(): JSX.Element {
                     owner: list_symbol,
                     index: index(),
                 });
+                createEffect(() => {
+                    const dr = selfDragging();
+                    el.style.zIndex = dr ? "1" : "";
+                    el.style.position = dr ? "relative" : "";
+                });
             }}><div
                 ref={el => {
                     viewer_el = el;
@@ -147,11 +152,7 @@ function DraggableList(): JSX.Element {
                         let start_pos_x = e.pageX;
                         let start_pos_y = e.pageY;
 
-                        const ptrmove = (e: PointerEvent) => batch(() => {
-                            if(!e.isPrimary) return;
-                            e.preventDefault();
-                            e.stopImmediatePropagation();
-
+                        const updatePtr = (e: PointerEvent) => {
                             console.log(e.pageY, start_pos_y);
 
                             const pos_x = e.pageX - start_pos_x;
@@ -163,20 +164,29 @@ function DraggableList(): JSX.Element {
                             }else{
                                 updateDragging(index());
                             }
-                        });
-                        const ptrup = (e: PointerEvent) => batch(() => {
+                        };
+                        const onptrmove = (e: PointerEvent) => batch(() => {
                             if(!e.isPrimary) return;
                             e.preventDefault();
                             e.stopImmediatePropagation();
+
+                            updatePtr(e);
+                        });
+                        const onptrup = (e: PointerEvent) => batch(() => {
+                            if(!e.isPrimary) return;
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+
+                            updatePtr(e);
                             unregister();
                         });
-                        document.addEventListener("pointermove", ptrmove, {capture: true});
-                        document.addEventListener("pointerup", ptrup, {capture: true});
+                        document.addEventListener("pointermove", onptrmove, {capture: true});
+                        document.addEventListener("pointerup", onptrup, {capture: true});
                         const unregister = () => batch(() => {
                             setDragging(null);
                             setSelfDragging(false);
-                            document.removeEventListener("pointermove", ptrmove, {capture: true});
-                            document.removeEventListener("pointerup", ptrup, {capture: true});
+                            document.removeEventListener("pointermove", onptrmove, {capture: true});
+                            document.removeEventListener("pointerup", onptrup, {capture: true});
                             cleanFn = undefined;
                         });
                         if(cleanFn) throw new Error("attempt to double register fn");
