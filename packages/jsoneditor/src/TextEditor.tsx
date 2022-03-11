@@ -226,7 +226,7 @@ const node_renderers: {
     [key in TextEditorAnyNode["kind"]]?: (props: {node: AnNode<Include<TextEditorAnyNode, {kind: key}>>}) => JSX.Element
 } = {
     root(props: {node: AnNode<TextEditorRootNode>}): JSX.Element {
-        return <div class="space-y-2">
+        return <div>
             <DraggableList
                 items={anKeys(props.node.children)}
                 setItems={cb => {
@@ -237,7 +237,7 @@ const node_renderers: {
                     });
                 }}
 
-                wrapper_class=""
+                wrapper_class="pt-2 first:pt-0"
                 nodeClass={() => ""}
             >{(key, dragging) => {
                 // TODO add the indent
