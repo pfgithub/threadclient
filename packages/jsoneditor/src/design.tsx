@@ -72,12 +72,13 @@ function DraggableList(): JSX.Element {
         if(!a || !b) return a === b;
         return a.item === b.item && a.hovering === b.hovering && a.height === b.height;
     }});
+    const [flipState, setFlipState] = createSignal(0);
     return <div>
         <For each={items()}>{(item, index) => {
             let wrapper_el!: HTMLDivElement;
             let viewer_el!: HTMLDivElement;
             let cleanFn: (() => void) | undefined;
-            let [selfDragging, setSelfDragging] = createSignal(false);
+            let [selfDragging, setSelfDragging] = createSignal<null | {x: Number, y: number}>(null);
             onCleanup(() => {
                 cleanFn?.();
             });
@@ -98,9 +99,37 @@ function DraggableList(): JSX.Element {
                     createEffect(() => {
                         el.style.pointerEvents = dragging() ? "none" : "";
                     });
+                    let stored_rect: DOMRect | null = null;
                     createEffect(() => {
-                        if(selfDragging()) {
+                        const flip_state = flipState();
+                        if(flipState() === 1) {
+                            if(el.style.transform !== "") {
+                                stored_rect = el.getBoundingClientRect();
+                                el.style.transition = "";
+                                el.style.transform = "";
+                            }else{
+                                stored_rect = null;
+                                el.style.transition = "";
+                            }
+                            return;
+                        }else if(flipState() === 2) {
+                            if(stored_rect) {
+                                const current_rect = el.getBoundingClientRect();
+                                const diff_x = stored_rect.x - current_rect.x;
+                                const diff_y = stored_rect.y - current_rect.y;
+                                el.style.transition = "";
+                                el.style.transform = "translate("+diff_x+"px, "+diff_y+"px)";
+                                console.log(el.style.transform);
+                                stored_rect = null;
+                                el.offsetHeight; // trigger reflow
+                                el.style.transition = "0.2s transform";
+                            }
+                            return;
+                        }
+                        const self_dragging = selfDragging();
+                        if(self_dragging) {
                             el.style.transition = "";
+                            el.style.transform = "translate("+self_dragging.x+"px, "+self_dragging.y+"px)";
                             return;
                         }
                         el.style.transition = "0.2s transform";
@@ -146,7 +175,7 @@ function DraggableList(): JSX.Element {
                                 height: rect.height,
                             });
                         };
-                        setSelfDragging(true);
+                        setSelfDragging({x: 0, y: 0});
                         updateDragging(index());
                         
                         let start_pos_x = e.pageX;
@@ -157,7 +186,7 @@ function DraggableList(): JSX.Element {
 
                             const pos_x = e.pageX - start_pos_x;
                             const pos_y = e.pageY - start_pos_y;
-                            viewer_el.style.transform = "translate("+pos_x+"px, "+pos_y+"px)";
+                            setSelfDragging({x: pos_x, y: pos_y});
 
                             if(isDropHolder(e.target) && e.target[drop_spot_symbol].owner === list_symbol) {
                                 updateDragging(e.target[drop_spot_symbol].index);
@@ -172,7 +201,7 @@ function DraggableList(): JSX.Element {
 
                             updatePtr(e);
                         });
-                        const onptrup = (e: PointerEvent) => batch(() => {
+                        const onptrup = (e: PointerEvent) => {
                             if(!e.isPrimary) return;
                             e.preventDefault();
                             e.stopImmediatePropagation();
@@ -182,12 +211,13 @@ function DraggableList(): JSX.Element {
                             const drag_target = dragging();
                             const self = index();
                             if(drag_target && drag_target.hovering !== self) {
-                                // ok 0 1 2 3
-                                // ok so if it's < self, insert at the position before
-                                // if > self, insert at position after (+1)
-                                // ez
-                                // wait actually we can just remove at the index
-                                // and then we don't have to do any math
+                                // perform the following steps
+                                // 1. send a signal asking anyone involved to measure
+                                //    themselves, then clear their transition and
+                                //    transform
+                                setFlipState(1);
+                                
+                                // 2. setItems() (the dom will update immediately)
                                 const target = drag_target.hovering;
                                 setItems(prev => {
                                     const dup = [...prev];
@@ -195,15 +225,22 @@ function DraggableList(): JSX.Element {
                                     dup.splice(target, 0, ...value);
                                     return dup;
                                 });
+
+                                // 3. send a signal asking people to set up their
+                                //    transforms
+                                setFlipState(2);
                             }
 
-                            unregister();
-                        });
+                            batch(() => {
+                                setFlipState(0);
+                                unregister();
+                            });
+                        };
                         document.addEventListener("pointermove", onptrmove, {capture: true});
                         document.addEventListener("pointerup", onptrup, {capture: true});
                         const unregister = () => batch(() => {
                             setDragging(null);
-                            setSelfDragging(false);
+                            setSelfDragging(null);
                             document.removeEventListener("pointermove", onptrmove, {capture: true});
                             document.removeEventListener("pointerup", onptrup, {capture: true});
                             cleanFn = undefined;
