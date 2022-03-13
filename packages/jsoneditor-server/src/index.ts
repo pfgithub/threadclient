@@ -18,6 +18,9 @@ express.use(cors());
     await mongo.connect();
     const collection = mongo.db("jsoneditor").collection("data");
     console.log("Listening", http.address());
+
+    () => io;
+    () => collection;
 })().catch(e => {
     console.error(e);
 });
