@@ -1,5 +1,7 @@
-import { createSelector, createSignal, ErrorBoundary, For, JSX, untrack } from 'solid-js';
+import { createEffect, createSelector, createSignal, ErrorBoundary, For, JSX, untrack } from 'solid-js';
+import { Show } from 'tmeta-util-solid';
 import { AnNode } from './app_data';
+import { Buttons, Button } from './components';
 import Design from './design';
 import { NodeProvider, RootState } from './editor_data';
 import JsonViewer from './JsonViewer';
@@ -16,21 +18,29 @@ function AnyWindow(props: {
   default: string,
 }): JSX.Element {
   const [selection, setSelection] = createSignal(props.default);
+  const [fullPage, setFullPage] = createSignal(false);
   const isSelected = createSelector(selection);
-  return <div class="bg-gray-800 p-4 space-y-2">
-    <select
-      class="bg-gray-700 px-1 rounded-md"
-      onInput={(e) => {
-        setSelection(e.currentTarget.value);
-      }}
-    >
-      <For each={Object.keys(props.choices)}>{(key, i) => {
-        return <option value={key} selected={isSelected(key)}>
-          {props.choices[key].title}
-        </option>;
-      }}</For>
-    </select>
-    <div>
+  return <div class={"bg-gray-800 " + (fullPage() ? "!m-0 fixed top-0 left-0 w-full h-full" : "")}>
+    <div class="bg-black p-4 flex flex-row flex-wrap gap-2">
+      <select
+        class="bg-gray-700 px-1 rounded-md"
+        onInput={(e) => {
+          setSelection(e.currentTarget.value);
+        }}
+      >
+        <For each={Object.keys(props.choices)}>{(key, i) => {
+          return <option value={key} selected={isSelected(key)}>
+            {props.choices[key].title}
+          </option>;
+        }}</For>
+      </select>
+      <Buttons>
+        <Button onClick={() => {
+          setFullPage(v => !v);
+        }}>{fullPage() ? "Return" : "Full Page"}</Button>
+      </Buttons>
+    </div>
+    <div class="p-4">
       <ErrorBoundary fallback={(err, reset) => {
         console.log("app error", err);
         return <div>
