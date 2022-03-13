@@ -10,6 +10,7 @@ export type RootState = {
     [key: string]: unknown,
   },
   settings: Settings,
+  playingcards?: undefined | unknown,
 };
 export type Settings = {
   highlight_updates: boolean,

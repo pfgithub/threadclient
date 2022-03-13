@@ -3,6 +3,7 @@ import { AnNode } from './app_data';
 import Design from './design';
 import { NodeProvider, RootState } from './editor_data';
 import JsonViewer from './JsonViewer';
+import PlayingCards from './playingcards';
 import Schemaless from './Schemaless';
 import Settings from './Settings';
 
@@ -70,6 +71,10 @@ export default function App(props: {
     settings: {
       title: "Settings",
       component: () => <Settings node={props.node.settings} />,
+    },
+    cards: {
+      title: "Cards",
+      component: () => <PlayingCards node={props.node.playingcards as any} />,
     },
   };
   return <NodeProvider
