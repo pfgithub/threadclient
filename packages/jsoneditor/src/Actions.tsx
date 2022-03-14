@@ -1,6 +1,7 @@
 import { createEffect, createMemo, createSignal, For, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { Action, ActionPath, Root } from "./app_data";
+import { Action, ActionPath, applyActionToSnapshot, collapseActions, Root } from "./app_data";
+import { Button, Buttons } from "./components";
 
 function PathRender(props: {path: ActionPath}): JSX.Element {
     const [hovering, setHovering] = createSignal(false);
@@ -77,7 +78,19 @@ export default function Actions(props: {
     });
     const max_actions = 100;
     return <div class="space-y-2">
-        <div>{actions().length.toLocaleString()} actions</div>
+        <div>
+            {actions().length.toLocaleString()} actions
+            <Buttons>
+                <Button onClick={() => {
+                    const collapsed = collapseActions(props.root.actions);
+                    let recreated = undefined;
+                    for(const action of collapsed) recreated = applyActionToSnapshot(action, recreated);
+                    alert("Collapsed to "+collapsed.length+" actions. Identical: "+(
+                        JSON.stringify(recreated) === JSON.stringify(props.root.snapshot)
+                    ));
+                }}>Try collapse</Button>
+            </Buttons>
+        </div>
         <For each={[...actions()].reverse().splice(0, max_actions)}>{action => <Act action={action} />}</For>
         <Show if={actions().length > max_actions}><div>
             … and {actions().length - max_actions} more.

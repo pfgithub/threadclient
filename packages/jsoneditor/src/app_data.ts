@@ -166,7 +166,16 @@ function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JS
     console.log("succeed set node", res_root);
     return res_root.parent[res_root.key];
 }
-function applyActionToSnapshot(action: Action, snapshot: JSON): JSON {
+export function collapseActions(actions: Action[]): Action[] {
+    const set_paths = new Set<string>();
+    return [...actions].reverse().filter(action => {
+        const sp = JSON.stringify([action.value.kind, action.value.path]);
+        if(set_paths.has(sp)) return false;
+        set_paths.add(sp);
+        return true;
+    }).reverse();
+}
+export function applyActionToSnapshot(action: Action, snapshot: JSON): JSON {
     const av = action.value;
     if(av.kind === "set_value") {
         return setNodeAtPath(av.path, snapshot, prev => {
