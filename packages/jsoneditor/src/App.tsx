@@ -6,7 +6,7 @@ import { Buttons, Button } from './components';
 import Design from './design';
 import { NodeProvider, RootState } from './editor_data';
 import JsonViewer from './JsonViewer';
-import PlayingCards from './playingcards';
+import PlayingCards from './PlayingCards';
 import Schemaless from './Schemaless';
 import ServerExample from './ServerExample';
 import Settings from './Settings';
