@@ -1,5 +1,5 @@
 import { createSelector, createSignal, For, untrack } from "solid-js";
-import { JSX } from "solid-js/jsx-runtime";
+import { JSX } from "solid-js";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { anBool, anKeys, AnNode, anSetReconcile, anSetReconcileIncomplete, anString } from "./app_data";
 import { Button, Buttons } from "./components";

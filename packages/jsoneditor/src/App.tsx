@@ -7,6 +7,7 @@ import { NodeProvider, RootState } from './editor_data';
 import JsonViewer from './JsonViewer';
 import PlayingCards from './playingcards';
 import Schemaless from './Schemaless';
+import ServerExample from './ServerExample';
 import Settings from './Settings';
 
 type Window = {
@@ -85,6 +86,10 @@ export default function App(props: {
     cards: {
       title: "Cards",
       component: () => <PlayingCards node={props.node.playingcards as any} />,
+    },
+    server: {
+      title: "Server",
+      component: () => <ServerExample />,
     },
   };
   return <NodeProvider

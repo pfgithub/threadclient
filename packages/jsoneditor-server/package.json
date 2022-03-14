@@ -7,6 +7,7 @@
   "devDependencies": {
     "@types/cors": "^2",
     "@types/express": "^4",
+    "@types/rethinkdb": "^2",
     "eslint": "^7.29.0",
     "eslint-config-tmeta": "^1.0.0",
     "esno": "^0.14.1",
@@ -20,7 +21,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.17.3",
-    "mongodb": "^4.4.1",
+    "rethinkdb": "^2.4.2",
     "socket.io": "^4.4.1"
   }
 }

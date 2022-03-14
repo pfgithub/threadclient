@@ -1,5 +1,5 @@
 import { createMemo, For, untrack } from "solid-js";
-import { JSX } from "solid-js/jsx-runtime";
+import { JSX } from "solid-js";
 import { anGet, anKeys, AnNode } from "./app_data";
 import { Button, Buttons } from "./components";
 import { getState } from "./editor_data";

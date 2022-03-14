@@ -1,5 +1,5 @@
 import { createContext, createRenderEffect, createSelector, createSignal, For, Show, Signal, untrack, useContext } from "solid-js";
-import { JSX } from "solid-js/jsx-runtime";
+import { JSX } from "solid-js";
 import { Dynamic, insert } from "solid-js/web";
 import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_data";
 import { Button, Buttons } from "./components";

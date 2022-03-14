@@ -1,4 +1,4 @@
-import { JSX } from "solid-js/jsx-runtime";
+import { JSX } from "solid-js";
 import { AnNode } from "./app_data";
 import { Settings as SettingsTy } from "./editor_data";
 import { BoolEditor, HeadingValue } from "./Schemaless";
