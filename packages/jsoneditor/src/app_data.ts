@@ -140,16 +140,6 @@ export type Root = {
     snapshot: JSON,
     actions_signal: Signal<undefined>,
 };
-function applyActions(actions: Action[]): JSON {
-    // TODO find an existing snapshot to base this off rather than recreating from
-    // scratch
-
-    let snapshot: JSON = undefined;
-    for(const action of actions) {
-        snapshot = applyActionToSnapshot(action, snapshot)
-    }
-    return snapshot;
-}
 function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JSON): JSON {
     console.log("setting node at path", path);
 
@@ -297,7 +287,8 @@ function setReconcile<T>(root: Root, path: string[], nvCb: (pv: unknown) => T): 
         root.actions_signal[1](undefined);
     
         const ps = root.snapshot;
-        const ns = applyActions(root.actions);
+        let ns = root.snapshot;
+        for(const action of new_actions) ns = applyActionToSnapshot(action, ns);
         root.snapshot = ns;
 
         // emit its signals
