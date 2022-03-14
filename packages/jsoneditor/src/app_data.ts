@@ -73,10 +73,15 @@ export function anBool(node: AnNodeData<boolean | null | undefined>): boolean | 
     if(typeof value === "boolean") return value;
     return null;
 }
-export function anSetReconcile<T>(node: AnNodeData<T>, nv: (pv: unknown) => T): void {
+export function anNumber(node: AnNodeData<number | null | undefined>): number | null {
+    const value = anGet(node);
+    if(typeof value === "number") return value;
+    return null;
+}
+export function anSetReconcile<U, T extends AnNodeData<U>>(node: T, nv: (pv: unknown) => T[typeof symbol_value]): void {
     return anSetReconcileIncomplete(node, nv);
 }
-export function anSetReconcileIncomplete<T>(node: AnNodeData<T>, nv: (pv: unknown) => Partial<T>): void {
+export function anSetReconcileIncomplete<T>(node: AnNodeData<T>, nv: (pv: unknown) => Partial<T> | null): void {
     setReconcile(node[symbol_root], node[symbol_path], nv);
 }
 // export function anObserve(node: node): the actual value of the node. all children are watched

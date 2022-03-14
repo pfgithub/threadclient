@@ -109,17 +109,17 @@ export function BoolEditor(props: {node: AnNode<boolean>}): JSX.Element {
     const selector = createSelector(() => anBool(props.node));
     return <Buttons>
         <Button
-            onClick={() => anSetReconcile(props.node, v => v === true ? null : true)}
+            onClick={() => anSetReconcileIncomplete(props.node, v => v === true ? null : true)}
             active={selector(true)}
         >On</Button>
         <Button
-            onClick={() => anSetReconcile(props.node, v => v === false ? null : false)}
+            onClick={() => anSetReconcileIncomplete(props.node, v => v === false ? null : false)}
             active={selector(false)}
         >Off</Button>
     </Buttons>;
 }
 
-export function ArrayEditorBase<T>(props: {
+export function AnFor<T>(props: {
     node: AnNode<{[key: string]: T}>,
     children: (node: AnNode<T>, key: string, root: AnNode<{[key: string]: T}>) => JSX.Element,
 }): JSX.Element {
@@ -142,7 +142,7 @@ function ListEditor<T>(props: {
             anSetReconcile(props.node, v => {
                 const pv = asObject(v) ?? {};
                 const nv = cb(Object.keys(pv));
-                return Object.fromEntries(nv.map(key => [key, pv[key]!]));
+                return Object.fromEntries(nv.map(key => [key, pv[key]! as T]));
             });
         }}
         wrapper_class="pt-2 first:pt-0"
@@ -197,11 +197,11 @@ function Demo1Editor(props: {node: AnNode<Demo1>}): JSX.Element {
         <div class="space-y-2">
             <HeadingValue title="people">
                 <Tabs>
-                    <ArrayEditorBase node={props.node.people}>{(person, key) => <>
+                    <AnFor node={props.node.people}>{(person, key) => <>
                         <Tab title={anString(person.name) ?? key}>
                             <PersonEditor node={person} />
                         </Tab>
-                    </>}</ArrayEditorBase>
+                    </>}</AnFor>
                     <Tab title={"+"} onClick={() => {
                         anSetReconcile(props.node.people, (v): {[key: string]: Person} => ({
                             ...(v != null && typeof v === "object" ? v : {}),

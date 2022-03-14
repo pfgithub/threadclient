@@ -1,5 +1,5 @@
 import { createEffect, createMemo, createSignal, For, JSX } from "solid-js";
-import { SwitchKind } from "tmeta-util-solid";
+import { Show, SwitchKind } from "tmeta-util-solid";
 import { Action, ActionPath, Root } from "./app_data";
 
 function PathRender(props: {path: ActionPath}): JSX.Element {
@@ -75,8 +75,12 @@ export default function Actions(props: {
         props.root.actions_signal[0]();
         return props.root.actions;
     });
+    const max_actions = 100;
     return <div class="space-y-2">
         <div>{actions().length.toLocaleString()} actions</div>
-        <For each={[...actions()].reverse()}>{action => <Act action={action} />}</For>
+        <For each={[...actions()].reverse().splice(0, max_actions)}>{action => <Act action={action} />}</For>
+        <Show if={actions().length > max_actions}><div>
+            … and {actions().length - max_actions} more.
+        </div></Show>
     </div>;
 }
