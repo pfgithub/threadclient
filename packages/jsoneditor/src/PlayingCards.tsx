@@ -34,8 +34,8 @@ function toZIndex(number: number): number {
 }
 
 function Token(props: {token: AnNode<Token>, width: number, container: HTMLElement}): JSX.Element {
-    let cleanup_fn: (() => void) | undefined;
-    onCleanup(() => cleanup_fn?.());
+    const [draggingCleanupFn, setDraggingCleanupFn] = createSignal<(() => void) | undefined>(undefined);
+    onCleanup(() => draggingCleanupFn()?.());
 
     return <div
         class="bg-gray-500 border-[2px] border-gray-900"
@@ -47,10 +47,14 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
             'transform': anBool(props.token.dragging) ? "scale(1.2) translate(-50%, -50%)" : "translate(-50%, -50%)",
             'padding': (0.005) * 100 + "%",
             'z-index': toZIndex(anNumber(props.token.upd) ?? 0),
+            'transition': [
+                "0.1s transform",
+                ...(draggingCleanupFn() ? "0.1s top, 0.1s left" : []),
+            ].join(","),
         }}
         onPointerDown={initial_ev => {
             if(!initial_ev.isPrimary) return;
-            if(cleanup_fn) throw new Error("double primary pointer down");
+            if(draggingCleanupFn()) throw new Error("double primary pointer down");
 
             initial_ev.preventDefault();
             initial_ev.stopPropagation();
@@ -77,8 +81,8 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
                 const diff_pt = [mouse_new_pt[0] - mouse_start_pt[0], mouse_new_pt[1] - mouse_start_pt[1]];
                 anSetReconcile(props.token.pos, () => {
                     return {
-                        x: elem_start_pt[0] + diff_pt[0],
-                        y: elem_start_pt[1] + diff_pt[1],
+                        x: Math.min(1.0, Math.max(0.0, elem_start_pt[0] + diff_pt[0])),
+                        y: Math.min(1.0, Math.max(0.0, elem_start_pt[1] + diff_pt[1])),
                     };
                 });
             }
@@ -96,7 +100,7 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
                 e.stopPropagation();
 
                 moveElement(e);
-                cleanup_fn?.();
+                draggingCleanupFn()?.();
             }, {signal: as} as any);
             document.addEventListener("pointercancel", e => {
                 if(e.pointerId !== initial_ev.pointerId) return;
@@ -110,14 +114,14 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
                     };
                 });
 
-                cleanup_fn?.();
+                draggingCleanupFn()?.();
             }, {signal: as} as any);
 
-            cleanup_fn = () => {
-                cleanup_fn = undefined;
+            setDraggingCleanupFn(() => () => {
+                setDraggingCleanupFn(undefined);
                 ac.abort();
                 anSetReconcile(props.token.dragging, () => false);
-            };
+            });
 
             // onpointermove
             // onpointerup
@@ -131,7 +135,7 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
 export default function PlayingCards(props: {node: AnNode<PlayingCards>}): JSX.Element {
     const [containerWidth, setContainerWidth] = createSignal<number>(100);
 
-    return <div class="space-y-2"><div class="w-full bg-gray-700 relative" style={{
+    return <div class="space-y-2"><div class="w-full bg-gray-700 relative overflow-hidden" style={{
         'aspect-ratio': "16 / 9",
         'touch-action': "none",
         'font-size': containerWidth() / 100.0 + "px",
