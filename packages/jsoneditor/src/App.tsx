@@ -1,6 +1,7 @@
 import { createEffect, createSelector, createSignal, ErrorBoundary, For, JSX, untrack } from 'solid-js';
 import { Show } from 'tmeta-util-solid';
-import { AnNode } from './app_data';
+import Actions from './Actions';
+import { AnNode, anRoot } from './app_data';
 import { Buttons, Button } from './components';
 import Design from './design';
 import { NodeProvider, RootState } from './editor_data';
@@ -90,6 +91,10 @@ export default function App(props: {
     server: {
       title: "Server",
       component: () => <ServerExample />,
+    },
+    actions: {
+      title: "Actions",
+      component: () => <Actions root={anRoot(props.node)} />,
     },
   };
   return <NodeProvider

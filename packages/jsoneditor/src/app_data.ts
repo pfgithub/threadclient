@@ -83,6 +83,10 @@ export function anSetReconcileIncomplete<T>(node: AnNodeData<T>, nv: (pv: unknow
 // eg we can get a node signal [...node[symbol_path], {v: "@all"}] and update all of those whenever
 // any node is changed.
 
+export function anRoot<T>(node: AnNodeData<T>): Root {
+    return node[symbol_root];
+}
+
 (() => {
     type Person = {
         name: string,
@@ -105,9 +109,9 @@ export function anSetReconcileIncomplete<T>(node: AnNodeData<T>, nv: (pv: unknow
 
 type Primitive = string | bigint | boolean | null | undefined;
 
-type JSON = unknown;
-type ActionPath = string[];
-type ActionValue = {
+export type JSON = unknown;
+export type ActionPath = string[];
+export type ActionValue = {
     kind: "reorder_keys",
     path: ActionPath,
     old_keys: string[],
@@ -119,7 +123,7 @@ type ActionValue = {
     path: ActionPath,
     new_value: JSON,
 };
-type Action = {
+export type Action = {
     // id: string,
     value: ActionValue,
 }
@@ -134,6 +138,7 @@ export type Root = {
     actions: Action[],
     // snapshots: Map<ActionHash, JSON>, // TODO how do we do snapshots?
     snapshot: JSON,
+    actions_signal: Signal<undefined>,
 };
 function applyActions(actions: Action[]): JSON {
     // TODO find an existing snapshot to base this off rather than recreating from
@@ -198,6 +203,7 @@ export function createAppData<T>(): AnNode<T> {
 
         actions: [],
         snapshot: undefined,
+        actions_signal: createSignal(undefined, {equals: () => false}),
     };
     return anConstructor(root, []);
 }
@@ -287,14 +293,12 @@ function setReconcile<T>(root: Root, path: string[], nvCb: (pv: unknown) => T): 
         const nv = nvCb(pv);
 
         const new_actions = findActions(path, pv, nv);
-        root.actions.push(...new_actions);
+        root.actions = [...root.actions, ...new_actions];
+        root.actions_signal[1](undefined);
     
         const ps = root.snapshot;
         const ns = applyActions(root.actions);
         root.snapshot = ns;
-
-        console.log("Applying actions:", new_actions);
-        console.log("Got result", ns);
 
         // emit its signals
         emitDiffSignals(root, [], ps, ns);
