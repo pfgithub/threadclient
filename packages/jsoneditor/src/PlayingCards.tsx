@@ -128,7 +128,9 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
             // onpointercancel
         }}
     >
-        <div>My node!</div>
+        <div style={{
+            'font-size': "1000%",
+        }}>🂳</div>
     </div>;
 }
 
