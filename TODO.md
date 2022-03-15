@@ -1,5 +1,14 @@
 ## TODO
 
+https://github.com/poudels14/slate-solid
+
+woah a solid js slate wrapper
+
+I'm pretty sure there was some reason I couldn't use slate but I should at least
+try it
+
+## TODO
+
 Virtual scrolling with IntersectionObserver
 
 https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API
