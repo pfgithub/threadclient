@@ -50,3 +50,16 @@ just call `.scrollIntoView()` when an element's selector changes from false to t
 
 anyway not sure what i would use this for, it just seems like the type of feature this
 app would have. i guess undo/redo buttons can go in there.
+
+# note
+
+undo/redo considerations
+
+- when you undo, we should also undo the ui state to the point where your change is
+  visible and focused
+- this means we should start keeping track of ui state
+- we should also keep track of ui state for other reasons - in tabs, when you switch
+  tabs and switch back, it forgets your tabs. also it would be nice to keep ui state
+  across hmr reloads.
+- anyway, undo will have to do stuff like: move your cursor in a richtext input back to
+  where it was, and that requires keeping ui state
