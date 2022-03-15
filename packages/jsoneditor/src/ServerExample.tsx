@@ -1,6 +1,7 @@
 import { createSignal, JSX, onCleanup } from "solid-js";
 import { io } from "socket.io-client";
 import { Show } from "tmeta-util-solid";
+import { Button, Buttons } from "./components";
 
 // [!] batch actions by ~200ms before submitting to the server
 //   - we can make a fn to batchActions(actions) that will merge any duplicate sets
@@ -22,14 +23,16 @@ export default function ServerExample(): JSX.Element {
     });
 
     const [connected, setConnected] = createSignal(false);
-    const [error, setError] = createSignal<any>(null);
+    const [error, setError] = createSignal<null | Error>(null);
+    const [reconnectState, setReconnectState] = createSignal(0);
 
     connection.on("connect", () => {
         setConnected(true);
         console.log("socket connected", connection);
     });
-    connection.on("connect_error", () => {
-        setError("errored");
+    connection.on("connect_error", e => {
+        // console.log(e);
+        setError(e);
     });
     connection.on("disconnect", () => {
         setConnected(false);
@@ -40,10 +43,34 @@ export default function ServerExample(): JSX.Element {
 
     });
 
+    connection.io.on("reconnect", () => {
+        console.log("reconnect");
+        setReconnectState(1);
+    });
+    connection.io.on("reconnect_attempt", () => {
+        console.log("reconnect_attempt");
+        setReconnectState(1);
+    });
+    connection.io.on("reconnect_error", () => {
+        console.log("Reconnect_error");
+        setReconnectState(2);
+    });
+    connection.io.on("reconnect_failed", () => {
+        console.log("Reconnect_failed");
+        setReconnectState(3);
+    });
+
     return <Show if={connected()} fallback={<>
-        Connecting…
+        {[
+            "Connecting…",
+            "Reconnecting…",
+            "Reconnect errored. Retrying…",
+            "Could not connect.",
+        ][reconnectState()]}
         <Show when={error()}>{emsg => <div>
-            Got error: {emsg}
+            Got error: {emsg.toString()}
+            <Buttons><Button onClick={() => console.log(emsg)}>Log</Button></Buttons>
+            <pre class="whitespace-pre-wrap"><code>{emsg.stack}</code></pre>
         </div>}</Show>
     </>}>
         Connected.
