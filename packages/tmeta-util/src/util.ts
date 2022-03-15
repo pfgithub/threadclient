@@ -242,3 +242,5 @@ export function switchKind<T extends {kind: string}, U>(
 ): U {
     return switchKindCB<U>(item, choices)();
 }
+
+export * from "./uuid";

@@ -233,7 +233,7 @@ const node_renderers: {
                     anSetReconcile(props.node.children, v => {
                         const pv = asObject(v) ?? {};
                         const nv = cb(Object.keys(pv));
-                        return Object.fromEntries(nv.map(key => [key, pv[key]!]));
+                        return Object.fromEntries(nv.map(key => [key, pv[key]! as TextEditorFlatNode]));
                     });
                 }}
 

@@ -3,7 +3,11 @@ cd packages/jsoneditor-server/
 rethinkdb
 ```
 
-create a database `jsoneditor` containing table `documents` primary key `id`
+create a database `jsoneditor`
+
+- create a table `documents` primary key `id`
+- create a table `actions` primary key `id`
+- create a table `snapshots` primary key `id`
 
 ```
 cd packages/jsoneditor-server/
