@@ -41,6 +41,8 @@ function watchDocument(document_name: string, cb: (() => void)): Document {
 
 io.of(/^.*$/).on("connection", socket => {
     const document_name = socket.nsp.name;
+    console.log("user connected to document", document_name);
+
     // 1. check for permission
     if(!hasPermission()) return;
     // 2. send all events
@@ -55,22 +57,19 @@ io.of(/^.*$/).on("connection", socket => {
     });
 
     socket.on("disconnect", () => {
+        console.log("user disconnected from document", document_name);
         // unregister db watcher
         doc.disconnect();
     });
 
-    socket.on("create actions", actions_str => {
+    socket.on("create actions", (actions: unknown) => {
         try {
-            if(typeof actions_str !== "string") throw new Error("bad actions data");
-            const actions: unknown = JSON.parse(actions_str);
             if(!Array.isArray(actions)) throw new Error("actions is not not array");
         }catch(e) {
             console.error("Error in client message", e, ". Disconnecting client.");
             socket.disconnect();
         }
     });
-
-    console.log("user connected to document", document_name);
 });
 
 (async () => {
