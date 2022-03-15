@@ -1,7 +1,8 @@
 import { createEffect, createMemo, createSignal, For, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { Action, ActionPath, applyActionToSnapshot, collapseActions, Root } from "./app_data";
+import { Action, ActionPath, applyActionToSnapshot, collapseActions, AnRoot, UndoGroup } from "./app_data";
 import { Button, Buttons } from "./components";
+import History from "./History";
 
 function PathRender(props: {path: ActionPath}): JSX.Element {
     const [hovering, setHovering] = createSignal(false);
@@ -41,13 +42,22 @@ function PathRender(props: {path: ActionPath}): JSX.Element {
                 </>
             )}</For>
         </span></span>
-        <span class="text-gray-300">/</span>
-        <span>{props.path[props.path.length - 1]}</span>
+        <span>
+            <span class="text-gray-300">/</span>
+            <span>{props.path[props.path.length - 1]}</span>
+        </span>
     </div>;
 }
 
 function Act(props: {action: Action}): JSX.Element {
-    return <div class="bg-gray-900 p-2 rounded-md">
+    return <div class="bg-gray-900 p-2 rounded-md flex flex-col gap-2">
+        <div
+            class="flex flex-wrap bg-black rounded-md -m-2 mb-0 p-2 text-xs"
+        >
+            <span>{props.action.value.kind}</span>
+            <span class="flex-1" />
+            <span class="font-mono">{props.action.undo_group}</span>
+        </div>
         <SwitchKind item={props.action.value} fallback={v => <>
             <pre class="whitespace-pre-wrap"><code>
                 {JSON.stringify(v, null, " ")}
@@ -70,7 +80,7 @@ function Act(props: {action: Action}): JSX.Element {
 }
 
 export default function Actions(props: {
-    root: Root,
+    root: AnRoot,
 }): JSX.Element {
     const actions = createMemo(() => {
         props.root.actions_signal[0]();
@@ -79,15 +89,21 @@ export default function Actions(props: {
     const max_actions = 30;
     return <div class="space-y-2">
         <div>
+            <History root={props.root} />
+        </div>
+        <div>
             {actions().length.toLocaleString()} actions
             <Buttons>
                 <Button onClick={() => {
                     const collapsed = collapseActions(props.root.actions);
                     let recreated = undefined;
                     for(const action of collapsed) recreated = applyActionToSnapshot(action, recreated);
-                    alert("Collapsed to "+collapsed.length+" actions. Identical: "+(
-                        JSON.stringify(recreated) === JSON.stringify(props.root.snapshot)
-                    ));
+                    const ov = JSON.stringify(props.root.snapshot);
+                    const nv = JSON.stringify(recreated);
+                    alert("Collapsed to "+collapsed.length+" actions. Identical: "+(ov === nv));
+                    if(ov !== nv) {
+                        console.log("ov", props.root.snapshot, "nv", recreated);
+                    }
                 }}>Try collapse</Button>
             </Buttons>
         </div>

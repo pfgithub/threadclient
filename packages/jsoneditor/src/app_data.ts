@@ -4,9 +4,10 @@
 //     and then one big object that is the actual value
 
 import { batch, createMemo, createSignal, Signal, untrack } from "solid-js";
-import { assertNever } from "tmeta-util";
+import { assertNever, switchKind, UUID } from "tmeta-util";
 import { asObject, isObject, unreachable } from "./guards";
 import { Include } from "./util";
+import { uuid } from "./uuid";
 
 const symbol_value = Symbol("value");
 const symbol_path = Symbol("path");
@@ -17,7 +18,7 @@ export type IncludeBackup<T, U> = Include<T, U> extends never ? {[nothing]: unde
 export type AnNodeData<T> = {
     [symbol_value]: T, // exists in ts only, for typechecking.
     [symbol_path]: string[],
-    [symbol_root]: Root,
+    [symbol_root]: AnRoot,
 };
 export type AnNode<T> = AnNodeData<T> & IncludeBackup<(T extends Primitive ? {
     [nothing]: undefined,
@@ -34,7 +35,7 @@ const an_proxy_handler: ProxyHandler<AnNodeData<any>> = {
         if(typeof prop !== "string") {
             return Reflect.get(target, prop, reciever);
         }
-        return anConstructor(target[symbol_root], [...target[symbol_path], prop]);
+        return anConstructor(anRoot(target), [...target[symbol_path], prop]);
     },
     ownKeys(target) {
         const res = Reflect.ownKeys(target);
@@ -43,7 +44,7 @@ const an_proxy_handler: ProxyHandler<AnNodeData<any>> = {
         return [...res, ...anKeys(target)];
     },
 };
-function anConstructor<T>(root: Root, path: string[]): AnNode<T> {
+function anConstructor<T>(root: AnRoot, path: string[]): AnNode<T> {
     const data: AnNodeData<T> = {
         [symbol_value]: undefined as any,
         [symbol_path]: [...path],
@@ -78,17 +79,58 @@ export function anNumber(node: AnNodeData<number | null | undefined>): number | 
     if(typeof value === "number") return value;
     return null;
 }
-export function anSetReconcile<U, T extends AnNodeData<U>>(node: T, nv: (pv: unknown) => T[typeof symbol_value]): void {
-    return anSetReconcileIncomplete(node, nv);
+export function anSetReconcile<U, T extends AnNodeData<U>>(
+    node: T,
+    nv: (pv: unknown) => T[typeof symbol_value],
+    opts?: SetReconcileOpts,
+): void {
+    return anSetReconcileIncomplete(node, nv, opts);
 }
-export function anSetReconcileIncomplete<T>(node: AnNodeData<T>, nv: (pv: unknown) => Partial<T> | null): void {
-    setReconcile(node[symbol_root], node[symbol_path], nv);
+export function anSetReconcileIncomplete<T>(
+    node: AnNodeData<T>,
+    nv: (pv: unknown) => Partial<T> | null,
+    opts?: SetReconcileOpts,
+): void {
+    if(!opts) {
+        opts = {undo_group: anCreateUndoGroup()};
+        anCommitUndoGroup(anRoot(node), opts.undo_group);
+    }
+    setReconcile(anRoot(node), opts.undo_group, node[symbol_path], nv);
 }
 // export function anObserve(node: node): the actual value of the node. all children are watched
 // eg we can get a node signal [...node[symbol_path], {v: "@all"}] and update all of those whenever
 // any node is changed.
 
-export function anRoot<T>(node: AnNodeData<T>): Root {
+export type UndoGroup = string & {__is_undo_group: undefined};
+export function anCreateUndoGroup(): UndoGroup {
+    return uuid() as string as UndoGroup;
+}
+export function anCommitUndoGroup(root: AnRoot, group: UndoGroup) {
+    const new_undos = [...root.undos];
+    new_undos.splice(root.undo_index, Infinity, group);
+    root.undos = new_undos;
+    root.undo_index = root.undos.length;
+    root.undos_signal[1](undefined);
+}
+export function anUndo(root: AnRoot, group: UndoGroup): {redo: UndoGroup} {
+    // TODO: append an undo action and then call updateActions() rather than
+    // physically removing the actions and rebuilding from scratch
+    root.actions = root.actions.filter(action => action.undo_group !== group);
+
+    const ps = root.snapshot;
+    let ns = undefined;
+    for(const v of root.actions) ns = applyActionToSnapshot(v, ns);
+    root.snapshot = ns;
+    emitDiffSignals(root, [], ps, ns);
+
+    root.actions_signal[1](undefined);
+
+    return {redo: "ERROR_TODO_RETURN_NEW_UNDO_GROUP_"+uuid() as any};
+}
+
+type SetReconcileOpts = {undo_group: UndoGroup};
+
+export function anRoot<T>(node: AnNodeData<T>): AnRoot {
     return node[symbol_root];
 }
 
@@ -127,13 +169,17 @@ export type ActionValue = {
     kind: "set_value",
     path: ActionPath,
     new_value: JSON,
+} | {
+    kind: "undo",
+    group: string,
 };
 export type Action = {
     // id: string,
+    undo_group: UndoGroup,
     value: ActionValue,
 }
 
-export type Root = {
+export type AnRoot = {
     // note: see if we can use a weakmap for this
     // we'll have to use the same path array for every watched nodes access
     // eeh whatever. we'll just leak memory
@@ -144,6 +190,10 @@ export type Root = {
     // snapshots: Map<ActionHash, JSON>, // TODO how do we do snapshots?
     snapshot: JSON,
     actions_signal: Signal<undefined>,
+
+    undos: UndoGroup[],
+    undo_index: number,
+    undos_signal: Signal<undefined>,
 };
 function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JSON): JSON {
     console.log("setting node at path", path);
@@ -166,10 +216,16 @@ function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JS
     console.log("succeed set node", res_root);
     return res_root.parent[res_root.key];
 }
+// ok this is actually kind of complicated
 export function collapseActions(actions: Action[]): Action[] {
     const set_paths = new Set<string>();
+    let never_collapse = 0;
     return [...actions].reverse().filter(action => {
-        const sp = JSON.stringify([action.value.kind, action.value.path]);
+        const sp = JSON.stringify([action.value.kind, action.undo_group, switchKind(action.value, {
+            reorder_keys: rk => never_collapse++,
+            set_value: sv => sv.path,
+            undo: ndo => never_collapse++,
+        })]);
         if(set_paths.has(sp)) return false;
         set_paths.add(sp);
         return true;
@@ -198,21 +254,27 @@ export function applyActionToSnapshot(action: Action, snapshot: JSON): JSON {
                 return [key, prev[key]];
             }));
         });
+    }else if(av.kind === "undo") {
+        throw new Error("todo implement undo; this is complicated")
     }else assertNever(av);
 }
 export function createAppData<T>(): AnNode<T> {
-    const root: Root = {
+    const root: AnRoot = {
         watched_nodes: new Map(),
         all_contents: new Set(),
 
         actions: [],
         snapshot: undefined,
         actions_signal: createSignal(undefined, {equals: () => false}),
+        
+        undos: [],
+        undo_index: 0,
+        undos_signal: createSignal(undefined, {equals: () => false}),
     };
     return anConstructor(root, []);
 }
 
-function getNodeSignal(root: Root, path: (string | {v: "keys"})[]): {
+function getNodeSignal(root: AnRoot, path: (string | {v: "keys"})[]): {
     view: () => void,
     emit: () => void,
 } {
@@ -239,7 +301,7 @@ function getNodeSignal(root: Root, path: (string | {v: "keys"})[]): {
 // to it
 //     (that does mean setting a node to undefined requires alerting a bunch of consumers
 //      but that's okay)
-function readValue(root: Root, path: string[]): unknown {
+function readValue(root: AnRoot, path: string[]): unknown {
     // track reads
     getNodeSignal(root, path).view();
 
@@ -259,11 +321,11 @@ function readValue(root: Root, path: string[]): unknown {
 // 2: applyActions
 // 3: emitDiffSignals
 
-function findActions(path: string[], pv: JSON, nv: JSON): Action[] {
+function findActions(undo_group: UndoGroup, path: string[], pv: JSON, nv: JSON): Action[] {
     if(pv === nv) return [];
 
     if(!isObject(pv) || !isObject(nv)) {
-        return [{value: {
+        return [{undo_group, value: {
             kind: "set_value",
             path: path,
             new_value: nv,
@@ -276,7 +338,7 @@ function findActions(path: string[], pv: JSON, nv: JSON): Action[] {
     const next_keys = Object.keys(nv);
 
     // change key order & delete old keys
-    if(JSON.stringify(prev_keys) !== JSON.stringify(next_keys)) res_actions.push({value: {
+    if(JSON.stringify(prev_keys) !== JSON.stringify(next_keys)) res_actions.push({undo_group, value: {
         kind: "reorder_keys",
         path: path,
         old_keys: prev_keys,
@@ -285,18 +347,18 @@ function findActions(path: string[], pv: JSON, nv: JSON): Action[] {
 
     // create all new keys
     for(const key of next_keys) {
-        res_actions.push(...findActions([...path, key], pv[key], nv[key]));
+        res_actions.push(...findActions(undo_group, [...path, key], pv[key], nv[key]));
     }
 
     return res_actions;
 }
 
-function setReconcile<T>(root: Root, path: string[], nvCb: (pv: unknown) => T): void {
+function setReconcile<T>(root: AnRoot, undo_group: UndoGroup, path: string[], nvCb: (pv: unknown) => T): void {
     untrack(() => batch(() => {
         const pv = readValue(root, path);
         const nv = nvCb(pv);
 
-        const new_actions = findActions(path, pv, nv);
+        const new_actions = findActions(undo_group, path, pv, nv);
         root.actions = [...root.actions, ...new_actions];
         root.actions_signal[1](undefined);
     
@@ -309,7 +371,7 @@ function setReconcile<T>(root: Root, path: string[], nvCb: (pv: unknown) => T): 
         emitDiffSignals(root, [], ps, ns);
     }));
 }
-function emitDiffSignals<T>(root: Root, path: string[], old_value: unknown, new_value: T): void {
+function emitDiffSignals<T>(root: AnRoot, path: string[], old_value: unknown, new_value: T): void {
     // old and new are identical. don't emit anything.
     if(old_value === new_value) return;
 

@@ -1,7 +1,7 @@
 import { createSelector, createSignal, For, untrack } from "solid-js";
 import { JSX } from "solid-js";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
-import { anBool, anKeys, AnNode, anSetReconcile, anSetReconcileIncomplete, anString } from "./app_data";
+import { anBool, anCommitUndoGroup, anCreateUndoGroup, anKeys, AnNode, anRoot, anSetReconcile, anSetReconcileIncomplete, anString, UndoGroup } from "./app_data";
 import { Button, Buttons } from "./components";
 import { DragButton, DraggableList } from "./DraggableList";
 import { getState } from "./editor_data";
@@ -87,6 +87,7 @@ export function HeadingValue(props: {
 }
 
 export function StringEditor(props: {node: AnNode<string>}): JSX.Element {
+    let undo_group: UndoGroup | null = null;
     return <div>
         <Show
             if={anString(props.node) != null}
@@ -99,7 +100,16 @@ export function StringEditor(props: {node: AnNode<string>}): JSX.Element {
                 class="w-full bg-gray-700 rounded-sm px-1"
                 value={anString(props.node) ?? ""}
                 // onChange here maybe?
-                onInput={e => anSetReconcile(props.node, () => e.currentTarget.value)}
+                onInput={e => {
+                    if(!undo_group) {
+                        undo_group = anCreateUndoGroup();
+                        anCommitUndoGroup(anRoot(props.node), undo_group);
+                    }
+                    anSetReconcile(props.node, () => e.currentTarget.value, {undo_group});
+                }}
+                onChange={() => {
+                    undo_group = null;
+                }}
             />
         </Show>
     </div>;

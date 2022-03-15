@@ -1,6 +1,6 @@
 import { createSignal, JSX, onCleanup, onMount } from "solid-js";
 import { insert } from "solid-js/web";
-import { anBool, AnNode, anNumber, anSetReconcile } from "./app_data";
+import { anBool, anCommitUndoGroup, anCreateUndoGroup, AnNode, anNumber, anRoot, anSetReconcile, anUndo } from "./app_data";
 import { Buttons, Button } from "./components";
 import { AnFor } from "./Schemaless";
 import { uuid } from "./uuid";
@@ -60,8 +60,10 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
             initial_ev.preventDefault();
             initial_ev.stopPropagation();
 
-            anSetReconcile(props.token.dragging, () => true);
-            anSetReconcile(props.token.upd, () => Date.now()); // {'@operation': "date-now"}
+            const undo_group = anCreateUndoGroup();
+
+            anSetReconcile(props.token.dragging, () => true, {undo_group});
+            anSetReconcile(props.token.upd, () => Date.now(), {undo_group}); // {'@operation': "date-now"}
 
             const pxToPt = (px: [number, number]): [number, number] => {
                 const container_rect = props.container.getBoundingClientRect();
@@ -85,7 +87,7 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
                         x: Math.min(1.0, Math.max(0.0, elem_start_pt[0] + diff_pt[0])),
                         y: Math.min(1.0, Math.max(0.0, elem_start_pt[1] + diff_pt[1])),
                     };
-                });
+                }, {undo_group});
             }
 
             document.addEventListener("pointermove", e => {
@@ -102,26 +104,23 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
 
                 moveElement(e);
                 draggingCleanupFn()?.();
+
+                anCommitUndoGroup(anRoot(props.token), undo_group);
             }, {signal: as} as any);
             document.addEventListener("pointercancel", e => {
                 if(e.pointerId !== initial_ev.pointerId) return;
                 e.preventDefault();
                 e.stopPropagation();
 
-                anSetReconcile(props.token.pos, () => {
-                    return {
-                        x: elem_start_pt[0],
-                        y: elem_start_pt[1],
-                    };
-                });
-
                 draggingCleanupFn()?.();
+
+                anUndo(anRoot(props.token), undo_group);
             }, {signal: as} as any);
 
             setDraggingCleanupFn(() => () => {
                 setDraggingCleanupFn(undefined);
                 ac.abort();
-                anSetReconcile(props.token.dragging, () => false);
+                anSetReconcile(props.token.dragging, () => false, {undo_group});
             });
 
             // onpointermove

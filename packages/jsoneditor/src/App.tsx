@@ -5,6 +5,7 @@ import { AnNode, anRoot } from './app_data';
 import { Buttons, Button } from './components';
 import Design from './design';
 import { NodeProvider, RootState } from './editor_data';
+import History from './History';
 import JsonViewer from './JsonViewer';
 import PlayingCards from './PlayingCards';
 import Schemaless from './Schemaless';
@@ -95,6 +96,10 @@ export default function App(props: {
     actions: {
       title: "Actions",
       component: () => <Actions root={anRoot(props.node)} />,
+    },
+    history: {
+      title: "History",
+      component: () => <History root={anRoot(props.node)} />,
     },
   };
   return <NodeProvider
