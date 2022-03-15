@@ -76,7 +76,7 @@ export default function Actions(props: {
         props.root.actions_signal[0]();
         return props.root.actions;
     });
-    const max_actions = 100;
+    const max_actions = 30;
     return <div class="space-y-2">
         <div>
             {actions().length.toLocaleString()} actions
