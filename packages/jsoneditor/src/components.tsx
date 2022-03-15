@@ -30,3 +30,7 @@ export function Buttons(props: {
         )}</For>
     </div>;
 }
+
+export function ActionBar(props: {children: JSX.Element}) {
+    return <div>{props.children}</div>;
+}

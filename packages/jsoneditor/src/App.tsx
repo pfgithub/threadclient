@@ -97,10 +97,6 @@ export default function App(props: {
       title: "Actions",
       component: () => <Actions root={anRoot(props.node)} />,
     },
-    history: {
-      title: "History",
-      component: () => <History root={anRoot(props.node)} />,
-    },
   };
   return <NodeProvider
     node={props.node}
