@@ -1,3 +1,17 @@
+## TODO
+
+Virtual scrolling with IntersectionObserver
+
+https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API
+
+looks like this will make it relatively simpleish
+
+just have one element for all the things that are not loaded in the virtual scroll
+and when it comes into view, add elements until it is no longer in view
+
+also we can set a percentage or something so it loads stuff that isn't quite
+in view
+
 ## todo
 
 support pushshift
