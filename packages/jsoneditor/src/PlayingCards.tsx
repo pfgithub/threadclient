@@ -8,6 +8,10 @@ import { uuid } from "./uuid";
 type Token = {
     // coords of center
     pos: {x: number, y: number},
+
+    // vv - this should be stored in a seperate state component
+    //    - it is shared across clients
+    //    - it is updated directly rather than with actions
     dragging: boolean,
 
     upd: number, // z index value = Date.now() (set to server time value if using a server TODO)
