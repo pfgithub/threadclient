@@ -2,7 +2,7 @@ import { createSignal, JSX, untrack } from "solid-js";
 import { DragButton, DraggableList } from "./DraggableList";
 
 export default function Design(): JSX.Element {
-    const [items, setItems] = createSignal(Object.fromEntries(new Array(30).fill(0).map((_, i) => {
+    const [items, setItems] = createSignal(Object.fromEntries(new Array(30).fill(0).map((__, i) => {
         // javascript does not keep key order when the key can be parsed as a number
         // …
         // i love javascript
@@ -35,14 +35,14 @@ export default function Design(): JSX.Element {
                 "bg-gray-700 rounded-md flex flex-row flex-wrap",
                 selfIsDragging() ? "opacity-80 shadow-md" : ""
             ].join(" ")}
-        >{key => <>
+        >{(key, selfIsDragging) => <>
             <div class="flex-1 p-2">
                 Collapsed item {key} (state {Math.random()})
                 {untrack(() => <div style={{height: (Math.random() * 20 |0) + "px"}} />)}
             </div>
-            <DragButton class={selfIsDragging => [
-                    "px-4 rounded-md",
-                    selfIsDragging() ? "bg-gray-500" : "hover:bg-gray-600",
+            <DragButton class={[
+                "px-4 rounded-md",
+                selfIsDragging() ? "bg-gray-500" : "hover:bg-gray-600",
             ].join(" ")}>
                 ≡
             </DragButton>

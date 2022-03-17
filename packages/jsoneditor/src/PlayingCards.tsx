@@ -1,6 +1,9 @@
 import { createSignal, JSX, onCleanup, onMount } from "solid-js";
 import { insert } from "solid-js/web";
-import { anBool, anCommitUndoGroup, anCreateUndoGroup, AnNode, anNumber, anRoot, anSetReconcile, anUndo } from "./app_data";
+import {
+    anBool, anCommitUndoGroup, anCreateUndoGroup, AnNode,
+    anNumber, anRoot, anSetReconcile, anUndo
+} from "./app_data";
 import { Buttons, Button } from "./components";
 import { AnFor } from "./Schemaless";
 import { uuid } from "./uuid";
@@ -19,8 +22,6 @@ type Token = {
 type PlayingCards = {
     tokens: {[key: string]: Token},
 };
-
-type Test = Parameters<(typeof document)["addEventListener"]>;
 
 function toZIndex(number: number): number {
     // good enough for now but everything will get stuck on top when the time
@@ -48,7 +49,9 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
             'top': (anNumber(props.token.pos.y) ?? 0) * 100 + "%",
             'left': (anNumber(props.token.pos.x) ?? 0) * 100 + "%",
             'transform-origin': "top left",
-            'transform': anBool(props.token.dragging) ? "scale(1.2) translate(-50%, -50%)" : "translate(-50%, -50%)",
+            'transform': anBool(props.token.dragging) ?? false ? (
+                "scale(1.2) translate(-50%, -50%)"
+            ) : "translate(-50%, -50%)",
             'padding': (0.005) * 100 + "%",
             'z-index': toZIndex(anNumber(props.token.upd) ?? 0),
             'transition': [
@@ -75,17 +78,17 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
                     (px[0] - container_rect.x) / container_rect.width,
                     (px[1] - container_rect.y) / container_rect.height,
                 ];
-            }
+            };
 
-            const elem_start_pt = [anNumber(props.token.pos.x) ?? 0, anNumber(props.token.pos.y) ?? 0];
+            const elem_start_pt = [anNumber(props.token.pos.x) ?? 0, anNumber(props.token.pos.y) ?? 0] as const;
             const mouse_start_pt = pxToPt([initial_ev.clientX, initial_ev.clientY]);
 
             const ac = new AbortController();
             const as = ac.signal;
 
             function moveElement(e: PointerEvent): void {
-                const mouse_new_pt = pxToPt([e.clientX, e.clientY]);;
-                const diff_pt = [mouse_new_pt[0] - mouse_start_pt[0], mouse_new_pt[1] - mouse_start_pt[1]];
+                const mouse_new_pt = pxToPt([e.clientX, e.clientY]);
+                const diff_pt = [mouse_new_pt[0] - mouse_start_pt[0], mouse_new_pt[1] - mouse_start_pt[1]] as const;
                 anSetReconcile(props.token.pos, () => {
                     return {
                         x: Math.min(1.0, Math.max(0.0, elem_start_pt[0] + diff_pt[0])),
@@ -100,7 +103,7 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
                 e.stopPropagation();
 
                 moveElement(e);
-            }, {signal: as} as any);
+            }, {signal: as});
             document.addEventListener("pointerup", e => {
                 if(e.pointerId !== initial_ev.pointerId) return;
                 e.preventDefault();
@@ -110,7 +113,7 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
                 draggingCleanupFn()?.();
 
                 anCommitUndoGroup(anRoot(props.token), undo_group);
-            }, {signal: as} as any);
+            }, {signal: as});
             document.addEventListener("pointercancel", e => {
                 if(e.pointerId !== initial_ev.pointerId) return;
                 e.preventDefault();
@@ -119,7 +122,7 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
                 draggingCleanupFn()?.();
 
                 anUndo(anRoot(props.token), undo_group);
-            }, {signal: as} as any);
+            }, {signal: as});
 
             setDraggingCleanupFn(() => () => {
                 setDraggingCleanupFn(undefined);
@@ -133,7 +136,9 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
         }}
     >
         <div>
-            <img class="w-full" src={"data:image/svg+xml;base64,"+btoa(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="360" height="540">
+            <img class="w-full" src={
+/* eslint-disable max-len */
+"data:image/svg+xml;base64,"+btoa(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="360" height="540">
   <g transform="translate(-151.42857,-248.08929)" id="layer1">
     <g transform="translate(151.42857,-264.27291)" id="g3106">
       <rect width="359" height="539" rx="29.944447" ry="29.944447" x="0.5" y="512.86218" id="rect6472" style="fill:#ffffff;stroke:#000000;stroke-width:0.99999976"/>
@@ -159,7 +164,9 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
       <path d="m 275,951.3622 c 2,-4 7,-10 12,-10 9,0 13,8 13,18 0,10 -4,19 -13,19 -5,0 -8,-5 -11,-8 -1,-1 -2,0 -1,1 3,3 8,11 8,18 0,8 -5,18 -13,18 -8,0 -13,-10 -13,-18 0,-7 5,-15 8,-18 1,-1 0,-2 -1,-1 -3,3 -6,8 -11,8 -9,0 -13,-9 -13,-19 0,-10 4,-18 13,-18 5,0 10,6 12,10 1,1 1,0 1,-1 -1,-8 -1,-10 -2,-16 -1,-6 -4,-17.00002 -4,-17.00002 5,2 15,2 20,0 0,0 -3,11.00002 -4,17.00002 -1,6 -1,8 -2,16 0,1 0,2 1,1 z" id="path3037-17" style="fill:#000000;fill-opacity:1;stroke:none"/>
     </g>
   </g>
-</svg>`)} />
+</svg>`)
+/* eslint-enable */
+            } />
         </div>
     </div>;
     // https://commons.wikimedia.org/wiki/Category:SVG_English_pattern_playing_cards
@@ -187,7 +194,7 @@ export default function PlayingCards(props: {node: AnNode<PlayingCards>}): JSX.E
         });
     }} /><Buttons>
         <Button onClick={() => {
-            anSetReconcile(props.node.tokens[uuid()], () => {
+            anSetReconcile(props.node.tokens[uuid()]!, () => {
                 return {
                     pos: {
                         x: 0.5,

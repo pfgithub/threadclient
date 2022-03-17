@@ -5,6 +5,7 @@
       "lib": [
           "dom",
           "DOM.Iterable",
+          "es2021",
       ],
       "types": [
           "vite-plugin-pwa/client",

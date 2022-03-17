@@ -1,17 +1,15 @@
-import { createEffect, createSelector, createSignal, ErrorBoundary, For, JSX, untrack } from 'solid-js';
-import { Show } from 'tmeta-util-solid';
-import Actions from './Actions';
-import { AnNode, anRoot } from './app_data';
-import { Buttons, Button } from './components';
-import Design from './design';
-import { NodeProvider, RootState } from './editor_data';
-import History from './History';
-import JsonViewer from './JsonViewer';
-import PlayingCards from './PlayingCards';
-import Schemaless from './Schemaless';
-import ServerExample from './ServerExample';
-import Settings from './Settings';
-import { createUIState, UIStateSplit } from './ui_state';
+import { createSelector, ErrorBoundary, For, JSX, untrack } from "solid-js";
+import Actions from "./Actions";
+import { AnNode, anRoot } from "./app_data";
+import { Button, Buttons } from "./components";
+import Design from "./design";
+import { NodeProvider, RootState } from "./editor_data";
+import JsonViewer from "./JsonViewer";
+import PlayingCards from "./PlayingCards";
+import Schemaless from "./Schemaless";
+import ServerExample from "./ServerExample";
+import Settings from "./Settings";
+import { createUIState, UIStateSplit } from "./ui_state";
 
 type Window = {
   component: () => JSX.Element,
@@ -35,7 +33,7 @@ function AnyWindow(props: {
       >
         <For each={Object.keys(props.choices)}>{(key, i) => {
           return <option value={key} selected={isSelected(key)}>
-            {props.choices[key].title}
+            {props.choices[key]!.title}
           </option>;
         }}</For>
       </select>
@@ -46,7 +44,7 @@ function AnyWindow(props: {
       </Buttons>
     </div>
     <div class="p-4">
-      <ErrorBoundary fallback={(err, reset) => {
+      <ErrorBoundary fallback={(err: Error, reset) => {
         console.log("app error", err);
         return <div>
           <p>App errored.</p>
@@ -54,10 +52,10 @@ function AnyWindow(props: {
           <pre class="text-red-500 whitespace-pre-wrap">
             {err.toString() + "\n" + err.stack}
           </pre>
-        </div>
+        </div>;
       }}>
         {(() => {
-          const v = props.choices[selection()]?.component;
+          const v = props.choices[selection()]!.component;
           return untrack(() => v());
         })()}
       </ErrorBoundary>
@@ -72,6 +70,7 @@ export default function App(props: {
     schemaless: {
       title: "Schemaless",
       component: () => <Schemaless
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         node={props.node.data.root as any}
       />,
     },
@@ -89,6 +88,7 @@ export default function App(props: {
     },
     cards: {
       title: "Cards",
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       component: () => <PlayingCards node={props.node.playingcards as any} />,
     },
     server: {
@@ -112,4 +112,4 @@ export default function App(props: {
       </UIStateSplit>
     </div>
   </NodeProvider>;
-};
+}

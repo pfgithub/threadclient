@@ -3,6 +3,7 @@ import { JSX } from "solid-js";
 import { anGet, anKeys, AnNode } from "./app_data";
 import { Button, Buttons } from "./components";
 import { getState } from "./editor_data";
+import { isObject } from "./guards";
 
 export class JSONRaw {
   message: string;
@@ -11,15 +12,15 @@ export class JSONRaw {
   }
 }
 
-export function stringifyWithJsonRaw(value: unknown): string {
+export function stringifyWithJsonRaw(root: unknown): string {
   const escapeString = (str: string): string => str.replaceAll("%", "<%>");
   return JSON.stringify(
-    value,
-    (key, value) => {
+    root,
+    (key, value: unknown) => {
       if(typeof value === "string") return escapeString(value);
-      if(value != null && typeof value === "object") {
+      if(isObject(value)) {
         if(value instanceof JSONRaw) return "%"+escapeString(value.message)+"%";
-        if(Array.isArray(value)) return value;
+        if(Array.isArray(value)) return value as unknown[];
         if(value == null) return "%null%";
         return Object.fromEntries(
           Object.entries(value).map(([k, v]) => [escapeString(k), v]),
@@ -28,8 +29,8 @@ export function stringifyWithJsonRaw(value: unknown): string {
       return value;
     },
     " ",
-  ).replaceAll(/"%(.+?)%"/g, (_, full_str) => {
-    return JSON.parse('"'+full_str+'"');
+  ).replaceAll(/"%(.+?)%"/g, (__, full_str) => {
+    return JSON.parse('"'+full_str+'"') as string;
   }).replaceAll("<%>", "%");
 }
 
@@ -54,7 +55,10 @@ export function StoreViewerElement(props: {
       return <span>{"{"}<For each={anKeys(props.node)}>{(key, index) => {
         return <span>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
           <span class={color()}>{JSON.stringify(key)}</span>{": "}
-          <StoreViewerElement node={(props.node as any)[key]} level={props.level + 1} />
+          <StoreViewerElement
+            node={(props.node as unknown as AnNode<{[key: string]: unknown}>)[key]!}
+            level={props.level + 1}
+          />
         </span>;
       }}</For>{(anKeys(props.node).length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
     }); else return untrack((): JSX.Element => {
@@ -77,6 +81,6 @@ export function StoreViewer(props: {
 export default function JsonViewer(): JSX.Element {
   const root_state = getState();
   return <div class="space-y-2">
-    <StoreViewer node={root_state.node as any} />
+    <StoreViewer node={root_state.node as unknown as AnNode<unknown>} />
   </div>;
 }

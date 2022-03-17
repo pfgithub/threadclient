@@ -1,10 +1,13 @@
-import { createContext, createRenderEffect, createSelector, createSignal, For, Show, Signal, untrack, useContext } from "solid-js";
+import {
+    createContext, createRenderEffect, createSelector, createSignal,
+    For, Show, Signal, untrack, useContext,
+} from "solid-js";
 import { JSX } from "solid-js";
 import { Dynamic, insert } from "solid-js/web";
 import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_data";
 import { Button, Buttons } from "./components";
 import { DragButton, DraggableList } from "./DraggableList";
-import { asObject, asString, isObject } from "./guards";
+import { asObject, isObject } from "./guards";
 import { Include } from "./util";
 import { uuid, UUID } from "./uuid";
 
@@ -98,7 +101,7 @@ export type TextEditorRoot = {
 
 export type TextEditorRootNode = {
     kind: "root",
-    children: {[key: UUID]: TextEditorFlatNode};
+    children: {[key: UUID]: TextEditorFlatNode},
     // ^ right, we didn't want this because we want the manager to be able to handle this
     // I think we can actually use real dom nodes though
     // eg we can have <Leaf> and <EditorSelectable ondelete={}>
@@ -118,7 +121,7 @@ export type TextEditorFlatNode = {
 
 export type TextEditorParagraphNodeParagraph = {
     kind: "paragraph",
-    children: {[key: string]: TextEditorLeafNode};
+    children: {[key: string]: TextEditorLeafNode},
 };
 export type TextEditorParagraphNodeMultilineCodeBlock = {
     kind: "multiline_code_block",
@@ -173,7 +176,7 @@ const nc = {
                 const last = a.pop()! as TextEditorParagraphNode;
                 const idnt = a as TextEditorIndentItem[];
                 return {
-                    indent: Object.fromEntries(idnt.map((v, i) => (["<!>"+i, v]))),
+                    indent: Object.fromEntries(idnt.map((q, i) => (["<!>"+i, q]))),
                     node: last,
                 };
             })),
@@ -242,9 +245,9 @@ const node_renderers: {
             >{(key, dragging) => {
                 // TODO add the indent
                 return <div class="flex flex-row flex-wrap gap-2">
-                    <DragButton class={dragging => "px-2 rounded-md "+(dragging() ? "bg-gray-500" : "")}>≡</DragButton>
+                    <DragButton class={"px-2 rounded-md "+(dragging() ? "bg-gray-500" : "")}>≡</DragButton>
                     <div class="flex-1">
-                        <EditorNode node={props.node.children[key as UUID].node} />
+                        <EditorNode node={props.node.children[key as UUID]!.node} />
                     </div>
                 </div>;
             }}</DraggableList>
@@ -268,7 +271,7 @@ const node_renderers: {
     text(props): JSX.Element {
         return <span class={(() => {
 
-            let styles: string[] = [];
+            const styles: string[] = [];
             const style = props.node.style;
             if(anBool(style.bold) ?? false) styles.push("font-bold");
 
@@ -304,7 +307,7 @@ export function EditorSpan(props: {
     }) => JSX.Element,
     replaceRange: (start: CursorIndex, end: CursorIndex, text: string) => void,
 }): JSX.Element {
-    const ctx = useContext(TEContext)!;
+    const ctx = useContext(te_context)!;
     const [selection, setSelection] = ctx.selection;
 
     const node: HTMLElement = document.createElement("bce:editor-node");
@@ -318,7 +321,7 @@ export function EditorSpan(props: {
             get selection() {
                 console.log("updating selection");
                 if(!ctx.selected(node)) return null;
-                const selxn = selection() as Selection;
+                const selxn = selection();
                 if(selxn == null) return null;
                 return selxn[1];
             },
@@ -333,7 +336,7 @@ export function EditorSpan(props: {
 }
 
 export function TextNode(props: {
-    value: string
+    value: string,
 }): JSX.Element {
     const el = document.createTextNode("");
     createRenderEffect(() => {
@@ -351,8 +354,8 @@ export function Leaf(props: {
     // TODO the returned node will have information in it to allow for handling
     // left arrow, right arrow, select, …
 
-    let text_node_1: Text | null = null;
-    let text_node_2: Text | null = null;
+    let text_node_1!: Text;
+    let text_node_2!: Text;
 
     return <EditorSpan replaceRange={(start, end, text) => {
         // I want to easily be able to do eg:
@@ -372,7 +375,7 @@ export function Leaf(props: {
             if(sel.focusNode === text_node_1) {
                 iprops.onSelect(sel.focusOffset);
             }else if(sel.focusNode === text_node_2){
-                iprops.onSelect(text_node_1!.data.length + sel.focusOffset);
+                iprops.onSelect(text_node_1.data.length + sel.focusOffset);
             }else{
                 iprops.onSelect(null);
             }
@@ -408,21 +411,19 @@ export function EditorChildren(props: {
     node: AnNode<{[key: string]: TextEditorAnyNode}>,
 }): JSX.Element {
     return <For each={anKeys(props.node)}>{key => {
-        return <EditorNode node={props.node[key]} />;
+        return <EditorNode node={props.node[key]!} />;
     }}</For>;
 }
-
-type demo = keyof TextEditorAnyNode;
 
 export function EditorNode(props: {
     node: AnNode<TextEditorAnyNode>,
 }): JSX.Element {
     const nodeKind = () => anString(props.node.kind);
     return <Dynamic component={(node_renderers as {
-        [key: string]: (props: {node: AnNode<TextEditorAnyNode>}) => JSX.Element
-    })[nodeKind() ?? "null"] ?? ((props: {state: AnNode<TextEditorAnyNode>}) => (
+        [key: string]: (props: {node: AnNode<TextEditorAnyNode>}) => JSX.Element,
+    })[nodeKind() ?? "null"]! ?? ((subprops: {state: AnNode<TextEditorAnyNode>}) => (
         <div class="text-red-500">E_NOT_FOUND {"kind:"+nodeKind()}</div>
-    ))} node={props.node} />
+    ))} node={props.node} />;
 }
 
 /*
@@ -433,7 +434,7 @@ REDUCERS:
 
 */
 
-const TEContext = createContext<{
+const te_context = createContext<{
     selected: (key: HTMLElement | null) => boolean,
     selection: Signal<Selection>,
     editor_id: UUID,
@@ -505,13 +506,13 @@ export function RichtextEditor(props: {
                 }));
             }}>click to create</Button></Buttons>
         </div>}>
-            <TEContext.Provider value={{
+            <te_context.Provider value={{
                 selected: selector,
                 selection: [selected, setSelected],
                 editor_id,
             }}>
                 <EditorNode node={props.node.node} />
-            </TEContext.Provider>
+            </te_context.Provider>
         </Show>
     </div>;
 }

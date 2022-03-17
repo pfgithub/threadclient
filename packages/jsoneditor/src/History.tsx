@@ -4,7 +4,7 @@ import { Button, Buttons } from "./components";
 
 export default function History(props: {root: AnRoot}): JSX.Element {
     const undoOrRedo = () => {
-        const {redo} = anUndo(props.root, props.root.undos[props.root.undo_index]);
+        const {redo} = anUndo(props.root, props.root.undos[props.root.undo_index]!);
         props.root.undos[props.root.undo_index] = redo;
     };
     return <div class="space-y-2">

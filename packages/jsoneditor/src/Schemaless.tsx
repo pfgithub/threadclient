@@ -1,18 +1,20 @@
-import { createSelector, createSignal, For, untrack } from "solid-js";
-import { JSX } from "solid-js";
-import { createTypesafeChildren, Show } from "tmeta-util-solid";
-import { anBool, anCommitUndoGroup, anCreateUndoGroup, anKeys, AnNode, anRoot, anSetReconcile, anSetReconcileIncomplete, anString, UndoGroup } from "./app_data";
+import { createSelector, For, JSX, untrack } from "solid-js";
+import { Show } from "tmeta-util-solid";
+import {
+    anBool, anCommitUndoGroup, anCreateUndoGroup, anKeys, AnNode,
+    anRoot, anSetReconcile, anSetReconcileIncomplete, anString,
+    UndoGroup
+} from "./app_data";
 import { Button, Buttons } from "./components";
 import { DragButton, DraggableList } from "./DraggableList";
-import { getState } from "./editor_data";
 import { asObject, unreachable } from "./guards";
 import { Tab, Tabs } from "./Tabs";
 import { Richtext, RichtextEditor } from "./TextEditor";
-import { uuid, UUID } from "./uuid";
+import { uuid } from "./uuid";
 
 export function HeadingValue(props: {
     title: string,
-    children?: JSX.Element,
+    children?: undefined | JSX.Element,
 }): JSX.Element {
     return <div>
         <div>{props.title}</div>
@@ -72,7 +74,7 @@ export function AnFor<T>(props: {
     return <For each={anKeys(props.node)}>{key => <>
         {(() => {
             const root = props.node; // tracks props.node
-            const node = root[key]; // doesn't track anything
+            const node = root[key]!; // doesn't track anything
             return untrack(() => props.children(node, key, root));
         })()}
     </>}</For>;
@@ -99,10 +101,10 @@ function ListEditor<T>(props: {
                 <div class="absolute w-full h-full p-2 -mt-2 -ml-2 box-content bg-gray-900 rounded-md"></div>
             </Show>
             <div class={"flex flex-row flex-wrap gap-2 "+(dragging() ? "relative z-10" : "")}>
-                <DragButton class={dragging => "p-2 rounded-md "+(dragging() ? "bg-gray-500" : "bg-gray-700")}>≡</DragButton>
+                <DragButton class={"p-2 rounded-md "+(dragging() ? "bg-gray-500" : "bg-gray-700")}>≡</DragButton>
                 {(() => {
                     const node = props.node;
-                    return untrack(() => props.children(node[key]));
+                    return untrack(() => props.children(node[key]!));
                 })}
             </div>
         </div>;
@@ -138,7 +140,6 @@ function PersonEditor(props: {node: AnNode<Person>}): JSX.Element {
 }
 
 function Demo1Editor(props: {node: AnNode<Demo1>}): JSX.Element {
-    const cxd = getState();
     return <>
         <div class="space-y-2">
             <HeadingValue title="people">
@@ -152,7 +153,7 @@ function Demo1Editor(props: {node: AnNode<Demo1>}): JSX.Element {
                         const new_id = uuid();
                         anSetReconcile(props.node.people, (v): {[key: string]: Person} => ({
                             ...(v != null && typeof v === "object" ? v : {}),
-                            [new_id]: undefined as any,
+                            [new_id]: undefined as unknown as Person,
                         }));
                         return new_id;
                     }} />
@@ -194,10 +195,6 @@ type Rebind = {
 // function With<T>(props: {value: T, children: (v: T) => JSX.Element})
 // equivalent to <>{() => {const value = …; return untrack(() => )}}
 
-function summarizeButton(node: AnNode<Button>): string {
-    return anString(node.name) || "*Unnamed*";
-}
-
 function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Element {
     return <div class="space-y-2">
         <ListEditor node={props.node}>{node => (
@@ -206,7 +203,7 @@ function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Elem
                 <StringEditor node={node.id} />
             </div>
         )}</ListEditor>
-        <Buttons><Button onClick={() => anSetReconcileIncomplete<Button>(props.node[uuid()], pv => {
+        <Buttons><Button onClick={() => anSetReconcileIncomplete<Button>(props.node[uuid()]!, pv => {
             if(pv != null) unreachable();
             return {};
         })}>+</Button></Buttons>
@@ -214,7 +211,6 @@ function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Elem
 }
 
 function RebindEditor(props: {node: AnNode<Rebind>}): JSX.Element {
-    const cxd = getState();
     return <Tabs>
         <Tab key="-MyOCtdMuvfiPHZ0GCN5" title="buttons" data={props.node.buttons}>{buttons => <>
             {/* TODO HSplit I think */}

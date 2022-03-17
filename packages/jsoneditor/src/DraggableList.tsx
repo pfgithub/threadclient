@@ -1,4 +1,7 @@
-import { Accessor, batch, createContext, createEffect, createMemo, createSignal, For, JSX, onCleanup, Setter, untrack, useContext } from "solid-js";
+import {
+    Accessor, batch, createContext, createEffect, createMemo,
+    createSignal, For, JSX, onCleanup, Setter, untrack, useContext,
+} from "solid-js";
 
 // TODO items:
 // - when you start dragging, we should collapse items into summaries. it is
@@ -28,7 +31,7 @@ type Dragging = null | {
     hovering: number,
     height: number,
 };
-type SelfDragging = null | {x: Number, y: number};
+type SelfDragging = null | {x: number, y: number};
 
 export function DraggableList(props: {
     items: string[],
@@ -45,7 +48,6 @@ export function DraggableList(props: {
     const [flipState, setFlipState] = createSignal(0);
     return <For each={props.items}>{(key, index) => {
         let wrapper_el!: HTMLDivElement;
-        let viewer_el!: HTMLDivElement;
         let cleanFn: (() => void) | undefined;
         const [selfDragging, setSelfDragging] = createSignal<SelfDragging>(null);
         const selfIsDragging = createMemo(() => selfDragging() != null);
@@ -66,14 +68,13 @@ export function DraggableList(props: {
         }}>
             <div
                 ref={el => {
-                    viewer_el = el;
                     createEffect(() => {
                         el.style.pointerEvents = dragging() ? "none" : "";
                     });
                     let stored_rect: DOMRect | null = null;
                     createEffect(() => {
                         const flip_state = flipState();
-                        if(flipState() === 1) {
+                        if(flip_state === 1) {
                             if(el.style.transform !== "") {
                                 stored_rect = el.getBoundingClientRect();
                                 el.style.transition = "";
@@ -83,7 +84,7 @@ export function DraggableList(props: {
                                 el.style.transition = "";
                             }
                             return;
-                        }else if(flipState() === 2) {
+                        }else if(flip_state === 2) {
                             if(stored_rect) {
                                 const current_rect = el.getBoundingClientRect();
                                 const diff_x = stored_rect.x - current_rect.x;
@@ -125,7 +126,7 @@ export function DraggableList(props: {
                 }}
                 class={props.nodeClass(selfIsDragging)}
             >
-                <DragState.Provider value={{
+                <drag_state.Provider value={{
                     selfIsDragging,
                     
                     dragging,
@@ -149,13 +150,13 @@ export function DraggableList(props: {
                     get cleanFn() {return cleanFn},
                 }}>
                     {untrack(() => props.children(key, selfIsDragging))}
-                </DragState.Provider>
+                </drag_state.Provider>
             </div>
         </div>;
     }}</For>;
 }
 
-const DragState = createContext<{
+const drag_state = createContext<{
     selfIsDragging: () => boolean,
 
     dragging: Accessor<Dragging>,
@@ -179,20 +180,20 @@ const DragState = createContext<{
 }>();
 
 export function DragButton(props: {
-    class: (selfIsDragging: () => boolean) => string,
+    class: string,
     children: JSX.Element,
 }) {
-    const state = useContext(DragState);
+    const state = useContext(drag_state);
     if(!state) throw new Error("dragbutton used outside of draggable");
     return <button
-        class={props.class(state.selfIsDragging)}
+        class={props.class}
         style={{
             "touch-action": "none",
         }}
-        onPointerDown={e => {
-            if(!e.isPrimary) return; // ignore
+        onPointerDown={initial_ev => {
+            if(!initial_ev.isPrimary) return; // ignore
             if(state.dragging()) return;
-            e.preventDefault();
+            initial_ev.preventDefault();
 
             const rect = state.wrapper_el.getBoundingClientRect();
 
@@ -206,8 +207,8 @@ export function DragButton(props: {
             state.setSelfDragging({x: 0, y: 0});
             updateDragging(state.index());
             
-            let start_pos_x = e.pageX;
-            let start_pos_y = e.pageY;
+            const start_pos_x = initial_ev.pageX;
+            const start_pos_y = initial_ev.pageY;
 
             const updatePtr = (e: PointerEvent) => {
                 const pos_x = e.pageX - start_pos_x;
