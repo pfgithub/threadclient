@@ -1,13 +1,18 @@
 {
+  "extends": "tsconfig-tmeta",
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "jsx": "preserve",
-    "jsxImportSource": "solid-js",
-    "types": ["vite/client"],
-    "strict": true
-  }
+      "outDir": "./dist",
+      "lib": [
+          "dom",
+          "DOM.Iterable",
+      ],
+      "types": [
+          "vite-plugin-pwa/client",
+          "vite/client"
+      ],
+  },
+  "include": [
+      "src/**/*",
+      "vite.config.ts"
+  ],
 }
