@@ -41,7 +41,7 @@ export default function History(props: {root: AnRoot}): JSX.Element {
                     };
                 })()}
             >
-                {undo}
+                {"History Item"}
             </div>} />
         </div>
     </div>;

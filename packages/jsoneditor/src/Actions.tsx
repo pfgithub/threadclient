@@ -56,7 +56,7 @@ function Act(props: {action: Action}): JSX.Element {
         >
             <span>{props.action.value.kind}</span>
             <span class="flex-1" />
-            <span class="font-mono">{props.action.undo_group}</span>
+            <span class="font-mono">{props.action.parent_updated}</span>
         </div>
         <SwitchKind item={props.action.value} fallback={v => <>
             <pre class="whitespace-pre-wrap"><code>

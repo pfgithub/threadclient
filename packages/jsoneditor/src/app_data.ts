@@ -101,9 +101,15 @@ export function anSetReconcileIncomplete<T>(
 // eg we can get a node signal [...node[symbol_path], {v: "@all"}] and update all of those whenever
 // any node is changed.
 
-export type UndoGroup = string & {__is_undo_group: undefined};
+// ↓ this could just be an object but a class makes it more clear that it's mutable
+export class UndoGroup {
+    action_ids: UUID[];
+    constructor() {
+        this.action_ids = [];
+    }
+}
 export function anCreateUndoGroup(): UndoGroup {
-    return uuid() as string as UndoGroup;
+    return new UndoGroup();
 }
 export function anCommitUndoGroup(root: AnRoot, group: UndoGroup) {
     const new_undos = [...root.undos];
@@ -113,15 +119,18 @@ export function anCommitUndoGroup(root: AnRoot, group: UndoGroup) {
     root.undos_signal[1](undefined);
 }
 export function anUndo(root: AnRoot, group: UndoGroup): {redo: UndoGroup} {
+    const ids = group.action_ids.splice(0);
+    // ^ updates the undo group in case more actions are inserted with it
+
     const redo = anCreateUndoGroup();
     const undo_action: FloatingAction = {
         id: uuid(),
-        undo_group: redo,
         value: {
             kind: "undo",
-            group,
+            ids: ids,
         },
     };
+    redo.action_ids.push(undo_action.id);
 
     modifyActions(root, {insert: [undo_action], remove: []});
 
@@ -171,11 +180,10 @@ export type ActionValue = {
     new_value: JSON,
 } | {
     kind: "undo",
-    group: UndoGroup,
+    ids: UUID[],
 };
 export type FloatingAction = {
     id: UUID,
-    undo_group: UndoGroup,
     value: ActionValue,
 };
 export type InsertedAction = FloatingAction & {
@@ -197,7 +205,7 @@ export type AnRoot = {
     snapshot_updated: number,
     actions_signal: Signal<undefined>,
 
-    undos: UndoGroup[],
+    undos: UndoGroup[], // each undo specifies an array of action ids that need to be undone
     undo_index: number,
     undos_signal: Signal<undefined>,
 };
@@ -227,7 +235,7 @@ export function collapseActions(actions: Action[]): Action[] {
     const set_paths = new Set<string>();
     let never_collapse = 0;
     return [...actions].reverse().filter(action => {
-        const sp = JSON.stringify([action.value.kind, action.undo_group, switchKind(action.value, {
+        const sp = JSON.stringify([action.value.kind, switchKind(action.value, {
             reorder_keys: rk => never_collapse++,
             set_value: sv => sv.path,
             undo: ndo => never_collapse++,
@@ -328,11 +336,11 @@ function readValue(root: AnRoot, path: string[]): unknown {
 // 2: applyActions
 // 3: emitDiffSignals
 
-function findActions(undo_group: UndoGroup, path: string[], pv: JSON, nv: JSON): FloatingAction[] {
+function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     if(pv === nv) return [];
 
     if(!isObject(pv) || !isObject(nv)) {
-        return [{id: uuid(), undo_group, value: {
+        return [{id: uuid(), value: {
             kind: "set_value",
             path: path,
             new_value: nv,
@@ -345,7 +353,7 @@ function findActions(undo_group: UndoGroup, path: string[], pv: JSON, nv: JSON):
     const next_keys = Object.keys(nv);
 
     // change key order & delete old keys
-    if(JSON.stringify(prev_keys) !== JSON.stringify(next_keys)) res_actions.push({id: uuid(), undo_group, value: {
+    if(JSON.stringify(prev_keys) !== JSON.stringify(next_keys)) res_actions.push({id: uuid(), value: {
         kind: "reorder_keys",
         path: path,
         old_keys: prev_keys,
@@ -354,7 +362,7 @@ function findActions(undo_group: UndoGroup, path: string[], pv: JSON, nv: JSON):
 
     // create all new keys
     for(const key of next_keys) {
-        res_actions.push(...findActions(undo_group, [...path, key], pv[key], nv[key]));
+        res_actions.push(...findActions([...path, key], pv[key], nv[key]));
     }
 
     return res_actions;
@@ -371,7 +379,7 @@ function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[]
     root.actions = new_actions.map((action): InsertedAction => {
         // huh this would be nice if the map function had an arg that returned
         // the previous value returned out the map function
-        if(prevact?.parent_updated ?? -2 < ('parent_updated' in action ? action.parent_updated : -1)) {
+        if(prevact?.parent_updated ?? -1 > ('parent_updated' in action ? action.parent_updated : -2)) {
             return {
                 ...action,
                 parent_updated: ++global_parent_updated_index,
@@ -386,38 +394,30 @@ function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[]
     root.actions_signal[1](undefined);
 
     batch(() => {
-        // go forwards and recreate the actions
+        // TODO: make use of the snapshot when we can
+        // - first: find the snapshot to use (else undefined)
+        //   - loop in reverse. find the first action where:
+        //     - id is less than all ignored actions
+        //     - has a snapshot
+        // - now: loop forwards from that index
+        //   - apply actions ignoring all ignored actions
 
-        // const ps = root.snapshot;
-        // let ns = root.snapshot;
-        // for(const action of new_actions) ns = applyActionToSnapshot(action, ns);
-        // root.snapshot = ns;
-        // emitDiffSignals(root, [], ps, ns);
+        // a note: if the server is going to send you an undo action, it will also
+        // send you all the context you need to understand it. it won't send you
+        // an undo action to ids you don't have.
 
-        // ok huh
-        // undo_groups aren't kept in sort order
-        // but action ids are
-        // so rather than undo_groups if we make the undo() include all the
-        // affected action ids then we can easily tell if we're before or after
-        // the undo.
-        //
-        // so basically we keep track of the earliest action we need to go to
-        // so we're not going back further than that / if we have to go back further
-        // the server can know that and fetch those for us before sending us the undo
-        // command.
-
-        const ignored_actions = new Set<UndoGroup>();
+        const ignored_actions = new Set<UUID>();
         for(const action of [...root.actions].reverse()) {
-            if(ignored_actions.has(action.undo_group)) continue;
+            if(ignored_actions.has(action.id)) continue;
             if(action.value.kind === "undo") {
-                ignored_actions.add(action.value.group);
+                for(const id of action.value.ids) ignored_actions.add(id);
             }
         }
 
         const ps = root.snapshot;
         let ns = undefined;
         for(const action of root.actions) {
-            if(ignored_actions.has(action.undo_group)) continue;
+            if(ignored_actions.has(action.id)) continue;
 
             if(action.value.kind === "undo") continue; // handled above
             ns = applyActionToSnapshot(action, ns);
@@ -433,7 +433,8 @@ function setReconcile<T>(root: AnRoot, undo_group: UndoGroup, path: string[], nv
         const pv = readValue(root, path);
         const nv = nvCb(pv);
 
-        const new_actions = findActions(undo_group, path, pv, nv);
+        const new_actions = findActions(path, pv, nv);
+        undo_group.action_ids.push(...new_actions.map(act => act.id));
         modifyActions(root, {insert: new_actions, remove: []});
     });
 }
