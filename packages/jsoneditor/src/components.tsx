@@ -2,7 +2,7 @@ import { For, JSX } from "solid-js";
 import { createTypesafeChildren } from "tmeta-util-solid";
 
 type Button = {
-    onClick?: () => void,
+    onClick?: undefined | (() => void),
     children: JSX.Element,
     active?: undefined | boolean,
     disabled?: undefined | boolean,
@@ -19,7 +19,7 @@ export function Buttons(props: {
             <button
                 class={""
                     + "px-2 first:rounded-l-md last:rounded-r-md mr-1 last:mr-0 "
-                    + (child.active ? "bg-gray-500 " : "bg-gray-700 ")
+                    + (child.active ?? false ? "bg-gray-500 " : "bg-gray-700 ")
                 }
                 onClick={() => {
                     if(!child.onClick) return alert("E_NOT_SET");

@@ -1,4 +1,4 @@
-import { createMemo, JSX } from 'solid-js';
+import { createMemo, JSX } from "solid-js";
 
 export type Include<T, U> = T extends U ? T : never;
 

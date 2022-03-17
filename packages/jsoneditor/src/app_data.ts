@@ -3,7 +3,7 @@
 //     just have one big Set<string path, void signal>
 //     and then one big object that is the actual value
 
-import { batch, createMemo, createSignal, Signal, untrack } from "solid-js";
+import { batch, createSignal, Signal, untrack } from "solid-js";
 import { assertNever, switchKind, UUID } from "tmeta-util";
 import { asObject, isObject, unreachable } from "./guards";
 import { Include } from "./util";
@@ -33,20 +33,20 @@ export type AnNode<T> = AnNodeData<T> & IncludeBackup<(T extends Primitive ? {
 const an_proxy_handler: ProxyHandler<AnNodeData<any>> = {
     get(target, prop, reciever) {
         if(typeof prop !== "string") {
-            return Reflect.get(target, prop, reciever);
+            return Reflect.get(target, prop, reciever) as unknown;
         }
         return anConstructor(anRoot(target), [...target[symbol_path], prop]);
     },
     ownKeys(target) {
         const res = Reflect.ownKeys(target);
-        if(res.find(w => typeof w !== "symbol")) unreachable();
+        if(res.some(w => typeof w !== "symbol")) unreachable();
 
         return [...res, ...anKeys(target)];
     },
 };
 function anConstructor<T>(root: AnRoot, path: string[]): AnNode<T> {
     const data: AnNodeData<T> = {
-        [symbol_value]: undefined as any,
+        [symbol_value]: undefined as unknown as T,
         [symbol_path]: [...path],
         [symbol_root]: root,
     };
@@ -143,26 +143,6 @@ export function anRoot<T>(node: AnNodeData<T>): AnRoot {
     return node[symbol_root];
 }
 
-(() => {
-    type Person = {
-        name: string,
-        tags: {[key: string]: string},
-        options?: undefined | {
-            media?: undefined | boolean,
-        },
-        settings: {
-            media: boolean,
-        },
-    };
-    let example!: AnNode<Person>;
-
-    const name: string = anString(example.name) ?? "*unnamed*";
-    const options = example.options;
-    const media = options.media;
-    const value = anBool(media);
-    const value2 = anBool(example.settings.media);
-});
-
 type Primitive = string | bigint | boolean | null | undefined;
 
 export type JSON = unknown;
@@ -189,7 +169,7 @@ export type FloatingAction = {
 export type InsertedAction = FloatingAction & {
     parent_updated: number, // hash(parent.id, parent.parent_hash) (currently implemented as
     // a random number any time the action needs updating. and this is probably fine.)
-}
+};
 export type Action = InsertedAction;
 
 export type AnRoot = {
@@ -269,7 +249,7 @@ export function applyActionToSnapshot(action: Action, snapshot: JSON): JSON {
             }));
         });
     }else if(av.kind === "undo") {
-        throw new Error("todo implement undo")
+        throw new Error("Internal error; Undos should not be sent to applyAction()");
     }else assertNever(av);
 }
 export function createAppData<T>(): AnNode<T> {
@@ -376,11 +356,11 @@ function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[]
         return 0;
     });
     let prevact: InsertedAction | null = null;
-    root.actions = new_actions.map((action): InsertedAction => {
+    root.actions = new_actions.map((action, i, a): InsertedAction => {
         // huh this would be nice if the map function had an arg that returned
         // the previous value returned out the map function
-        if(prevact?.parent_updated ?? -1 > ('parent_updated' in action ? action.parent_updated : -2)) {
-            return {
+        if((prevact?.parent_updated ?? -1) > ('parent_updated' in action ? action.parent_updated : -2)) {
+            return prevact = {
                 ...action,
                 parent_updated: ++global_parent_updated_index,
             };
@@ -389,7 +369,7 @@ function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[]
             console.log("ENOTINSERTED", prevact?.parent_updated, action);
             unreachable();
         }
-        return action;
+        return prevact = action;
     });
     root.actions_signal[1](undefined);
 
@@ -482,7 +462,7 @@ function emitDiffSignals<T>(root: AnRoot, path: string[], old_value: unknown, ne
         getNodeSignal(root, [...path, {v: "keys"}]).emit();
     }
     // emit signals for removed keys
-    if(true) {
+    if(true as boolean) {
         const pv = asObject(old_value) ?? {};
         const nv = asObject(new_value) ?? {};
         for(const key of deleted_keys) {

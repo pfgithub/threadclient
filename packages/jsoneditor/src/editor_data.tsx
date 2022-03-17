@@ -20,21 +20,21 @@ export type ContextData = {
   node: AnNode<RootState>,
 };
 
-const NodeContext = createContext<ContextData>();
+const node_context = createContext<ContextData>();
 
 export function NodeProvider(props: {
   node: AnNode<RootState>,
   children: JSX.Element,
 }): JSX.Element {
-  return <NodeContext.Provider value={{
+  return <node_context.Provider value={{
     node: props.node,
-  }}>{props.children}</NodeContext.Provider>;
+  }}>{props.children}</node_context.Provider>;
 }
 
 export function getState(): ContextData {
-  return useContext(NodeContext) ?? (() => {
+  return useContext(node_context) ?? (() => {
     throw new Error("nodecontext not available");
-  })()
+  })();
 }
 
 if(import.meta.hot) {

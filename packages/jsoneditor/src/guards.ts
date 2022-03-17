@@ -1,5 +1,3 @@
-import { Include } from "./util";
-
 export function isObject(v: unknown): v is {[key: string]: unknown} {
     return v != null && typeof v === "object";
 }

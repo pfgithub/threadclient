@@ -16,7 +16,7 @@ import { Button, Buttons } from "./components";
 //     at first but then update to the server's date once the insert happens on the server
 
 export default function ServerExample(): JSX.Element {
-    const connection = io("http://localhost:3564/document-example")
+    const connection = io("http://localhost:3564/document-example");
     connection.connect();
     onCleanup(() => {
         connection.disconnect();
@@ -40,7 +40,7 @@ export default function ServerExample(): JSX.Element {
     });
 
     connection.on("data", () => {
-
+        //
     });
 
     connection.io.on("reconnect", () => {

@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, For, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { Action, ActionPath, applyActionToSnapshot, collapseActions, AnRoot, UndoGroup } from "./app_data";
+import { Action, ActionPath, AnRoot, applyActionToSnapshot, collapseActions } from "./app_data";
 import { Button, Buttons } from "./components";
 import History from "./History";
 
@@ -15,7 +15,7 @@ function PathRender(props: {path: ActionPath}): JSX.Element {
         <span class={
             "truncate text-ellipsis overflow-x-scroll break-all text-gray-400"
         } dir="rtl"><span dir="ltr">
-            <For each={props.path.filter((_, i, a) => i !== a.length - 1)}>{ntry => (
+            <For each={props.path.filter((__, i, a) => i !== a.length - 1)}>{ntry => (
                 <>
                     <span class="inline-block overflow-hidden text-gray-500">/</span>
                     <span class="inline-block overflow-hidden">{ntry.substring(0, 1)}</span>

@@ -47,7 +47,7 @@ export function Tabs(props: {
         </div>}</Show>
     </div>;
 }
-let unused_key: number = 0;
+let unused_key = 0;
 export function Tab<T>(props: {
     title: JSX.Element,
     key: string,
