@@ -144,15 +144,17 @@ function Demo1Editor(props: {node: AnNode<Demo1>}): JSX.Element {
             <HeadingValue title="people">
                 <Tabs>
                     <AnFor node={props.node.people}>{(person, key) => <>
-                        <Tab title={anString(person.name) ?? key}>
+                        <Tab key={key} title={anString(person.name) ?? key}>
                             <PersonEditor node={person} />
                         </Tab>
                     </>}</AnFor>
                     <Tab title={"+"} onClick={() => {
+                        const new_id = uuid();
                         anSetReconcile(props.node.people, (v): {[key: string]: Person} => ({
                             ...(v != null && typeof v === "object" ? v : {}),
-                            [uuid()]: undefined as any,
+                            [new_id]: undefined as any,
                         }));
+                        return new_id;
                     }} />
                 </Tabs>
             </HeadingValue>
@@ -214,18 +216,18 @@ function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Elem
 function RebindEditor(props: {node: AnNode<Rebind>}): JSX.Element {
     const cxd = getState();
     return <Tabs>
-        <Tab title="buttons" data={props.node.buttons}>{buttons => <>
+        <Tab key="-MyOCtdMuvfiPHZ0GCN5" title="buttons" data={props.node.buttons}>{buttons => <>
             {/* TODO HSplit I think */}
             <Tabs>
-                <Tab title="input" data={buttons.input}>{input => <>
+                <Tab key="-MyOCyh-4puuqyb8l94D" title="input" data={buttons.input}>{input => <>
                     <ButtonsEditor node={input} />
                 </>}</Tab>
-                <Tab title="output" data={buttons.output}>{output => <>
+                <Tab key="-MyOCzRenRGIaNHeiyOk" title="output" data={buttons.output}>{output => <>
                     <ButtonsEditor node={output} />
                 </>}</Tab>
             </Tabs>
         </>}</Tab>
-        <Tab title="scenes">
+        <Tab key="-MyOCuTiivRBu_dkvEFN" title="scenes">
             pick default scene
         </Tab>
     </Tabs>;
@@ -248,19 +250,19 @@ type Schema = {
 export default function Schemaless(props: {node: AnNode<Schema>}): JSX.Element {
     return <>
         <Tabs>
-            <Tab title="demo1">
+            <Tab key="-MyOD-qlo6NuV_DvBe6p" title="demo1">
                 <Demo1Editor node={props.node.demo1} />
             </Tab>
-            <Tab title="rebind">
+            <Tab key="-MyOD0x2OswdIjxAlZj-" title="rebind">
                 <RebindEditor node={props.node.rebind} />
             </Tab>
-            <Tab title="clicker">
+            <Tab key="-MyOD25ohIuD1cYu9KP7" title="clicker">
                 clicker
             </Tab>
-            <Tab title="text_editor">
+            <Tab key="-MyOD455svt6gn_pnpsn" title="text_editor">
                 <RichtextEditor node={props.node.text_editor} />
             </Tab>
-            <Tab title="schema">
+            <Tab key="-MyOD5Bx2tHatgIAyvV2" title="schema">
                 schema
             </Tab>
         </Tabs>
