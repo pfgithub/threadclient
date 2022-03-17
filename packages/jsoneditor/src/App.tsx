@@ -11,6 +11,7 @@ import PlayingCards from './PlayingCards';
 import Schemaless from './Schemaless';
 import ServerExample from './ServerExample';
 import Settings from './Settings';
+import { createUIState, UIStateSplit } from './ui_state';
 
 type Window = {
   component: () => JSX.Element,
@@ -19,9 +20,10 @@ type Window = {
 function AnyWindow(props: {
   choices: {[key: string]: Window},
   default: string,
+  state_node: AnNode<unknown>,
 }): JSX.Element {
-  const [selection, setSelection] = createSignal(props.default);
-  const [fullPage, setFullPage] = createSignal(false);
+  const [selection, setSelection] = createUIState(props.state_node, "-MyO7IrrnjehmvXYn1an", props.default);
+  const [fullPage, setFullPage] = createUIState(props.state_node, "-MyO7fk-DUc3EvqSUjGf", false);
   const isSelected = createSelector(selection);
   return <div class={"bg-gray-800 " + (fullPage() ? "!m-0 fixed top-0 left-0 w-full h-full" : "")}>
     <div class="bg-black p-4 flex flex-row flex-wrap gap-2">
@@ -102,8 +104,12 @@ export default function App(props: {
     node={props.node}
   >
     <div class="grid gap-20 md:grid-cols-2 max-w-6xl mx-auto h-full">
-      <AnyWindow choices={windows} default={"schemaless"} />
-      <AnyWindow choices={windows} default={"json_viewer"} />
+      <UIStateSplit key={"-MyO8ElMY2c_Ii137kpJ"}>
+        <AnyWindow choices={windows} default={"schemaless"} state_node={props.node as unknown as AnNode<unknown>} />
+      </UIStateSplit>
+      <UIStateSplit key={"-MyO8Flrf5aY4D_xrZX-"}>
+        <AnyWindow choices={windows} default={"json_viewer"} state_node={props.node as unknown as AnNode<unknown>} />
+      </UIStateSplit>
     </div>
   </NodeProvider>;
 };

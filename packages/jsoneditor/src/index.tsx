@@ -1,10 +1,12 @@
-import { createSignal } from 'solid-js';
+import { createEffect, createSignal, onCleanup } from 'solid-js';
 import { ErrorBoundary, render } from 'solid-js/web';
 import { Debugtool, Show } from 'tmeta-util-solid';
 import App from './App';
 import { anBool, createAppData } from './app_data';
+import { Button, Buttons } from './components';
 import { RootState } from './editor_data';
 import './index.css';
+import { uuid } from './uuid';
 
 const root_el = document.getElementById('root') as HTMLElement;
 
@@ -13,6 +15,16 @@ const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
 
 const root = createAppData<RootState>();
 render(() => {
+  const [copied, setCopied] = createSignal(false);
+  createEffect(() => {
+    if(copied()) {
+      const to = setTimeout(() => {
+        setCopied(false);
+      }, 1000);
+      onCleanup(() => clearTimeout(to));
+    }
+  });
+
   return <ErrorBoundary fallback={(err, reset) => {
     console.log("app error", err);
     return <div>
@@ -27,6 +39,16 @@ render(() => {
     <Show when={tab()} fallback={<>
       <div class="mx-auto max-w-2xl bg-gray-800 p-4 h-full space-y-2">
         <button class="bg-gray-700 rounded-md block w-full p-2" onClick={() => setTab("jsoneditor")}>JSON Editor</button>
+        <div class="flex flex-row flex-wrap gap-2">
+          <Buttons>
+            <Button
+              disabled={copied()}
+              onClick={() => navigator.clipboard.writeText(uuid()).then(() => setCopied(true))}
+            >
+              {copied() ? "✓ Copied" : "Copy New UUID"}
+            </Button>
+          </Buttons>
+        </div>
       </div>
     </>}>{tabv => <>
       <App node={root} />
