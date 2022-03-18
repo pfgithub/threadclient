@@ -7,7 +7,10 @@
     "build": "vite build",
     "serve": "vite preview",
     "lint": "eslint src --max-warnings 0 && tsc --noEmit",
-    "test": "tap --node-arg=--require=esbuild-register/register"
+    "test": "tap --node-arg=--require=esbuild-register/register --coverage-report=html --no-browser"
+  },
+  "tap": {
+    "check-coverage": false
   },
   "license": "MIT",
   "devDependencies": {

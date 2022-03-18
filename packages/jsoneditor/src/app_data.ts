@@ -275,7 +275,8 @@ export function createAppData<T>(): AnNode<T> {
     return anConstructor(root, []);
 }
 
-function getNodeSignal(root: AnRoot, path: (string | {v: "keys"})[]): {
+export type SignalPath = (string | {v: "keys"})[];
+function getNodeSignal(root: AnRoot, path: SignalPath): {
     view: () => void,
     emit: () => void,
 } {
@@ -498,7 +499,7 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
 
         times.push(["Update snapshot ("+iter_distance+")", Date.now()]);
 
-        emitDiffSignals(root, [], ps, ns);
+        emitDiffSignals(root, findDiffSignals([], ps, ns));
 
         times.push(["Emit diff signals", Date.now()]);
     });
@@ -523,31 +524,11 @@ function setReconcile<T>(root: AnRoot, undo_group: UndoGroup, path: string[], nv
         addUserActions(root, undo_group, new_actions);
     });
 }
-function emitDiffSignals<T>(root: AnRoot, path: string[], old_value: unknown, new_value: T): void {
+export function findDiffSignals<T>(path: string[], old_value: unknown, new_value: T): SignalPath[] {
     // old and new are identical. don't emit anything.
-    if(old_value === new_value) return;
+    if(old_value === new_value) return [];
 
-    // neither old or new are objects
-    // // (this is not necessary as it is handled below)
-    // if(!isObject2(old_value) && !isObject2(new_value)) {
-    //     getNodeSignal(root, path)[1](undefined);
-    //     return;
-    // }
-
-    // assert there are no cyclical references
-    if(isObject(old_value)) {
-        if(!root.all_contents.delete(old_value)) {
-            console.warn("E_NOT_IN_DB", old_value);
-            // unreachable();
-        }
-    }
-    if(isObject(new_value)) {
-        if(root.all_contents.has(new_value)) {
-            console.warn("E_DOUBLE_INSERT", new_value);
-            // unreachable();
-        }
-        root.all_contents.add(new_value);
-    }
+    const res_signals: SignalPath[] = [];
 
     const old_keys = isObject(old_value) ? Object.keys(old_value) : [];
     const new_keys = isObject(new_value) ? Object.keys(new_value) : [];
@@ -559,23 +540,30 @@ function emitDiffSignals<T>(root: AnRoot, path: string[], old_value: unknown, ne
     if(isObject(new_value)) {
         const pv = asObject(old_value) ?? {};
         for(const key of new_keys) {
-            emitDiffSignals(root, [...path, key], pv[key], new_value[key]);
+            res_signals.push(...findDiffSignals([...path, key], pv[key], new_value[key]));
         }
     }
     // emit keys changed
     if(JSON.stringify(old_keys) !== JSON.stringify(new_keys)) {
-        getNodeSignal(root, [...path, {v: "keys"}]).emit();
+        res_signals.push([...path, {v: "keys"}]);
     }
     // emit signals for removed keys
     if(true as boolean) {
         const pv = asObject(old_value) ?? {};
         const nv = asObject(new_value) ?? {};
         for(const key of deleted_keys) {
-            emitDiffSignals(root, [...path, key], pv[key], nv[key]);
+            res_signals.push(...findDiffSignals([...path, key], pv[key], nv[key]));
         }
     }
     // emit an update signal unless both old and new are objects
     if(!(isObject(old_value) && isObject(new_value))) {
+        res_signals.push(path);
+    }
+
+    return res_signals;
+}
+function emitDiffSignals(root: AnRoot, signals: SignalPath[]): void {
+    for(const path of signals) {
         getNodeSignal(root, path).emit();
     }
 }

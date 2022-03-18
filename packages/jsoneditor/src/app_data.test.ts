@@ -1,5 +1,8 @@
 import tap from "tap";
-import { anCreateUndoGroup, anRoot, anSetReconcile, anSetReconcileIncomplete, anUndo, createAppData } from "./app_data";
+import {
+    anCreateUndoGroup, anRoot, anSetReconcile, anSetReconcileIncomplete,
+    anUndo, createAppData, findDiffSignals, SignalPath,
+} from "./app_data";
 import "./test_setup";
 
 void tap.test("program", async () => {
@@ -72,4 +75,45 @@ void tap.test("deleting objects should delete any changes made", async () => {
     //
     // that's not easy to handle given that right now, arrays and objects are the same
     // thing
+});
+
+void tap.test("findDiffSignals", async () => {
+    function testv(prev: unknown, next: unknown, value: SignalPath[]) {
+        tap.equal(
+            findDiffSignals(["root"], prev, next).map(l => JSON.stringify(l)).join("\n"),
+            value.map(l => JSON.stringify(l)).join("\n"),
+        );
+    }
+    testv(undefined, {}, [
+        ["root"],
+    ]);
+    testv({}, undefined, [
+        ["root"],
+    ]);
+    // updating an object only changes its keys 
+    testv({}, {james: undefined}, [
+        ["root", {v: "keys"}],
+    ]);
+    // keys are emitted after new values are created
+    testv({}, {james: {
+        name: "James",
+        description: "player",
+    }}, [
+        ["root", "james", "name"],
+        ["root", "james", "description"],
+        ["root", "james", {v: "keys"}],
+        ["root", "james"],
+        ["root", {v: "keys"}],
+    ]);
+    // keys are emitted before old values are deleted
+    testv({james: {
+        name: "James",
+        description: "player",
+    }}, {}, [
+        ["root", {v: "keys"}],
+        ["root", "james", {v: "keys"}],
+        ["root", "james", "name"],
+        ["root", "james", "description"],
+        ["root", "james"],
+    ]);
 });
