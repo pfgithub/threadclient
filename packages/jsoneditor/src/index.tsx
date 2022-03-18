@@ -4,7 +4,7 @@ import { Debugtool, Show } from "tmeta-util-solid";
 import App from "./App";
 import { anBool, createAppData } from "./app_data";
 import { Button, Buttons } from "./components";
-import { RootState } from "./editor_data";
+import { RootState, Settings } from "./editor_data";
 import "./index.css";
 import { uuid } from "./uuid";
 
@@ -14,6 +14,7 @@ const root_el = document.getElementById("root") as HTMLElement;
 const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
 
 const root = createAppData<RootState>();
+// const settings = createAppData<Settings>();
 render(() => {
   const [copied, setCopied] = createSignal(false);
   createEffect(() => {
