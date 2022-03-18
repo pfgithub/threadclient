@@ -10,6 +10,7 @@ import { DragButton, DraggableList } from "./DraggableList";
 import { asObject, unreachable } from "./guards";
 import { Tab, Tabs } from "./Tabs";
 import { Richtext, RichtextEditor } from "./TextEditor";
+import { getUIState } from "./ui_state";
 import { uuid } from "./uuid";
 
 export function HeadingValue(props: {
@@ -143,7 +144,7 @@ function Demo1Editor(props: {node: AnNode<Demo1>}): JSX.Element {
     return <>
         <div class="space-y-2">
             <HeadingValue title="people">
-                <Tabs>
+                <Tabs selection={getUIState(props.node, "-MyT2dMV6gueGDtP8Pjk", () => null)}>
                     <AnFor node={props.node.people}>{(person, key) => <>
                         <Tab key={key} title={anString(person.name) ?? key}>
                             <PersonEditor node={person} />
@@ -212,10 +213,10 @@ function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Elem
 }
 
 function RebindEditor(props: {node: AnNode<Rebind>}): JSX.Element {
-    return <Tabs>
+    return <Tabs selection={getUIState(props.node, "-MyT2Tal3z7dM8rw3WCb", () => null)}>
         <Tab key="-MyOCtdMuvfiPHZ0GCN5" title="buttons" data={props.node.buttons}>{buttons => <>
             {/* TODO HSplit I think */}
-            <Tabs>
+            <Tabs selection={getUIState(buttons, "-MyT2W5uqBcPDOOicF6m", () => null)}>
                 <Tab key="-MyOCyh-4puuqyb8l94D" title="input" data={buttons.input}>{input => <>
                     <ButtonsEditor node={input} />
                 </>}</Tab>
@@ -246,7 +247,7 @@ type Schema = {
 
 export default function Schemaless(props: {node: AnNode<Schema>}): JSX.Element {
     return <>
-        <Tabs>
+        <Tabs selection={getUIState(props.node, "-MyT2DloSFkzpMNrgAWd", () => null)}>
             <Tab key="-MyOD-qlo6NuV_DvBe6p" title="demo1">
                 <Demo1Editor node={props.node.demo1} />
             </Tab>

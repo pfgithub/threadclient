@@ -1,4 +1,4 @@
-import { createSelector, createSignal, For, JSX, untrack } from "solid-js";
+import { createSelector, For, JSX, Signal, untrack } from "solid-js";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { Button, Buttons } from "./components";
 
@@ -14,8 +14,9 @@ type Tab = {
 const TabRaw = createTypesafeChildren<Tab>();
 export function Tabs(props: {
     children: JSX.Element,
+    selection: Signal<string | null>, // [!] not reactive
 }): JSX.Element {
-    const [selection, setSelection] = createSignal<string | null>(null);
+    const [selection, setSelection] = props.selection;
     const isSelected = createSelector(selection);
 
     const tabs = TabRaw.useChildren(() => props.children);

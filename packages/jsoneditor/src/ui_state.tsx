@@ -3,7 +3,7 @@
 // createUIState<Type>(node, initial)
 
 import { createContext, createSignal, JSX, Signal, useContext } from "solid-js";
-import { AnNode, anPath } from "./app_data";
+import { AnNodeData, anPath } from "./app_data";
 
 // ok here's a question
 // when I undo, should I undo the ui state too? so that you can see what's being undone
@@ -23,7 +23,7 @@ function getOrSet<A, B>(map: Map<A, B>, key: A, value: () => B): B {
     return val;
 }
 
-export function createUIState<T>(node: AnNode<unknown>, id: ComptimeKey, defaultValue: () => T): Signal<T> {
+export function getUIState<T>(node: AnNodeData<unknown>, id: ComptimeKey, defaultValue: () => T): Signal<T> {
     const splits = useContext(split_provider);
     const path = [...anPath(node), "@", splits?.splits ?? [], id];
     const pathstr = JSON.stringify(path);
