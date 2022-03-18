@@ -43,7 +43,7 @@ export default function ServerExample(props: {root: AnRoot}): JSX.Element {
         }
         // ↑ socket.io will resend emits automatically until success; no need to
         //   resend ourselves
-    }, 1000);
+    }, 200);
     onCleanup(() => clearInterval(intv));
 
     connection.on("connect", () => {
