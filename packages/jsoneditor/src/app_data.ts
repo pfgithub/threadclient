@@ -220,7 +220,7 @@ function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JS
     return res_root.parent[res_root.key];
 }
 // ok this is actually kind of complicated
-export function collapseActions(actions: Action[]): Action[] {
+export function collapseActions<T extends FloatingAction>(actions: T[]): T[] {
     const set_paths = new Set<string>();
     let never_collapse = 0;
     return [...actions].reverse().filter(action => {
