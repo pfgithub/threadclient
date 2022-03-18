@@ -189,6 +189,11 @@ export type AnRoot = {
     undos: UndoGroup[], // each undo specifies an array of action ids that need to be undone
     undo_index: number,
     undos_signal: Signal<undefined>,
+
+    performance: Signal<{
+        time: number,
+        applied_count: number,
+    } | null>,
 };
 function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JSON): JSON {
     console.log("setting node at path", path);
@@ -266,6 +271,8 @@ export function createAppData<T>(): AnNode<T> {
         undos: [],
         undo_index: 0,
         undos_signal: createSignal(undefined, {equals: () => false}),
+
+        performance: createSignal(null),
     };
     return anConstructor(root, []);
 }
@@ -357,6 +364,9 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
 let global_parent_updated_index = 0;
 export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[], remove: UUID[]}): void {
     if(insert.length === 0 && remove.length === 0) return;
+
+    const start_time = Date.now();
+
     const new_action_ids = new Map<UUID, "client" | "server">(insert.map(action => [
         action.id,
         action.from,
@@ -431,6 +441,12 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
         root.snapshot = ns;
         root.snapshot_updated = root.actions[root.actions.length - 1]?.parent_updated ?? -3;
         emitDiffSignals(root, [], ps, ns);
+    });
+
+    const end_time = Date.now();
+    root.performance[1]({
+        time: end_time - start_time,
+        applied_count: root.actions.length,
     });
 }
 

@@ -92,6 +92,11 @@ export default function Actions(props: {
             <History root={props.root} />
         </div>
         <div>
+            <Show when={props.root.performance[0]()}>{perf => <>
+                Applied {perf.applied_count} actions in {perf.time}ms.
+            </>}</Show>
+        </div>
+        <div>
             {actions().length.toLocaleString()} actions
             <Buttons>
                 <Button onClick={() => {
