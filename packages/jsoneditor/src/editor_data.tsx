@@ -9,7 +9,6 @@ export type RootState = {
     root: unknown,
     [key: string]: unknown,
   },
-  settings: Settings,
   playingcards?: undefined | unknown,
 };
 export type Settings = {

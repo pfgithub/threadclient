@@ -3,7 +3,7 @@ import Actions from "./Actions";
 import { AnNode, anRoot } from "./app_data";
 import { Button, Buttons } from "./components";
 import Design from "./design";
-import { NodeProvider, RootState } from "./editor_data";
+import { NodeProvider, RootState, Settings as SettingsTy } from "./editor_data";
 import JsonViewer from "./JsonViewer";
 import PlayingCards from "./PlayingCards";
 import Schemaless from "./Schemaless";
@@ -65,6 +65,7 @@ function AnyWindow(props: {
 
 export default function App(props: {
   node: AnNode<RootState>,
+  settings: AnNode<SettingsTy>,
 }): JSX.Element {
   const windows: {[key: string]: Window} = {
     schemaless: {
@@ -84,7 +85,7 @@ export default function App(props: {
     },
     settings: {
       title: "Settings",
-      component: () => <Settings node={props.node.settings} />,
+      component: () => <Settings node={props.settings} />,
     },
     cards: {
       title: "Cards",

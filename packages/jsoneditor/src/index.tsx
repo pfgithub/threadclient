@@ -14,7 +14,7 @@ const root_el = document.getElementById("root") as HTMLElement;
 const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
 
 const root = createAppData<RootState>();
-// const settings = createAppData<Settings>();
+const settings = createAppData<Settings>();
 render(() => {
   const [copied, setCopied] = createSignal(false);
   createEffect(() => {
@@ -56,7 +56,7 @@ render(() => {
         </div>
       </div>
     </>}>{tabv => <>
-      <App node={root} />
+      <App node={root} settings={settings} />
     </>}</Show>
   </ErrorBoundary>;
 }, root_el);
@@ -64,6 +64,6 @@ render(() => {
 const belowbody = document.createElement("div");
 document.body.appendChild(belowbody);
 
-render(() => <Show if={anBool(root.settings.highlight_updates) ?? true}>
+render(() => <Show if={anBool(settings.highlight_updates) ?? true}>
   <Debugtool observe_root={root_el} />
 </Show>, belowbody);
