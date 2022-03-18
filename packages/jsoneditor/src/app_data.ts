@@ -142,6 +142,9 @@ type SetReconcileOpts = {undo_group: UndoGroup};
 export function anRoot<T>(node: AnNodeData<T>): AnRoot {
     return node[symbol_root];
 }
+export function anPath<T>(node: AnNodeData<T>): string[] {
+    return node[symbol_path];
+}
 
 type Primitive = string | bigint | boolean | null | undefined;
 
@@ -519,4 +522,10 @@ function emitDiffSignals<T>(root: AnRoot, path: string[], old_value: unknown, ne
     if(!(isObject(old_value) && isObject(new_value))) {
         getNodeSignal(root, path).emit();
     }
+}
+
+if(import.meta.hot) {
+    import.meta.hot.accept((new_module) => {
+        alert("cannot reload editor_data.tsx, please refresh page.");
+    });
 }

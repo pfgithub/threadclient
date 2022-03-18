@@ -20,8 +20,8 @@ function AnyWindow(props: {
   default: string,
   state_node: AnNode<unknown>,
 }): JSX.Element {
-  const [selection, setSelection] = createUIState(props.state_node, "-MyO7IrrnjehmvXYn1an", props.default);
-  const [fullPage, setFullPage] = createUIState(props.state_node, "-MyO7fk-DUc3EvqSUjGf", false);
+  const [selection, setSelection] = createUIState(props.state_node, "-MyO7IrrnjehmvXYn1an", () => props.default);
+  const [fullPage, setFullPage] = createUIState(props.state_node, "-MyO7fk-DUc3EvqSUjGf", () => false);
   const isSelected = createSelector(selection);
   return <div class={"bg-gray-800 " + (fullPage() ? "!m-0 fixed top-0 left-0 w-full h-full" : "")}>
     <div class="bg-black p-4 flex flex-row flex-wrap gap-2">
