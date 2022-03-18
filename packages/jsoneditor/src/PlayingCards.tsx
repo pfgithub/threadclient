@@ -56,8 +56,9 @@ function Token(props: {token: AnNode<Token>, width: number, container: HTMLEleme
             'z-index': toZIndex(anNumber(props.token.upd) ?? 0),
             'transition': [
                 "0.1s transform",
-                ...(draggingCleanupFn() ? "0.1s top, 0.1s left" : []),
-            ].join(","),
+                ...(draggingCleanupFn() ? [] : ["0.1s top, 0.1s left"]),
+
+            ].join(", "),
             'width': "10%",
         }}
         onPointerDown={initial_ev => {
