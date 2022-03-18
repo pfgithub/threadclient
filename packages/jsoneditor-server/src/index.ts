@@ -117,6 +117,7 @@ function isObject(v: unknown): v is {[key: string]: unknown} {
     };
     r.table("actions").changes(opts as ChangesOptions).run(conn, (e1: Error | undefined, cursor) => {
         if(e1) return console.error(e1);
+        const unsent: unknown[] = [];
         cursor.each((e2: Error | undefined, item: {new_val: {
             version: undefined | "2",
             id: string,
@@ -125,7 +126,7 @@ function isObject(v: unknown): v is {[key: string]: unknown} {
             if(e2) return console.error(e2);
             console.log("got item", item);
             if(!('new_val' in item)) return;
-            const new_actions: unknown[] = [{
+            const new_action: unknown = {
                 id: item.new_val.id,
                 from: "server",
                 value: item.new_val.version === undefined ? (
@@ -133,10 +134,15 @@ function isObject(v: unknown): v is {[key: string]: unknown} {
                 ) : (
                     JSON.parse(item.new_val.value) as unknown
                 ),
-            }];
-            all_actions.push(...new_actions);
-            document_listeners.forEach(doc => doc(new_actions));
+            };
+            unsent.push(new_action);
+            all_actions.push(new_action);
         });
+        setInterval(() => {
+            if(unsent.length === 0) return;
+            const to_send = unsent.splice(0);
+            document_listeners.forEach(doc => doc(to_send));
+        }, 20);
     });
 
     // [!] don't listen until db is ready
