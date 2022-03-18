@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-import { createSignal, JSX, onCleanup } from "solid-js";
+import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { AnRoot, collapseActions, FloatingAction, modifyActions } from "./app_data";
 import { Button, Buttons } from "./components";
@@ -18,7 +18,29 @@ import { Button, Buttons } from "./components";
 
 const act_sent = Symbol("act_sent");
 
+const [serverConnections, setServerConnections] = createSignal(new Set<AnRoot>());
 export default function ServerExample(props: {root: AnRoot}): JSX.Element {
+    let owns = false;
+    return createMemo((): JSX.Element => {
+        if(!owns) {
+            const cnxns = serverConnections();
+            if(cnxns.has(props.root)) return <div>
+                Cannot manage the same root twice. Close the other server connection first.
+            </div>;
+        }
+        owns = true;
+        setServerConnections(v => new Set(v).add(props.root));
+        onCleanup(() => {
+            setServerConnections(v => {
+                const res = new Set(v);
+                res.delete(props.root);
+                return res;
+            });
+        });
+        return <ServerMain root={props.root} />;
+    });
+}
+function ServerMain(props: {root: AnRoot}): JSX.Element {
     const connection = io("http://localhost:3564/document-example");
     connection.connect();
     onCleanup(() => {

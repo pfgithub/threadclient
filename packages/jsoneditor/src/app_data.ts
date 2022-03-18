@@ -368,6 +368,10 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
             const in_ids = new_action_ids.get(action.id);
             if(in_ids) {
                 if(in_ids === "client") throw new Error("double insert of action");
+                if(action.from === "server") {
+                    // TODO: no need to overwrite any duplicate server actions
+                    // we recieve
+                }
                 return false; // this action will be overwritten
             }
             return true;
