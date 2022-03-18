@@ -54,7 +54,7 @@ function Act(props: {action: Action}): JSX.Element {
         <div
             class="flex flex-wrap bg-black rounded-md -m-2 mb-0 p-2 text-xs"
         >
-            <span>{props.action.value.kind}</span>
+            <span>{props.action.value.kind} · {props.action.from}</span>
             <span class="flex-1" />
             <span class="font-mono">{props.action.parent_updated}</span>
         </div>

@@ -1,6 +1,7 @@
-import { createSignal, JSX, onCleanup } from "solid-js";
 import { io } from "socket.io-client";
+import { createSignal, JSX, onCleanup } from "solid-js";
 import { Show } from "tmeta-util-solid";
+import { AnRoot, collapseActions, FloatingAction, modifyActions } from "./app_data";
 import { Button, Buttons } from "./components";
 
 // [!] batch actions by ~200ms before submitting to the server
@@ -15,7 +16,9 @@ import { Button, Buttons } from "./components";
 //   - eg like `{@operation: "date-now"}` and it will insert using the client's date
 //     at first but then update to the server's date once the insert happens on the server
 
-export default function ServerExample(): JSX.Element {
+const act_sent = Symbol("act_sent");
+
+export default function ServerExample(props: {root: AnRoot}): JSX.Element {
     const connection = io("http://localhost:3564/document-example");
     connection.connect();
     onCleanup(() => {
@@ -26,9 +29,26 @@ export default function ServerExample(): JSX.Element {
     const [error, setError] = createSignal<null | Error>(null);
     const [reconnectState, setReconnectState] = createSignal(0);
 
+    const intv = setInterval(() => {
+        const client_actions = props.root.actions.filter(act => (
+            act.from === "client" && !(act_sent in act)
+        ));
+        const collapsed = collapseActions(client_actions);
+        for(const action of collapsed) {
+            Object.defineProperty(action, act_sent, {});
+        }
+        modifyActions(props.root, {insert: collapsed, remove: client_actions.map(a => a.id)});
+        if(client_actions.length > 0) {
+            connection.emit("create actions", collapsed);
+        }
+        // ↑ socket.io will resend emits automatically until success; no need to
+        //   resend ourselves
+    }, 1000);
+    onCleanup(() => clearInterval(intv));
+
     connection.on("connect", () => {
         setConnected(true);
-        console.log("socket connected", connection);
+        console.log("socket connected");
     });
     connection.on("connect_error", e => {
         // console.log(e);
@@ -36,11 +56,12 @@ export default function ServerExample(): JSX.Element {
     });
     connection.on("disconnect", () => {
         setConnected(false);
-        console.log("socket disconnected", connection);
+        console.log("socket disconnected");
     });
 
-    connection.on("data", () => {
-        //
+    connection.on("create actions", (d: FloatingAction[]) => {
+        console.log("got data", d);
+        modifyActions(props.root, {insert: d, remove: []});
     });
 
     connection.io.on("reconnect", () => {

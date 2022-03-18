@@ -125,14 +125,14 @@ export function anUndo(root: AnRoot, group: UndoGroup): {redo: UndoGroup} {
     const redo = anCreateUndoGroup();
     const undo_action: FloatingAction = {
         id: uuid(),
+        from: "client",
         value: {
             kind: "undo",
             ids: ids,
         },
     };
-    redo.action_ids.push(undo_action.id);
 
-    modifyActions(root, {insert: [undo_action], remove: []});
+    addUserActions(root, redo, [undo_action]);
 
     return {redo};
 }
@@ -164,6 +164,7 @@ export type ActionValue = {
 };
 export type FloatingAction = {
     id: UUID,
+    from: "client" | "server",
     value: ActionValue,
 };
 export type InsertedAction = FloatingAction & {
@@ -320,7 +321,7 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     if(pv === nv) return [];
 
     if(!isObject(pv) || !isObject(nv)) {
-        return [{id: uuid(), value: {
+        return [{id: uuid(), from: "client", value: {
             kind: "set_value",
             path: path,
             new_value: nv,
@@ -333,7 +334,7 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     const next_keys = Object.keys(nv);
 
     // change key order & delete old keys
-    if(JSON.stringify(prev_keys) !== JSON.stringify(next_keys)) res_actions.push({id: uuid(), value: {
+    if(JSON.stringify(prev_keys) !== JSON.stringify(next_keys)) res_actions.push({id: uuid(), from: "client", value: {
         kind: "reorder_keys",
         path: path,
         old_keys: prev_keys,
@@ -349,8 +350,24 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
 }
 
 let global_parent_updated_index = 0;
-function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[], remove: UUID[]}): void {
-    const new_actions: (FloatingAction | InsertedAction)[] = [...root.actions, ...insert].sort((a, b) => {
+export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[], remove: UUID[]}): void {
+    if(insert.length === 0 && remove.length === 0) return;
+    const new_action_ids = new Map<UUID, "client" | "server">(insert.map(action => [
+        action.id,
+        action.from,
+    ]));
+    const delete_action_ids = new Set<UUID>(remove);
+    const new_actions: (FloatingAction | InsertedAction)[] = [
+        ...root.actions.filter(action => {
+            if(delete_action_ids.has(action.id)) return false; // action to be deleted
+            const in_ids = new_action_ids.get(action.id);
+            if(in_ids) {
+                if(in_ids === "client") throw new Error("double insert of action");
+                return false; // this action will be overwritten
+            }
+            return true;
+        })
+    , ...insert].sort((a, b) => {
         if(a.id < b.id) return -1;
         if(a.id > b.id) return 1;
         return 0;
@@ -408,14 +425,18 @@ function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[]
     });
 }
 
+function addUserActions(root: AnRoot, undo_group: UndoGroup, new_actions: FloatingAction[]): void {
+    undo_group.action_ids.push(...new_actions.map(act => act.id));
+    modifyActions(root, {insert: new_actions, remove: []});
+}
+
 function setReconcile<T>(root: AnRoot, undo_group: UndoGroup, path: string[], nvCb: (pv: unknown) => T): void {
     untrack(() => {
         const pv = readValue(root, path);
         const nv = nvCb(pv);
 
         const new_actions = findActions(path, pv, nv);
-        undo_group.action_ids.push(...new_actions.map(act => act.id));
-        modifyActions(root, {insert: new_actions, remove: []});
+        addUserActions(root, undo_group, new_actions);
     });
 }
 function emitDiffSignals<T>(root: AnRoot, path: string[], old_value: unknown, new_value: T): void {

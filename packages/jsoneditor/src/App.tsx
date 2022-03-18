@@ -93,7 +93,7 @@ export default function App(props: {
     },
     server: {
       title: "Server",
-      component: () => <ServerExample />,
+      component: () => <ServerExample root={anRoot(props.node)} />,
     },
     actions: {
       title: "Actions",
