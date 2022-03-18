@@ -1,11 +1,12 @@
 import { createEffect, createSignal, onCleanup } from "solid-js";
-import { ErrorBoundary, render } from "solid-js/web";
+import { ErrorBoundary, Portal, render } from "solid-js/web";
 import { Debugtool, Show } from "tmeta-util-solid";
 import App from "./App";
-import { anBool, createAppData } from "./app_data";
+import { anBool, anRoot, createAppData } from "./app_data";
 import { Button, Buttons } from "./components";
 import { RootState, Settings } from "./editor_data";
 import "./index.css";
+import ServerExample from "./ServerExample";
 import { uuid } from "./uuid";
 
 const root_el = document.getElementById("root") as HTMLElement;
@@ -17,6 +18,7 @@ const root = createAppData<RootState>();
 const settings = createAppData<Settings>();
 render(() => {
   const [copied, setCopied] = createSignal(false);
+  const [serverActive, setServerActive] = createSignal(false);
   createEffect(() => {
     if(copied()) {
       const to = setTimeout(() => {
@@ -54,10 +56,24 @@ render(() => {
             </Button>
           </Buttons>
         </div>
+        <div>
+          <Buttons>
+            <Button active={serverActive()} onClick={() => setServerActive(v => !v)}>
+              Server
+            </Button>
+          </Buttons>
+        </div>
       </div>
     </>}>{tabv => <>
       <App node={root} settings={settings} />
     </>}</Show>
+    <Show if={serverActive()}>
+      <Portal>
+        <div class="fixed top-0 left-0">
+          <ServerExample root={anRoot(root)} />
+        </div>
+      </Portal>
+    </Show>
   </ErrorBoundary>;
 }, root_el);
 
