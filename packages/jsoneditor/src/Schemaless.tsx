@@ -204,6 +204,7 @@ function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Elem
             </div>
         )}</ListEditor>
         <Buttons><Button onClick={() => anSetReconcileIncomplete<Button>(props.node[uuid()]!, pv => {
+            console.log("onclick", props.node, pv);
             if(pv != null) unreachable();
             return {};
         })}>+</Button></Buttons>

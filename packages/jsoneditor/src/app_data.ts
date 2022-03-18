@@ -337,7 +337,9 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     const next_keys = Object.keys(nv);
 
     // change key order & delete old keys
-    if(JSON.stringify(prev_keys) !== JSON.stringify(next_keys)) res_actions.push({id: uuid(), from: "client", value: {
+    if(
+        JSON.stringify(prev_keys) !== JSON.stringify(next_keys) || !isObject(pv)
+    ) res_actions.push({id: uuid(), from: "client", value: {
         kind: "reorder_keys",
         path: path,
         old_keys: prev_keys,
