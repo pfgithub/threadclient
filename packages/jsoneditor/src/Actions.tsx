@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, JSX } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Index, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { Action, ActionPath, AnRoot, applyActionToSnapshot, collapseActions } from "./app_data";
 import { Button, Buttons } from "./components";
@@ -93,7 +93,17 @@ export default function Actions(props: {
         </div>
         <div>
             <Show when={props.root.performance[0]()}>{perf => <>
-                Applied {perf.applied_count} actions in {perf.time}ms.
+                <ul>
+                    <Index each={perf.times}>{(time, index) => <>
+                        <li>{(
+                            time()[1] - (perf.times[index - 1]?.[1] ?? time()[1])
+                        ).toLocaleString()}ms - {time()[0]}</li>
+                    </>}</Index>
+                </ul>
+                <div>Total time: {(() => {
+                    const a = (perf.times[perf.times.length - 1]?.[1] ?? 0) - (perf.times[0]?.[1] ?? 0);
+                    return a.toLocaleString();
+                })()}ms</div>
             </>}</Show>
         </div>
         <div>

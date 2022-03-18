@@ -194,8 +194,7 @@ export type AnRoot = {
     undos_signal: Signal<undefined>,
 
     performance: Signal<{
-        time: number,
-        applied_count: number,
+        times: [string, number][],
     } | null>,
 };
 function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JSON): JSON {
@@ -368,7 +367,9 @@ let global_parent_updated_index = 0;
 export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[], remove: UUID[]}): void {
     if(insert.length === 0 && remove.length === 0) return;
 
-    const start_time = Date.now();
+    const times: [string, number][] = [
+        ["start", Date.now()],
+    ];
 
     const new_action_ids = new Map<UUID, "client" | "server">(insert.map(action => [
         action.id,
@@ -394,6 +395,9 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
         if(a.id > b.id) return 1;
         return 0;
     });
+
+    times.push(["append and sort actions ("+new_actions.length+")", Date.now()]);
+
     let prevact: InsertedAction | null = null;
     root.actions = new_actions.map((action, i, a): InsertedAction => {
         // huh this would be nice if the map function had an arg that returned
@@ -410,7 +414,11 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
         }
         return prevact = action;
     });
+
+    times.push(["Update parent_inserted ("+new_actions.length+")", Date.now()]);
+
     root.actions_signal[1](undefined);
+    times.push(["Update Actions DOM", Date.now()]);
 
     batch(() => {
         // TODO: make use of the snapshot when we can
@@ -443,13 +451,17 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
         }
         root.snapshot = ns;
         root.snapshot_updated = root.actions[root.actions.length - 1]?.parent_updated ?? -3;
-        emitDiffSignals(root, [], ps, ns);
-    });
 
-    const end_time = Date.now();
+        times.push(["Update snapshot ("+root.actions.length+")", Date.now()]);
+
+        emitDiffSignals(root, [], ps, ns);
+
+        times.push(["Emit diff signals", Date.now()]);
+    });
+    times.push(["Update DOM", Date.now()]);
+
     root.performance[1]({
-        time: end_time - start_time,
-        applied_count: root.actions.length,
+        times,
     });
 }
 
