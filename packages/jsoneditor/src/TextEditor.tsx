@@ -11,95 +11,59 @@ import { asObject, isObject } from "./guards";
 import { Include } from "./util";
 import { uuid, UUID } from "./uuid";
 
-// [!]NOTES
-// we're going to do binary-search based text leaf measurement
-// so::
-// - for pressing the up arrow, do that
-// but we can also:
-// - rather than using browser selection, we can use pointer events manually
-//   ourselves for selecting text
-// - that'll be way nicer than trying to hack around the text selection api I think
-// so basically:
-// - make a range over the text node
-// - measure
+// ok just going to write some stuff
+// - cursor movement is pretty easy. you ask the leaf and it tells you and you loop
+//   until you get where you need to go
+// - we do have that issue where there are two identical positions a cursor can be in
+//   but in different leaves. not sure how to handle this yet. ignoring it for now.
 //
-// oh and once we're doing that, we can also do that for showing the cursor
-// that may be more difficult though
+// text insertion:
+// - what I want to do is:
+//   - split the node at the current position
+//   - insert a new node containing the text
+//   - recursively mergeNodes until everything is good
+//   - emit all those updates at once to prevent excessive dom rerenders
+//
+// ranges are the same. we won't have a difference between "insert one" and "replace range"
+// - to replace range, you:
+//   - split at start and end points
+//   - remove all nodes between these points
+//   - insert a new node
+//   - recursively merge
+//
+// there are some oddities there with how that works in a node heigherarchy. it should
+// basically be the same though, we're deleting just child nodes and then eventually whole
+// parent nodes
+//
+// ok the question is how do you implement this
+// - leaves can't do it, they don't know who their parents are. a leaf can tell you
+//   how to split itself though.
+// - is there some way we can start at the top and have the nodes that have children
+//   handle their children?
+// - like EditorChildren would handle this and Root would handle this
+//
+// we emit a replacerange:
+// - go up from the start and end nodes to find the children holders
+// - ask the children holders to perform the replace range
+//
+// ok if we're going to have children holders we can also do some stuff like giving
+// cursor positions a path rather than holding a sketchy HTMLElement
 
-// okay so
-// ::
-// we get to pick how the ui works
-// basically there is a choice
-// - flat paragraphs
-// or
-// - higherarchical paragraphs
-//
-// flat paragraphs make for better ui and are easier to work with in code
-// higherarchical paragraphs are what is currently programmed
-//
-// flat would basically mean a paragraph has an array of things before it
-// like "blockquote" then "list item" then "blockquote" before the actual content
-//
-// flat paragraphs make room for adding a table paragraph
-//
-// flat paragraphs make room for very high quality ui for like inserting paragraphs
-// and changing paragraphs and all that stuff
-//
-//
-//
-// we currently have higherarchical
-//
-// I guess the question is how to implement tables in flat
-//
-// or if maybe we can treat flat as hierarchical
-//
-// ok well let's try see if we can
-// basically that would mean Root contains like the fancy editor thing and most paragraph
-// nodes except for a few rare ones that end up inside containers or something
-
-// here's something interesting
-//
-//   > paragraph one
-//   >
-//   > |paragraph two
-//
-// pressing left should move your cursor here
-//
-//   > paragraph one
-//   > |
-//   > paragraph two
-//
-// but delete should make this:
-//
-// pressing left should move your cursor here
-
-//   > paragraph one
-//   
-//   |paragraph two
-//
-// I guess we will have to be able to know what the
-// selection is going to be used for. the indent nodes
-// should only work that way under some conditions.
-//
-// alternatively, we can use the enter key for that
-
-// https://brooknovak.wordpress.com/2013/06/11/find-the-character-position-using-javascript-fast-big-pages-all-browsers-no-preprocessing/
-// that's outdated so it doesn't know you can measure ranges now
-//
-// but basically we'll want to search the text node by measuring ranges and stuff
-//
-// this is really annoying because the browser already knows all this information
-// (it's possible it has forgotten it if it just renders to a canvas and then
-//  discards that info)
-
-const editor_node_data = Symbol("editor_node_data");
-type EditorNodeData = {
+const editor_leaf_node_data = Symbol("editor_leaf_node_data");
+const editor_list_node_data = Symbol("editor_list_node_data");
+type EditorLeafNodeData = {
     moveCursor: (position: number, stop: number) => number | {dir: "prev" | "next", stop: number},
 };
-type EditorNode = HTMLElement & {
-    [editor_node_data]: EditorNodeData,
+type EditorListNodeData = {
+    _?: undefined,
 };
-export type Selection = {editor_node: EditorNode, index: CursorIndex} | null;
+type EditorLeafNode = HTMLElement & {
+    [editor_leaf_node_data]: EditorLeafNodeData,
+};
+type EditorListNode = HTMLElement & {
+    [editor_list_node_data]: EditorListNodeData,
+};
+export type Selection = {editor_node: EditorLeafNode, index: CursorIndex} | null;
 
 export type Richtext = TextEditorRoot;
 export type TextEditorRoot = {
@@ -236,7 +200,7 @@ const node_renderers: {
     [key in TextEditorAnyNode["kind"]]?: (props: {node: AnNode<Include<TextEditorAnyNode, {kind: key}>>}) => JSX.Element
 } = {
     root(props: {node: AnNode<TextEditorRootNode>}): JSX.Element {
-        return <div>
+        return <RtList>
             <DraggableList
                 items={anKeys(props.node.children)}
                 setItems={cb => {
@@ -258,7 +222,7 @@ const node_renderers: {
                     </div>
                 </div>;
             }}</DraggableList>
-        </div>;
+        </RtList>;
     },
     paragraph(props): JSX.Element {
         return <p>
@@ -307,7 +271,22 @@ export type CursorIndex = number;
 // replaceRange()
 // getSurrounding()
 
-export function EditorSpan(props: {
+export function RtList(props: {
+    children: JSX.Element,
+}): JSX.Element {
+    const ctx = useContext(te_context)!;
+
+    const node_data: EditorListNodeData = {};
+    const node: EditorListNode = Object.assign(
+        document.createElement("bce:editor-list-node"),
+        {[editor_list_node_data]: node_data},
+    );
+    node.setAttribute("data-editor-id", ctx.editor_id);
+    insert(node, <>{props.children}</>);
+    return node;
+}
+
+export function RtLeaf(props: {
     children: (props: {
         selection: CursorIndex | null,
         onSelect: (v: CursorIndex | null) => void,
@@ -317,14 +296,14 @@ export function EditorSpan(props: {
     const ctx = useContext(te_context)!;
     const [selection, setSelection] = ctx.selection;
 
-    const node_data: EditorNodeData = {
+    const node_data: EditorLeafNodeData = {
         moveCursor: (position, stop) => {
             return position + stop;
         },
     };
-    const node: EditorNode = Object.assign(
-        document.createElement("bce:editor-node"),
-        {[editor_node_data]: node_data},
+    const node: EditorLeafNode = Object.assign(
+        document.createElement("bce:editor-leaf-node"),
+        {[editor_leaf_node_data]: node_data},
     );
     node.setAttribute("data-editor-id", ctx.editor_id);
     // so we can querySelector the root node for bce:editor-node[data-editor-id="…"]
@@ -375,7 +354,7 @@ export function Leaf(props: {
     let text_node_1!: Text;
     let text_node_2!: Text;
 
-    return <EditorSpan replaceRange={(start, end, text) => {
+    return <RtLeaf replaceRange={(start, end, text) => {
         // I want to easily be able to do eg:
         // on enter key:
         // - splitNode(position)
@@ -410,7 +389,7 @@ export function Leaf(props: {
                 value={("" + anString(props.node)).substring(iprops.selection ?? Infinity)}
             /></span>
         </span>
-    </>}</EditorSpan>;
+    </>}</RtLeaf>;
     // return <EditorSelectable …automatic stuff />
 }
 
@@ -428,9 +407,11 @@ export function Caret(): JSX.Element {
 export function EditorChildren(props: {
     node: AnNode<{[key: string]: TextEditorAnyNode}>,
 }): JSX.Element {
-    return <For each={anKeys(props.node)}>{key => {
-        return <EditorNode node={props.node[key]!} />;
-    }}</For>;
+    return <RtList>
+        <For each={anKeys(props.node)}>{key => {
+            return <EditorNode node={props.node[key]!} />;
+        }}</For>
+    </RtList>;
 }
 
 export function EditorNode(props: {
@@ -523,7 +504,7 @@ export function RichtextEditor(props: {
             console.log(event);
             const selection = selected();
             if(!selection) return;
-            const node_data = selection.editor_node[editor_node_data];
+            const node_data = selection.editor_node[editor_leaf_node_data];
 
             const moveCursor = (stop: number) => {
                 const res = node_data.moveCursor(selection.index, stop);
