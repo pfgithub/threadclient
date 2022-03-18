@@ -92,7 +92,14 @@ import { uuid, UUID } from "./uuid";
 // (it's possible it has forgotten it if it just renders to a canvas and then
 //  discards that info)
 
-export type Selection = [editor_node: HTMLElement, index: CursorIndex] | null;
+const editor_node_data = Symbol("editor_node_data");
+type EditorNodeData = {
+    moveCursor: (position: number, stop: number) => number | {dir: "prev" | "next", stop: number},
+};
+type EditorNode = HTMLElement & {
+    [editor_node_data]: EditorNodeData,
+};
+export type Selection = {editor_node: EditorNode, index: CursorIndex} | null;
 
 export type Richtext = TextEditorRoot;
 export type TextEditorRoot = {
@@ -310,7 +317,15 @@ export function EditorSpan(props: {
     const ctx = useContext(te_context)!;
     const [selection, setSelection] = ctx.selection;
 
-    const node: HTMLElement = document.createElement("bce:editor-node");
+    const node_data: EditorNodeData = {
+        moveCursor: (position, stop) => {
+            return position + stop;
+        },
+    };
+    const node: EditorNode = Object.assign(
+        document.createElement("bce:editor-node"),
+        {[editor_node_data]: node_data},
+    );
     node.setAttribute("data-editor-id", ctx.editor_id);
     // so we can querySelector the root node for bce:editor-node[data-editor-id="…"]
     // alternatively, we could maintain an array by having EditorSpan add and remove
@@ -323,10 +338,13 @@ export function EditorSpan(props: {
                 if(!ctx.selected(node)) return null;
                 const selxn = selection();
                 if(selxn == null) return null;
-                return selxn[1];
+                return selxn.index;
             },
             onSelect: (nv) => {
-                const nr: Selection = nv == null ? null : [node, nv];
+                const nr: Selection = nv == null ? null : {
+                    editor_node: node,
+                    index: nv,
+                };
                 console.log("Set selection", nr);
                 setSelection(() => nr);
             },
@@ -494,11 +512,35 @@ export function RichtextEditor(props: {
         const sel = selected();
         console.log("updating selector value", sel);
         if(sel == null) return null;
-        return sel[0];
+        return sel.editor_node;
     });
 
     // this stylinng can probably be provided by the root node
-    return <div class="min-h-[130px] p-2 bg-gray-700 rounded-md">
+    return <div
+        class="min-h-[130px] p-2 bg-gray-700 rounded-md"
+        tabindex="0"
+        onKeyDown={(event) => {
+            console.log(event);
+            const selection = selected();
+            if(!selection) return;
+            const node_data = selection.editor_node[editor_node_data];
+
+            const moveCursor = (stop: number) => {
+                const res = node_data.moveCursor(selection.index, stop);
+                if(typeof res !== "number") throw new Error("TODO suppoprt");
+                setSelected({
+                    editor_node: selection.editor_node,
+                    index: res,
+                });
+            };
+
+            if(event.code === "ArrowLeft") {
+                moveCursor(-1);
+            }else if(event.code === "ArrowRight") {
+                moveCursor(1);
+            }
+        }}
+    >
         <Show when={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Buttons><Button onClick={() => {
                 anSetReconcile(props.node, (): TextEditorRoot => ({
