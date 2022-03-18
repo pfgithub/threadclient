@@ -233,8 +233,8 @@ export function applyActionToSnapshot(action: Action, snapshot: JSON): JSON {
             return av.new_value;
         });
     }else if(av.kind === "reorder_keys") {
-        return setNodeAtPath(av.path, snapshot, prev => {
-            if(!isObject(prev)) return;
+        return setNodeAtPath(av.path, snapshot, prev_in => {
+            const prev = asObject(prev_in) ?? {};
 
             // this logic can be improved to be better
             const current_keys = Object.keys(prev);
@@ -245,7 +245,7 @@ export function applyActionToSnapshot(action: Action, snapshot: JSON): JSON {
             const extra_current_keys = new Set(current_keys);
             for(const key of expected_current_keys) extra_current_keys.delete(key);
 
-            return Object.fromEntries([...av.new_keys, ...extra_current_keys].map((key) => {
+            return Object.fromEntries([...extra_current_keys, ...av.new_keys].map((key) => {
                 return [key, prev[key]];
             }));
         });
@@ -320,7 +320,10 @@ function readValue(root: AnRoot, path: string[]): unknown {
 function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     if(pv === nv) return [];
 
-    if(!isObject(pv) || !isObject(nv)) {
+    // this could be !isObject(pv) || !isObject(nv) but that creates an issue when
+    // two people make an object at the same time - the object is overwritten. instead
+    // for this case, we'll use setKeys and only ever use set_value for primitives.
+    if(!isObject(nv)) {
         return [{id: uuid(), from: "client", value: {
             kind: "set_value",
             path: path,
@@ -330,7 +333,7 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
 
     const res_actions: FloatingAction[] = [];
 
-    const prev_keys = Object.keys(pv);
+    const prev_keys = Object.keys(asObject(pv) ?? {});
     const next_keys = Object.keys(nv);
 
     // change key order & delete old keys
@@ -343,7 +346,7 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
 
     // create all new keys
     for(const key of next_keys) {
-        res_actions.push(...findActions([...path, key], pv[key], nv[key]));
+        res_actions.push(...findActions([...path, key], (asObject(pv) ?? {})[key], nv[key]));
     }
 
     return res_actions;
