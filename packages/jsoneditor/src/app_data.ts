@@ -198,15 +198,12 @@ export type AnRoot = {
     } | null>,
 };
 function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JSON): JSON {
-    console.log("setting node at path", path);
-
     const res_root: {parent: {[key: string]: unknown}, key: string} = {
         parent: {r: {...asObject(snapshot) ?? {}}},
         key: "r",
     };
     let res = res_root;
     for(const key of path) {
-        console.log(res);
         const newnode = {...asObject(res.parent[res.key]) ?? {}};
         res.parent[res.key] = newnode;
         res = {
@@ -215,7 +212,6 @@ function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JS
         };
     }
     res.parent[res.key] = upd(res.parent[res.key]);
-    console.log("succeed set node", res_root);
     return res_root.parent[res_root.key];
 }
 // ok this is actually kind of complicated
@@ -409,7 +405,7 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
             };
         }
         if(!('parent_updated' in action)) {
-            console.log("ENOTINSERTED", prevact?.parent_updated, action);
+            console.error("ENOTINSERTED", prevact?.parent_updated, action);
             unreachable();
         }
         return prevact = action;
@@ -433,17 +429,65 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
         // send you all the context you need to understand it. it won't send you
         // an undo action to ids you don't have.
 
+        // ok
+        // TODO:
+        // clean up this code and make it keep seperate snapshots for the client and
+        // server position
+        // (server position is just a guess as the server may report about new events)
+        // (that happened in the past)
+
+        let earliest_needed_action: UUID | null = null;
+        const upde = (a: UUID) => {
+            if(earliest_needed_action == null) {
+                earliest_needed_action = a;
+                return;
+            }
+            earliest_needed_action = a < earliest_needed_action ? a : earliest_needed_action;
+        };
+        const snapshotAvailableFor = (num: number): boolean => {
+            return root.snapshot_updated === num;
+        };
+        const getSnapshotFor = (action: Action): JSON => {
+            if(root.snapshot_updated === action.parent_updated) {
+                return root.snapshot;
+            }
+            console.log("did not find a snapshot for", action, root.snapshot_updated);
+            unreachable();
+        };
+
         const ignored_actions = new Set<UUID>();
-        for(const action of [...root.actions].reverse()) {
+
+        let i = root.actions.length - 1;
+        for(; i >= 0; i--) {
+            const action = root.actions[i];
+            if(!action) {
+                console.error("[?] no action at index", i, root.actions, action);
+                unreachable();
+            }
+
             if(ignored_actions.has(action.id)) continue;
             if(action.value.kind === "undo") {
-                for(const id of action.value.ids) ignored_actions.add(id);
+                for(const id of action.value.ids) {
+                    ignored_actions.add(id);
+                    upde(id);
+                }
+            }
+            if((
+                earliest_needed_action == null || action.id < earliest_needed_action
+            ) && snapshotAvailableFor(action.parent_updated)) {
+                console.log("snapshot available for", action.parent_updated, i, "!");
+                break;
             }
         }
 
+        const iter_distance = root.actions.length - i;
+
         const ps = root.snapshot;
-        let ns = undefined;
-        for(const action of root.actions) {
+        let ns = i === -1 ? undefined : getSnapshotFor(root.actions[i]!);
+        for(i = i + 1; i < root.actions.length; i++) {
+            const action = root.actions[i];
+            if(!action) unreachable();
+    
             if(ignored_actions.has(action.id)) continue;
 
             if(action.value.kind === "undo") continue; // handled above
@@ -452,7 +496,7 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
         root.snapshot = ns;
         root.snapshot_updated = root.actions[root.actions.length - 1]?.parent_updated ?? -3;
 
-        times.push(["Update snapshot ("+root.actions.length+")", Date.now()]);
+        times.push(["Update snapshot ("+iter_distance+")", Date.now()]);
 
         emitDiffSignals(root, [], ps, ns);
 
