@@ -9,7 +9,7 @@ import PlayingCards from "./PlayingCards";
 import Schemaless from "./Schemaless";
 import ServerExample from "./ServerExample";
 import Settings from "./Settings";
-import { getUIState, UIStateSplit } from "./ui_state";
+import { UIState } from "./ui_state";
 
 type Window = {
   component: () => JSX.Element,
@@ -20,47 +20,57 @@ function AnyWindow(props: {
   default: string,
   state_node: AnNode<unknown>,
 }): JSX.Element {
-  const [selection, setSelection] = getUIState(props.state_node, "-MyO7IrrnjehmvXYn1an", () => props.default);
-  const [fullPage, setFullPage] = getUIState(props.state_node, "-MyO7fk-DUc3EvqSUjGf", () => false);
-  const isSelected = createSelector(selection);
-  return <div class={"bg-gray-800 " + (fullPage() ? "!m-0 fixed top-0 left-0 w-full h-full" : "")}>
-    <div class="bg-black p-4 flex flex-row flex-wrap gap-2">
-      <select
-        class="bg-gray-700 px-1 rounded-md"
-        onInput={(e) => {
-          setSelection(e.currentTarget.value);
-        }}
-      >
-        <For each={Object.keys(props.choices)}>{(key, i) => {
-          return <option value={key} selected={isSelected(key)}>
-            {props.choices[key]!.title}
-          </option>;
-        }}</For>
-      </select>
-      <Buttons>
-        <Button onClick={() => {
-          setFullPage(v => !v);
-        }}>{fullPage() ? "Return" : "Full Page"}</Button>
-      </Buttons>
-    </div>
-    <div class="p-4">
-      <ErrorBoundary fallback={(err: Error, reset) => {
-        console.log("app error", err);
-        return <div>
-          <p>App errored.</p>
-          <button onClick={() => reset()} class="bg-gray-700 mr-2">Reset</button>
-          <pre class="text-red-500 whitespace-pre-wrap">
-            {err.toString() + "\n" + err.stack}
-          </pre>
-        </div>;
-      }}>
-        {(() => {
-          const v = props.choices[selection()]!.component;
-          return untrack(() => v());
-        })()}
-      </ErrorBoundary>
-    </div>
-  </div>;
+  return <UIState
+    node={props.state_node}
+    key="-MyO7IrrnjehmvXYn1an"
+    defaultValue={() => props.default}
+  >{([selection, setSelection]) => <>
+    <UIState
+      node={props.state_node}
+      key="-MyO7fk-DUc3EvqSUjGf"
+      defaultValue={() => false}
+    >{([fullPage, setFullPage]) => {
+      const isSelected = createSelector(selection);
+      return <div class={"bg-gray-800 " + (fullPage() ? "!m-0 fixed top-0 left-0 w-full h-full" : "")}>
+        <div class="bg-black p-4 flex flex-row flex-wrap gap-2">
+          <select
+            class="bg-gray-700 px-1 rounded-md"
+            onInput={(e) => {
+              setSelection(e.currentTarget.value);
+            }}
+          >
+            <For each={Object.keys(props.choices)}>{(key, i) => {
+              return <option value={key} selected={isSelected(key)}>
+                {props.choices[key]!.title}
+              </option>;
+            }}</For>
+          </select>
+          <Buttons>
+            <Button onClick={() => {
+              setFullPage(v => !v);
+            }}>{fullPage() ? "Return" : "Full Page"}</Button>
+          </Buttons>
+        </div>
+        <div class="p-4">
+          <ErrorBoundary fallback={(err: Error, reset) => {
+            console.log("app error", err);
+            return <div>
+              <p>App errored.</p>
+              <button onClick={() => reset()} class="bg-gray-700 mr-2">Reset</button>
+              <pre class="text-red-500 whitespace-pre-wrap">
+                {err.toString() + "\n" + err.stack}
+              </pre>
+            </div>;
+          }}>
+            {(() => {
+              const v = props.choices[selection()]!.component;
+              return untrack(() => v());
+            })()}
+          </ErrorBoundary>
+        </div>
+      </div>;
+    }}</UIState>
+  </>}</UIState>;
 }
 
 export default function App(props: {
@@ -105,12 +115,12 @@ export default function App(props: {
     node={props.node}
   >
     <div class="grid gap-20 md:grid-cols-2 max-w-6xl mx-auto h-full">
-      <UIStateSplit key={"-MyO8ElMY2c_Ii137kpJ"}>
+      <UIState key={"-MyO8ElMY2c_Ii137kpJ"}>
         <AnyWindow choices={windows} default={"schemaless"} state_node={props.node as unknown as AnNode<unknown>} />
-      </UIStateSplit>
-      <UIStateSplit key={"-MyO8Flrf5aY4D_xrZX-"}>
+      </UIState>
+      <UIState key={"-MyO8Flrf5aY4D_xrZX-"}>
         <AnyWindow choices={windows} default={"json_viewer"} state_node={props.node as unknown as AnNode<unknown>} />
-      </UIStateSplit>
+      </UIState>
     </div>
   </NodeProvider>;
 }

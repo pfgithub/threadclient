@@ -2,7 +2,7 @@
 // state is placed in a holder with an AnNode key
 // createUIState<Type>(node, initial)
 
-import { createContext, createSignal, JSX, Signal, useContext } from "solid-js";
+import { createContext, createSignal, JSX, Signal, untrack, useContext } from "solid-js";
 import { AnNodeData, anPath } from "./app_data";
 
 // ok here's a question
@@ -23,24 +23,36 @@ function getOrSet<A, B>(map: Map<A, B>, key: A, value: () => B): B {
     return val;
 }
 
-export function getUIState<T>(node: AnNodeData<unknown>, id: ComptimeKey, defaultValue: () => T): Signal<T> {
-    const splits = useContext(split_provider);
-    const path = [...anPath(node), "@", splits?.splits ?? [], id];
-    const pathstr = JSON.stringify(path);
-    const state = getOrSet(ui_state, pathstr, (): Signal<unknown> => {
-        return createSignal(defaultValue()) as Signal<unknown>;
-    });
-    return state as Signal<T>;
-}
-
-// [!]key is not reactive; don't change it
-export function UIStateSplit(props: {key: ComptimeKey, children: JSX.Element}): JSX.Element {
+export function UIState<T>(props: {
+    key: ComptimeKey, // [!] not reactive
+    node: AnNodeData<unknown>, // [!] not reactive
+    defaultValue: () => T,
+    children: (signal: Signal<T>) => JSX.Element,
+} | {
+    key: ComptimeKey,
+    children: JSX.Element,
+}): JSX.Element {
     const parent = useContext(split_provider);
-    return <split_provider.Provider value={{
-        splits: [...parent?.splits ?? [], props.key],
-    }}>
-        {props.children}
-    </split_provider.Provider>;
+
+    if('defaultValue' in props) {
+        const path = [...parent?.splits ?? [], props.key, anPath(props.node)];
+        const pathstr = JSON.stringify(path);
+        const state = getOrSet(ui_state, pathstr, (): Signal<unknown> => {
+            return createSignal(props.defaultValue()) as Signal<unknown>;
+        }) as Signal<T>;
+
+        return <split_provider.Provider value={{
+            splits: [...parent?.splits ?? [], props.key],
+        }}>
+            {untrack(() => props.children(state))}
+        </split_provider.Provider>;
+    }else{
+        return <split_provider.Provider value={{
+            splits: [...parent?.splits ?? [], props.key],
+        }}>
+            {props.children}
+        </split_provider.Provider>;
+    }
 }
 
 type SplitState = {

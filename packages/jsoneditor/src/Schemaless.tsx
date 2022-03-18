@@ -10,7 +10,7 @@ import { DragButton, DraggableList } from "./DraggableList";
 import { asObject, unreachable } from "./guards";
 import { Tab, Tabs } from "./Tabs";
 import { Richtext, RichtextEditor } from "./TextEditor";
-import { getUIState } from "./ui_state";
+import { UIState } from "./ui_state";
 import { uuid } from "./uuid";
 
 export function HeadingValue(props: {
@@ -144,21 +144,23 @@ function Demo1Editor(props: {node: AnNode<Demo1>}): JSX.Element {
     return <>
         <div class="space-y-2">
             <HeadingValue title="people">
-                <Tabs selection={getUIState(props.node, "-MyT2dMV6gueGDtP8Pjk", () => null)}>
-                    <AnFor node={props.node.people}>{(person, key) => <>
-                        <Tab key={key} title={anString(person.name) ?? key}>
-                            <PersonEditor node={person} />
-                        </Tab>
-                    </>}</AnFor>
-                    <Tab title={"+"} onClick={() => {
-                        const new_id = uuid();
-                        anSetReconcile(props.node.people, (v): {[key: string]: Person} => ({
-                            ...(v != null && typeof v === "object" ? v : {}),
-                            [new_id]: undefined as unknown as Person,
-                        }));
-                        return new_id;
-                    }} />
-                </Tabs>
+                <UIState node={props.node} key="-MyT2dMV6gueGDtP8Pjk" defaultValue={() => null}>{selection => <>
+                    <Tabs selection={selection}>
+                        <AnFor node={props.node.people}>{(person, key) => <>
+                            <Tab key={key} title={anString(person.name) ?? key}>
+                                <PersonEditor node={person} />
+                            </Tab>
+                        </>}</AnFor>
+                        <Tab title={"+"} onClick={() => {
+                            const new_id = uuid();
+                            anSetReconcile(props.node.people, (v): {[key: string]: Person} => ({
+                                ...(v != null && typeof v === "object" ? v : {}),
+                                [new_id]: undefined as unknown as Person,
+                            }));
+                            return new_id;
+                        }} />
+                    </Tabs>
+                </>}</UIState>
             </HeadingValue>
             <HeadingValue title="root_person">
                 todo
@@ -213,22 +215,26 @@ function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Elem
 }
 
 function RebindEditor(props: {node: AnNode<Rebind>}): JSX.Element {
-    return <Tabs selection={getUIState(props.node, "-MyT2Tal3z7dM8rw3WCb", () => null)}>
-        <Tab key="-MyOCtdMuvfiPHZ0GCN5" title="buttons" data={props.node.buttons}>{buttons => <>
-            {/* TODO HSplit I think */}
-            <Tabs selection={getUIState(buttons, "-MyT2W5uqBcPDOOicF6m", () => null)}>
-                <Tab key="-MyOCyh-4puuqyb8l94D" title="input" data={buttons.input}>{input => <>
-                    <ButtonsEditor node={input} />
-                </>}</Tab>
-                <Tab key="-MyOCzRenRGIaNHeiyOk" title="output" data={buttons.output}>{output => <>
-                    <ButtonsEditor node={output} />
-                </>}</Tab>
-            </Tabs>
-        </>}</Tab>
-        <Tab key="-MyOCuTiivRBu_dkvEFN" title="scenes">
-            pick default scene
-        </Tab>
-    </Tabs>;
+    return <UIState node={props.node} key="-MyT2Tal3z7dM8rw3WCb" defaultValue={() => null}>{selection => <>
+        <Tabs selection={selection}>
+            <Tab key="-MyOCtdMuvfiPHZ0GCN5" title="buttons" data={props.node.buttons}>{buttons => <>
+                {/* TODO HSplit I think */}
+                <UIState node={props.node} key="-MyT2W5uqBcPDOOicF6m" defaultValue={() => null}>{selection2 => <>
+                    <Tabs selection={selection2}>
+                        <Tab key="-MyOCyh-4puuqyb8l94D" title="input" data={buttons.input}>{input => <>
+                            <ButtonsEditor node={input} />
+                        </>}</Tab>
+                        <Tab key="-MyOCzRenRGIaNHeiyOk" title="output" data={buttons.output}>{output => <>
+                            <ButtonsEditor node={output} />
+                        </>}</Tab>
+                    </Tabs>
+                </>}</UIState>
+            </>}</Tab>
+            <Tab key="-MyOCuTiivRBu_dkvEFN" title="scenes">
+                pick default scene
+            </Tab>
+        </Tabs>
+    </>}</UIState>;
 }
 
 type Person = {
@@ -246,8 +252,8 @@ type Schema = {
 };
 
 export default function Schemaless(props: {node: AnNode<Schema>}): JSX.Element {
-    return <>
-        <Tabs selection={getUIState(props.node, "-MyT2DloSFkzpMNrgAWd", () => null)}>
+    return <UIState node={props.node} key="-MyT2DloSFkzpMNrgAWd" defaultValue={() => null}>{selection => <>
+        <Tabs selection={selection}>
             <Tab key="-MyOD-qlo6NuV_DvBe6p" title="demo1">
                 <Demo1Editor node={props.node.demo1} />
             </Tab>
@@ -264,5 +270,5 @@ export default function Schemaless(props: {node: AnNode<Schema>}): JSX.Element {
                 schema
             </Tab>
         </Tabs>
-    </>;
+    </>}</UIState>;
 }
