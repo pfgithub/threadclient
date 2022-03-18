@@ -12,7 +12,8 @@ const express = initExpress();
 const http = init_http.createServer(express);
 
 const corsopts: CorsOptions = {
-    origin: "http://localhost:3000",
+    // origin: "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST"],
 };
 

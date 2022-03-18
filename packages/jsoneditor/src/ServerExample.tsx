@@ -116,6 +116,13 @@ function ServerMain(props: {root: AnRoot}): JSX.Element {
             <pre class="whitespace-pre-wrap"><code>{emsg.stack}</code></pre>
         </div>}</Show>
     </>}>
-        Connected.
+        {(() => {
+            props.root.actions_signal[0]();
+            const unsaved_count = props.root.actions.filter(v => v.from === "client").length;
+            if(unsaved_count > 0) {
+                return "Saving "+unsaved_count+" changes…";
+            }
+            return "✓ Saved";
+        })()}
     </Show>;
 }
