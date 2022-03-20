@@ -38,7 +38,7 @@ export function DraggableList(props: {
     wrapper_class: string,
     nodeClass: (selfIsDragging: () => boolean) => string,
     setItems: (cb: (prev: string[]) => string[]) => void,
-    children: (key: string, dragging: Accessor<boolean>) => JSX.Element,
+    children: (key: string, dragging: Accessor<boolean>, index: Accessor<number>) => JSX.Element,
 }): JSX.Element {
     const list_symbol = Symbol();
     const [dragging, setDragging] = createSignal<Dragging>(null, {equals: (a, b) => {
@@ -149,7 +149,7 @@ export function DraggableList(props: {
                     set cleanFn(v) {cleanFn = v},
                     get cleanFn() {return cleanFn},
                 }}>
-                    {untrack(() => props.children(key, selfIsDragging))}
+                    {untrack(() => props.children(key, selfIsDragging, index))}
                 </drag_state.Provider>
             </div>
         </div>;

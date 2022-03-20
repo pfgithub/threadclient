@@ -1,8 +1,7 @@
 import {
     createContext, createRenderEffect, createSelector, createSignal,
-    For, Show, Signal, untrack, useContext,
+    For, JSX, Show, Signal, untrack, useContext
 } from "solid-js";
-import { JSX } from "solid-js";
 import { Dynamic, insert } from "solid-js/web";
 import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_data";
 import { Button, Buttons } from "./components";
@@ -51,8 +50,10 @@ import { uuid, UUID } from "./uuid";
 
 const editor_leaf_node_data = Symbol("editor_leaf_node_data");
 const editor_list_node_data = Symbol("editor_list_node_data");
+type MoveCursorResult = CursorIndex | {dir: -1 | 1, stop: number};
 type EditorLeafNodeData = {
-    moveCursor: (position: number, stop: number) => number | {dir: "prev" | "next", stop: number},
+    moveCursor: (position: CursorIndex, stop: number) => MoveCursorResult,
+    cursorPos: (v: -1 | 1) => CursorIndex,
 };
 type EditorListNodeData = {
     _?: undefined,
@@ -63,7 +64,7 @@ type EditorLeafNode = HTMLElement & {
 type EditorListNode = HTMLElement & {
     [editor_list_node_data]: EditorListNodeData,
 };
-export type Selection = {editor_node: EditorLeafNode, index: CursorIndex} | null;
+export type Selection = {editor_node: EditorLeafNode, index: CursorIndex};
 
 export type Richtext = TextEditorRoot;
 export type TextEditorRoot = {
@@ -213,7 +214,7 @@ const node_renderers: {
 
                 wrapper_class="pt-2 first:pt-0"
                 nodeClass={() => ""}
-            >{(key, dragging) => {
+            >{(key, dragging, index) => {
                 // TODO add the indent
                 return <div class="flex flex-row flex-wrap gap-2">
                     <DragButton class={"px-2 rounded-md "+(dragging() ? "bg-gray-500" : "")}>≡</DragButton>
@@ -227,11 +228,17 @@ const node_renderers: {
     paragraph(props): JSX.Element {
         return <p>
             <EditorChildren node={props.node.children} />
+            <LeafSignal text=" " setText={() => {
+                throw new Error("todo delete the paragraph break");
+            }} />
         </p>;
     },
     multiline_code_block(props): JSX.Element {
         return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap"><code>
             <Leaf node={props.node.text} />
+            <LeafSignal text=" " setText={() => {
+                throw new Error("todo delete the paragraph break");
+            }} />
         </code></pre>;
     },
     embedded_schema_editor(props): JSX.Element {
@@ -292,14 +299,15 @@ export function RtLeaf(props: {
         onSelect: (v: CursorIndex | null) => void,
     }) => JSX.Element,
     replaceRange: (start: CursorIndex, end: CursorIndex, text: string) => void,
+    moveCursor: (position: CursorIndex, stop: number) => MoveCursorResult,
+    cursorPos: (v: -1 | 1) => CursorIndex,
 }): JSX.Element {
     const ctx = useContext(te_context)!;
     const [selection, setSelection] = ctx.selection;
 
     const node_data: EditorLeafNodeData = {
-        moveCursor: (position, stop) => {
-            return position + stop;
-        },
+        moveCursor: props.moveCursor,
+        cursorPos: props.cursorPos,
     };
     const node: EditorLeafNode = Object.assign(
         document.createElement("bce:editor-leaf-node"),
@@ -320,7 +328,7 @@ export function RtLeaf(props: {
                 return selxn.index;
             },
             onSelect: (nv) => {
-                const nr: Selection = nv == null ? null : {
+                const nr: Selection | null = nv == null ? null : {
                     editor_node: node,
                     index: nv,
                 };
@@ -348,6 +356,18 @@ export function TextNode(props: {
 export function Leaf(props: {
     node: AnNode<string>, // State<string>
 }): JSX.Element {
+    return <LeafSignal
+        text={anString(props.node) ?? ""}
+        setText={cb => anSetReconcile(props.node, pv => {
+            return cb(typeof pv === "string" ? pv : "");
+        })}
+    />;
+}
+
+export function LeafSignal(props: {
+    text: string, // State<string>
+    setText: (cb: (pv: string) => string) => void,
+}): JSX.Element {
     // TODO the returned node will have information in it to allow for handling
     // left arrow, right arrow, select, …
 
@@ -358,10 +378,18 @@ export function Leaf(props: {
         // I want to easily be able to do eg:
         // on enter key:
         // - splitNode(position)
-        anSetReconcile(props.node, pv => {
-            const v = "" + pv;
-            return v.substring(0, start) + text + v.substring(end);
+        props.setText(pv => {
+            return pv.substring(0, start) + text + pv.substring(end);
         });
+    }} moveCursor={(position, stop) => {
+        const res = position + stop;
+        if(res < 0) return {dir: -1, stop: res}; // <= maybe?
+        const value = props.text;
+        if(res >= value.length) return {dir: 1, stop: res - value.length};
+        return res;
+    }} cursorPos={(v) => {
+        if(v === -1) return 0;
+        return props.text.length;
     }}>{(iprops) => <>
         <span onClick={e => {
             // we actually want a selectionchange event which is on the document.
@@ -379,14 +407,14 @@ export function Leaf(props: {
         }}>
             <span><TextNode
                 ref={text_node_1}
-                value={("" + anString(props.node)).substring(0, iprops.selection ?? undefined)}
+                value={props.text.substring(0, iprops.selection ?? undefined)}
             /></span>
             <Show when={iprops.selection != null}>
                 <Caret />
             </Show>
             <span><TextNode
                 ref={text_node_2}
-                value={("" + anString(props.node)).substring(iprops.selection ?? Infinity)}
+                value={props.text.substring(iprops.selection ?? Infinity)}
             /></span>
         </span>
     </>}</RtLeaf>;
@@ -435,7 +463,7 @@ REDUCERS:
 
 const te_context = createContext<{
     selected: (key: HTMLElement | null) => boolean,
-    selection: Signal<Selection>,
+    selection: Signal<Selection | null>,
     editor_id: UUID,
 }>();
 
@@ -485,9 +513,10 @@ const defaultnode = (): TextEditorRootNode => nc.root(
 export function RichtextEditor(props: {
     node: AnNode<Richtext>,
 }): JSX.Element {
-    const [selected, setSelected] = createSignal<Selection>(null);
+    const [selected, setSelected] = createSignal<Selection | null>(null);
 
     const editor_id = uuid();
+    let div!: HTMLDivElement;
 
     const selector = createSelector<HTMLElement | null, HTMLElement | null>(() => {
         const sel = selected();
@@ -500,25 +529,48 @@ export function RichtextEditor(props: {
     return <div
         class="min-h-[130px] p-2 bg-gray-700 rounded-md"
         tabindex="0"
+        ref={div}
         onKeyDown={(event) => {
             console.log(event);
             const selection = selected();
             if(!selection) return;
-            const node_data = selection.editor_node[editor_leaf_node_data];
+            const editor_nodes = [...div.querySelectorAll(
+                "bce\\:editor-leaf-node[data-editor-id="+JSON.stringify(editor_id)+"]",
+            )];
+                
+            const moveCursor = (sel: Selection, stop: number, depth: number): void => {
+                if(depth > 30) throw new Error("Failed");
+                const node_data = sel.editor_node[editor_leaf_node_data];
+                const res = node_data.moveCursor(sel.index, stop);
+                if(typeof res !== "number") {
+                    const dir = res.dir;
+                    const curr_idx = editor_nodes.indexOf(sel.editor_node);
+                    if(curr_idx === -1) throw new Error("movecursor from invalid node");
+                    const next_idx = curr_idx + dir;
+                    if(!editor_nodes[next_idx]) {
+                        setSelected({
+                            editor_node: sel.editor_node,
+                            index: node_data.cursorPos(dir),
+                        });
+                        return;
+                    }
 
-            const moveCursor = (stop: number) => {
-                const res = node_data.moveCursor(selection.index, stop);
-                if(typeof res !== "number") throw new Error("TODO suppoprt");
+                    const next_node = editor_nodes[next_idx] as EditorLeafNode;
+                    return moveCursor({
+                        editor_node: next_node,
+                        index: next_node[editor_leaf_node_data].cursorPos(-dir as (-1 | 1)),
+                    }, res.stop, depth + 1);
+                }
                 setSelected({
-                    editor_node: selection.editor_node,
+                    editor_node: sel.editor_node,
                     index: res,
                 });
             };
 
             if(event.code === "ArrowLeft") {
-                moveCursor(-1);
+                moveCursor(selection, -1, 0);
             }else if(event.code === "ArrowRight") {
-                moveCursor(1);
+                moveCursor(selection, 1, 0);
             }
         }}
     >
