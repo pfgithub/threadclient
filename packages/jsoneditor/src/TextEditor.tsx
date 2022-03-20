@@ -678,61 +678,72 @@ export function RichtextEditor(props: {
     return <div
         class="min-h-[130px] bg-gray-700 rounded-md relative p-2"
         ref={div}
-        onKeyDown={(event) => {
-            console.log(event);
-            const selection = selected();
-            if(!selection) return;
-            const editor_nodes = [...div.querySelectorAll(
-                "bce\\:editor-leaf-node[data-editor-id="+JSON.stringify(editor_id)+"]",
-            )];
-                
-            const moveCursor = (sel: Selection, stop: number, depth: number): void => {
-                if(depth > 30) throw new Error("Failed");
-                const node_data = sel.editor_node[editor_leaf_node_data];
-                const res = node_data.moveCursor(sel.index, stop);
-                if(typeof res !== "number") {
-                    const dir = res.dir;
-                    const curr_idx = editor_nodes.indexOf(sel.editor_node);
-                    if(curr_idx === -1) throw new Error("movecursor from invalid node");
-                    const next_idx = curr_idx + dir;
-                    if(!editor_nodes[next_idx]) {
-                        setSelected({
-                            editor_node: sel.editor_node,
-                            index: node_data.cursorPos(dir),
-                        });
-                        return;
-                    }
-
-                    const next_node = editor_nodes[next_idx] as EditorLeafNode;
-                    return moveCursor({
-                        editor_node: next_node,
-                        index: next_node[editor_leaf_node_data].cursorPos(-dir as (-1 | 1)),
-                    }, res.stop, depth + 1);
-                }
-                setSelected({
-                    editor_node: sel.editor_node,
-                    index: res,
-                });
-            };
-
-            if(event.code === "ArrowLeft") {
-                moveCursor(selection, -1, 0);
-            }else if(event.code === "ArrowRight") {
-                moveCursor(selection, 1, 0);
-            }
-
-            console.log(event);
-        }}
     >
         <textarea
             class={[
-                "absolute top-0 left-0 pointer-events-none w-full h-full bg-transparent rounded-md",
+                "absolute top-0 left-0 pointer-events-none w-full h-full rounded-md",
+                "bg-transparent text-transparent",
                 // selected() ? "outline outline-green-500" : "",
             ].join(" ")}
             ref={el => {
                 createEffect(() => {
                     if(selected()) el.focus();
                 });
+            }}
+            onKeyDown={(event) => {
+                if(event.isComposing) return;
+
+                console.log(event);
+                const selection = selected();
+                if(!selection) return;
+                const editor_nodes = [...div.querySelectorAll(
+                    "bce\\:editor-leaf-node[data-editor-id="+JSON.stringify(editor_id)+"]",
+                )];
+                    
+                const moveCursor = (sel: Selection, stop: number, depth: number): void => {
+                    if(depth > 30) throw new Error("Failed");
+                    const node_data = sel.editor_node[editor_leaf_node_data];
+                    const res = node_data.moveCursor(sel.index, stop);
+                    if(typeof res !== "number") {
+                        const dir = res.dir;
+                        const curr_idx = editor_nodes.indexOf(sel.editor_node);
+                        if(curr_idx === -1) throw new Error("movecursor from invalid node");
+                        const next_idx = curr_idx + dir;
+                        if(!editor_nodes[next_idx]) {
+                            setSelected({
+                                editor_node: sel.editor_node,
+                                index: node_data.cursorPos(dir),
+                            });
+                            return;
+                        }
+    
+                        const next_node = editor_nodes[next_idx] as EditorLeafNode;
+                        return moveCursor({
+                            editor_node: next_node,
+                            index: next_node[editor_leaf_node_data].cursorPos(-dir as (-1 | 1)),
+                        }, res.stop, depth + 1);
+                    }
+                    setSelected({
+                        editor_node: sel.editor_node,
+                        index: res,
+                    });
+                };
+    
+                if(event.code === "ArrowLeft") {
+                    moveCursor(selection, -1, 0);
+                }else if(event.code === "ArrowRight") {
+                    moveCursor(selection, 1, 0);
+                }
+    
+                console.log(event);
+            }}
+            onBeforeInput={ev => {
+                ev.preventDefault();
+                console.log("beforeinput", ev);
+                if(ev.inputType === "insertText") {
+                    const text = ev.data;
+                    () => text;
+                }
             }}
             // onfocusout={() => {
             //     setSelected(null);
