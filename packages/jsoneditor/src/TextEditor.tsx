@@ -1,5 +1,5 @@
 import {
-    createContext, createRenderEffect, createSelector, createSignal,
+    createContext, createEffect, createRenderEffect, createSelector, createSignal,
     For, JSX, Signal, untrack, useContext
 } from "solid-js";
 import { Dynamic, insert } from "solid-js/web";
@@ -676,8 +676,7 @@ export function RichtextEditor(props: {
 
     // this stylinng can probably be provided by the root node
     return <div
-        class="min-h-[130px] p-2 bg-gray-700 rounded-md"
-        tabindex="0"
+        class="min-h-[130px] bg-gray-700 rounded-md relative p-2"
         ref={div}
         onKeyDown={(event) => {
             console.log(event);
@@ -725,6 +724,29 @@ export function RichtextEditor(props: {
             console.log(event);
         }}
     >
+        <textarea
+            class={[
+                "absolute top-0 left-0 pointer-events-none w-full h-full bg-transparent rounded-md",
+                // selected() ? "outline outline-green-500" : "",
+            ].join(" ")}
+            ref={el => {
+                createEffect(() => {
+                    if(selected()) el.focus();
+                });
+            }}
+            // onfocusout={() => {
+            //     setSelected(null);
+            // }}
+            oncompositionstart={() => {
+                //
+            }}
+            oncompositionend={() => {
+                //
+            }}
+            oncompositionupdate={() => {
+                //
+            }}
+        />
         <Show if={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Buttons><Button onClick={() => {
                 anSetReconcile(props.node, (): TextEditorRoot => ({
