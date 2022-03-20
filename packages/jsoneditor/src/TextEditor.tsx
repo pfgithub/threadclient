@@ -215,10 +215,42 @@ const node_renderers: {
                 wrapper_class="pt-2 first:pt-0"
                 nodeClass={() => ""}
             >{(key, dragging, index) => {
+                const [f0, setFocused] = createSignal(false);
+                const [h0, setHovering] = createSignal(false);
+                const hovering = () => f0() || h0();
                 // TODO add the indent
                 return <div class="flex flex-row flex-wrap gap-2">
-                    <DragButton class={"px-2 rounded-md "+(dragging() ? "bg-gray-500" : "")}>≡</DragButton>
-                    <div class="flex-1">
+                    <div>
+                        <div class="relative -mt-1">
+                            <button
+                                class={[
+                                    "absolute bg-blue-500 rounded-full w-7 h-7",
+                                    hovering() ? "opacity-100" : "opacity-0",
+                                    "transition-opacity",
+                                ].join(" ")}
+                                style="transform: translateY(-50%)"
+                                onmouseenter={() => setHovering(true)}
+                                onmouseleave={() => setHovering(false)}
+                                onfocusin={() => setFocused(true)}
+                                onfocusout={() => setFocused(false)}
+                                onclick={() => {
+                                    alert("TODO insert paragraph");
+                                }}
+                            >
+                                +
+                            </button>
+                        </div>
+                        <DragButton class={"px-2 rounded-md h-full "+(dragging() ? "bg-gray-500" : "")}>≡</DragButton>
+                    </div>
+                    <div class="flex-1 relative">
+                        <div
+                            class={[
+                                "-mt-1 absolute bg-blue-500 w-full h-1 rounded-full",
+                                hovering() ? "opacity-100" : "opacity-0",
+                                "transition-opacity",
+                            ].join(" ")}
+                            style="transform: translateY(-50%)"
+                        />
                         <EditorNode node={props.node.children[key as UUID]!.node} />
                     </div>
                 </div>;
@@ -240,6 +272,42 @@ const node_renderers: {
                 throw new Error("todo delete the paragraph break");
             }} />
         </code></pre>;
+    },
+    image(props): JSX.Element {
+        return <div>
+            <RtLeaf
+                // hmm, there's an interesting thing to note with this leaf that is unlike
+                // other leaves.
+                //
+                // if you are on it and press backspace, it should delete the leaf. but
+                // you're at position 0.
+                //
+                // ok I guess it will end up calling removeRange( prev_node.last, this_node[0] )
+                // and then we just have to handle that correctly
+                replaceRange={(a, b, c) => {
+                    throw new Error("ebad");
+                }}
+                moveCursor={(pos, stop) => {
+                    const res = pos + stop;
+                    if(res < 0) return {dir: -1, stop};
+                    if(res >= 1) return {dir: 1, stop: stop -1};
+                    return res;
+                }}
+                cursorPos={v => {
+                    if(v === -1) return 0;
+                    return 1;
+                }}
+            >{(leafprops) => <>
+                <img
+                    class={[
+                        "rounded-md",
+                        leafprops.selection != null ? "outline outline-blue-500" : "",
+                    ].join(" ")}
+                    src="https://picsum.photos/seed/jaqmga/650/365.jpg"
+                    onclick={() => leafprops.onSelect(0)}
+                />
+            </>}</RtLeaf>
+        </div>;
     },
     embedded_schema_editor(props): JSX.Element {
         return <div class="bg-gray-800 p-2 rounded-md">
@@ -495,7 +563,7 @@ const defaultnode = (): TextEditorRootNode => nc.root(
             "dolor. Morbi id enim eget elit bibendum venenatis.",
         ].join(" "))
     )],
-    [nc.embeddedSchemaEditor()],
+    [nc.img("TODO", "jpg")],
     [nc.par(
         nc.text([
             "Phasellus in sem ante. Aenean volutpat, purus vel sollicitudin convallis,",
