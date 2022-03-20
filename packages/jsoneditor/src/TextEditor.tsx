@@ -1,8 +1,9 @@
 import {
     createContext, createRenderEffect, createSelector, createSignal,
-    For, JSX, Show, Signal, untrack, useContext
+    For, JSX, Signal, untrack, useContext
 } from "solid-js";
 import { Dynamic, insert } from "solid-js/web";
+import { Show } from "tmeta-util-solid";
 import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_data";
 import { Button, Buttons } from "./components";
 import { DragButton, DraggableList } from "./DraggableList";
@@ -73,7 +74,7 @@ export type TextEditorRoot = {
 
 export type TextEditorRootNode = {
     kind: "root",
-    children: {[key: UUID]: TextEditorFlatNode},
+    children: {[key: string]: TextEditorFlatNode},
     // ^ right, we didn't want this because we want the manager to be able to handle this
     // I think we can actually use real dom nodes though
     // eg we can have <Leaf> and <EditorSelectable ondelete={}>
@@ -234,7 +235,24 @@ const node_renderers: {
                                 onfocusin={() => setFocused(true)}
                                 onfocusout={() => setFocused(false)}
                                 onclick={() => {
-                                    alert("TODO insert paragraph");
+                                    // it's still focused but it's weird to still
+                                    // highlight it
+                                    setFocused(false);
+                                    anSetReconcile(props.node.children, v => {
+                                        const pv = (asObject(v) ?? {}) as {[key: string]: TextEditorFlatNode};
+                                        const av = uuid();
+                                        const nn: TextEditorFlatNode = {
+                                            indent: {},
+                                            node: {
+                                                kind: "paragraph",
+                                                children: {},
+                                            },
+                                        };
+                                        const nv = {...pv, [av]: nn};
+                                        const itm = Object.keys(pv);
+                                        itm.splice(index(), 0, av);
+                                        return Object.fromEntries(itm.map(k => [k, nv[k]!]));
+                                    });
                                 }}
                             >
                                 +
@@ -259,10 +277,15 @@ const node_renderers: {
     },
     paragraph(props): JSX.Element {
         return <p>
-            <EditorChildren node={props.node.children} />
+            <EditorChildren
+                node={props.node.children}
+            />
             <LeafSignal text=" " setText={() => {
                 throw new Error("todo delete the paragraph break");
             }} />
+            <Show if={anKeys(props.node.children).length === 0}>
+                <span class="text-gray-400">…</span>
+            </Show>
         </p>;
     },
     multiline_code_block(props): JSX.Element {
@@ -477,7 +500,7 @@ export function LeafSignal(props: {
                 ref={text_node_1}
                 value={props.text.substring(0, iprops.selection ?? undefined)}
             /></span>
-            <Show when={iprops.selection != null}>
+            <Show if={iprops.selection != null}>
                 <Caret />
             </Show>
             <span><TextNode
@@ -502,9 +525,10 @@ export function Caret(): JSX.Element {
 
 export function EditorChildren(props: {
     node: AnNode<{[key: string]: TextEditorAnyNode}>,
+    fallback?: undefined | JSX.Element,
 }): JSX.Element {
     return <RtList>
-        <For each={anKeys(props.node)}>{key => {
+        <For each={anKeys(props.node)} fallback={props.fallback}>{key => {
             return <EditorNode node={props.node[key]!} />;
         }}</For>
     </RtList>;
@@ -642,7 +666,7 @@ export function RichtextEditor(props: {
             }
         }}
     >
-        <Show when={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
+        <Show if={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Buttons><Button onClick={() => {
                 anSetReconcile(props.node, (): TextEditorRoot => ({
                     node: defaultnode(),
