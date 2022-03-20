@@ -52,6 +52,29 @@ import { uuid, UUID } from "./uuid";
 const editor_leaf_node_data = Symbol("editor_leaf_node_data");
 const editor_list_node_data = Symbol("editor_list_node_data");
 type MoveCursorResult = CursorIndex | {dir: -1 | 1, stop: number};
+export type MoveCursorStop = {
+    unit: "codepoint",
+    count: number,
+} | {
+    unit: "grapheme",
+    count: number,
+    // ok excuse me
+    // does javascript not have unicode text segmentation algorithms built in
+    // am i going to have to use ziglyph through wasm to get incredibly basic functionality
+    // https://github.com/tc39/proposal-intl-segmenter
+    // ok at least there's a proposal for it
+    // https://github.com/surferseo/intl-segmenter-polyfill
+    // ok cool we'll use the polyfill because it's available in chrome but not firefox
+    //
+    // that's really funny. the polyfill is implemented in wasm because there's no good
+    // javascript implementation for this incredibly basic functionality required in
+    // any text editor. i guess everyone uses contenteditable - except that's not true,
+    // lots of code editors used to not use contenteditable at all. so they must have
+    // had their own implementations. hmm
+} | {
+    unit: "word",
+    count: number,
+};
 type EditorLeafNodeData = {
     moveCursor: (position: CursorIndex, stop: number) => MoveCursorResult,
     cursorPos: (v: -1 | 1) => CursorIndex,
@@ -565,6 +588,7 @@ const defaultnode = (): TextEditorRootNode => nc.root(
         nc.text("world", {bold: true}),
         nc.text("! "),
         nc.inlineCode("fancy!"),
+        nc.text(" here i'm going to try out 🧜‍♀️unicode support"),
     )],
     [nc.code("ts", [
         "import {promises as fs} from \"fs\";",
