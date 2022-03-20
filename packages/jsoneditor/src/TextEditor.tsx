@@ -94,7 +94,14 @@ type EditorLeafNode = HTMLElement & {
 type EditorListNode = HTMLElement & {
     [editor_list_node_data]: EditorListNodeData,
 };
-export type Selection = {editor_node: EditorLeafNode, index: CursorIndex};
+export type Selection = {
+    // leaf_path: string[], // <RtList> passes this down
+    // ah ok that's a good idea because:
+    // - ok actually all we need to do is have in the editor list it needs
+    //   to be able to say what the child id is
+    editor_node: EditorLeafNode,
+    index: CursorIndex,
+};
 
 export type Richtext = TextEditorRoot;
 export type TextEditorRoot = {
@@ -298,7 +305,9 @@ const node_renderers: {
                             ].join(" ")}
                             style="transform: translateY(-50%)"
                         />
-                        <EditorNode node={props.node.children[key as UUID]!.node} />
+                        <RtListItem id={key}>
+                            <EditorNode node={props.node.children[key as UUID]!.node} />
+                        </RtListItem>
                     </div>
                 </div>;
             }}</DraggableList>
@@ -406,6 +415,22 @@ export function RtList(props: {
     const node_data: EditorListNodeData = {};
     const node: EditorListNode = Object.assign(
         document.createElement("bce:editor-list-node"),
+        {[editor_list_node_data]: node_data},
+    );
+    node.setAttribute("data-editor-id", ctx.editor_id);
+    insert(node, <>{props.children}</>);
+    return node;
+}
+
+export function RtListItem(props: {
+    id: string,
+    children: JSX.Element,
+}): JSX.Element {
+    const ctx = useContext(te_context)!;
+
+    const node_data: EditorListNodeData = {};
+    const node: EditorListNode = Object.assign(
+        document.createElement("bce:editor-list-item"),
         {[editor_list_node_data]: node_data},
     );
     node.setAttribute("data-editor-id", ctx.editor_id);
@@ -558,7 +583,9 @@ export function EditorChildren(props: {
 }): JSX.Element {
     return <RtList>
         <For each={anKeys(props.node)} fallback={props.fallback}>{key => {
-            return <EditorNode node={props.node[key]!} />;
+            return <RtListItem id={key}>
+                <EditorNode node={props.node[key]!} />
+            </RtListItem>;
         }}</For>
     </RtList>;
 }
@@ -694,6 +721,8 @@ export function RichtextEditor(props: {
             }else if(event.code === "ArrowRight") {
                 moveCursor(selection, 1, 0);
             }
+
+            console.log(event);
         }}
     >
         <Show if={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
