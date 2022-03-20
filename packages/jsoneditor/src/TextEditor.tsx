@@ -54,10 +54,10 @@ const editor_list_node_data = Symbol("editor_list_node_data");
 type MoveCursorResult = CursorIndex | {dir: -1 | 1, stop: number};
 export type MoveCursorStop = {
     unit: "codepoint",
-    count: number,
+    dir: -1 | 1,
 } | {
     unit: "grapheme",
-    count: number,
+    dir: -1 | 1,
     // ok excuse me
     // does javascript not have unicode text segmentation algorithms built in
     // am i going to have to use ziglyph through wasm to get incredibly basic functionality
@@ -71,9 +71,15 @@ export type MoveCursorStop = {
     // any text editor. i guess everyone uses contenteditable - except that's not true,
     // lots of code editors used to not use contenteditable at all. so they must have
     // had their own implementations. hmm
+
+    // oh I should consider using zigglyph in threadclient-ui-terminal
+    // it has fun stuff like terminal width measurement and word wrap
 } | {
     unit: "word",
-    count: number,
+    dir: -1 | 1,
+} | {
+    unit: "sentence",
+    dir: -1 | 1,
 };
 type EditorLeafNodeData = {
     moveCursor: (position: CursorIndex, stop: number) => MoveCursorResult,
