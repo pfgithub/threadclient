@@ -1,4 +1,5 @@
 import {
+    batch,
     createContext, createEffect, createRenderEffect, createSelector, createSignal,
     For, JSX, Signal, untrack, useContext
 } from "solid-js";
@@ -51,6 +52,7 @@ import { uuid, UUID } from "./uuid";
 
 const editor_leaf_node_data = Symbol("editor_leaf_node_data");
 const editor_list_node_data = Symbol("editor_list_node_data");
+const editor_list_item_node_data = Symbol("editor_list_item_node_data");
 type MoveCursorResult = CursorIndex | {dir: -1 | 1, stop: number};
 export type MoveCursorStop = {
     unit: "codepoint",
@@ -86,7 +88,10 @@ type EditorLeafNodeData = {
     cursorPos: (v: -1 | 1) => CursorIndex,
 };
 type EditorListNodeData = {
-    _?: undefined,
+    replaceID: (id: string, new_value: {[key: string]: unknown}) => void,
+};
+type EditorListItemNodeData = {
+    id: string,
 };
 type EditorLeafNode = HTMLElement & {
     [editor_leaf_node_data]: EditorLeafNodeData,
@@ -94,6 +99,36 @@ type EditorLeafNode = HTMLElement & {
 type EditorListNode = HTMLElement & {
     [editor_list_node_data]: EditorListNodeData,
 };
+type EditorListItemNode = HTMLElement & {
+    [editor_list_item_node_data]: EditorListItemNodeData,
+};
+function isLeafNode(el: HTMLElement): el is EditorLeafNode {
+    return editor_leaf_node_data in el;
+}
+function leafNodeData(el: EditorLeafNode): EditorLeafNodeData;
+function leafNodeData(el: HTMLElement): EditorLeafNodeData | null;
+function leafNodeData(el: HTMLElement): EditorLeafNodeData | null {
+    return isLeafNode(el) ? el[editor_leaf_node_data] : null;
+}
+() => [leafNodeData];
+function isListNode(el: HTMLElement): el is EditorListNode {
+    return editor_list_node_data in el;
+}
+function listNodeData(el: EditorListNode): EditorListNodeData;
+function listNodeData(el: HTMLElement): EditorListNodeData | null;
+function listNodeData(el: HTMLElement): EditorListNodeData | null {
+    return isListNode(el) ? el[editor_list_node_data] : null;
+}
+() => [listNodeData];
+function isListItemNode(el: HTMLElement): el is EditorListItemNode {
+    return editor_list_item_node_data in el;
+}
+function listItemNodeData(el: EditorListNode): EditorListItemNodeData;
+function listItemNodeData(el: HTMLElement): EditorListItemNodeData | null;
+function listItemNodeData(el: HTMLElement): EditorListItemNodeData | null {
+    return isListItemNode(el) ? el[editor_list_item_node_data] : null;
+}
+() => [listItemNodeData];
 export type Selection = {
     // leaf_path: string[], // <RtList> passes this down
     // ah ok that's a good idea because:
@@ -238,7 +273,16 @@ const node_renderers: {
     [key in TextEditorAnyNode["kind"]]?: (props: {node: AnNode<Include<TextEditorAnyNode, {kind: key}>>}) => JSX.Element
 } = {
     root(props: {node: AnNode<TextEditorRootNode>}): JSX.Element {
-        return <RtList>
+        return <RtList replaceID={(id, new_value) => {
+            anSetReconcile(props.node.children, (obj) => {
+                return Object.fromEntries(Object.entries(asObject(obj) ?? {}).flatMap(([k, v]) => {
+                    if(k === id) {
+                        return Object.entries(new_value) as [string, TextEditorFlatNode][];
+                    }
+                    return [[k, v as TextEditorFlatNode]];
+                }));
+            });
+        }}>
             <DraggableList
                 items={anKeys(props.node.children)}
                 setItems={cb => {
@@ -408,11 +452,16 @@ export type CursorIndex = number;
 // getSurrounding()
 
 export function RtList(props: {
+    replaceID: (id: string, new_value: {[key: string]: unknown}) => void,
     children: JSX.Element,
 }): JSX.Element {
     const ctx = useContext(te_context)!;
 
-    const node_data: EditorListNodeData = {};
+    const node_data: EditorListNodeData = {
+        replaceID: (id, new_value) => {
+            props.replaceID(id, new_value);
+        },
+    };
     const node: EditorListNode = Object.assign(
         document.createElement("bce:editor-list-node"),
         {[editor_list_node_data]: node_data},
@@ -428,10 +477,10 @@ export function RtListItem(props: {
 }): JSX.Element {
     const ctx = useContext(te_context)!;
 
-    const node_data: EditorListNodeData = {};
-    const node: EditorListNode = Object.assign(
+    const node_data: EditorListItemNodeData = {id: props.id};
+    const node: EditorListItemNode = Object.assign(
         document.createElement("bce:editor-list-item"),
-        {[editor_list_node_data]: node_data},
+        {[editor_list_item_node_data]: node_data},
     );
     node.setAttribute("data-editor-id", ctx.editor_id);
     insert(node, <>{props.children}</>);
@@ -581,7 +630,16 @@ export function EditorChildren(props: {
     node: AnNode<{[key: string]: TextEditorAnyNode}>,
     fallback?: undefined | JSX.Element,
 }): JSX.Element {
-    return <RtList>
+    return <RtList replaceID={(id, new_value) => {
+        anSetReconcile(props.node, (obj) => {
+            return Object.fromEntries(Object.entries(asObject(obj) ?? {}).flatMap(([k, v]) => {
+                if(k === id) {
+                    return Object.entries(new_value) as [string, TextEditorAnyNode][];
+                }
+                return [[k, v as TextEditorAnyNode]];
+            }));
+        });
+    }}>
         <For each={anKeys(props.node)} fallback={props.fallback}>{key => {
             return <RtListItem id={key}>
                 <EditorNode node={props.node[key]!} />
@@ -680,6 +738,14 @@ export function RichtextEditor(props: {
         ref={div}
     >
         <textarea
+            // if we want to use contenteditable=true, we'll have to intercept every
+            // cursor movement and handle it ourself.
+            // - contenteditable will bring some advantages
+            //   - cursor movement on mobile browsers
+            // - but also contenteditable is really buggy and messy and doesn't work
+            //   very well in a lot of edge cases
+            //   - simple vertical cursor movement was broken when i tried turning it
+            //     on for this page
             class={[
                 "absolute top-0 left-0 pointer-events-none w-full h-full rounded-md",
                 "bg-transparent text-transparent",
@@ -702,7 +768,7 @@ export function RichtextEditor(props: {
                     
                 const moveCursor = (sel: Selection, stop: number, depth: number): void => {
                     if(depth > 30) throw new Error("Failed");
-                    const node_data = sel.editor_node[editor_leaf_node_data];
+                    const node_data = leafNodeData(sel.editor_node);
                     const res = node_data.moveCursor(sel.index, stop);
                     if(typeof res !== "number") {
                         const dir = res.dir;
@@ -737,14 +803,58 @@ export function RichtextEditor(props: {
     
                 console.log(event);
             }}
-            onBeforeInput={ev => {
+            onBeforeInput={ev => batch(() => {
                 ev.preventDefault();
                 console.log("beforeinput", ev);
+                const selection = selected();
+                if(!selection) return;
+                // const getNodePath = (sel: Selection): string[] => {
+                //     let node: HTMLElement | null = sel.editor_node;
+                //     const path: string[] = [];
+                //     while(node) {
+                //         const lnd = listNodeData(node);
+                //         if(lnd) {
+                //             path.unshift(lnd.id);
+                //         }
+                //         node = node.parentElement;
+                //     }
+                // };
+                const replaceRange = (l: undefined, r: undefined, nv: undefined): void => {
+                    // split nodes at left and right
+                    // [!] selections should be changed from real htmlelements to just
+                    //     symbolic things to make it easy for splitting a node to return
+                    //     a new selection
+                    //
+                    // delete nodes (basically: find all the highest level list item nodes)
+                    // (between the two items and tell their list node to delete the item)
+                    //
+                    // - root:
+                    //   [par1: [span one] |cursor_left [span two] [span three]]
+                    //   
+                    //   [par2: [span four] [span five] [span six]]
+                    //
+                    //   [par3: [span seven] [span eight] cursor_right| [span nine]]
+                    //
+                    // par1.remove(span two, span three)
+                    // root.remove(par2)
+                    // par3.remove(span seven, span eight)
+                    //
+                    // insert node
+                    // collapse nodes - in this order: (l, c), (c, r), up parent tree
+                    //                - while the collapse succeeds, collapse again at that level
+                    // also todo we'll need custom actions for these so they continue
+                    // to work when multiple people are editing a document at once
+                };
                 if(ev.inputType === "insertText") {
                     const text = ev.data;
                     () => text;
+                    // last item to this is root_node.insertText(text)
+                    // which will have the node at the cursor return a new node of the
+                    // same type with that text in it
+                    replaceRange(undefined, undefined, undefined); // hmm. this should be in the style of the
+                    // node we're on
                 }
-            }}
+            })}
             // onfocusout={() => {
             //     setSelected(null);
             // }}
