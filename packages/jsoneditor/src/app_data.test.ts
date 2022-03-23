@@ -1,7 +1,8 @@
 import tap from "tap";
+import { UUID } from "tmeta-util";
 import {
-    anCreateUndoGroup, anRoot, anSetReconcile, anSetReconcileIncomplete,
-    anUndo, createAppData, findDiffSignals, SignalPath,
+    anCreateUndoGroup, AnRoot, anRoot, anSetReconcile, anSetReconcileIncomplete,
+    anUndo, applyActionToSnapshot, createAppData, findDiffSignals, FloatingAction, modifyActions, SignalPath,
 } from "./app_data";
 import "./test_setup";
 
@@ -19,62 +20,167 @@ void tap.test("program", async () => {
     });
 });
 
-// hmm i'm not sure about this
+type Server = {[key: string]: string};
+function uploadToServer(server: Server, root: AnRoot) {
+    const client_actions = root.actions.filter(act => act.from === "client");
+    Object.assign(server, Object.fromEntries(client_actions.map(a => [a.id, JSON.stringify(a.value)])));
+}
+function downloadFromServer(server: Server, root: AnRoot) {
+    // todo only publish actions that the server doesn't know the client has
+    // (eg if there is a transport error, the server will publish the same action
+    //  multiple times but usually each action will only be posted once to the client)
+    modifyActions(root, {
+        insert: Object.entries(server).map(([k, v]): FloatingAction => ({
+            id: k as UUID,
+            from: "server",
+            value: JSON.parse(v) as FloatingAction["value"],
+        })),
+        remove: [],
+    });
+}
+function sync(server: Server, ...clients: AnRoot[]) {
+    for(const client of clients) {
+        uploadToServer(server, client);
+    }
+    for(const client of clients) {
+        downloadFromServer(server, client);
+    }
+}
+
+void tap.test("applying actions to snapshots", async () => {
+    // create object
+    tap.same(applyActionToSnapshot({
+        id: "0" as UUID,
+        from: "client",
+        value: {
+            kind: "reorder_keys",
+            old_keys: [],
+            new_keys: [],
+            path: [],
+        }
+    }, undefined), {});
+
+    // does not create object if parents were not created
+    tap.same(applyActionToSnapshot({
+        id: "0" as UUID,
+        from: "client",
+        value: {
+            kind: "reorder_keys",
+            old_keys: [],
+            new_keys: [],
+            path: ["home", "someuser", "Documents"],
+        }
+    }, undefined), undefined);
+
+    // creates value
+    tap.same(applyActionToSnapshot({
+        id: "0" as UUID,
+        from: "client",
+        value: {
+            kind: "set_value",
+            path: ["mytextdocument.txt"],
+            new_value: "content",
+        }
+    }, {'mytextdocument.txt': undefined}), {'mytextdocument.txt': "content"});
+
+    // does not create value if parents were not created
+    tap.same(applyActionToSnapshot({
+        id: "0" as UUID,
+        from: "client",
+        value: {
+            kind: "set_value",
+            path: ["mytextdocument.txt"],
+            new_value: "what an amazing text document. shame the parents weren't created.",
+        }
+    }, undefined), undefined);
+});
+
 void tap.test("deleting objects should delete any changes made", async () => {
     type Person = {
         name: string,
         description: string,
     };
-    const data = createAppData<{[key: string]: Person}>();
-    const root = anRoot(data);
+    const client_1 = createAppData<{[key: string]: Person}>();
+    const client_2 = createAppData<{[key: string]: Person}>();
 
-    tap.same(anRoot(data).snapshot, undefined);
+    const server: Server = {};
+
+    tap.same(anRoot(client_1).snapshot, undefined);
 
     // Client 1 creates a user
 
     const undo_group = anCreateUndoGroup();
-    anSetReconcileIncomplete(data["julia"]!, () => ({}), {undo_group});
+    anSetReconcileIncomplete(client_1["julia"]!, () => ({}), {undo_group});
 
-    tap.same(anRoot(data).snapshot, {
+    tap.same(anRoot(client_1).snapshot, {
+        julia: {},
+    });
+    tap.same(anRoot(client_2).snapshot, undefined);
+
+    // Clients sync
+    sync(server, anRoot(client_1), anRoot(client_2));
+
+    tap.same(anRoot(client_1).snapshot, {
+        julia: {},
+    });
+    tap.same(anRoot(client_2).snapshot, {
         julia: {},
     });
 
     // Client 2 sets the user's name
+    anSetReconcileIncomplete(client_2["julia"]!.name, () => "Secret Keeper");
 
-    anSetReconcileIncomplete(data["julia"]!.name, () => "Julia");
-
-    tap.same(anRoot(data).snapshot, {
+    tap.same(anRoot(client_1).snapshot, {
+        julia: {},
+    });
+    tap.same(anRoot(client_2).snapshot, {
         julia: {
-            name: "Julia"
+            name: "Secret Keeper",
+        },
+    });
+
+    // Clients sync
+    sync(server, anRoot(client_1), anRoot(client_2));
+
+    tap.same(anRoot(client_1).snapshot, {
+        julia: {
+            name: "Secret Keeper",
+        },
+    });
+    tap.same(anRoot(client_2).snapshot, {
+        julia: {
+            name: "Secret Keeper",
         },
     });
 
     // Client 1 undoes the creation
+    anUndo(anRoot(client_1), undo_group);
 
-    anUndo(root, undo_group);
-
-    // tap.same(anRoot(data).snapshot, undefined); ← not sure if this should be correct
-    // behaviour or not. so i'm not implementing it yet.
-
-    // Client 3 has only received the first event and just now sets the user's name
-
-    anSetReconcileIncomplete(data["julia"]!.name, () => "Julia");
-
-    tap.same(anRoot(data).snapshot, {
+    tap.same(anRoot(client_1).snapshot, undefined);
+    tap.same(anRoot(client_2).snapshot, {
         julia: {
-            name: "Julia"
+            name: "Secret Keeper",
         },
     });
 
-    // ^ is this the behaviour we want? seems strange
+    // Client 2 has not yet recieved the undo event and sets the description
+    anSetReconcileIncomplete(client_2["julia"]!.description, () => "Keeper of Secrets");
 
-    // feels like we want:
-    // - in arrays, you have to create an item before you can add things
-    // - in objects, you can set to any key we want
-    // is that true?
-    //
-    // that's not easy to handle given that right now, arrays and objects are the same
-    // thing
+    tap.same(anRoot(client_1).snapshot, undefined);
+    tap.same(anRoot(client_2).snapshot, {
+        julia: {
+            name: "Secret Keeper",
+            description: "Keeper of Secrets",
+        },
+    });
+
+    // Clients sync
+    sync(server, anRoot(client_1), anRoot(client_2));
+
+    tap.same(anRoot(client_1).snapshot, undefined);
+    tap.same(anRoot(client_2).snapshot, undefined);
+
+    console.log("final", anRoot(client_1).snapshot, anRoot(client_2).snapshot);
 });
 
 void tap.test("findDiffSignals", async () => {

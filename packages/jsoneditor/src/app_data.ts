@@ -204,12 +204,25 @@ function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JS
     };
     let res = res_root;
     for(const key of path) {
-        const newnode = {...asObject(res.parent[res.key]) ?? {}};
+        if(!Object.hasOwnProperty.call(res.parent, res.key)) {
+            console.log("action asks to set value in deleted item. skipping action.");
+            return snapshot;
+        }
+        const oldnode = res.parent[res.key];
+        if(!isObject(oldnode)) {
+            console.log("action asks to set value overwriting non-object parent. skipping.");
+            return snapshot;
+        }
+        const newnode = {...oldnode};
         res.parent[res.key] = newnode;
         res = {
             parent: newnode,
             key,
         };
+    }
+    if(!Object.hasOwnProperty.call(res.parent, res.key)) {
+        console.log("action asks to set value in deleted item. skipping action.");
+        return snapshot;
     }
     res.parent[res.key] = upd(res.parent[res.key]);
     return res_root.parent[res_root.key];
@@ -229,7 +242,7 @@ export function collapseActions<T extends FloatingAction>(actions: T[]): T[] {
         return true;
     }).reverse();
 }
-export function applyActionToSnapshot(action: Action, snapshot: JSON): JSON {
+export function applyActionToSnapshot(action: FloatingAction, snapshot: JSON): JSON {
     const av = action.value;
     if(av.kind === "set_value") {
         return setNodeAtPath(av.path, snapshot, prev => {
@@ -318,11 +331,31 @@ function readValue(root: AnRoot, path: string[]): unknown {
     }
     return ntry;
 }
-// change how setreconcile works
-// 1: find actions
-// 2: applyActions
-// 3: emitDiffSignals
 
+function createParents(path: string[], root: AnRoot): FloatingAction[] {
+    const res: FloatingAction[] = [];
+    for(const [index, key] of path.entries()) {
+        const segment = path.slice(0, index);
+        const value = anKeys({
+            [symbol_value]: null,
+            [symbol_path]: segment,
+            [symbol_root]: root,
+        });
+        if(!value.includes(key)) {
+            res.push({
+                id: uuid(),
+                from: "client",
+                value: {
+                    kind: "reorder_keys",
+                    path: segment,
+                    old_keys: value,
+                    new_keys: [...value, key],
+                },
+            });
+        }
+    }
+    return res;
+}
 function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     if(pv === nv) return [];
 
@@ -480,6 +513,9 @@ export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingA
                 break;
             }
         }
+        if(i === -1) {
+            console.log("no snapshot available, rebuilding from scratch…");
+        }
 
         const iter_distance = root.actions.length - i;
 
@@ -520,7 +556,7 @@ function setReconcile<T>(root: AnRoot, undo_group: UndoGroup, path: string[], nv
         const pv = readValue(root, path);
         const nv = nvCb(pv);
 
-        const new_actions = findActions(path, pv, nv);
+        const new_actions = [...createParents(path, root), ...findActions(path, pv, nv)];
         addUserActions(root, undo_group, new_actions);
     });
 }
