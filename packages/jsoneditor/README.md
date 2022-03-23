@@ -63,3 +63,44 @@ undo/redo considerations
   across hmr reloads.
 - anyway, undo will have to do stuff like: move your cursor in a richtext input back to
   where it was, and that requires keeping ui state
+
+## note
+
+ok so I was thinking
+
+we're not worried about permissions yet
+
+but
+
+we might be able to have a very trivial permission implementation by:
+
+- storing user permissions in the document
+- storing user ids in actions a user creates and validating them on the server
+- on the client, ignore actions a user is not allowed to create
+- if the server maintains a snapshot, do the same thing there too
+
+this would allow untrusted clients to create lots of actions that do nothing though
+
+we need to support large volumes of actions and ratelimiting before we can do permissions
+that way if we want to do that.
+
+also we should probably make actions specify the subtrees they modify
+
+that's an easy change
+
+because eventually we'll want to be able to only send relevant content to clients rather
+than the entire action stream.
+
+## note
+
+I want to make a website for the richtext editor
+
+we should make the website use the editor itself
+
+have like a bar at the top that has all the buttons and shows "unsaved changes" that
+when you click it prefills a github PR for you
+
+and the entire page and documentation and examples and all that except for editor
+controls is inside the editor.
+
+that would be really cool
