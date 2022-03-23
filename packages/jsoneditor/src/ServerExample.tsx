@@ -47,6 +47,8 @@ function ServerMain(props: {root: AnRoot}): JSX.Element {
         connection.disconnect();
     });
 
+    const [modificationsMade, setModificationsMade] = createSignal(false);
+
     const [connected, setConnected] = createSignal(false);
     const [error, setError] = createSignal<null | Error>(null);
     const [reconnectState, setReconnectState] = createSignal(0);
@@ -59,8 +61,9 @@ function ServerMain(props: {root: AnRoot}): JSX.Element {
         for(const action of collapsed) {
             Object.defineProperty(action, act_sent, {});
         }
-        modifyActions(props.root, {insert: collapsed, remove: client_actions.map(a => a.id)});
-        if(client_actions.length > 0) {
+        if(collapsed.length > 0) {
+            modifyActions(props.root, {insert: collapsed, remove: client_actions.map(a => a.id)});
+            setModificationsMade(true);
             connection.emit("create actions", collapsed);
         }
         // ↑ socket.io will resend emits automatically until success; no need to
@@ -122,7 +125,10 @@ function ServerMain(props: {root: AnRoot}): JSX.Element {
             if(unsaved_count > 0) {
                 return "Saving "+unsaved_count+" changes…";
             }
-            return "✓ Saved";
+            if(modificationsMade()) {
+                return "✓ Saved";
+            }
+            return "Connected.";
         })()}
     </Show>;
 }

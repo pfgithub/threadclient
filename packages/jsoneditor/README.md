@@ -91,6 +91,13 @@ that's an easy change
 because eventually we'll want to be able to only send relevant content to clients rather
 than the entire action stream.
 
+oh. note: this only allows for write control, not access control for viewing things. so eg
+we can't make the card game not even tell the client card was drawn until it has been
+flipped over or have documents inside a document that only some users are allowed to
+access. I think it would be cool if eventually every document was in one big action
+stream but that might not be a resonable thing to do, it might make sense to instead have
+view control at the document level and link documents to eachother instead.
+
 ## note
 
 I want to make a website for the richtext editor
