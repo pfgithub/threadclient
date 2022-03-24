@@ -75,9 +75,10 @@ io.of(/^.*$/).on("connection", socket => {
                     throw new Error("action missing .id field");
                 }
                 const res = {
-                    version: "2",
+                    version: "0",
                     id: action["id"],
                     value: JSON.stringify(action["value"]),
+                    affects: JSON.stringify(action["affects"]),
                 };
                 return res;
             });
@@ -120,9 +121,10 @@ function isObject(v: unknown): v is {[key: string]: unknown} {
         if(e1) return console.error(e1);
         const unsent: unknown[] = [];
         cursor.each((e2: Error | undefined, item: {new_val: {
-            version: undefined | "2",
+            version: "0",
             id: string,
-            value: string,
+            value: undefined | string,
+            affects: undefined | string,
         }}) => {
             if(e2) return console.error(e2);
             console.log("got item", item);
@@ -130,11 +132,8 @@ function isObject(v: unknown): v is {[key: string]: unknown} {
             const new_action: unknown = {
                 id: item.new_val.id,
                 from: "server",
-                value: item.new_val.version === undefined ? (
-                    item.new_val.value as unknown
-                ) : (
-                    JSON.parse(item.new_val.value) as unknown
-                ),
+                value: JSON.parse(item.new_val.value ?? "null") as unknown,
+                affects: JSON.parse(item.new_val.affects ?? "null") as unknown,
             };
             unsent.push(new_action);
             all_actions.push(new_action);

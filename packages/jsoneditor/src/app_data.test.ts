@@ -20,7 +20,10 @@ void tap.test("program", async () => {
     });
 });
 
-type Server = {[key: string]: string};
+type Server = {[key: string]: {
+    value: string,
+    affects: string,
+}};
 function uploadToServer(server: Server, root: AnRoot) {
     const client_actions = root.actions.filter(act => act.from === "client");
     Object.assign(server, Object.fromEntries(client_actions.map(a => [a.id, JSON.stringify(a.value)])));
@@ -33,7 +36,8 @@ function downloadFromServer(server: Server, root: AnRoot) {
         insert: Object.entries(server).map(([k, v]): FloatingAction => ({
             id: k as UUID,
             from: "server",
-            value: JSON.parse(v) as FloatingAction["value"],
+            value: JSON.parse(v.value) as FloatingAction["value"],
+            affects: JSON.parse(v.affects) as FloatingAction["affects"],
         })),
         remove: [],
     });
@@ -56,8 +60,8 @@ void tap.test("applying actions to snapshots", async () => {
             kind: "reorder_keys",
             old_keys: [],
             new_keys: [],
-            path: [],
-        }
+        },
+        affects: [[]],
     }, undefined), {});
 
     // does not create object if parents were not created
@@ -68,8 +72,8 @@ void tap.test("applying actions to snapshots", async () => {
             kind: "reorder_keys",
             old_keys: [],
             new_keys: [],
-            path: ["home", "someuser", "Documents"],
-        }
+        },
+        affects: [["home", "someuser", "Documents"]],
     }, undefined), undefined);
 
     // creates value
@@ -78,9 +82,9 @@ void tap.test("applying actions to snapshots", async () => {
         from: "client",
         value: {
             kind: "set_value",
-            path: ["mytextdocument.txt"],
             new_value: "content",
-        }
+        },
+        affects: [["mytextdocument.txt"]],
     }, {'mytextdocument.txt': undefined}), {'mytextdocument.txt': "content"});
 
     // does not create value if parents were not created
@@ -89,9 +93,9 @@ void tap.test("applying actions to snapshots", async () => {
         from: "client",
         value: {
             kind: "set_value",
-            path: ["mytextdocument.txt"],
             new_value: "what an amazing text document. shame the parents weren't created.",
-        }
+        },
+        affects: [["mytextdocument.txt"]],
     }, undefined), undefined);
 });
 

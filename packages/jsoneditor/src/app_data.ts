@@ -130,6 +130,10 @@ export function anUndo(root: AnRoot, group: UndoGroup): {redo: UndoGroup} {
             kind: "undo",
             ids: ids,
         },
+        affects: [[]], // TODO loop over the ids and get the actions they affect
+        // also probably filter ids to only the ones that exist because an undo group
+        // might contain more actions than are actually in the document because of
+        // action merging every 200ms
     };
 
     addUserActions(root, redo, [undo_action]);
@@ -146,21 +150,19 @@ export function anPath<T>(node: AnNodeData<T>): string[] {
     return node[symbol_path];
 }
 
-type Primitive = string | bigint | boolean | null | undefined;
+type Primitive = string | number | boolean | null | undefined; // TODO get rid of undefined
 
-export type JSON = unknown;
+export type JSON = unknown; // TODO = Primitive | {[key: string]: unknown}
 export type ActionPath = string[];
 export type ActionValue = {
     kind: "reorder_keys",
-    path: ActionPath,
     old_keys: string[],
     new_keys: string[],
     //^ so if one person adds a key while another person reorders, the added item
     //  does not get deleted.
 } | {
     kind: "set_value",
-    path: ActionPath,
-    new_value: JSON,
+    new_value: Primitive,
 } | {
     kind: "undo",
     ids: UUID[],
@@ -169,6 +171,7 @@ export type FloatingAction = {
     id: UUID,
     from: "client" | "server",
     value: ActionValue,
+    affects: ActionPath[], // specifies the subtrees this action modifies
 };
 export type InsertedAction = FloatingAction & {
     parent_updated: number, // hash(parent.id, parent.parent_hash) (currently implemented as
@@ -234,7 +237,7 @@ export function collapseActions<T extends FloatingAction>(actions: T[]): T[] {
     return [...actions].reverse().filter(action => {
         const sp = JSON.stringify([action.value.kind, switchKind(action.value, {
             reorder_keys: rk => never_collapse++,
-            set_value: sv => sv.path,
+            set_value: sv => action.affects,
             undo: ndo => never_collapse++,
         })]);
         if(set_paths.has(sp)) return false;
@@ -245,11 +248,14 @@ export function collapseActions<T extends FloatingAction>(actions: T[]): T[] {
 export function applyActionToSnapshot(action: FloatingAction, snapshot: JSON): JSON {
     const av = action.value;
     if(av.kind === "set_value") {
-        return setNodeAtPath(av.path, snapshot, prev => {
+        let res = snapshot;
+        for(const path of action.affects) res = setNodeAtPath(path, res, prev => {
             return av.new_value;
         });
+        return res;
     }else if(av.kind === "reorder_keys") {
-        return setNodeAtPath(av.path, snapshot, prev_in => {
+        let res = snapshot;
+        for(const path of action.affects) res = setNodeAtPath(path, res, prev_in => {
             const prev = asObject(prev_in) ?? {};
 
             // this logic can be improved to be better
@@ -265,6 +271,7 @@ export function applyActionToSnapshot(action: FloatingAction, snapshot: JSON): J
                 return [key, prev[key]];
             }));
         });
+        return res;
     }else if(av.kind === "undo") {
         throw new Error("Internal error; Undos should not be sent to applyAction()");
     }else assertNever(av);
@@ -347,10 +354,10 @@ function createParents(path: string[], root: AnRoot): FloatingAction[] {
                 from: "client",
                 value: {
                     kind: "reorder_keys",
-                    path: segment,
                     old_keys: value,
                     new_keys: [...value, key],
                 },
+                affects: [segment],
             });
         }
     }
@@ -365,9 +372,8 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     if(!isObject(nv)) {
         return [{id: uuid(), from: "client", value: {
             kind: "set_value",
-            path: path,
-            new_value: nv,
-        }}];
+            new_value: nv as Primitive,
+        }, affects: [path]}];
     }
 
     const res_actions: FloatingAction[] = [];
@@ -380,10 +386,9 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
         JSON.stringify(prev_keys) !== JSON.stringify(next_keys) || !isObject(pv)
     ) res_actions.push({id: uuid(), from: "client", value: {
         kind: "reorder_keys",
-        path: path,
         old_keys: prev_keys,
         new_keys: next_keys,
-    }});
+    }, affects: [path]});
 
     // create all new keys
     for(const key of next_keys) {

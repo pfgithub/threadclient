@@ -67,15 +67,16 @@ function Act(props: {action: Action}): JSX.Element {
                 <pre class="whitespace-pre-wrap"><code>
                     {JSON.stringify(rok.new_keys, null, " ")}
                 </code></pre>
-                <PathRender path={rok.path} />
             </>,
             set_value: (sv) => <>
                 <pre class="whitespace-pre-wrap"><code>
                     {JSON.stringify(sv.new_value, null, " ")}
                 </code></pre>
-                <PathRender path={sv.path} />
             </>,
         }}</SwitchKind>
+        <For each={props.action.affects}>{affects => <div>
+            <PathRender path={affects} />
+        </div>}</For>
     </div>;
 }
 
