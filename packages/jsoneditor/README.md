@@ -111,3 +111,15 @@ and the entire page and documentation and examples and all that except for edito
 controls is inside the editor.
 
 that would be really cool
+
+# note
+
+ok thinking about end to end encryption
+
+- for small documents they can be peer to peer
+- the issue is that if we want to send partial updates, we need to know some content
+- I guess we can have encrypted sections inside unencrypted content where stuff inside
+  the section is opaque
+
+i'm not going to worry about this yet or take it into account for any design decisions,
+we're not at the stage where it matters yet
