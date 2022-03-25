@@ -3,6 +3,7 @@ import initExpress from "express";
 import init_http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import r, { ChangesOptions } from "rethinkdb";
+import { assertNever } from "tmeta-util";
 
 // https://firebase.google.com/docs/reference/node/firebase.database.ServerValue
 // we'll want to do this
@@ -26,19 +27,31 @@ express.use(cors(corsopts));
 function hasPermission(): boolean {
     return true;
 }
-
+type DocumentValue = {
+    listeners: DocumentListener[],
+    actions: unknown[],
+};
 type DocumentListener = (v: unknown[]) => void;
-let document_listeners: (DocumentListener)[] = [];
-const all_actions: unknown[] = [];
+const documents = new Map<string, DocumentValue>();
+function getDocument(document_name: string): DocumentValue {
+    let doc = documents.get(document_name);
+    if(!doc) {
+        doc = {listeners: [], actions: []};
+        documents.set(document_name, doc);
+    }
+    return doc;
+}
 
 type Document = {disconnect: () => void};
 function watchDocument(document_name: string, cb: DocumentListener): Document {
+    const doc = getDocument(document_name);
+
     // TODO per document
-    cb(all_actions);
-    document_listeners.push(cb);
+    cb(doc.actions);
+    doc.listeners.push(cb);
     return {
         disconnect: () => {
-            document_listeners = document_listeners.filter(l => l !== cb);
+            doc.listeners = doc.listeners.filter(l => l !== cb);
         },
     };
 }
@@ -74,11 +87,12 @@ io.of(/^.*$/).on("connection", socket => {
                 if(typeof action["id"] !== "string") {
                     throw new Error("action missing .id field");
                 }
-                const res = {
-                    version: "0",
+                const res: DBAction = {
+                    version: "1",
                     id: action["id"],
                     value: JSON.stringify(action["value"]),
                     affects: JSON.stringify(action["affects"]),
+                    document: document_name,
                 };
                 return res;
             });
@@ -103,15 +117,39 @@ io.of(/^.*$/).on("connection", socket => {
     });
 });
 
+type DBActionPrimary = {
+    id: string,
+    // document: string, // TODO we'll do queries based on document
+    // rather than watching all documents.
+};
+type DBAction = DBActionPrimary & {
+    version: "1",
+    id: string,
+    document: string,
+    value: undefined | string,
+    affects: undefined | string,
+};
+type OldDBAction = DBActionPrimary & (DBAction | {
+    version: "0",
+    id: string,
+    value: undefined | string,
+    affects: undefined | string,
+});
+function upgradeDBAction(old: OldDBAction): DBAction {
+    if(old.version === "1") return old;
+    if(old.version === "0") return {
+        ...old,
+        version: "1",
+        document: "none",
+    };
+    assertNever(old);
+}
+
 function isObject(v: unknown): v is {[key: string]: unknown} {
     return v != null && typeof v === "object";
 }
 
 (async () => {
-    // for each client we're going to have a list of items they're observing
-    // the client asks to view an item, we load and give the result back and notify
-    // them on any changes. the client can unsubscribe at any time.
-
     conn = await r.connect({db: "jsoneditor"});
     const opts: Partial<ChangesOptions> = {
         includeInitial: true,
@@ -119,29 +157,34 @@ function isObject(v: unknown): v is {[key: string]: unknown} {
     };
     r.table("actions").changes(opts as ChangesOptions).run(conn, (e1: Error | undefined, cursor) => {
         if(e1) return console.error(e1);
-        const unsent: unknown[] = [];
-        cursor.each((e2: Error | undefined, item: {new_val: {
-            version: "0",
-            id: string,
-            value: undefined | string,
-            affects: undefined | string,
-        }}) => {
+        const unsent: Map<string, unknown[]> = new Map();
+        cursor.each((e2: Error | undefined, item_old: {new_val: OldDBAction}) => {
             if(e2) return console.error(e2);
-            console.log("got item", item);
-            if(!('new_val' in item)) return;
+            console.log("got item", item_old);
+            if(!('new_val' in item_old)) return;
+            const action = upgradeDBAction(item_old.new_val);
             const new_action: unknown = {
-                id: item.new_val.id,
+                id: action.id,
                 from: "server",
-                value: JSON.parse(item.new_val.value ?? "null") as unknown,
-                affects: JSON.parse(item.new_val.affects ?? "null") as unknown,
+                value: JSON.parse(action.value ?? "null") as unknown,
+                affects: JSON.parse(action.affects ?? "null") as unknown,
             };
-            unsent.push(new_action);
-            all_actions.push(new_action);
+
+            let unsentv = unsent.get(action.document);
+            if(!unsentv) {
+                unsentv = [];
+                unsent.set(action.document, []);
+            }
+            unsentv.push(new_action);
+
+            getDocument(action.document).actions.push(new_action);
         });
         setInterval(() => {
-            if(unsent.length === 0) return;
-            const to_send = unsent.splice(0);
-            document_listeners.forEach(doc => doc(to_send));
+            for(const [document, actions] of [...unsent.entries()]) {
+                if(actions.length === 0) continue;
+                const to_send = actions.splice(0);
+                getDocument(document).listeners.forEach(lsnr => lsnr(to_send));
+            }
         }, 20);
     });
 

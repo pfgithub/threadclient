@@ -1,4 +1,5 @@
-import { createSelector, For, JSX, untrack } from "solid-js";
+import { createContext, createSelector, For, JSX, untrack, useContext } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { Show } from "tmeta-util-solid";
 import {
     anBool, anCommitUndoGroup, anCreateUndoGroup, anKeys, AnNode,
@@ -15,35 +16,47 @@ import { Richtext, RichtextEditor } from "./TextEditor";
 import { UIState } from "./ui_state";
 import { uuid } from "./uuid";
 
+const force_collapse = createContext<() => boolean>();
+
+export function SetForceCollapse(props: {value: boolean, children?: undefined | JSX.Element}): JSX.Element {
+    return <force_collapse.Provider value={() => props.value}>
+        {props.children}
+    </force_collapse.Provider>;
+}
+
 export function Collapsible(props: {
     anchor: AnNodeData<unknown>,
     preview?: undefined | JSX.Element,
     children?: undefined | JSX.Element,
 }): JSX.Element {
+    const forceCollapsed = useContext(force_collapse);
     console.log("rendering collapsible", props.anchor);
     return <UIState
         key={"-MyzGObC9LuejnxWG_Nt"}
         node={props.anchor}
         defaultValue={() => true}
-    >{([collapsed, setCollapsed]) => <Show if={!collapsed()} fallback={<>
-        <UIState key={"-MyzHco_j7JRk0-r4s5Q"}>
-            <button
-                class="w-full bg-gray-700 rounded-md px-2 text-left"
-                onClick={() => setCollapsed(v => !v)}
-            >▸ {props.preview ?? "*collapsed*"}</button>
-        </UIState>
-    </>}>
-        <UIState key={"-MyzH_vX-QjgkINJlpmP"}>
-            <div class="flex flex-row gap-2 flex-wrap">
+    >{([collapsedRaw, setCollapsed]) => {
+        const collapsed = () => (forceCollapsed?.() ?? false) || collapsedRaw();
+        return <Show if={!collapsed()} fallback={<>
+            <UIState key={"-MyzHco_j7JRk0-r4s5Q"}>
                 <button
-                    aria-label="collapse"
-                    class="w-2 bg-gray-700 block"
+                    class="w-full bg-gray-700 rounded-md px-2 text-left"
                     onClick={() => setCollapsed(v => !v)}
-                />
-                <div class="flex-1">{props.children}</div>
-            </div>
-        </UIState>
-    </Show>}</UIState>;
+                >▸ {props.preview ?? "*collapsed*"}</button>
+            </UIState>
+        </>}>
+            <UIState key={"-MyzH_vX-QjgkINJlpmP"}>
+                <div class="flex flex-row gap-2 flex-wrap">
+                    <button
+                        aria-label="collapse"
+                        class="w-2 bg-gray-700 block"
+                        onClick={() => setCollapsed(v => !v)}
+                    />
+                    <div class="flex-1">{props.children}</div>
+                </div>
+            </UIState>
+        </Show>;
+    }}</UIState>;
 }
 
 export function HeadingValue(props: {
@@ -58,32 +71,33 @@ export function HeadingValue(props: {
     </div>;
 }
 
-export function StringEditor(props: {node: AnNode<string>}): JSX.Element {
+export function StringEditor(props: {
+    node: AnNode<string>,
+    long?: undefined | boolean,
+}): JSX.Element {
     let undo_group: UndoGroup | null = null;
     return <div>
-        <Show
-            if={anString(props.node) != null}
-            fallback={<Buttons>
-                <Button onClick={() => anSetReconcile(props.node, () => "")}>Create String</Button>
-            </Buttons>}
-        >
-            <input
-                type="text"
-                class="w-full bg-transparent hover:bg-gray-700 focus:bg-gray-700 rounded-sm px-1"
-                value={anString(props.node) ?? ""}
-                // onChange here maybe?
-                onInput={e => {
-                    if(!undo_group) {
-                        undo_group = anCreateUndoGroup();
-                        anCommitUndoGroup(anRoot(props.node), undo_group);
-                    }
-                    anSetReconcile(props.node, () => e.currentTarget.value, {undo_group});
-                }}
-                onChange={() => {
-                    undo_group = null;
-                }}
-            />
-        </Show>
+        <Dynamic
+            component={props.long ?? false ? "textarea" : "input"}
+            type="text"
+            // we can do "bg-transparent hover:bg-gray-700 focus:bg-gray-700"
+            class={
+                "w-full bg-gray-700 rounded-sm px-1 "
+                +(props.long ?? false ? "resize-y" : "")
+            }
+            value={anString(props.node) ?? ""}
+            // onChange here maybe?
+            onInput={(e: InputEvent) => {
+                if(!undo_group) {
+                    undo_group = anCreateUndoGroup();
+                    anCommitUndoGroup(anRoot(props.node), undo_group);
+                }
+                anSetReconcile(props.node, () => (e.currentTarget as HTMLInputElement).value, {undo_group});
+            }}
+            onChange={() => {
+                undo_group = null;
+            }}
+        />
     </div>;
 }
 

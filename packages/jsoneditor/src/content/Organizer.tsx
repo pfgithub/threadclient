@@ -1,8 +1,9 @@
-import { JSX } from "solid-js";
+import { createSignal, JSX } from "solid-js";
+import { Show } from "tmeta-util-solid";
 import { AnNode, anSetReconcile, anString, JSON } from "../app_data";
 import { Button, Buttons } from "../components";
 import { asObject } from "../guards";
-import { AnFor, Collapsible, StringEditor } from "../Schemaless";
+import { AnFor, Collapsible, SetForceCollapse, StringEditor } from "../Schemaless";
 import { uuid } from "../uuid";
 
 type Ar<T extends JSON> = {[key: string]: T}; 
@@ -32,20 +33,24 @@ function Item(props: {id: string, root: AnNode<OrganizerRoot>}): JSX.Element {
         {anString(node.title)}
     </>}>
         <div class="flex flex-row gap-2 flex-wrap">
-            <img
+            <div
+                // TODO should be a drop area for files
                 class="block w-20 h-20 bg-gray-900 rounded-md hover:opacity-50"
-                src={anString(node.image.hash) ?? ""}
                 onclick={() => {
                     const newv = prompt("Image URL", anString(node.image.hash) ?? "");
                     if(newv != null) anSetReconcile(node.image.hash, () => newv);
                 }}
+                children={<img
+                    src={anString(node.image.hash) ?? ""}
+                    class="max-w-full max-h-full rounded-md m-auto"
+                />}
             />
             <div class="flex-1 space-y-2">
                 <StringEditor node={node.title} />
-                <StringEditor node={node.description} />
+                <StringEditor node={node.description} long />
                 <div class="flex flex-row gap-2 flex-wrap">
                     <div>URL: </div>
-                    <StringEditor node={node.url} />
+                    <div class="flex-1"><StringEditor node={node.url} /></div>
                 </div>
             </div>
         </div>    
@@ -54,18 +59,28 @@ function Item(props: {id: string, root: AnNode<OrganizerRoot>}): JSX.Element {
 
 function Category(props: {id: string, root: AnNode<OrganizerRoot>}): JSX.Element {
     const node = props.root.all_categories[props.id]!;
+    const [editing, setEditing] = createSignal(false);
     return <Collapsible anchor={node} preview={<>
         {anString(node.description)}
     </>}>
         <div class="space-y-2">
-            <StringEditor node={node.description} />
-            <AnFor node={node.link_categories}>{(__, key) => <>
-                <Category id={key} root={props.root} />
-            </>}</AnFor>
-            <AnFor node={node.link_items}>{(__, key) => <>
-                <Item id={key} root={props.root} />
-            </>}</AnFor>
-            <Buttons>
+            <div class="flex flex-row gap-2 flex-wrap">
+                <div class="flex-1"><StringEditor node={node.description} /></div>
+                <Buttons>
+                    <Button onClick={() => setEditing(v => !v)}>{editing() ? "Done" : "Edit"}</Button>
+                </Buttons>
+            </div>
+            <SetForceCollapse value={editing()}>
+                <AnFor node={node.link_categories}>{(__, key) => <>
+                    <Category id={key} root={props.root} />
+                </>}</AnFor>
+                <AnFor node={node.link_items}>{(__, key) => <>
+                    <Item id={key} root={props.root} />
+                </>}</AnFor>
+            </SetForceCollapse>
+            <Show if={editing()}
+                // TODO these look horrible we want a nicer way to insert them
+            ><Buttons>
                 <Button onClick={() => {
                     anSetReconcile(node.link_categories, pv => {
                         return {...asObject(pv) as {[key: string]: null} ?? {}, [uuid()]: null};
@@ -76,7 +91,7 @@ function Category(props: {id: string, root: AnNode<OrganizerRoot>}): JSX.Element
                         return {...asObject(pv) as {[key: string]: null} ?? {}, [uuid()]: null};
                     });
                 }}>+ Add Item</Button>
-            </Buttons>
+            </Buttons></Show>
         </div>    
     </Collapsible>;
 }

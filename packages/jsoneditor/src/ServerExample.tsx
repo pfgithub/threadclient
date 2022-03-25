@@ -37,11 +37,38 @@ export default function ServerExample(props: {root: AnRoot}): JSX.Element {
                 return res;
             });
         });
-        return <ServerMain root={props.root} />;
+
+        const updoc = () => location.hash.substring(1) || null;
+        const [getDocument, setDocument] = createSignal(updoc());
+        const hashchange = () => setDocument(updoc());
+        window.addEventListener("hashchange", hashchange);
+        onCleanup(() => window.removeEventListener("hashchange", hashchange));
+        // oh whoops, this isn't right
+        // if you change the hash it will try to upload any unuploaded actions to that hash
+        // but that isn't what we want
+        // we'll want to use a proper router
+
+        return <Show when={getDocument()} fallback={
+            "× Error. No document. URL hash."
+        }>{document => <>
+            <ServerMain
+                root={props.root}
+                document={document}
+            />
+        </>}</Show>;
     });
 }
-function ServerMain(props: {root: AnRoot}): JSX.Element {
-    const connection = io("http://localhost:3564/document-example");
+function WarnBeforeNavigation(): JSX.Element {
+    const lsnr = () => {
+        return true;
+    };
+    window.addEventListener("beforeunload", lsnr);
+    onCleanup(() => window.removeEventListener("beforeunload", lsnr));
+
+    return <></>;
+}
+function ServerMain(props: {root: AnRoot, document: string}): JSX.Element {
+    const connection = io("http://localhost:3564/"+props.document);
     connection.connect();
     onCleanup(() => {
         connection.disconnect();
@@ -130,5 +157,8 @@ function ServerMain(props: {root: AnRoot}): JSX.Element {
             }
             return "Connected.";
         })()}
+        <Show if={props.root.actions.filter(v => v.from === "client").length > 0}>
+            <WarnBeforeNavigation />
+        </Show>
     </Show>;
 }
