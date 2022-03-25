@@ -2,16 +2,49 @@ import { createSelector, For, JSX, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import {
     anBool, anCommitUndoGroup, anCreateUndoGroup, anKeys, AnNode,
+    AnNodeData,
     anRoot, anSetReconcile, anSetReconcileIncomplete, anString,
     UndoGroup
 } from "./app_data";
 import { Button, Buttons } from "./components";
+import Organizer, { OrganizerRoot } from "./content/Organizer";
 import { DragButton, DraggableList } from "./DraggableList";
 import { asObject, unreachable } from "./guards";
 import { Tab, Tabs } from "./Tabs";
 import { Richtext, RichtextEditor } from "./TextEditor";
 import { UIState } from "./ui_state";
 import { uuid } from "./uuid";
+
+export function Collapsible(props: {
+    anchor: AnNodeData<unknown>,
+    preview?: undefined | JSX.Element,
+    children?: undefined | JSX.Element,
+}): JSX.Element {
+    console.log("rendering collapsible", props.anchor);
+    return <UIState
+        key={"-MyzGObC9LuejnxWG_Nt"}
+        node={props.anchor}
+        defaultValue={() => true}
+    >{([collapsed, setCollapsed]) => <Show if={!collapsed()} fallback={<>
+        <UIState key={"-MyzHco_j7JRk0-r4s5Q"}>
+            <button
+                class="w-full bg-gray-700 rounded-md px-2 text-left"
+                onClick={() => setCollapsed(v => !v)}
+            >▸ {props.preview ?? "*collapsed*"}</button>
+        </UIState>
+    </>}>
+        <UIState key={"-MyzH_vX-QjgkINJlpmP"}>
+            <div class="flex flex-row gap-2 flex-wrap">
+                <button
+                    aria-label="collapse"
+                    class="w-2 bg-gray-700 block"
+                    onClick={() => setCollapsed(v => !v)}
+                />
+                <div class="flex-1">{props.children}</div>
+            </div>
+        </UIState>
+    </Show>}</UIState>;
+}
 
 export function HeadingValue(props: {
     title: string,
@@ -36,7 +69,7 @@ export function StringEditor(props: {node: AnNode<string>}): JSX.Element {
         >
             <input
                 type="text"
-                class="w-full bg-gray-700 rounded-sm px-1"
+                class="w-full bg-transparent hover:bg-gray-700 focus:bg-gray-700 rounded-sm px-1"
                 value={anString(props.node) ?? ""}
                 // onChange here maybe?
                 onInput={e => {
@@ -249,6 +282,7 @@ type Schema = {
     demo1: Demo1,
     rebind: Rebind,
     text_editor: Richtext,
+    organizer: OrganizerRoot,
 };
 
 export default function Schemaless(props: {node: AnNode<Schema>}): JSX.Element {
@@ -268,6 +302,9 @@ export default function Schemaless(props: {node: AnNode<Schema>}): JSX.Element {
             </Tab>
             <Tab key="-MyOD5Bx2tHatgIAyvV2" title="schema">
                 schema
+            </Tab>
+            <Tab key="-MyzC-ZRasuQVaB1diR3" title="organizer">
+                <Organizer node={props.node.organizer} />
             </Tab>
         </Tabs>
     </>}</UIState>;
