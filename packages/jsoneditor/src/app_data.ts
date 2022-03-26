@@ -208,12 +208,10 @@ function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JS
     let res = res_root;
     for(const key of path) {
         if(!Object.hasOwnProperty.call(res.parent, res.key)) {
-            console.log("action asks to set value in deleted item. skipping action.");
             return snapshot;
         }
         const oldnode = res.parent[res.key];
         if(!isObject(oldnode)) {
-            console.log("action asks to set value overwriting non-object parent. skipping.");
             return snapshot;
         }
         const newnode = {...oldnode};
@@ -224,7 +222,6 @@ function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JS
         };
     }
     if(!Object.hasOwnProperty.call(res.parent, res.key)) {
-        console.log("action asks to set value in deleted item. skipping action.");
         return snapshot;
     }
     res.parent[res.key] = upd(res.parent[res.key]);
@@ -309,11 +306,11 @@ function getNodeSignal(root: AnRoot, path: SignalPath): {
     return {
         view: () => {
             signal![0]();
-            console.log("observing signal", JSON.stringify(path));
+            // console.log("observing signal", JSON.stringify(path));
         },
         emit: () => {
             signal![1](undefined);
-            console.log("emitting signal", JSON.stringify(path));
+            // console.log("emitting signal", JSON.stringify(path));
         },
     };
 }
