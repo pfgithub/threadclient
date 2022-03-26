@@ -1227,7 +1227,7 @@ export function RichtextEditor(props: {
                     moveCursor(selection, 1, 0);
                 }
     
-                console.log(event);
+                // console.log(event);
             }}
             onBeforeInput={ev => batch((): void => {
                 ev.preventDefault();
