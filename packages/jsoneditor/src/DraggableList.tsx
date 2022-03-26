@@ -85,6 +85,7 @@ export function DraggableList(props: {
                         el.style.pointerEvents = dragging() ? "none" : "";
                     });
                     let stored_rect: DOMRect | null = null;
+                    el.style.transformOrigin = "top";
                     createEffect(() => {
                         const flip_state = flipState();
                         if(flip_state === 1 || flip_state === 3) {

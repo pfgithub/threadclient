@@ -23,12 +23,20 @@ import { uuid, UUID } from "./uuid";
 // 1. consistent node structures and get all the current code to work
 // 2. typing inserts nodes
 // 3. merging nodes with the user merge function
+//
+// this means:
+// - every leaf render has to be a real physical thing in your document
+// - before, we were attempting to allow renderers to render fake nodes they made
+//   themselves. this is probably possible to do but feels like it will have lots of
+//   complications trying to do basic things like deleting a node
 
 type TENode = {
     children: {[key: string]: TENode | TELeaf},
+    data: unknown,
 };
 type TELeaf = {
     text: string,
+    data: unknown,
 };
 
 type TEUnmergedText = {
