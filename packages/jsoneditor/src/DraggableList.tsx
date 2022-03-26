@@ -87,8 +87,8 @@ export function DraggableList(props: {
                     let stored_rect: DOMRect | null = null;
                     createEffect(() => {
                         const flip_state = flipState();
-                        if(flip_state === 1) {
-                            if(el.style.transform !== "") {
+                        if(flip_state === 1 || flip_state === 3) {
+                            if(el.style.transform !== "" || flip_state === 3) {
                                 stored_rect = el.getBoundingClientRect();
                                 el.style.transition = "";
                                 el.style.transform = "";
@@ -102,8 +102,15 @@ export function DraggableList(props: {
                                 const current_rect = el.getBoundingClientRect();
                                 const diff_x = stored_rect.x - current_rect.x;
                                 const diff_y = stored_rect.y - current_rect.y;
+                                const diff_w = stored_rect.width / current_rect.width;
+                                const diff_h = stored_rect.height / current_rect.height;
                                 el.style.transition = "";
-                                el.style.transform = "translate("+diff_x+"px, "+diff_y+"px)";
+                                el.style.transform = [
+                                    "translate("+diff_x+"px, "+diff_y+"px)",
+                                    "scale("+diff_w+", "+diff_h+")",
+                                    //^ not sure if that looks good.
+                                    // ok yeah I think it looks really bad
+                                ].join(" ");
                                 stored_rect = null;
                                 el.offsetHeight; // trigger reflow
                                 el.style.transition = "0.2s transform ease-out";
@@ -240,6 +247,7 @@ export function DragButton(props: {
             const prevent_scroll_extra_height = container_old_rect.height;
             let mtop = 0;
             let mbottom = prevent_scroll_extra_height;
+            state.setFlipState(3);
             updateDragging(state.index());
             // item may have resized
             const container_new_rect = state.container_el.getBoundingClientRect();
@@ -253,6 +261,9 @@ export function DragButton(props: {
             mtop = (item_old_rect.top - item_new_rect.top) + (src_pos - dest_pos);
             mbottom = container_old_rect.height - (container_new_rect.height - prevent_scroll_extra_height) - mtop;
             updateDragging(state.index());
+            state.setFlipState(2);
+
+            state.setFlipState(0);
 
             const updatePtr = (e: PointerEvent) => {
                 const pos_x = e.pageX - start_pos_x;
@@ -285,33 +296,16 @@ export function DragButton(props: {
 
                 const drag_target = state.dragging();
                 const self = state.index();
-                if(drag_target && drag_target.hovering !== self) {
+                if(drag_target) {// && drag_target.hovering !== self) {
                     // perform the following steps
 
-                    // ok here's the problem for dragging:
-                    // - we want to measure the initial position and the final position
-                    // - initial position the object should be in place in the dom already
-                    // - so that requires calling setItems() and then dragging=null
-                    // - but flipState requires setting dragging=null before setItems()
-                    // - so we have an issue
-                    // - this could be fixed by:
-                    //   - use solid transition group to handle flip
-                    //   - rather than faking the move with an offset while dragging,
-                    //     physically move the nodes in dom. this is what github's
-                    //     pinned repo sorter does. this has the downside that the drop
-                    //     points move around while you drag but the upside that it also
-                    //     supports grid views and horizontal sorters (but not horizontal
-                    //     sorters that wrap with different element widths)
+                    // ok cool this works
+                    // but it would be nice if the 
 
-                    // // 0. set dragging null to have final positions
-                    // const initial_pos = state.wrapper_el.getBoundingClientRect();
-                    // const initial_moff = e.clientY - initial_pos.top;
-                    state.setDragging(null);
-                    
                     // 1. send a signal asking anyone involved to measure
                     //    themselves, then clear their transition and
                     //    transform
-                    state.setFlipState(1);
+                    state.setFlipState(3);
                     
                     // 2. setItems() (the dom will update immediately)
                     const target = drag_target.hovering;
@@ -322,12 +316,17 @@ export function DragButton(props: {
                         return dup;
                     });
 
-                    // // scroll page to make mouse cursor roughly match
-                    // const final_pos = state.wrapper_el.getBoundingClientRect();
-                    // const final_moff = scale(initial_moff, [0, initial_pos.height], [0, final_pos.height]);
-                    // document.documentElement.scrollTop -= (
-                    //     initial_pos.top - final_pos.top
-                    // ) + (initial_moff - final_moff);
+                    const initial_pos = state.wrapper_el.getBoundingClientRect();
+                    const initial_moff = e.clientY - initial_pos.top;
+
+                    state.setDragging(null);
+
+                    // scroll page to make mouse cursor roughly match
+                    const final_pos = state.wrapper_el.getBoundingClientRect();
+                    const final_moff = scale(initial_moff, [0, initial_pos.height], [0, final_pos.height]);
+                    document.documentElement.scrollTop -= (
+                        initial_pos.top - final_pos.top
+                    ) + (initial_moff - final_moff);
 
                     // 3. send a signal asking people to set up their
                     //    transforms
