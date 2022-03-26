@@ -880,75 +880,72 @@ export function RichtextEditor(props: {
     
                 console.log(event);
             }}
-            onBeforeInput={ev => batch((): void => {
-                ev.preventDefault();
-                console.log("beforeinput", ev);
-                const selection = selected();
-                if(!selection) return;
-                // const getNodePath = (sel: Selection): string[] => {
-                //     let node: HTMLElement | null = sel.editor_node;
-                //     const path: string[] = [];
-                //     while(node) {
-                //         const lnd = listNodeData(node);
-                //         if(lnd) {
-                //             path.unshift(lnd.id);
-                //         }
-                //         node = node.parentElement;
-                //     }
-                // };
-                const replaceRange = (l: undefined, r: undefined, nv: undefined): undefined => {
-                    // split nodes at left and right
-                    // [!] selections should be changed from real htmlelements to just
-                    //     symbolic things to make it easy for splitting a node to return
-                    //     a new selection
-                    //
-                    // delete nodes (basically: find all the highest level list item nodes)
-                    // (between the two items and tell their list node to delete the item)
-                    //
-                    // - root:
-                    //   [par1: [span one] |cursor_left [span two] [span three]]
-                    //   
-                    //   [par2: [span four] [span five] [span six]]
-                    //
-                    //   [par3: [span seven] [span eight] cursor_right| [span nine]]
-                    //
-                    // par1.remove(span two, span three)
-                    // root.remove(par2)
-                    // par3.remove(span seven, span eight)
-                    //
-                    // insert node
-                    // collapse nodes - in this order: (l, c), (c, r), up parent tree
-                    //                - while the collapse succeeds, collapse again at that level
-                    // also todo we'll need custom actions for these so they continue
-                    // to work when multiple people are editing a document at once
+            // onBeforeInput={ev => batch((): void => {
+            //     ev.preventDefault();
+            //     console.log("beforeinput", ev);
+            //     const selection = selected();
+            //     if(!selection) return;
+            //     // const getNodePath = (sel: Selection): string[] => {
+            //     //     let node: HTMLElement | null = sel.editor_node;
+            //     //     const path: string[] = [];
+            //     //     while(node) {
+            //     //         const lnd = listNodeData(node);
+            //     //         if(lnd) {
+            //     //             path.unshift(lnd.id);
+            //     //         }
+            //     //         node = node.parentElement;
+            //     //     }
+            //     // };
+            //     const replaceRange = (l: undefined, r: undefined, nv: undefined): undefined => {
+            //         // split nodes at left and right
+            //         // [!] selections should be changed from real htmlelements to just
+            //         //     symbolic things to make it easy for splitting a node to return
+            //         //     a new selection
+            //         //
+            //         // delete nodes (basically: find all the highest level list item nodes)
+            //         // (between the two items and tell their list node to delete the item)
+            //         //
+            //         // - root:
+            //         //   [par1: [span one] |cursor_left [span two] [span three]]
+            //         //   
+            //         //   [par2: [span four] [span five] [span six]]
+            //         //
+            //         //   [par3: [span seven] [span eight] cursor_right| [span nine]]
+            //         //
+            //         // par1.remove(span two, span three)
+            //         // root.remove(par2)
+            //         // par3.remove(span seven, span eight)
+            //         //
+            //         // insert node
+            //         // collapse nodes - in this order: (l, c), (c, r), up parent tree
+            //         //                - while the collapse succeeds, collapse again at that level
+            //         // also todo we'll need custom actions for these so they continue
+            //         // to work when multiple people are editing a document at once
 
-                    // [?] should the node we're inserting to perform these actions?
-                    //     maybe
-                    // like
-                    // editor.splitNode()
-                    [l, [r]] = splitNode(l, [r]);
-                    [r, [l]] = splitNode(r, [l]);
-                    [l, r] = deleteRange(l, r);
-                    l = askNodeToInsert(l, nv);
-                    recursivelyMerge(l);
-                    return l;
+            //         // [?] should the node we're inserting to perform these actions?
+            //         //     maybe
+            //         // like
+            //         // editor.splitNode()
+            //         [l, [r]] = splitNode(l, [r]);
+            //         [r, [l]] = splitNode(r, [l]);
+            //         [l, r] = deleteRange(l, r);
+            //         l = askNodeToInsert(l, nv);
+            //         recursivelyMerge(l);
+            //         return l;
 
-                    // whenever we do an operation like this, we need it to
-                    // tell us the new positions of any markers
-                    //
-                    // so eg if we do this and someone else's cursor is somewhere, we
-                    // need to preserve that cursor's position
-                    //
-                    // for now I'm just explicitly preserving some position
-                };
-                if(ev.inputType === "insertText") {
-                    setSelection(replaceRange(selection(), selection(), ev.data));
-                }
+            //         // whenever we do an operation like this, we need it to
+            //         // tell us the new positions of any markers
+            //         //
+            //         // so eg if we do this and someone else's cursor is somewhere, we
+            //         // need to preserve that cursor's position
+            //         //
+            //         // for now I'm just explicitly preserving some position
+            //     };
+            //     if(ev.inputType === "insertText") {
+            //         setSelection(replaceRange(selection(), selection(), ev.data));
+            //     }
 
-            })}
-            // onfocusout={() => {
-            //     setSelected(null);
-            // }}
+            // })}
             oncompositionstart={() => {
                 //
             }}
@@ -958,6 +955,9 @@ export function RichtextEditor(props: {
             oncompositionupdate={() => {
                 //
             }}
+            // onfocusout={() => {
+            //     setSelected(null);
+            // }}
         />
         <Show if={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Buttons><Button onClick={() => {
