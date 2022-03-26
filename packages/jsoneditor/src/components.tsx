@@ -20,6 +20,7 @@ export function Buttons(props: {
                 class={""
                     + "px-2 first:rounded-l-md last:rounded-r-md mr-1 last:mr-0 "
                     + (child.active ?? false ? "bg-gray-500 " : "bg-gray-700 ")
+                    + "min-one-line "
                 }
                 onClick={() => {
                     if(!child.onClick) return alert("E_NOT_SET");

@@ -5,3 +5,8 @@
 *:disabled {
     opacity: 0.5;
 }
+
+.min-one-line:before {
+    content: "​";
+    white-space: pre-wrap;
+}

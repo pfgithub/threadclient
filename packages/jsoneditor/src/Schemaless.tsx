@@ -29,7 +29,7 @@ export function Collapsible(props: {
     preview?: undefined | JSX.Element,
     children?: undefined | JSX.Element,
 }): JSX.Element {
-    const forceCollapsed = useContext(force_collapse);
+    const forceCollapsed = useContext(force_collapse) ?? (() => false);
     console.log("rendering collapsible", props.anchor);
     return <UIState
         key={"-MyzGObC9LuejnxWG_Nt"}
@@ -40,9 +40,13 @@ export function Collapsible(props: {
         return <Show if={!collapsed()} fallback={<>
             <UIState key={"-MyzHco_j7JRk0-r4s5Q"}>
                 <button
-                    class="w-full bg-gray-700 rounded-md px-2 text-left"
+                    class="w-full bg-gray-700 rounded-md px-2 text-left min-one-line"
                     onClick={() => setCollapsed(v => !v)}
-                >▸ {props.preview ?? "*collapsed*"}</button>
+                    disabled={forceCollapsed()}
+                >
+                    {forceCollapsed() ? "" : "▸ "}
+                    {props.preview ?? "*collapsed*"}
+                </button>
             </UIState>
         </>}>
             <UIState key={"-MyzH_vX-QjgkINJlpmP"}>
