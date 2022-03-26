@@ -288,9 +288,26 @@ export function DragButton(props: {
                 if(drag_target && drag_target.hovering !== self) {
                     // perform the following steps
 
-                    // 0. set dragging null to have final positions
-                    state.setDragging(null);
+                    // ok here's the problem for dragging:
+                    // - we want to measure the initial position and the final position
+                    // - initial position the object should be in place in the dom already
+                    // - so that requires calling setItems() and then dragging=null
+                    // - but flipState requires setting dragging=null before setItems()
+                    // - so we have an issue
+                    // - this could be fixed by:
+                    //   - use solid transition group to handle flip
+                    //   - rather than faking the move with an offset while dragging,
+                    //     physically move the nodes in dom. this is what github's
+                    //     pinned repo sorter does. this has the downside that the drop
+                    //     points move around while you drag but the upside that it also
+                    //     supports grid views and horizontal sorters (but not horizontal
+                    //     sorters that wrap with different element widths)
 
+                    // // 0. set dragging null to have final positions
+                    // const initial_pos = state.wrapper_el.getBoundingClientRect();
+                    // const initial_moff = e.clientY - initial_pos.top;
+                    state.setDragging(null);
+                    
                     // 1. send a signal asking anyone involved to measure
                     //    themselves, then clear their transition and
                     //    transform
@@ -304,6 +321,13 @@ export function DragButton(props: {
                         dup.splice(target, 0, ...value);
                         return dup;
                     });
+
+                    // // scroll page to make mouse cursor roughly match
+                    // const final_pos = state.wrapper_el.getBoundingClientRect();
+                    // const final_moff = scale(initial_moff, [0, initial_pos.height], [0, final_pos.height]);
+                    // document.documentElement.scrollTop -= (
+                    //     initial_pos.top - final_pos.top
+                    // ) + (initial_moff - final_moff);
 
                     // 3. send a signal asking people to set up their
                     //    transforms
