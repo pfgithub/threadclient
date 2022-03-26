@@ -955,7 +955,60 @@ export function mergeNodes<U extends Point[]>(
 
 // TODO this will have type parameters to conform to the user's something or other
 // and it will probably go in dom list nodes
-// type MergeNodesUserFunction = (id: UUID, node: TEChild, path: number[]) => TEChild[];
+
+// ok the way slate does this is all node changes are made with transforms rather
+// than direct
+//
+// we should do that - it keeps our cursor in position where it should be
+
+// here's the trouble with transforms:
+// - transforms don't make it easy to maintain a defined schema
+
+// oh here's a good thing with their node normalization:
+// [!] they perform one change and then return. the normalization function is called
+//     again until normalization is complete.
+
+// ok let's think about that. that's smart i think
+
+// function normalizeParagraph(node: TextEditorParagraphNodeParagraph) {
+//     // ok so I want to do the following normalizations:
+//     // - unmerged text should be merged with surrounding text
+//     // - text with identical values should be merged
+//     // - merges should always keep the leftmost id
+//
+//     // paragraph break normalization will be handled by the root.
+//     // possibly we can flag our node or something to alert the root about it
+//     let prev_child: [string, TextEditorLeafNode] | null = null;
+//     for(const [index, child] of Object.values(node.children).entries()) {
+//         if(child.text === "") Transforms.deleteNode(child);
+//         if(child.id === te_unmerged_text && prev_child.id !== text_editor_leaf_node_paragraph_break) {
+//             Transforms.mergeLeft(child);
+//         }
+//         prev_child = [index, child];
+//         if(child.id === text_editor_leaf_node_paragraph_break) {
+//             pbrk = index;
+//             break;
+//         }
+//     }
+// }
+
+// type MergeNodesUserFunction<U extends TEChild> = (
+//     id: UUID, node: U, path: number[],
+// ) => {[key: string]: TEChild | TERawNode};
+// const mergeNodesUserFn: MergeNodesUserFunction<TextEditorParagraphNodeParagraph> = (id, node, path) => {
+//     const paragraphs: [string, TextEditorLeafNode][][] = [[]];
+//     for(const ch of Object.entries(node.children)) {
+//         const paragraph = paragraphs[paragraphs.length - 1]!;
+//         paragraph.push(ch);
+//         if(ch[1].id === text_editor_leaf_node_paragraph_break) {
+//             paragraphs.push([]);
+//         }
+//     }
+//     // part 1: split at all newline nodes
+//     // note: the root should then merge text blocks that are missing newline nodes at the
+//     // end (or add a newline node if it is the last paragraph)
+//     return {[id]: node};
+// };
 
 function copyJSON<V extends JSONValue>(v: V): V {
     return JSON.parse(JSON.stringify(v)) as V;
