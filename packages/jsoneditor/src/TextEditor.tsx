@@ -1,6 +1,5 @@
 import {
-    batch,
-    createContext, createEffect, createMemo, createRenderEffect, createSelector, createSignal,
+    createContext, createEffect, createMemo, createRenderEffect, createSignal,
     For, JSX, Signal, untrack, useContext
 } from "solid-js";
 import { Dynamic, insert } from "solid-js/web";
