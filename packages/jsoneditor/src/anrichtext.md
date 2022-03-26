@@ -1,5 +1,12 @@
 # AnRichtext
 
+[!] when we have code samples that contain UUIDS, replace the uuid with a node that says
+"unique id" and when copied, copies an actual unique id
+
+so like we would have `const inline_code = "[Generate Unique ID]"` and you can click it
+and it will generate and copy to your clipboard or you can copy the whole thing and paste
+it and it will have a unique id in there
+
 AnRichtext is a richtext editor for the web. This entire page is editable, try try editing
 it! (note: we'll want every page to be editable and for the "unsaved changes" to persist
 across pages you view. so it's practically a cms, just one that you can only save changes

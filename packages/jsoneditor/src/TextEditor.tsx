@@ -9,6 +9,7 @@ import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_d
 import { Button, Buttons } from "./components";
 import { DragButton, DraggableList } from "./DraggableList";
 import { asObject, isObject, unreachable } from "./guards";
+import { BoolEditor } from "./Schemaless";
 import { Include } from "./util";
 import { uuid, UUID } from "./uuid";
 
@@ -30,21 +31,41 @@ import { uuid, UUID } from "./uuid";
 //   themselves. this is probably possible to do but feels like it will have lots of
 //   complications trying to do basic things like deleting a node
 
-type TENode = {
-    children: {[key: string]: TENode | TELeaf},
-    data: unknown,
-};
-type TELeaf = {
-    text: string,
-    data: unknown,
+// [!] when merging, pass in a TENode but with U modified to include TERawNodes
+type TEChild = TEContainer<any, any, any> | TEEditableString<any, any> | TESelectableObject<any, any>;
+type TEContainer<I extends `-${string}`, T, U extends TEChild> = {
+    id: I,
+    data: T,
+    children: {[key: string]: U},
 };
 
-type TEUnmergedText = {
-    id: "-Mz3nAXQBksLrjwol1AN",
+// TODO: consider not storing text: string in here?
+// should allow for better types of virtual nodes that define their own
+// cursor movement functions and such
+type TEEditableString<I extends `-${string}`, T> = {
+    id: I,
+    data: T,
+    text: string,
 };
+// these have special behaviour relating to cursor movement
+// not sure if this is the right way to handle this - there may be some way we can
+// handle it by overriding cursor movement functions for a node like before but for now
+// this seems like the easiest way to handle it
+type TESelectableObject<I extends `-${string}`, T> = {
+    id: I,
+    data: T,
+};
+
+const te_unmerged_text = "-Mz3zu0mHQrjzZXzudzJ";
+type TEUnmergedText = TEEditableString<typeof te_unmerged_text, null>;
 // this is an unmerged text node
 // this is how text gets inserted with the keyboard
 // you should not store these in your data model
+type TERawNode = TEUnmergedText;
+
+// function merge(container: TEContainer): array of parent container children
+// this will allow for lifting itemss out of their containers or splitting child
+// containers and stuff like that
 
 // (in the future, we may want the unmerged text node to
 //  contain html data or something to support richtext pasting)
@@ -128,7 +149,7 @@ type EditorLeafNodeData = {
     path: EditorPath,
 };
 type EditorListNodeData = {
-    replaceID: (id: string, new_value: {[key: string]: unknown}) => void,
+    _?: undefined,
 };
 type EditorListItemNodeData = {
     id: string,
@@ -175,6 +196,16 @@ function listItemNodeData(el: Element): EditorListItemNodeData | null {
 //   to a specific snapshot of data and after that they are invalid except under very
 //   specific circumstances.
 // - numbers can be compared to check if a node is between other nodes trivially.
+//
+// [!] CONSIDER GOING BACK TO IDS WITH THE FOLLOWING CHANGES:
+//   - make all children arrays [!] sorted by id
+//   - do not allow reordering of children
+// this has some nice advantages:
+//   - easier to add multiuser supppoprt
+// i'll have to actually think about the multi user problem a bit first though.
+// we're just directly using ansetreconcile for now
+// probably should take after existing collaborative editors' action structures and figure
+//   out how they handle these issues.
 export type EditorPath = number[];
 
 export type Point = {
@@ -191,46 +222,36 @@ export type TextEditorRoot = {
     node: TextEditorRootNode,
 };
 
-export type TextEditorRootNode = {
-    kind: "root",
-    children: {[key: string]: TextEditorFlatNode},
-    // ^ right, we didn't want this because we want the manager to be able to handle this
-    // I think we can actually use real dom nodes though
-    // eg we can have <Leaf> and <EditorSelectable ondelete={}>
-    // that should work alright
-};
+// we're not using indents but when we do add indents we get to figure
+// out how we want to handle them
+export const root_node = "-Mz4-b9S1AsOPum51JPo";
+export type TextEditorRootNode = TEContainer<typeof root_node, null, TextEditorParagraphNode>;
 
-export type TextEditorIndentItem = {
-    __nothing: null,
-    //GROUP_ID so we can properly split at borders and stuff
-    // we will look in another map I guess to determine the kind
-};
+export const paragraph_node_paragraph = "-Mz4-gNTR3S_mjtcMXsL";
+export type TextEditorParagraphNodeParagraph = TEContainer<typeof paragraph_node_paragraph, null, TextEditorLeafNode>;
 
-export type TextEditorFlatNode = {
-    indent: {[group_id: string]: TextEditorIndentItem},
-    node: TextEditorParagraphNode,
-};
-
-export type TextEditorParagraphNodeParagraph = {
-    kind: "paragraph",
-    children: {[key: string]: TextEditorLeafNode},
-};
-export type TextEditorParagraphNodeMultilineCodeBlock = {
-    kind: "multiline_code_block",
+export const multiline_code_block = "-Mz4-s6Z6crc292yyvwX";
+export type TextEditorParagraphNodeMultilineCodeBlock = TEContainer<typeof multiline_code_block, {
     language: string,
-    children: {[key: string]: CodeBlockLeafNode},
-    // note: after merging all nodes, the last child is always 'paragraph_break' and
-    // there are always two children after merging all nodes.
-    //
-    // this means that while rendering, this is guarenteed to be true so we can assume it
-    // and it means that a reconcilliation function should return a value of that type
-};
-export type CodeBlockLeafNode = {
-    kind: "raw",
-    text: string,
-} | TextEditorLeafNodeParagraphBreak;
-export type TextEditorParagraphNodeImage = {
-    kind: "image",
+    // by putting language in here, it means that it cannot be edited inside this editor
+    // - we have to make a button or <input /> or sub text editor to edit it
+
+    // alternatively, we could have a CodeBlockLanguageNode that goes as the first
+    // child inside the code block that contains its language if we want to be able to
+    // edit it in the editor.
+
+    // it would be nice to be able to enforce that in the typesystem somehow. not worrying
+    // about that yet though.
+}, CodeBlockLeafNode>;
+
+export const code_block_leaf = "-Mz40QiKrp2mXvnN14DG";
+export type CodeBlockLeafNode =
+    | TEEditableString<typeof code_block_leaf, null>
+    | TextEditorLeafNodeParagraphBreak
+;
+
+const paragraph_node_image = "-Mz40vr3zRJMMLf_Edme";
+export type TextEditorParagraphNodeImage = TESelectableObject<typeof paragraph_node_image, {
     contenthash: string,
     ext: string,
     // ^ for file storage we will use content hashes
@@ -239,10 +260,14 @@ export type TextEditorParagraphNodeImage = {
 
     // images are a bit special in that for one source content hash we might
     // generate thumbnails and stuff
-};
-export type TextEditorParagraphNodeEmbeddedSchemaEditor = {
-    kind: "embedded_schema_editor",
-};
+}>;
+
+const embedded_schema_editor = "-Mz41dooDLLiPqMvbitH";
+export type TextEditorParagraphNodeEmbeddedSchemaEditor = TESelectableObject<typeof embedded_schema_editor, {
+    enabled: boolean,
+    // we're going to use this to demonstrate normal usage of anreconcile inside of
+    // text editor stuff
+}>;
 export type TextEditorParagraphNode =
     | TextEditorParagraphNodeParagraph
     | TextEditorParagraphNodeMultilineCodeBlock
@@ -251,38 +276,30 @@ export type TextEditorParagraphNode =
 ;
 
 export type TextStyle = {bold?: undefined | boolean};
-export type TextEditorLeafNodeText = {
-    kind: "text",
-    text: string,
+const leaf_node_text = "-Mz43235vt7vZdqt56xm";
+export type TextEditorLeafNodeText = TEEditableString<typeof leaf_node_text, {
     style?: undefined | TextStyle,
-};
-export type TextEditorLeafNodeInlineCode = {
-    kind: "inline_code",
-    text: string,
-};
-export type TextEditorLeafNodeParagraphBreak = {
-    kind: "paragraph_break",
-    // a virtual node at the end of all paragraphs
-    // during node merging, if this node is not found, the paragraphs will get merged
-    // or if one of these is created, the paragraphs will get split
-};
+}>;
+
+// TODO: consider making this a container node containing InlineCodeStart RawText InlineCodeEnd
+const leaf_node_inline_code = "-Mz43MyMfCOT-P9Fq46I";
+export type TextEditorLeafNodeInlineCode = TEEditableString<typeof leaf_node_inline_code, null>;
+
+// [!] during merging, if this is missing it will merge paragraphs together
+// [!] this node should contain the text "\n" at all times
+export const text_editor_leaf_node_paragraph_break = "-Mz45jhe_pzC4lSQoQPb";
+export type TextEditorLeafNodeParagraphBreak = TEEditableString<typeof text_editor_leaf_node_paragraph_break, null>;
 export type TextEditorLeafNode =
     | TextEditorLeafNodeText
     | TextEditorLeafNodeInlineCode
     | TextEditorLeafNodeParagraphBreak
 ;
 
-export type TextEditorUserInputNode = {
-    kind: "text_editor_user_input",
-    text: string,
-};
-
 type TextEditorAnyNode =
     | TextEditorRootNode
     | TextEditorParagraphNode
     | TextEditorLeafNode
     | CodeBlockLeafNode
-    | TextEditorUserInputNode
 ;
 // ^ TODO: remove this. temporary hack.
 
@@ -305,66 +322,82 @@ type TextEditorAnyNode =
 // not sure
 
 const nc = {
+    userInput(v: string): TEUnmergedText {
+        return {
+            id: te_unmerged_text,
+            text: v,
+            data: null,
+        };
+    },
+
     array<T>(...items: T[]): {[key: string]: T} {
         return Object.fromEntries(items.map(itm => [uuid(), itm] as const));
     },
-    root(...ch: [...TextEditorIndentItem[], TextEditorParagraphNode][]): TextEditorRootNode {
+    root(...ch: [TextEditorParagraphNode][]): TextEditorRootNode {
         return {
-            kind: "root",
-            children: nc.array(...ch.map((v): TextEditorFlatNode => {
-                const a = [...v];
-                const last = a.pop()! as TextEditorParagraphNode;
-                const idnt = a as TextEditorIndentItem[];
-                return {
-                    indent: Object.fromEntries(idnt.map((q, i) => (["<!>"+i, q]))),
-                    node: last,
-                };
+            id: root_node,
+            data: null,
+            children: nc.array(...ch.map(([v]): TextEditorParagraphNode => {
+                return v;
             })),
         };
     },
-    par(...ch: TextEditorLeafNode[]): TextEditorParagraphNode {
+    parBreak(): TextEditorLeafNodeParagraphBreak {
         return {
-            kind: "paragraph",
-            children: nc.array(...ch, {
-                kind: "paragraph_break",
-            }),
+            id: text_editor_leaf_node_paragraph_break,
+            data: null,
+            text: "\n",
         };
     },
-    code(lang: string, text: string): TextEditorParagraphNode {
+    par(...ch: TextEditorLeafNode[]): TextEditorParagraphNodeParagraph {
         return {
-            kind: "multiline_code_block",
-            language: lang,
-            children: nc.array({
-                kind: "raw",
+            id: paragraph_node_paragraph,
+            data: null,
+            children: nc.array(...ch, nc.parBreak()),
+        };
+    },
+    code(lang: string, text: string): TextEditorParagraphNodeMultilineCodeBlock {
+        return {
+            id: multiline_code_block,
+            data: {
+                language: lang,
+            },
+            children: nc.array<CodeBlockLeafNode>({
+                id: code_block_leaf,
+                data: null,
                 text,
-            }, {
-                kind: "paragraph_break",
-            }),
+            }, nc.parBreak()),
         };
     },
-    img(contenthash: string, ext: string): TextEditorParagraphNode {
+    img(contenthash: string, ext: string): TextEditorParagraphNodeImage {
         return {
-            kind: "image",
-            contenthash: contenthash,
-            ext: ext,
+            id: paragraph_node_image,
+            data: {
+                contenthash: contenthash,
+                ext: ext,
+            },
         };
     },
-    embeddedSchemaEditor(): TextEditorParagraphNode {
+    embeddedSchemaEditor(): TextEditorParagraphNodeEmbeddedSchemaEditor {
         return {
-            kind: "embedded_schema_editor",
+            id: embedded_schema_editor,
+            data: {enabled: false},
         };
     },
-    text(txt: string, styl?: TextStyle | undefined): TextEditorLeafNode {
+    text(txt: string, styl?: TextStyle | undefined): TextEditorLeafNodeText {
         return {
-            kind: "text",
+            id: leaf_node_text,
             text: txt,
-            style: styl,
+            data: {
+                style: styl,
+            },
         };
     },
-    inlineCode(txt: string): TextEditorLeafNode {
+    inlineCode(txt: string): TextEditorLeafNodeInlineCode {
         return {
-            kind: "inline_code",
+            id: leaf_node_inline_code,
             text: txt,
+            data: null,
         };
     },
 } as const;
@@ -373,26 +406,17 @@ const nc = {
 // gives you basic functions and you can put it where you need it to edit text
 
 const node_renderers: {
-    [key in TextEditorAnyNode["kind"]]?: (props: {node: AnNode<Include<TextEditorAnyNode, {kind: key}>>}) => JSX.Element
+    [key in TextEditorAnyNode["id"]]?: (props: {node: AnNode<Include<TextEditorAnyNode, {id: key}>>}) => JSX.Element
 } = {
-    root(props: {node: AnNode<TextEditorRootNode>}): JSX.Element {
-        return <RtList replaceID={(id, new_value) => {
-            anSetReconcile(props.node.children, (obj) => {
-                return Object.fromEntries(Object.entries(asObject(obj) ?? {}).flatMap(([k, v]) => {
-                    if(k === id) {
-                        return Object.entries(new_value) as [string, TextEditorFlatNode][];
-                    }
-                    return [[k, v as TextEditorFlatNode]];
-                }));
-            });
-        }}>
+    [root_node](props: {node: AnNode<TextEditorRootNode>}): JSX.Element {
+        return <RtList>
             <DraggableList
                 items={anKeys(props.node.children)}
                 setItems={cb => {
                     anSetReconcile(props.node.children, v => {
                         const pv = asObject(v) ?? {};
                         const nv = cb(Object.keys(pv));
-                        return Object.fromEntries(nv.map(key => [key, pv[key]! as TextEditorFlatNode]));
+                        return Object.fromEntries(nv.map(key => [key, pv[key]! as TextEditorParagraphNode]));
                     });
                 }}
 
@@ -422,12 +446,9 @@ const node_renderers: {
                                     // highlight it
                                     setFocused(false);
                                     anSetReconcile(props.node.children, v => {
-                                        const pv = (asObject(v) ?? {}) as {[key: string]: TextEditorFlatNode};
+                                        const pv = (asObject(v) ?? {}) as {[key: string]: TextEditorParagraphNode};
                                         const av = uuid();
-                                        const nn: TextEditorFlatNode = {
-                                            indent: {},
-                                            node: nc.par(),
-                                        };
+                                        const nn = nc.par();
                                         const nv = {...pv, [av]: nn};
                                         const itm = Object.keys(pv);
                                         itm.splice(index(), 0, av);
@@ -453,14 +474,14 @@ const node_renderers: {
                             style="transform: translateY(-50%)"
                         />
                         <RtListItem id={key} index={index()}>
-                            <EditorNode node={props.node.children[key as UUID]!.node} />
+                            <EditorNode node={props.node.children[key as UUID]!} />
                         </RtListItem>
                     </div>
                 </div>;
             }}</DraggableList>
         </RtList>;
     },
-    paragraph(props): JSX.Element {
+    [paragraph_node_paragraph](props): JSX.Element {
         return <p>
             <Show if={anKeys(props.node.children).length === 1}>
                 <span class="text-gray-400">…</span>
@@ -470,20 +491,20 @@ const node_renderers: {
             />
         </p>;
     },
-    paragraph_break(): JSX.Element {
+    [text_editor_leaf_node_paragraph_break](): JSX.Element {
         return <LeafSignal text=" " setText={() => {
             throw new Error("todo delete the paragraph break");
         }} />;
     },
-    multiline_code_block(props): JSX.Element {
+    [multiline_code_block](props): JSX.Element {
         return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap"><code>
             <EditorChildren node={props.node.children} />
         </code></pre>;
     },
-    raw(props): JSX.Element {
+    [code_block_leaf](props): JSX.Element {
         return <Leaf node={props.node.text} />;
     },
-    image(props): JSX.Element {
+    [paragraph_node_image](props): JSX.Element {
         return <div>
             <RtLeaf
                 // hmm, there's an interesting thing to note with this leaf that is unlike
@@ -519,22 +540,22 @@ const node_renderers: {
             </>}</RtLeaf>
         </div>;
     },
-    embedded_schema_editor(props): JSX.Element {
+    [embedded_schema_editor](props): JSX.Element {
         return <div class="bg-gray-800 p-2 rounded-md">
-            {"ETODO"/*<NodeEditor schema={schema() as NodeSchema} path={[...props.path, "value"]} />*/}
+            <BoolEditor node={props.node.data.enabled} />
         </div>;
     },
-    text(props): JSX.Element {
+    [leaf_node_text](props): JSX.Element {
         return <span class={(() => {
 
             const styles: string[] = [];
-            const style = props.node.style;
+            const style = props.node.data.style;
             if(anBool(style.bold) ?? false) styles.push("font-bold");
 
             return styles.join(" ");
         })()}><Leaf node={props.node.text} /></span>;
     },
-    inline_code(props): JSX.Element {
+    [leaf_node_inline_code](props): JSX.Element {
         return <code class="bg-gray-800 p-1 rounded-md"><Leaf node={props.node.text} /></code>;
     },
 };
@@ -557,16 +578,11 @@ export type CursorIndex = number;
 // getSurrounding()
 
 export function RtList(props: {
-    replaceID: (id: string, new_value: {[key: string]: unknown}) => void,
     children: JSX.Element,
 }): JSX.Element {
     const ctx = useContext(te_context)!;
 
-    const node_data: EditorListNodeData = {
-        replaceID: (id, new_value) => {
-            props.replaceID(id, new_value);
-        },
-    };
+    const node_data: EditorListNodeData = {};
     const node: EditorListNode = Object.assign(
         document.createElement("bce:editor-list-node"),
         {[editor_list_node_data]: node_data},
@@ -765,16 +781,7 @@ export function EditorChildren(props: {
     node: AnNode<{[key: string]: TextEditorAnyNode}>,
     fallback?: undefined | JSX.Element,
 }): JSX.Element {
-    return <RtList replaceID={(id, new_value) => {
-        anSetReconcile(props.node, (obj) => {
-            return Object.fromEntries(Object.entries(asObject(obj) ?? {}).flatMap(([k, v]) => {
-                if(k === id) {
-                    return Object.entries(new_value) as [string, TextEditorAnyNode][];
-                }
-                return [[k, v as TextEditorAnyNode]];
-            }));
-        });
-    }}>
+    return <RtList>
         <For each={anKeys(props.node)} fallback={props.fallback}>{(key, index) => {
             return <RtListItem id={key} index={index()}>
                 <EditorNode node={props.node[key]!} />
@@ -786,7 +793,7 @@ export function EditorChildren(props: {
 export function EditorNode(props: {
     node: AnNode<TextEditorAnyNode>,
 }): JSX.Element {
-    const nodeKind = () => anString(props.node.kind);
+    const nodeKind = () => anString(props.node.id);
     return <Dynamic component={(node_renderers as {
         [key: string]: (props: {node: AnNode<TextEditorAnyNode>}) => JSX.Element,
     })[nodeKind() ?? "null"]! ?? ((subprops: {state: AnNode<TextEditorAnyNode>}) => (
@@ -893,10 +900,10 @@ function deleteRange<U extends Point[]>(l: Point, r: Point, track: U): [Point, P
 function mergeNodes<U extends Point[]>(center: EditorPath, track: U): [l: Point, r: Point, track: U] {
     return [];
 }
-function insertAtNoMerge<U extends Point[]>(cut: Point, node: TextEditorAnyNode, track: U): [c: EditorPath, track: U] {
+function insertAtNoMerge<U extends Point[]>(cut: Point, node: TERawNode, track: U): [c: EditorPath, track: U] {
     return [];
 }
-function insertAt<U extends Point[]>(cut: Point, node: TextEditorAnyNode, track: U): [l: Point, r: Point, track: U] {
+function insertAt<U extends Point[]>(cut: Point, node: TERawNode, track: U): [l: Point, r: Point, track: U] {
     let center: EditorPath;
     [center, track] = insertAtNoMerge(cut, node, track);
     let l: Point;
@@ -1022,63 +1029,8 @@ export function RichtextEditor(props: {
                     l: Point, r: Point,
                     nv: string, track: U,
                 ): [Point, Point, U] {
-                    // split nodes at left and right
-                    // [!] selections should be changed from real htmlelements to just
-                    //     symbolic things to make it easy for splitting a node to return
-                    //     a new selection
-                    //
-                    // delete nodes (basically: find all the highest level list item nodes)
-                    // (between the two items and tell their list node to delete the item)
-                    //
-                    // - root:
-                    //   [par1: [span one] |cursor_left [span two] [span three]]
-                    //   
-                    //   [par2: [span four] [span five] [span six]]
-                    //
-                    //   [par3: [span seven] [span eight] cursor_right| [span nine]]
-                    //
-                    // par1.remove(span two, span three)
-                    // root.remove(par2)
-                    // par3.remove(span seven, span eight)
-                    //
-                    // insert node
-                    // collapse nodes - in this order: (l, c), (c, r), up parent tree
-                    //                - while the collapse succeeds, collapse again at that level
-                    // also todo we'll need custom actions for these so they continue
-                    // to work when multiple people are editing a document at once
-
-                    // [?] should the node we're inserting to perform these actions?
-                    //     maybe
-                    // like
-                    // editor.splitNode()
                     [l, r, [...track]] = deleteRange(l, r, [...track]);
-                    const new_node: TextEditorUserInputNode = {
-                        kind: "text_editor_user_input",
-                        text: nv,
-
-                    };
-                    // I think that model like slate does it will be easier than
-                    // trying to ask the node to say what type of node should be
-                    // inserted here
-                    //
-                    // eg I was trying to make it possible so
-                    // 
-                    // say we had an inline code node "some text `inline code` done"
-                    // I wanted to make it so inline code could add little fake
-                    // nodes to the left and right that let you move your cursor where
-                    // those backticks are
-                    //
-                    // but it will be better to instead make it so that gets internally
-                    // represented as
-                    // [leaf(some text ) inlinecode(codestart(`) ) text(inline code) codeend(`)] text( done)
-                    // and merging will handle eg when you insert text to the right of the
-                    // codeend marker inside the inlinecode it will lift it out and put it 
-                    // in the paragraph directly and then the paragraph will read it and
-                    // convert it into a text node
-                    //
-                    // and then eg all user-inputted text can be added as just a raw text
-                    // node that the user fn will turn into a real text node that fits
-                    // their data model and can be displayed in the dom
+                    const new_node = nc.userInput(nv);
                     [l, r, [...track]] = insertAt(l, new_node, [...track]);
                     return [l, r, track];
 
