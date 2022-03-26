@@ -12,6 +12,37 @@ import { asObject, isObject, unreachable } from "./guards";
 import { Include } from "./util";
 import { uuid, UUID } from "./uuid";
 
+//
+
+// THE NEXT STEP IS TO MAKE CONSISTENT NODE STRUCTURES:
+// switch all nodes to fit in these and make it so users can provide typings
+// also make it so the merge function is given an array of nodes that
+// either fit the schema or builtin nodes
+
+// anyway we:
+// 1. consistent node structures and get all the current code to work
+// 2. typing inserts nodes
+// 3. merging nodes with the user merge function
+
+type TENode = {
+    children: {[key: string]: TENode | TELeaf},
+};
+type TELeaf = {
+    text: string,
+};
+
+type TEUnmergedText = {
+    id: "-Mz3nAXQBksLrjwol1AN",
+};
+// this is an unmerged text node
+// this is how text gets inserted with the keyboard
+// you should not store these in your data model
+
+// (in the future, we may want the unmerged text node to
+//  contain html data or something to support richtext pasting)
+
+//
+
 // ok just going to write some stuff
 // - cursor movement is pretty easy. you ask the leaf and it tells you and you loop
 //   until you get where you need to go
@@ -247,12 +278,10 @@ type TextEditorAnyNode =
 ;
 // ^ TODO: remove this. temporary hack.
 
-// type TENode = {
-//     children: {[key: string]: TENode | TELeaf},
-// };
-// type TELeaf = {
-//     text: string,
-// };
+// and then we'll have a bit
+// "These nodes are defined by "
+// "Your data model should not contain these nodes, they should be converted on insert"
+
 // sample **bold** text
 //
 // [image]
