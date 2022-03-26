@@ -4,8 +4,9 @@ import {
     For, JSX, Signal, untrack, useContext
 } from "solid-js";
 import { Dynamic, insert } from "solid-js/web";
+import { assertNever } from "tmeta-util";
 import { Show } from "tmeta-util-solid";
-import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString } from "./app_data";
+import { anBool, anGet, anKeys, AnNode, anSetReconcile, anString, JSON as JSONValue } from "./app_data";
 import { Button, Buttons } from "./components";
 import { DragButton, DraggableList } from "./DraggableList";
 import { asObject, isObject, unreachable } from "./guards";
@@ -31,12 +32,38 @@ import { uuid, UUID } from "./uuid";
 //   themselves. this is probably possible to do but feels like it will have lots of
 //   complications trying to do basic things like deleting a node
 
+const smart_guard_no = Symbol("smart_guard_no");
+function smartGuard<T, U extends T>(cb: (item: T, no: typeof smart_guard_no) => U | (typeof smart_guard_no)) {
+    return (item: T): item is U => cb(item, smart_guard_no) !== smart_guard_no;
+}
+smartGuard<string | number, string>((item, no) => {
+    return typeof item === "string" ? item : no;
+});
+
 // [!] when merging, pass in a TENode but with U modified to include TERawNodes
 type TEChild = TEContainer<any, any, any> | TEEditableString<any, any> | TESelectableObject<any, any>;
+const teIsContainer = smartGuard<TEChild, TEContainer<any, any, TEChild>>((v, no) => {
+    return ('children' in v) ? v : no;
+});
+const teIsEditableString = smartGuard<TEChild, TEEditableString<any, any>>((v, no) => {
+    return ('text' in v) ? v : no;
+});
+const teIsSelectableObject = smartGuard<TEChild, TESelectableObject<any, any>>((v, no) => {
+    if(!teIsContainer(v) && !teIsEditableString(v)) return v;
+    return no;
+});
+
 type TEContainer<I extends `-${string}`, T, U extends TEChild> = {
     id: I,
     data: T,
     children: {[key: string]: U},
+    // ^ TODO: consider using an array here
+    // An nodes will have to be updated to support it
+    //
+    // the reason is because:
+    // - all TE nodes will be managed by TE actions. AnReconcile will never
+    //   be used for updating TE nodes
+    // idk really not much reason to switch but it's something that we can do
 };
 
 // TODO: consider not storing text: string in here?
@@ -206,6 +233,8 @@ function listItemNodeData(el: Element): EditorListItemNodeData | null {
 // we're just directly using ansetreconcile for now
 // probably should take after existing collaborative editors' action structures and figure
 //   out how they handle these issues.
+// oh also btw we literally can't make children uuids that are always sorted
+// like what happens if you type a character in the middle of a node
 export type EditorPath = number[];
 
 export type Point = {
@@ -321,7 +350,7 @@ type TextEditorAnyNode =
 // can we type this properly?
 // not sure
 
-const nc = {
+export const nc = {
     userInput(v: string): TEUnmergedText {
         return {
             id: te_unmerged_text,
@@ -497,12 +526,12 @@ const node_renderers: {
         }} />;
     },
     [multiline_code_block](props): JSX.Element {
-        return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap"><code>
+        return <pre class="bg-gray-800 p-2 rounded-md whitespace-pre-wrap">
             <EditorChildren node={props.node.children} />
-        </code></pre>;
+        </pre>;
     },
     [code_block_leaf](props): JSX.Element {
-        return <Leaf node={props.node.text} />;
+        return <code><Leaf node={props.node.text} /></code>;
     },
     [paragraph_node_image](props): JSX.Element {
         return <div>
@@ -627,7 +656,7 @@ export function RtListItem(props: {
     });
     insert(node, <itm_context.Provider value={{
         get selection_group() {return selectionGroupMemo()},
-        path: [...ictx.path, props.index],
+        get path() {return [...ictx.path, props.index]},
     }}>
         {props.children}
     </itm_context.Provider>);
@@ -650,14 +679,14 @@ export function RtLeaf(props: {
     const node_data: EditorLeafNodeData = {
         moveCursor: props.moveCursor,
         cursorPos: props.cursorPos,
-        path: ictx.path,
+        get path() {return ictx.path},
     };
     const node: EditorLeafNode = Object.assign(
         document.createElement("bce:editor-leaf-node"),
         {[editor_leaf_node_data]: node_data},
     );
     node.setAttribute("data-editor-id", ctx.editor_id);
-    node.setAttribute("id", JSON.stringify([ctx.editor_id, ictx.path]));
+    createEffect(() => node.setAttribute("id", JSON.stringify([ctx.editor_id, ictx.path])));
     // so we can querySelector the root node for bce:editor-node[data-editor-id="…"]
     // alternatively, we could maintain an array by having EditorSpan add and remove
     // onCleanup() couldn't we
@@ -862,7 +891,11 @@ const defaultnode = (): TextEditorRootNode => nc.root(
     )],
 );
 
-function deleteRange<U extends Point[]>(l: Point, r: Point, track: U): [Point, Point, U] {
+export function deleteRange<U extends Point[]>(
+    root: AnNode<TextEditorRoot>,
+    l: Point, r: Point,
+    track: U,
+): [Point, Point, U] {
     if(JSON.stringify(l) !== JSON.stringify(r)) throw new Error("TODO delete range");
     return [l, r, track];
 
@@ -871,12 +904,8 @@ function deleteRange<U extends Point[]>(l: Point, r: Point, track: U): [Point, P
     // // clear range
     // let left_path: EditorPath = null as unknown as EditorPath;
     // let right_path: EditorPath = null as unknown as EditorPath;
-    // [left_path, [r]] = insertAtNoMerge(l, {
-    //     kind: "text_editor_user_input", text: "",
-    // }, [r]); // @undef(l)
-    // [right_path] = insertAtNoMerge(r, {
-    //     kind: "text_editor_user_input", text: "",
-    // }, []); // @undef(r)
+    // [left_path, [r]] = insertAtNoMerge(l, nc.userInput(""), [r]); // @undef(l)
+    // [right_path] = insertAtNoMerge(r, nc.userInput(""), []); // @undef(r)
 
     // // loop over all nodes between left and right and delete them including right_path
     // //   but excluding left_path
@@ -895,22 +924,151 @@ function deleteRange<U extends Point[]>(l: Point, r: Point, track: U): [Point, P
     // - do we
     // i'm just not going to think about this for now
 }
+
+export function use<T, U>(v: T, cb: (v: T) => U): U {
+    return cb(v);
+}
+
 // we go left and right up the tree, merging stuff. after merge nodes is called on all
 // affected ndoes, the node tree is guarenteed to conform to the user's defined schema
-function mergeNodes<U extends Point[]>(center: EditorPath, track: U): [l: Point, r: Point, track: U] {
-    return [];
+export function mergeNodes<U extends Point[]>(
+    root: AnNode<TextEditorRoot>,
+    center: EditorPath,
+    track: U,
+): [l: Point, r: Point, track: U] {
+    // TODO merge nodes
+    return [
+        {path: center, offset: 0},
+        {path: center, offset: (() => {
+            let node: AnNode<TEChild> = root.node as unknown as AnNode<TEChild>;
+            for(const segment of center) {
+                node = (node as unknown as AnNode<TEContainer<any, any, TEChild>>).children[
+                    anKeys(root.node.children)[segment] ?? unreachable()
+                ] ?? unreachable();
+            }
+            return anString((node as unknown as {text: AnNode<string>}).text)?.length ?? 0;
+        })()},
+        track,
+    ];
 }
-function insertAtNoMerge<U extends Point[]>(cut: Point, node: TERawNode, track: U): [c: EditorPath, track: U] {
-    return [];
+
+// TODO this will have type parameters to conform to the user's something or other
+// and it will probably go in dom list nodes
+// type MergeNodesUserFunction = (id: UUID, node: TEChild, path: number[]) => TEChild[];
+
+function copyJSON<V extends JSONValue>(v: V): V {
+    return JSON.parse(JSON.stringify(v)) as V;
 }
-function insertAt<U extends Point[]>(cut: Point, node: TERawNode, track: U): [l: Point, r: Point, track: U] {
+
+export function insertAtNoMerge<U extends Point[]>(
+    root: AnNode<TextEditorRoot>,
+    cut: Point,
+    new_node: TERawNode,
+    track: U,
+    void_handling: "replace" | "left" | "right",
+): [c: EditorPath, track: U] {
+    // ok
+    // we're going to anSetReconcile the root node
+    // treat this like we're writing an update function for an action basically
+
+    let new_object_path: EditorPath | null = null;
+
+    function recursiveStep(node: TEChild, path: number[]): TEChild[] {
+        if(!path.every((bit, i) => bit === cut.path[i])) {
+            return [node];
+        }
+        
+        if(teIsContainer(node)) {
+            if(cut.path.length === path.length) unreachable();
+            return [recursiveStepContainer(node, path)];
+        }
+
+        if(cut.path.length !== path.length) unreachable();
+        if(new_object_path != null) unreachable();
+
+        if(teIsEditableString(node)) {
+            if(cut.offset === 0) {
+                new_object_path = path;
+                return [new_node, node];
+            }
+            new_object_path = path.map((w, i, a) => i === a.length - 1 ? w + 1 : w);
+            if(cut.offset === node.text.length) return [node, new_node];
+
+            const left_half = {...node, text: node.text.substring(0, cut.offset)};
+            // v: rather than copying ourselves, we could ask the node to do it. not sure
+            const right_half = {...copyJSON(node), text: node.text.substring(cut.offset)};
+
+            return [left_half, new_node, right_half];
+        }
+        if(teIsSelectableObject(node)) {
+            if(void_handling === "right") {
+                new_object_path = path.map((w, i, a) => i === a.length - 1 ? w + 1 : w);
+                return [node, new_node];
+            }
+            if(void_handling === "left") return [new_node, node];
+            new_object_path = path;
+            if(void_handling === "replace") return [new_node];
+            assertNever(void_handling);
+        }
+        assertNever(node);
+    }
+    function recursiveStepContainer(
+        node: TEContainer<any, any, TEChild>,
+        path: number[],
+    ): TEContainer<any, any, TEChild> {
+        return {
+            ...node,
+            children: Object.fromEntries(Object.entries(node.children).flatMap((child, i) => (
+                recursiveStep(child[1], [...path, i]).map((nt, j) => {
+                    // left half keeps the id
+                    // this is because user node merging should use the id of the leftmost
+                    // merged node. helps reduce solid js rerenders
+                    return [j === 0 ? child[0] : uuid(), nt];
+                })
+            ))),
+        };
+    }
+
+    anSetReconcile(root.node, (pv_raw) => {
+        const pv = pv_raw as TextEditorRootNode; // we don't have to handle bad structures
+        // here because all the structure will eventually be created through specialized
+        // actions so it's guarenteed to match spec (unless someone publishes an
+        // invalid snapshot)
+
+        return recursiveStepContainer(pv, []) as TextEditorRootNode;
+    });
+
+    if(new_object_path == null) unreachable();
+
+    // update all the tracked points
+    track = track.map((point) => {
+        throw new Error("todo support tracking points in insertAtNoMerge");
+    }) as unknown as typeof track;
+
+    return [new_object_path, track];
+}
+export function insertAt<U extends Point[]>(
+    root: AnNode<TextEditorRoot>,
+    cut: Point,
+    node: TERawNode,
+    track: U,
+): [l: Point, r: Point, track: U] {
     let center: EditorPath;
-    [center, track] = insertAtNoMerge(cut, node, track);
+    [center, track] = insertAtNoMerge(root, cut, node, track, "right");
     let l: Point;
     let r: Point;
-    [l, r, track] = mergeNodes(center, track);
+    [l, r, track] = mergeNodes(root, center, track);
     return [l, r, track];
 }
+// hmm. here's something fun we could do
+// it would require a WeakMap that you can loop over the keys of though
+// I think you might be able to do it with the new WeakRef thing but idk
+//
+// anyway basically the idea is you keep all the cursors in some weakmap
+// and update all of them when anything gets changed
+//
+// it's not a good idea because we'll need to find a proper solution to
+// that problem when we implement multi-user editing
 
 export function RichtextEditor(props: {
     node: AnNode<Richtext>,
@@ -1029,9 +1187,9 @@ export function RichtextEditor(props: {
                     l: Point, r: Point,
                     nv: string, track: U,
                 ): [Point, Point, U] {
-                    [l, r, [...track]] = deleteRange(l, r, [...track]);
+                    [l, r, [...track]] = deleteRange(props.node, l, r, [...track]);
                     const new_node = nc.userInput(nv);
-                    [l, r, [...track]] = insertAt(l, new_node, [...track]);
+                    [l, r, [...track]] = insertAt(props.node, l, new_node, [...track]);
                     return [l, r, track];
 
                     // whenever we do an operation like this, we need it to
