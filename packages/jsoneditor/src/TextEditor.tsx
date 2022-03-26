@@ -130,7 +130,14 @@ function listItemNodeData(el: Element): EditorListItemNodeData | null {
     return isListItemNode(el) ? el[editor_list_item_node_data] : null;
 }
 () => [listItemNodeData];
-export type EditorPath = string[];
+
+// why number[]? simple:
+// - ids can make you think they might be static. they aren't. these paths are anchored
+//   to a specific snapshot of data and after that they are invalid except under very
+//   specific circumstances.
+// - numbers can be compared to check if a node is between other nodes trivially.
+export type EditorPath = number[];
+
 export type Point = {
     path: EditorPath,
     offset: CursorIndex,
@@ -408,7 +415,7 @@ const node_renderers: {
                             ].join(" ")}
                             style="transform: translateY(-50%)"
                         />
-                        <RtListItem id={key}>
+                        <RtListItem id={key} index={index()}>
                             <EditorNode node={props.node.children[key as UUID]!.node} />
                         </RtListItem>
                     </div>
@@ -547,6 +554,7 @@ function pathWithinSelection(path: EditorPath, selection: Selection): boolean {
 
 export function RtListItem(props: {
     id: string, // [!] static, not allowed to change
+    index: number,
     children: JSX.Element,
 }): JSX.Element {
     const ctx = useContext(te_context)!;
@@ -562,11 +570,11 @@ export function RtListItem(props: {
         if(!ictx.selection_group) return false;
         const selxn = ctx.selection[0]();
         if(selxn == null) unreachable();
-        return pathWithinSelection([...ictx.path, props.id], selxn);
+        return pathWithinSelection([...ictx.path, props.index], selxn);
     });
     insert(node, <itm_context.Provider value={{
         get selection_group() {return selectionGroupMemo()},
-        path: [...ictx.path, props.id],
+        path: [...ictx.path, props.index],
     }}>
         {props.children}
     </itm_context.Provider>);
@@ -730,8 +738,8 @@ export function EditorChildren(props: {
             }));
         });
     }}>
-        <For each={anKeys(props.node)} fallback={props.fallback}>{key => {
-            return <RtListItem id={key}>
+        <For each={anKeys(props.node)} fallback={props.fallback}>{(key, index) => {
+            return <RtListItem id={key} index={index()}>
                 <EditorNode node={props.node[key]!} />
             </RtListItem>;
         }}</For>
@@ -1034,7 +1042,7 @@ export function RichtextEditor(props: {
                     // and then eg all user-inputted text can be added as just a raw text
                     // node that the user fn will turn into a real text node that fits
                     // their data model and can be displayed in the dom
-                    [l, r, [...track]] = insertAfter(l, new_node, [...track]);
+                    [l, r, [...track]] = insertAt(l, new_node, [...track]);
                     return [l, r, track];
 
                     // whenever we do an operation like this, we need it to
