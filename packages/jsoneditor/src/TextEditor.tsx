@@ -1,4 +1,5 @@
 import {
+    batch,
     createContext, createEffect, createMemo, createRenderEffect, createSignal,
     For, JSX, Signal, untrack, useContext
 } from "solid-js";
@@ -225,11 +226,17 @@ export type TextEditorLeafNode =
     | TextEditorLeafNodeParagraphBreak
 ;
 
+export type TextEditorUserInputNode = {
+    kind: "text_editor_user_input",
+    text: string,
+};
+
 type TextEditorAnyNode =
     | TextEditorRootNode
     | TextEditorParagraphNode
     | TextEditorLeafNode
     | CodeBlockLeafNode
+    | TextEditorUserInputNode
 ;
 // ^ TODO: remove this. temporary hack.
 
@@ -803,6 +810,56 @@ const defaultnode = (): TextEditorRootNode => nc.root(
     )],
 );
 
+function deleteRange<U extends Point[]>(l: Point, r: Point, track: U): [Point, Point, U] {
+    if(JSON.stringify(l) !== JSON.stringify(r)) throw new Error("TODO delete range");
+    return [l, r, track];
+
+    // // insert a void node left
+    // // insert a void node right
+    // // clear range
+    // let left_path: EditorPath = null as unknown as EditorPath;
+    // let right_path: EditorPath = null as unknown as EditorPath;
+    // [left_path, [r]] = insertAtNoMerge(l, {
+    //     kind: "text_editor_user_input", text: "",
+    // }, [r]); // @undef(l)
+    // [right_path] = insertAtNoMerge(r, {
+    //     kind: "text_editor_user_input", text: "",
+    // }, []); // @undef(r)
+
+    // // loop over all nodes between left and right and delete them including right_path
+    // //   but excluding left_path
+    // // call mergeNodes() at left_path
+    // //
+    // // this section would benefit from consistent node schemas because otherwise we have
+    // // to go ask all the lists to handle the deletion themselves. which is okay but
+    // // not sure if there's any clear benefit. there's probably only disadvantage.
+
+    // ok we're defining a consistent node schema right now
+    // oh right we also need it for actions. yeah it's important to have a consistent
+    // node schema.
+
+    // oh uh oh this is an issue
+    // actions:
+    // - do we
+    // i'm just not going to think about this for now
+}
+// we go left and right up the tree, merging stuff. after merge nodes is called on all
+// affected ndoes, the node tree is guarenteed to conform to the user's defined schema
+function mergeNodes<U extends Point[]>(center: EditorPath, track: U): [l: Point, r: Point, track: U] {
+    return [];
+}
+function insertAtNoMerge<U extends Point[]>(cut: Point, node: TextEditorAnyNode, track: U): [c: EditorPath, track: U] {
+    return [];
+}
+function insertAt<U extends Point[]>(cut: Point, node: TextEditorAnyNode, track: U): [l: Point, r: Point, track: U] {
+    let center: EditorPath;
+    [center, track] = insertAtNoMerge(cut, node, track);
+    let l: Point;
+    let r: Point;
+    [l, r, track] = mergeNodes(center, track);
+    return [l, r, track];
+}
+
 export function RichtextEditor(props: {
     node: AnNode<Richtext>,
 }): JSX.Element {
@@ -899,72 +956,102 @@ export function RichtextEditor(props: {
     
                 console.log(event);
             }}
-            // onBeforeInput={ev => batch((): void => {
-            //     ev.preventDefault();
-            //     console.log("beforeinput", ev);
-            //     const selection = selected();
-            //     if(!selection) return;
-            //     // const getNodePath = (sel: Selection): string[] => {
-            //     //     let node: HTMLElement | null = sel.editor_node;
-            //     //     const path: string[] = [];
-            //     //     while(node) {
-            //     //         const lnd = listNodeData(node);
-            //     //         if(lnd) {
-            //     //             path.unshift(lnd.id);
-            //     //         }
-            //     //         node = node.parentElement;
-            //     //     }
-            //     // };
-            //     const replaceRange = (l: undefined, r: undefined, nv: undefined): undefined => {
-            //         // split nodes at left and right
-            //         // [!] selections should be changed from real htmlelements to just
-            //         //     symbolic things to make it easy for splitting a node to return
-            //         //     a new selection
-            //         //
-            //         // delete nodes (basically: find all the highest level list item nodes)
-            //         // (between the two items and tell their list node to delete the item)
-            //         //
-            //         // - root:
-            //         //   [par1: [span one] |cursor_left [span two] [span three]]
-            //         //   
-            //         //   [par2: [span four] [span five] [span six]]
-            //         //
-            //         //   [par3: [span seven] [span eight] cursor_right| [span nine]]
-            //         //
-            //         // par1.remove(span two, span three)
-            //         // root.remove(par2)
-            //         // par3.remove(span seven, span eight)
-            //         //
-            //         // insert node
-            //         // collapse nodes - in this order: (l, c), (c, r), up parent tree
-            //         //                - while the collapse succeeds, collapse again at that level
-            //         // also todo we'll need custom actions for these so they continue
-            //         // to work when multiple people are editing a document at once
+            onBeforeInput={ev => batch((): void => {
+                ev.preventDefault();
+                console.log("beforeinput", ev);
+                const selection = selected();
+                if(!selection) return;
+                // const getNodePath = (sel: Selection): string[] => {
+                //     let node: HTMLElement | null = sel.editor_node;
+                //     const path: string[] = [];
+                //     while(node) {
+                //         const lnd = listNodeData(node);
+                //         if(lnd) {
+                //             path.unshift(lnd.id);
+                //         }
+                //         node = node.parentElement;
+                //     }
+                // };
 
-            //         // [?] should the node we're inserting to perform these actions?
-            //         //     maybe
-            //         // like
-            //         // editor.splitNode()
-            //         [l, [r]] = splitNode(l, [r]);
-            //         [r, [l]] = splitNode(r, [l]);
-            //         [l, r] = deleteRange(l, r);
-            //         l = askNodeToInsert(l, nv);
-            //         recursivelyMerge(l);
-            //         return l;
+                function replaceRange<U extends Point[]>(
+                    l: Point, r: Point,
+                    nv: string, track: U,
+                ): [Point, Point, U] {
+                    // split nodes at left and right
+                    // [!] selections should be changed from real htmlelements to just
+                    //     symbolic things to make it easy for splitting a node to return
+                    //     a new selection
+                    //
+                    // delete nodes (basically: find all the highest level list item nodes)
+                    // (between the two items and tell their list node to delete the item)
+                    //
+                    // - root:
+                    //   [par1: [span one] |cursor_left [span two] [span three]]
+                    //   
+                    //   [par2: [span four] [span five] [span six]]
+                    //
+                    //   [par3: [span seven] [span eight] cursor_right| [span nine]]
+                    //
+                    // par1.remove(span two, span three)
+                    // root.remove(par2)
+                    // par3.remove(span seven, span eight)
+                    //
+                    // insert node
+                    // collapse nodes - in this order: (l, c), (c, r), up parent tree
+                    //                - while the collapse succeeds, collapse again at that level
+                    // also todo we'll need custom actions for these so they continue
+                    // to work when multiple people are editing a document at once
 
-            //         // whenever we do an operation like this, we need it to
-            //         // tell us the new positions of any markers
-            //         //
-            //         // so eg if we do this and someone else's cursor is somewhere, we
-            //         // need to preserve that cursor's position
-            //         //
-            //         // for now I'm just explicitly preserving some position
-            //     };
-            //     if(ev.inputType === "insertText") {
-            //         setSelection(replaceRange(selection(), selection(), ev.data));
-            //     }
+                    // [?] should the node we're inserting to perform these actions?
+                    //     maybe
+                    // like
+                    // editor.splitNode()
+                    [l, r, [...track]] = deleteRange(l, r, [...track]);
+                    const new_node: TextEditorUserInputNode = {
+                        kind: "text_editor_user_input",
+                        text: nv,
 
-            // })}
+                    };
+                    // I think that model like slate does it will be easier than
+                    // trying to ask the node to say what type of node should be
+                    // inserted here
+                    //
+                    // eg I was trying to make it possible so
+                    // 
+                    // say we had an inline code node "some text `inline code` done"
+                    // I wanted to make it so inline code could add little fake
+                    // nodes to the left and right that let you move your cursor where
+                    // those backticks are
+                    //
+                    // but it will be better to instead make it so that gets internally
+                    // represented as
+                    // [leaf(some text ) inlinecode(codestart(`) ) text(inline code) codeend(`)] text( done)
+                    // and merging will handle eg when you insert text to the right of the
+                    // codeend marker inside the inlinecode it will lift it out and put it 
+                    // in the paragraph directly and then the paragraph will read it and
+                    // convert it into a text node
+                    //
+                    // and then eg all user-inputted text can be added as just a raw text
+                    // node that the user fn will turn into a real text node that fits
+                    // their data model and can be displayed in the dom
+                    [l, r, [...track]] = insertAfter(l, new_node, [...track]);
+                    return [l, r, track];
+
+                    // whenever we do an operation like this, we need it to
+                    // tell us the new positions of any markers
+                    //
+                    // so eg if we do this and someone else's cursor is somewhere, we
+                    // need to preserve that cursor's position
+                    //
+                    // for now I'm just explicitly preserving some position
+                }
+                if(ev.inputType === "insertText") {
+                    setSelected({
+                        anchor: replaceRange(selection.anchor, selection.anchor, ev.data!, [])[0],
+                    });
+                }
+
+            })}
             oncompositionstart={() => {
                 //
             }}
