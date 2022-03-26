@@ -26,7 +26,12 @@ type Server = {[key: string]: {
 }};
 function uploadToServer(server: Server, root: AnRoot) {
     const client_actions = root.actions.filter(act => act.from === "client");
-    Object.assign(server, Object.fromEntries(client_actions.map(a => [a.id, JSON.stringify(a.value)])));
+    Object.assign(server, Object.fromEntries(client_actions.map((a): [string, Server[string]] => {
+        return [a.id, {
+            value: JSON.stringify(a.value),
+            affects: JSON.stringify(a.affects),
+        }];
+    })));
 }
 function downloadFromServer(server: Server, root: AnRoot) {
     // todo only publish actions that the server doesn't know the client has
