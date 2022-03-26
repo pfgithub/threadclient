@@ -233,6 +233,26 @@ type TextEditorAnyNode =
 ;
 // ^ TODO: remove this. temporary hack.
 
+// type TENode = {
+//     children: {[key: string]: TENode | TELeaf},
+// };
+// type TELeaf = {
+//     text: string,
+// };
+// sample **bold** text
+//
+// [image]
+
+// →
+// paragraph[ leaf(sample ) leaf.bold(bold) leaf( text) leaf.paragraphbreak( ) ]
+//
+// image[]
+
+// is this good? do we want this?
+// is this better than whatever we're trying to do?
+// can we type this properly?
+// not sure
+
 const nc = {
     array<T>(...items: T[]): {[key: string]: T} {
         return Object.fromEntries(items.map(itm => [uuid(), itm] as const));
