@@ -328,7 +328,7 @@ const node_renderers: {
 
                 wrapper_class="pt-2 first:pt-0"
                 nodeClass={() => ""}
-            >{(key, dragging, index) => {
+            >{(key, dragging, index, anyDragging) => {
                 const [f0, setFocused] = createSignal(false);
                 const [h0, setHovering] = createSignal(false);
                 const hovering = () => f0() || h0();
@@ -370,7 +370,10 @@ const node_renderers: {
                         </div>
                         <DragButton class={"px-2 rounded-md h-full "+(dragging() ? "bg-gray-500" : "")}>≡</DragButton>
                     </div>
-                    <div class="flex-1 relative">
+                    <div class={
+                        "flex-1 relative "
+                        + (anyDragging() ? "whitespace-nowrap overflow-hidden text-ellipsis max-h-8 " : "")
+                    }>
                         <div
                             class={[
                                 "-mt-1 absolute bg-blue-500 w-full h-1 rounded-full",

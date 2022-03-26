@@ -30,6 +30,9 @@ type Dragging = null | {
     item: number,
     hovering: number,
     height: number,
+
+    margin_top: number,
+    margin_bottom: number,
 };
 type SelfDragging = null | {x: number, y: number};
 
@@ -38,15 +41,25 @@ export function DraggableList(props: {
     wrapper_class: string,
     nodeClass: (selfIsDragging: () => boolean) => string,
     setItems: (cb: (prev: string[]) => string[]) => void,
-    children: (key: string, dragging: Accessor<boolean>, index: Accessor<number>) => JSX.Element,
+    children: (
+        key: string,
+        dragging: Accessor<boolean>,
+        index: Accessor<number>,
+        anyDragging: Accessor<boolean>,
+    ) => JSX.Element,
 }): JSX.Element {
     const list_symbol = Symbol();
     const [dragging, setDragging] = createSignal<Dragging>(null, {equals: (a, b) => {
         if(!a || !b) return a === b;
         return a.item === b.item && a.hovering === b.hovering && a.height === b.height;
     }});
+    const isDragging = createMemo(() => dragging() != null);
     const [flipState, setFlipState] = createSignal(0);
-    return <For each={props.items}>{(key, index) => {
+    let container_el!: HTMLDivElement;
+    return <div style={{
+        'padding-top': (dragging()?.margin_top ?? 0) + "px",
+        'padding-bottom': (dragging()?.margin_bottom ?? 0) + "px",
+    }} ref={container_el}><For each={props.items}>{(key, index) => {
         let wrapper_el!: HTMLDivElement;
         let cleanFn: (() => void) | undefined;
         const [selfDragging, setSelfDragging] = createSignal<SelfDragging>(null);
@@ -133,6 +146,7 @@ export function DraggableList(props: {
                     setDragging,
 
                     get wrapper_el() {return wrapper_el},
+                    get container_el() {return container_el},
 
                     index,
 
@@ -149,11 +163,16 @@ export function DraggableList(props: {
                     set cleanFn(v) {cleanFn = v},
                     get cleanFn() {return cleanFn},
                 }}>
-                    {untrack(() => props.children(key, selfIsDragging, index))}
+                    {untrack(() => props.children(
+                        key,
+                        selfIsDragging,
+                        index,
+                        isDragging,
+                    ))}
                 </drag_state.Provider>
             </div>
         </div>;
-    }}</For>;
+    }}</For></div>;
 }
 
 const drag_state = createContext<{
@@ -163,6 +182,7 @@ const drag_state = createContext<{
     setDragging: Setter<Dragging>,
 
     wrapper_el: HTMLElement,
+    container_el: HTMLElement,
 
     index: () => number,
 
@@ -178,6 +198,10 @@ const drag_state = createContext<{
 
     cleanFn: (() => void) | undefined,
 }>();
+
+function scale(value: number, m0: [min: number, max: number], m1: [min: number, max: number]): number {
+    return (((value - m0[0]) / m0[1]) * m1[1]) + m1[0];
+}
 
 export function DragButton(props: {
     class: string,
@@ -195,20 +219,40 @@ export function DragButton(props: {
             if(state.dragging()) return;
             initial_ev.preventDefault();
 
-            const rect = state.wrapper_el.getBoundingClientRect();
-
             const updateDragging = (hover_idx: number) => {
+                const rect = state.wrapper_el.getBoundingClientRect();
                 state.setDragging({
                     item: state.index(),
                     hovering: hover_idx,
                     height: rect.height,
+
+                    margin_top: mtop,
+                    margin_bottom: mbottom,
                 });
             };
             state.setSelfDragging({x: 0, y: 0});
-            updateDragging(state.index());
             
             const start_pos_x = initial_ev.pageX;
             const start_pos_y = initial_ev.pageY;
+
+            const container_old_rect = state.container_el.getBoundingClientRect();
+            const item_old_rect = state.wrapper_el.getBoundingClientRect();
+            const prevent_scroll_extra_height = container_old_rect.height;
+            let mtop = 0;
+            let mbottom = prevent_scroll_extra_height;
+            updateDragging(state.index());
+            // item may have resized
+            const container_new_rect = state.container_el.getBoundingClientRect();
+            const item_new_rect = state.wrapper_el.getBoundingClientRect();
+            // rescale relative cursor pos and add offset
+            const src_pos = initial_ev.clientY - item_old_rect.top;
+            const dest_pos = scale(src_pos,
+                [0, item_old_rect.height],
+                [0, item_new_rect.height],
+            );
+            mtop = (item_old_rect.top - item_new_rect.top) + (src_pos - dest_pos);
+            mbottom = container_old_rect.height - (container_new_rect.height - prevent_scroll_extra_height) - mtop;
+            updateDragging(state.index());
 
             const updatePtr = (e: PointerEvent) => {
                 const pos_x = e.pageX - start_pos_x;
@@ -243,6 +287,10 @@ export function DragButton(props: {
                 const self = state.index();
                 if(drag_target && drag_target.hovering !== self) {
                     // perform the following steps
+
+                    // 0. set dragging null to have final positions
+                    state.setDragging(null);
+
                     // 1. send a signal asking anyone involved to measure
                     //    themselves, then clear their transition and
                     //    transform
