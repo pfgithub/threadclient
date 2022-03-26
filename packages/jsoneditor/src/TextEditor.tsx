@@ -942,8 +942,9 @@ export function mergeNodes<U extends Point[]>(
         {path: center, offset: (() => {
             let node: AnNode<TEChild> = root.node as unknown as AnNode<TEChild>;
             for(const segment of center) {
-                node = (node as unknown as AnNode<TEContainer<any, any, TEChild>>).children[
-                    anKeys(root.node.children)[segment] ?? unreachable()
+                const nodevc = (node as unknown as AnNode<TEContainer<any, any, TEChild>>).children;
+                node = nodevc[
+                    anKeys(nodevc)[segment] ?? unreachable()
                 ] ?? unreachable();
             }
             return anString((node as unknown as {text: AnNode<string>}).text)?.length ?? 0;
@@ -1075,6 +1076,8 @@ export function RichtextEditor(props: {
 }): JSX.Element {
     const [selected, setSelected] = createSignal<Selection | null>(null);
 
+    const [textareaFocused, setTextAreaFocused] = createSignal(false);
+
     const editor_id = uuid();
     let div!: HTMLDivElement;
 
@@ -1084,7 +1087,10 @@ export function RichtextEditor(props: {
 
     // this stylinng can probably be provided by the root node
     return <div
-        class="min-h-[130px] bg-gray-700 rounded-md relative p-2"
+        class={
+            "min-h-[130px] bg-gray-700 rounded-md relative p-2 "
+            +(textareaFocused() ? "outline outline-green-500 " : "")
+        }
         ref={div}
     >
         <textarea
@@ -1097,11 +1103,15 @@ export function RichtextEditor(props: {
             //   - simple vertical cursor movement was broken when i tried turning it
             //     on for this page
             class={[
-                "absolute top-0 left-0 pointer-events-none w-full h-full rounded-md",
+                "fixed top-0 left-0 pointer-events-none w-full h-full rounded-md",
                 "bg-transparent text-transparent",
                 // selected() ? "outline outline-green-500" : "",
             ].join(" ")}
             ref={el => {
+                // we're going to do our own mouse handling
+                // focus should only be called during our mouse handling stuff
+                // actually we're going to preventdefault so it won't even lose focus
+                // ok perfect
                 createEffect(() => {
                     if(selected()) el.focus();
                 });
@@ -1109,7 +1119,7 @@ export function RichtextEditor(props: {
             onKeyDown={(event) => {
                 if(event.isComposing) return;
 
-                console.log(event);
+                // console.log(event);
                 const selection = selected();
                 if(!selection) return;
                 const editor_nodes = [...div.querySelectorAll(
@@ -1168,7 +1178,7 @@ export function RichtextEditor(props: {
             }}
             onBeforeInput={ev => batch((): void => {
                 ev.preventDefault();
-                console.log("beforeinput", ev);
+                // console.log("beforeinput", ev);
                 const selection = selected();
                 if(!selection) return;
                 // const getNodePath = (sel: Selection): string[] => {
@@ -1216,9 +1226,12 @@ export function RichtextEditor(props: {
             oncompositionupdate={() => {
                 //
             }}
-            // onfocusout={() => {
-            //     setSelected(null);
-            // }}
+            onfocusin={() => {
+                setTextAreaFocused(true);
+            }}
+            onfocusout={() => {
+                setTextAreaFocused(false);
+            }}
         />
         <Show if={isObject(anGet(props.node))} fallback={<div class="bg-gray-800 p-1 rounded-md inline-block">
             <Buttons><Button onClick={() => {
