@@ -80,13 +80,19 @@ export function DraggableList(props: {
             });
         }}>
             <div
+                onTransitionEnd={e => {
+                    if(e.target !== e.currentTarget) return;
+                    e.currentTarget.style.clipPath = "none";
+                }}
                 ref={el => {
                     createEffect(() => {
                         el.style.pointerEvents = dragging() ? "none" : "";
                     });
                     let stored_rect: DOMRect | null = null;
+                    let jscp = false;
                     el.style.transformOrigin = "top";
                     createEffect(() => {
+                        if(jscp) el.style.clipPath = "inset(0 0 0 0)";
                         const flip_state = flipState();
                         if(flip_state === 1 || flip_state === 3) {
                             if(el.style.transform !== "" || flip_state === 3) {
@@ -103,18 +109,28 @@ export function DraggableList(props: {
                                 const current_rect = el.getBoundingClientRect();
                                 const diff_x = stored_rect.x - current_rect.x;
                                 const diff_y = stored_rect.y - current_rect.y;
-                                const diff_w = stored_rect.width / current_rect.width;
-                                const diff_h = stored_rect.height / current_rect.height;
+                                const fi_r = current_rect.width - stored_rect.width;
+                                const fi_b = current_rect.height - stored_rect.height;
+                                // const diff_w = stored_rect.width / current_rect.width;
+                                // const diff_h = stored_rect.height / current_rect.height;
                                 el.style.transition = "";
+                                // clip path:
+                                // animate from:
+                                // inset(0 0 (final_h - initial_h)px 0)
+                                // to
+                                // inset(0 0 0 0)
+                                // also clear inset on transitionend
+                                el.style.clipPath = "inset(0 0 "+(fi_b)+"px "+(fi_r)+"px)";
+                                jscp = true;
                                 el.style.transform = [
                                     "translate("+diff_x+"px, "+diff_y+"px)",
-                                    "scale("+diff_w+", "+diff_h+")",
+                                    // "scale("+diff_w+", "+diff_h+")",
                                     //^ not sure if that looks good.
                                     // ok yeah I think it looks really bad
                                 ].join(" ");
                                 stored_rect = null;
                                 el.offsetHeight; // trigger reflow
-                                el.style.transition = "0.2s transform ease-out";
+                                el.style.transition = "0.2s transform ease-out, 0.2s clip-path ease-out";
                             }
                             return;
                         }
@@ -124,7 +140,7 @@ export function DraggableList(props: {
                             el.style.transform = "translate("+self_dragging.x+"px, "+self_dragging.y+"px)";
                             return;
                         }
-                        el.style.transition = "0.2s transform";
+                        el.style.transition = "0.2s transform, 0.2s clip-path";
                         const drag = dragging();
                         if(!drag) {
                             el.style.transform = "";
