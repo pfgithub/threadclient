@@ -19,6 +19,9 @@ NEXT STEPS:
   - this requires the database has that one property but postgresdb should so that should
     be okay
   - wait a second this is literally what `id serial PRIMARY KEY` is
+    - oh nevermind it's complicated https://timerwich.com/posts/2018/01/29/monotonically-increasing-ids-in-postgres/
+    - oh and also that 30 second delay means in the future we'll want to put as many
+      clients as possible into a single websocket connection. that's okay.
 - actions need to specify what they were building off of. so if you insert an action it
   knows 
 - consider using the push api - it's a single connection rather than a full websocket.
