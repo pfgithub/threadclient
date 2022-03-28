@@ -45,6 +45,7 @@ NEXT STEPS:
 - some kind of affects_key field
   - not sure what datatype for this one. we can do jsonb i guess for now. it contains
     a string array.
+  - specifies the highest tree the action modifies
 - jsonb data field
   - [!] ensure that actions do not contain ordered json keys. note that snapshots do
     contain ordered json data and cannot use jsonb. snapshots can be stored in file
@@ -52,6 +53,8 @@ NEXT STEPS:
     done there.
   - note that we can consider using protobufs or a similar system with defined schemas for
     actions
+- oh right i forgot - we need to bundle actions. mark them to affect the highest key
+  they touch.
 
 # note
 
