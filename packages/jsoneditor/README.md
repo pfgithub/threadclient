@@ -28,6 +28,31 @@ NEXT STEPS:
   the connection can be upgraded to a websocket if lots of people are editing
   - this one isn't super important yet, we'll just stay with websockets for now
 
+- ok we're going to use supabase database + realtime + storage
+- also consider if it's at all possible to not have documents at all and instead just
+  have one large changelist where clients keep sub-snapshots
+  - unfortunately i'm pretty sure 'begins with' queries aren't going to be fast enough
+    for that at large scales
+- ok we're going to be simple
+
+- autoincrement id field
+  - make sure we don't run into that race condition described above
+    - probably just have the race condition for now because that doesn't give a clear way
+      to deal with it and eventually we can switch to a database that supports this better
+      or find a better google search result
+- u128 document field
+  - specifies which document the action affects
+- some kind of affects_key field
+  - not sure what datatype for this one. we can do jsonb i guess for now. it contains
+    a string array.
+- jsonb data field
+  - [!] ensure that actions do not contain ordered json keys. note that snapshots do
+    contain ordered json data and cannot use jsonb. snapshots can be stored in file
+    storage though and they can be compressed or something. lots of things that can be
+    done there.
+  - note that we can consider using protobufs or a similar system with defined schemas for
+    actions
+
 # note
 
 collaborative editing:
