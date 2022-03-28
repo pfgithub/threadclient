@@ -20,6 +20,9 @@ NEXT STEPS:
     be okay
 - actions need to specify what they were building off of. so if you insert an action it
   knows 
+- consider using the push api - it's a single connection rather than a full websocket.
+  the connection can be upgraded to a websocket if lots of people are editing
+  - this one isn't super important yet, we'll just stay with websockets for now
 
 # note
 
