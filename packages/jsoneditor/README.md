@@ -46,6 +46,13 @@ NEXT STEPS:
   - not sure what datatype for this one. we can do jsonb i guess for now. it contains
     a string array.
   - specifies the highest tree the action modifies
+- current_view field
+  - specifies the id of the action which is the latest one the client has downloaded
+  - when adding actions, use that. we can also change how deletion works and no longer
+    require set_keys on all parents before an object can be created - instead figuring
+    it out based on what the client could see at the time they played that action
+  - this is likely only relevant for text editing actions as they require being able
+    to morph paths based on the previous actions that have occured
 - jsonb data field
   - [!] ensure that actions do not contain ordered json keys. note that snapshots do
     contain ordered json data and cannot use jsonb. snapshots can be stored in file
