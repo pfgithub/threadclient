@@ -18,6 +18,7 @@ NEXT STEPS:
     time) (and actions can still be evaluated in the order defined by the client time)
   - this requires the database has that one property but postgresdb should so that should
     be okay
+  - wait a second this is literally what `id serial PRIMARY KEY` is
 - actions need to specify what they were building off of. so if you insert an action it
   knows 
 - consider using the push api - it's a single connection rather than a full websocket.
