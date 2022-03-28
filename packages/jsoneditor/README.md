@@ -53,6 +53,7 @@ NEXT STEPS:
     it out based on what the client could see at the time they played that action
   - this is likely only relevant for text editing actions as they require being able
     to morph paths based on the previous actions that have occured
+- author field
 - jsonb data field
   - [!] ensure that actions do not contain ordered json keys. note that snapshots do
     contain ordered json data and cannot use jsonb. snapshots can be stored in file
