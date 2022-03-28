@@ -5,6 +5,24 @@ yarn dev
 
 # note
 
+NEXT STEPS:
+
+- probably switch to postgres / sqlite combo. sqlite dev builds and postgres for
+  production. postgres has update notifications and sqlite is single-client
+- actions need to store the database time they were added. this needs to be an atomically
+  increasing number so that actions can only ever be inserted in the future, never in the
+  past. [!] [!] [!] this solves all my problems
+  - it means we can have actual snapshots! a snapshot = [a point in time, the value]
+  - no actions can ever be added before that point in time (although actions can be added
+    that say that their world state should be understood to be that of a given point in
+    time) (and actions can still be evaluated in the order defined by the client time)
+  - this requires the database has that one property but postgresdb should so that should
+    be okay
+- actions need to specify what they were building off of. so if you insert an action it
+  knows 
+
+# note
+
 collaborative editing:
 
 we'll back it with mongodb which gives change notifications i think
