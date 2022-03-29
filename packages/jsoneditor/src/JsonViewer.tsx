@@ -1,9 +1,11 @@
 import { createMemo, For, untrack } from "solid-js";
 import { JSX } from "solid-js";
+import { Show } from "tmeta-util-solid";
 import { anGet, anKeys, AnNode } from "./app_data";
 import { Button, Buttons } from "./components";
 import { getState } from "./editor_data";
 import { isObject } from "./guards";
+import { UIState } from "./ui_state";
 
 export class JSONRaw {
   message: string;
@@ -52,15 +54,32 @@ export function StoreViewerElement(props: {
   return createMemo((): JSX.Element => {
     const pv = anGet(props.node);
     if(typeof pv === "object" && pv != null) return untrack((): JSX.Element => {
-      return <span>{"{"}<For each={anKeys(props.node)}>{(key, index) => {
-        return <span>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
-          <span class={color()}>{JSON.stringify(key)}</span>{": "}
-          <StoreViewerElement
-            node={(props.node as unknown as AnNode<{[key: string]: unknown}>)[key]!}
-            level={props.level + 1}
-          />
-        </span>;
-      }}</For>{(anKeys(props.node).length !== 0 ? "\n" + " ".repeat(props.level) : "") + "}"}</span>;
+      return <span>
+        {"{"}
+        <UIState
+          key={"-MzLXv8icgKEIkDlKFTU"}
+          node={props.node}
+          defaultValue={() => false}
+        >{([open, setOpen]) => <Show if={anKeys(props.node).length !== 0}>
+          <button
+            class="bg-gray-700 rounded-md"
+            onClick={() => setOpen(v => !v)}
+          >{open() ? " ▾ " : " … "}</button>
+          <Show if={open()}>
+            <For each={anKeys(props.node)}>{(key, index) => {
+              return <span>{index() !== 0 ? "," : ""}{"\n" + " ".repeat(props.level) + " "}
+                <span class={color()}>{JSON.stringify(key)}</span>{": "}
+                <StoreViewerElement
+                  node={(props.node as unknown as AnNode<{[key: string]: unknown}>)[key]!}
+                  level={props.level + 1}
+                />
+              </span>;
+            }}</For>
+            {"\n" + " ".repeat(props.level)}
+          </Show>
+        </Show>}</UIState>
+        {"}"}
+      </span>;
     }); else return untrack((): JSX.Element => {
       return <span class={color()}>{pv === undefined ? "#E_UNDEFINED" : JSON.stringify(pv)}</span>;
     });
