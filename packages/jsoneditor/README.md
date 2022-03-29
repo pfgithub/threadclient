@@ -5,6 +5,12 @@ yarn dev
 
 # note
 
+[!] [!] [!]
+
+https://github.com/share/sharedb
+
+look into this
+
 NEXT STEPS:
 
 - probably switch to postgres / sqlite combo. sqlite dev builds and postgres for
