@@ -11,6 +11,14 @@ https://github.com/share/sharedb
 
 https://en.wikipedia.org/wiki/Operational_transformation
 
+we need to support dynamic paths
+
+- this means we should:
+- switch back to arrays
+- get rid of object key order
+
+then we can start to fully support dynamic paths everywhere
+
 look into this
 
 NEXT STEPS:

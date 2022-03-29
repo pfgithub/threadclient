@@ -250,7 +250,6 @@ export type PermanentAction = {
     id_type: "permanent",
     
     permanent_id: PermanentActionID,
-    parent_action: number,
 } & ActionBase;
 export type Action = TemporaryAction | PermanentAction;
 

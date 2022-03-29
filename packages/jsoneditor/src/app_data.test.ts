@@ -1,9 +1,9 @@
 import tap from "tap";
-import { UUID } from "tmeta-util";
 import {
     anCreateUndoGroup, AnRoot, anRoot, anSetReconcile, anSetReconcileIncomplete,
     anUndo, applyActionToSnapshot, createAppData, findDiffSignals,
-    addActions, reducePath, SignalPath,
+    addActions, reducePath, SignalPath, TemporaryActionID, PermanentAction,
+    PermanentActionID, JSON as JSON_t,
 } from "./app_data";
 import "./test_setup";
 
@@ -23,31 +23,32 @@ void tap.test("program", async () => {
     });
 });
 
-type Server = {[key: string]: {
-    value: string,
-    affects: string,
-}};
+function dupeJSON<T extends JSON_t>(v: T): T {
+    return JSON.parse(JSON.stringify(v)) as typeof v;
+}
+
+type Server = PermanentAction[];
 function uploadToServer(server: Server, root: AnRoot) {
-    const client_actions = root.actions.filter(act => act.from === "client");
-    Object.assign(server, Object.fromEntries(client_actions.map((a): [string, Server[string]] => {
-        return [a.id, {
-            value: JSON.stringify(a.value),
-            affects: JSON.stringify(a.affects),
-        }];
-    })));
+    const client_actions = root.temporary_actions.splice(0);
+    server.push(...client_actions.map((client_action): PermanentAction => {
+        client_action = dupeJSON(client_action);
+        return {
+            id_type: "permanent",
+            permanent_id: server.length as PermanentActionID,
+    
+            temporary_id: client_action.temporary_id,
+            value: client_action.value,
+            affects_tree: client_action.affects_tree,
+        };
+    }));
 }
 function downloadFromServer(server: Server, root: AnRoot) {
     // todo only publish actions that the server doesn't know the client has
     // (eg if there is a transport error, the server will publish the same action
     //  multiple times but usually each action will only be posted once to the client)
-    modifyActions(root, {
-        insert: Object.entries(server).map(([k, v]): FloatingAction => ({
-            id: k as UUID,
-            from: "server",
-            value: JSON.parse(v.value) as FloatingAction["value"],
-            affects: JSON.parse(v.affects) as FloatingAction["affects"],
-        })),
-        remove: [],
+    addActions(root, {
+        temporary: [],
+        permanent: dupeJSON(server),
     });
 }
 function sync(server: Server, ...clients: AnRoot[]) {
@@ -62,48 +63,48 @@ function sync(server: Server, ...clients: AnRoot[]) {
 void tap.test("applying actions to snapshots", async () => {
     // create object
     tap.same(applyActionToSnapshot({
-        id: "0" as UUID,
-        from: "client",
+        temporary_id: "0" as TemporaryActionID,
         value: {
             kind: "reorder_keys",
             old_keys: [],
             new_keys: [],
+            path: [],
         },
-        affects: [[]],
+        affects_tree: [],
     }, undefined), {});
 
     // does not create object if parents were not created
     tap.same(applyActionToSnapshot({
-        id: "0" as UUID,
-        from: "client",
+        temporary_id: "0" as TemporaryActionID,
         value: {
             kind: "reorder_keys",
             old_keys: [],
             new_keys: [],
+            path: ["home", "someuser", "Documents"],
         },
-        affects: [["home", "someuser", "Documents"]],
+        affects_tree: ["home", "someuser", "Documents"],
     }, undefined), undefined);
 
     // creates value
     tap.same(applyActionToSnapshot({
-        id: "0" as UUID,
-        from: "client",
+        temporary_id: "0" as TemporaryActionID,
         value: {
             kind: "set_value",
             new_value: "content",
+            path: ["mytextdocument.txt"],
         },
-        affects: [["mytextdocument.txt"]],
+        affects_tree: ["mytextdocument.txt"],
     }, {'mytextdocument.txt': undefined}), {'mytextdocument.txt': "content"});
 
     // does not create value if parents were not created
     tap.same(applyActionToSnapshot({
-        id: "0" as UUID,
-        from: "client",
+        temporary_id: "0" as TemporaryActionID,
         value: {
             kind: "set_value",
             new_value: "what an amazing text document. shame the parents weren't created.",
+            path: ["mytextdocument.txt"],
         },
-        affects: [["mytextdocument.txt"]],
+        affects_tree: ["mytextdocument.txt"],
     }, undefined), undefined);
 });
 
@@ -115,9 +116,9 @@ void tap.test("deleting objects should delete any changes made", async () => {
     const client_1 = createAppData<{[key: string]: Person}>();
     const client_2 = createAppData<{[key: string]: Person}>();
 
-    const server: Server = {};
+    const server: Server = [];
 
-    tap.same(anRoot(client_1).snapshot, undefined);
+    tap.same(anRoot(client_1).snapshot, null);
 
     // Client 1 creates a user
 
@@ -127,7 +128,7 @@ void tap.test("deleting objects should delete any changes made", async () => {
     tap.same(anRoot(client_1).snapshot, {
         julia: {},
     });
-    tap.same(anRoot(client_2).snapshot, undefined);
+    tap.same(anRoot(client_2).snapshot, null);
 
     // Clients sync
     sync(server, anRoot(client_1), anRoot(client_2));
@@ -237,9 +238,9 @@ void tap.test("findDiffSignals", async () => {
 });
 
 void tap.test("reducePath", async () => {
-    tap.equal(reducePath([], []), []);
-    tap.equal(reducePath(["a"], []), []);
-    tap.equal(reducePath(["a"], ["a"]), ["a"]);
-    tap.equal(reducePath([], ["a"]), []);
-    tap.equal(reducePath(["a", "b", "c"], ["a", "b", "d", "e"]), ["a", "b"]);
+    tap.same(reducePath([], []), []);
+    tap.same(reducePath(["a"], []), []);
+    tap.same(reducePath(["a"], ["a"]), ["a"]);
+    tap.same(reducePath([], ["a"]), []);
+    tap.same(reducePath(["a", "b", "c"], ["a", "b", "d", "e"]), ["a", "b"]);
 });
