@@ -1,7 +1,6 @@
 import { createEffect, createMemo, createSignal, For, Index, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { Action, ActionPath, AnRoot, applyActionToSnapshot, collapseActions } from "./app_data";
-import { Button, Buttons } from "./components";
+import { Action, ActionPath, AnRoot, getActionSnapshotID } from "./app_data";
 import History from "./History";
 
 function PathRender(props: {path: ActionPath}): JSX.Element {
@@ -54,9 +53,9 @@ function Act(props: {action: Action}): JSX.Element {
         <div
             class="flex flex-wrap bg-black rounded-md -m-2 mb-0 p-2 text-xs"
         >
-            <span>{props.action.value.kind} · {props.action.from}</span>
+            <span>{props.action.value.kind} · {props.action.id_type}</span>
             <span class="flex-1" />
-            <span class="font-mono">{props.action.parent_updated}</span>
+            <span class="font-mono">{getActionSnapshotID(props.action)}</span>
         </div>
         <SwitchKind item={props.action.value} fallback={v => <>
             <pre class="whitespace-pre-wrap"><code>
@@ -67,16 +66,21 @@ function Act(props: {action: Action}): JSX.Element {
                 <pre class="whitespace-pre-wrap"><code>
                     {JSON.stringify(rok.new_keys, null, " ")}
                 </code></pre>
+                <PathRender path={rok.path} />
             </>,
             set_value: (sv) => <>
                 <pre class="whitespace-pre-wrap"><code>
                     {JSON.stringify(sv.new_value, null, " ")}
                 </code></pre>
+                <PathRender path={sv.path} />
+            </>,
+            undo: (ndo) => <>
+                <pre class="whitespace-pre-wrap"><code>
+                    {JSON.stringify(ndo.ids, null, " ")}
+                </code></pre>
+                <PathRender path={props.action.affects_tree} />
             </>,
         }}</SwitchKind>
-        <For each={props.action.affects}>{affects => <div>
-            <PathRender path={affects} />
-        </div>}</For>
     </div>;
 }
 
@@ -85,7 +89,7 @@ export default function Actions(props: {
 }): JSX.Element {
     const actions = createMemo(() => {
         props.root.actions_signal[0]();
-        return props.root.actions;
+        return [...props.root.permanent_actions, ...props.root.temporary_actions];
     });
     const max_actions = 30;
     return <div class="space-y-2">
@@ -109,19 +113,6 @@ export default function Actions(props: {
         </div>
         <div>
             {actions().length.toLocaleString()} actions
-            <Buttons>
-                <Button onClick={() => {
-                    const collapsed = collapseActions(props.root.actions);
-                    let recreated = undefined;
-                    for(const action of collapsed) recreated = applyActionToSnapshot(action, recreated);
-                    const ov = JSON.stringify(props.root.snapshot);
-                    const nv = JSON.stringify(recreated);
-                    alert("Collapsed to "+collapsed.length+" actions. Identical: "+(ov === nv));
-                    if(ov !== nv) {
-                        console.log("ov", props.root.snapshot, "nv", recreated);
-                    }
-                }}>Try collapse</Button>
-            </Buttons>
         </div>
         <For each={[...actions()].reverse().splice(0, max_actions)}>{action => <Act action={action} />}</For>
         <Show if={actions().length > max_actions}><div>

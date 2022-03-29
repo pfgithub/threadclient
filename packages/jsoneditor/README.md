@@ -35,6 +35,8 @@ NEXT STEPS:
     for that at large scales
 - ok we're going to be simple
 
+DATABASE:
+
 - autoincrement id field
   - make sure we don't run into that race condition described above
     - probably just have the race condition for now because that doesn't give a clear way
@@ -63,6 +65,22 @@ NEXT STEPS:
     actions
 - oh right i forgot - we need to bundle actions. mark them to affect the highest key
   they touch.
+
+CURRENT ISSUE:
+
+- how do undo actions work?
+  - undo actions currently reference an array of temporary action ids they should
+    undo. this is fine until the actions become permanent and now the undo is referring
+    to nothing.
+  - for now I'm going to change undos to always reference temporary ids, but this does
+    not work as it requires all clients to have a full history in order to be able to
+    undo anything.
+  - i'm not sure how to resolve this
+  - oh. we'll make undo actions require history up to a defined permanent action id
+    or null = full history. the permanent action id is min(any permanent actions the
+    undo references, the latest downloaded permanent action)
+  - this has the unfortunate consequence of making offline changes always require a full
+    rebuild on undo regardless of any snapshotting, but we can fix that in the future
 
 # note
 

@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import { Show } from "tmeta-util-solid";
-import { AnRoot, collapseActions, FloatingAction, modifyActions } from "./app_data";
+import { AnRoot, collapseActions } from "./app_data";
 import { Button, Buttons } from "./components";
 
 // [!] batch actions by ~200ms before submitting to the server

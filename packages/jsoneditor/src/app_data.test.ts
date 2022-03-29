@@ -2,9 +2,12 @@ import tap from "tap";
 import { UUID } from "tmeta-util";
 import {
     anCreateUndoGroup, AnRoot, anRoot, anSetReconcile, anSetReconcileIncomplete,
-    anUndo, applyActionToSnapshot, createAppData, findDiffSignals, FloatingAction, modifyActions, SignalPath,
+    anUndo, applyActionToSnapshot, createAppData, findDiffSignals,
+    addActions, reducePath, SignalPath,
 } from "./app_data";
 import "./test_setup";
+
+export {};
 
 void tap.test("program", async () => {
     const data = createAppData<{
@@ -231,4 +234,12 @@ void tap.test("findDiffSignals", async () => {
         ["root", "james", "description"],
         ["root", "james"],
     ]);
+});
+
+void tap.test("reducePath", async () => {
+    tap.equal(reducePath([], []), []);
+    tap.equal(reducePath(["a"], []), []);
+    tap.equal(reducePath(["a"], ["a"]), ["a"]);
+    tap.equal(reducePath([], ["a"]), []);
+    tap.equal(reducePath(["a", "b", "c"], ["a", "b", "d", "e"]), ["a", "b"]);
 });

@@ -102,8 +102,9 @@ export function anSetReconcileIncomplete<T>(
 // any node is changed.
 
 // ↓ this could just be an object but a class makes it more clear that it's mutable
+//   ↑ does it? maybe if it has a method addActions() sure but right now not at all
 export class UndoGroup {
-    action_ids: UUID[];
+    action_ids: (TemporaryActionID | PermanentActionID)[];
     constructor() {
         this.action_ids = [];
     }
@@ -118,19 +119,29 @@ export function anCommitUndoGroup(root: AnRoot, group: UndoGroup) {
     root.undo_index = root.undos.length;
     root.undos_signal[1](undefined);
 }
+export function reducePath(a: ActionPath, b: ActionPath): ActionPath {
+    const res: ActionPath = [];
+    for(let i = 0; i < Math.min(a.length, b.length); i++) {
+        if(a[i] !== b[i]) break;
+        res.push(a[i]!);
+    }
+    return res;
+}
 export function anUndo(root: AnRoot, group: UndoGroup): {redo: UndoGroup} {
     const ids = group.action_ids.splice(0);
     // ^ updates the undo group in case more actions are inserted with it
 
     const redo = anCreateUndoGroup();
-    const undo_action: FloatingAction = {
-        id: uuid(),
-        from: "client",
+    const undo_action: TemporaryAction = {
+        id_type: "temporary",
+        temporary_id: uuid() as TemporaryActionID,
+        last_updated: uuid() as TemporaryActionParentUpdated,
+
         value: {
             kind: "undo",
             ids: ids,
         },
-        affects: [[]], // TODO loop over the ids and get the actions they affect
+        affects_tree: [], // TODO loop over the ids and get the actions they affect
         // also probably filter ids to only the ones that exist because an undo group
         // might contain more actions than are actually in the document because of
         // action merging every 200ms
@@ -160,24 +171,57 @@ export type ActionValue = {
     new_keys: string[],
     //^ so if one person adds a key while another person reorders, the added item
     //  does not get deleted.
+    path: ActionPath,
 } | {
     kind: "set_value",
     new_value: Primitive,
+    path: ActionPath,
 } | {
     kind: "undo",
-    ids: UUID[],
+    ids: (TemporaryActionID | PermanentActionID)[],
+
+    // [!] CONSIDER USING:
+    //  -  specify session ids for all actions
+    //  -  undo [first action id, session id]
+    // Alternatively, go back to those undo groups we used to have
+    // where each action has an undo group but now you undo
+    // [first action id, undo group] instead of just [undo group]. that solves
+    // the problem we had with undo groups.
+
+    // in the future we'll probably want bulk undo actions like
+    // - undo all from a specific user id after a specific date until now
+    // - undo all after a specific date until now
+    // - …
 };
-export type FloatingAction = {
-    id: UUID,
-    from: "client" | "server",
+export type ActionBase = {
+    // the action in the server will store the temporary id too so we know what to delete
+    temporary_id: TemporaryActionID,
+    // oh also the temporary id includes the timestamp so maybe that's useful for
+    // reconciliation
+
     value: ActionValue,
-    affects: ActionPath[], // specifies the subtrees this action modifies
+    affects_tree: ActionPath,
 };
-export type InsertedAction = FloatingAction & {
-    parent_updated: number, // hash(parent.id, parent.parent_hash) (currently implemented as
-    // a random number any time the action needs updating. and this is probably fine.)
-};
-export type Action = InsertedAction;
+export type TemporaryAction = {
+    // temporary actions will only ever be added to the end of the actions array
+    // temporary actions are always after permanent actions in the actions array
+    id_type: "temporary",
+
+    last_updated: TemporaryActionParentUpdated,
+} & ActionBase;
+export type PermanentAction = {
+    // a permanent id is a number. no permanent ids will ever be created before this
+    // number.
+    id_type: "permanent",
+    
+    permanent_id: PermanentActionID,
+    parent_action: number,
+} & ActionBase;
+export type Action = TemporaryAction | PermanentAction;
+
+export type PermanentActionID = number & {__is_permanent_action_id: true};
+export type TemporaryActionID = UUID & {__is_temporary_action_id: true};
+export type TemporaryActionParentUpdated = UUID & {__is_temporary_action_pu: true};
 
 export type AnRoot = {
     // note: see if we can use a weakmap for this
@@ -186,10 +230,16 @@ export type AnRoot = {
     watched_nodes: Map<string, Signal<undefined>>,
     all_contents: Set<object>, // [!] debug builds only, used to automatically detect and error for references.
 
-    actions: Action[],
-    // snapshots: Map<ActionHash, JSON>, // TODO how do we do snapshots?
+    // SORTED BY permanent_id. ONLY ADD TO THE END.
+    permanent_actions: PermanentAction[],
+    // SORTED BY temporary_id. Only:
+    // - append to the end
+    // - remove items (all actions after must have their last_updated updated)
+    temporary_actions: TemporaryAction[],
+
     snapshot: JSON,
-    snapshot_updated: number,
+    snapshots: Map<SnapshotID, JSON>,
+
     actions_signal: Signal<undefined>,
 
     undos: UndoGroup[], // each undo specifies an array of action ids that need to be undone
@@ -228,13 +278,13 @@ function setNodeAtPath(path: ActionPath, snapshot: JSON, upd: (prev: JSON) => JS
     return res_root.parent[res_root.key];
 }
 // ok this is actually kind of complicated
-export function collapseActions<T extends FloatingAction>(actions: T[]): T[] {
+export function collapseActions<T extends ActionBase>(actions: T[]): T[] {
     const set_paths = new Set<string>();
     let never_collapse = 0;
     return [...actions].reverse().filter(action => {
         const sp = JSON.stringify([action.value.kind, switchKind(action.value, {
             reorder_keys: rk => never_collapse++,
-            set_value: sv => action.affects,
+            set_value: sv => sv.path,
             undo: ndo => never_collapse++,
         })]);
         if(set_paths.has(sp)) return false;
@@ -242,17 +292,14 @@ export function collapseActions<T extends FloatingAction>(actions: T[]): T[] {
         return true;
     }).reverse();
 }
-export function applyActionToSnapshot(action: FloatingAction, snapshot: JSON): JSON {
+export function applyActionToSnapshot(action: ActionBase, snapshot: JSON): JSON {
     const av = action.value;
     if(av.kind === "set_value") {
-        let res = snapshot;
-        for(const path of action.affects) res = setNodeAtPath(path, res, prev => {
+        return setNodeAtPath(av.path, snapshot, prev => {
             return av.new_value;
         });
-        return res;
     }else if(av.kind === "reorder_keys") {
-        let res = snapshot;
-        for(const path of action.affects) res = setNodeAtPath(path, res, prev_in => {
+        return setNodeAtPath(av.path, snapshot, prev_in => {
             const prev = asObject(prev_in) ?? {};
 
             // this logic can be improved to be better
@@ -268,7 +315,6 @@ export function applyActionToSnapshot(action: FloatingAction, snapshot: JSON): J
                 return [key, prev[key]];
             }));
         });
-        return res;
     }else if(av.kind === "undo") {
         throw new Error("Internal error; Undos should not be sent to applyAction()");
     }else assertNever(av);
@@ -278,9 +324,10 @@ export function createAppData<T>(): AnNode<T> {
         watched_nodes: new Map(),
         all_contents: new Set(),
 
-        actions: [],
-        snapshot: undefined,
-        snapshot_updated: -3,
+        permanent_actions: [],
+        temporary_actions: [],
+        snapshot: null,
+        snapshots: new Map(),
         actions_signal: createSignal(undefined, {equals: () => false}),
         
         undos: [],
@@ -324,7 +371,9 @@ function readValue(root: AnRoot, path: string[]): unknown {
     // track reads
     getNodeSignal(root, path).view();
 
-    let ntry = root.snapshot;
+    const snapshot = root.snapshot;
+
+    let ntry = snapshot;
     for(const itm of path) {
         if(isObject(ntry)) {
             ntry = ntry[itm];
@@ -336,8 +385,8 @@ function readValue(root: AnRoot, path: string[]): unknown {
     return ntry;
 }
 
-function createParents(path: string[], root: AnRoot): FloatingAction[] {
-    const res: FloatingAction[] = [];
+function createParents(path: string[], root: AnRoot): TemporaryAction[] {
+    const res: TemporaryAction[] = [];
     for(const [index, key] of path.entries()) {
         const segment = path.slice(0, index);
         const value = anKeys({
@@ -347,33 +396,42 @@ function createParents(path: string[], root: AnRoot): FloatingAction[] {
         });
         if(!value.includes(key)) {
             res.push({
-                id: uuid(),
-                from: "client",
+                id_type: "temporary",
+
+                temporary_id: uuid() as TemporaryActionID,
+                last_updated: uuid() as TemporaryActionParentUpdated,
                 value: {
                     kind: "reorder_keys",
                     old_keys: value,
                     new_keys: [...value, key],
+                    path: segment,
                 },
-                affects: [segment],
+                affects_tree: segment,
             });
         }
     }
     return res;
 }
-function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
+function findActions(path: string[], pv: JSON, nv: JSON): TemporaryAction[] {
     if(pv === nv) return [];
 
     // this could be !isObject(pv) || !isObject(nv) but that creates an issue when
     // two people make an object at the same time - the object is overwritten. instead
     // for this case, we'll use setKeys and only ever use set_value for primitives.
     if(!isObject(nv)) {
-        return [{id: uuid(), from: "client", value: {
-            kind: "set_value",
-            new_value: nv as Primitive,
-        }, affects: [path]}];
+        return [{
+            id_type: "temporary",
+            temporary_id: uuid() as TemporaryActionID,
+            last_updated: uuid() as TemporaryActionParentUpdated,
+            value: {
+                kind: "set_value",
+                new_value: nv as Primitive,
+                path,
+            }, affects_tree: path,
+        }];
     }
 
-    const res_actions: FloatingAction[] = [];
+    const res_actions: TemporaryAction[] = [];
 
     const prev_keys = Object.keys(asObject(pv) ?? {});
     const next_keys = Object.keys(nv);
@@ -381,11 +439,18 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     // change key order & delete old keys
     if(
         JSON.stringify(prev_keys) !== JSON.stringify(next_keys) || !isObject(pv)
-    ) res_actions.push({id: uuid(), from: "client", value: {
-        kind: "reorder_keys",
-        old_keys: prev_keys,
-        new_keys: next_keys,
-    }, affects: [path]});
+    ) res_actions.push({
+        id_type: "temporary",
+        temporary_id: uuid() as TemporaryActionID,
+        last_updated: uuid() as TemporaryActionParentUpdated,
+        value: {
+            kind: "reorder_keys",
+            old_keys: prev_keys,
+            new_keys: next_keys,
+            path,
+        },
+        affects_tree: path,
+    });
 
     // create all new keys
     for(const key of next_keys) {
@@ -395,162 +460,251 @@ function findActions(path: string[], pv: JSON, nv: JSON): FloatingAction[] {
     return res_actions;
 }
 
-let global_parent_updated_index = 0;
-export function modifyActions(root: AnRoot, {insert, remove}: {insert: FloatingAction[], remove: UUID[]}): void {
-    if(insert.length === 0 && remove.length === 0) return;
+function last<T>(a: T[]): T | undefined {
+    return a[a.length - 1];
+}
 
-    const times: [string, number][] = [
-        ["start", Date.now()],
-    ];
+function asciiCompare(a: string, b: string) {
+    return a === b ? 0 : a < b ? -1 : 1;
+}
 
-    const new_action_ids = new Map<UUID, "client" | "server">(insert.map(action => [
-        action.id,
-        action.from,
-    ]));
-    const delete_action_ids = new Set<UUID>(remove);
-    const new_actions: (FloatingAction | InsertedAction)[] = [
-        ...root.actions.filter(action => {
-            if(delete_action_ids.has(action.id)) return false; // action to be deleted
-            const in_ids = new_action_ids.get(action.id);
-            if(in_ids) {
-                if(in_ids === "client") throw new Error("double insert of action");
-                if(action.from === "server") {
-                    // TODO: no need to overwrite any duplicate server actions
-                    // we recieve
-                }
-                return false; // this action will be overwritten
-            }
+export function idLt(a: ActionID | null, b: ActionID): boolean {
+    // really messy. simple formula though
+    // i'm sure there's a better way to structure this control flow
+    // - number < string < null
+    //   - number: a, b => a < b
+    //   - string: a, b => a < b
+    //   - null: no compare function needed
+    if(a == null) return false;
+    if(typeof a === "number") {
+        if(typeof b === "number") {
+            return a < b;
+        }else{
             return true;
-        })
-    , ...insert].sort((a, b) => {
-        if(a.id < b.id) return -1;
-        if(a.id > b.id) return 1;
-        return 0;
+        }
+    }else if(typeof b === "number") {
+        return false;
+    }
+    return a < b;
+}
+export type ActionID = TemporaryActionID | PermanentActionID;
+export type SnapshotID = TemporaryActionParentUpdated | PermanentActionID;
+export function idMin(a: ActionID | null, b: ActionID): ActionID {
+    return idLt(a, b) ? a! : b;
+}
+export function getActionSnapshotID(a: Action): SnapshotID {
+    return a.id_type === "permanent" ? a.permanent_id : a.last_updated;
+}
+export function getActionActualID(a: Action): PermanentActionID | TemporaryActionID {
+    return a.id_type === "permanent" ? a.permanent_id : a.temporary_id;
+}
+
+// generates a snapshot from the given action set. uses any available existing snapshots
+// when possible over rebuilding from scratch.
+export function generateSnapshot(snapshots: Map<SnapshotID, JSON>, actions_in: Action[]): JSON {
+    // ok for now i'm going to regenerate from scratch but eventually we'll upgrade
+    // this to make use of the snapshots we have
+
+    const actions = [...actions_in].sort((a, b) => asciiCompare(a.temporary_id, b.temporary_id));
+    // ^ these actions are now sorted by time rather than server append date.
+    //   for some extension actions such as text editor actions, we will need to
+    //   understand the state of the world at the time the action was inserted.
+    //   this will be complicated and i'll figure it out later.
+
+    // ok time for some copy/paste
+
+    let earliest_needed_action: ActionID | null = null;
+    const upde = (id: ActionID) => {
+        earliest_needed_action = idMin(earliest_needed_action, id);
+    };
+    const snapshotAvailableFor = (a: Action): boolean => {
+        return snapshots.has(getActionSnapshotID(a));
+    };
+    const getSnapshotFor = (action: Action): JSON => {
+        const shid = getActionSnapshotID(action);
+        if(snapshots.has(shid)) {
+            return snapshots.get(shid)!;
+        }
+        console.error("did not find a snapshot for", action, snapshots);
+        unreachable();
+    };
+
+    const ignored_actions = new Set<PermanentActionID | TemporaryActionID>();
+
+    let i = actions.length - 1;
+    for(; i >= 0; i--) {
+        const action = actions[i];
+        if(!action) unreachable();
+        const action_id = getActionActualID(action);
+
+        if(ignored_actions.has(action_id)) continue;
+        if(action.value.kind === "undo") {
+            for(const id of action.value.ids) {
+                ignored_actions.add(id);
+                upde(id);
+            }
+        }
+
+        if((
+            earliest_needed_action == null || idLt(action_id, earliest_needed_action)
+        ) && snapshotAvailableFor(action)) {
+            console.log("snapshot available!", action_id, i, "!");
+            break;
+        }
+    }
+    if(i === -1) {
+        console.log("no snapshot available, rebuilding from scratch…");
+    }
+
+    let ns: JSON = i === -1 ? null : getSnapshotFor(actions[i]!);
+    for(i = i + 1; i < actions.length; i++) {
+        const action = actions[i];
+        if(!action) unreachable();
+
+        if(ignored_actions.has(getActionActualID(action))) continue;
+
+        if(action.value.kind === "undo") continue;
+        ns = applyActionToSnapshot(action, ns);
+    }
+
+    return ns;
+}
+
+// updates these snapshots:
+// - latest server
+// - latest client
+// TODO: automatically clean up old snapshots rather than having memory usage grow n²
+export function generateUpToDateSnapshot(root: AnRoot): JSON {
+    let changes_made = false;
+
+    // check if the server snapshot is up to date
+    const latest_server_action = last(root.permanent_actions);
+    const server_action_id = latest_server_action?.permanent_id;
+    if(server_action_id != null && !root.snapshots.has(server_action_id)) {
+        // server snapshot is not up-to-date
+        root.snapshots.set(server_action_id, generateSnapshot(root.snapshots, root.permanent_actions));
+        changes_made = true;
+    }
+
+    // check if the client snapshot is up to date
+    const latest_client_action = last(root.temporary_actions);
+    const client_act_sn_id = latest_client_action?.last_updated;
+    if(client_act_sn_id != null && !root.snapshots.has(client_act_sn_id)) {
+        // client snapshot is not up-to-date
+        root.snapshots.set(
+            client_act_sn_id,
+            generateSnapshot(root.snapshots, [...root.permanent_actions, ...root.temporary_actions]),
+        );
+        changes_made = true;
+    }
+
+    // delete old snapshots // TODO improve old snapshot logic
+    // - eg we should send some snapshots to the server or something
+    if(changes_made) {
+        const save_server_snapshot = server_action_id != null ? root.snapshots.get(server_action_id) : null;
+        const save_client_snapshot = client_act_sn_id != null ? root.snapshots.get(client_act_sn_id) : null;
+        root.snapshots = new Map<SnapshotID, JSON>([
+            ...(server_action_id != null ? [[server_action_id, save_server_snapshot]] as const : []),
+            ...(client_act_sn_id != null ? [[client_act_sn_id, save_client_snapshot]] as const : []),
+        ]);
+    }
+
+    // return the latest snapshot
+    return root.snapshots.get(
+        last(root.temporary_actions)?.last_updated ??
+        last(root.permanent_actions)?.permanent_id ??
+        undefined as unknown as SnapshotID
+    ) ?? null;
+}
+
+// an interesting thing: if we haven't loaded all the actions and have some from a
+// snapshot, we should not insert any new actions until after fetching an older snapshot
+// that covers any needed undos. the server thing should manage that for us, we don't
+// have to worry about it here
+
+function addActions(root: AnRoot, {temporary, permanent}: {
+    temporary: TemporaryAction[],
+    permanent: PermanentAction[],
+}): void {
+    if(temporary.length === 0 && permanent.length === 0) return;
+    root.temporary_actions.push(...temporary);
+
+    // [!] when inserting permanent actions, we can only ever add to the end of the array
+    // [!] when inserting permanent actions, remove any temporary actions
+    // ok this is a mess
+    //
+
+    // ok
+    // - when inserting permanent actions:
+    //   - [1]: 
+    //     - the action array must always be a slice of the true server acttion array
+    //     - this means that when adding new actions, if our current action array is:
+    //         [id 5] [id 6] [id 8]
+    //       and addActions is called with
+    //         [id 7]
+    //       this should never happen. if it does, we have to save stuff and reload the
+    //       page or something. it shouldn't ever happen.
+    //     - it is okay though to do:
+    //         [id 5] [id 6] [id 8]
+    //         addActions([id 3] [id 4] [id 5] [id 6])
+    //           ([!] this isn't supported yet, we'll have to do some work to make sure
+    //           when we don't have the full action array available from the first one
+    //           we need to error if we can't find a snapshot and we need to be very
+    //           careful when the server connection is calling addActions to make sure
+    //           if it is going to add an action that references stuff in the past, it
+    //           needs to fetch all the past data required and snapshots and stuff before
+    //           calling addActions) (we don't have to deal with this yet but we will
+    //           have to in the future)
+    //         addActions([id 6] [id 8] [id 9] [id 10])
+    //   - [2]:
+    //     - remove any associated temporary actions
+    //     - update the updated_times of any temporary actions past the removed ones
+
+    const existing_ids = new Set<PermanentActionID>();
+    for(const action of root.permanent_actions) existing_ids.add(action.permanent_id);
+
+    const remove_ids = new Set<TemporaryActionID>();
+    for(const action of permanent) remove_ids.add(action.temporary_id);
+
+    for(const action of permanent) {
+        if(existing_ids.has(action.permanent_id)) continue; // should probably assert it's the same
+
+        if((last(root.permanent_actions)?.permanent_id ?? -1) > action.permanent_id) {
+            unreachable(); // an action we didn't have already was attempted to be
+            // inserted in the past OR the permanent array to addActions() was unsorted.
+        }
+        root.permanent_actions.push(action);
+    }
+
+    let needs_update = false;
+    root.temporary_actions = root.temporary_actions.flatMap((action): TemporaryAction[] => {
+        if(remove_ids.has(action.temporary_id)) {
+            needs_update = true;
+            return [];
+        }
+        if(needs_update) {
+            return [{...action, last_updated: uuid() as TemporaryActionParentUpdated}];
+        }
+        return [action];
     });
 
-    times.push(["append and sort actions ("+new_actions.length+")", Date.now()]);
+    // TODO assert the arrays are both sorted
 
-    let prevact: InsertedAction | null = null;
-    root.actions = new_actions.map((action, i, a): InsertedAction => {
-        // huh this would be nice if the map function had an arg that returned
-        // the previous value returned out the map function
-        if((prevact?.parent_updated ?? -1) > ('parent_updated' in action ? action.parent_updated : -2)) {
-            return prevact = {
-                ...action,
-                parent_updated: ++global_parent_updated_index,
-            };
-        }
-        if(!('parent_updated' in action)) {
-            console.error("ENOTINSERTED", prevact?.parent_updated, action);
-            unreachable();
-        }
-        return prevact = action;
-    });
-
-    times.push(["Update parent_inserted ("+new_actions.length+")", Date.now()]);
-
-    root.actions_signal[1](undefined);
-    times.push(["Update Actions DOM", Date.now()]);
-
-    batch(() => {
-        // TODO: make use of the snapshot when we can
-        // - first: find the snapshot to use (else undefined)
-        //   - loop in reverse. find the first action where:
-        //     - id is less than all ignored actions
-        //     - has a snapshot
-        // - now: loop forwards from that index
-        //   - apply actions ignoring all ignored actions
-
-        // a note: if the server is going to send you an undo action, it will also
-        // send you all the context you need to understand it. it won't send you
-        // an undo action to ids you don't have.
-
-        // ok
-        // TODO:
-        // clean up this code and make it keep seperate snapshots for the client and
-        // server position
-        // (server position is just a guess as the server may report about new events)
-        // (that happened in the past)
-
-        let earliest_needed_action: UUID | null = null;
-        const upde = (a: UUID) => {
-            if(earliest_needed_action == null) {
-                earliest_needed_action = a;
-                return;
-            }
-            earliest_needed_action = a < earliest_needed_action ? a : earliest_needed_action;
-        };
-        const snapshotAvailableFor = (num: number): boolean => {
-            return root.snapshot_updated === num;
-        };
-        const getSnapshotFor = (action: Action): JSON => {
-            if(root.snapshot_updated === action.parent_updated) {
-                return root.snapshot;
-            }
-            console.log("did not find a snapshot for", action, root.snapshot_updated);
-            unreachable();
-        };
-
-        const ignored_actions = new Set<UUID>();
-
-        let i = root.actions.length - 1;
-        for(; i >= 0; i--) {
-            const action = root.actions[i];
-            if(!action) {
-                console.error("[?] no action at index", i, root.actions, action);
-                unreachable();
-            }
-
-            if(ignored_actions.has(action.id)) continue;
-            if(action.value.kind === "undo") {
-                for(const id of action.value.ids) {
-                    ignored_actions.add(id);
-                    upde(id);
-                }
-            }
-            if((
-                earliest_needed_action == null || action.id < earliest_needed_action
-            ) && snapshotAvailableFor(action.parent_updated)) {
-                console.log("snapshot available for", action.parent_updated, i, "!");
-                break;
-            }
-        }
-        if(i === -1) {
-            console.log("no snapshot available, rebuilding from scratch…");
-        }
-
-        const iter_distance = root.actions.length - i;
-
+    untrack(() => {
         const ps = root.snapshot;
-        let ns = i === -1 ? undefined : getSnapshotFor(root.actions[i]!);
-        for(i = i + 1; i < root.actions.length; i++) {
-            const action = root.actions[i];
-            if(!action) unreachable();
-    
-            if(ignored_actions.has(action.id)) continue;
-
-            if(action.value.kind === "undo") continue; // handled above
-            ns = applyActionToSnapshot(action, ns);
-        }
+        const ns = generateUpToDateSnapshot(root);
         root.snapshot = ns;
-        root.snapshot_updated = root.actions[root.actions.length - 1]?.parent_updated ?? -3;
-
-        times.push(["Update snapshot ("+iter_distance+")", Date.now()]);
-
-        emitDiffSignals(root, findDiffSignals([], ps, ns));
-
-        times.push(["Emit diff signals", Date.now()]);
-    });
-    times.push(["Update DOM", Date.now()]);
-
-    root.performance[1]({
-        times,
+        const diff_signals = findDiffSignals([], ps, ns);
+        batch(() => {
+            emitDiffSignals(root, diff_signals);
+            root.actions_signal[1](undefined);
+        });
     });
 }
 
-function addUserActions(root: AnRoot, undo_group: UndoGroup, new_actions: FloatingAction[]): void {
-    undo_group.action_ids.push(...new_actions.map(act => act.id));
-    modifyActions(root, {insert: new_actions, remove: []});
+function addUserActions(root: AnRoot, undo_group: UndoGroup, new_actions: TemporaryAction[]): void {
+    undo_group.action_ids.push(...new_actions.map(act => getActionActualID(act)));
+    addActions(root, {temporary: new_actions, permanent: []});
 }
 
 function setReconcile<T>(root: AnRoot, undo_group: UndoGroup, path: string[], nvCb: (pv: unknown) => T): void {
