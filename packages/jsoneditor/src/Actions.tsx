@@ -76,6 +76,9 @@ function Act(props: {action: Action}): JSX.Element {
             </>,
             undo: (ndo) => <>
                 <pre class="whitespace-pre-wrap"><code>
+                    {JSON.stringify(ndo.earliest_referenced_server_action, null, " ")}
+                </code></pre>
+                <pre class="whitespace-pre-wrap"><code>
                     {JSON.stringify(ndo.ids, null, " ")}
                 </code></pre>
                 <PathRender path={props.action.affects_tree} />

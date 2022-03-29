@@ -104,7 +104,7 @@ export function anSetReconcileIncomplete<T>(
 // ↓ this could just be an object but a class makes it more clear that it's mutable
 //   ↑ does it? maybe if it has a method addActions() sure but right now not at all
 export class UndoGroup {
-    action_ids: (TemporaryActionID | PermanentActionID)[];
+    action_ids: TemporaryActionID[];
     constructor() {
         this.action_ids = [];
     }
@@ -119,7 +119,8 @@ export function anCommitUndoGroup(root: AnRoot, group: UndoGroup) {
     root.undo_index = root.undos.length;
     root.undos_signal[1](undefined);
 }
-export function reducePath(a: ActionPath, b: ActionPath): ActionPath {
+export function reducePath(a: ActionPath | null, b: ActionPath): ActionPath {
+    if(a == null) return b;
     const res: ActionPath = [];
     for(let i = 0; i < Math.min(a.length, b.length); i++) {
         if(a[i] !== b[i]) break;
@@ -127,10 +128,56 @@ export function reducePath(a: ActionPath, b: ActionPath): ActionPath {
     }
     return res;
 }
+function notNull<T>(a: T | null | undefined): a is T {
+    return a != null;
+}
 export function anUndo(root: AnRoot, group: UndoGroup): {redo: UndoGroup} {
-    const ids = group.action_ids.splice(0);
+    let ids = group.action_ids.splice(0);
     // ^ updates the undo group in case more actions are inserted with it
 
+    // ↓ store this in root probably instead of regenerating it on every undo
+    const actions_by_temp_id = new Map<string, Action>();
+    for(const action of root.permanent_actions) actions_by_temp_id.set(action.temporary_id, action);
+    for(const action of root.temporary_actions) actions_by_temp_id.set(action.temporary_id, action);
+
+    // actions array
+    const actions = ids.map(id => actions_by_temp_id.get(id)).filter(notNull);
+    // ^ TODO error if any of them are null, we'll manage the actions carefully to
+    //   never delete any and if we do, update the undo groups
+
+    if(actions.length === 0) {
+        // nothing to undo
+        return {redo: anCreateUndoGroup()};
+    }
+
+    // remove deleted actions (due to merges for server uploads, etc)
+    ids = actions.map(action => action.temporary_id);
+
+    const affects_tree = actions.map(act => act.affects_tree).reduce(reducePath);
+
+    // find the earliest server action a client must have downloaded in order to fully
+    // understand this undo. if the undo undoes any server actions, this is the first of those,
+    // otherwise it is the latest server action the client has downloaded.
+    //
+    // this has the side effect of meaning undos that are not connected to a server
+    // require a full rebuild every time. we can improve this in the future by including
+    // checking if the client has all the actions specified in the undo because
+    // if it does, there is no need
+    //
+    // this requires making it so if actions are ever compressed we need to remove them
+    // from undo groups before they get committed. TODO
+    let earliest_referenced_server_action = last(root.permanent_actions)?.permanent_id ?? null;
+    for(const action of actions) {
+        if(action.id_type === "permanent") {
+            earliest_referenced_server_action = action.permanent_id;
+            break;
+            // equivalent to:
+            // if(action.permanent_id < earliest_referenced_server_action) {
+            //     earliest_referenced_server_action = action.permanent_id;
+            // }
+        }
+    }
+ 
     const redo = anCreateUndoGroup();
     const undo_action: TemporaryAction = {
         id_type: "temporary",
@@ -140,11 +187,9 @@ export function anUndo(root: AnRoot, group: UndoGroup): {redo: UndoGroup} {
         value: {
             kind: "undo",
             ids: ids,
+            earliest_referenced_server_action,
         },
-        affects_tree: [], // TODO loop over the ids and get the actions they affect
-        // also probably filter ids to only the ones that exist because an undo group
-        // might contain more actions than are actually in the document because of
-        // action merging every 200ms
+        affects_tree: affects_tree,
     };
 
     addUserActions(root, redo, [undo_action]);
@@ -178,20 +223,10 @@ export type ActionValue = {
     path: ActionPath,
 } | {
     kind: "undo",
-    ids: (TemporaryActionID | PermanentActionID)[],
-
-    // [!] CONSIDER USING:
-    //  -  specify session ids for all actions
-    //  -  undo [first action id, session id]
-    // Alternatively, go back to those undo groups we used to have
-    // where each action has an undo group but now you undo
-    // [first action id, undo group] instead of just [undo group]. that solves
-    // the problem we had with undo groups.
-
-    // in the future we'll probably want bulk undo actions like
-    // - undo all from a specific user id after a specific date until now
-    // - undo all after a specific date until now
-    // - …
+    ids: TemporaryActionID[],
+    earliest_referenced_server_action: PermanentActionID | null, // null = requires full history
+    // ^ if the client has ids[0] downloaded, that action's SnapshotID can be used
+    //   instead of this value.
 };
 export type ActionBase = {
     // the action in the server will store the temporary id too so we know what to delete
@@ -529,7 +564,7 @@ export function generateSnapshot(snapshots: Map<SnapshotID, JSON>, actions_in: A
         unreachable();
     };
 
-    const ignored_actions = new Set<PermanentActionID | TemporaryActionID>();
+    const ignored_actions = new Set<TemporaryActionID>();
 
     let i = actions.length - 1;
     for(; i >= 0; i--) {
@@ -537,12 +572,12 @@ export function generateSnapshot(snapshots: Map<SnapshotID, JSON>, actions_in: A
         if(!action) unreachable();
         const action_id = getActionActualID(action);
 
-        if(ignored_actions.has(action_id)) continue;
+        if(ignored_actions.has(action.temporary_id)) continue;
         if(action.value.kind === "undo") {
             for(const id of action.value.ids) {
                 ignored_actions.add(id);
-                upde(id);
             }
+            upde(action.value.earliest_referenced_server_action ?? -1 as ActionID);
         }
 
         if((
@@ -561,7 +596,7 @@ export function generateSnapshot(snapshots: Map<SnapshotID, JSON>, actions_in: A
         const action = actions[i];
         if(!action) unreachable();
 
-        if(ignored_actions.has(getActionActualID(action))) continue;
+        if(ignored_actions.has(action.temporary_id)) continue;
 
         if(action.value.kind === "undo") continue;
         ns = applyActionToSnapshot(action, ns);
@@ -622,7 +657,7 @@ export function generateUpToDateSnapshot(root: AnRoot): JSON {
 // that covers any needed undos. the server thing should manage that for us, we don't
 // have to worry about it here
 
-function addActions(root: AnRoot, {temporary, permanent}: {
+export function addActions(root: AnRoot, {temporary, permanent}: {
     temporary: TemporaryAction[],
     permanent: PermanentAction[],
 }): void {
@@ -703,7 +738,7 @@ function addActions(root: AnRoot, {temporary, permanent}: {
 }
 
 function addUserActions(root: AnRoot, undo_group: UndoGroup, new_actions: TemporaryAction[]): void {
-    undo_group.action_ids.push(...new_actions.map(act => getActionActualID(act)));
+    undo_group.action_ids.push(...new_actions.map(act => act.temporary_id));
     addActions(root, {temporary: new_actions, permanent: []});
 }
 

@@ -81,6 +81,37 @@ CURRENT ISSUE:
     undo references, the latest downloaded permanent action)
   - this has the unfortunate consequence of making offline changes always require a full
     rebuild on undo regardless of any snapshotting, but we can fix that in the future
+- ok undos aren't quite right yet
+  - undos should be modified to only reference existing actions
+  - if the client has the first action specified in the undo downloaded, the client
+    can
+
+ok this is really weird
+
+- get rid of compressActions for now. we will have to add it back in the future.
+- actions need to specify some stuff:
+  - a session id
+  - the id of the latest downloaded server action
+- now when we look at an action, we can know exactly what the client was seeing at
+  that time by downloading the range [earliest_action .. this action] and rebuilding
+  that.
+- undo actions are strange - an undo action needs to also say that the client must
+  know about actions starting at a certain server id in order to fully apply the
+  undo action
+  - ok is this even how undo actions should work?
+  - like if you type
+    name: [James]
+    and someone edits to
+    name: [Julia]
+    right now if you press undo, nothing will happen
+  - maybe it should set it back to name: []?
+  - maybe I'm doing undo actions wrong?
+  - so I guess instead we would say undoing applies all the changes to undo the thing.
+    eg
+    set_value ""
+  - is that better?
+  - not sure
+  - it might be
 
 # note
 
