@@ -9,6 +9,8 @@ yarn dev
 
 https://github.com/share/sharedb
 
+https://en.wikipedia.org/wiki/Operational_transformation
+
 look into this
 
 NEXT STEPS:
