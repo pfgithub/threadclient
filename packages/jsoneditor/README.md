@@ -5,6 +5,75 @@ yarn dev
 
 # note
 
+ok I tried using existing libraries. can't do it
+
+so here's my understanding:
+
+- yjs doesn't seem like it will work for structured data(?)
+  - seems like you can have a top level map or array or text and that's it
+    - maybe you can have a map reference keys to other objects?
+    - that doesn't let us implement
+
+okay CRDT:
+- edits are applied in different orders but the result must be the same
+
+OT:
+- edits are always applied in the same order
+- we can transform edits based on previous ones because we can know the
+  state a client can see when it posted a given edit
+
+CRDT would be nice because it allows us to do peer to peer edits with no "host"
+
+https://github.com/ipfs/notes/blob/master/CRDT/json-crdt.md
+
+ok here's what I need to understand
+
+parent_action = (uuid)
+
+```
+[
+  {one}
+  {two}
+]
+```
+
+client 1:
+
+insertBefore(1, depends_on=(parent_action))
+
+```
+[
+  {one}
+  {three}
+  {two}
+]
+```
+
+client 2:
+
+edit(1, "four", depends_on=(parent_action))
+
+```
+[
+  {one}
+  {four}
+]
+```
+
+sync
+
+client 1:
+
+initial_snapshot
+insertBefore(1, depends_on=(parent_action))
+
+and now we need to do this:
+
+edit(1, "four", depends_on=(parent_action))
+
+is it because it doesn't depend on the insert that we can change 1 to 2?
+how can this client know that the other client did not know about their action yet
+
 [!] [!] [!]
 
 https://github.com/share/sharedb
@@ -18,6 +87,7 @@ we need to support dynamic paths
 - get rid of object key order
 
 then we can start to fully support dynamic paths everywhere
+
 
 look into this
 
