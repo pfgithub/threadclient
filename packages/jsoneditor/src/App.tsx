@@ -7,7 +7,6 @@ import { NodeProvider, RootState, Settings as SettingsTy } from "./editor_data";
 import JsonViewer from "./JsonViewer";
 import PlayingCards from "./PlayingCards";
 import Schemaless from "./Schemaless";
-import ServerExample from "./ServerExample";
 import Settings from "./Settings";
 import { UIState } from "./ui_state";
 
@@ -101,10 +100,6 @@ export default function App(props: {
       title: "Cards",
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       component: () => <PlayingCards node={props.node.playingcards as any} />,
-    },
-    server: {
-      title: "Server",
-      component: () => <ServerExample root={anRoot(props.node)} />,
     },
     actions: {
       title: "Actions",
