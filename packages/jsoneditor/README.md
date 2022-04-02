@@ -5,6 +5,21 @@ yarn dev
 
 # note
 
+to do a collaborative editor, we either need OT / CDRT stuff. the current plan will
+technically work but won't scale very well.
+
+proposal:
+
+- drop collaborative editing for now. focus on having a very good single-user experience
+  before we go back to working on supporting collaborative editing.
+- we want to be able to do stuff like reorder items in heigherarchies and the current
+  action thing isn't ready for that when it's multi-user because it can easily miss
+  deleted items and other stuff and end up with bad links
+- we should try to make the experience good and high-quality first before worrying too
+  much about getting the collaborative editor right
+
+# note
+
 ok I tried using existing libraries. can't do it
 
 so here's my understanding:
