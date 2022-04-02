@@ -5,13 +5,14 @@ import App from "./App";
 import { anBool, createAppData } from "./app_data";
 import { Button, Buttons } from "./components";
 import { RootState, Settings } from "./editor_data";
+import System from "./fun/System";
 import "./index.css";
 import { uuid } from "./uuid";
 
 const root_el = document.getElementById("root") as HTMLElement;
 
 // this should really be a solid router thing
-const [tab, setTab] = createSignal<"jsoneditor" | null>(null);
+const [tab, setTab] = createSignal<"jsoneditor" | "system" | null>(null);
 
 const root = createAppData<RootState>();
 const settings = createAppData<Settings>();
@@ -43,6 +44,10 @@ render(() => {
           class="bg-gray-700 rounded-md block w-full p-2"
           onClick={() => setTab("jsoneditor")}
         >JSON Editor</button>
+        <button
+          class="bg-gray-700 rounded-md block w-full p-2"
+          onClick={() => setTab("system")}
+        >System</button>
         <div class="flex flex-row flex-wrap gap-2">
           <Buttons>
             <Button
@@ -55,9 +60,13 @@ render(() => {
           </Buttons>
         </div>
       </div>
-    </>}>{tabv => <>
-      <App node={root} settings={settings} />
-    </>}</Show>
+    </>}>{tabv => <>{
+      tabv === "jsoneditor" ? (
+        <App node={root} settings={settings} />
+      ) : (
+        <System />
+      )
+    }</>}</Show>
   </ErrorBoundary>;
 }, root_el);
 
