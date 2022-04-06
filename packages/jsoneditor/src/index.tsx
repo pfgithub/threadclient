@@ -27,7 +27,7 @@ render(() => {
     }
   });
 
-  return <ErrorBoundary fallback={(err: Error, reset) => {
+  return <div class="h-full select-none"><ErrorBoundary fallback={(err: Error, reset) => {
     console.log("app error", err);
     return <div>
       <p>App errored.</p>
@@ -67,7 +67,7 @@ render(() => {
         <System />
       )
     }</>}</Show>
-  </ErrorBoundary>;
+  </ErrorBoundary></div>;
 }, root_el);
 
 const belowbody = document.createElement("div");
