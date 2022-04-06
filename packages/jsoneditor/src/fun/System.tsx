@@ -28,6 +28,12 @@ function Child(props: {
 }): JSX.Element {
     return <div children={props.children} />;
 }
+function Box(props: {
+    pad?: undefined | null | "p-2",
+    children?: undefined | JSX.Element,
+}): JSX.Element {
+    return <div class={"" + props.pad} children={props.children} />;
+}
 
 // TODO this can be a panel application
 function Clock(): JSX.Element {
@@ -65,11 +71,9 @@ function launchFileExplorer(system: System) {
 }
 
 function FileExplorer(): JSX.Element {
-    return <div>
-        <div class="p-2">
-            Files
-        </div>
-    </div>;
+    return <Box pad="p-2">
+        Files
+    </Box>;
 }
 
 type Window = {
