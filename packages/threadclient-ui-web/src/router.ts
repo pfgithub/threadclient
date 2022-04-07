@@ -74,8 +74,10 @@ export function main(): void {
     current_history_index = 0;
     bodytop = el("div").adto(rootel);
     
-    const pagever = getSettings().pageVersion();
-    if(pagever === "1" || pagever === "2") {
+    if(
+        (navigator as unknown as {standalone: boolean}).standalone
+        || window.matchMedia("(display-mode: standalone)").matches
+    ) {
         const frame = el("nav").clss("navbar", "bg-postcolor-100", "transition-opacity").adto(rootel);
         navbar = frame;
         // todo use style.top = xpx position absolute and then when fixed use top=0 fixed
