@@ -1,20 +1,30 @@
-import { createSignal, JSX, onCleanup } from "solid-js";
+import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
 
 export default function SwipeCollapse(props: {children?: JSX.Element | undefined}): JSX.Element {
     const [xoff, setXoff] = createSignal(0);
+    const isDragging = createMemo(() => xoff() !== 0);
     let dragging = false;
     let cleanup_fns: (() => void)[] = [];
     onCleanup(() => {
         cleanup_fns.forEach(fn => fn());
     });
-    return <div class="w-full overflow-x-clip"><div class="touch-pan-x" style={{
+    return <div class={
+        "w-full "+(isDragging() ? "overflow-x-hidden" : "")
+    }><div style={{
         'transform': "translateX("+xoff()+"px)",
+        'touch-action': "pan-y pinch-zoom",
     }} onPointerDown={initial_ev => {
         const id = initial_ev.pointerId;
         const el = initial_ev.currentTarget;
         if(initial_ev.pointerType === "mouse") return; // skip
         if(dragging) return; // no dragging twice at once
         dragging = true;
+
+        // el.setPointerCapture(id);
+        // not using it because it seems to have a bug on ios where pointercancel never
+        // gets called on the element.
+
+        initial_ev.preventDefault();
 
         el.style.transition = "";
 
