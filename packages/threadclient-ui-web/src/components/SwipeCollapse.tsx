@@ -1,5 +1,16 @@
 import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
 
+// BROKEN ON iOS SAFARI DUE TO A REGRESSION
+// https://bugs.webkit.org/show_bug.cgi?id=232545
+//
+// Other projects get around this by using touch events instead of pointer events and
+// then manually blocking scrolling:
+// https://github.com/marekrozmus/react-swipeable-list/blob/main/src/SwipeableListItem.js
+//
+// Another possible workaround is to make the page one pixel wider horizontally than
+// it's supposed to be, enabling horizontal scrolling on the body which fixes the issue
+// for some reason.
+
 export default function SwipeCollapse(props: {children?: JSX.Element | undefined}): JSX.Element {
     const [xoff, setXoff] = createSignal(0);
     const isDragging = createMemo(() => xoff() !== 0);
