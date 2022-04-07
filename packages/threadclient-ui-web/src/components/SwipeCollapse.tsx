@@ -32,6 +32,8 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
         if(dragging) return; // no dragging twice at once
         dragging = true;
 
+        let started = false;
+
         // el.setPointerCapture(id);
         // not using it because it seems to have a bug on ios where pointercancel never
         // gets called on the element.
@@ -51,7 +53,13 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
 
         const onptrmove = (e: PointerEvent) => {
             if(e.pointerId !== id) return;
-            setXoff(e.clientX - initial_ev.clientX);
+            const offset_x = e.clientX - initial_ev.clientX;
+            // const offset_y = e.clientY - initial_ev.clientY;
+            // ^ TODO: check the ratio and it has to be less than a 30 degree angle off the thing
+            if(started || Math.abs(offset_x) > 10) {
+                started = true;
+                setXoff(offset_x);
+            }
             //
         };
         const onptrup = (e: PointerEvent) => {
