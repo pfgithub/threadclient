@@ -76,7 +76,9 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): (
     if(urlparsed && !is_raw && (urlparsed.host === "redd.it")) {
         href = "/reddit/comments"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
     }
-    return {kind: "link", url: href, external: !href.startsWith("/")};
+
+    if(href.startsWith("/")) return {kind: "link", url: href.replace("/", "#"), external: false};
+    return {kind: "link", url: href, external: true};
 }
 
 function linkButton(

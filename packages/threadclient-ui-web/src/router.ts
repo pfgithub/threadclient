@@ -30,13 +30,29 @@ export function setCurrentHistoryIndex(new_index: number): void {
     current_history_index = new_index;
 }
 
+export function fixURL(): void {
+    if(location.hash === "") {
+        const dupe = new URL(
+            location.origin + "/#"
+            + ((location.pathname.replace("/", "")
+            + location.search
+            + location.hash) || "/"),
+        );
+        history.replaceState(history.state, "", dupe);
+    }
+}
+
 export function main(): void {
     rootel = document.createElement("threadclient");
     document.body.appendChild(rootel);
 
     global_counter_info = new Map<string, GlobalCounter>();
 
+    fixURL();
+
     window.onpopstate = (ev: PopStateEvent) => {
+        fixURL();
+
         // onNavigate(ev?.state.index ?? 0);
         console.log("onpopstate. ev:",ev.state);
         const state = ev.state as HistoryState | undefined;

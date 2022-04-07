@@ -78,10 +78,15 @@ export function A(props: {
             title={mailto.title}
         >{props.children}</span>,
         link: (link) => <a
-            class={props.class} href={link.url} target="_blank" rel="noopener noreferrer"
+            class={props.class}
+            href={link.url}
+            {...link.external ? {
+                target: "_blank",
+                rel: "noopener noreferrer",
+            } : {}}
             onclick={event => {
                 // onclick is not allowed to be observable so always add it
-                if(link.external && !props.onClick && !props.onClickNoPreventDefault) {
+                if(!props.onClick && !props.onClickNoPreventDefault) {
                     return;
                 }
 
