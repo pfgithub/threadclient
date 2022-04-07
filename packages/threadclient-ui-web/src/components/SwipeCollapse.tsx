@@ -3,6 +3,7 @@ import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
 export default function SwipeCollapse(props: {children?: JSX.Element | undefined}): JSX.Element {
     const [xoff, setXoff] = createSignal(0);
     const isDragging = createMemo(() => xoff() !== 0);
+    let el!: HTMLDivElement;
     let dragging = false;
     let cleanup_fns: (() => void)[] = [];
     onCleanup(() => {
@@ -10,12 +11,10 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
     });
     return <div class={
         "w-full "+(isDragging() ? "overflow-x-hidden" : "")
-    }><div style={{
-        'transform': "translateX("+xoff()+"px)",
+    } style={{
         'touch-action': "pan-y pinch-zoom",
     }} onPointerDown={initial_ev => {
         const id = initial_ev.pointerId;
-        const el = initial_ev.currentTarget;
         if(initial_ev.pointerType === "mouse") return; // skip
         if(dragging) return; // no dragging twice at once
         dragging = true;
@@ -61,5 +60,7 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
             document.removeEventListener("pointercancel", onptrcancel);
         };
         cleanup_fns.push(cleanup);
+    }}><div ref={el} style={{
+        'transform': "translateX("+xoff()+"px)",
     }}>{props.children}</div></div>;
 }
