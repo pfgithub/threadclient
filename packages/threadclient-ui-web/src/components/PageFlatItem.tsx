@@ -12,6 +12,7 @@ import { addAction } from "./action_tracker";
 import { CollapseButton } from "./CollapseButton";
 import { CollapseData, FlatItem, getCState } from "./flatten";
 import { ClientContentAny } from "./page2";
+import SwipeCollapse from "./SwipeCollapse";
 
 const rainbow = [
     "bg-red-500",
@@ -37,7 +38,7 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
             + " " + color
             + " h-2 sm:rounded-xl mb-4"
         } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
-        post: loader_or_post => <ToggleColor>{color => <div class={"px-2 "+color}>
+        post: loader_or_post => <SwipeCollapse><ToggleColor>{color => <div class={"px-2 "+color}>
             <div class="flex flex-row">
                 <Show if={!size_lt.sm()} fallback={(
                     <Show if={loader_or_post.indent.length > 0}><div
@@ -130,7 +131,7 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                     },
                 }}</SwitchKind></div>
             </div>
-        </div>}</ToggleColor>,
+        </div>}</ToggleColor></SwipeCollapse>,
         horizontal_line: () => <hr
             class="my-2 border-t-2"
             style={{'border-top-color': "var(--collapse-line-color)"}}
