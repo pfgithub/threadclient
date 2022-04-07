@@ -10,6 +10,8 @@ import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
 // Another possible workaround is to make the page one pixel wider horizontally than
 // it's supposed to be, enabling horizontal scrolling on the body which fixes the issue
 // for some reason.
+//
+// ^ That workaround has been applied in src/main.scss
 
 export default function SwipeCollapse(props: {children?: JSX.Element | undefined}): JSX.Element {
     const [xoff, setXoff] = createSignal(0);

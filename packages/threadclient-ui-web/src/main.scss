@@ -5,6 +5,18 @@ html {
     word-break: break-word;
 }
 
+@supports (-webkit-touch-callout: none) {
+    // temporary workaround on iOS safari. for more information, see:
+    // src/components/SwipeCollapse.tsx
+    // note that this disables pinch zoom functionality and prevents
+    // horizontal drags on the body from scrolling vertically, so this is
+    // not ideal.
+    body {
+        width: calc(100vw + 1px);
+        touch-action: pan-y;
+    }
+}
+
 input,
 textarea,
 select,
