@@ -1,4 +1,5 @@
-import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
+import { Accessor, batch, createEffect, createMemo, createSignal, JSX, onCleanup, untrack } from "solid-js";
+import { Show } from "tmeta-util-solid";
 
 // BROKEN ON iOS SAFARI DUE TO A REGRESSION
 // https://bugs.webkit.org/show_bug.cgi?id=232545
@@ -13,9 +14,22 @@ import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
 //
 // ^ That workaround has been applied in src/main.scss
 
-export default function SwipeCollapse(props: {children?: JSX.Element | undefined}): JSX.Element {
+export default function SwipeCollapse(props: {
+    children: JSX.Element,
+    background: (offset: Accessor<number>) => JSX.Element,
+    onRelease: (offset: number) => void,
+}): JSX.Element {
     const [xoff, setXoff] = createSignal<number | null>(null);
     const isDragging = createMemo(() => xoff() != null);
+    const [isAnimating, setIsAnimating] = createSignal(false);
+    const isDragVisible = createMemo(() => isDragging() || isAnimating());
+
+    let prev_xoff = 0;
+    createEffect(() => {
+        const xof = xoff();
+        if(xof != null) prev_xoff = xof;
+    });
+
     let el!: HTMLDivElement;
     let cleanup_fns: (() => void)[] = [];
     onCleanup(() => {
@@ -23,8 +37,9 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
     });
     return <div style={{
         'width': "100%",
-        'overflow-x': isDragging() ? "hidden" : "unset",
+        'overflow-x': isDragVisible() ? "hidden" : "unset",
         'touch-action': "pan-y pinch-zoom",
+        'position': "relative",
     }} onPointerDown={initial_ev => {
         const id = initial_ev.pointerId;
         if(initial_ev.pointerType === "mouse") return; // skip
@@ -41,11 +56,14 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
         el.style.transition = "";
 
         const end = () => {
+            const needs_transition = xoff() !== 0 && xoff() != null;
             el.style.transition = "0.1s transform";
-            el.offsetWidth;
-            setXoff(null);
+            if(needs_transition) el.offsetWidth;
+            batch(() => {
+                if(needs_transition) setIsAnimating(true);
+                setXoff(null);
+            });
             cleanup();
-            // [!] don't do actions here. do onptrup instead.
         };
 
         const onptrmove = (e: PointerEvent) => {
@@ -61,6 +79,7 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
         };
         const onptrup = (e: PointerEvent) => {
             if(e.pointerId !== id) return;
+            props.onRelease(xoff() ?? 0);
             end();
         };
         const onptrcancel = (e: PointerEvent) => {
@@ -79,8 +98,16 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
         };
         cleanup_fns.push(cleanup);
     }}>
+        <Show if={isDragVisible()}>
+            <div class="absolute top-0 left-0 w-full h-full">
+                {untrack(() => props.background(() => xoff() ?? prev_xoff))}
+            </div>
+        </Show>
         <div ref={el} style={{
             'transform': (() => {const v = xoff(); return v != null ? "translateX("+v+"px)" : ""})(),
+        }} onTransitionEnd={e => {
+            if(e.target !== e.currentTarget) return;
+            setIsAnimating(false);
         }}>{props.children}</div>
     </div>;
 }

@@ -38,7 +38,19 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
             + " " + color
             + " h-2 sm:rounded-xl mb-4"
         } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
-        post: loader_or_post => <SwipeCollapse><ToggleColor>{color => <div class={"px-2 "+color}>
+        post: loader_or_post => <SwipeCollapse
+            background={value => <div class={
+                (value() < 0 ? (
+                    (value() < -100 ? "bg-blue-600" : "bg-blue-700") + " text-left"
+                ) : "bg-green-700 text-right") + " w-full h-full"
+            }>{value().toLocaleString()}</div>}
+            onRelease={value => {
+                if(value < -100) {
+                    const cs = getCState(props.collapse_data, loader_or_post.collapse.id);
+                    cs.setCollapsed(v => !v);
+                }
+            }}
+        ><ToggleColor>{color => <div class={"px-2 "+color}>
             <div class="flex flex-row">
                 <Show if={!size_lt.sm()} fallback={(
                     <Show if={loader_or_post.indent.length > 0}><div
