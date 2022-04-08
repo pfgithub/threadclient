@@ -716,6 +716,7 @@ export type Icon =
 export type Color =
     | "reddit-upvote"
     | "reddit-downvote"
+    | "blue"
     | "green"
     | "yellow"
     | "pink"

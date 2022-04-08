@@ -14,7 +14,7 @@ import { Show } from "tmeta-util-solid";
 //
 // ^ That workaround has been applied in src/main.scss
 
-export default function SwipeCollapse(props: {
+export default function SwipeActions(props: {
     children: JSX.Element,
     background: (offset: Accessor<number>) => JSX.Element,
     onRelease: (offset: number) => void,
