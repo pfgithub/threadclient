@@ -44,6 +44,8 @@ export default function SwipeActions(props: {
         const id = initial_ev.pointerId;
         if(initial_ev.pointerType === "mouse") return; // skip
         if(isDragging()) return; // no dragging twice at once
+        const selection = document.getSelection();
+        if(selection?.isCollapsed === false) return; // no dragging if text is selected
 
         let started = false;
 
@@ -87,14 +89,20 @@ export default function SwipeActions(props: {
             end();
         };
 
+        const onselectionchange = () => {
+            cleanup();
+        };
+
         document.addEventListener("pointermove", onptrmove);
         document.addEventListener("pointerup", onptrup);
         document.addEventListener("pointercancel", onptrcancel);
+        document.addEventListener("selectionchange", onselectionchange);
         const cleanup = () => {
             cleanup_fns = cleanup_fns.filter(fn => fn !== cleanup);
             document.removeEventListener("pointermove", onptrmove);
             document.removeEventListener("pointerup", onptrup);
             document.removeEventListener("pointercancel", onptrcancel);
+            document.removeEventListener("selectionchange", onselectionchange);
         };
         cleanup_fns.push(cleanup);
     }}>
