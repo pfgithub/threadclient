@@ -43,23 +43,32 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
             + " h-2 sm:rounded-xl mb-4"
         } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
         post: loader_or_post => <SwipeActions
-            {...swipeActionSet({
-                left_stop: {
-                    icon: "bookmark",
-                    color: "green",
-                    onActivate: () => {
-                        alert("TODO");
+            {...(() => {
+                // const getActions = useActions(() => props.content, () => props.opts);
+                // TODO: only show available actions
+                // TODO: use the onclick handlers provided there
+                // - not implementing this yet because I'm not sure how getActions should return
+                //   which actions should go in the swipe bar. also we will have to either update swipeactionset
+                //   to a usetypesafechildren thing or we have to explicitly put `get left_stop()` `get icon()` …
+                //   and make sure to memoize so it's not updating when something irrelevant changes
+                return swipeActionSet({
+                    left_stop: {
+                        icon: "bookmark",
+                        color: "green",
+                        onActivate: () => {
+                            alert("TODO");
+                        },
                     },
-                },
-                right_stop: {
-                    icon: "chevron_up",
-                    color: "blue",
-                    onActivate: () => {
-                        const cs = getCState(props.collapse_data, loader_or_post.collapse.id);
-                        cs.setCollapsed(v => !v);
+                    right_stop: {
+                        icon: "chevron_up",
+                        color: "blue",
+                        onActivate: () => {
+                            const cs = getCState(props.collapse_data, loader_or_post.collapse.id);
+                            cs.setCollapsed(v => !v);
+                        },
                     },
-                },
-            })}
+                });
+            })()}
         ><ToggleColor>{color => <div class={"px-2 "+color}>
             <div class="flex flex-row">
                 <Show if={!size_lt.sm()} fallback={(
