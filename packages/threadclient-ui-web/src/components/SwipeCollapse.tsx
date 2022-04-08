@@ -14,17 +14,17 @@ import { createMemo, createSignal, JSX, onCleanup } from "solid-js";
 // ^ That workaround has been applied in src/main.scss
 
 export default function SwipeCollapse(props: {children?: JSX.Element | undefined}): JSX.Element {
-    const [xoff, setXoff] = createSignal(0);
-    const isDragging = createMemo(() => xoff() !== 0);
+    const [xoff, setXoff] = createSignal<number | null>(null);
+    const isDragging = createMemo(() => xoff() != null);
     let el!: HTMLDivElement;
     let dragging = false;
     let cleanup_fns: (() => void)[] = [];
     onCleanup(() => {
         cleanup_fns.forEach(fn => fn());
     });
-    return <div class={
-        "w-full "+(isDragging() ? "overflow-x-hidden" : "")
-    } style={{
+    return <div style={{
+        'width': "100%",
+        'overflow-x': isDragging() ? "hidden" : "unset",
         'touch-action': "pan-y pinch-zoom",
     }} onPointerDown={initial_ev => {
         const id = initial_ev.pointerId;
@@ -46,7 +46,7 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
             dragging = false;
             el.style.transition = "0.1s transform";
             el.offsetWidth;
-            setXoff(0);
+            setXoff(null);
             cleanup();
             // [!] don't do actions here. do onptrup instead.
         };
@@ -81,7 +81,9 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
             document.removeEventListener("pointercancel", onptrcancel);
         };
         cleanup_fns.push(cleanup);
-    }}><div ref={el} style={{
-        'transform': "translateX("+xoff()+"px)",
-    }}>{props.children}</div></div>;
+    }}>
+        <div ref={el} style={{
+            'transform': (() => {const v = xoff(); return v != null ? "translateX("+v+"px)" : ""})(),
+        }}>{props.children}</div>
+    </div>;
 }
