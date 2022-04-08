@@ -17,7 +17,6 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
     const [xoff, setXoff] = createSignal<number | null>(null);
     const isDragging = createMemo(() => xoff() != null);
     let el!: HTMLDivElement;
-    let dragging = false;
     let cleanup_fns: (() => void)[] = [];
     onCleanup(() => {
         cleanup_fns.forEach(fn => fn());
@@ -29,8 +28,7 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
     }} onPointerDown={initial_ev => {
         const id = initial_ev.pointerId;
         if(initial_ev.pointerType === "mouse") return; // skip
-        if(dragging) return; // no dragging twice at once
-        dragging = true;
+        if(isDragging()) return; // no dragging twice at once
 
         let started = false;
 
@@ -43,7 +41,6 @@ export default function SwipeCollapse(props: {children?: JSX.Element | undefined
         el.style.transition = "";
 
         const end = () => {
-            dragging = false;
             el.style.transition = "0.1s transform";
             el.offsetWidth;
             setXoff(null);
