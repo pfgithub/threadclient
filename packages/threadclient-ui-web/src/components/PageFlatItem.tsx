@@ -30,6 +30,9 @@ function getRainbow(n: number): string {
 
 export default function PageFlatItem(props: {item: FlatItem, collapse_data: CollapseData}): JSX.Element {
     return <SwitchKind item={props.item}>{{
+        // TODO: remove wrapper_start and wrapper_end and instead make these properties of loader_or_post
+        // TODO: improve how gaps are made. make gaps automatically between posts for example. margin
+        // should not be used to make gaps.
         wrapper_start: () => <ToggleColor>{color => <div class={""
             + " " + color
             + " h-2 sm:rounded-xl mt-4"
