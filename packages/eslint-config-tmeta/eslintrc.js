@@ -42,6 +42,15 @@ module.exports = {
         "max-len": ["warn", 120, {ignoreComments: true}],
         "custom-quote-rule/indent": "warn",
         "one-var": ["warn", "never"],
+
+        // project-specific rules:
+        "no-restricted-imports": ["warn", {
+            paths: [{
+                name: "solid-js",
+                importNames: ["Show"],
+                message: "Please use `Show` from `tmeta-util-solid` instead.",
+            }],
+        }],
     },
     overrides: [{
         files: ["*.js", "*.jsx"],
