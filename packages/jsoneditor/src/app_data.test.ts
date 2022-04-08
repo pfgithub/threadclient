@@ -60,6 +60,40 @@ function sync(server: Server, ...clients: AnRoot[]) {
     }
 }
 
+void tap.test("not vulnerable to prototype pollution", async () => {
+    tap.same(applyActionToSnapshot({
+        temporary_id: "0" as TemporaryActionID,
+        value: {
+            kind: "reorder_keys",
+            old_keys: [],
+            new_keys: ["__proto__"],
+            path: [],
+        },
+        affects_tree: [],
+    }, undefined), {
+        __proto__: undefined,
+    });
+    tap.same(applyActionToSnapshot({
+        temporary_id: "0" as TemporaryActionID,
+        value: {
+            kind: "set_value",
+            new_value: "hi!",
+            path: ["__proto__", "mynewvalue"],
+        },
+        affects_tree: [],
+    }, undefined), {});
+    tap.equal(({} as {mynewvalue?: undefined | string}).mynewvalue, undefined);
+
+    // ok we're just barely safe from this
+    // - new keys are only added using Object.fromEntries, which does not have prototype pollution issues
+    // - we're checking hasownproperty before setting any value, and this is only true if the key has been
+    //   created already
+    //
+    // it would not take very much to be vulnerable
+    // - if we automatically created keys if they did not exist, we would be setting `__proto__` directly
+    //   using a "set_value" call. we used to do this but changed it recently.
+});
+
 void tap.test("applying actions to snapshots", async () => {
     // create object
     tap.same(applyActionToSnapshot({
