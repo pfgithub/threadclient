@@ -17,6 +17,23 @@ html {
     }
 }
 
+// animation. this can also be defined in the windi/tailwind css config
+@keyframes bounceanim {
+    0% {
+        transform: scale(1.0);
+    }
+    50% {
+        transform: scale(1.5);
+    }
+    100% {
+        transform: scale(1.0);
+    }
+}
+
+.bounceanim {
+    animation: bounceanim 0.2s ease-in-out 1 running;
+}
+
 input,
 textarea,
 select,

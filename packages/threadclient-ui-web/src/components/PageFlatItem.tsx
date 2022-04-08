@@ -1,4 +1,5 @@
 import {
+    createMemo,
     createSignal,
     For,
     JSX
@@ -11,6 +12,7 @@ import {
 import { addAction } from "./action_tracker";
 import { CollapseButton } from "./CollapseButton";
 import { CollapseData, FlatItem, getCState } from "./flatten";
+import Icon from "./Icon";
 import { ClientContentAny } from "./page2";
 import SwipeCollapse from "./SwipeCollapse";
 
@@ -42,15 +44,44 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
             + " h-2 sm:rounded-xl mb-4"
         } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
         post: loader_or_post => <SwipeCollapse
-            background={value => <div class={
-                (value() < 0 ? (
-                    (value() < -100 ? "bg-blue-600" : "bg-blue-700") + " text-left"
-                ) : "bg-green-700 text-right") + " w-full h-full"
-            }>{value().toLocaleString()}</div>}
+            background={value => {
+                const isRightSide = createMemo(() => value() < 0);
+                const stop1Activated = createMemo(() => Math.abs(value()) > 100);
+                // consider making a bounce animation when the user drags past the stop
+                // kinda complicated, you have to detect the rising edge of a boolean and then
+                // `.transition = ""` `.transform = scale(1.5)` `.offsetWidth` `.transition = "0.1s transform"`
+                //
+                // might be able to do it by triggering a css animation actually. that should work. i'll do that
+                return <div class={
+                    (isRightSide() ? (
+                        (stop1Activated() ? "bg-blue-500" : "bg-blue-700") + " text-right"
+                    ) : (
+                        (stop1Activated() ? "bg-green-500" : "bg-green-700") + " text-left"
+                    )) + " w-full h-full relative"
+                }>
+                    <div class="absolute w-100px h-full flex items-center justify-center" style={{
+                        ...isRightSide() ? {right: "-100px"} : {left: "-100px"},
+                        transform: "translateX("+(value())+"px)",
+                    }}>
+                        <div class={stop1Activated() ? "bounceanim" : ""}>
+                            <Icon
+                                icon={isRightSide() ? "chevron_up" : "bookmark"}
+                                bold={stop1Activated()}
+                                label={"Collapse"}
+                            />
+                        </div>
+                    </div>
+                </div>;
+            }}
             onRelease={value => {
                 if(value < -100) {
+                    // performAction("collapse")
                     const cs = getCState(props.collapse_data, loader_or_post.collapse.id);
                     cs.setCollapsed(v => !v);
+                }
+                if(value > 100) {
+                    // performAction("save")
+                    alert("TODO");
                 }
             }}
         ><ToggleColor>{color => <div class={"px-2 "+color}>
