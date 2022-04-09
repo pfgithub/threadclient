@@ -47,6 +47,14 @@ export default function SwipeActions(props: {
         const selection = document.getSelection();
         if(selection?.isCollapsed === false) return; // no dragging if text is selected
 
+        // workaround for https://bugs.webkit.org/show_bug.cgi?id=239014
+        if(CSS.supports("-webkit-touch-callout: none")) {
+            const screen_width = window.innerWidth;
+            const x = initial_ev.clientX;
+            const v = Math.min(Math.abs(x), Math.abs(screen_width - x));
+            if(v < 50) return;
+        }
+
         let started = false;
 
         // el.setPointerCapture(id);
