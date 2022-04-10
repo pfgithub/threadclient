@@ -5,17 +5,17 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "eslint": "^8.10.0",
+    "eslint": "^8.13.0",
     "eslint-config-tmeta": "^1.0.0",
     "esno": "^0.14.1",
     "tmeta-util": "^1.0.0",
     "tsconfig-tmeta": "^1.0.0",
-    "typescript": "^4.5.5"
+    "typescript": "^4.6.3"
   },
   "dependencies": {
     "@effectful/serialization": "^1.4.6",
     "api-types-generic": "^1.0.0",
-    "node-fetch": "^3.2.0",
+    "node-fetch": "^3.2.3",
     "threadclient-client-base": "^1.0.0",
     "threadclient-client-reddit": "^1.0.0",
     "threadclient-preview": "^1.0.0"
