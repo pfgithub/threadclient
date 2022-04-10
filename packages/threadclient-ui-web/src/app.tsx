@@ -2779,6 +2779,7 @@ export function navigate({path, page}: {
     path: string,
     page?: undefined | Generic.Page2,
 }): void {
+    if(path.startsWith("/")) path = path.replace("/", "#") || "#/";
     console.log("Appending history state index", current_history_index + 1, path);
     history.pushState({index: current_history_index + 1, session_name}, "ThreadClient", path);
     onNavigate(current_history_index + 1, location, page);
