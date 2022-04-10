@@ -5,7 +5,7 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
-import { link_styles_v } from "../app";
+import { MutablePage2HistoryNode, link_styles_v } from "../app";
 
 export { localStorageSignal };
 export { screenWidth };
@@ -42,21 +42,23 @@ export function getIsVisible(): (() => boolean) {
 }
 
 export type PageRootContext = {
+    pgin: () => MutablePage2HistoryNode,
     content: () => Generic.Page2Content,
-    addContent: (content: Generic.Page2Content) => void,
+    addContent: (node: MutablePage2HistoryNode, content: Generic.Page2Content) => void,
 };
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const PageRootContext = createContext<PageRootContext>();
 
 export function PageRootProvider(props: {
-    content: Generic.Page2Content,
-    addContent: (content: Generic.Page2Content) => void,
+    pgin: MutablePage2HistoryNode,
+    addContent: (node: MutablePage2HistoryNode, content: Generic.Page2Content) => void,
     // refocus: (focus: Generic.Link<Generic.Post>) => void, // this should be a navigation
     // event thing
     children: JSX.Element,
 }): JSX.Element {
     return <PageRootContext.Provider value={{
-        content: () => props.content,
+        pgin: () => props.pgin,
+        content: () => props.pgin.page.content,
         addContent: props.addContent,
     }}>{props.children}</PageRootContext.Provider>;
 }

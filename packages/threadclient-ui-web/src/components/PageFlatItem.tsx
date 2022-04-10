@@ -1,4 +1,5 @@
 import {
+    batch,
     createSignal,
     For,
     JSX
@@ -6,7 +7,7 @@ import {
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { getClientCached } from "../app";
 import {
-    classes, getWholePageRootContext, size_lt, ToggleColor
+    classes, DefaultErrorBoundary, getWholePageRootContext, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { addAction } from "./action_tracker";
 import { CollapseButton } from "./CollapseButton";
@@ -30,6 +31,11 @@ function getRainbow(n: number): string {
 }
 
 export default function PageFlatItem(props: {item: FlatItem, collapse_data: CollapseData}): JSX.Element {
+    return <DefaultErrorBoundary data={props.item}>
+        <PageFlatItemNoError item={props.item} collapse_data={props.collapse_data} />
+    </DefaultErrorBoundary>;
+}
+function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData}): JSX.Element {
     return <SwitchKind item={props.item}>{{
         // TODO: remove wrapper_start and wrapper_end and instead make these properties of loader_or_post
         // TODO: improve how gaps are made. make gaps automatically between posts for example. margin
@@ -129,24 +135,41 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
                         const [loading, setLoading] = createSignal(false);
                         const [error, setError] = createSignal<null | string>(null);
                         const hprc = getWholePageRootContext();
+                        // ok this is not good
+                        // here's what we should do:
+                        // - each page should have its own completely seperate data
+                        // - a loader should add to the current page's data
+                        // - a refocus should copy the current page's data and show it
+                        //
+                        // there might be some messy proxy thing we can do to layer these
+                        // like each page is an array of layers that have been applied and a
+                        // cache of post id → layer name
+                        //
+                        // oh that's a good idea
+                        // ok time to rip out some code 
                         return <div class="py-1"><button
                             class="text-blue-500 hover:underline"
                             disabled={loading()}
                             onClick={() => {
                                 setLoading(true);
+
+                                const pgin = hprc.pgin();
                                 
                                 addAction(
                                     getClientCached(loader.client_id)!.loader!(loader_or_post.id, loader),
                                 ).then(r => {
-                                    setLoading(false);
-                                    setError(null);
-                                    console.log("adding content", r.content, loader_or_post);
-                                    hprc.addContent(r.content);
-                                }).catch(er => {
-                                    setLoading(false);
-                                    const e = er as unknown as Error;
-                                    console.log(e);
-                                    setError(e.toString());
+                                    batch(() => {
+                                        setLoading(false);
+                                        setError(null);
+                                        console.log("adding content", r.content, loader_or_post);
+                                        hprc.addContent(pgin, r.content);
+                                    });
+                                }).catch((e: Error) => {
+                                    console.log("Error loading; ", e);
+                                    batch(() => {
+                                        setLoading(false);
+                                        setError(e.toString());
+                                    });
                                 });
                             }}
                         >{

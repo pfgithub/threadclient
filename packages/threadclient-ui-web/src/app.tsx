@@ -2652,38 +2652,52 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 }
 
 
-type MutablePage2HistoryNode = {
+export type MutablePage2HistoryNode = {
     page: Generic.Page2,
 };
+export function addLayer(node: Generic.Page2, new_layer: Generic.Page2Content): Generic.Page2 {
+    return {
+        ...node,
+        content: {...node.content, ...new_layer},
+    };
+}
 
 let showPage2!: (page: MutablePage2HistoryNode) => void;
 let hidePage2!: () => void;
 
 {
-    const [focusedPage, setFocusedPage] = createSignal<Generic.Page2>(null as unknown as Generic.Page2);
+    const [pgin, setPgin] = createSignal<MutablePage2HistoryNode>(null as unknown as MutablePage2HistoryNode, {
+        equals: (a, b) => false, // so if you click two loaders at once, both update the same pgin
+    });
     let page2_viewer_initialized = false;
-    showPage2 = (pgin: MutablePage2HistoryNode) => {
-        console.log("showing page2", pgin.page);
+
+    const initializePage2Viewer = () => {
+        if(page2_viewer_initialized) return;
+        page2_viewer_initialized = true;
+
+        // TODO: set page title in here
+        vanillaToSolidBoundary(page2mainel, () => <>
+            <PageRootProvider
+                pgin={pgin()}
+                addContent={(upd_pgin, content) => {
+                    upd_pgin.page  = {...upd_pgin.page, content: {...upd_pgin.page.content, ...content}};
+                    if(pgin() === upd_pgin) {
+                        setPgin(pgin()); // the pgin that was updated is currently being viewed; refresh
+                    }
+                }}
+            >
+                <ClientPage pivot={pgin().page.pivot} />
+            </PageRootProvider>
+        </>, {color_level: 0});
+    };
+    showPage2 = (new_pgin: MutablePage2HistoryNode) => {
+        console.log("showing page2", new_pgin.page);
         page2mainel.style.display = "";
 
-        setFocusedPage(pgin.page);
+        setPgin(new_pgin);
+        console.log("SHOWPAGE2 CALLED ON", new_pgin);
 
-        if(!page2_viewer_initialized) {
-            page2_viewer_initialized = true;
-
-            // TODO: set page title in here
-            vanillaToSolidBoundary(page2mainel, () => <>
-                <PageRootProvider
-                    content={focusedPage().content}
-                    addContent={(content) => {
-                        pgin.page = {...pgin.page, content: {...pgin.page.content, ...content}};
-                        setFocusedPage(pgin.page);
-                    }}
-                >
-                    <ClientPage pivot={focusedPage().pivot} />
-                </PageRootProvider>
-            </>, {color_level: 0});
-        }
+        initializePage2Viewer();
     };
     hidePage2 = () => {
         page2mainel.style.display = "none";
