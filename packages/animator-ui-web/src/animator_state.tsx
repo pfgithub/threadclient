@@ -12,7 +12,7 @@ import {
 } from "firebase/database";
 import * as stor from "firebase/storage";
 import { batch, createSignal, For, JSX, onCleanup } from "solid-js";
-import { createStore, reconcile, Store } from "solid-js/store";
+import { createStore, DeepReadonly, reconcile, Store } from "solid-js/store";
 import { allowedToAcceptClick, Show, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import { kindIs } from "../../tmeta-util/src/util";
 import Animator from "./animator";
@@ -1186,7 +1186,7 @@ function createDbWatch<T>(db_ref: Query): [Store<DbValue<T>>] {
     console.log("waiting for", db_ref);
     const unsub = onValue(db_ref, snapshot => {
         console.log("got value", snapshot);
-        const snap_value = snapshot.val() as T;
+        const snap_value = snapshot.val() as DeepReadonly<T>;
         setState(reconcile({kind: "loaded", value: snap_value}, {merge: true}));
     }, err => {
         console.log(err);
