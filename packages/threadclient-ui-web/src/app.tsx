@@ -60,6 +60,7 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): (
     if(!href.startsWith("http") && !href.startsWith("/")) {
         return {kind: "error", title: href};
     }
+    // consider just returning "#https://www.reddit.com/" instead of having this url replacement logic
     let urlparsed: URL | undefined;
     try {
         urlparsed = new URL(href);
@@ -2959,6 +2960,7 @@ export function fetchPromiseThen<T>(
 }
 
 function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivElement> {
+    console.log("RENDERPATH", pathraw, search);
     const pathfull = (pathraw + search).substring(1);
     if(pathfull.toLowerCase().startsWith("http://")
     || pathfull.toLowerCase().startsWith("https://")) {
@@ -2976,7 +2978,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         if(safe_link.kind === "link") {
             if(!safe_link.external) {
                 const [respath, ...ressearch] = safe_link.url.split("?");
-                return renderPath(respath!, ressearch.join("?"));
+                return renderPath(respath!.replace("#", ""), ressearch.join("?"));
             }
         }
 
