@@ -2978,7 +2978,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         if(safe_link.kind === "link") {
             if(!safe_link.external) {
                 const [respath, ...ressearch] = safe_link.url.split("?");
-                return renderPath(respath!.replace("#", ""), ressearch.join("?"));
+                return renderPath(respath!.replace("#", ""), "?"+ressearch.join("?"));
             }
         }
 
