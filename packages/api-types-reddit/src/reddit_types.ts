@@ -691,7 +691,7 @@ export type T5Data = { // T5_Data? pascal_underscore case?
 
     suggested_comment_sort: null,
 
-    primary_color: "",
+    primary_color: `#${string}` | "",
 
     active_user_count: number,
     accounts_active_is_fuzzed: boolean,

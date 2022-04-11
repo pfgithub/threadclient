@@ -1616,15 +1616,23 @@ export function bioRender(
     frame.clss("subreddit-banner");
 
     if(listing.banner) {
-        const zoomframe = zoomableFrame(
-            el("img").clss(
-                "w-full min-h-270px object-cover object-center sm:object-top"
-            ).attr({src: listing.banner.desktop})
-        ).clss("absolute top-0 left-0 right-0 w-full max-h-full").adto(frame);
-        zoomframe.adch(el("div").clss("absolute top-150px left-0 right-0 bottom-0 header-gradient"));
-        // <div style="position: absolute;top: 150px;left: 0;right: 0;
-        //      background: linear-gradient(to bottom, rgb(24, 26, 27, 0), rgb(24, 26, 27, 0.9) 50px, rgb(24, 26, 27));height: 242px;"></div>
-        el("div").clss("h-150px").adto(frame);
+        const frameclss = "absolute top-0 left-0 right-0 w-full max-h-full";
+        const imgclss = "w-full min-h-270px object-cover object-center sm:object-top";
+        const gradientclss = "absolute left-0 right-0 bottom-0 header-gradient";
+        if(listing.banner.kind === "image") {
+            const zoomframe = zoomableFrame(
+                el("img").clss(imgclss).attr({src: listing.banner.desktop})
+            ).clss(frameclss).adto(frame);
+            zoomframe.adch(el("div").clss(gradientclss + "top-150px"));
+            // <div style="position: absolute;top: 150px;left: 0;right: 0;
+            //      background: linear-gradient(to bottom, rgb(24, 26, 27, 0), rgb(24, 26, 27, 0.9) 50px, rgb(24, 26, 27));height: 242px;"></div>
+            el("div").clss("h-150px").adto(frame);
+        }else if(listing.banner.kind === "color") {
+            const zoomframe = el("div").adch(
+                el("div").clss(imgclss + " h-full").styl({'background-color': listing.banner.color})
+            ).clss(frameclss).adto(frame);
+            zoomframe.adch(el("div").clss(gradientclss + " top-0"));
+        }else assertNever(listing.banner);
     }
 
     const area = el("div").clss("subreddit-banner-content").adto(frame);

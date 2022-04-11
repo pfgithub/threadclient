@@ -873,6 +873,7 @@ export const client: ThreadClient = {
             return await timelineView(host, auth, parsed.api_url, pathraw, {
                 kind: "bio",
                 banner: {
+                    kind: "image",
                     desktop: account_info.header_static ?? account_info.header ?? "none",
                 },
                 icon: {

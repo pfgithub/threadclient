@@ -523,8 +523,12 @@ export type Profile = {
 export type RedditHeader = {
     kind: "bio",
     banner: {
+        kind: "image",
         desktop: string,
         mobile?: string | undefined,
+    } | {
+        kind: "color",
+        color: `#${string}`,
     } | null,
     icon: {
         url: string,

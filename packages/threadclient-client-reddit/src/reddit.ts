@@ -2945,14 +2945,19 @@ function sidebarFromMulti(multi_raw: Reddit.LabeledMulti): Generic.ContentNode[]
 }
 
 function bannerAndIcon(sub: Reddit.T5Data): {
-    banner: {desktop: string} | null,
-    icon: {url: string} | null,
+    banner: Generic.RedditHeader["banner"],
+    icon: Generic.RedditHeader["icon"],
 } {
     const banner = sub.banner_background_image || sub.banner_img || "";
+    const color = sub.primary_color || "";
     const icon = sub.community_icon || sub.icon_img || "";
     return {
         banner: banner ? {
+            kind: "image",
             desktop: banner,
+        } : color ? {
+            kind: "color",
+            color,
         } : null,
         icon: icon ? {
             url: icon,

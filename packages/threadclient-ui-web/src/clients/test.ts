@@ -509,6 +509,7 @@ const sitemap: SitemapEntry[] = [
                 header: {
                     kind: "bio",
                     banner: {
+                        kind: "image",
                         desktop: "https://images.sadhguru.org/sites/default/files/media_files/iso/en/"
                         + "64083-natures-temples.jpg",
                     },
