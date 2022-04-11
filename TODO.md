@@ -1,5 +1,25 @@
 ## TODO
 
+woah look at this
+
+https://reddit.zendesk.com/hc/en-us/articles/205926439-Reddiquette
+
+https://reddit.zendesk.com/api/v2/help_center/en-us/articles/205926439-Reddiquette.json
+
+we can put the reddit help center in threadclient
+
+it even has access-control-allow-origin: *
+
+fancy
+
+also don't even have to fix any white-space:pre-wrap bugs
+
+- note: consider using an html minifier rather than trying to handle whitespace ourselves. these know how
+  to handle whitespace for default nodes
+- that's actually a good idea we should do that for reddit wiki pages
+
+## TODO
+
 https://github.com/poudels14/slate-solid
 
 woah a solid js slate wrapper
