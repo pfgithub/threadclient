@@ -7,6 +7,8 @@ woah a solid js slate wrapper
 I'm pretty sure there was some reason I couldn't use slate but I should at least
 try it
 
+- nope, doesn't look like it will work
+
 ## TODO
 
 Virtual scrolling with IntersectionObserver
