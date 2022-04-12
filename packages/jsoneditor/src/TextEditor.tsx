@@ -765,7 +765,7 @@ export function LeafSignal(props: {
         if(v === -1) return 0;
         return props.text.length;
     }}>{(iprops) => <>
-        <span onClick={e => {
+        <span class={"select-text"} onClick={e => {
             // we actually want a selectionchange event which is on the document.
             // so there should be one handler in the editor root that
             // dispatches events to leaves within its root.
