@@ -189,12 +189,12 @@ function flattenPost(
         post.content.show_replies_when_below_pivot
     : true : true;
 
-    if((rpo.threaded || !rres.collapse.collapsed) && show_replies) {
+    if(show_replies) {
         const replies = postReplies(post, meta);
         const replies_threaded = replies.length === 1 && (rpo.threaded ? true : (
             readLink(meta, replies[0]!).value?.replies?.items.length === 1
         ));
-        for(const reply of replies) {
+        if(replies_threaded || !rres.collapse.collapsed) for(const reply of replies) {
             res.push(...flattenPost(
                 reply,
                 rpo.threaded && replies_threaded ? indent_excl_self : indent_incl_self,
