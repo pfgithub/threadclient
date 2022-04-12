@@ -81,7 +81,7 @@ void tap.test("not vulnerable to prototype pollution", async () => {
             path: ["__proto__", "mynewvalue"],
         },
         affects_tree: [],
-    }, undefined), {});
+    }, {}), {});
     tap.equal(({} as {mynewvalue?: undefined | string}).mynewvalue, undefined);
 
     // ok we're just barely safe from this
