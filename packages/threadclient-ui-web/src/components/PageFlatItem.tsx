@@ -156,7 +156,13 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                                 const pgin = hprc.pgin();
                                 
                                 addAction(
-                                    getClientCached(loader.client_id)!.loader!(loader_or_post.id, loader),
+                                    (async () => {
+                                        if(error() != null) await new Promise(r => setTimeout(r, 200));
+                                        return await getClientCached(loader.client_id)!.loader!(
+                                            loader_or_post.id,
+                                            loader,
+                                        );
+                                    })(),
                                 ).then(r => {
                                     batch(() => {
                                         setLoading(false);
