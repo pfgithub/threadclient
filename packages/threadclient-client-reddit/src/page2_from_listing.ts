@@ -232,11 +232,10 @@ type IDMapEntry = {
 
     data: IDMapData,
 };
-// we should not need a parent_permalink
-// eg a load more may be a parent_permalink style load more
-// in which case info can be in {kind: "load_more"} here
-// the other thing parent_permalink is used for is to find the
-// sort mode but comments have access to the .parent_submission property
+
+// 'missing_replies' says that the provided replies should not be trusted and should be replaced with a loader
+// instead. eg: if you look at a single coment thread, all the parents will be listed as "missing_replies" because
+// the full reply list isn't known.
 type IDMapData = {
     kind: "comment",
     comment: Reddit.T1,
@@ -253,6 +252,7 @@ type IDMapData = {
     kind: "subreddit_unloaded",
     listing: Reddit.Listing,
     details: "unknown" | SubrInfo,
+    missing_replies?: undefined | true,
 } | {
     kind: "depth_more",
     // a Reddit.More with 0 children
@@ -307,7 +307,20 @@ export function page2FromListing(
 
         const focus_comment = path.kind === "comments" ? path.focus_comment : null;
 
-        // TODO let's setUpMap on the sr_sub {missing_replies: true} instead
+        const sr_entry: IDMapData = {
+            kind: "subreddit_unloaded",
+            listing: {
+                kind: "Listing",
+                data: {
+                    before: null,
+                    children: [],
+                    after: null,
+                },
+            },
+            details: path.kind === "comments" ? path.sub : "unknown",
+            missing_replies: true,
+        };
+        setUpMap(id_map, sr_entry);
 
         let focus = setUpMap(id_map, {
             kind: "post",
@@ -779,13 +792,29 @@ function postDataFromListingMayError(
             replies.push(getPostData(content, map, "TODO next" as ID));
         }
 
+        const url = entry.data.details === "unknown" ? null : "/"+entry.data.details.base.join("/");
+
         return {
             kind: "post",
             client_id: client.id,
-            url: null,
+            url,
             parent: null,
             replies: {
-                items: replies,
+                items: entry.data.missing_replies ? [
+                    createSymbolLinkToValue(content, {
+                        kind: "loader",
+                        key: loader_enc.encode({
+                            kind: "link_replies",
+                            url: url ?? "@ERROR",
+                        }),
+    
+                        parent: entry.link,
+                        replies: null,
+                        client_id: client.id,
+                        url: null,
+                        load_count: null,
+                    })
+                ] : replies,
             },
             content: {
                 kind: "post",
@@ -888,6 +917,9 @@ type LoaderData = {
     parent_id: string | null,
     // loads /comments/{post_id}/comment/{parent_id}?context=0
 } | {
+    kind: "link_replies",
+    url: string,
+} | {
     kind: "vertical",
     bottom_post: string,
     // fetches ?context=9&limit=9
@@ -910,11 +942,14 @@ export async function loadPage2(
     key: Generic.Link<Generic.Post>,
     loader: Generic.Loader,
 ): Promise<Generic.LoaderResult> {
-    const data = loader_enc.decode(loader.key);
+    let data = loader_enc.decode(loader.key);
+    if(data.kind === "parent_permalink") data = {
+        kind: "link_replies",
+        url: `/comments/${data.post_id}/comment/${data.parent_id ?? ""}?context=0`,
+    };
 
-    if(data.kind === "parent_permalink") {
-        const url = `/comments/${data.post_id}/comment/${data.parent_id ?? ""}?context=0`;
-        const res = await getPage(url);
+    if(data.kind === "link_replies") {
+        const res = await getPage(data.url);
         const loaded: Generic.Loaded = {
             kind: "loaded",
 
