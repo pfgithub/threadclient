@@ -650,7 +650,7 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
         title: data.shortName,
         raw_value: data,
         widget_content: {kind: "body", body: {kind: "text",
-            client_id: client.id, content: data.text, markdown_format: "reddit",
+            client_id: client.id, content: data.textHtml, markdown_format: "reddit_html",
         }},
     }; else if(data.kind === "subreddit-rules") return {
         kind: "widget",
@@ -659,7 +659,7 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
         widget_content: {kind: "list", items: data.data.map((rule, i) => ({
             name: {kind: "text", text: "" + (i + 1) + ". " + rule.shortName},
             click: {kind: "body", body: {kind: "text",
-                client_id: client.id, content: rule.description, markdown_format: "reddit",
+                client_id: client.id, content: rule.descriptionHtml, markdown_format: "reddit_html",
             }},
         }))},
     }; else if(data.kind === "image") return {
@@ -713,7 +713,12 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
         raw_value: data,
         widget_content: {
             kind: "list",
-            above_text: {kind: "text", content: data.description, client_id: client.id, markdown_format: "reddit"},
+            above_text: {
+                kind: "text",
+                content: data.description_html,
+                client_id: client.id,
+                markdown_format: "reddit_html",
+            },
             items: data.buttons.map((button): Generic.WidgetListItem => {
                 if(button.kind === "text") return {
                     name: {kind: "text", text: button.text},
@@ -739,10 +744,10 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
             body: data.data.flatMap((item, i): Generic.Body[] => {
                 return [
                     ...i !== 0 ? [{kind: "richtext", content: [rt.hr()]}] as const : [],
-                    {kind: "text", client_id: client.id, content: item.title, markdown_format: "reddit"},
+                    {kind: "text", client_id: client.id, content: item.titleHtml, markdown_format: "reddit_html"},
                     {kind: "richtext", content: [rt.p(rt.timeAgo(item.startTime * 1000))]},
-                    {kind: "text", client_id: client.id, content: item.location, markdown_format: "reddit"},
-                    {kind: "text", client_id: client.id, content: item.description, markdown_format: "reddit"},
+                    {kind: "text", client_id: client.id, content: item.locationHtml, markdown_format: "reddit_html"},
+                    {kind: "text", client_id: client.id, content: item.descriptionHtml, markdown_format: "reddit_html"},
                 ];
             }),
         }},
@@ -773,7 +778,7 @@ function oldSidebarWidget(t5: Reddit.T5, subreddit: string, {collapsed}: {collap
     return {
         kind: "thread",
         raw_value: t5,
-        body: {kind: "text", client_id: client.id, markdown_format: "reddit", content: t5.data.description},
+        body: {kind: "text", client_id: client.id, markdown_format: "reddit_html", content: t5.data.description_html},
         display_mode: {body: collapsed ? "collapsed" : "visible", comments: "visible"},
         link: "/r/"+subreddit+"/about/sidebar",
         layout: "reddit-post",
@@ -789,8 +794,8 @@ function oldSidebarWidget(t5: Reddit.T5, subreddit: string, {collapsed}: {collap
     //         kind: "body",
     //         body: {
     //             kind: "text",
-    //             markdown_format: "reddit",
-    //             content: t5.data.description,
+    //             markdown_format: "reddit_html",
+    //             content: t5.data.description_html,
     //         },
     //     },
     // };
@@ -1189,7 +1194,7 @@ export function pageFromListing(
                 item: {parents: [{
                     kind: "thread",
                     raw_value: listing,
-                    body: {kind: "text", client_id: client.id, markdown_format: "reddit", content: listing.data.description},
+                    body: {kind: "text", client_id: client.id, markdown_format: "reddit_html", content: listing.data.description_html},
                     display_mode: {body: "visible", comments: "visible"},
                     link: pathraw,
                     layout: "reddit-post",
@@ -2109,7 +2114,7 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
                 },
                 pinned: false,
             },
-            body: {kind: "text", client_id: client.id, content: msg.body, markdown_format: "reddit"},
+            body: {kind: "text", client_id: client.id, content: msg.body_html, markdown_format: "reddit_html"},
             display_mode: {body: "visible", comments: "collapsed"},
             link: msg.context,
             layout: "reddit-comment",
@@ -2916,8 +2921,8 @@ function sidebarFromMulti(multi_raw: Reddit.LabeledMulti): Generic.ContentNode[]
                     }, {
                         kind: "text",
                         client_id: client.id,
-                        content: multi.description_md,
-                        markdown_format: "reddit",
+                        content: multi.description_html,
+                        markdown_format: "reddit_html",
                     }],
                 },
             },
@@ -2983,8 +2988,8 @@ function generateUserSidebar(
         body: {
             kind: "text",
             client_id: client.id,
-            content: user.data.subreddit.public_description,
-            markdown_format: "reddit",
+            content: user.data.subreddit.public_description_html,
+            markdown_format: "reddit_html",
         },
         subscribe: {
             kind: "counter",
@@ -3586,7 +3591,12 @@ export const client: ThreadClient = {
 
             sub_rules_out.push({
                 title: sub_rule.violation_reason,
-                description: {kind: "text", client_id: client.id, content: sub_rule.description, markdown_format: "reddit"},
+                description: {
+                    kind: "text",
+                    client_id: client.id,
+                    content: sub_rule.description_html ?? "",
+                    markdown_format: "reddit_html",
+                },
                 report: {
                     kind: "submit",
                     data: report_action_encoder.encode({
