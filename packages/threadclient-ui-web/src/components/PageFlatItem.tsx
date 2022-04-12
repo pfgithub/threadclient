@@ -1,7 +1,5 @@
 import {
-    batch,
-    createMemo,
-    createSignal,
+    batch, createSignal,
     For,
     JSX
 } from "solid-js";
