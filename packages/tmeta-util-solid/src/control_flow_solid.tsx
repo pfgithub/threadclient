@@ -39,8 +39,10 @@ export function Show<T>(props: {
             ifcond() &&
             ('when' in props ? props.when != null : true)
         ) {
-            const child = props.children;
-            return typeof child === "function" ? untrack(() => child((props as unknown as {when: T}).when)) : child;
+            return 'when' in props ? (() => {
+                const child = props.children;
+                return untrack(() => child((props as unknown as {when: T}).when));
+            })() : props.children;
         }
         return props.fallback;
     });

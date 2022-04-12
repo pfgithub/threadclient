@@ -1,5 +1,6 @@
 import {
     batch,
+    createMemo,
     createSignal,
     For,
     JSX
