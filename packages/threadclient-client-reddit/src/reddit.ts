@@ -7,7 +7,7 @@ import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import * as util from "tmeta-util";
 import { encodeQuery, encodeURL } from "tmeta-util";
 import { getVredditSources } from "threadclient-preview-vreddit";
-import { getPage } from "./page2_from_listing";
+import { getPage, loadPage2 } from "./page2_from_listing";
 
 const client_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -998,7 +998,7 @@ export function pageFromListing(
             return pathFromListingRaw(pathraw, listing, {sidebar: opts.sidebar, warning: urlNotSupportedYet(pathraw)});
         }
 
-        const link_fullname = firstchild.data.name;
+        const link_fullname = firstchild.data.name as `t3_${string}`;
         const default_sort: Reddit.Sort = firstchild.data.suggested_sort ?? "confidence";
         const is_contest_mode = firstchild.data.contest_mode;
         const can_mod_post = firstchild.data.can_mod_post;
@@ -2021,7 +2021,7 @@ const load_more_unmounted_encoder = encoderGenerator<LoadMoreUnmountedData, "loa
 
 type LoadMoreData = {
     kind: "api_loadmore",
-    link_fullname: string,
+    link_fullname: `t3_${string}`,
     children: string[],
     parent_permalink: SortedPermalink,
 } | {
@@ -2666,7 +2666,7 @@ export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
 const as = <T>(a: T): T => a;
 export type ThreadOpts = {
     force_expand?: undefined | "open" | "crosspost" | "closed",
-    link_fullname?: undefined | string,
+    link_fullname?: undefined | `t3_${string}`,
     show_post_reply_button?: undefined | boolean,
 };
 function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts = {}, parent_permalink: SortedPermalink): Generic.Node {
@@ -3133,6 +3133,7 @@ export const client: ThreadClient = {
     id: "reddit",
     // loginURL: getLoginURL(),
     getPage,
+    loader: loadPage2,
     async getThread(pathraw_in): Promise<Generic.Page> {
         try {
             const [parsed, pathraw] = parseLink(pathraw_in);

@@ -1,5 +1,5 @@
 import type * as Reddit from "api-types-reddit";
-import type * as Generic from "api-types-generic";
+import * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import { assertNever, encodeQuery, switchKind } from "tmeta-util";
 import {
@@ -256,7 +256,7 @@ type IDMapData = {
     kind: "depth_more",
     // a Reddit.More with 0 children
     item: Reddit.More,
-    parent_permalink: string,
+    parent_id: string,
 } | {
     kind: "more",
     item: Reddit.More,
@@ -438,7 +438,7 @@ function getEntryFullname(entry: IDMapData): ID {
     }else if(entry.kind === "subreddit_unloaded") {
         return (entry.details === "unknown" ? "__UNKNOWN_LISTING_ROOT" as ID : getSrId(entry.details));
     }else if(entry.kind === "depth_more") {
-        return "DEPTH_MORE_"+entry.parent_permalink as ID;
+        return "DEPTH_MORE_"+entry.parent_id as ID;
     }else if(entry.kind === "more") {
         return "MORE_"+entry.item.data.children.join(",") as ID;
     }else if(entry.kind === "wikipage") {
@@ -446,7 +446,7 @@ function getEntryFullname(entry: IDMapData): ID {
     }else assertNever(entry);
 }
 
-function commentOrUnmountedData(item: Reddit.Post, parent_permalink: string | undefined): IDMapData | undefined {
+function commentOrUnmountedData(item: Reddit.Post, parent_id: string | undefined): IDMapData | undefined {
     if(item.kind === "t1") {
         return {
             kind: "comment",
@@ -460,7 +460,7 @@ function commentOrUnmountedData(item: Reddit.Post, parent_permalink: string | un
         };
     }else if(item.kind === "more") {
         if(item.data.children.length === 0) {
-            if(parent_permalink == null) {
+            if(parent_id == null) {
                 warn(
                     "TODO setUpCommentOrUnmounted was called with not loaded parent but req. parent submission",
                 );
@@ -469,7 +469,7 @@ function commentOrUnmountedData(item: Reddit.Post, parent_permalink: string | un
             return {
                 kind: "depth_more",
                 item,
-                parent_permalink,
+                parent_id,
             };
         }else{
             return {
@@ -484,8 +484,8 @@ function commentOrUnmountedData(item: Reddit.Post, parent_permalink: string | un
     }
 }
 
-function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_permalink: string | undefined): void {
-    const data = commentOrUnmountedData(item, parent_permalink);
+function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_id: string | undefined): void {
+    const data = commentOrUnmountedData(item, parent_id);
     if(data == null) return;
     setUpMap(map, data);
 }
@@ -516,7 +516,7 @@ export function setUpMap(
                     // TODO if it's load more it might need a parent_permalink
                     // pass that in here or something
                     // or make a fn to do this
-                    setUpCommentOrUnmounted(map, reply, listing.permalink);
+                    setUpCommentOrUnmounted(map, reply, listing.id);
                 }
             }
         }else if(listing_raw.kind === "more") {
@@ -537,7 +537,7 @@ export function setUpMap(
             }
         }
         if(data.replies !== "not_loaded") for(const reply of data.replies.data.children) {
-            setUpCommentOrUnmounted(map, reply, listing.permalink);
+            setUpCommentOrUnmounted(map, reply, listing.id);
         }
     }else if(data.kind === "subreddit_unloaded") {
         for(const post of data.listing.data.children) {
@@ -624,12 +624,13 @@ function postDataFromListingMayError(
         if(entry.data.missing_replies ?? false) {
             //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
             if(listing.replies && listing.replies.data.children.length > 0) {
-                const lr: Generic.Loader = {
+                const lr_sym = createSymbolLinkToValue<Generic.Loader>(content, {
                     kind: "loader",
 
-                    key: loader.encode({
-                        kind: "comments",
-                        parent_id: listing.name,
+                    key: loader_enc.encode({
+                        kind: "parent_permalink",
+                        post_id: listing.link_id.replace("t3_", ""),
+                        parent_id: listing.id,
                     }),
                     load_count: null, // who knows
 
@@ -637,9 +638,7 @@ function postDataFromListingMayError(
                     replies: null,
                     url: null,
                     client_id: client.id,
-                };
-                const lr_sym = Symbol() as Generic.Link<typeof lr>;
-                content[lr_sym] = {data: lr};
+                });
                 replies.items.push(lr_sym);
             }
         }else{
@@ -721,9 +720,10 @@ function postDataFromListingMayError(
                     getPostData(content, map, getPostFullname(reply))
                 )) : [createSymbolLinkToValue(content, {
                     kind: "loader",
-                    key: loader.encode({
-                        kind:"comments",
-                        parent_id: listing.id,
+                    key: loader_enc.encode({
+                        kind:"parent_permalink",
+                        post_id: listing.id,
+                        parent_id: null,
                     }),
 
                     parent: entry.link,
@@ -757,7 +757,7 @@ function postDataFromListingMayError(
                         }, deleteButton(listing.name), saveButton(listing.name, listing.saved), {
                             kind: "link",
                             client_id: client.id,
-                            url: listing.permalink.replace("/comments/", "/duplicates/"),
+                            url: "/duplicates/"+listing.id,
                             text: "Duplicates"
                         }, reportButton(listing.name, listing.subreddit),
                         editButton(listing.name),
@@ -805,8 +805,9 @@ function postDataFromListingMayError(
             url: null,
             load_count: null,
 
-            key: loader.encode({
-                kind: "comments",
+            key: loader_enc.encode({
+                kind: "parent_permalink",
+                post_id: entry.data.parent_id,
                 parent_id: listing.parent_id,
             }),
         };
@@ -820,7 +821,7 @@ function postDataFromListingMayError(
             url: null,
             load_count: listing.children.length,
 
-            key: loader.encode({
+            key: loader_enc.encode({
                 kind: "more",
                 data: listing,
             }),
@@ -880,9 +881,9 @@ type LoaderData = {
     kind: "more",
     data: Reddit.PostMore,
 } | {
-    kind: "comments",
-    // TODO: post_id: string | null,
-    parent_id: string,
+    kind: "parent_permalink",
+    post_id: string,
+    parent_id: string | null,
     // loads /comments/{post_id}/comment/{parent_id}?context=0
 } | {
     kind: "vertical",
@@ -890,7 +891,7 @@ type LoaderData = {
     // fetches ?context=9&limit=9
 };
 
-const loader = encoderGenerator<LoaderData, "loader">("loader");
+const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
 
 // Two examples of load more:
 // - /comments/omvrb7 - a horizontal loader is needed for the pinned post
@@ -901,4 +902,32 @@ const loader = encoderGenerator<LoaderData, "loader">("loader");
 function createLink<T>(debug_msg: string): Generic.Link<T> {
     const value = Symbol(debug_msg) as Generic.Link<T>;
     return value;
+}
+
+export async function loadPage2(
+    key: Generic.Link<Generic.Post>,
+    loader: Generic.Loader,
+): Promise<Generic.LoaderResult> {
+    const data = loader_enc.decode(loader.key);
+
+    if(data.kind === "parent_permalink") {
+        const url = `/comments/${data.post_id}/comment/${data.parent_id ?? ""}?context=0`;
+        const res = await getPage(url);
+        const loaded: Generic.Loaded = {
+            kind: "loaded",
+
+            parent: loader.parent,
+            replies: (res.content[res.pivot] as {data: Generic.Post}).data.replies,
+
+            url: null,
+            client_id: client.id,
+        };
+        return {content: {...res.content, [key]: {data: loaded}}};
+    }else if(data.kind === "more") {
+        throw new Error("TODO more");
+    }else if(data.kind === "vertical") {
+        // ?context=9&limit=9 - this will load more than necessary most of the time but it's the best we
+        // can do i think
+        throw new Error("TODO vertical");
+    }else assertNever(data);
 }

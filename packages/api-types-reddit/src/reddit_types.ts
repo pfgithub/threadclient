@@ -825,7 +825,7 @@ export type PostOrComment = {
     author_cakeday?: undefined | boolean,
     profile_img?: undefined | string,
 
-    link_id: string,
+    link_id: `t3_${string}`,
     
     likes: true | false | null,
 
@@ -1029,7 +1029,7 @@ export type PostComment = PostOrComment & {
     /// code.
     collapsed_reason_code: "DELETED" | "LOW_SCORE" | null,
 } & ({
-    link_id: string,
+    link_id: `t3_${string}`,
     link_author: string,
     link_permalink: string,
     link_title: string,
@@ -1389,7 +1389,7 @@ export type Requests = {
             api_type: "json",
             limit_children: "false",
             children: string,
-            link_id: string,
+            link_id: `t3_${string}`,
             sort: Sort,
         },
         response: MoreChildren,
