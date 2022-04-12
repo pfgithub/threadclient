@@ -4114,6 +4114,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"block-elements@npm:^1.0.0":
+  version: 1.2.0
+  resolution: "block-elements@npm:1.2.0"
+  checksum: efecc12e3654c6304bcdbe804bca43820395a757e2748d478dc85026b682109beb5a79730206260acce1d1333fee6806aaec95364ead2634d604485da171a989
+  languageName: node
+  linkType: hard
+
 "bluebird@npm:~2.9.24":
   version: 2.9.34
   resolution: "bluebird@npm:2.9.34"
@@ -4789,6 +4796,16 @@ __metadata:
   version: 1.1.0
   resolution: "code-point-at@npm:1.1.0"
   checksum: 17d5666611f9b16d64fdf48176d9b7fb1c7d1c1607a189f7e600040a11a6616982876af148230336adb7d8fe728a559f743a4e29db3747e3b1a32fa7f4529681
+  languageName: node
+  linkType: hard
+
+"collapse-whitespace@npm:^1.1.7":
+  version: 1.1.7
+  resolution: "collapse-whitespace@npm:1.1.7"
+  dependencies:
+    block-elements: ^1.0.0
+    void-elements: ^2.0.1
+  checksum: f0021b94f702ae7c776b51260df8f67188edb5f7f7c56d27f7255ffcb6afcb46eba929c85bc7444bf006e1c05c87a3ecf048dd93c68e0de8e61307e75e7772a0
   languageName: node
   linkType: hard
 
@@ -14155,6 +14172,7 @@ fsevents@~2.3.2:
     api-types-mastodon: ^1.0.0
     api-types-oembed: ^1.0.0
     api-types-reddit: ^1.0.0
+    collapse-whitespace: ^1.1.7
     commonmark: ^0.30.0
     core-js: 3.21.1
     eslint: ^8.13.0
@@ -15044,6 +15062,13 @@ fsevents@~2.3.2:
   bin:
     vite: bin/vite.js
   checksum: 0f0ac9337fa5c17faa4a59831a2df17475563b23a6162e86b2b60b19835ca1277f3249ea7a6608880354b39caf05779e9bad1e3b1f5b27010deced224aae47ea
+  languageName: node
+  linkType: hard
+
+"void-elements@npm:^2.0.1":
+  version: 2.0.1
+  resolution: "void-elements@npm:2.0.1"
+  checksum: 700c07ba9cfa2dff88bb23974b3173118f9ad8107143db9e5d753552be15cf93380954d4e7f7d7bc80e7306c35c3a7fb83ab0ce4d4dcc18abf90ca8b31452126
   languageName: node
   linkType: hard
 

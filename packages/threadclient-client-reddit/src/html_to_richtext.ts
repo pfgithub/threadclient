@@ -1,5 +1,6 @@
 import type * as Generic from "api-types-generic";
 import {rt} from "api-types-generic";
+import collapse from "collapse-whitespace";
 
 // note: a full set of tests is available here
 // https://pfg.pw/snudown/test
@@ -232,6 +233,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
 function setupGenMeta(content: string, client_id: string): [GenMeta, NodeListOf<ChildNode>] {
     const parsed_v = document.createElement("div");
     parsed_v.innerHTML = content; // safe, scripts won't execute and this won't be displayed directly on the screen
+    collapse(parsed_v); // we have to do this because results get displayed in a white-space:pre-wrap element
     const gen_meta: GenMeta = {client_id};
     return [gen_meta, parsed_v.childNodes];
 }
