@@ -245,6 +245,7 @@ type IDMapData = {
     kind: "post",
     post: Reddit.T3,
     replies: "not_loaded" | Reddit.Listing,
+    missing_replies?: undefined | true,
 } | {
     // when a subreddit is needed but only the replies are known,
     // nothing else about the subreddit. if nothing at all is known,
@@ -306,17 +307,14 @@ export function page2FromListing(
 
         const focus_comment = path.kind === "comments" ? path.focus_comment : null;
 
+        // TODO let's setUpMap on the sr_sub {missing_replies: true} instead
+
         let focus = setUpMap(id_map, {
             kind: "post",
             post: parent_post,
-            replies: focus_comment != null ? "not_loaded" : page[1],
+            replies: page[1],
+            missing_replies: focus_comment != null ? true : undefined,
         });
-        if(focus_comment != null) {
-            // setUpMap won't initialize the replies if the pots doesn't know about them
-            for(const reply of page[1].data.children) {
-                setUpCommentOrUnmounted(id_map, reply, parent_post.data.permalink);
-            }
-        }
 
         const post_node = focus;
 
@@ -718,10 +716,11 @@ function postDataFromListingMayError(
                     locked: listing.locked,
                 },
                 // I don't think before and after are used here
-                items: entry.data.replies !== "not_loaded" ? entry.data.replies.data.children.map((reply
-                ): Generic.Link<Generic.Post> => (
-                    getPostData(content, map, getPostFullname(reply, listing.id))
-                )) : [createSymbolLinkToValue(content, {
+                items: !entry.data.missing_replies && entry.data.replies !== "not_loaded" ? (
+                    entry.data.replies.data.children.map((reply): Generic.Link<Generic.Post> => (
+                        getPostData(content, map, getPostFullname(reply, listing.id))
+                    ))
+                ): [createSymbolLinkToValue(content, {
                     kind: "loader",
                     key: loader_enc.encode({
                         kind:"parent_permalink",
