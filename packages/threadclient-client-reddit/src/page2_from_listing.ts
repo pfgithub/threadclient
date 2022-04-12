@@ -240,6 +240,7 @@ type IDMapEntry = {
 type IDMapData = {
     kind: "comment",
     comment: Reddit.T1,
+    missing_replies?: undefined | true,
 } | {
     kind: "post",
     post: Reddit.T3,
@@ -303,16 +304,49 @@ export function page2FromListing(
             // ));
         }
 
+        const focus_comment = path.kind === "comments" ? path.focus_comment : null;
+
         let focus = setUpMap(id_map, {
             kind: "post",
             post: parent_post,
-            replies: page[1],
+            replies: focus_comment != null ? "not_loaded" : page[1],
         });
+        if(focus_comment != null) {
+            // setUpMap won't initialize the replies if the pots doesn't know about them
+            for(const reply of page[1].data.children) {
+                setUpCommentOrUnmounted(id_map, reply, parent_post.data.permalink);
+            }
+        }
 
-        if(path.kind === "comments" && path.focus_comment != null) {
-            const new_focus = "t1_"+path.focus_comment.toLowerCase() as ID;
+        const post_node = focus;
+
+        if(focus_comment != null) {
+            const new_focus = "t1_"+focus_comment.toLowerCase() as ID;
             if(id_map.has(new_focus)) focus = new_focus;
             else warn("focused comment not found in tree `"+new_focus+"`");
+        }
+
+        // on all posts above the focus, we need to 
+        // here's an idea:
+        // we can use ?threaded=false
+        // then transform the data like this:
+        // - all posts → {[id: string]: {parent: id, content: …, children: []}}
+        // - for each post: posts[parent].children.push(post)
+        // - for each post above the pivot: .children = []
+
+        // ok i'm not quite sure how we should do this
+        // anything above the pivot needs a loader as its children, and we don't
+        // know what is above the pivot until that id_map.has
+        // I think we have to do like in page1 and determine that first
+
+        // ok this *works* but it's not ideal
+        let focus_iter = focus;
+        while(focus_iter !== post_node) {
+            const parent = id_map.get(focus_iter)?.data;
+            if(parent?.kind === "comment") {
+                parent.missing_replies = true;
+                focus_iter = parent.comment.data.parent_id as ID;
+            }else break;
         }
 
         return getPostData(content, id_map, focus);
@@ -587,10 +621,33 @@ function postDataFromListingMayError(
             reply: {action: replyButton(listing.name), locked: listing.locked},
             items: [],
         };
-        //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        if(listing.replies) {
-            for(const reply of listing.replies.data.children) {
-                replies.items.push(getPostData(content, map, getPostFullname(reply)));
+        if(entry.data.missing_replies ?? false) {
+            //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+            if(listing.replies && listing.replies.data.children.length > 0) {
+                const lr: Generic.Loader = {
+                    kind: "loader",
+
+                    key: loader.encode({
+                        kind: "comments",
+                        parent_id: listing.name,
+                    }),
+                    load_count: null, // who knows
+
+                    parent: entry.link,
+                    replies: null,
+                    url: null,
+                    client_id: client.id,
+                };
+                const lr_sym = Symbol() as Generic.Link<typeof lr>;
+                content[lr_sym] = {data: lr};
+                replies.items.push(lr_sym);
+            }
+        }else{
+            //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+            if(listing.replies) {
+                for(const reply of listing.replies.data.children) {
+                    replies.items.push(getPostData(content, map, getPostFullname(reply)));
+                }
             }
         }
 
@@ -665,8 +722,8 @@ function postDataFromListingMayError(
                 )) : [createSymbolLinkToValue(content, {
                     kind: "loader",
                     key: loader.encode({
-                        kind: "comments",
-                        post: listing.id,
+                        kind:"comments",
+                        parent_id: listing.id,
                     }),
 
                     parent: entry.link,
@@ -749,8 +806,8 @@ function postDataFromListingMayError(
             load_count: null,
 
             key: loader.encode({
-                kind: "depth",
-                data: listing,
+                kind: "comments",
+                parent_id: listing.parent_id,
             }),
         };
     }else if(entry.data.kind === "more") {
@@ -823,11 +880,10 @@ type LoaderData = {
     kind: "more",
     data: Reddit.PostMore,
 } | {
-    kind: "depth",
-    data: Reddit.PostMore,
-} | {
     kind: "comments",
-    post: string,
+    // TODO: post_id: string | null,
+    parent_id: string,
+    // loads /comments/{post_id}/comment/{parent_id}?context=0
 } | {
     kind: "vertical",
     bottom_post: string,
