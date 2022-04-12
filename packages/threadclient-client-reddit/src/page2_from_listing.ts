@@ -425,8 +425,8 @@ function unsupportedPage(
     });
 }
 
-function getPostFullname(post: Reddit.Post): ID {
-    const value = commentOrUnmountedData(post, undefined);
+function getPostFullname(post: Reddit.Post, parent_id: string | undefined): ID {
+    const value = commentOrUnmountedData(post, parent_id);
     if(!value) return "__ERROR_FULLNAME__" as ID;
     return getEntryFullname(value);
 }
@@ -461,7 +461,7 @@ function commentOrUnmountedData(item: Reddit.Post, parent_id: string | undefined
     }else if(item.kind === "more") {
         if(item.data.children.length === 0) {
             if(parent_id == null) {
-                warn(
+                console.trace(
                     "TODO setUpCommentOrUnmounted was called with not loaded parent but req. parent submission",
                 );
                 return undefined;
@@ -516,7 +516,7 @@ export function setUpMap(
                     // TODO if it's load more it might need a parent_permalink
                     // pass that in here or something
                     // or make a fn to do this
-                    setUpCommentOrUnmounted(map, reply, listing.id);
+                    setUpCommentOrUnmounted(map, reply, listing.link_id.replace("t3_", ""));
                 }
             }
         }else if(listing_raw.kind === "more") {
@@ -645,7 +645,10 @@ function postDataFromListingMayError(
             //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
             if(listing.replies) {
                 for(const reply of listing.replies.data.children) {
-                    replies.items.push(getPostData(content, map, getPostFullname(reply)));
+                    replies.items.push(getPostData(
+                        content, map,
+                        getPostFullname(reply, listing.link_id.replace("t3_", "")),
+                    ));
                 }
             }
         }
@@ -717,7 +720,7 @@ function postDataFromListingMayError(
                 // I don't think before and after are used here
                 items: entry.data.replies !== "not_loaded" ? entry.data.replies.data.children.map((reply
                 ): Generic.Link<Generic.Post> => (
-                    getPostData(content, map, getPostFullname(reply))
+                    getPostData(content, map, getPostFullname(reply, listing.id))
                 )) : [createSymbolLinkToValue(content, {
                     kind: "loader",
                     key: loader_enc.encode({
@@ -771,7 +774,7 @@ function postDataFromListingMayError(
         const replies: Generic.Link<Generic.Post>[] = [];
 
         for(const child of entry.data.listing.data.children) {
-            replies.push(getPostData(content, map, getPostFullname(child)));
+            replies.push(getPostData(content, map, getPostFullname(child, undefined)));
         }
         if(entry.data.listing.data.after != null) {
             replies.push(getPostData(content, map, "TODO next" as ID));
