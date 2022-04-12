@@ -2,9 +2,14 @@ import "@fortawesome/fontawesome-free/css/all.css";
 import type * as Generic from "api-types-generic";
 import { JSX } from "solid-js";
 
-function InternalIcon(props: {tag: string, filled: boolean, label: null | string}): JSX.Element {
+export function InternalIcon(props: {
+    class?: undefined | string,
+    tag: string,
+    filled: boolean,
+    label: null | string,
+}): JSX.Element {
     return <i
-        class={props.tag + " " + (props.filled ? "fas" : "far")}
+        class={props.class + " " + props.tag + " " + (props.filled ? "fas" : "far")}
         aria-label={props.label ?? undefined}
         aria-hidden={props.label == null}
     />;

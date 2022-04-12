@@ -5,6 +5,7 @@ import {
     classes
 } from "../util/utils_solid";
 import { CollapseData, getCState } from "./flatten";
+import { InternalIcon } from "./Icon";
 
 // ok
 // - the plan for fixing scroll:
@@ -46,10 +47,9 @@ export function CollapseButton(props: {
     });
     return <button
         class={classes(
-            "w-15px box-border cursor-pointer min-h-13px pl-6px pr-6px",
+            "w-15px box-border cursor-pointer min-h-13px",
             "z-1 static outline-default",
             props.class ?? "",
-            props.collapsed_anim ? "bgimg-collapse-btn-collapsed" : "",
             props.threaded ?? false ? "threaded-new" : "",
         )}
         draggable={true}
@@ -57,7 +57,7 @@ export function CollapseButton(props: {
         aria-label="Collapse"
         aria-pressed={props.collapsed_raw}
         tabindex={props.real ? undefined : "-1"}
-        aria-hidden={props.real ? true : undefined}
+        aria-hidden={props.real ? undefined : true}
         onmouseover={() => {
             if(!props.id || !props.cstates) return;
             const cst = getCState(props.cstates, props.id);
@@ -73,9 +73,14 @@ export function CollapseButton(props: {
             in_hovers = false;
         }}
     >
-        <Show if={!props.collapsed_anim}>
+        <Show if={!props.collapsed_anim} fallback={
+            <InternalIcon
+                class="mx-auto text-xs text-gray-600 dark:text-blue-400"
+                tag={"fa-circle-plus"} filled label={null}
+            />
+        }>
             <div class={classes(
-                "w-3px h-full",
+                "w-3px mx-auto h-full",
                 props.cstates && props.id && getCState(props.cstates, props.id).hovering() > 0 ?
                 "bg-$collapse-line-color-hover" : 
                 "bg-$collapse-line-color",
