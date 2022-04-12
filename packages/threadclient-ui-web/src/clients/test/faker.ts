@@ -280,9 +280,10 @@ function generateContent(id: string): Generic.PostContent {
     }
 }
 
-function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.Post>): void {
+function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.Post>, mode: "parent" | "child"): void {
     const id = id_link.toString();
     const replies = getReplies(id_link);
+    const parent_link = getParent(id_link);
 
     faker.seed(setSeed(id, "generate"));
     const content_value = generateContent(id);
@@ -290,9 +291,19 @@ function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.P
     const result: Generic.Post = {
         url: "/faker"+id,
         client_id: "test",
-        parent: getParent(id_link),
+        parent: mode === "parent" ? (
+            parent_link != null ? (
+                generateVerticalLoader(content, parent_link, null, [
+                    "E_NO_V_LOADER_REPLIES" as unknown as Generic.Link<Generic.Post>,
+                ])
+            ): null
+        ) : parent_link,
         replies: {
-            items: replies,
+            items: mode === "parent" ? (
+                generateHorizontalLoader(content, replies, id_link)
+            ) : (
+                replies
+            ),
         },
 
         kind: "post",
@@ -394,6 +405,26 @@ function generateHorizontalLoader(
     });
     return [id];
 }
+function generateVerticalLoader(
+    content: Generic.Page2Content,
+    item: Generic.Link<Generic.Post>,
+    parent: null,
+    replies: Generic.Link<Generic.Post>[],
+): Generic.Link<Generic.Loader> {
+    const id = Symbol("loader") as Generic.Link<Generic.Loader>;
+    saveLink(content, id, {
+        parent,
+        replies: {items: replies},
+        url: null,
+        client_id: "test",
+        kind: "loader",
+        key: load_encoder.encode({
+            kind: "other",
+        }),
+        load_count: null, // TODO count
+    });
+    return id;
+}
 
 function readLink<T>(content: Generic.Page2Content, link: Generic.Link<T>): T {
     const res = content[link];
@@ -409,7 +440,7 @@ function fillReplies(
     depth: number,
     opts: {pivot: boolean},
 ): number {
-    generate(content, root_link);
+    generate(content, root_link, "child");
     maximum -= 1;
 
     const root = readLink(content, root_link);
@@ -462,12 +493,17 @@ export async function getPage(
     const content: Generic.Page2Content = {};
 
     const root_link_text = path === "/" ? "/home" : path;
-
+    
     const root_link = newLink<Generic.Post>(root_link_text);
     fillReplies(content, root_link, 100, 10, {pivot: true}); // we could use a url ?limit= param for this
 
+    // ok new plan
+    // two step process
+    // 1. generate all posts
+    // 2. loop over all posts, replace bad links with loaders
+
     const parent = getParent(root_link);
-    if(parent) generate(content, parent);
+    if(parent) generate(content, parent, "parent");
 
     return {
         content,
