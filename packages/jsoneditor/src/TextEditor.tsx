@@ -826,7 +826,37 @@ export function EditorNode(props: {
     return <Dynamic component={(node_renderers as {
         [key: string]: (props: {node: AnNode<TextEditorAnyNode>}) => JSX.Element,
     })[nodeKind() ?? "null"]! ?? ((subprops: {state: AnNode<TextEditorAnyNode>}) => (
-        <div class="text-red-500">E_NOT_FOUND {"kind:"+nodeKind()}</div>
+        <RtLeaf
+            // hmm, there's an interesting thing to note with this leaf that is unlike
+            // other leaves.
+            //
+            // if you are on it and press backspace, it should delete the leaf. but
+            // you're at position 0.
+            //
+            // ok I guess it will end up calling removeRange( prev_node.last, this_node[0] )
+            // and then we just have to handle that correctly
+            replaceRange={(a, b, c) => {
+                throw new Error("ebad");
+            }}
+            moveCursor={(pos, stop) => {
+                const res = pos + stop;
+                if(res < 0) return {dir: -1, stop};
+                if(res >= 1) return {dir: 1, stop: stop -1};
+                return res;
+            }}
+            cursorPos={v => {
+                if(v === -1) return 0;
+                return 1;
+            }}
+        >{(leafprops) => <>
+            <div
+                class={[
+                    "rounded-md text-red-500",
+                    leafprops.selection != null ? "outline outline-blue-500" : "",
+                ].join(" ")}
+                onclick={() => leafprops.onSelect(0)}
+            >E_NOT_FOUND {"kind:"+nodeKind()}</div>
+        </>}</RtLeaf>
     ))} node={props.node} />;
 }
 
