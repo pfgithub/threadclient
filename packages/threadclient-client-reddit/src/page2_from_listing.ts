@@ -344,7 +344,7 @@ export function page2FromListing(
         while(focus_iter !== post_node) {
             const parent = id_map.get(focus_iter)?.data;
             if(parent?.kind === "comment") {
-                parent.missing_replies = true;
+                if(focus_iter !== focus) parent.missing_replies = true;
                 focus_iter = parent.comment.data.parent_id as ID;
             }else break;
         }
