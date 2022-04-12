@@ -828,6 +828,10 @@ type LoaderData = {
 } | {
     kind: "comments",
     post: string,
+} | {
+    kind: "vertical",
+    bottom_post: string,
+    // fetches ?context=9&limit=9
 };
 
 const loader = encoderGenerator<LoaderData, "loader">("loader");
