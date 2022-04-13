@@ -210,7 +210,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 (props.opts.is_pivot && selfVisible()) ? "text-3xl sm:text-2xl" : "text-base",
                             )}>
                                 <Show when={props.content.title}>{title => (
-                                    <Show when={props.opts.frame?.url} fallback={(
+                                    <Show if={!props.opts.is_pivot} when={props.opts.frame?.url} fallback={(
                                         title.text
                                     )}>{url => (
                                         <A
