@@ -39,7 +39,7 @@ export default function SwipeActions(props: {
     }} onPointerDown={initial_ev => {
         const id = initial_ev.pointerId;
         if(initial_ev.pointerType === "mouse") return; // skip
-        if(isDragging()) return; // no dragging twice at once
+        cleanup_fns.forEach(fn => fn()); // ios webkit is buggy and frequently forgets to send pointerup/pointercancel events
         const selection = document.getSelection();
         if(selection?.isCollapsed === false) return; // no dragging if text is selected
 
