@@ -203,9 +203,12 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         selfVisible() || hasThumbnail()
                         ? ""
                         : "filter grayscale text-$collapsed-header-color italic",
-                    )}><HSplit.Container dir="right" vertical="center">
-                        <HSplit.Child><div class={classes(
-                            "mr-2", "text-black",
+                    )}><div class={classes([
+                        "flex", hasThumbnail() ? "flex-col" : "flex-row flex-wrap gap-2 items-baseline justify-end",
+                    ])}>
+                        <div class={classes(
+                            // div.flex.flex-row.flex-wrap.items-baseline
+                            "text-black",
                             (props.opts.is_pivot && selfVisible()) ? "text-3xl" : "text-base",
                             hasThumbnail() ? "block" : "inline-block"
                         )}>
@@ -223,10 +226,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 </span>
                             )}</Show>
                             <Flair flairs={props.content.flair ?? []} />
-                        </div><div class={classes(
-                            "mr-2",
-                            hasThumbnail() ? "block" : "inline-block"
-                        )}>
+                        </div><div>
                             <Show when={props.content.author}>{author => <>
                                 <Show if={
                                     selfVisible() && settings.authorPfp() === "on"
@@ -256,11 +256,11 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 </>}</Show>
                             </Show>
                         </div><Show if={!props.opts.is_pivot || !selfVisible()}>
-                            <div class="mr-2 inline-block">
+                            <div>
                                 <InfoBar post={props.content} />
                             </div>
-                        </Show></HSplit.Child>
-                        <HSplit.Child fullwidth><div class="mr-2">
+                        </Show>
+                        <HSplit.Child fullwidth><div>
                             <Show if={!(selfVisible() || hasThumbnail())}>
                                 <div class="whitespace-normal max-lines max-lines-1">
                                     <Show if={true
@@ -282,7 +282,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 </div>
                             </Show>
                         </div></HSplit.Child>
-                    </HSplit.Container></div>
+                    </div></div>
                 </div></HSplit.Child>
                 <Show if={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
                     <HSplit.Child vertical="top">

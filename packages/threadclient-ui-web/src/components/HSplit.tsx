@@ -9,6 +9,7 @@ export const HSplit = {
         dir: "left" | "right",
         vertical: "top" | "center" | "bottom" | "baseline",
         children: JSX.Element,
+        gap?: undefined | "2",
     }): JSX.Element {
         return <div class={classes(
             "flex flex-wrap",
@@ -19,6 +20,7 @@ export const HSplit = {
                 baseline: "items-baseline",
             } as const)[props.vertical],
             props.dir === "right" ? "justify-end" : "",
+            props.gap === "2" ? "gap-2" : "",
         )}>
             {props.children}
         </div>;
