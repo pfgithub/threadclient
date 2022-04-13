@@ -196,24 +196,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     }}
                 >
                     <div class={classes(
-                        (props.opts.is_pivot && selfVisible()) ? "text-3xl" : "text-base",
-                    )}>
-                        <Show when={props.content.title}>{title => (
-                            <span role="heading">
-                                <Show when={props.opts.frame?.url} fallback={(
-                                    title.text
-                                )}>{url => (
-                                    <A
-                                        client_id={props.opts.client_id}
-                                        href={url}
-                                        class="hover:underline"
-                                    >{title.text}</A>
-                                )}</Show>
-                            </span>
-                        )}</Show>
-                        <Flair flairs={props.content.flair ?? []} />
-                    </div>
-                    <div class={classes(
                         "text-gray-500",
                         "text-sm",
                         selfVisible() || hasThumbnail()
@@ -221,6 +203,25 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         : "filter grayscale text-$collapsed-header-color italic",
                     )}><HSplit.Container dir="right" vertical="center">
                         <HSplit.Child><div class={classes(
+                            "mr-2", "text-black",
+                            (props.opts.is_pivot && selfVisible()) ? "text-3xl" : "text-base",
+                            hasThumbnail() ? "block" : "inline-block"
+                        )}>
+                            <Show when={props.content.title}>{title => (
+                                <span role="heading">
+                                    <Show when={props.opts.frame?.url} fallback={(
+                                        title.text
+                                    )}>{url => (
+                                        <A
+                                            client_id={props.opts.client_id}
+                                            href={url}
+                                            class="hover:underline"
+                                        >{title.text}</A>
+                                    )}</Show>
+                                </span>
+                            )}</Show>
+                            <Flair flairs={props.content.flair ?? []} />
+                        </div><div class={classes(
                             "mr-2",
                             hasThumbnail() ? "block" : "inline-block"
                         )}>
@@ -258,25 +259,25 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             </div>
                         </Show></HSplit.Child>
                         <HSplit.Child fullwidth><div class="mr-2">
-                            <Show if={!(selfVisible() || hasTitleOrThumbnail())}>
-                                <Show if={true
-                                    && props.content.collapsible !== false
-                                    && props.content.collapsible.default_collapsed === true
-                                } fallback={<>
-                                    <div class="whitespace-normal max-lines max-lines-1">
+                            <Show if={!(selfVisible() || hasThumbnail())}>
+                                <div class="whitespace-normal max-lines max-lines-1">
+                                    <Show if={true
+                                        && props.content.collapsible !== false
+                                        && props.content.collapsible.default_collapsed === true
+                                    } fallback={<>
                                         {"“" + (() => {
                                             const res = summarizeBody(props.content.body);
                                             if(res.length > 500) return res.substring(0, 500) + "…";
                                             return res;
                                         })() + "”"}
-                                    </div>
-                                </>}>
-                                    <Show when={props.content.actions?.vote} fallback={
-                                        "[Collapsed by default]"
-                                    }>{vote_action => <>
-                                        <CounterCount counter={vote_action} />{" "}
-                                    </>}</Show>
-                                </Show>
+                                    </>}>
+                                        <Show when={props.content.actions?.vote} fallback={
+                                            "[Collapsed by default]"
+                                        }>{vote_action => <>
+                                            <CounterCount counter={vote_action} />{" "}
+                                        </>}</Show>
+                                    </Show>
+                                </div>
                             </Show>
                         </div></HSplit.Child>
                     </HSplit.Container></div>
