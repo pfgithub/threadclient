@@ -402,6 +402,7 @@ function generateHorizontalLoader(
             parent,
         }),
         load_count: items.length,
+        autoload: false,
     });
     return [id];
 }
@@ -422,6 +423,7 @@ function generateVerticalLoader(
             kind: "other",
         }),
         load_count: null, // TODO count
+        autoload: false,
     });
     return id;
 }

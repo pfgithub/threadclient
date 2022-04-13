@@ -55,6 +55,8 @@ export type Loader = BasePost & {
     // key is present and display it instead
 
     load_count: null | number,
+
+    autoload: boolean,
 };
 
 export type Loaded = BasePost & {

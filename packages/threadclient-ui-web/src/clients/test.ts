@@ -638,6 +638,7 @@ function getFromSitemap(
                 client_id: client.id,
                 key: 0 as unknown as Generic.Opaque<"loader">,
                 load_count: null,
+                autoload: false,
             })]},
             content: called.content,
             internal_data: 0,
@@ -680,6 +681,7 @@ function getFromSitemap(
                             client_id: client.id,
                             key: 0 as unknown as Generic.Opaque<"loader">,
                             load_count: null,
+                            autoload: false,
                         })],
                     };
 

@@ -1,5 +1,5 @@
 import {
-    batch, createSignal,
+    batch, createEffect, createSignal,
     For,
     JSX
 } from "solid-js";
@@ -134,48 +134,53 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                         const [loading, setLoading] = createSignal(false);
                         const [error, setError] = createSignal<null | string>(null);
                         const hprc = getWholePageRootContext();
-                        // ok this is not good
-                        // here's what we should do:
-                        // - each page should have its own completely seperate data
-                        // - a loader should add to the current page's data
-                        // - a refocus should copy the current page's data and show it
-                        //
-                        // there might be some messy proxy thing we can do to layer these
-                        // like each page is an array of layers that have been applied and a
-                        // cache of post id → layer name
-                        //
-                        // oh that's a good idea
-                        // ok time to rip out some code 
+
+                        const doLoad = () => {
+                            if(loading()) return;
+                            setLoading(true);
+
+                            const pgin = hprc.pgin();
+                            
+                            addAction(
+                                (async () => {
+                                    if(error() != null) await new Promise(r => setTimeout(r, 200));
+                                    return await getClientCached(loader.client_id)!.loader!(
+                                        loader_or_post.id,
+                                        loader,
+                                    );
+                                })(),
+                            ).then(r => {
+                                batch(() => {
+                                    setLoading(false);
+                                    setError(null);
+                                    console.log("adding content", r.content, loader_or_post);
+                                    hprc.addContent(pgin, r.content);
+                                });
+                            }).catch((e: Error) => {
+                                console.log("Error loading; ", e);
+                                batch(() => {
+                                    setLoading(false);
+                                    setError(e.toString());
+                                });
+                            });
+                        };
+
                         return <div class="py-1"><button
                             class="text-blue-500 hover:underline"
                             disabled={loading()}
-                            onClick={() => {
-                                setLoading(true);
-
-                                const pgin = hprc.pgin();
-                                
-                                addAction(
-                                    (async () => {
-                                        if(error() != null) await new Promise(r => setTimeout(r, 200));
-                                        return await getClientCached(loader.client_id)!.loader!(
-                                            loader_or_post.id,
-                                            loader,
-                                        );
-                                    })(),
-                                ).then(r => {
-                                    batch(() => {
-                                        setLoading(false);
-                                        setError(null);
-                                        console.log("adding content", r.content, loader_or_post);
-                                        hprc.addContent(pgin, r.content);
+                            onClick={doLoad}
+                            ref={btn => {
+                                if(loader.autoload) {
+                                    const observer = new IntersectionObserver(doLoad, {
+                                        root: document.body,
+                                        rootMargin: "0px",
+                                        threshold: 1.0,
                                     });
-                                }).catch((e: Error) => {
-                                    console.log("Error loading; ", e);
-                                    batch(() => {
-                                        setLoading(false);
-                                        setError(e.toString());
+                                    observer.observe(btn);
+                                    createEffect(() => {
+                                        if(loading()) observer.unobserve(btn);
                                     });
-                                });
+                                }
                             }}
                         >{
                             loading()

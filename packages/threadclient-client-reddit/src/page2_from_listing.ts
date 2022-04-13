@@ -644,6 +644,7 @@ function postDataFromListingMayError(
                         parent_id: listing.id,
                     }),
                     load_count: null, // who knows
+                    autoload: true,
 
                     parent: entry.link,
                     replies: null,
@@ -740,6 +741,7 @@ function postDataFromListingMayError(
                         post_id: listing.id,
                         parent_id: null,
                     }),
+                    autoload: true,
 
                     parent: entry.link,
                     replies: null,
@@ -813,6 +815,8 @@ function postDataFromListingMayError(
                         client_id: client.id,
                         url: null,
                         load_count: null,
+
+                        autoload: true,
                     })
                 ] : replies,
             },
@@ -836,6 +840,8 @@ function postDataFromListingMayError(
                             client_id: client.id,
                             url: null,
                             load_count: null,
+
+                            autoload: true,
                         })],
                     },
                     header: {
@@ -871,6 +877,7 @@ function postDataFromListingMayError(
                 post_id: entry.data.parent_id,
                 parent_id: listing.parent_id,
             }),
+            autoload: false,
         };
     }else if(entry.data.kind === "more") {
         const listing = entry.data.item.data;
@@ -886,6 +893,7 @@ function postDataFromListingMayError(
                 kind: "more",
                 data: listing,
             }),
+            autoload: false,
         };
     }else if(entry.data.kind === "wikipage") {
         const listing = entry.data.listing;
