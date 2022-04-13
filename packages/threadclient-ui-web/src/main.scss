@@ -11,8 +11,9 @@ html {
     // note that this disables pinch zoom functionality and prevents
     // horizontal drags on the body from scrolling vertically, so this is
     // not ideal.
-    body {
+    html {
         width: calc(100vw + 1px);
+        margin-right: 1px;
         touch-action: pan-y;
     }
 }
