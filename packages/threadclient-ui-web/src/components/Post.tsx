@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import {
-    Accessor, createSignal,
+    Accessor, createMemo, createSignal,
     For, JSX, Setter
 } from "solid-js";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
@@ -17,8 +17,9 @@ import { VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import { Flair } from "./Flair";
 import { CollapseData, getCState } from "./flatten";
-import { useActions } from "./flat_posts";
+import { getThumbnailPreview, useActions } from "./flat_posts";
 import { HSplit } from "./HSplit";
+import { InternalIcon } from "./Icon";
 import InfoBar from "./InfoBar";
 import { A, LinkButton, UserLink } from "./links";
 
@@ -30,6 +31,34 @@ function AuthorPfp(props: {src_url: string}): JSX.Element {
         alt={decorative_alt}
         class="w-8 h-8 object-center inline-block rounded-full"
     />;
+}
+
+function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
+    const genv = createMemo(() => getThumbnailPreview(props.body));
+    return <>{genv() != null ? <div class={classes(
+        "absolute bottom-1 right-1",
+        "text-xs sm:text-base w-6 h-6 sm:w-8 sm:h-8 p-1 bg-gray-300",
+        "rounded-md",
+    )}>
+        <SwitchKind item={genv()!}>{{
+            icon: (icn) => <InternalIcon
+                tag={({
+                    text: "fa-file-lines",
+                    video: "fa-circle-play",
+                    link: "fa-arrow-up-right-from-square",
+                    other: "fa-asterisk",
+                } as const)[icn.icon]}
+                filled={icn.icon === "other" || icn.icon === "link"}
+                label={({
+                    text: "Text",
+                    video: "Video",
+                    link: "Link",
+                    other: "",
+                } as const)[icn.icon]}
+            />,
+            gallery: (gal) => <>{gal.count}.</>,
+        }}</SwitchKind>
+    </div> : null}</>;
 }
 
 export type ClientPostOpts = {
@@ -143,6 +172,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
                                 contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
                                 "block",
+                                "relative",
                             )} onClick={() => setTransitionTarget(t => !t)}>
                                 <SwitchKind item={thumb_any}>{{
                                     image: img => <img
@@ -150,11 +180,13 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                         src={img.url}
                                         alt=""
                                         class={classes(
-                                            "w-full h-full object-contain rounded-md"
+                                            "w-full h-full object-cover rounded-md"
+                                            // object-contain is nicer but we're using object-cover for now
                                         )}
                                     />,
                                     default: def => <>TODO {def.kind}</>,
                                 }}</SwitchKind>
+                                <PreviewThumbnailIcon body={props.content.body} />
                             </button>
                         </HSplit.Child>
                     )}</ToggleColor>

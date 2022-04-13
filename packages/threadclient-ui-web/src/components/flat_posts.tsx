@@ -265,3 +265,39 @@ const ActionItemRaw = createTypesafeChildren<ActionItem>();
 export function useActions(post: () => Generic.PostContentPost, opts: () => ClientPostOpts): () => ActionItem[] {
     return ActionItemRaw.useChildren(() => <ActionBarItems post={post()} opts={opts()} />);
 }
+
+// TODO let's generate the thumbnail based on the body or something
+// also eg for text instead of having a big image with a small text icon in the corner,
+// have a big text icon with a small image in the corner
+export type ThumbnailPreview = {
+    kind: "icon",
+    icon: "text" | "video" | "link" | "other",
+} | {
+    // for video we could do eg 3:56 like gallery is
+    kind: "gallery",
+    count: number,
+} | null;
+export function getThumbnailPreview(body: Generic.Body): ThumbnailPreview {
+    if(body.kind === "array") {
+        const actual_items = body.body.filter(v => v && v.kind !== "none");
+        const ai0 = actual_items[0];
+        if(ai0 != null) return getThumbnailPreview(ai0);
+        return null;
+    }
+    if(body.kind === "text" || body.kind === "richtext") {
+        return {kind: "icon", icon: "text"};
+    } else if(body.kind === "captioned_image") {
+        return null;
+    } else if(body.kind === "none") {
+        return null;
+    } else if(body.kind === "video") {
+        return {kind: "icon", icon: "video"};
+    } else if(body.kind === "gallery") {
+        return {kind: "gallery", count: body.images.length};
+    } else if(body.kind === "link") {
+        return {kind: "icon", icon: "link"};
+    } else return {
+        kind: "icon",
+        icon: "other",
+    };
+}
