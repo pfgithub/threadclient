@@ -1109,20 +1109,17 @@ function unpivotablePostBelowPivot(
     });
 }
 
-function unpivotableBelowPivotRichtext(
+function unpivotableBelowPivotBody(
     content: Generic.Page2Content,
     title: string,
-    pars: Generic.Richtext.Paragraph[],
+    body: Generic.Body,
     internal_data: unknown,
 ): Generic.Link<Generic.Post> {
     return unpivotablePostBelowPivot(content, {
         kind: "post",
 
         title: {text: title},
-        body: {
-            kind: "richtext",
-            content: pars,
-        },
+        body,
         show_replies_when_below_pivot: true,
         collapsible: false,
     }, {
@@ -1136,7 +1133,7 @@ function sidebarWidgetToGenericWidgetTry(
     subinfo: SubInfo,
 ): Generic.Link<Generic.Post> {
     if(widget.kind === "moderators") {
-        return unpivotableBelowPivotRichtext(content, "Moderators", [
+        return unpivotableBelowPivotBody(content, "Moderators", {kind: "richtext", content: [
             rt.p(
                 rt.link(client, "/message/compose?to=/r/"+subinfo.subreddit,
                     {style: "pill-empty"},
@@ -1153,7 +1150,7 @@ function sidebarWidgetToGenericWidgetTry(
             rt.p(
                 rt.link(client, "/r/"+subinfo.subreddit+"/about/moderators", {}, rt.txt("View All Moderators")),
             ),
-        ], {
+        ]}, {
             internal_data: {widget, subinfo},
         });
     }else if(widget.kind === "subreddit-rules") {
