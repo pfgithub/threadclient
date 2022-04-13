@@ -206,14 +206,12 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     )}><div class={classes([
                         "flex", hasThumbnail() ? "flex-col" : "flex-row flex-wrap gap-2 items-baseline justify-end",
                     ])}>
-                        <div class={classes(
-                            // div.flex.flex-row.flex-wrap.items-baseline
-                            "text-black",
-                            (props.opts.is_pivot && selfVisible()) ? "text-3xl" : "text-base",
-                            hasThumbnail() ? "block" : "inline-block"
-                        )}>
-                            <Show when={props.content.title}>{title => (
-                                <span role="heading">
+                        <Show if={props.content.title != null || props.content.flair != null}>
+                            <div role="heading" class={classes(
+                                "text-black",
+                                (props.opts.is_pivot && selfVisible()) ? "text-3xl sm:text-2xl" : "text-base",
+                            )}>
+                                <Show when={props.content.title}>{title => (
                                     <Show when={props.opts.frame?.url} fallback={(
                                         title.text
                                     )}>{url => (
@@ -223,10 +221,11 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                             class="hover:underline"
                                         >{title.text}</A>
                                     )}</Show>
-                                </span>
-                            )}</Show>
+                                )}</Show>
                             <Flair flairs={props.content.flair ?? []} />
-                        </div><div>
+                            </div>
+                        </Show>
+                        <div>
                             <Show when={props.content.author}>{author => <>
                                 <Show if={
                                     selfVisible() && settings.authorPfp() === "on"
@@ -255,7 +254,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                     >{in_sr.name}</LinkButton>{" "}
                                 </>}</Show>
                             </Show>
-                        </div><Show if={!props.opts.is_pivot || !selfVisible()}>
+                        </div>
+                        <Show if={!props.opts.is_pivot || !selfVisible()}>
                             <div>
                                 <InfoBar post={props.content} />
                             </div>
