@@ -320,7 +320,8 @@ function flattenTopLevelReplies(replies: Generic.ListingData | null, meta: Meta)
     const res: FlatItem[] = [];
 
     if(replies?.reply) res.push(fi.todo("(add reply)", replies));
-    for(const reply of postReplies(replies, meta)) {
+    const post_replies = postReplies(replies, meta);
+    for(const reply of post_replies) {
         res.push({kind: "wrapper_start"});
         res.push(...flattenPost(reply, [], meta, {
             first_in_wrapper: true,
@@ -330,7 +331,7 @@ function flattenTopLevelReplies(replies: Generic.ListingData | null, meta: Meta)
             depth: 0,
         }));
         res.push({kind: "wrapper_end"});
-    } if(replies?.items.length === 0) {
+    } if(replies != null && post_replies.length === 0) {
         res.push(fi.todo("*There are no replies*", replies));
     }
 
