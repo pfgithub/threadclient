@@ -106,8 +106,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             props.opts.is_pivot ? [
                 "text-base m-2",
             ] : "text-sm",
-            // "pt-10px",
-            props.content.collapsible !== false ? "" : "pl-15px",
             "flex flex-row",
         )}
         style={{
