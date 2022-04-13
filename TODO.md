@@ -1,3 +1,9 @@
+## todo
+
+set `inert=true` when something is disappearing
+
+since this isn't supported anywhere, we need to use the polyfill
+
 ## TODO
 
 woah look at this
