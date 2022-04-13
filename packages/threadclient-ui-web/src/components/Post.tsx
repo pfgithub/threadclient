@@ -88,7 +88,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     });
 
     const postIsClickable = () => {
-        return props.opts.frame?.url != null && !props.opts.is_pivot;
+        return !transitionTarget() || (props.opts.frame?.url != null && !props.opts.is_pivot);
     };
 
     const hprc = getWholePageRootContextOpt();
@@ -175,12 +175,14 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         // support ctrl click
                         const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
                         if(e.ctrlKey || e.metaKey || e.altKey) {
+                            if(props.opts.frame?.url == null) return;
                             window.open(target_url);
                         }else{
                             if(!transitionTarget()) {
                                 setTransitionTarget(true);
                                 return;
                             }
+                            if(props.opts.frame?.url == null) return;
                             navigate({
                                 path: target_url,
                                 page: props.opts.id && hprc ? {
