@@ -68,6 +68,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                         icon: "chevron_up",
                         color: "blue",
                         onActivate: () => {
+                            if(!loader_or_post.collapse) return alert("TODO e;not-collapsible");
                             const cs = getCState(props.collapse_data, loader_or_post.collapse.id);
                             cs.setCollapsed(v => !v);
                         },

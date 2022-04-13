@@ -72,7 +72,7 @@ export type FlatPost = {
     kind: "post",
     content: Generic.PostNotLoaded, // note rather than generic.post we can be fancier to reduce complexity when rendering
     indent: CollapseButton[],
-    collapse: CollapseButton,
+    collapse: CollapseButton | null,
     first_in_wrapper: boolean,
 
     is_pivot: boolean,
@@ -105,6 +105,8 @@ function renderPost(
     if(post_read.error != null) return fi.err(post_read.error, post_link);
     const post = post_read.value;
 
+    const is_collapsible = post.kind === "post" && post.content.kind === "post" && post.content.collapsible !== false;
+
     const default_collapsed = (
         post.kind === "post" ? post.content.kind === "post" ? post.content.collapsible !== false ?
         post.content.collapsible.default_collapsed : false : false : false
@@ -115,11 +117,11 @@ function renderPost(
         {default: default_collapsed},
     ).collapsed();
 
-    const final_indent: CollapseButton = {
+    const final_indent: CollapseButton | null = is_collapsible ? {
         id: post_link,
         threaded: false,
         collapsed: self_collapsed,
-    };
+    } : null;
 
     return {
         kind: "post",
@@ -185,7 +187,7 @@ function flattenPost(
     if(rres.kind !== "post") return res;
 
     const indent_excl_self = rres.indent.map(v => v.threaded ? {...v, threaded: false} : v);
-    const indent_incl_self = [...indent_excl_self, rres.collapse];
+    const indent_incl_self: CollapseButton[] = [...indent_excl_self, ...rres.collapse ? [rres.collapse] : []];
 
     const show_replies = post.kind === "post" ? post.content.kind === "post" ?
         post.content.show_replies_when_below_pivot
@@ -196,7 +198,7 @@ function flattenPost(
         const replies_threaded = replies.length === 1 && (rpo.threaded ? true : (
             readLink(meta, replies[0]!).value?.replies?.items.length === 1
         ));
-        if((replies_threaded && rpo.threaded) || !rres.collapse.collapsed) for(const reply of replies) {
+        if((replies_threaded && rpo.threaded) || !(rres.collapse?.collapsed ?? false)) for(const reply of replies) {
             res.push(...flattenPost(
                 reply,
                 rpo.threaded && replies_threaded ? indent_excl_self : indent_incl_self,
