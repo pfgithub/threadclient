@@ -913,7 +913,7 @@ type DeferredInbox = {
 };
 const deferred_inbox = encoderGenerator<DeferredInbox, "deferred_inbox">("deferred_inbox");
 
-type SubInfo = {
+export type SubInfo = {
     subreddit: string,
     widgets: Reddit.ApiWidgets | null,
     sub_t5: Reddit.T5 | null,

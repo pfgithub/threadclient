@@ -6,7 +6,7 @@ import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
     getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery,
-    expectUnsupported, parseLink, redditRequest, authorFromT2, client, editButton
+    expectUnsupported, parseLink, redditRequest, authorFromT2, client, editButton, ec, SubInfo
 } from "./reddit";
 import { encoderGenerator } from "threadclient-client-base";
 
@@ -571,7 +571,8 @@ export function setUpMap(
     return entry_fullname;
 }
 
-function createSymbolLinkToError(content: Generic.Page2Content, emsg: string): Generic.Link<any> {
+function createSymbolLinkToError(content: Generic.Page2Content, emsg: string, data: unknown): Generic.Link<any> {
+    // TODO provide data for additional info about the error
     const link = createLink<any>("immediate error value");
     content[link] = {error: emsg};
     return link;
@@ -583,7 +584,11 @@ export function getPostData(content: Generic.Page2Content, map: IDMap, key: ID):
     const value = map.get(key);
     if(!value) {
         // TODO determine which load more to use
-        return createSymbolLinkToError(content, "post was not found in tree (TODO load more) ("+key+")");
+        return createSymbolLinkToError(
+            content,
+            "post was not found in tree (TODO load more) ("+key+")",
+            {content, map, key},
+        );
     }
     if(value.kind === "unprocessed") {
         value.kind = "processing";
@@ -832,7 +837,7 @@ function postDataFromListingMayError(
                             kind: "loader",
                             key: loader_enc.encode({
                                 kind: "sidebar",
-                                base: entry.data.details.base,
+                                sub: entry.data.details,
                             }),
 
                             parent: entry.link,
@@ -963,7 +968,7 @@ type LoaderData = {
     // fetches ?context=9&limit=9
 } | {
     kind: "sidebar",
-    base: string[],
+    sub: SubrInfo,
 };
 
 const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
@@ -988,28 +993,192 @@ export async function loadPage2(
         kind: "link_replies",
         url: `/comments/${data.post_id}/comment/${data.parent_id ?? ""}?context=0`,
     };
-    if(data.kind === "sidebar") data = {
-        kind: "link_replies",
-        url: "/"+[...data.base, "api", "widgets"].join("/")
-    };
 
-    if(data.kind === "link_replies") {
-        const res = await getPage(data.url);
+    const returnListing = (
+        content: Generic.Page2Content,
+        listing: Generic.ListingData | null,
+    ): Generic.LoaderResult => {
         const loaded: Generic.Loaded = {
             kind: "loaded",
 
             parent: loader.parent,
-            replies: (res.content[res.pivot] as {data: Generic.Post}).data.replies,
+            replies: listing,
 
             url: null,
             client_id: client.id,
         };
-        return {content: {...res.content, [key]: {data: loaded}}};
+        return {content: {...content, [key]: {data: loaded}}};
+    };
+
+    if(data.kind === "link_replies") {
+        const res = await getPage(data.url);
+        return returnListing(res.content, (res.content[res.pivot] as {data: Generic.Post}).data.replies);
     }else if(data.kind === "more") {
         throw new Error("TODO more");
     }else if(data.kind === "vertical") {
         // ?context=9&limit=9 - this will load more than necessary most of the time but it's the best we
         // can do i think
         throw new Error("TODO vertical");
+    }else if(data.kind === "sidebar") {
+        // there's no page in reddit's routes for this
+        // the api says `[…base]/sidebar` should work but it's a 404
+        // so we'll just make it ourselves here
+        // could be fun if we defined a link for it like `/@threadclient/[sub]/sidebar` but
+        // that seems unnecessary (unless we want to be able to link to the sidebar which
+        // we might want to do on mobile)
+        if(data.sub.kind === "subreddit") {
+            const sub = data.sub;
+            const onerror = () => undefined;
+            const [widgets, about] = await Promise.all([
+                redditRequest(`/r/${ec(sub.subreddit)}/api/widgets`, {method: "GET", onerror, cache: true}),
+                redditRequest(`/r/${ec(sub.subreddit)}/about`, {method: "GET", onerror, cache: true}),
+            ]);
+            const subinfo: SubInfo = {subreddit: sub.subreddit, sub_t5: about ?? null, widgets: widgets ?? null};
+
+            const new_content: Generic.Page2Content = {};
+            return returnListing(new_content, sidebarFromWidgets(new_content, subinfo));
+        }else{
+            throw new Error("TODO sidebar for "+data.sub.kind);
+        }
     }else assertNever(data);
+}
+
+function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Generic.ListingData {
+    const widgets = subinfo.widgets;
+
+    const getItem = (id: string): Reddit.Widget => {
+        const resv = widgets!.items[id];
+        if(!resv) throw new Error("bad widget "+id);
+        return resv;
+    };
+
+    const wrap = (data: Reddit.Widget): Generic.Link<Generic.Post> => {
+        return sidebarWidgetToGenericWidget(content, data, subinfo);
+    };
+    
+    // TODO moderator widget
+    const res: Generic.Link<Generic.Post>[] = [
+        // ...widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
+        // ...widgets ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
+        ...subinfo.sub_t5 ? [customIDCardWidget(content, subinfo.sub_t5, subinfo.subreddit)] : [],
+        ...subinfo.sub_t5 ? [
+            oldSidebarWidget(content, subinfo.sub_t5, subinfo.subreddit, {collapsed: widgets ? true : false}),
+        ] : [],
+        ...widgets ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
+        ...widgets ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
+    ];
+    if(res.length === 0) {
+        res.push(createSymbolLinkToError(content, "Failed to fetch sidebar for this page :(", {content, subinfo}));
+    }
+    return {items: res};
+}
+
+function sidebarWidgetToGenericWidget(
+    content: Generic.Page2Content,
+    widget: Reddit.Widget,
+    subinfo: SubInfo,
+): Generic.Link<Generic.Post> {
+    try {
+        return sidebarWidgetToGenericWidgetTry(content, widget, subinfo);
+    } catch(er) {
+        const e = er as Error;
+        return createSymbolLinkToError(content, "Widget errored: "+e.toString(), {widget, e});
+    }
+}
+
+function unpivotablePostBelowPivot(
+    content: Generic.Page2Content,
+    value: Generic.PostContent,
+    opts: {
+        internal_data: unknown,
+        replies?: undefined | Generic.Link<Generic.Post>[],
+    },
+): Generic.Link<Generic.Post> {
+    return createSymbolLinkToValue<Generic.Post>(content, {
+        url: null,
+        parent: null, // always below the pivot, doesn't matter.
+        // ^ not true - top level posts below the pivot might show their parents. so we should be able to
+        // pass something in here
+        replies: opts.replies != null ? {items: opts.replies} : null,
+        client_id: client.id,
+
+        kind: "post",
+        content: value,
+        internal_data: opts.internal_data,
+        display_style: "centered",
+    });
+}
+
+function sidebarWidgetToGenericWidgetTry(
+    content: Generic.Page2Content,
+    widget: Reddit.Widget,
+    subinfo: SubInfo,
+): Generic.Link<Generic.Post> {
+    if(widget.kind === "subreddit-rules") {
+        return unpivotablePostBelowPivot(content, {
+            kind: "post",
+
+            title: {text: widget.shortName},
+            body: {kind: "none"},
+            show_replies_when_below_pivot: true,
+            collapsible: false,
+        }, {
+            internal_data: {widget, subinfo},
+            replies: widget.data.map((itm, i) => {
+                return unpivotablePostBelowPivot(content, {
+                    kind: "post",
+
+                    title: {text: (i + 1)+". " + itm.shortName},
+                    body: {
+                        kind: "text",
+                        content: itm.descriptionHtml,
+                        markdown_format: "reddit_html", client_id: client.id,
+                    },
+                    show_replies_when_below_pivot: true,
+                    collapsible: {default_collapsed: true},
+                }, {
+                    internal_data: itm,
+                });
+            }),
+        });
+    }else throw new Error("TODO support sidebar of type: "+widget.kind);
+}
+
+function customIDCardWidget(
+    content: Generic.Page2Content,
+    t5: Reddit.T5,
+    subreddit: string,
+): Generic.Link<Generic.Post> {
+    return createSymbolLinkToError(content, "TODO support id card widget", {t5, subreddit});
+    // return {
+    //     kind: "widget",
+    //     title: t5.data.title,
+    //     raw_value: t5,
+    //     widget_content: {
+    //         kind: "community-details",
+    //         description: t5.data.public_description,
+    //     },
+    //     actions_bottom: [
+    //         createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false),
+    //     ],
+    // };
+}
+function oldSidebarWidget(
+    content: Generic.Page2Content,
+    t5: Reddit.T5,
+    subreddit: string,
+    {collapsed}: {collapsed: boolean},
+): Generic.Link<Generic.Post> {
+    return createSymbolLinkToError(content, "TODO support old sidebar widget", {t5, subreddit});
+    // return {
+    //     kind: "thread",
+    //     raw_value: t5,
+    //     body: {kind: "text", client_id: client.id, markdown_format: "reddit_html", content: t5.data.description_html},
+    //     display_mode: {body: collapsed ? "collapsed" : "visible", comments: "visible"},
+    //     link: "/r/"+subreddit+"/about/sidebar",
+    //     layout: "reddit-post",
+    //     title: {text: "old.reddit sidebar"},
+    //     actions: [],
+    //     default_collapsed: false,
+    // };
 }
