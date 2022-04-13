@@ -1208,16 +1208,20 @@ function oldSidebarWidget(
     subreddit: string,
     {collapsed}: {collapsed: boolean},
 ): Generic.Link<Generic.Post> {
-    return createSymbolLinkToError(content, "TODO support old sidebar widget", {t5, subreddit});
-    // return {
-    //     kind: "thread",
-    //     raw_value: t5,
-    //     body: {kind: "text", client_id: client.id, markdown_format: "reddit_html", content: t5.data.description_html},
-    //     display_mode: {body: collapsed ? "collapsed" : "visible", comments: "visible"},
-    //     link: "/r/"+subreddit+"/about/sidebar",
-    //     layout: "reddit-post",
-    //     title: {text: "old.reddit sidebar"},
-    //     actions: [],
-    //     default_collapsed: false,
-    // };
+    // we can make this pivotable:
+    // `/r/subreddit/about/sidebar`
+    return unpivotablePostBelowPivot(content, {
+        kind: "post",
+
+        title: {text: "old.reddit sidebar"},
+        body: {
+            kind: "text",
+            client_id: client.id,
+            markdown_format: "reddit_html",
+            content: t5.data.description_html,
+        },
+
+        show_replies_when_below_pivot: true,
+        collapsible: {default_collapsed: collapsed},
+    }, {internal_data: {t5, subreddit}});
 }
