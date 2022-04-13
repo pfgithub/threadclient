@@ -824,7 +824,19 @@ function postDataFromListingMayError(
                         // return a loader with load_on_view: true
                         // also use load_on_view for any loader that should not be seen by default but
                         // might be seen on a repivot
-                        items: [],
+                        items: entry.data.details === "unknown" ? [] : [createSymbolLinkToValue(content, {
+                            kind: "loader",
+                            key: loader_enc.encode({
+                                kind: "sidebar",
+                                base: entry.data.details.base,
+                            }),
+
+                            parent: entry.link,
+                            replies: null,
+                            client_id: client.id,
+                            url: null,
+                            load_count: null,
+                        })],
                     },
                     header: {
                         // TODO load this stuff but only when the banner needs to be displayed, not before
@@ -941,6 +953,9 @@ type LoaderData = {
     kind: "vertical",
     bottom_post: string,
     // fetches ?context=9&limit=9
+} | {
+    kind: "sidebar",
+    base: string[],
 };
 
 const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
@@ -964,6 +979,10 @@ export async function loadPage2(
     if(data.kind === "parent_permalink") data = {
         kind: "link_replies",
         url: `/comments/${data.post_id}/comment/${data.parent_id ?? ""}?context=0`,
+    };
+    if(data.kind === "sidebar") data = {
+        kind: "link_replies",
+        url: "/"+[...data.base, "api", "widgets"].join("/")
     };
 
     if(data.kind === "link_replies") {
