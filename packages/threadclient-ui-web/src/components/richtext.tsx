@@ -139,7 +139,7 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
 
             const listContent = (): JSX.Element => {
                 return <For each={list.children}>{(child, i) => (
-                    <li class="flex flex-row gap-2">
+                    <li class="flex flex-row gap-2 items-baseline">
                         <div>
                             {list.ordered ? `${i()+1}. ` : "- "}
                         </div>
