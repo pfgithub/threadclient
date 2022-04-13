@@ -138,19 +138,27 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             });
 
             const listContent = (): JSX.Element => {
-                return <For each={list.children}>{child => (
-                    <li classList={{tight: isTight()}}>
-                        <SwitchKind item={child}>{{
-                            list_item: (content) => <RichtextParagraphs content={content.children} tight={isTight()} />,
-                            tight_list_item: (content) => <div classList={{'my-2': !isTight()}}>
-                                <RichtextSpans spans={content.children} />
-                            </div>,
-                        }}</SwitchKind>
+                return <For each={list.children}>{(child, i) => (
+                    <li class="flex flex-row gap-2">
+                        <div>
+                            {list.ordered ? `${i()+1}. ` : "- "}
+                        </div>
+                        <div class="flex-1">
+                            <SwitchKind item={child}>{{
+                                list_item: (content) => <RichtextParagraphs
+                                    content={content.children}
+                                    tight={isTight()}
+                                />,
+                                tight_list_item: (content) => <div classList={{'my-2': !isTight()}}>
+                                    <RichtextSpans spans={content.children} />
+                                </div>,
+                            }}</SwitchKind>
+                        </div>
                     </li>
                 )}</For>;
             };
-            if(list.ordered) return <ol class="list-decimal pl-4">{listContent()}</ol>;
-            return <ul class="list-disc pl-4">{listContent()}</ul>;
+            if(list.ordered) return <ol class="list-none">{listContent()}</ol>;
+            return <ul class="list-none">{listContent()}</ul>;
         },
         code_block: (code) => <CodeBlock text={code.text} default_language={code.lang ?? null} />,
         table: (table) => <table>
