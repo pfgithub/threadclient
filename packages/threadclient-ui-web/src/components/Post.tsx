@@ -13,7 +13,7 @@ import { HorizontalActionButton } from "./ActionButtonHorizontal";
 import { animateHeight, ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { CollapseButton } from "./CollapseButton";
-import { CounterCount, VerticalIconCounter } from "./counter";
+import { VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import { Flair } from "./Flair";
 import { CollapseData, getCState } from "./flatten";
@@ -258,28 +258,22 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 <InfoBar post={props.content} />
                             </div>
                         </Show>
-                        <HSplit.Child fullwidth><div>
+                        <HSplit.Child fullwidth>
                             <Show if={!(selfVisible() || hasThumbnail())}>
-                                <div class="whitespace-normal max-lines max-lines-1">
-                                    <Show if={true
-                                        && props.content.collapsible !== false
-                                        && props.content.collapsible.default_collapsed === true
-                                    } fallback={<>
+                                <Show if={true
+                                    && props.content.collapsible !== false
+                                    && props.content.collapsible.default_collapsed === true
+                                } fallback={<div>
+                                    <div class="whitespace-normal max-lines max-lines-1">
                                         {"“" + (() => {
                                             const res = summarizeBody(props.content.body);
                                             if(res.length > 500) return res.substring(0, 500) + "…";
                                             return res;
                                         })() + "”"}
-                                    </>}>
-                                        <Show when={props.content.actions?.vote} fallback={
-                                            "[Collapsed by default]"
-                                        }>{vote_action => <>
-                                            <CounterCount counter={vote_action} />{" "}
-                                        </>}</Show>
-                                    </Show>
-                                </div>
+                                    </div>
+                                </div>} children={<></>} />
                             </Show>
-                        </div></HSplit.Child>
+                        </HSplit.Child>
                     </div></div>
                 </div></HSplit.Child>
                 <Show if={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
