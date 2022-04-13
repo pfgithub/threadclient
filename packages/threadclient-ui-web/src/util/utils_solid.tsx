@@ -222,7 +222,7 @@ export const size_lt = createRoot((dispose) => {
     return {
         sm: createMemo(() => screenWidth() < 640),
         // md: 768,
-        // lg: 1024,
+        lg: createMemo(() => screenWidth() < 1024),
         // xl: 1280,
         // xl2: 1536,
     } as const;

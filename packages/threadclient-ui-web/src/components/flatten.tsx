@@ -9,11 +9,13 @@ import { array_key } from "./symbols";
 // indent: post id[]
 
 export type FlatPage = {
-    // header: FlatItem[],
+    header?: undefined | Generic.RedditHeader,
     body: (FlatItem & {
         [array_key]: unknown,
     })[],
-    // sidebar: FlatItem[],
+    sidebar?: undefined | (FlatItem & {
+        [array_key]: unknown,
+    })[],
 };
 
 export type CollapseButton = {
@@ -139,7 +141,7 @@ function renderPost(
     };
 }
 
-function postReplies(post: Generic.Post, meta: Meta): Generic.Link<Generic.PostNotLoaded>[] {
+function postReplies(listing: Generic.ListingData | null, meta: Meta): Generic.Link<Generic.PostNotLoaded>[] {
     const res: Generic.Link<Generic.PostNotLoaded>[] = [];
     
     function addReplies(replies: Generic.Link<Generic.Post>[]) {
@@ -157,7 +159,7 @@ function postReplies(post: Generic.Post, meta: Meta): Generic.Link<Generic.PostN
             }
         }
     }
-    addReplies(post.replies?.items ?? []);
+    addReplies(listing?.items ?? []);
 
     return res;
 }
@@ -190,7 +192,7 @@ function flattenPost(
     : true : true;
 
     if(show_replies) {
-        const replies = postReplies(post, meta);
+        const replies = postReplies(post.replies, meta);
         const replies_threaded = replies.length === 1 && (rpo.threaded ? true : (
             readLink(meta, replies[0]!).value?.replies?.items.length === 1
         ));
@@ -314,13 +316,61 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArra
 // ok I have to think about what my goal with repivoting is and how to keep the data
 // structured well for repivoting with minimal perf impact
 
+function flattenTopLevelReplies(replies: Generic.ListingData | null, meta: Meta): FlatItem[] {
+    const res: FlatItem[] = [];
+
+    if(replies?.reply) res.push(fi.todo("(add reply)", replies));
+    for(const reply of postReplies(replies, meta)) {
+        res.push({kind: "wrapper_start"});
+        res.push(...flattenPost(reply, [], meta, {
+            first_in_wrapper: true,
+            is_pivot: false,
+            at_or_above_pivot: false,
+            threaded: false,
+            depth: 0,
+        }));
+        res.push({kind: "wrapper_end"});
+    } if(replies?.items.length === 0) {
+        res.push(fi.todo("*There are no replies*", replies));
+    }
+
+    return res;
+}
+
 export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): FlatPage {
     const res: FlatItem[] = [];
+
+    let res_sidebar: FlatItem[] | null = null;
+    let res_header: Generic.RedditHeader | null = null;
 
     const pivot = readLinkAssertFound(meta, pivot_link);
 
     const highest_arr = highestArray(pivot_link, meta);
     for(const item of highest_arr) {
+        if(!('error' in item)) {
+            const itmv = readLink(meta, item.value);
+            if(itmv.value != null && itmv.value.kind === "post" && itmv.value.content.kind === "page") {
+                const content = itmv.value.content;
+                if(res_sidebar == null) {
+                    res_sidebar = flattenTopLevelReplies(content.wrap_page.sidebar, meta);
+                }
+                if(res_header == null && (item.pivot ?? false)) {
+                    res_header = content.wrap_page.header;
+                    // oh TODO figure out what to do if there are items higher than this - like where do they
+                    // go?
+                    // I guess instead of being a special thing, header could just be a flatitem[]
+                    // not really sure
+                    // I was thinking users would want headers in their sidebar but actually we can make users
+                    // just like subreddits and have their headers at the top. no reason to put them on the side.
+                    //
+                    // I guess subreddits will want a header on the sidebar when you're viewing a comment thread
+
+                    // ok I'm just not going to worry about this for now
+                    continue; // don't insert in the list
+                }
+            }
+        }
+
         res.push({kind: "wrapper_start"});
         if('error' in item) {
             res.push(fi.err(item.error, highest_arr));
@@ -340,26 +390,12 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
     // up like twitter does
     if(pivot.replies) {
         res.push({kind: "horizontal_line"});
-        if(pivot.replies?.reply) res.push(fi.todo("(add reply)", pivot));
-        for(const reply of postReplies(pivot, meta)) {
-            res.push({kind: "wrapper_start"});
-            res.push(...flattenPost(reply, [], meta, {
-                first_in_wrapper: true,
-                is_pivot: false,
-                at_or_above_pivot: false,
-                threaded: false,
-                depth: 0,
-            }));
-            res.push({kind: "wrapper_end"});
-        } if(pivot.replies.items.length === 0) {
-            res.push(fi.todo("*There are no replies*", pivot));
-        }
+        res.push(...flattenTopLevelReplies(pivot.replies, meta));
     }
 
     console.log("FLATTEN RESULT", res, meta, Object.entries(meta.content).length);
 
-    let i_excl_post = 0;
-    return {body: res.map(itm => {
+    const autokey = (itm: FlatItem): FlatItem & {[array_key]: unknown} => {
         const key: {v: unknown} = (() => {
             if(itm.kind === "post") {
                 return {v: itm.id};
@@ -369,5 +405,12 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
             // hmm. this isn't great keying. we can do better
         })();
         return {...itm, [array_key]: key.v};
-    })};
+    };
+    
+    let i_excl_post = 0;
+    return {
+        header: res_header ?? undefined,
+        sidebar: res_sidebar != null ? res_sidebar.map(autokey) : undefined,
+        body: res.map(autokey),
+    };
 }

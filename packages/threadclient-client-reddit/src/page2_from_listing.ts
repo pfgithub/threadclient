@@ -817,11 +817,29 @@ function postDataFromListingMayError(
                 ] : replies,
             },
             content: {
-                kind: "post",
-                title: {text: getEntryFullname(entry.data)},
-                collapsible: false,
-                body: {kind: "none"},
-                show_replies_when_below_pivot: false,
+                kind: "page",
+                title: getEntryFullname(entry.data),
+                wrap_page: {
+                    sidebar: {
+                        // return a loader with load_on_view: true
+                        // also use load_on_view for any loader that should not be seen by default but
+                        // might be seen on a repivot
+                        items: [],
+                    },
+                    header: {
+                        // TODO load this stuff but only when the banner needs to be displayed, not before
+                        kind: "bio",
+                        banner: null,
+                        icon: null,
+                        name: {
+                            display: getEntryFullname(entry.data),
+                            link_name: getEntryFullname(entry.data),
+                        },
+                        body: null,
+                        menu: null,
+                        raw_value: entry,
+                    },
+                },
             },
             internal_data: entry.data,
             display_style: "fullscreen",
