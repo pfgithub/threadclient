@@ -5,19 +5,6 @@ html {
     word-break: break-word;
 }
 
-@supports (-webkit-touch-callout: none) {
-    // temporary workaround on iOS safari. for more information, see:
-    // src/components/SwipeCollapse.tsx
-    // note that this disables pinch zoom functionality and prevents
-    // horizontal drags on the body from scrolling vertically, so this is
-    // not ideal.
-    html {
-        width: calc(100vw + 1px);
-        margin-right: 1px;
-        touch-action: pan-y;
-    }
-}
-
 // animation. this can also be defined in the windi/tailwind css config
 @keyframes bounceanim {
     0% {

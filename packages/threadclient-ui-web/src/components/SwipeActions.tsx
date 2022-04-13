@@ -1,18 +1,14 @@
+import " SwipeCollapse.css";
 import { Accessor, batch, createEffect, createMemo, createSignal, JSX, onCleanup, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
 
-// BROKEN ON iOS SAFARI DUE TO A REGRESSION
+// TRACKING iOS SAFARI BUGS:
+//
 // https://bugs.webkit.org/show_bug.cgi?id=232545
+// - when this is fixed, delete SwipeCollapse.css
 //
-// Other projects get around this by using touch events instead of pointer events and
-// then manually blocking scrolling:
-// https://github.com/marekrozmus/react-swipeable-list/blob/main/src/SwipeableListItem.js
-//
-// Another possible workaround is to make the page one pixel wider horizontally than
-// it's supposed to be, enabling horizontal scrolling on the body which fixes the issue
-// for some reason.
-//
-// ^ That workaround has been applied in src/main.scss
+// https://bugs.webkit.org/show_bug.cgi?id=239014
+// - when this is fixed, remove this block: `if(CSS.supports("-webkit-touch-callout: none")) {`
 
 export default function SwipeActions(props: {
     children: JSX.Element,
@@ -47,7 +43,6 @@ export default function SwipeActions(props: {
         const selection = document.getSelection();
         if(selection?.isCollapsed === false) return; // no dragging if text is selected
 
-        // workaround for https://bugs.webkit.org/show_bug.cgi?id=239014
         if(CSS.supports("-webkit-touch-callout: none")) {
             const screen_width = window.innerWidth;
             const x = initial_ev.clientX;
@@ -60,6 +55,8 @@ export default function SwipeActions(props: {
         // el.setPointerCapture(id);
         // not using it because it seems to have a bug on ios where pointercancel never
         // gets called on the element.
+        // - note: a stackoverflow question suggested that adding pointer listeners to document.body doesn't
+        //   work. check if that's the case.
 
         initial_ev.preventDefault();
 
