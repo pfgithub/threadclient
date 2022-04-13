@@ -47,11 +47,23 @@ copy(
 
 export const all_builtin_newreddit_routes = new Set([
     "/",
-    "",
     // [snipped out a section of /:languageCode/]
     // seems like new.reddit is adding languageCode and countryCode into the url but for some reason they
     // couldn't do that as a preprocessing step beefore the url parsing?
     // anyway they seem to all be redirects for now so it doesn't matter for us
+    "/r/:subredditName/collection/:collectionId",
+    "/r/:subredditName/collection/:collectionId/:partialPostId",
+    "/r/:subredditName/collection/:collectionId/:partialPostId/:partialCommentId",
+    "/r/:subredditName/comments/:partialPostId/:urlSafePostTitle/:partialCommentId",
+    "/r/:subredditName/comments/:partialPostId/:urlSafePostTitle?",
+    "/r/:subredditName/duplicates/:partialPostId/:urlSafePostTitle?",
+    "/user/:subredditName/collection/:collectionId",
+    "/user/:subredditName/collection/:collectionId/:partialPostId",
+    "/user/:subredditName/collection/:collectionId/:partialPostId/:partialCommentId",
+    "/user/:subredditName/comments/:partialPostId/:urlSafePostTitle/:partialCommentId",
+    "/user/:subredditName/comments/:partialPostId/:urlSafePostTitle?",
+    "/user/:subredditName/duplicates/:partialPostId/:urlSafePostTitle?",
+    "",
     "/best",
     "/hot",
     "/new",
@@ -268,5 +280,5 @@ export const all_builtin_newreddit_routes = new Set([
     "inexact|/prefs/deactivate",
     "inexact|/prefs/blocked",
     "inexact|/user/:username/about/edit",
-    "inexact|/user/:username/about/edit/privacy",
+    "inexact|/user/:username/about/edit/privacy"
 ]);
