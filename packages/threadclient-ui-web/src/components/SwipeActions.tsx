@@ -1,4 +1,4 @@
-import " SwipeCollapse.css";
+import "./SwipeCollapse.css";
 import { Accessor, batch, createEffect, createMemo, createSignal, JSX, onCleanup, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
 
