@@ -157,8 +157,9 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
                     </li>
                 )}</For>;
             };
-            if(list.ordered) return <ol class="list-none">{listContent()}</ol>;
-            return <ul class="list-none">{listContent()}</ul>;
+            const listclass = "list-none";
+            if(list.ordered) return <ol class={listclass}>{listContent()}</ol>;
+            return <ul class={listclass}>{listContent()}</ul>;
         },
         code_block: (code) => <CodeBlock text={code.text} default_language={code.lang ?? null} />,
         table: (table) => <table>
