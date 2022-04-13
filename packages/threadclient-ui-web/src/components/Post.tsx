@@ -203,7 +203,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         : "filter grayscale text-$collapsed-header-color italic",
                     )}><div class={classes([
                         "flex",
-                        props.opts.is_pivot ? "flex-col" : "flex-row flex-wrap gap-2 items-baseline justify-end",
+                        props.content.thumbnail ? "flex-col" : [
+                            "flex-row flex-wrap gap-2 items-baseline"
+                        ],
                     ])}>
                         <Show if={props.content.title != null || props.content.flair != null}>
                             <div role="heading" class={classes(
