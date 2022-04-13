@@ -19,7 +19,7 @@ type FlairBits = {
     background_color: Reddit.FlairBits.BackgroundColor,
     richtext: Reddit.FlairBits.Richtext,
 };
-function flairToGenericFlair(
+export function flairToGenericFlair(
     opts: FlairBits,
 ): Generic.Flair[] {
     if(opts.type == null) return []; // deleted comments

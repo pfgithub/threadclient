@@ -6,7 +6,7 @@ import {
     authorFromPostOrComment, awardingsToFlair, deleteButton, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, ParsedPath, replyButton, reportButton, saveButton, SubrInfo,
     getPostThumbnail, urlNotSupportedYet, getPostFlair, updateQuery,
-    expectUnsupported, parseLink, redditRequest, authorFromT2, client, editButton, ec, SubInfo
+    expectUnsupported, parseLink, redditRequest, authorFromT2, client, editButton, ec, SubInfo, flairToGenericFlair
 } from "./reddit";
 import { encoderGenerator } from "threadclient-client-base";
 
@@ -1109,12 +1109,54 @@ function unpivotablePostBelowPivot(
     });
 }
 
+function unpivotableBelowPivotRichtext(
+    content: Generic.Page2Content,
+    title: string,
+    pars: Generic.Richtext.Paragraph[],
+    internal_data: unknown,
+): Generic.Link<Generic.Post> {
+    return unpivotablePostBelowPivot(content, {
+        kind: "post",
+
+        title: {text: title},
+        body: {
+            kind: "richtext",
+            content: pars,
+        },
+        show_replies_when_below_pivot: true,
+        collapsible: false,
+    }, {
+        internal_data,
+    });
+}
+
 function sidebarWidgetToGenericWidgetTry(
     content: Generic.Page2Content,
     widget: Reddit.Widget,
     subinfo: SubInfo,
 ): Generic.Link<Generic.Post> {
-    if(widget.kind === "subreddit-rules") {
+    if(widget.kind === "moderators") {
+        return unpivotableBelowPivotRichtext(content, "Moderators", [
+            rt.p(
+                rt.link(client, "/message/compose?to=/r/"+subinfo.subreddit,
+                    {style: "pill-empty"},
+                    rt.txt("Message the mods"),
+                ),
+            ),
+            rt.ul(...widget.mods.map(mod => rt.li(rt.p(
+                rt.link(client, "/u/"+mod.name, {is_user_link: mod.name}, rt.txt("u/"+mod.name)),
+                ...flairToGenericFlair({
+                    type: mod.authorFlairType, text: mod.authorFlairText, text_color: mod.authorFlairTextColor,
+                    background_color: mod.authorFlairBackgroundColor, richtext: mod.authorFlairRichText,
+                }).flatMap(flair => [rt.txt(" "), rt.flair(flair)]),
+            )))),
+            rt.p(
+                rt.link(client, "/r/"+subinfo.subreddit+"/about/moderators", {}, rt.txt("View All Moderators")),
+            ),
+        ], {
+            internal_data: {widget, subinfo},
+        });
+    }else if(widget.kind === "subreddit-rules") {
         return unpivotablePostBelowPivot(content, {
             kind: "post",
 
