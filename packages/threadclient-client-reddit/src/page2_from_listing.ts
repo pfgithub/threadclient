@@ -144,6 +144,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             wiki: val => "/"+[...val.sub.base, "wiki", ...val.path].join("/") + "?" + encodeQuery(val.query),
             user: () => pathraw,
             inbox: () => pathraw,
+            subreddits: () => pathraw,
         });
 
         const page = await redditRequest(link as "/__any_page", {method: "GET"});
@@ -490,7 +491,7 @@ function commentOrUnmountedData(item: Reddit.Post, parent_id: string | undefined
             };
         }
     }else{
-        expectUnsupported(item.kind);
+        if(item.kind !== "t5") expectUnsupported(item.kind);
         warn("TODO setUpCommentOrUnmounted", item.kind, item);
         return undefined;
     }
