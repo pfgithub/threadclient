@@ -1,3 +1,13 @@
+## TODO
+
+rename `threadclient-client-x` to `threadclient-for-x` or `threadclient-backend-x`
+
+so eg "threadclient-for-reddit" or "threadclient-backend-reddit"
+
+"threadclient-for-test" or "threadclient-backend-test"
+
+probably backend makes more sense because what is "test"
+
 ## todo
 
 set `inert=true` when something is disappearing
