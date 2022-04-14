@@ -367,8 +367,8 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 } as const)[v ?? "default"]}
             />
             <p class="my-4">
-                Chooses if links should be opened in a new tab or in the same tab
-                as ThreadClient.{" "}
+                Chooses if external links should be opened in a new tab or in the same
+                tab as ThreadClient.{" "}
                 <LinkButton client_id="n/a" style="normal" href="https://www.google.com/">
                     Example Link
                 </LinkButton>
