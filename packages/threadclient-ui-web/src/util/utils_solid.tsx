@@ -94,6 +94,7 @@ export type DeveloperMode = "on" | "off";
 export type GalleryDisplay = "fullscreen" | "inline";
 export type Motion = "full" | "reduce";
 export type AnimationDevMode = "none" | "shift_slow";
+export type LinkTarget = "new_tab" | "same_tab";
 export type Settings = {
     colorScheme: ComputeProperty<ColorScheme>,
     authorPfp: ComputeProperty<AuthorPfp>,
@@ -107,6 +108,7 @@ export type Settings = {
     animationTime: ComputeProperty<number>,
     animationDevMode: ComputeProperty<AnimationDevMode>,
     signature: ComputeProperty<string>,
+    links: ComputeProperty<LinkTarget>,
 };
 
 type SerializerDeserializer<T> = {
@@ -190,6 +192,7 @@ const global_settings = createRoot((): Settings => {
         }),
         animationDevMode: localStorageProperty("animation_dev_mode", () => "none", {}),
         signature: localStorageProperty("signature", () => "", {}),
+        links: localStorageProperty("links", () => "new_tab", {}),
     };
 
     createEffect(() => {

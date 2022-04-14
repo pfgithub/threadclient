@@ -97,7 +97,11 @@ function linkButton(
         return el("span").attr({title: link_type.title});
     }else if(link_type.kind === "link") {
         const href = link_type.url;
-        const res = el("a").clss(...linkAppearence(style)).attr({href, target: "_blank", rel: "noopener noreferrer"});
+        const settings = getSettings();
+        const res = el("a").clss(...linkAppearence(style)).attr({href}).attr(settings.links() === "new_tab" ? {
+            target: "_blank",
+            rel: "noopener noreferrer",
+        } : {rel: "noopener noreferrer"});
         if(href.startsWith("/") || opts.onclick) res.onclick = event => {
             event.stopPropagation();
             if (

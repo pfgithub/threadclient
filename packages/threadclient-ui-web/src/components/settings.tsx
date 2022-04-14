@@ -6,6 +6,7 @@ import { variables } from "virtual:_variables";
 import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
 import { ComputeProperty, getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
+import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
 export * from "../util/interop_solid";
@@ -235,7 +236,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     fullscreen: "Fullscreen",
                     inline: "Inline",
                     default: "Default",
-                } as const)[v ?? "fullscreen"]}
+                } as const)[v ?? "default"]}
             />
             <p class="my-4">
                 Chooses if image galleries should display in fullscreen or inline. Note
@@ -353,6 +354,24 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 will look lile. TODO: show a preview editor here. that will be doable
                 once this is per-account because accounts will be associated with a
                 client.
+            </p>
+        </SettingsSection>
+        <SettingsSection title="Open Links">
+            <SettingPicker
+                setting={settings.links}
+                options={["new_tab", "same_tab", undefined]}
+                name={v => ({
+                    new_tab: "New Tab",
+                    same_tab: "Same Tab",
+                    default: "Default",
+                } as const)[v ?? "default"]}
+            />
+            <p class="my-4">
+                Chooses if links should be opened in a new tab or in the same tab
+                as ThreadClient.{" "}
+                <LinkButton client_id="n/a" style="normal" href="https://www.google.com/">
+                    Example Link
+                </LinkButton>
             </p>
         </SettingsSection>
         <SettingsSection title="Developer Options">

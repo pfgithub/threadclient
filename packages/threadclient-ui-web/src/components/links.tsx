@@ -3,6 +3,7 @@ import { createMemo, createSignal, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsafeLinkToSafeLink } from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
+import { getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
 import { Body } from "./body";
 export * from "../util/interop_solid";
@@ -63,6 +64,7 @@ export function A(props: {
         if(props.href == null) return ({kind: "none"} as const);
         return unsafeLinkToSafeLink(props.client_id, props.href);
     });
+    const settings = getSettings();
     return <SwitchKind item={linkValue()}>{{
         error: (error) => <a
             class={props.class + " error"}
@@ -80,10 +82,10 @@ export function A(props: {
         link: (link) => <a
             class={props.class}
             href={link.url}
-            {...link.external ? {
+            {...link.external ? settings.links() === "new_tab" ? {
                 target: "_blank",
                 rel: "noopener noreferrer",
-            } : {}}
+            } : {rel: "noopener noreferrer"} : {}}
             onclick={event => {
                 // onclick is not allowed to be observable so always add it
                 if(!props.onClick && !props.onClickNoPreventDefault) {
