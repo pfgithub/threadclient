@@ -14079,6 +14079,17 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
+"threadclient-client-shell@workspace:packages/threadclient-client-shell":
+  version: 0.0.0-use.local
+  resolution: "threadclient-client-shell@workspace:packages/threadclient-client-shell"
+  dependencies:
+    eslint: ^8.13.0
+    eslint-config-tmeta: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.6.3
+  languageName: unknown
+  linkType: soft
+
 "threadclient-extension@workspace:packages/threadclient-extension":
   version: 0.0.0-use.local
   resolution: "threadclient-extension@workspace:packages/threadclient-extension"
