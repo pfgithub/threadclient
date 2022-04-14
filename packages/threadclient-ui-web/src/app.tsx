@@ -1622,7 +1622,7 @@ export function bioRender(
     if(listing.banner) {
         const frameclss = "absolute top-0 left-0 right-0 w-full max-h-full";
         const imgclss = "w-full min-h-270px object-cover object-center sm:object-top";
-        const gradientclss = "absolute left-0 right-0 bottom-0 header-gradient";
+        const gradientclss = "absolute left-0 right-0 bottom-0 header-gradient ";
         if(listing.banner.kind === "image") {
             const zoomframe = zoomableFrame(
                 el("img").clss(imgclss).attr({src: listing.banner.desktop})
