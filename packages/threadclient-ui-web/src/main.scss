@@ -1018,5 +1018,8 @@ summary {
     position: absolute;
     background-color: var(--postcolor-100);
     pointer-events: none;
+    transform: translate(-0.5rem, 0.25rem);
+}
+.threaded-new-ltsm:before {
     transform: translate(-0.75rem, 0.25rem);
 }

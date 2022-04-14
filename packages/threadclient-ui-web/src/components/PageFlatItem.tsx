@@ -76,7 +76,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                 });
             })()}
         ><ToggleColor>{color => <div class={"px-2 "+color}>
-            <div class="flex flex-row">
+            <div class="flex flex-row gap-1">
                 <Show if={!size_lt.sm()} fallback={(
                     <Show if={loader_or_post.indent.length > 0}><div
                         style={{
@@ -84,7 +84,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                         }}
                         class={classes(
                             "w-1",
-                            "mr-2",
+                            "mr-1",
                             "pl-0.5",
                             !loader_or_post.first_in_wrapper ? "pt-2" : "",
                         )}
@@ -112,7 +112,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                     </>}</For>
                 </Show>
                 <div
-                    class={"flex-1 "+(size_lt.sm() && loader_or_post.threaded ? "threaded-new" : "")}
+                    class={"flex-1 "+(size_lt.sm() && loader_or_post.threaded ? "threaded-new threaded-new-ltsm" : "")}
                 ><Show if={!loader_or_post.first_in_wrapper}>
                     <div class="pt-2" />
                 </Show><SwitchKind item={loader_or_post.content}>{{
