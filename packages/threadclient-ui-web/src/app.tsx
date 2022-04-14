@@ -2764,6 +2764,7 @@ const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     mastodon: () =>  import("./clients/mastodon").then(client => client.client),
     hackernews: () =>  import("threadclient-client-hackernews").then(client => client.client),
     test: () =>  import("./clients/test").then(client => client.client),
+    shell: () =>  import("threadclient-client-shell").then(client => client.client),
 };
 export async function fetchClient(name_any: string): Promise<ThreadClient | undefined> {
     const name = name_any.toLowerCase();
