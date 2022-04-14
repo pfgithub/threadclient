@@ -1,5 +1,21 @@
 ## TODO
 
+Currently, the reason posts don't show comments when looking at a subreddit is because there is a flag
+on the post to not show replies. Instead, make this part of the subreddit. "don't show replies on replies"
+
+Why?
+
+- mastodon feeds will have this same thing. the listing should show all the items but you should have to
+  repivot onto the item to see its replies
+- this way we can have consistent "click = repivot" on listings and "click = toggle collapse" on focused
+  posts.
+
+another thing we can consider trying is see if we can show replies inside a listing by indenting the
+entire wrapper instead of having them be part of the wrapper. that might work but it will probably be
+weird and not ideal.
+
+## TODO
+
 !NEW ROUTING LOGIC:
 
 this will fix so you can navigate to new hashes
