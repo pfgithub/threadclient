@@ -336,6 +336,22 @@ path_router.with(["mod"] as const, urlr => {
     path_router.catchall(todo("not supported"));
 });
 
+path_router.with(["subreddits"] as const, urlr => {
+    urlr.with(["mine"] as const, urlr => {
+        urlr.route([{tab: [null, "subscriber", "contributor", "moderator"] as const}], opts => ({
+            kind: "subreddits",
+            value: {
+                tab: "mine",
+                subtab: opts.tab ?? "subscriber",
+            },
+        }));
+    });
+    urlr.route([{tab: [null, "new", "popular"] as const}], opts => ({
+        kind: "subreddits",
+        value: {tab: opts.tab ?? "popular"},
+    }));
+});
+
 path_router.catchall(todo("not supported"));
 
 

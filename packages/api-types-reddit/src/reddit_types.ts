@@ -1064,7 +1064,7 @@ export type T3 = {
     data: PostSubmission,
 };
 
-export type Post = T3 | PostCommentLike | {
+export type Post = T3 | T5 | PostCommentLike | {
     kind: "unsupported",
     data: {name: string},
 };

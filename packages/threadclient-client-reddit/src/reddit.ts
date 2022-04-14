@@ -1496,6 +1496,16 @@ export type ParsedPath = {
     sub: SubrInfo,
     path: string[],
     query: {[key: string]: string},
+} | {
+    kind: "subreddits",
+    value: {
+        tab: "mine",
+        subtab: "subscriber" | "contributor" | "moderator",
+    } | {
+        tab: "new",
+    } | {
+        tab: "popular",
+    },
 };
 
 export type SubrInfo = {
@@ -2334,7 +2344,37 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
             count: listing.children.length,
             raw_value: listing_raw,
         };
+    }else if(listing_raw.kind === "t5"){
+        const {data: listing} = listing_raw;
+        const result: Generic.Node = {
+            kind: "thread",
+            display_mode: {
+                body: "collapsed",
+                body_default: "closed",
+                comments: "visible",
+            },
+            raw_value: listing_raw,
+            link: listing.url,
+            layout: "reddit-post",
+            title: {text: listing.display_name_prefixed},
+            thumbnail: {
+                kind: "image",
+                url: listing.community_icon,
+            },
+            body: {
+                kind: "text",
+                client_id: client.id,
+                content: listing.description_html,
+                markdown_format: "reddit_html",
+            },
+            actions: [
+                createSubscribeAction(listing.url.replace("/r/", "").replace("/u/", "u_"), listing.subscribers, listing.user_is_subscriber ?? false),
+            ],
+            default_collapsed: true,
+        };
+        return result;
     }else{ //eslint-disable-line no-else-return
+        expectUnsupported(listing_raw.kind);
         return {
             kind: "thread",
             title: {text: "unsupported listing kind "+listing_raw.kind},
@@ -2700,6 +2740,11 @@ export const client: ThreadClient = {
                 ]);
 
                 return pageFromListing(pathraw, parsed, result, {sidebar: generateUserSidebar(userabout, trophies, modded_subs)});
+            }else if(parsed.kind === "subreddits") {
+                const link = pathraw;
+                const result = await redditRequest(link as "/__any", {method: "GET"});
+
+                return pageFromListing(pathraw, parsed, result, {sidebar: null});
             }else if(parsed.kind === "inbox") {
                 // TODO
                 if(parsed.current.tab === "compose") {
