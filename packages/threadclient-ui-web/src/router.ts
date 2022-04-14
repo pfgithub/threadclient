@@ -1,6 +1,7 @@
 
 import { createSignal } from "solid-js";
 import { ThreadClient } from "threadclient-client-base";
+import { generateUUID, UUID } from "tmeta-util";
 import { registerSW } from "virtual:pwa-register";
 import { variables } from "virtual:_variables";
 import {
@@ -16,18 +17,24 @@ export let alertarea: HTMLElement | undefined;
 export let bodytop!: HTMLDivElement;
 export let navbar: HTMLElement; 
 
-export let nav_history!: NavigationEntry[];
-export let session_name!: string;
+export let nav_history_map: Map<UUID, NavigationEntry>;
+export let current_nav_history_key!: UUID;
 
-export let client_cache!: {[key: string]: ThreadClient};
+export let client_cache!: {[key: string]: ThreadClient}; // what's this for? can't we just import() every time?
+// that should cache for us right?
 
 export let navigate_event_handlers!: ((url: URLLike) => void)[];
-export let current_history_index!: number;
 
 export let page2mainel!: HTMLElement;
 
-export function setCurrentHistoryIndex(new_index: number): void {
-    current_history_index = new_index;
+export function uuid(): UUID {
+    return generateUUID(Date.now(), {
+        readBytes: (u8a) => crypto.getRandomValues(u8a),
+    });
+}
+
+export function setCurrentHistoryKey(new_key: UUID): void {
+    current_nav_history_key = new_key;
 }
 
 export function fixURL(): void {
@@ -56,22 +63,21 @@ export function main(): void {
         // onNavigate(ev?.state.index ?? 0);
         console.log("onpopstate. ev:",ev.state);
         const state = ev.state as HistoryState | undefined;
-        if(state?.session_name !== session_name) {
-            console.log("Going to history item from different session");
-            onNavigate(0, location, undefined);
-            return;
+        const newkey = state?.key ?? uuid();
+        if(newkey !== state?.key) {
+            const newstate: HistoryState = {key: newkey};
+            history.replaceState(newstate, "", location.href);
         }
-        onNavigate(state?.index ?? 0, location, undefined);
+        onNavigate(newkey, location, undefined);
     };
     
     client_cache = {};
     
-    nav_history = [];
-    session_name = "" + Math.random();
+    nav_history_map = new Map();
     
     navigate_event_handlers = [];
     
-    current_history_index = 0;
+    current_nav_history_key = uuid();
     bodytop = el("div").adto(rootel);
     
     if(
@@ -153,10 +159,11 @@ export function main(): void {
     // updateAvailable, setUpdateAvailable
     // updateSW
 
-    history.replaceState({index: 0, session_name}, "ThreadClient",
+    const new_state: HistoryState = {key: current_nav_history_key};
+    history.replaceState(new_state, "ThreadClient",
         location.pathname + location.search + location.hash,
     );
-    onNavigate(0, location, undefined);
+    onNavigate(current_nav_history_key, location, undefined);
 
     let drtime = 100;
     const rmdarkreader = () => {

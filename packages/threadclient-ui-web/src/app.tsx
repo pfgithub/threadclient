@@ -6,7 +6,7 @@ import { createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { gfyLike2, previewLink } from "threadclient-preview";
-import { escapeHTML } from "tmeta-util";
+import { escapeHTML, UUID } from "tmeta-util";
 import { allowedToAcceptClick, Debugtool, Show, TimeAgo } from "tmeta-util-solid";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
@@ -18,9 +18,9 @@ import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {
-    alertarea, client_cache, current_history_index, global_counter_info,
+    alertarea, client_cache, current_nav_history_key, global_counter_info,
     navbar,
-    navigate_event_handlers, nav_history, page2mainel, rootel, session_name, setCurrentHistoryIndex
+    navigate_event_handlers, nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { getSettings, PageRootProvider } from "./util/utils_solid";
@@ -2786,16 +2786,17 @@ export type NavigationEntryNode = {
 };
 export type NavigationEntry = {url: string, node: NavigationEntryNode};
 
-export type HistoryState = {index: number, session_name: string};
+export type HistoryState = {key: UUID};
 
 export function navigate({path, page}: {
     path: string,
     page?: undefined | Generic.Page2,
 }): void {
     if(path.startsWith("/")) path = path.replace("/", "#") || "#/";
-    console.log("Appending history state index", current_history_index + 1, path);
-    history.pushState({index: current_history_index + 1, session_name}, "ThreadClient", path);
-    onNavigate(current_history_index + 1, location, page);
+    const hstate: HistoryState = {key: uuid()};
+    console.log("Appending history state index", hstate, path);
+    history.pushState(hstate, "", path);
+    onNavigate(hstate.key, location, page);
 }
 
 // a custom redirect can be made for "/" for SEO reasons that has html in it already
@@ -3102,7 +3103,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 //    else
 //    - gone below item
 
-export function onNavigate(to_index: number, url_in: URLLike, page: undefined | Generic.Page2): void {
+export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Generic.Page2): void {
     const url = url_in.pathname === "/" && url_in.search === "" && url_in.hash.length > 2 ? (() => {
         try {
             return new URL("https://thread.pfg.pw/"+url_in.hash.substring(1));
@@ -3111,38 +3112,38 @@ export function onNavigate(to_index: number, url_in: URLLike, page: undefined | 
         }
     })() : url_in;
 
-    console.log("Navigating", to_index, url, nav_history, page);
+    console.log("Navigating", to_key, url, to_key, page, [...nav_history_map.keys()]);
 
     document.title = "ThreadClient";
     navigate_event_handlers.forEach(evh => evh(url));
     const thisurl = url.pathname + url.search;
 
-    setCurrentHistoryIndex(to_index);
+    const prev_key = current_nav_history_key;
+    setCurrentHistoryKey(to_key);
 
     // hide all history
     hidePage2();
-    nav_history.forEach(item => {
+    [...nav_history_map.values()].forEach(item => {
         if(item.node.kind === "t1") {
             item.node.hide();
         }
     });
 
-    const history_item = nav_history[to_index];
-    if(history_item) {
-        if(history_item.url !== thisurl) {
-            console.log("URLS differ. «", history_item.url, "» «", thisurl, "»");
-            
-            // a b c d to_index [… remove these]
-            for(let i = nav_history.length - 1; i >= to_index; i--) {
-                const last = nav_history.pop();
-                if(!last) throw new Error("bad logic");
-                if(last.node.kind === "t1") last.node.removeSelf();
-            }
-        }else{
-            // show the current history
-            if(history_item.node.kind === "t1") history_item.node.show();
-            else showPage2(history_item.node.page2);
-            return; // done
+    const historyitem = nav_history_map.get(to_key);
+    if(historyitem) {
+        // show the current history
+        if(historyitem.node.kind === "t1") historyitem.node.show();
+        else showPage2(historyitem.node.page2);
+        return; // done
+    } else {
+        // remove
+        const ordered_keys = [...nav_history_map.keys()].sort();
+        for(let i = ordered_keys.length - 1; i >= 0; i--) {
+            const key = ordered_keys[i]!;
+            if(key <= prev_key) break;
+            const value = nav_history_map.get(key)!;
+            nav_history_map.delete(key);
+            if(value.node.kind === "t1") value.node.removeSelf();
         }
     }
 
@@ -3151,10 +3152,10 @@ export function onNavigate(to_index: number, url_in: URLLike, page: undefined | 
         const pagemut: MutablePage2HistoryNode = {page: page2};
 
         showPage2(pagemut);
-        nav_history[to_index] = {node: {
+        nav_history_map.set(to_key, {node: {
             kind: "t2",
             page2: pagemut,
-        }, url: thisurl};
+        }, url: thisurl});
 
         return;
     }
@@ -3172,7 +3173,7 @@ export function onNavigate(to_index: number, url_in: URLLike, page: undefined | 
         show: () => hsc.setVisible(true),
     };
 
-    nav_history[to_index] = {node: naventry, url: thisurl};
+    nav_history_map.set(to_key, {node: naventry, url: thisurl});
 }
 
 

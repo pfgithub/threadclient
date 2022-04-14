@@ -18,6 +18,15 @@ when navigating to a page:
 - if it has an id and is in our array, we know what to do
 - if it does not an id: give it an id and .splice(next_insert_index, Infinity, new_id)
 
+even better: just use uuids with times and sort by them. we're doing that. will only
+mess up if the device's time changes, but since these ids are temporary it's fixed on reload
+
+ok actually there is an issue if you go back to history entries that were created in a previous
+browser session. they lose their state so we can't know what time it was loaded
+
+let's just do this for now, it's better than what we had even if it's not optimal and optimal
+can't exist.
+
 ## TODO
 
 rename `threadclient-client-x` to `threadclient-for-x` or `threadclient-backend-x`
