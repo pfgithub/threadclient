@@ -1,5 +1,25 @@
 ## TODO
 
+!NEW ROUTING LOGIC:
+
+this will fix so you can navigate to new hashes
+
+this will fix so you can navigate back to previous loaded things
+
+this will make sure things can be deleted:
+
+[!]
+
+rather than history indexes, we will have an array of reachable ids
+
+when navigating to a page:
+
+- if it has an id and it's not in our array, prepend it to the beginning
+- if it has an id and is in our array, we know what to do
+- if it does not an id: give it an id and .splice(next_insert_index, Infinity, new_id)
+
+## TODO
+
 rename `threadclient-client-x` to `threadclient-for-x` or `threadclient-backend-x`
 
 so eg "threadclient-for-reddit" or "threadclient-backend-reddit"
