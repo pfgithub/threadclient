@@ -747,7 +747,7 @@ function postDataFromListingMayError(
                         post_id: listing.id,
                         parent_id: null,
                     }),
-                    autoload: true,
+                    autoload: entry.data.missing_replies ?? false,
 
                     parent: entry.link,
                     replies: null,
@@ -766,7 +766,7 @@ function postDataFromListingMayError(
                 body: getPostBody(listing),
                 thumbnail: getPostThumbnail(listing, "open"),
                 info: getPostInfo(listing_raw),
-                show_replies_when_below_pivot: false,
+                show_replies_when_below_pivot: true,
 
                 actions: {
                     vote: getPointsOn(listing),
