@@ -102,7 +102,7 @@ function linkButton(
             target: "_blank",
             rel: "noopener noreferrer",
         } : {rel: "noopener noreferrer"});
-        if(href.startsWith("/") || opts.onclick) res.onclick = event => {
+        if(href.startsWith("/") || href.startsWith("#") || opts.onclick) res.onclick = event => {
             event.stopPropagation();
             if (
                 !event.defaultPrevented && // onClick prevented default
