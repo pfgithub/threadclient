@@ -3,11 +3,10 @@ import "@fortawesome/fontawesome-free/css/all.css";
 import { For, JSX } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
-import { classes, getSettings } from "../util/utils_solid";
+import { classes, getSettings, ToggleColor } from "../util/utils_solid";
 import Button from "./Button";
 import Dropdown from "./Dropdown";
 import DropdownButton from "./DropdownButton";
-import { TopLevelWrapper } from "./page2";
 import { SettingPicker } from "./settings";
 
 // ok iconsets I tried:
@@ -98,6 +97,18 @@ const HSplit = {
     },
 };
 
+function TopLevelWrapper(props: {
+    children: JSX.Element,
+    restrict_w?: undefined | boolean,
+}): JSX.Element {
+    return <ToggleColor>{(color, i) => <div class={
+        (i === 0 ? "m-3 p-3 shadow-md rounded-xl" : "p-10px mt-10px rounded-xl")
+        + " " + (color === "bg-postcolor-100" ? "bg-slate-50 dark:bg-zinc-800" : "bg-slate-300 dark:bg-zinc-900")
+        + " " + (props.restrict_w ?? false ? "max-w-xl" : "")
+    }>{props.children}</div>}</ToggleColor>;
+}
+
+
 function DropdownMenu(): JSX.Element {
     // ok I want this positioned:
     // oh looks like I can switch back to tailwind from windi, they no longer are
@@ -113,13 +124,19 @@ function DropdownMenu(): JSX.Element {
 // function Heading()
 // return div role="heading"
 
-export default function UITestingPage(): JSX.Element {
+export default function UITestingPageRoot(): JSX.Element {
+    return <div class="h-full min-h-screen bg-slate-300 dark:bg-zinc-900">
+        <UITestingPage />
+    </div>;
+}
+
+function UITestingPage(): JSX.Element {
     faker.seed(123); // this won't work right consistently because it's
     // global state but the code below can be rerun multiple times
 
     const settings = getSettings();
 
-    return <div class="m-4 <sm:mx-0 text-gray-800">
+    return <div class="m-4 <sm:mx-0 text-slate-900 dark:text-zinc-100">
         <SettingPicker
             setting={settings.colorScheme}
             options={["light", "dark", undefined]}
