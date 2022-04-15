@@ -103,7 +103,7 @@ function TopLevelWrapper(props: {
 }): JSX.Element {
     return <ToggleColor>{(color, i) => <div class={
         (i === 0 ? "m-3 p-3 shadow-md rounded-xl" : "p-10px mt-10px rounded-xl")
-        + " " + (color === "bg-postcolor-100" ? "bg-slate-50 dark:bg-zinc-800" : "bg-slate-300 dark:bg-zinc-900")
+        + " " + (color === "bg-postcolor-100" ? "bg-slate-100 dark:bg-zinc-800" : "bg-slate-300 dark:bg-zinc-900")
         + " " + (props.restrict_w ?? false ? "max-w-xl" : "")
     }>{props.children}</div>}</ToggleColor>;
 }
