@@ -103,7 +103,7 @@ function TopLevelWrapper(props: {
 }): JSX.Element {
     return <ToggleColor>{(color, i) => <div class={
         (i === 0 ? "m-3 p-3 shadow-md rounded-xl" : "p-10px mt-10px rounded-xl")
-        + " " + (color === "bg-postcolor-100" ? "bg-slate-100 dark:bg-zinc-800" : "bg-slate-300 dark:bg-zinc-900")
+        + " " + color
         + " " + (props.restrict_w ?? false ? "max-w-xl" : "")
     }>{props.children}</div>}</ToggleColor>;
 }
@@ -151,7 +151,7 @@ function UITestingPage(): JSX.Element {
         <h1>Posts, Above or below pivot:</h1>
         <For each={[1, 2]}>{() => {
             const expanded = false;
-            return <section><TopLevelWrapper><div class="m-2 text-sm text-gray-800">
+            return <section><TopLevelWrapper><div class="m-2 text-sm text-slate-800 dark:text-zinc-100">
                 <HSplit.Container dir="right">
                     <HSplit.Child>
                         <img src={faker.image.image(400, 400)} class="h-12 w-12 sm:w-16 sm:h-16 rounded-md" />
@@ -163,11 +163,11 @@ function UITestingPage(): JSX.Element {
                         <h2>
                             {faker.lorem.sentence()}
                         </h2>
-                        <div class="text-gray-500">
+                        <div class="text-slate-500 dark:text-zinc-400">
                             By <Username /> in
                             {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
                         </div>
-                        <div class="text-gray-500 flex flex-wrap gap-2 <sm:text-xs">
+                        <div class="text-slate-500 dark:text-zinc-400 flex flex-wrap gap-2 <sm:text-xs">
                             <span><i class="far fa-comment" /> 12</span>
                             <span><i class="fas fa-arrow-up" /> 21.8k</span>
                             <span><i class="far fa-smile" /> 83%</span>
@@ -187,12 +187,12 @@ function UITestingPage(): JSX.Element {
             </div></TopLevelWrapper></section>;
         }}</For>
         <h1>Post, At pivot:</h1>
-        <section><TopLevelWrapper><div class="m-4 text-sm text-gray-800">
+        <section><TopLevelWrapper><div class="m-4 text-sm text-slate-800 dark:text-zinc-100">
             <h2 class="text-3xl">
                 {faker.lorem.sentence(18)}
             </h2>
             <div class="mt-2" />
-            <div class="text-gray-500">
+            <div class="text-slate-500 dark:text-zinc-400">
                 By <Username /> in
                 {" "}<span style="color:#3b82f6">{faker.random.word()}</span>
             </div>
@@ -203,7 +203,7 @@ function UITestingPage(): JSX.Element {
                 </p>
             )}</For></div>
             <div class="mt-8" />
-            <div class="text-gray-500">
+            <div class="text-slate-500 dark:text-zinc-400">
                 21.8k points, 2 years ago, 83% upvoted
             </div>
             <div class="mt-2" />
@@ -213,10 +213,10 @@ function UITestingPage(): JSX.Element {
             </div>
         </div></TopLevelWrapper></section>
         <h1>Comment, At pivot:</h1>
-        <section><TopLevelWrapper><div class="m-4 text-sm text-gray-800">
+        <section><TopLevelWrapper><div class="m-4 text-sm text-slate-800 dark:text-zinc-100">
             <div class="flex flex-wrap justify-end gap-4 items-center">
                 <img src={faker.internet.avatar()} class="rounded-full w-12 h-12" />
-                <div class="text-gray-500 flex-1">
+                <div class="text-slate-500 dark:text-zinc-400 flex-1">
                     <Username />
                 </div>
             </div>
@@ -227,7 +227,7 @@ function UITestingPage(): JSX.Element {
                 </p>
             )}</For></div>
             <div class="mt-8" />
-            <div class="text-gray-500">
+            <div class="text-slate-500 dark:text-zinc-400">
                 21.8k points, 2 years ago
             </div>
             <div class="mt-2" />
@@ -237,14 +237,14 @@ function UITestingPage(): JSX.Element {
             </div>
         </div></TopLevelWrapper></section>
         <h1>Comment, Above pivot:</h1>
-        <section><TopLevelWrapper><div class="m-2 text-sm text-gray-800">
+        <section><TopLevelWrapper><div class="m-2 text-sm text-slate-800 dark:text-zinc-100">
             <div class="flex flex-wrap justify-end gap-2 items-center">
                 <img src={faker.internet.avatar()} class="rounded-full w-8 h-8" />
-                <div class="text-gray-500">
+                <div class="text-slate-500 dark:text-zinc-400">
                     <Username />
                 </div>
-                <div class="text-gray-500 flex-1" />
-                <div class="text-gray-500">
+                <div class="text-slate-500 dark:text-zinc-400 flex-1" />
+                <div class="text-slate-500 dark:text-zinc-400">
                     21.8k points, 2 years ago
                 </div>
                 <div class="self-start"><Button>…</Button></div>
@@ -257,15 +257,15 @@ function UITestingPage(): JSX.Element {
             )}</For>
         </div></TopLevelWrapper></section>
         <h1>Comment, Collapsed:</h1>
-        <section><TopLevelWrapper><div class="mx-2 text-sm text-gray-800">
+        <section><TopLevelWrapper><div class="mx-2 text-sm text-slate-800 dark:text-zinc-100">
             <div class="flex flex-wrap justify-end gap-2 items-center">
-                <div class="text-gray-500">
+                <div class="text-slate-500 dark:text-zinc-400">
                     <Username />
                 </div>
-                <div class="text-gray-500 flex-1 max-lines max-lines-1">
+                <div class="text-slate-500 dark:text-zinc-400 flex-1 max-lines max-lines-1">
                     {faker.lorem.paragraph(5)}
                 </div>
-                <div class="text-gray-500">
+                <div class="text-slate-500 dark:text-zinc-400">
                     21.8k points, 2 years ago
                 </div>
             </div>

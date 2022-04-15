@@ -37,7 +37,10 @@ export default defineConfig({
                 900: "var(--cool-gray-900)",
             },
             'slate': colors.slate,
-            'zinc': colors.zinc,
+
+            // shifts 700 and 800 up by a half-step. the gap from 800 to 900 felt too large. also this is only
+            // used on dark mode so it might be different than the light mode uses of these colors
+            'zinc': {...colors.zinc as Record<number, string>, 700: "#333338", 800: "#202023"}, 
             'rgray': colors.coolGray,
             'blue': colors.blue,
             'green': colors.emerald,

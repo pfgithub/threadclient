@@ -126,7 +126,7 @@ export function VerticalIconButton(props: {
 }
 
 export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JSX.Element {
-    return <div class={"flex flex-col items-center gap-2px"}>
+    return <div class={"flex flex-col items-center gap-2px text-slate-700 dark:text-zinc-100"}>
         <VerticalIconButton counter={props.counter} mode="increment" />
         <Show if={props.counter.decrement != null}>
             <VerticalIconButton counter={props.counter} mode="decrement" />

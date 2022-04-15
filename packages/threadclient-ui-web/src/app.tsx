@@ -23,7 +23,7 @@ import {
     navigate_event_handlers, nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { getSettings, PageRootProvider } from "./util/utils_solid";
+import { bg_colors, getSettings, PageRootProvider } from "./util/utils_solid";
 
 // TODO add support for navigation without any browser navigation things
 // eg within the frame of /pwa-start, display the client and have custom nav buttons
@@ -2437,7 +2437,11 @@ function renderInbox(client: ThreadClient, inbox: Generic.Inbox): HideShowCleanu
     return hsc;
 }
 
-const makeTopLevelWrapper = () => el("div").clss("top-level-wrapper", "object-wrapper", "bg-postcolor-100");
+const makeTopLevelWrapper = () => el("div").clss(
+    "object-wrapper-csshack",
+    "m-3 p-3 shadow-md sm:rounded-xl <sm:mx-0",
+    bg_colors[1],
+);
 
 function renderClientPage(
     client: ThreadClient,

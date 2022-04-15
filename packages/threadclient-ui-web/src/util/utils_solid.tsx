@@ -13,13 +13,16 @@ export { screenWidth };
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ColorDepthContext = createContext<{i: number}>();
 
-// !! TODO test in page1, make sure link previews work !!!!
+export const bg_colors = [
+    "bg-slate-100 dark:bg-zinc-800",
+    "bg-slate-300 dark:bg-zinc-900",
+] as const;
 export function ToggleColor(props: {children: (color: string, i: number) => JSX.Element}): JSX.Element {
     const parent_color = useContext(ColorDepthContext);
     const this_color = parent_color?.i ?? 0;
     const next_color = this_color + 1;
     return <ColorDepthContext.Provider value={{i: next_color}}>
-        {props.children(this_color % 2 === 0 ? "bg-postcolor-100" : "bg-body", this_color)}
+        {props.children(bg_colors[this_color % bg_colors.length]!, this_color)}
     </ColorDepthContext.Provider>;
 }
 

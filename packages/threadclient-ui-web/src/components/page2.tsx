@@ -59,7 +59,7 @@ export function TopLevelWrapper(props: {
     restrict_w?: undefined | boolean,
 }): JSX.Element {
     return <ToggleColor>{(color, i) => <div class={
-        (i === 0 ? "object-wrapper top-level-wrapper" : "p-10px mt-10px rounded-xl")
+        (i === 0 ? "m-3 p-3 shadow-md sm:rounded-xl <sm:mx-0" : "p-10px mt-10px rounded-xl")
         + " " + color
         + " " + (props.restrict_w ?? false ? "max-w-xl" : "")
     }>{props.children}</div>}</ToggleColor>;

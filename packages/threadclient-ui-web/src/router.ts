@@ -8,7 +8,7 @@ import {
     elButton, GlobalCounter, HistoryState, navigate, NavigationEntry,
     onNavigate, startDebugTool, URLLike,
 } from "./app";
-import { getSettings } from "./util/utils_solid";
+import { bg_colors, getSettings } from "./util/utils_solid";
 
 export let rootel!: HTMLElement;
 
@@ -84,7 +84,7 @@ export function main(): void {
         (navigator as unknown as {standalone: boolean}).standalone
         || window.matchMedia("(display-mode: standalone)").matches
     ) {
-        const frame = el("nav").clss("navbar", "bg-postcolor-100", "transition-opacity").adto(rootel);
+        const frame = el("nav").clss("navbar", bg_colors[0], "transition-opacity").adto(rootel);
         navbar = frame;
         // todo use style.top = xpx position absolute and then when fixed use top=0 fixed
     

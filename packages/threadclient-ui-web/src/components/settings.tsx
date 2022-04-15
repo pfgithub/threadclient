@@ -339,7 +339,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
         </SettingsSection>
         <SettingsSection title="Signature">
             <textarea
-                class="w-full bg-gray-100 p-2 placeholder-gray-400"
+                class="w-full bg-slate-300 dark:bg-zinc-900 p-2 placeholder-slate-500 dark:placeholder-slate-400"
                 rows={4}
                 value={settings.signature()}
                 onInput={v => {
@@ -385,7 +385,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     onclick={() => setShowDevSettings(true)}
                 >Show Anyway</button>}
             >
-                <h3 class="text-lg font-light text-gray-600">Page Version</h3>
+                <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Page Version</h3>
                 <SettingPicker
                     setting={settings.pageVersion}
                     options={["1", "2", undefined]}
@@ -398,7 +398,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 <p class="my-2">
                     Uses the new page2 renderer.
                 </p>
-                <h3 class="text-lg font-light text-gray-600">Developer Mode</h3>
+                <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Developer Mode</h3>
                 <SettingPicker
                     setting={settings.highlightRerenders}
                     options={["on", "off", undefined]}

@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { JSX, onCleanup } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import {
-    classes
+    classes, ToggleColor
 } from "../util/utils_solid";
 import { CollapseData, getCState } from "./flatten";
 import { InternalIcon } from "./Icon";
@@ -48,7 +48,7 @@ export function CollapseButton(props: {
     return <button
         class={classes(
             "w-15px box-border cursor-pointer min-h-13px",
-            "z-1 static outline-default",
+            "z-1 static outline-default group",
             props.class ?? "",
             props.threaded ?? false ? "threaded-new" : "",
         )}
@@ -79,12 +79,17 @@ export function CollapseButton(props: {
                 tag={"fa-circle-plus"} filled label={null}
             />
         }>
-            <div class={classes(
-                "w-3px mx-auto h-full",
-                props.cstates && props.id && getCState(props.cstates, props.id).hovering() > 0 ?
-                "bg-$collapse-line-color-hover" : 
-                "bg-$collapse-line-color",
-            )}></div>
+            <ToggleColor>{(__, i) => <>
+                <div class={classes(
+                    "w-3px mx-auto h-full",
+                    props.cstates && props.id && getCState(props.cstates, props.id).hovering() > 0 ? (
+                        "bg-slate-500 dark:bg-zinc-600"
+                    ) : (
+                        (i % 2 === 1 ? "bg-slate-300" : "bg-slate-400") + " dark:bg-zinc-700"
+                    ),
+                    "group-hover:bg-slate-500 dark:group-hover:bg-zinc-600",
+                )}></div>
+            </>}</ToggleColor>
         </Show>
     </button>;
 }

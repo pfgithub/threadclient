@@ -345,7 +345,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
             <Show if={!previewOpen().open || previewOpen().temporary}>
                 <div style={{display: previewOpen().open ? "none" : "block"}}>
                     <div
-                        class="max-lines max-lines-1 break-all font-light text-gray-800 dark:text-gray-400 select-none"
+                        class="max-lines max-lines-1 break-all font-light text-slate-800 dark:text-zinc-500 select-none"
                     >
                         <Show if={!linkPreview() && human().external}>
                             <ExternalIcon />{" "}
@@ -376,7 +376,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                     )}
                     href={props.link.url}
                 >
-                    <div class="max-1-line break-all font-light text-gray-800 dark:text-gray-400 select-none">
+                    <div class="max-1-line break-all font-light text-slate-800 dark:text-zinc-500 select-none">
                         <Show if={human().external}>
                             <ExternalIcon />{" "}
                         </Show>
