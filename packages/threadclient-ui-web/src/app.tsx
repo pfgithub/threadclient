@@ -2440,7 +2440,7 @@ function renderInbox(client: ThreadClient, inbox: Generic.Inbox): HideShowCleanu
 const makeTopLevelWrapper = () => el("div").clss(
     "object-wrapper-csshack",
     "m-3 p-3 shadow-md sm:rounded-xl <sm:mx-0",
-    bg_colors[1],
+    bg_colors[0],
 );
 
 function renderClientPage(
