@@ -96,7 +96,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                 console.log(err.value);
             });
         }} />,
-        code: (code) => <code class="bg-gray-200 p-1 rounded text-gray-800">{code.text}</code>,
+        code: (code) => <code class="bg-slate-200 dark:bg-zinc-700 p-1 rounded text-gray-800">{code.text}</code>,
     }}</SwitchKind>;
 }
 
@@ -248,7 +248,7 @@ export function CodeBlock(props: {
     });
 
     return <pre tabindex="0" class={classes([
-        "!bg-slate-200 !dark:bg-zinc-700 p-2 !rounded-md text-slate-900 bg:text-zinc-100",
+        "!bg-slate-200 !dark:bg-zinc-700 p-2 !rounded-md text-slate-900 dark:text-zinc-100",
         "relative",
         "group",
         "outline-default",
