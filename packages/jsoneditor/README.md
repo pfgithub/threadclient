@@ -3,6 +3,28 @@ yarn install
 yarn dev
 ```
 
+## TODO
+
+https://hclarke.ca/colour-picker.html
+
+[!] ← this is a very good color picker
+
+we should do something similar
+
+https://bl.ocks.org/mbostock/3e115519a1b495e0bd95
+
+or this
+
+HCL color picker
+
+picks colors with the same percieved brightness
+
+vs a normal HSL triangle which gives the same level of saturaiton for each hue but different percieved
+brightness
+
+also we should probably have a bunch of different choices instead of just one type of picker. this should
+be the default though.
+
 # note
 
 to do a collaborative editor, we either need OT / CDRT stuff. the current plan will
