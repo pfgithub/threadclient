@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
-import { createSignal, JSX } from "solid-js";
+import { createEffect, createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { gfyLike2, previewLink } from "threadclient-preview";
@@ -10,6 +10,7 @@ import { escapeHTML, UUID } from "tmeta-util";
 import { allowedToAcceptClick, Debugtool, Show, TimeAgo } from "tmeta-util-solid";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
+import { CollapseButton } from "./components/CollapseButton";
 import { Flair } from "./components/Flair";
 import { Homepage } from "./components/homepage";
 import { ClientContentAny } from "./components/page2";
@@ -1932,48 +1933,41 @@ export function clientListing(
     if(!listing.thumbnail) thumbnail_loc.clss("no-thumbnail");
 
     if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
-        let collapsed = listing.default_collapsed;
-        const update = () => {
-            hsc.setVisible(!collapsed);
-            if(collapsed) {
-                frame.classList.add("comment-collapsed");
-                collapsed_button.setAttribute("aria-label", "Uncollapse");
-                collapsed_button.setAttribute("aria-pressed", "true");
-            }else{
-                frame.classList.remove("comment-collapsed");
-                collapsed_button.setAttribute("aria-label", "Collapse");
-                collapsed_button.setAttribute("aria-pressed", "false");
-            }
-        };
-        const collapsed_button = el("button").clss("collapse-btn outline-default").attr({
-            'draggable': "true",
-            'aria-label': "Collapse",
-        }).adch(
-            el("div").clss("collapse-btn-inner")
-        ).onev("click", (e) => {
-            e.stopPropagation();
-
-            const initial_size = frame.getBoundingClientRect();
-            const navbar_size = navbar.getBoundingClientRect();
-            const visualTop = () => 5 + Math.max(
-                0, 
-                navbar_size.bottom,
-                window.visualViewport.offsetTop,
-            );
-            const visual_bottom =
-                window.visualViewport.offsetTop + window.visualViewport.height
-            ;
-            console.log(visualTop(), visual_bottom, initial_size.top);
-            if(initial_size.top < visualTop() && initial_size.bottom > visualTop()) {
-                frame.scrollIntoView();
-                document.documentElement.scrollTop -= visualTop();
-            }
-
-            collapsed =! collapsed;
-            update();
+        const [collapsed, setCollapsed] = createSignal(listing.default_collapsed);
+        createEffect(() => {
+            const v = collapsed();
+            frame.classList.toggle("comment-collapsed", v);
+            hsc.setVisible(!v);
         });
-        frame.insertBefore(collapsed_button, frame.childNodes[0] ?? null);
-        update();
+        const loc = el("div").clss("collapse-btn !px-0");
+        frame.insertBefore(loc, frame.childNodes[0] ?? null);
+        const vsc = vanillaToSolidBoundary(loc, (): JSX.Element => {
+            return <CollapseButton
+            class="h-full"
+                collapsed_raw={collapsed()}
+                collapsed_anim={collapsed()}
+                onClick={() => {
+                    const initial_size = frame.getBoundingClientRect();
+                    const navbar_size = navbar.getBoundingClientRect();
+                    const visualTop = () => 5 + Math.max(
+                        0, 
+                        navbar_size.bottom,
+                        window.visualViewport.offsetTop,
+                    );
+                    const visual_bottom =
+                        window.visualViewport.offsetTop + window.visualViewport.height
+                    ;
+                    console.log(visualTop(), visual_bottom, initial_size.top);
+                    if(initial_size.top < visualTop() && initial_size.bottom > visualTop()) {
+                        frame.scrollIntoView();
+                        document.documentElement.scrollTop -= visualTop();
+                    }
+                    setCollapsed(v => !v);
+                }}
+                real={true}
+            />;
+        }, {color_level: 1});
+        hsc.addChild(vsc);
     }
 
     frame.clss("layout-"+listing.layout);
