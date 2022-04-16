@@ -1,6 +1,5 @@
 import type * as Generic from "api-types-generic";
-import "prism-themes/themes/prism-atom-dark.css"; // vsc dark is missing markdown styles
-import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch } from "solid-js";
+import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch, untrack } from "solid-js";
 import { assertNever, switchKind } from "tmeta-util";
 import { Show, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
@@ -194,7 +193,15 @@ let prism_loading = false;
 function fetchPrism() {
     if(!prism() || prism_loading) {
         prism_loading = true;
-        import("./prismjs").then(r => setPrism(r)).catch(e => {
+        Promise.all([
+            import("./prismjs"),
+            untrack(() => getSettings().colorScheme()) === "dark" ? (
+                // not sure how to dynamically toggle these at runtime so live with it
+                import("prism-themes/themes/prism-atom-dark.css")
+                ) : (
+                import("prism-themes/themes/prism-duotone-light.css")
+            ),
+        ]).then(([r]) => setPrism(r)).catch(e => {
             alert("error loading syntax highlighter");
             prism_loading = false;
             console.log(e);
@@ -241,7 +248,7 @@ export function CodeBlock(props: {
     });
 
     return <pre tabindex="0" class={classes([
-        "bg-gray-200 p-2 rounded text-gray-800",
+        "!bg-slate-200 !dark:bg-zinc-700 p-2 !rounded-md text-slate-900 bg:text-zinc-100",
         "relative",
         "group",
         "outline-default",
@@ -256,7 +263,7 @@ export function CodeBlock(props: {
             "group-hover:opacity-100",
             "group-focus:opacity-100",
             "focus:opacity-100",
-            "bg-gray-100 rounded",
+            "bg-slate-400 dark:bg-zinc-600 text-slate-100 dark:text-zinc-100 rounded-md",
             "p-2 px-3",
         ])}>
             <Show if={!!prism() && menuOpen()} fallback={
