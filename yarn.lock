@@ -13132,6 +13132,17 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
+"solid-headless@npm:^0.10.12":
+  version: 0.10.12
+  resolution: "solid-headless@npm:0.10.12"
+  dependencies:
+    solid-use: ^0.3.0
+  peerDependencies:
+    solid-js: ^1.2
+  checksum: 0d02d6f36023e49b0d7022cc5f9c649671e954f67a5b7a39278df796d933067e4701c8282d28ae23cbd769050c2a7bcbc0b1ba5ee2a6b0e1421021710e248ef7
+  languageName: node
+  linkType: hard
+
 "solid-js@npm:^1.3.14":
   version: 1.3.14
   resolution: "solid-js@npm:1.3.14"
@@ -13156,6 +13167,15 @@ fsevents@~2.3.2:
   peerDependencies:
     solid-js: ^1.3.0
   checksum: 84852c896ca237001431585b141ebad30fd06387bb5a25100b106a4742fffd9e437b4dcd5dd4e3569c4d0acf50f8b652e9a299af9a31fed4e8d9b46855ed7485
+  languageName: node
+  linkType: hard
+
+"solid-use@npm:^0.3.0":
+  version: 0.3.3
+  resolution: "solid-use@npm:0.3.3"
+  peerDependencies:
+    solid-js: ^1.2
+  checksum: 00596693f4d8cf3b5e79cec7c966ceb523ffcc09c2bc0fcd5a4f99de04732f9daea528de24a2a9ef446aca66444e106fedad08f939d1fa9bab7183796df895f0
   languageName: node
   linkType: hard
 
@@ -14195,6 +14215,7 @@ fsevents@~2.3.2:
     refractor: ^4.5.0
     sass: ^1.50.0
     shaka-player: ^3.3.2
+    solid-headless: ^0.10.12
     solid-js: ^1.3.14
     threadclient-client-base: ^1.0.0
     threadclient-client-hackernews: ^1.0.0
