@@ -24,10 +24,13 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
             }} />
         </>,
         client: () => <>TODO client</>,
-        special: () => <>TODO special</>,
+        special: special => <ClientPost content={special.fallback} opts={props.opts} />,
     }}</SwitchKind>;
 }
 
+// …? what's the difference between "clientcontent" and "clientcontentany"? these are basically the exact
+// same code copy/pasted
+// pretty sure all uses of 'ClientContentAny' should be removed and replaced with 'ClientContent'
 export type ClientContentProps = {listing: Generic.PostContent, opts: ClientPostOpts};
 export function ClientContent(props: ClientContentProps): JSX.Element {
     const todosupport = (thing: unknown) => <>
@@ -40,8 +43,11 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
             <SwitchKind item={props.listing}>{{
                 page: thing => todosupport(thing),
                 client: thing => todosupport(thing),
-                post: (post) => <>
+                post: post => <>
                     <ClientPost content={post} opts={props.opts} />
+                </>,
+                special: special => <>
+                    <ClientPost content={special.fallback} opts={props.opts} />
                 </>,
                 legacy: legacy => <SolidToVanillaBoundary getValue={(hsc): HTMLElement => {
                     // clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
@@ -50,7 +56,6 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
                     const client = getClientCached(legacy.client_id)!;
                     return clientContent(client, legacy.thread, {clickable: props.opts.clickable}).defer(hsc);
                 }}/>,
-                special: thing => todosupport(thing),
             }}</SwitchKind>
         </DefaultErrorBoundary>
     </div>;
