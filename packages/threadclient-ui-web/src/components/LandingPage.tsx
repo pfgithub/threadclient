@@ -234,6 +234,7 @@ export default function LandingPage(): JSX.Element {
                     inline-block
                     relative group overflow-hidden
                     bg-gradient-to-br from-blue-500 to-blue-600
+                    text-slate-100 dark:text-zinc-100
                     rounded-lg
                 `}>
                     <div class="
