@@ -184,14 +184,20 @@ export default function LandingPage(): JSX.Element {
                             hover:text-slate-900 hover:dark:text-zinc-100
                             transition duration-100
                             inline-block
-                        `}>
+                        `}>{({isOpen}) => <>
                             {/* instead of making this a listbox, we could make it an <A> to a page with a list of all
                             supported clients. there aren't enough clients yet for that to make sense though*/
                             }
-                            <span class="text-slate-900 dark:text-zinc-100">Reddit</span>
+                            <span class="text-slate-900 dark:text-zinc-100">
+                                {homeFor() === "reddit" ? "Reddit" : "Mastodon"}
+                            </span>
                             {" "}
-                            <InternalIcon class="text-lg" tag="fa-angle-down" filled={true} label={null} />
-                        </ListboxButton>
+                            <InternalIcon
+                                class="text-lg"
+                                tag={isOpen() ? "fa-angle-up" : "fa-angle-down"}
+                                filled={true} label={null}
+                            />
+                        </>}</ListboxButton>
                         {/* I wonder if we're allowed to <Portal> this? if we want to replace Dropdown.tsx we
                         need that functionality */
                         }
