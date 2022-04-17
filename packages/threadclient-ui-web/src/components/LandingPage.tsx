@@ -1,7 +1,7 @@
 import * as Generic from "api-types-generic";
 import { createEffect, createSelector, createSignal, For, JSX, Setter, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
-import { getWholePageRootContext } from "../util/utils_solid";
+import { getWholePageRootContext, ToggleColor } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { autokey, CollapseData, flattenPost } from "./flatten";
 import { InternalIcon } from "./Icon";
@@ -130,17 +130,17 @@ export default function LandingPage(): JSX.Element {
     }; */
     return <div class="min-h-screen overflow-x-hidden bg-slate-300 dark:bg-zinc-900 text-slate-900 dark:text-zinc-100">
         <div class="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100">
-            <div class="mx-auto max-w-xl p-4 pb-0">
+            <div class="mx-auto max-w-3xl p-4 pb-0">
                 <div>github link, light/dark mode toggle (toggles between system default and an override)</div>
             </div>
-            <div class="mx-auto max-w-xl p-8">
+            <div class="mx-auto max-w-3xl p-8">
                 <span role="heading" class="text-3xl font-bold">ThreadClient</span>
                 <p class="text-2xl font-light text-slate-500 dark:text-zinc-400">
-                    A new client for
+                    A new client for{" "}
                     <span class="border-b-2 border-dashed">
                         <span class="text-slate-900 dark:text-zinc-100">Reddit</span>
                         {" "}
-                        <InternalIcon tag="fa-angle-down" filled={true} label={null} />
+                        <InternalIcon class="text-lg" tag="fa-angle-down" filled={true} label={null} />
                     </span>
                 </p>
             </div>
@@ -152,7 +152,7 @@ export default function LandingPage(): JSX.Element {
             bg-fixed
             text-slate-900 dark:text-zinc-100
         ">
-            <div class="mx-auto max-w-xl p-8">
+            <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="
@@ -170,19 +170,15 @@ export default function LandingPage(): JSX.Element {
                             <div class="flex flex-row justify-center">
                                 <ToggleButton value={value()} setValue={setValue} />
                             </div>
-                            <div class="relative">
-                                <div class="
-                                    absolute left-0 h-full w-screen rounded-l-xl
-                                    bg-slate-100 dark:bg-zinc-700 shadow-md
-                                " />
-                                <div class="relative py-4">
-                                    <DisplayPost
-                                        post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
-                                        options={{
-                                            allow_threading: value() === "on",
-                                        }}
-                                    />
-                                </div>
+                            <div>
+                                <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
+                                <DisplayPost
+                                    post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
+                                    options={{
+                                        allow_threading: value() === "on",
+                                    }}
+                                />
+                                <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
                             </div>
                         </>;
                     })}</div>
@@ -196,7 +192,7 @@ export default function LandingPage(): JSX.Element {
             bg-fixed
             text-slate-900 dark:text-zinc-100
         ">
-            <div class="mx-auto max-w-xl p-8">
+            <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="space-y-4">
                         <div class="relative">
@@ -225,7 +221,7 @@ export default function LandingPage(): JSX.Element {
             bg-graph-slate-350 dark:bg-graph-zinc-800
             bg-fixed
             text-slate-900 dark:text-zinc-100
-        ">            <div class="mx-auto max-w-xl p-8">
+        ">            <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
@@ -252,7 +248,7 @@ export default function LandingPage(): JSX.Element {
             bg-fixed
             text-slate-900 dark:text-zinc-100
         ">
-            <div class="mx-auto max-w-xl p-8">
+            <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="space-y-4">
                         <div class="relative">
@@ -284,7 +280,7 @@ export default function LandingPage(): JSX.Element {
             bg-fixed
             text-slate-900 dark:text-zinc-100
         ">
-            <div class="mx-auto max-w-xl p-8">
+            <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
@@ -309,7 +305,7 @@ export default function LandingPage(): JSX.Element {
         </div>
     
         <div class="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100">
-            <div class="mx-auto max-w-xl p-8">
+            <div class="mx-auto max-w-3xl p-8">
                 <div class="text-lg">
                     <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                         Extension
@@ -329,7 +325,7 @@ export default function LandingPage(): JSX.Element {
             bg-fixed
             text-slate-900 dark:text-zinc-100
         ">
-            <div class="mx-auto max-w-xl p-8">
+            <div class="mx-auto max-w-3xl p-8">
                 <div class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                     More Features
                 </div>
@@ -452,7 +448,7 @@ export default function LandingPage(): JSX.Element {
         </div>
     
         <div class="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100">
-            <div class="mx-auto max-w-xl p-8">
+            <div class="mx-auto max-w-3xl p-8">
                 <div class="text-lg">
                     <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                         Performance
@@ -471,7 +467,7 @@ export default function LandingPage(): JSX.Element {
         </div>
     
         <div class="bg-slate-600 text-slate-100 dark:bg-zinc-900 dark:text-zinc-100">
-            <div class="mx-auto max-w-xl p-8">ThreadClient. github link</div>
+            <div class="mx-auto max-w-3xl p-8">ThreadClient. github link</div>
         </div>
     </div>;
 }

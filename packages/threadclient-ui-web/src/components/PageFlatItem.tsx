@@ -41,12 +41,12 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
         // should not be used to make gaps.
         wrapper_start: () => <ToggleColor>{color => <div class={""
             + " " + color
-            + " h-2 sm:rounded-xl mt-4"
-        } style="border-bottom-left-radius: 0; border-bottom-right-radius: 0" />}</ToggleColor>,
+            + " h-2 sm:rounded-t-xl mt-4"
+        } />}</ToggleColor>,
         wrapper_end: () => <ToggleColor>{color => <div class={""
             + " " + color
-            + " h-2 sm:rounded-xl mb-4"
-        } style="border-top-left-radius: 0; border-top-right-radius: 0" />}</ToggleColor>,
+            + " h-2 sm:rounded-b-xl mb-4"
+        } />}</ToggleColor>,
         post: loader_or_post => <SwipeActions
             {...(() => {
                 // const getActions = useActions(() => props.content, () => props.opts);
