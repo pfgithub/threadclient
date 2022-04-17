@@ -152,8 +152,14 @@ export default function LandingPage(): JSX.Element {
             bg-fixed
             text-slate-900 dark:text-zinc-100
         ">
-            <div class="mx-auto max-w-3xl p-8">
-                <div class="grid grid-cols-2 gap-8">
+            <div class="mx-auto max-w-3xl p-8">{untrack(() => {
+                const [value, setValue] = createSignal("on");
+
+                return <div class="grid grid-cols-2 gap-x-8 gap-y-4">
+                    <div />
+                    <div class="flex flex-row justify-center">
+                        <ToggleButton value={value()} setValue={setValue} />
+                    </div>
                     <div class="text-lg">
                         <span class="
                             text-sm font-bold uppercase
@@ -164,34 +170,19 @@ export default function LandingPage(): JSX.Element {
                             ThreadClient automatically unthreads these chains.
                         </p>
                     </div>
-                    <div class="space-y-4">{untrack(() => {
-                        const [value, setValue] = createSignal("on");
-                        return <>
-                            <div class="flex flex-row justify-center">
-                                <ToggleButton value={value()} setValue={setValue} />
-                            </div>
-                            <div>
-                                <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
-                                <DisplayPost
-                                    post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
-                                    options={{
-                                        allow_threading: value() === "on",
-                                    }}
-                                />
-                                <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
-                            </div>
-                        </>;
-                    })}</div>
-                </div>
-            </div>
-        </div>
-    
-        <div class="
-            bg-slate-300 dark:bg-zinc-900
-            bg-graph-slate-350 dark:bg-graph-zinc-800
-            bg-fixed
-            text-slate-900 dark:text-zinc-100
-        ">
+                    <div>
+                        <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
+                        <DisplayPost
+                            post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
+                            options={{
+                                allow_threading: value() === "on",
+                            }}
+                        />
+                        <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
+                    </div>
+                </div>;
+            })}</div>
+            
             <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="space-y-4">
@@ -214,41 +205,30 @@ export default function LandingPage(): JSX.Element {
                     </div>
                 </div>
             </div>
-        </div>
-    
-        <div class="
-            bg-slate-300 dark:bg-zinc-900
-            bg-graph-slate-350 dark:bg-graph-zinc-800
-            bg-fixed
-            text-slate-900 dark:text-zinc-100
-        ">
+            
             <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                             Repivoting
                         </span>
-                        <p>When reading deep in comment threads or looking around links, something or other.</p>
+                        <p>
+                            When reading deep in comment threads, press the top part of the comment next to the
+                            username to just see replies to that comment.
+                        </p>
                     </div>
                     <div class="space-y-4">
-                        <div class="relative">
-                            <div class="
-                                absolute left-0 h-full w-screen rounded-l-xl
-                                bg-slate-100 dark:bg-zinc-700 shadow-md
-                            " />
-                            <div class="relative p-4">not sure how to demo this but do it</div>
+                        <div>
+                            <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
+                            <DisplayPost
+                                post={"/homepage/repivot" as Generic.Link<Generic.PostNotLoaded>}
+                            />
+                            <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    
-        <div class="
-            bg-slate-300 dark:bg-zinc-900
-            bg-graph-slate-350 dark:bg-graph-zinc-800
-            bg-fixed
-            text-slate-900 dark:text-zinc-100
-        ">
+            
             <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="space-y-4">
@@ -273,14 +253,7 @@ export default function LandingPage(): JSX.Element {
                     </div>
                 </div>
             </div>
-        </div>
-    
-        <div class="
-            bg-slate-300 dark:bg-zinc-900
-            bg-graph-slate-350 dark:bg-graph-zinc-800
-            bg-fixed
-            text-slate-900 dark:text-zinc-100
-        ">
+            
             <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="text-lg">
@@ -309,12 +282,12 @@ export default function LandingPage(): JSX.Element {
             <div class="mx-auto max-w-3xl p-8">
                 <div class="text-lg">
                     <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
-                        Extension
+                        Extension (TODO)
                     </span>
                     <ul class="list-disc">
                         <li>Automatically redirect to ThreadClient when you click a Reddit link</li>
-                        <li>Show if you have any new chat messages directly in ThreadClient</li>
-                        <li>Support uploading images and galleries when you create a post</li>
+                        <li>(TODO) Show if you have any new chat messages directly in ThreadClient</li>
+                        <li>(TODO) Support uploading images and galleries when you create a post</li>
                     </ul>
                 </div>
             </div>

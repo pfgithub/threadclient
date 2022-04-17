@@ -24,12 +24,17 @@ function linkToPost(text: AllLinks): Generic.Link<Generic.Post> {
     return text as Generic.Link<Generic.Post>;
 }
 
-function autoPostContent(value: {content: Generic.Richtext.Paragraph[], url: string}): Generic.PostContentPost {
+type AutoPostContentProps = {
+    content: Generic.Richtext.Paragraph[],
+    url: string,
+    show_replies_when_below_pivot?: undefined | boolean,
+};
+function autoPostContent(value: AutoPostContentProps): Generic.PostContentPost {
     return {
         kind: "post",
         title: null,
         body: {kind: "richtext", content: value.content},
-        show_replies_when_below_pivot: true,
+        show_replies_when_below_pivot: value.show_replies_when_below_pivot ?? true,
         collapsible: {default_collapsed: false},
 
         actions: {
@@ -65,10 +70,9 @@ function autoPostContent(value: {content: Generic.Richtext.Paragraph[], url: str
 }
 function autoPost<T extends string>(value: {
     url: T,
-    content: Generic.Richtext.Paragraph[],
     parent: null | string,
     replies: null | string[],
-}): AllContentRawItemExtends<T> {
+} & AutoPostContentProps): AllContentRawItemExtends<T> {
     const {url, parent, replies} = value;
     return {v: value.url, post: {
         kind: "post",
@@ -78,7 +82,7 @@ function autoPost<T extends string>(value: {
         client_id: client.id,
         internal_data: value,
         display_style: "centered",
-        content: autoPostContent({url, content: value.content}),
+        content: autoPostContent(value),
     }};
 }
 
@@ -164,6 +168,39 @@ const all_content_raw_dontuse = [
         )],
 
         parent: "/",
+        replies: [],
+    }),
+
+    autoPost({
+        url: "/homepage/repivot",
+        content: [rt.p(
+            rt.txt(
+                "When you're getting deep in a comment thread, press the top bar (next to the username)"
+                +" to repivot. ↑",
+            ),
+        )],
+        show_replies_when_below_pivot: false,
+
+        parent: "/",
+        replies: ["/homepage/repivot/0", "/homepage/repivot/1"],
+    }),
+
+    autoPost({
+        url: "/homepage/repivot/0",
+        content: [rt.p(
+            rt.txt("Now you can see just the replies to the comment you pressed"),
+        )],
+
+        parent: "/homepage/repivot",
+        replies: [],
+    }),
+    autoPost({
+        url: "/homepage/repivot/1",
+        content: [rt.p(
+            rt.txt("Use the back button or swipe from the left side of the screen to go back"),
+        )],
+
+        parent: "/homepage/repivot",
         replies: [],
     }),
 
