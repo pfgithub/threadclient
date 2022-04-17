@@ -623,7 +623,6 @@ export type RichTextItem = {
 export type SystemKind = "none" | "op" | "cake" | "admin" | "moderator" | "approved" | "error";
 export type Flair = {
     color?: string | undefined,
-    fg_color?: "light" | "dark" | undefined,
     elems: RichTextItem[], // TODO → Richtext.Span[]
     content_warning: boolean,
     system?: undefined | SystemKind,

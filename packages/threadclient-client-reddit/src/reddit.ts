@@ -36,7 +36,6 @@ export function flairToGenericFlair(
     const flair_text = elems.map(v => v.kind === "text" ? v.text : "").join("");
     return [{
         color: opts.background_color ?? undefined,
-        fg_color: opts.text_color === "light" ? "light" : "dark",
         elems,
         content_warning: flair_text.toLowerCase().startsWith("cw:") || flair_text.toLowerCase().startsWith("tw:")
     }];
