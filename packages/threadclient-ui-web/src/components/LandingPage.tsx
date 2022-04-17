@@ -167,11 +167,19 @@ export default function LandingPage(): JSX.Element {
                 <span role="heading" class="text-3xl font-bold">ThreadClient</span>
                 <p class="text-2xl font-light text-slate-500 dark:text-zinc-400">
                     A new client for{" "}
-                    <span class="border-b-2 border-dashed">
+                    <button class="
+                        border-slate-500 dark:border-zinc-400
+                        border-b-2 border-dashed
+                        hover:border-solid
+                        hover:border-slate-900 hover:dark:border-zinc-100
+                        hover:text-slate-900 hover:dark:text-zinc-100
+                        transition duration-100
+                        inline-block
+                    " onClick={() => alert("TODO dropdown")}>
                         <span class="text-slate-900 dark:text-zinc-100">Reddit</span>
                         {" "}
                         <InternalIcon class="text-lg" tag="fa-angle-down" filled={true} label={null} />
-                    </span>
+                    </button>
                 </p>
             </div>
         </div>
