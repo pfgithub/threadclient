@@ -140,6 +140,10 @@ export type PostContent = ClientPost | {
     kind: "legacy",
     thread: Thread,
     client_id: string,
+} | {
+    kind: "special",
+    tag_uuid: `${string}@-${string}`,
+    fallback: PostContentPost,
 };
 export type SortData = {
     sort_methods: "TODO",

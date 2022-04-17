@@ -1,20 +1,48 @@
 import type * as Generic from "api-types-generic";
+import { readLink } from "api-types-generic";
 import {
     createMemo,
     createSignal,
-    For, JSX
+    For, JSX, untrack
 } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { getWholePageRootContext, size_lt } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { CollapseData, flatten } from "./flatten";
+import LandingPage from "./LandingPage";
 import PageFlatItem from "./PageFlatItem";
 import { array_key } from "./symbols";
+
+type SpecialCallback = () => JSX.Element;
+const full_page_special_callbacks: Record<string, SpecialCallback> = {
+    'LandingPage@-N-ry9qt3N1VTG0iKMHy': (): JSX.Element => {
+        return <LandingPage />;
+    },
+};
 
 export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
 };
 export default function ClientPage(props: ClientPageProps): JSX.Element {
+    const hprc = getWholePageRootContext();
+
+    const specialCB = (): null | SpecialCallback => {
+        const value = readLink(hprc.content(), props.pivot);
+        if(value.value == null) return null;
+        const v = value.value;
+        if(v.kind !== "post" || v.content.kind !== "special") return null;
+        const fpsc = full_page_special_callbacks[v.content.tag_uuid];
+        if(fpsc == null) return null;
+        return fpsc;
+    };
+
+    return <Show when={specialCB()} fallback={
+        <ClientPageMain pivot={props.pivot} />
+    }>{cb => <>
+        {untrack(cb)}
+    </>}</Show>;
+}
+function ClientPageMain(props: ClientPageProps): JSX.Element {
     // [!] we'll want to fix this up and make it observable and stuff
     // now that page2 is ready to be properly observable, flatten should be too.
 

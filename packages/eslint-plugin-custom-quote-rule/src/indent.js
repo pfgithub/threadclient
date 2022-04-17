@@ -36,6 +36,7 @@ module.exports = {
 
         messages: {
             indent: "Bad indentation. Start was {{expected}}, but end was {{got}}. On {{node_kind}}",
+            indent2: "Bad indentation. Start was {{expected}}, but end was {{got}}. On {{node_kind}}. Details: {{details}}",
             conditional: "Bad conditional formatting. {{lhs}} should end on the same line as {{rhs}} starts.",
         }
     },
@@ -136,6 +137,9 @@ module.exports = {
                 if(start_line.type === "Template" || end_line.type === "Template") {
                     return;
                 }
+                if(start_line.type === "JSXText" || end_line.type === "JSXText") {
+                    return;
+                }
 
                 // console.log(start_line, end_line);
 
@@ -153,11 +157,12 @@ module.exports = {
 
                     context.report({
                         node: node,
-                        messageId: "indent",
+                        messageId: "indent2",
                         data: {
                             expected: start.column,
                             got: end.column,
                             node_kind: node.type,
+                            details: `start: ${start_line.type} end: ${end_line.type} first: ${first_loc.line} last: ${last_loc.line}`,
                         },
                     });
                 }

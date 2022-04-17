@@ -16,18 +16,61 @@ export const client: ThreadClient = {
     }
 };
 
-function linkToPost(text: string): Generic.Link<Generic.Post> {
+// there's 0 chance this is possible but what if we could automatically extract the urls from the posts to
+// make text typesafe
+// maybe if we change it to an object like {"/url": u => {…, u}} and call all of them
+// ok we can do that actually why not
+function linkToPost(text: AllLinks): Generic.Link<Generic.Post> {
     return text as Generic.Link<Generic.Post>;
 }
 
-function autoPost(value: {
-    url: string,
+function autoPostContent(value: {content: Generic.Richtext.Paragraph[], url: string}): Generic.PostContentPost {
+    return {
+        kind: "post",
+        title: null,
+        body: {kind: "richtext", content: value.content},
+        show_replies_when_below_pivot: true,
+        collapsible: {default_collapsed: false},
+
+        actions: {
+            vote: {
+                kind: "counter",
+                client_id: client.id,
+                unique_id: "VOTE_"+value.url,
+                increment: {
+                    icon: "up_arrow",
+                    color: "reddit-upvote",
+                    label: "Upvote",
+                    undo_label: "Undo Upvote",
+                },
+                decrement: {
+                    icon: "down_arrow",
+                    color: "reddit-downvote",
+                    label: "Downvote",
+                    undo_label: "Undo Downvote",
+                },
+                count_excl_you: 5,
+                you: undefined,
+                actions: {error: "TODO"},
+                time: Date.now(),
+            },
+        },
+        author: {
+            name: "pfg___",
+            color_hash: "pfg___",
+            link: "https://www.reddit.com/user/pfg___",
+            client_id: client.id,
+        },
+    };
+}
+function autoPost<T extends string>(value: {
+    url: T,
     content: Generic.Richtext.Paragraph[],
     parent: null | string,
     replies: null | string[],
-}): Generic.Post {
+}): AllContentRawItemExtends<T> {
     const {url, parent, replies} = value;
-    return {
+    return {v: value.url, post: {
         kind: "post",
         parent: parent != null ? linkToPost(parent) : null,
         replies: replies != null ? {items: replies.map(linkToPost)} : null,
@@ -35,60 +78,64 @@ function autoPost(value: {
         client_id: client.id,
         internal_data: value,
         display_style: "centered",
-        content: {
-            kind: "post",
-            title: null,
-            body: {kind: "richtext", content: value.content},
-            show_replies_when_below_pivot: true,
-            collapsible: {default_collapsed: false},
-
-            actions: {
-                vote: {
-                    kind: "counter",
-                    client_id: client.id,
-                    unique_id: "VOTE_"+url,
-                    increment: {
-                        icon: "up_arrow",
-                        color: "reddit-upvote",
-                        label: "Upvote",
-                        undo_label: "Undo Upvote",
-                    },
-                    decrement: {
-                        icon: "down_arrow",
-                        color: "reddit-downvote",
-                        label: "Downvote",
-                        undo_label: "Undo Downvote",
-                    },
-                    count_excl_you: 5,
-                    you: undefined,
-                    actions: {error: "TODO"},
-                    time: Date.now(),
-                },
-            },
-            author: {
-                name: "pfg___",
-                color_hash: "pfg___",
-                link: "https://www.reddit.com/user/pfg___",
-                client_id: client.id,
-            },
-        },
-    };
+        content: autoPostContent({url, content: value.content}),
+    }};
 }
 
-const all_content: Generic.Page2Content = Object.fromEntries([
-    autoPost({
-        url: "/",
-        content: [],
+function u<V extends string>(v: V, cb: (v: V) => Generic.Post): AllContentRawItemExtends<V> {
+    return {v, post: cb(v)};
+}
+type AllContentRawItemExtends<V> = {
+    v: V,
+    post: Generic.Post,
+};
+// type AllLinks = (typeof all_content_raw_dontuse)["v"];
+// ^ dang it circular references. i think we have to use a Record<string, post> instead.
+type AllLinks = string;
+
+const all_content_raw_dontuse = [
+    u("/@special-navbar", url => ({
+        kind: "post",
         parent: null,
-        replies: ["/homepage/unthreading", "/homepage/swipe-actions"],
-    }),
+        replies: null,
+        url,
+        client_id: client.id,
+        internal_data: "",
+        display_style: "centered",
+        content: {
+            kind: "client",
+            navbar: {
+                actions: [],
+                inboxes: [],
+            },
+        },
+    })),
+    u("/", url => ({
+        kind: "post",
+        parent: linkToPost("/@special-navbar"),
+        replies: null,
+        url,
+        client_id: client.id,
+        internal_data: "",
+        display_style: "centered",
+        content: {
+            kind: "special",
+            tag_uuid: "LandingPage@-N-ry9qt3N1VTG0iKMHy",
+            fallback: autoPostContent({
+                url,
+                content: [
+                    rt.p(rt.error("TODO fallback", 0)),
+                ],
+            }),
+        },
+    })),
 
     autoPost({
         url: "/homepage/unthreading",
         content: [rt.p(
             rt.txt("It often gets difficult to read long comment chains because the indentation gets too deep"),
         )],
-        parent: null,
+        parent: "/",
         replies: ["/homepage/unthreading/0"],
     }),
     autoPost({
@@ -116,7 +163,7 @@ const all_content: Generic.Page2Content = Object.fromEntries([
             rt.link({id: client.id}, "TODO a link", {}, rt.txt("Try it out!")),
         )],
 
-        parent: null,
+        parent: "/",
         replies: [],
     }),
 
@@ -126,9 +173,10 @@ const all_content: Generic.Page2Content = Object.fromEntries([
             rt.txt("something or other"),
         )],
 
-        parent: null,
+        parent: "/",
         replies: [],
     }),
-].map((v: Generic.Post): [Generic.Link<Generic.Post>, Generic.Page2Content[Generic.Link<Generic.Post>]] => [
-    linkToPost(v.url ?? (() => {throw new Error("no url")})()), {data: v},
-]));
+];
+const all_content: Generic.Page2Content = Object.fromEntries(
+    all_content_raw_dontuse.map(itm => [itm.v, {data: itm.post}]),
+);

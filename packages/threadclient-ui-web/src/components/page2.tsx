@@ -24,6 +24,7 @@ export function ClientContentAny(props: {content: Generic.PostContent, opts: Cli
             }} />
         </>,
         client: () => <>TODO client</>,
+        special: () => <>TODO special</>,
     }}</SwitchKind>;
 }
 
@@ -49,6 +50,7 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
                     const client = getClientCached(legacy.client_id)!;
                     return clientContent(client, legacy.thread, {clickable: props.opts.clickable}).defer(hsc);
                 }}/>,
+                special: thing => todosupport(thing),
             }}</SwitchKind>
         </DefaultErrorBoundary>
     </div>;
