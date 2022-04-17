@@ -195,12 +195,12 @@ export default function LandingPage(): JSX.Element {
             <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="space-y-4">
-                        <div class="relative">
-                            <div class="
-                                absolute right-0 top-0 h-full w-screen rounded-r-xl
-                                bg-slate-100 dark:bg-zinc-700 shadow-md
-                            " />
-                            <div class="relative p-4">interactive demo</div>
+                        <div>
+                            <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
+                            <DisplayPost
+                                post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
+                            />
+                            <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
                         </div>
                     </div>
                     <div class="text-lg">
@@ -208,8 +208,8 @@ export default function LandingPage(): JSX.Element {
                             Link Previews
                         </span>
                         <p>
-                            Preview links directly inline. ThreadClient supports previewing from over [XX(keep
-                            up-to-date by referencing the actual value in the code)] sources
+                            Preview links directly inline. ThreadClient supports previewing from
+                            many of the most popular sources.
                         </p>
                     </div>
                 </div>
@@ -221,7 +221,8 @@ export default function LandingPage(): JSX.Element {
             bg-graph-slate-350 dark:bg-graph-zinc-800
             bg-fixed
             text-slate-900 dark:text-zinc-100
-        ">            <div class="mx-auto max-w-3xl p-8">
+        ">
+            <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">

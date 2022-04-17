@@ -18,18 +18,14 @@ function getVredditPreview(id: string): Generic.Video {
     return video;
 }
 
-export function previewLink(
+export const preview_sources: {[key: string]: (args: {
+    url: URL | undefined,
+    path: string,
     link: string,
-    opts: {suggested_embed?: undefined | string},
-): undefined | Generic.Body {
-    let url_mut: URL | undefined;
-    try { 
-        url_mut = new URL(link);
-    }catch(e) {
-        // ignore
-    }
-    const url = url_mut;
-    const path = url?.pathname ?? link;
+    next: () => null | Generic.Body,
+}) => null | Generic.Body} = {'image': ({url,  link, path, next}) => {
+    // for safety, ideally these would be requested by a server. this is safe enough though.
+
     const is_mp4_link_masking_as_gif = url ? path.endsWith(".gif") && url.searchParams.get("format") === "mp4" : false;
     if(is_mp4_link_masking_as_gif) {
         return {kind: "video", gifv: true, source: {
@@ -51,6 +47,18 @@ export function previewLink(
         || path.endsWith(".jpeg")|| path.endsWith(".gif")
         || path.endsWith(".webp")|| (url?.hostname ?? "") === "pbs.twimg.com"
     ) return {kind: "captioned_image", url: link, w: null, h: null};
+
+    if(path.endsWith(".mp4") || path.endsWith(".webm")) {
+        return {kind: "video", gifv: false, source: {kind: "video", sources: [
+            {url: link, quality: "Highest"},
+        ]}};
+    }
+    if(path.endsWith(".mp3")) {
+        return {kind: "audio", url: link};
+    }
+
+    return next();
+}, 'vreddit': ({url, link, path, next}) => {
     if(link.startsWith("https://v.redd.it/")) return getVredditPreview(link.replace("https://v.redd.it/", ""));
     if(url && (url.host === "reddit.com" || url.host.endsWith(".reddit.com") && url.pathname.startsWith("/link"))) {
         const pathsplit = path.split("/");
@@ -60,6 +68,8 @@ export function previewLink(
             return getVredditPreview(pathsplit[3] ?? "");
         }
     }
+    return next();
+}, 'gfycat': ({url, link, path, next}) => {
     if(url
         && (url.host === "gfycat.com" || url.host.endsWith(".gfycat.com"))
         && url.pathname.split("/").length === 2
@@ -79,14 +89,8 @@ export function previewLink(
             host: "\x72\x65\x64gifs.com",
         };
     }
-    if(path.endsWith(".mp4") || path.endsWith(".webm")) {
-        return {kind: "video", gifv: false, source: {kind: "video", sources: [
-            {url: link, quality: "Highest"},
-        ]}};
-    }
-    if(path.endsWith(".mp3")) {
-        return {kind: "audio", url: link};
-    }
+    return next();
+}, 'youtube': ({url, link, path, next}) => {
     if(url && (
         url.host === "www.youtube.com"
         || url.host === "youtube.com"
@@ -99,12 +103,16 @@ export function previewLink(
         const youtube_video_id = url.pathname.split("/")[1] ?? "no_id";
         return {kind: "youtube", id: youtube_video_id, search: url.searchParams.toString()};
     }
+    return next();
+}, 'vocaroo': ({url, link, path, next}) => {
     if(url && (url.host === "vocaroo.com" || url.host === "www.vocaroo.com" || url.host === "voca.ro")) {
         const splitv = url.pathname.split("/").filter(q => q);
         if(splitv.length === 1 && splitv[0] != null && splitv[0] !== "") {
             return {kind: "audio", url: "https://media.vocaroo.com/mp3/"+splitv[0]};
         }        
     }
+    return next();
+}, 'giphy': ({url, link, path, next}) => {
     if(url && (url.host === "giphy.com" || url.host === "www.giphy.com")) {
         const splitv = url.pathname.split("/").filter(q => q);
         if(splitv.length === 3 && splitv[0] === "gifs" && splitv[2] === "fullscreen") {
@@ -121,6 +129,8 @@ export function previewLink(
             }, gifv: true};
         }        
     }
+    return next();
+}, 'imgur': ({url, link, path, next}) => {    
     if(url && (url.host === "www.imgur.com" || url.host === "imgur.com" || url.host === "m.imgur.com")) {
         const splitv = url.pathname.split("/").filter(q => q);
         const galleryid = splitv[1]!;
@@ -141,6 +151,8 @@ export function previewLink(
             };
         }
     }
+    return next();
+}, 'twitch': ({url, link, path, next}) => {
     if(url && url.host === "clips.twitch.tv" && url.pathname.split("/").filter(q => q).length === 1) {
         const clipid = url.pathname.split("/").filter(q => q)[0];
         if(clipid != null) return {
@@ -148,21 +160,57 @@ export function previewLink(
             slug: clipid,
         };
     }
+    return next();
+}, 'soundcloud': ({url, link, path, next}) => {
     if(url && (url.host === "soundcloud.com" || url.host.endsWith(".soundcloud.com"))) return {
         kind: "oembed",
         client_id: "n/a",
         url: "https://soundcloud.com/oembed?format=json&url="+encodeURIComponent(link),
     };
+    return next();
+}, 'tiktok': ({url, link, path, next}) => {
     if(url && (url.host === "tiktok.com" || url.host.endsWith(".tiktok.com"))) return {
         kind: "oembed",
         client_id: "n/a",
         url: "https://www.tiktok.com/oembed?url="+encodeURIComponent(link),
     };
-    if(opts.suggested_embed != null) return {
-        kind: "reddit_suggested_embed",
-        suggested_embed: opts.suggested_embed,
+    return next();
+}};
+
+export function previewLink(
+    link: string,
+    opts: {suggested_embed?: undefined | string},
+): undefined | Generic.Body {
+    let url_mut: URL | undefined;
+    try { 
+        url_mut = new URL(link);
+    }catch(e) {
+        // ignore
+    }
+    const url = url_mut;
+    const path = url?.pathname ?? link;
+
+    // TODO: we should update this
+    // - it should be easy to specify a handler for a given:
+    //   - domain eg `*.reddit.com`
+    //   - domain list eg `www.imgur.com | imgur.com | m.imgur.com`
+
+    const sources = Object.values(preview_sources);
+    const execSource = (i: number): null | Generic.Body => {
+        const src = sources[i];
+        if(!src) return final();
+        return src({url, link, path, next: () => execSource(i + 1)});
     };
-    return undefined;
+
+    const final = (): null | Generic.Body => {
+        if(opts.suggested_embed != null) return {
+            kind: "reddit_suggested_embed",
+            suggested_embed: opts.suggested_embed,
+        };
+        return null;
+    };
+
+    return execSource(0) ?? undefined;
 }
 
 // TODO rewrite gfylike1 to return a Promise<Generic.PostData> and put it here

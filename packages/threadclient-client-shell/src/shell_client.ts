@@ -160,7 +160,7 @@ const all_content_raw_dontuse = [
         content: [rt.p(
             rt.txt("ThreadClient supports previewing links from many different sources, directly inline."),
         ), rt.p(
-            rt.link({id: client.id}, "TODO a link", {}, rt.txt("Try it out!")),
+            rt.link({id: client.id}, "https://i.redd.it/p0y4mrku6xh61.png", {}, rt.txt("Try it out!")),
         )],
 
         parent: "/",
