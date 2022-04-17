@@ -96,7 +96,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                 console.log(err.value);
             });
         }} />,
-        code: (code) => <code class="bg-slate-200 dark:bg-zinc-700 p-1 rounded text-gray-800">{code.text}</code>,
+        code: (code) => <code class="bg-slate-200 dark:bg-zinc-700 p-1 rounded">{code.text}</code>,
     }}</SwitchKind>;
 }
 
@@ -111,15 +111,19 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
         heading: (heading) => {
             // <Dynamic> can work for this. they need different classes though so idk.
             const content = () => <RichtextSpans spans={heading.children} />;
-            if(heading.level === 1) return <h1 class="text-3xl text-gray-900 font-black">{content()}</h1>;
-            if(heading.level === 2) return <h2 class="text-2xl text-gray-900 font-bold">{content()}</h2>;
-            if(heading.level === 3) return <h3 class="text-xl text-gray-900 font-semibold">{content()}</h3>;
-            if(heading.level === 4) return <h4 class="text-lg text-gray-900 font-medium">{content()}</h4>;
-            if(heading.level === 5) return <h5 class="text-base text-gray-600 font-normal">{content()}</h5>;
-            return <h6 class="text-sm text-gray-600 font-normal underline">{content()}</h6>;
+            if(heading.level === 1) return <h1 class="text-3xl font-black">{content()}</h1>;
+            if(heading.level === 2) return <h2 class="text-2xl font-bold">{content()}</h2>;
+            if(heading.level === 3) return <h3 class="text-xl font-semibold">{content()}</h3>;
+            if(heading.level === 4) return <h4 class="text-lg font-medium">{content()}</h4>;
+            if(heading.level === 5) return <h5
+                class="text-base text-slate-500 dark:text-zinc-400 font-normal"
+            >{content()}</h5>;
+            return <h6 class="text-sm text-slate-500 dark:text-zinc-400 font-normal underline">{content()}</h6>;
         },
-        horizontal_line: () => <div class="py-2"><div class="w-full h-2px bg-gray-400 rounded"></div></div>,
-        blockquote: (bquote) => <blockquote class="border-l-2 border-gray-600 text-gray-600 pl-3">
+        horizontal_line: () => <div class="py-2">
+            <hr class="w-full border-t-2 border-slate-500 dark:border-zinc-400 rounded" />
+        </div>,
+        blockquote: (bquote) => <blockquote class="border-l-2 border-slate-500 dark:border-zinc-400 pl-3">
             <RichtextParagraphs content={bquote.children} />
         </blockquote>,
         list: (list) => {
