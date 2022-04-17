@@ -139,12 +139,14 @@ const all_content_raw_dontuse = [
         content: {
             kind: "special",
             tag_uuid: "LandingPage@-N-ry9qt3N1VTG0iKMHy",
-            fallback: autoPostContent({
-                url,
-                content: [
-                    rt.p(rt.error("TODO fallback", 0)),
-                ],
-            }),
+            fallback: {
+                kind: "post",
+                title: {text: "ThreadClient Home"},
+                thumbnail: {kind: "image", url: "/images/threadclient_96.png"},
+                body: {kind: "none"},
+                show_replies_when_below_pivot: false,
+                collapsible: {default_collapsed: true}, // TODO make it not uncollapsible
+            },
         },
     })),
 

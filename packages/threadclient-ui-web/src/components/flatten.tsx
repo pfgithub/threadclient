@@ -95,6 +95,18 @@ export type RenderPostOpts = {
     depth: number,
 };
 
+function unwrapPost(post: Generic.PostNotLoaded): Generic.PostNotLoaded {
+    if(post.kind === "post") {
+        if(post.content.kind === "special") {
+            return {...post, content: post.content.fallback};
+        }
+        // TODO also do this for eg:
+        // - a page that is displaying its fallback
+        // - … more
+    }
+    return post;
+}
+
 export function renderPost(
     post_link: Generic.Link<Generic.PostNotLoaded>,
     parent_indent: CollapseButton[],
@@ -103,7 +115,7 @@ export function renderPost(
 ): FlatItem {
     const post_read = readLink(meta, post_link);
     if(post_read.error != null) return fi.err(post_read.error, post_link);
-    const post = post_read.value;
+    const post = unwrapPost(post_read.value);
 
     const is_collapsible = post.kind === "post" && post.content.kind === "post" && post.content.collapsible !== false;
 
@@ -179,7 +191,7 @@ export function flattenPost(
         res.push(fi.err(post_read.error, post_link));
         return res;
     }
-    const post = post_read.value;
+    const post = unwrapPost(post_read.value);
 
     const rres = renderPost(post_link, parent_indent, meta, rpo);
     res.push(rres);
