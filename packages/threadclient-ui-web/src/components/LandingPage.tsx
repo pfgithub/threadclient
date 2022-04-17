@@ -282,12 +282,16 @@ export default function LandingPage(): JSX.Element {
             <div class="mx-auto max-w-3xl p-8">
                 <div class="text-lg">
                     <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
-                        Extension (TODO)
+                        Performance
                     </span>
                     <ul class="list-disc">
-                        <li>Automatically redirect to ThreadClient when you click a Reddit link</li>
-                        <li>(TODO) Show if you have any new chat messages directly in ThreadClient</li>
-                        <li>(TODO) Support uploading images and galleries when you create a post</li>
+                        <li>
+                            video. compare performance of threadclient, new.reddit, and old.reddit in these situations:
+                        </li>
+                        <li>- first load</li>
+                        <li>- opening comments on a post</li>
+                        <li>we can even get technical and enable react devtools highlighting to show that threadclient
+                            doesn't update nearly as much as new.reddit</li>
                     </ul>
                 </div>
             </div>
@@ -425,16 +429,12 @@ export default function LandingPage(): JSX.Element {
             <div class="mx-auto max-w-3xl p-8">
                 <div class="text-lg">
                     <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
-                        Performance
+                        Extension (TODO)
                     </span>
                     <ul class="list-disc">
-                        <li>
-                            video. compare performance of threadclient, new.reddit, and old.reddit in these situations:
-                        </li>
-                        <li>- first load</li>
-                        <li>- opening comments on a post</li>
-                        <li>we can even get technical and enable react devtools highlighting to show that threadclient
-                            doesn't update nearly as much as new.reddit</li>
+                        <li>Automatically redirect to ThreadClient when you click a Reddit link</li>
+                        <li>(TODO) Show if you have any new chat messages directly in ThreadClient</li>
+                        <li>(TODO) Support uploading images and galleries when you create a post</li>
                     </ul>
                 </div>
             </div>
