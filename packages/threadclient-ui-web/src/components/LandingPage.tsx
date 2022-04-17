@@ -182,6 +182,25 @@ export default function LandingPage(): JSX.Element {
                     </button>
                 </p>
             </div>
+            <div class="mx-auto max-w-3xl pt-0 p-8">
+                <A href="/" client_id="reddit" class={`
+                    inline-block
+                    relative group overflow-hidden
+                    bg-gradient-to-br from-blue-500 to-blue-600
+                    rounded-lg
+                `}>
+                    <div class="
+                        absolute top-0 left-0 w-full h-full
+                        bg-gradient-to-br from-blue-400 to-blue-600
+                        opacity-0 group-hover:opacity-100
+                        transform -translate-y-3 group-hover:translate-y-0
+                        transition duration-100
+                    "></div>
+                    <div class="relative p-4">
+                        Open ThreadClient
+                    </div>
+                </A>
+            </div>
         </div>
     
         <div class="
