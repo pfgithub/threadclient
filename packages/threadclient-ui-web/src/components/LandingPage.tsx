@@ -223,15 +223,6 @@ export default function LandingPage(): JSX.Element {
             
             <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <div>
-                            <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
-                            <DisplayPost
-                                post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
-                            />
-                            <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
-                        </div>
-                    </div>
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                             Link Previews
@@ -240,6 +231,15 @@ export default function LandingPage(): JSX.Element {
                             Preview links directly inline. ThreadClient supports previewing from
                             many of the most popular sources.
                         </p>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
+                            <DisplayPost
+                                post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
+                            />
+                            <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -269,18 +269,6 @@ export default function LandingPage(): JSX.Element {
             
             <div class="mx-auto max-w-3xl p-8">
                 <div class="grid grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <div class="relative">
-                            <div class="
-                                absolute right-0 top-0 h-full w-screen rounded-r-xl
-                                bg-slate-100 dark:bg-zinc-700 shadow-md
-                            " />
-                            <div class="relative p-4">
-                                put this in a phone ui and use a flag to force enable treating pointer as touch within
-                                this frame. and maybe even change the cursor to look like a touch
-                            </div>
-                        </div>
-                    </div>
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                             Swipe Actions
@@ -288,6 +276,18 @@ export default function LandingPage(): JSX.Element {
                         <p>
                             Swipe comments to collapse them or repivot or something. Might be configurable eventually.
                         </p>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <div class="
+                                absolute left-0 h-full w-full rounded-xl
+                                bg-slate-100 dark:bg-zinc-700 shadow-md
+                            " />
+                            <div class="relative p-4">
+                                put this in a phone ui and use a flag to force enable treating pointer as touch within
+                                this frame. and maybe even change the cursor to look like a touch
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -306,7 +306,7 @@ export default function LandingPage(): JSX.Element {
                     <div class="space-y-4">
                         <div class="relative">
                             <div class="
-                                absolute left-0 h-full w-screen rounded-l-xl
+                                absolute left-0 h-full w-full rounded-xl
                                 bg-slate-100 dark:bg-zinc-700 shadow-md
                             " />
                             <div class="relative p-4">preview `reddit_markdown` and also fix the `'loading…` bug</div>
