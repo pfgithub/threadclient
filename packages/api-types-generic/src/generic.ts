@@ -723,8 +723,8 @@ export type Icon =
     | "chevron_down"
 ;
 export type Color =
-    | "reddit-upvote"
-    | "reddit-downvote"
+    | "orange"
+    | "indigo"
     | "blue"
     | "green"
     | "yellow"

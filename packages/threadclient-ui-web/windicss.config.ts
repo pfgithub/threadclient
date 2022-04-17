@@ -49,6 +49,7 @@ export default defineConfig({
             'cyan': colors.cyan,
             'light-blue': colors.lightBlue,
             'orange': colors.orange,
+            'indigo': colors.indigo,
             'yellow': colors.yellow,
             'purple': colors.purple,
             'pink': colors.pink,

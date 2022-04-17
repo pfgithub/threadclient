@@ -57,13 +57,13 @@ function autoPostContent(value: AutoPostContentProps): Generic.PostContentPost {
                 unique_id: "VOTE_"+value.url,
                 increment: {
                     icon: "up_arrow",
-                    color: "reddit-upvote",
+                    color: "orange",
                     label: "Upvote",
                     undo_label: "Undo Upvote",
                 },
                 decrement: {
                     icon: "down_arrow",
-                    color: "reddit-downvote",
+                    color: "indigo",
                     label: "Downvote",
                     undo_label: "Undo Downvote",
                 },

@@ -189,8 +189,8 @@ function generatePoints(id: string, controversiality: boolean): Generic.CounterA
     ][] = [
         ["Favourite", "Undo Favourite", "yellow", "star"],
         ["Like", "Undo Like", "pink", "heart"],
-        ["Upvote", "Undo Upvote", "reddit-upvote", "up_arrow", [
-            "Downvote", "Undo Downvote", "reddit-downvote", "down_arrow",
+        ["Upvote", "Undo Upvote", "orange", "up_arrow", [
+            "Downvote", "Undo Downvote", "indigo", "down_arrow",
         ]]
     ];
     const [label, undo_label, color, icon, decrement] = faker.random.arrayElement(arrayv);

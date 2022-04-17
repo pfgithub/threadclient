@@ -1,8 +1,8 @@
 import type * as Generic from "api-types-generic";
 
 const class_from_icon_color: {[key in Generic.Color]: string} = {
-    'reddit-upvote': "text-$upvote-color",
-    'reddit-downvote': "text-$downvote-color",
+    'orange': "text-orange-600 dark:text-orange-400",
+    'indigo': "text-indigo-500 dark:text-indigo-400",
     'blue': "text-blue-600 dark:text-blue-500",
     'green': "text-green-600 dark:text-green-500",
     'white': "text-gray-300 dark:text-black",

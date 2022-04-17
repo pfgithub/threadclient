@@ -1580,14 +1580,14 @@ export function getPointsOn(listing: {
 
         increment: {
             icon: "up_arrow",
-            color: "reddit-upvote",
+            color: "orange",
             label: "Upvote",
             undo_label: "Undo Upvote",
             // done_label: "Upvoted"
         },
         decrement: {
             icon: "down_arrow",
-            color: "reddit-downvote",
+            color: "indigo",
             label: "Downvote",
             undo_label: "Undo Downvote",
             // done_label: "Downvoted"
@@ -3034,14 +3034,14 @@ export const client: ThreadClient = {
                 
                 increment: {
                     icon: "up_arrow",
-                    color: "reddit-upvote",
+                    color: "orange",
                     label: "Upvote",
                     undo_label: "Undo Upvote",
                     // done_label: "Upvoted"
                 },
                 decrement: {
                     icon: "down_arrow",
-                    color: "reddit-downvote",
+                    color: "indigo",
                     label: "Downvote",
                     undo_label: "Undo Downvote",
                     // done_label: "Downvoted"
