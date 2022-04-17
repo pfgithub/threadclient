@@ -41,10 +41,11 @@ export function isModifiedEvent(event: MouseEvent): boolean {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
 
+export type SafelinkLink = {kind: "link", url: string, external: boolean};
 export function unsafeLinkToSafeLink(client_id: string, href: string): (
     | {kind: "error", title: string}
     | {kind: "mailto", title: string}
-    | {kind: "link", url: string, external: boolean}
+    | SafelinkLink
 ) {
     // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
     if(href.startsWith("/") && client_id) {

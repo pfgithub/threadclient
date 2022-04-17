@@ -1,7 +1,10 @@
 import type * as Generic from "api-types-generic";
 import { createMemo, createSignal, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { isModifiedEvent, LinkStyle, link_styles_v, navigate, previewLink, unsafeLinkToSafeLink } from "../app";
+import {
+    isModifiedEvent, LinkStyle, link_styles_v, navigate,
+    previewLink, SafelinkLink, unsafeLinkToSafeLink,
+} from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
 import { getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
@@ -59,25 +62,43 @@ export function A(props: {
     children: JSX.Element,
     btnref?: undefined | ((el: HTMLElement) => void),
     disabled?: undefined | boolean,
+    page?: undefined | (() => Generic.Page2 | undefined),
 }): JSX.Element {
     const linkValue = createMemo(() => {
         if(props.href == null) return ({kind: "none"} as const);
         return unsafeLinkToSafeLink(props.client_id, props.href);
     });
     const settings = getSettings();
+    const onclick = (link: SafelinkLink | undefined): JSX.EventHandler<HTMLElement, MouseEvent> => event => {
+        // onclick is not allowed to be observable so always add it
+        if((link?.external ?? false) && !props.onClick && !props.onClickNoPreventDefault) {
+            return;
+        }
+
+        props.onClickNoPreventDefault?.(event);
+        event.stopPropagation();
+        if (
+            !event.defaultPrevented && // onClick prevented default
+            event.button === 0 && // ignore everything but left clicks
+            !isModifiedEvent(event) // ignore clicks with modifier keys
+        ) {
+            event.preventDefault();
+            if(props.onClick) return props.onClick(event);
+            if(link == null) return alert(props.href);
+            navigate({path: link.url, page: props.page?.()});
+        }
+    };
     return <SwitchKind item={linkValue()}>{{
         error: (error) => <a
             class={props.class + " error"}
             title={error.title}
-            onclick={(e) => {
-                e.stopPropagation();
-                alert(props.href);
-            }}
+            onclick={onclick(undefined)}
             ref={v => props.btnref?.(v)}
         >{props.children}</a>,
         mailto: (mailto) => <span
             ref={v => props.btnref?.(v)}
             title={mailto.title}
+            onclick={onclick(undefined)}
         >{props.children}</span>,
         link: (link) => <a
             class={props.class}
@@ -86,32 +107,12 @@ export function A(props: {
                 target: "_blank",
                 rel: "noopener noreferrer",
             } : {rel: "noopener noreferrer"} : {}}
-            onclick={event => {
-                // onclick is not allowed to be observable so always add it
-                if(!props.onClick && !props.onClickNoPreventDefault) {
-                    return;
-                }
-
-                props.onClickNoPreventDefault?.(event);
-                event.stopPropagation();
-                if (
-                    !event.defaultPrevented && // onClick prevented default
-                    event.button === 0 && // ignore everything but left clicks
-                    !isModifiedEvent(event) // ignore clicks with modifier keys
-                ) {
-                    event.preventDefault();
-                    if(props.onClick) return props.onClick(event);
-                    navigate({path: link.url});
-                }
-            }}
+            onclick={onclick(link)}
             ref={v => props.btnref?.(v)}
         >{props.children}</a>,
         none: () => <button
             class={props.class}
-            onclick={(event) => {
-                props.onClickNoPreventDefault?.(event);
-                if(!event.defaultPrevented) props.onClick?.(event);
-            }}
+            onclick={onclick(undefined)}
             children={props.children}
             ref={v => props.btnref?.(v)}
             disabled={props.disabled}

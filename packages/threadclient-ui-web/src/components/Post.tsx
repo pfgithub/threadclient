@@ -125,6 +125,11 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     const hprc = getWholePageRootContextOpt();
 
+    const getPage = (): Generic.Page2 | undefined => props.opts.id && hprc ? {
+        pivot: props.opts.id,
+        content: hprc.content(),
+    } : undefined;
+
     const getActions = useActions(() => props.content, () => props.opts);
 
     return <article
@@ -183,6 +188,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 onClick={collapseInfo().user_controllable ? () => {
                                     setTransitionTarget(t => !t);
                                 } : undefined}
+                                page={getPage}
                             >
                                 <SwitchKind item={thumb_any}>{{
                                     image: img => <img
@@ -225,10 +231,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             if(props.opts.frame?.url == null) return;
                             navigate({
                                 path: target_url,
-                                page: props.opts.id && hprc ? {
-                                    pivot: props.opts.id,
-                                    content: hprc.content(),
-                                } : undefined,
+                                page: getPage(),
                                 // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
                                 // disabling this for now, we'll fix it in a bit
                                 // we just need to know what the link to the post is in the
@@ -262,6 +265,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                             client_id={props.opts.client_id}
                                             href={url}
                                             class="hover:underline"
+                                            page={getPage}
                                         >{title.text}</A>
                                     )}</Show>
                                 )}</Show>
