@@ -16,7 +16,7 @@ import { CollapseButton } from "./CollapseButton";
 import { VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import { Flair } from "./Flair";
-import { CollapseData, getCState } from "./flatten";
+import { CollapseData, getCState, postContentCollapseInfo } from "./flatten";
 import { getThumbnailPreview, useActions } from "./flat_posts";
 import { HSplit } from "./HSplit";
 import { InternalIcon } from "./Icon";
@@ -91,11 +91,14 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         return [() => !cs.collapsed(), setter];
     })() : createSignal(
         props.opts.is_pivot ? true :
-        (props.content.collapsible !== false ? (
-            props.opts.is_pivot ? false :
-            props.content.collapsible.default_collapsed
-        ) : false) ? false :
-        true,
+        postContentCollapseInfo(props.content, props.opts).default_collapsed,
+    );
+    const collapseInfo = createMemo(
+        () => postContentCollapseInfo(props.content, props.opts),
+        undefined,
+        {equals: (a, b) => {
+            return JSON.stringify(a) === JSON.stringify(b);
+        }},
     );
     const [selfVisible, setSelfVisible] = createSignal(transitionTarget());
 
@@ -141,7 +144,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             "--left-v": "8px",
         }}
     >
-        <Show if={props.content.collapsible !== false && (
+        <Show if={collapseInfo().user_controllable && (
             props.content.thumbnail != null ? selfVisible() ? true : false : true
         ) && !size_lt.sm()}>
             <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
@@ -168,12 +171,19 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                 <Show if={!selfVisible()} when={props.content.thumbnail}>{thumb_any => (
                     <ToggleColor>{color => (
                         <HSplit.Child>
-                            <button class={classes(
-                                "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
-                                contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
-                                "block",
-                                "relative",
-                            )} onClick={() => setTransitionTarget(t => !t)}>
+                            <A
+                                href={props.opts.frame?.url ?? "ENOHREF"}
+                                client_id={props.opts.frame?.client_id ?? "ENOCLIENTID"}
+                                class={classes(
+                                    "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
+                                    contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
+                                    "block",
+                                    "relative",
+                                )}
+                                onClick={collapseInfo().user_controllable ? () => {
+                                    setTransitionTarget(t => !t);
+                                } : undefined}
+                            >
                                 <SwitchKind item={thumb_any}>{{
                                     image: img => <img
                                         // TODO based on the img content, display eg a play button or something
@@ -187,7 +197,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                     default: def => <>TODO {def.kind}</>,
                                 }}</SwitchKind>
                                 <PreviewThumbnailIcon body={props.content.body} />
-                            </button>
+                            </A>
                         </HSplit.Child>
                     )}</ToggleColor>
                 )}</Show>
@@ -208,7 +218,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             if(props.opts.frame?.url == null) return;
                             window.open(target_url);
                         }else{
-                            if(!transitionTarget()) {
+                            if(collapseInfo().user_controllable && !transitionTarget()) {
                                 setTransitionTarget(true);
                                 return;
                             }
@@ -295,10 +305,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         </Show>
                         <HSplit.Child fullwidth>
                             <Show if={!(selfVisible() || hasThumbnail())}>
-                                <Show if={true
-                                    && props.content.collapsible !== false
-                                    && props.content.collapsible.default_collapsed === true
-                                } fallback={<div>
+                                <Show if={
+                                    !collapseInfo().default_collapsed
+                                } children={<div>
                                     <div class="whitespace-normal max-lines max-lines-1">
                                         {"“" + (() => {
                                             const res = summarizeBody(props.content.body);
@@ -306,7 +315,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                             return res;
                                         })() + "”"}
                                     </div>
-                                </div>} children={<></>} />
+                                </div>} />
                             </Show>
                         </HSplit.Child>
                     </div></div>

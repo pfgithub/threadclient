@@ -151,7 +151,7 @@ function generatePost(id: string): Generic.PostContent {
         body,
         author: generateAuthor(),
         show_replies_when_below_pivot: false,
-        collapsible: {default_collapsed: true},
+        collapsible: "collapsed-unless-pivot",
         thumbnail: generateThumbnailFor(body),
 
         info: {

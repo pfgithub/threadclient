@@ -145,7 +145,7 @@ const all_content_raw_dontuse = [
                 thumbnail: {kind: "image", url: "/images/threadclient_96.png"},
                 body: {kind: "none"},
                 show_replies_when_below_pivot: false,
-                collapsible: {default_collapsed: true}, // TODO make it not uncollapsible
+                collapsible: "collapsed-unless-pivot",
             },
         },
     })),

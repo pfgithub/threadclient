@@ -107,6 +107,28 @@ function unwrapPost(post: Generic.PostNotLoaded): Generic.PostNotLoaded {
     return post;
 }
 
+export type CollapseInfo = {
+    default_collapsed: boolean,
+    user_controllable: boolean,
+};
+export function postContentCollapseInfo(content: Generic.PostContent, opts: {is_pivot: boolean}): CollapseInfo {
+    if(content.kind === "post") {
+        const collapsible = content.collapsible;
+        if(collapsible === false) {
+            return {default_collapsed: false, user_controllable: false};
+        }else if(collapsible === "collapsed-unless-pivot") {
+            return {default_collapsed: true, user_controllable: opts.is_pivot};
+        }else {
+            return {default_collapsed: collapsible.default_collapsed, user_controllable: true};
+        }
+    }else return {default_collapsed: false, user_controllable: false};
+}
+export function postCollapseInfo(post: Generic.PostNotLoaded, opts: {is_pivot: boolean}): CollapseInfo {
+    if(post.kind === "post") {
+        return postContentCollapseInfo(post.content, opts);
+    }else return {default_collapsed: false, user_controllable: false};
+}
+
 export function renderPost(
     post_link: Generic.Link<Generic.PostNotLoaded>,
     parent_indent: CollapseButton[],
@@ -117,12 +139,7 @@ export function renderPost(
     if(post_read.error != null) return fi.err(post_read.error, post_link);
     const post = unwrapPost(post_read.value);
 
-    const is_collapsible = post.kind === "post" && post.content.kind === "post" && post.content.collapsible !== false;
-
-    const default_collapsed = (
-        post.kind === "post" ? post.content.kind === "post" ? post.content.collapsible !== false ?
-        post.content.collapsible.default_collapsed : false : false : false
-    );
+    const {default_collapsed, user_controllable: is_collapsible} = postCollapseInfo(post, opts);
     const self_collapsed = getCState(
         meta.collapse_data,
         post_link,

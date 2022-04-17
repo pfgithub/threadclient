@@ -111,7 +111,7 @@ export type PostContentPost = {
     /// | reply
     /// | | reply
     show_replies_when_below_pivot: boolean,
-    collapsible: false | {default_collapsed: boolean},
+    collapsible: false | "collapsed-unless-pivot" | {default_collapsed: boolean},
     actions?: undefined | {
         // puts the up and down arrow in the gutter and points/% voted in the info line. could do
         // something similar but with a star for mastodon.

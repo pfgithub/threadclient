@@ -761,7 +761,7 @@ function postDataFromListingMayError(
             content: {
                 kind: "post",
                 title: {text: listing.title},
-                collapsible: {default_collapsed: true},
+                collapsible: "collapsed-unless-pivot",
                 flair: getPostFlair(listing),
                 author: authorFromPostOrComment(listing),
                 body: getPostBody(listing),
