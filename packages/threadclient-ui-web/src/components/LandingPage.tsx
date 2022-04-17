@@ -1,5 +1,6 @@
 import * as Generic from "api-types-generic";
-import { For, JSX } from "solid-js";
+import { createEffect, createSelector, createSignal, For, JSX, untrack } from "solid-js";
+import { Show } from "tmeta-util-solid";
 import { getWholePageRootContext } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { autokey, CollapseData, flattenPost } from "./flatten";
@@ -33,6 +34,76 @@ function DisplayPost(props: {post: Generic.Link<Generic.PostNotLoaded>}): JSX.El
             collapse_data={collapse_data}
         />
     )}</For>;
+}
+
+function ToggleButton(): JSX.Element {
+    const [value, setValue] = createSignal("on");
+    const [prevValue, setPrevValue] = createSignal(value());
+    const selector = createSelector(value);
+    const prevSelector = createSelector(prevValue);
+    
+    const [shape, setShape] = createSignal<HTMLDivElement | null>(null);
+
+    createEffect<HTMLDivElement | null>(arg0 => {
+        const prev_shape = arg0;
+        const next_shape = shape();
+        const current_value = untrack(() => value());
+
+        if(prev_shape != null && next_shape != null && next_shape !== prev_shape) untrack(() => {
+            const prev_pos = prev_shape.getBoundingClientRect();
+            const new_pos = next_shape.getBoundingClientRect();
+
+            // transition new element
+
+            const diff_x = prev_pos.x - new_pos.x;
+            const diff_y = prev_pos.y - new_pos.y;
+            // const fi_r = new_pos.width - prev_pos.width;
+            // const fi_b = new_pos.height - prev_pos.height;
+            const diff_w = prev_pos.width / new_pos.width;
+            const diff_h = prev_pos.height / new_pos.height;
+
+            next_shape.style.transform = [
+                "translate("+diff_x+"px, "+diff_y+"px)",
+                "scale("+diff_w+", "+diff_h+")",
+            ].join(" ");
+
+            next_shape.offsetHeight;
+            next_shape.style.transition = "0.1s transform ease-out";
+            next_shape.style.transform = "";
+
+            const ontransitionend = (e: Event) => {
+                if(e.target !== e.currentTarget) return;
+                next_shape.removeEventListener("transitionend", ontransitionend);
+                next_shape.style.transition = "";
+            };
+            next_shape.addEventListener("transitionend", ontransitionend);
+        });
+
+        setPrevValue(current_value); // delete old element
+
+        return next_shape;
+    }, null);
+
+    return <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1">
+        <button class="block relative px-2" onClick={() => setValue("off")}>
+            <Show if={selector("off") || prevSelector("off")}>
+                <div
+                    ref={itm => setShape(itm)}
+                    class="absolute top-0 left-0 w-full h-full rounded-md bg-slate-100 dark:bg-zinc-500 shadow"
+                />
+            </Show>
+            <span class="relative z-1">Off</span>
+        </button>
+        <button class="block relative px-2" onClick={() => setValue("on")}>
+            <Show if={selector("on") || prevSelector("on")}>
+                <div
+                    ref={itm => setShape(itm)}
+                    class="absolute top-0 left-0 w-full h-full rounded-md bg-slate-100 dark:bg-zinc-500 shadow"
+                />
+            </Show>
+            <span class="relative z-1">On</span>
+        </button>
+    </div>;
 }
 
 export default function LandingPage(): JSX.Element {
@@ -90,10 +161,7 @@ export default function LandingPage(): JSX.Element {
                     </div>
                     <div class="space-y-4">
                         <div class="flex flex-row justify-center">
-                            <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1">
-                                <div class="px-2">Off</div>
-                                <div class="rounded-md bg-slate-100 dark:bg-zinc-500 px-2 shadow">On</div>
-                            </div>
+                            <ToggleButton />
                         </div>
                         <div class="relative">
                             <div class="
