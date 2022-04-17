@@ -195,7 +195,9 @@ export function flattenPost(
 
     if(show_replies) {
         const replies = postReplies(post.replies, meta);
-        const replies_threaded = replies.length === 1 && (rpo.threaded ? true : (
+        const replies_threaded = (
+            meta.settings?.allow_threading !== false
+        ) && replies.length === 1 && (rpo.threaded ? true : (
             readLink(meta, replies[0]!).value?.replies?.items.length === 1
         ));
         if((replies_threaded && rpo.threaded) || !(rres.collapse?.collapsed ?? false)) for(const reply of replies) {
@@ -247,6 +249,10 @@ export function getCState(cst: CollapseData, id: Generic.Link<Generic.Post>, opt
 type Meta = {
     collapse_data: CollapseData,
     content: Generic.Page2Content,
+
+    settings?: undefined | {
+        allow_threading?: undefined | boolean,
+    },
 };
 
 function readLink<T>(meta: Meta, link: Generic.Link<T>): Generic.ReadLinkResult<T> {

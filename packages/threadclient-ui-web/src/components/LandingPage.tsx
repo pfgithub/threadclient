@@ -1,5 +1,5 @@
 import * as Generic from "api-types-generic";
-import { createEffect, createSelector, createSignal, For, JSX, untrack } from "solid-js";
+import { createEffect, createSelector, createSignal, For, JSX, Setter, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { getWholePageRootContext } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
@@ -8,7 +8,10 @@ import { InternalIcon } from "./Icon";
 import PageFlatItem from "./PageFlatItem";
 import { array_key } from "./symbols";
 
-function DisplayPost(props: {post: Generic.Link<Generic.PostNotLoaded>}): JSX.Element {
+function DisplayPost(props: {
+    post: Generic.Link<Generic.PostNotLoaded>,
+    options?: undefined | {allow_threading?: undefined | boolean},
+}): JSX.Element {
     const collapse_data: CollapseData = {
         map: new Map(),
     };
@@ -19,6 +22,9 @@ function DisplayPost(props: {post: Generic.Link<Generic.PostNotLoaded>}): JSX.El
         return autokey(flattenPost(props.post, [], {
             collapse_data,
             content: hprc.content(),
+            settings: {
+                allow_threading: props.options?.allow_threading,
+            },
         }, {
             first_in_wrapper: true,
             is_pivot: false,
@@ -36,10 +42,9 @@ function DisplayPost(props: {post: Generic.Link<Generic.PostNotLoaded>}): JSX.El
     )}</For>;
 }
 
-function ToggleButton(): JSX.Element {
-    const [value, setValue] = createSignal("on");
-    const [prevValue, setPrevValue] = createSignal(value());
-    const selector = createSelector(value);
+function ToggleButton(props: {value: string, setValue: Setter<string>}): JSX.Element {
+    const [prevValue, setPrevValue] = createSignal(props.value);
+    const selector = createSelector(() => props.value);
     const prevSelector = createSelector(prevValue);
     
     const [shape, setShape] = createSignal<HTMLDivElement | null>(null);
@@ -47,7 +52,7 @@ function ToggleButton(): JSX.Element {
     createEffect<HTMLDivElement | null>(arg0 => {
         const prev_shape = arg0;
         const next_shape = shape();
-        const current_value = untrack(() => value());
+        const current_value = untrack(() => props.value);
 
         if(prev_shape != null && next_shape != null && next_shape !== prev_shape) untrack(() => {
             const prev_pos = prev_shape.getBoundingClientRect();
@@ -85,7 +90,7 @@ function ToggleButton(): JSX.Element {
     }, null);
 
     return <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1">
-        <button class="block relative px-2" onClick={() => setValue("off")}>
+        <button class="block relative px-2" onClick={() => props.setValue("off")}>
             <Show if={selector("off") || prevSelector("off")}>
                 <div
                     ref={itm => setShape(itm)}
@@ -94,7 +99,7 @@ function ToggleButton(): JSX.Element {
             </Show>
             <span class="relative z-1">Off</span>
         </button>
-        <button class="block relative px-2" onClick={() => setValue("on")}>
+        <button class="block relative px-2" onClick={() => props.setValue("on")}>
             <Show if={selector("on") || prevSelector("on")}>
                 <div
                     ref={itm => setShape(itm)}
@@ -159,20 +164,28 @@ export default function LandingPage(): JSX.Element {
                             ThreadClient automatically unthreads these chains.
                         </p>
                     </div>
-                    <div class="space-y-4">
-                        <div class="flex flex-row justify-center">
-                            <ToggleButton />
-                        </div>
-                        <div class="relative">
-                            <div class="
-                                absolute left-0 h-full w-screen rounded-l-xl
-                                bg-slate-100 dark:bg-zinc-700 shadow-md
-                            " />
-                            <div class="relative py-4">
-                                <DisplayPost post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>} />
+                    <div class="space-y-4">{untrack(() => {
+                        const [value, setValue] = createSignal("on");
+                        return <>
+                            <div class="flex flex-row justify-center">
+                                <ToggleButton value={value()} setValue={setValue} />
                             </div>
-                        </div>
-                    </div>
+                            <div class="relative">
+                                <div class="
+                                    absolute left-0 h-full w-screen rounded-l-xl
+                                    bg-slate-100 dark:bg-zinc-700 shadow-md
+                                " />
+                                <div class="relative py-4">
+                                    <DisplayPost
+                                        post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
+                                        options={{
+                                            allow_threading: value() === "on",
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </>;
+                    })}</div>
                 </div>
             </div>
         </div>
