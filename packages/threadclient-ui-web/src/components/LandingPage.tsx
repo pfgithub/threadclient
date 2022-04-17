@@ -362,12 +362,12 @@ export default function LandingPage(): JSX.Element {
                     <FeaturePreviewCard
                         title="Offline Mode"
                         description={<>TODO: should support an offline mode where you can save and read later</>}
-                        link="/homepage/see-comment-markdown"
+                        link="/homepage/offline-mode"
                     />
                     <FeaturePreviewCard
                         title="Hide Automod"
                         description={<>TODO: automod 'don't show me again' to auto collapse</>}
-                        link="/homepage/see-comment-markdown"
+                        link="/homepage/hide-automod"
                     />
                 </div>
             </div>

@@ -38,7 +38,7 @@ function linkToPost(text: AllLinks): Generic.Link<Generic.Post> {
 }
 
 type AutoPostContentProps = {
-    content: Generic.Richtext.Paragraph[],
+    content: Generic.Richtext.Paragraph[] | Generic.Body,
     url: string,
     show_replies_when_below_pivot?: undefined | boolean,
 };
@@ -46,7 +46,7 @@ function autoPostContent(value: AutoPostContentProps): Generic.PostContentPost {
     return {
         kind: "post",
         title: null,
-        body: {kind: "richtext", content: value.content},
+        body: Array.isArray(value.content) ? {kind: "richtext", content: value.content} : value.content,
         show_replies_when_below_pivot: value.show_replies_when_below_pivot ?? true,
         collapsible: {default_collapsed: false},
 
@@ -81,11 +81,12 @@ function autoPostContent(value: AutoPostContentProps): Generic.PostContentPost {
         },
     };
 }
-function autoPost<T extends string>(value: {
+type AutoPostProps<T> = {
     url: T,
     parent: null | string,
     replies: null | string[],
-} & AutoPostContentProps): AllContentRawItemExtends<T> {
+} & AutoPostContentProps;
+function autoPost<T extends string>(value: AutoPostProps<T>): AllContentRawItemExtends<T> {
     const {url, parent, replies} = value;
     return {v: value.url, post: {
         kind: "post",
@@ -221,6 +222,111 @@ const all_content_raw_dontuse = [
         url: "/homepage/swipe-actions",
         content: [rt.p(
             rt.txt("something or other"),
+        )],
+
+        parent: "/",
+        replies: [],
+    }),
+
+    autoPost(((c = (v: string): AutoPostProps<"/homepage/syntax-highlighting"> => ({
+        url: "/homepage/syntax-highlighting",
+        content: [rt.p(
+            rt.txt("Here's my code:"),
+        ), {
+            kind: "code_block",
+            lang: "json",
+            text: v,
+        }],
+
+        parent: "/",
+        replies: [],
+    })) => c(JSON.stringify(c("{{value}}"), null, "  ")))()),
+    autoPost({
+        url: "/homepage/braille-art-fix",
+        content: [rt.p(
+            rt.txt("ThreadClient will correctly display braille art on desktop and mobile")
+        ), rt.p(
+            rt.txt(`
+                ⠀⠀⠘⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡜⠀⠀⠀
+                ⠀⠀⠀⠑⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡔⠁⠀⠀⠀
+                ⠀⠀⠀⠀⠈⠢⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠴⠊⠀⠀⠀⠀⠀
+                ⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⢀⣀⣀⣀⣀⣀⡀⠤⠄⠒⠈⠀⠀⠀⠀⠀⠀⠀⠀
+                ⠀⠀⠀⠀⠀⠀⠀⠘⣀⠄⠊⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                ⠀
+                ⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠛⠛⠛⠋⠉⠈⠉⠉⠉⠉⠛⠻⢿⣿⣿⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⣿⡿⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⡏⣀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿
+                ⣿⣿⣿⢏⣴⣿⣷⠀⠀⠀⠀⠀⢾⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿
+                ⣿⣿⣟⣾⣿⡟⠁⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣿⣷⢢⠀⠀⠀⠀⠀⠀⠀⢸⣿
+                ⣿⣿⣿⣿⣟⠀⡴⠄⠀⠀⠀⠀⠀⠀⠙⠻⣿⣿⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⣿
+                ⣿⣿⣿⠟⠻⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠶⢴⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⣿
+                ⣿⣁⡀⠀⠀⢰⢠⣦⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⣿⣿⡄⠀⣴⣶⣿⡄⣿
+                ⣿⡋⠀⠀⠀⠎⢸⣿⡆⠀⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⣿⣿⠗⢘⣿⣟⠛⠿⣼
+                ⣿⣿⠋⢀⡌⢰⣿⡿⢿⡀⠀⠀⠀⠀⠀⠙⠿⣿⣿⣿⣿⣿⡇⠀⢸⣿⣿⣧⢀⣼
+                ⣿⣿⣷⢻⠄⠘⠛⠋⠛⠃⠀⠀⠀⠀⠀⢿⣧⠈⠉⠙⠛⠋⠀⠀⠀⣿⣿⣿⣿⣿
+                ⣿⣿⣧⠀⠈⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠟⠀⠀⠀⠀⢀⢃⠀⠀⢸⣿⣿⣿⣿
+                ⣿⣿⡿⠀⠴⢗⣠⣤⣴⡶⠶⠖⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡸⠀⣿⣿⣿⣿
+                ⣿⣿⣿⡀⢠⣾⣿⠏⠀⠠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠉⠀⣿⣿⣿⣿
+                ⣿⣿⣿⣧⠈⢹⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿
+                ⣿⣿⣿⣿⡄⠈⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⣿⣦⣄⣀⣀⣀⣀⠀⠀⠀⠀⠘⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡄⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠙⣿⣿⡟⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⠀⠁⠀⠀⠹⣿⠃⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⢐⣿⣿⣿⣿⣿⣿⣿⣿⣿
+                ⣿⣿⣿⣿⠿⠛⠉⠉⠁⠀⢻⣿⡇⠀⠀⠀⠀⠀⠀⢀⠈⣿⣿⡿⠉⠛⠛⠛⠉⠉
+                ⣿⡿⠋⠁⠀⠀⢀⣀⣠⡴⣸⣿⣇⡄⠀⠀⠀⠀⢀⡿⠄⠙⠛⠀⣀⣠⣤⣤⠄⠀
+            `.trim().split("\n").map(l => l.trim()).join("\n")),
+        )],
+
+        parent: "/",
+        replies: [],
+    }),
+    autoPost({
+        url: "/homepage/percent-upvoted",
+        content: [rt.p(
+            rt.txt("TODO; Demonstrate % upvoted on a post"),
+        )],
+
+        parent: "/",
+        replies: [],
+    }),
+    autoPost({
+        url: "/homepage/see-comment-markdown",
+        content: {kind: "text", client_id: client.id, markdown_format: "reddit", content: ""
+             + "I put one line right after another  \n"
+             + "Click the 'Code' button below to see how I did it\n"
+             + "\n"
+             + "TODO; ADD CODE BUTTON CONTAINING THIS"
+        },
+
+        parent: "/",
+        replies: [],
+    }),
+    autoPost({
+        url: "/homepage/pwa",
+        content: [rt.p(
+            rt.txt("TODO; Explain how to install ThreadClient as a PWA"),
+        )],
+
+        parent: "/",
+        replies: [],
+    }),
+    autoPost({
+        url: "/homepage/offline-mode",
+        content: [rt.p(
+            rt.txt("TODO; Support Offline Mode and explain how to use it"),
+        )],
+
+        parent: "/",
+        replies: [],
+    }),
+    autoPost({
+        url: "/homepage/hide-automod",
+        content: [rt.p(
+            rt.txt("TODO; Support 'Hide Automod' and have an example AutoModerator comment below"),
         )],
 
         parent: "/",
