@@ -1,5 +1,10 @@
 import * as Generic from "api-types-generic";
+import {
+    HeadlessDisclosureChild, Listbox, ListboxButton,
+    ListboxOption, ListboxOptions, Transition,
+} from "solid-headless";
 import { createEffect, createSelector, createSignal, For, JSX, Setter, untrack } from "solid-js";
+import { Portal } from "solid-js/web";
 import { Show } from "tmeta-util-solid";
 import { getWholePageRootContext, ToggleColor } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
@@ -158,6 +163,9 @@ export default function LandingPage(): JSX.Element {
       },
       plugins: [],
     }; */
+
+    const [homeFor, setHomeFor] = createSignal<undefined | string>("reddit");
+
     return <div class="min-h-screen overflow-x-hidden bg-slate-300 dark:bg-zinc-900 text-slate-900 dark:text-zinc-100">
         <div class="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100">
             <div class="mx-auto max-w-3xl p-4 pb-0">
@@ -165,22 +173,54 @@ export default function LandingPage(): JSX.Element {
             </div>
             <div class="mx-auto max-w-3xl p-8">
                 <span role="heading" class="text-3xl font-bold">ThreadClient</span>
-                <p class="text-2xl font-light text-slate-500 dark:text-zinc-400">
+                <div class="text-2xl font-light text-slate-500 dark:text-zinc-400">
                     A new client for{" "}
-                    <button class="
-                        border-slate-500 dark:border-zinc-400
-                        border-b-2 border-dashed
-                        hover:border-solid
-                        hover:border-slate-900 hover:dark:border-zinc-100
-                        hover:text-slate-900 hover:dark:text-zinc-100
-                        transition duration-100
-                        inline-block
-                    " onClick={() => alert("TODO dropdown")}>
-                        <span class="text-slate-900 dark:text-zinc-100">Reddit</span>
-                        {" "}
-                        <InternalIcon class="text-lg" tag="fa-angle-down" filled={true} label={null} />
-                    </button>
-                </p>
+                    <div class="inline-block relative"><Listbox value={homeFor()} onSelectChange={v => setHomeFor(v)}>
+                        <ListboxButton class={`
+                            border-slate-500 dark:border-zinc-400
+                            border-b-2 border-dashed
+                            hover:border-solid
+                            hover:border-slate-900 hover:dark:border-zinc-100
+                            hover:text-slate-900 hover:dark:text-zinc-100
+                            transition duration-100
+                            inline-block
+                        `}>
+                            {/* instead of making this a listbox, we could make it an <A> to a page with a list of all
+                            supported clients. there aren't enough clients yet for that to make sense though*/
+                            }
+                            <span class="text-slate-900 dark:text-zinc-100">Reddit</span>
+                            {" "}
+                            <InternalIcon class="text-lg" tag="fa-angle-down" filled={true} label={null} />
+                        </ListboxButton>
+                        {/* I wonder if we're allowed to <Portal> this? if we want to replace Dropdown.tsx we
+                        need that functionality */
+                        }
+                        <Portal mount={el("div").adto(document.body)}>
+                            <HeadlessDisclosureChild>{({isOpen}) => <Transition
+                                show={isOpen()}
+                                enter="transition ease-in duration-100"
+                                enterFrom="opacity-0"
+                                enterTo="opacity-100"
+                                leave="transition ease-out duration-100"
+                                leaveFrom="opacity-100"
+                                leaveTo="opacity-0"
+                            >
+                                <ListboxOptions class="absolute top-0 left-0 w-full">
+                                    <ListboxOption class="focus:outline-none group" value={"reddit"}>
+                                        {({ isActive, isSelected }) => <div>
+                                            Reddit isactive {""+isActive()} isselected {""+isSelected()}
+                                        </div>}
+                                    </ListboxOption>
+                                    <ListboxOption class="focus:outline-none group" value={"mastodon"}>
+                                        {({ isActive, isSelected }) => <div>
+                                            Mastodon isactive {""+isActive()} isselected {""+isSelected()}
+                                        </div>}
+                                    </ListboxOption>
+                                </ListboxOptions>
+                            </Transition>}</HeadlessDisclosureChild>
+                        </Portal>
+                    </Listbox></div>
+                </div>
             </div>
             <div class="mx-auto max-w-3xl pt-0 p-8">
                 <A href="/" client_id="reddit" class={`
