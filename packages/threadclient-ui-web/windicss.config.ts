@@ -1,6 +1,7 @@
 import { defineConfig } from "windicss/helpers";
 import colors from "windicss/colors";
 import plugin from "windicss/plugin";
+import * as heropatterns from "./heropatterns";
 
 export default defineConfig({
     extract: {
@@ -86,19 +87,29 @@ export default defineConfig({
             'postcolor': {100: "var(--postcolor-100)", 800: "#181a1b"}, // TODO add more colors here :: spoiler-color spoiler-color-hover spoiler-color-revealed + those collapse btn colors
         },
         cursor: {
-            'auto': 'auto',
-            'default': 'default',
-            'pointer': 'pointer',
-            'wait': 'wait',
-            'text': 'text',
-            'move': 'move',
-            'not-allowed': 'not-allowed',
-            'crosshair': 'crosshair',
-            'none': 'none',
+            'auto': "auto",
+            'default': "default",
+            'pointer': "pointer",
+            'wait': "wait",
+            'text': "text",
+            'move': "move",
+            'not-allowed': "not-allowed",
+            'crosshair': "crosshair",
+            'none': "none",
+        },
+
+        extend: {
+            borderWidth: {1: "1px"},
+            backgroundImage: {
+                'graph-zinc-800': `url("${heropatterns.graph("27272A")}")`,
+                'graph-slate-350': `url("${heropatterns.graph("B0BCCD")}")`,
+                'topography-zinc-800': `url("${heropatterns.topography("27272A")}")`,
+                'topography-slate-350': `url("${heropatterns.topography("B0BCCD")}")`,
+            },
         },
     },
     plugins: [
-        require('@windicss/plugin-icons'),
+        require("@windicss/plugin-icons"),
         plugin(({ addDynamic, addUtilities, variants }) => {
             addUtilities({
                 '.max-lines': {
@@ -108,12 +119,12 @@ export default defineConfig({
                     '-webkit-box-orient': "vertical",
                 },
             });
-            addDynamic('max-lines', ({ Utility, Style }) => {
-                return Utility.handler
-                    .handleNumber(1, undefined, 'int')
+            addDynamic("max-lines", ({ Utility: utility, Style: style }) => {
+                return utility.handler
+                    .handleNumber(1, undefined, "int")
                     .createProperty("-webkit-line-clamp", v => v)
                 ;
-            }, variants('skew'))
+            }, variants("skew"));
         }),
     ],
 });
