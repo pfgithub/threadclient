@@ -26,7 +26,14 @@ export const client: ThreadClient = {
             pivot: link,
             content: all_content,
         };
-    }
+    },
+
+    previewReply(body, reply_info) {
+        return autoPostContent({
+            url: "/@reply-demo",
+            content: {kind: "text", content: body, markdown_format: "reddit", client_id: client.id},
+        });
+    },
 };
 
 // there's 0 chance this is possible but what if we could automatically extract the urls from the posts to

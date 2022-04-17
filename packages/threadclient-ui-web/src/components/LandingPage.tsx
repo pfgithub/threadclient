@@ -12,6 +12,7 @@ import { autokey, CollapseData, flattenPost } from "./flatten";
 import { InternalIcon } from "./Icon";
 import { A } from "./links";
 import PageFlatItem from "./PageFlatItem";
+import ReplyEditor from "./reply";
 import { array_key } from "./symbols";
 
 function DisplayPost(props: {
@@ -374,7 +375,20 @@ export default function LandingPage(): JSX.Element {
                                 absolute left-0 h-full w-full rounded-xl
                                 bg-slate-100 dark:bg-zinc-700 shadow-md
                             " />
-                            <div class="relative p-4">preview `reddit_markdown` and also fix the `'loading…` bug</div>
+                            <div class="relative p-4">
+                                <ReplyEditor action={{
+                                    kind: "reply",
+                                    key: "@0",
+                                    text: "",
+                                    reply_info: {encoding_type: "reply", encoding_symbol: Symbol()},
+                                    client_id: "shell",
+                                    mode: "reply",
+                                }} onCancel={() => {
+                                    //
+                                }} onAddReply={() => {
+                                    //
+                                }} />
+                            </div>
                         </div>
                     </div>
                 </div>
