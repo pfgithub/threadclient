@@ -282,3 +282,9 @@ export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Elemen
         </Show>
     </ErrorBoundary>;
 }
+
+if(import.meta.hot) {
+    import.meta.hot.accept(() => {
+        alert("cannot reload utils_solid.tsx, please refresh page.");
+    });
+}
