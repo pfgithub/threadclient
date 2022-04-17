@@ -87,7 +87,7 @@ const fi = {
     err: (note: string, data: unknown): FlatItem => ({kind: "error", note, data}),
 };
 
-type RenderPostOpts = {
+export type RenderPostOpts = {
     first_in_wrapper: boolean,
     is_pivot: boolean,
     at_or_above_pivot: boolean,
@@ -95,7 +95,7 @@ type RenderPostOpts = {
     depth: number,
 };
 
-function renderPost(
+export function renderPost(
     post_link: Generic.Link<Generic.PostNotLoaded>,
     parent_indent: CollapseButton[],
     meta: Meta,
@@ -166,7 +166,7 @@ function postReplies(listing: Generic.ListingData | null, meta: Meta): Generic.L
     return res;
 }
 
-function flattenPost(
+export function flattenPost(
     post_link: Generic.Link<Generic.PostNotLoaded>,
     parent_indent: CollapseButton[],
     meta: Meta,
@@ -398,7 +398,16 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
 
     console.log("FLATTEN RESULT", res, meta, Object.entries(meta.content).length);
 
-    const autokey = (itm: FlatItem): FlatItem & {[array_key]: unknown} => {
+    return {
+        header: res_header ?? undefined,
+        sidebar: res_sidebar != null ? autokey(res_sidebar):  undefined,
+        body: autokey(res),
+    };
+}
+
+export function autokey(items: FlatItem[]): (FlatItem & {[array_key]: unknown})[] {
+    let i_excl_post = 0;
+    const autokeyItem = (itm: FlatItem): FlatItem & {[array_key]: unknown} => {
         const key: {v: unknown} = (() => {
             if(itm.kind === "post") {
                 return {v: itm.id};
@@ -409,11 +418,5 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
         })();
         return {...itm, [array_key]: key.v};
     };
-    
-    let i_excl_post = 0;
-    return {
-        header: res_header ?? undefined,
-        sidebar: res_sidebar != null ? res_sidebar.map(autokey) : undefined,
-        body: res.map(autokey),
-    };
+    return items.map(autokeyItem);
 }

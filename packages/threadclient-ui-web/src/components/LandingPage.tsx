@@ -1,5 +1,39 @@
-import { JSX } from "solid-js";
+import * as Generic from "api-types-generic";
+import { For, JSX } from "solid-js";
+import { getWholePageRootContext } from "../util/utils_solid";
+import { createMergeMemo } from "./createMergeMemo";
+import { autokey, CollapseData, flattenPost } from "./flatten";
 import { InternalIcon } from "./Icon";
+import PageFlatItem from "./PageFlatItem";
+import { array_key } from "./symbols";
+
+function DisplayPost(props: {post: Generic.Link<Generic.PostNotLoaded>}): JSX.Element {
+    const collapse_data: CollapseData = {
+        map: new Map(),
+    };
+
+    const hprc = getWholePageRootContext();
+
+    const view = createMergeMemo(() => {
+        return autokey(flattenPost(props.post, [], {
+            collapse_data,
+            content: hprc.content(),
+        }, {
+            first_in_wrapper: true,
+            is_pivot: false,
+            at_or_above_pivot: false,
+            threaded: false,
+            depth: 0,
+        }));
+    }, {key: array_key, merge: true});
+
+    return <For each={view.data}>{item => (
+        <PageFlatItem
+            item={item}
+            collapse_data={collapse_data}
+        />
+    )}</For>;
+}
 
 export default function LandingPage(): JSX.Element {
     /* https://play.tailwindcss.com/ also you need some heropatterns set to opacity:1.0. also:
@@ -66,11 +100,8 @@ export default function LandingPage(): JSX.Element {
                                 absolute left-0 h-full w-screen rounded-l-xl
                                 bg-slate-100 dark:bg-zinc-700 shadow-md
                             " />
-                            <div class="relative p-4">
-                                <div>It often gets difficult to read long comment chains because of the increased
-                                    indentation</div>
-                                <div>⤷ ThreadClient automatically unthreads these chains</div>
-                                <div>⤷ Use the toggle switch above to see the difference</div>
+                            <div class="relative py-4">
+                                <DisplayPost post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>} />
                             </div>
                         </div>
                     </div>

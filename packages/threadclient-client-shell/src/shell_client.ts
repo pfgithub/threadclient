@@ -133,7 +133,7 @@ const all_content_raw_dontuse = [
     autoPost({
         url: "/homepage/unthreading",
         content: [rt.p(
-            rt.txt("It often gets difficult to read long comment chains because the indentation gets too deep"),
+            rt.txt("Unthreading"),
         )],
         parent: "/",
         replies: ["/homepage/unthreading/0"],
@@ -141,7 +141,7 @@ const all_content_raw_dontuse = [
     autoPost({
         url: "/homepage/unthreading/0",
         content: [rt.p(
-            rt.txt("ThreadClient improves this by unthreading comment chains, like this!"),
+            rt.txt("It often gets difficult to read long comment chains because the indentation gets too deep"),
         )],
         parent: "/homepage/unthreading",
         replies: ["/homepage/unthreading/0/0"],
@@ -149,9 +149,17 @@ const all_content_raw_dontuse = [
     autoPost({
         url: "/homepage/unthreading/0/0",
         content: [rt.p(
-            rt.txt("Use the toggle switch above to see the difference"),
+            rt.txt("ThreadClient improves this by unthreading comment chains, like this!"),
         )],
         parent: "/homepage/unthreading/0",
+        replies: ["/homepage/unthreading/0/0/0"],
+    }),
+    autoPost({
+        url: "/homepage/unthreading/0/0/0",
+        content: [rt.p(
+            rt.txt("Use the toggle switch above to see the difference"),
+        )],
+        parent: "/homepage/unthreading/0/0",
         replies: [],
     }),
 
