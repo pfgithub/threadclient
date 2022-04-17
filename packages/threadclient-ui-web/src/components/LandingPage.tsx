@@ -5,6 +5,7 @@ import { getWholePageRootContext, ToggleColor } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { autokey, CollapseData, flattenPost } from "./flatten";
 import { InternalIcon } from "./Icon";
+import { A } from "./links";
 import PageFlatItem from "./PageFlatItem";
 import { array_key } from "./symbols";
 
@@ -40,6 +41,29 @@ function DisplayPost(props: {
             collapse_data={collapse_data}
         />
     )}</For>;
+}
+
+function FeaturePreviewCard(props: {
+    title: JSX.Element,
+    description: JSX.Element,
+    link: string,
+}): JSX.Element {
+    return <A href={props.link} client_id={"shell"} class={`
+        dark:border-t-1 dark:border-zinc-500
+        block rounded-xl
+        bg-slate-200 dark:bg-zinc-700
+        p-4 text-left
+        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
+    `}>
+        <div class="h-full">
+            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
+                {props.title}
+            </span>
+            <p class="text-base text-slate-500 dark:text-zinc-300">
+                {props.description}
+            </p>
+        </div>
+    </A>;
 }
 
 function ToggleButton(props: {value: string, setValue: Setter<string>}): JSX.Element {
@@ -310,117 +334,41 @@ export default function LandingPage(): JSX.Element {
                 <div>these should be cards you can click for a fullscreen demo</div>
                 <div class="pb-4" />
                 <div class="grid grid-cols-3 gap-4">
-                    <button class="
-                        dark:border-t-1 dark:border-zinc-500
-                        block rounded-xl
-                        bg-slate-200 dark:bg-zinc-700
-                        p-4 text-left
-                        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-                    ">
-                        <div class="h-full">
-                            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
-                                Syntax Highlighting
-                            </span>
-                            <p class="text-base text-slate-500 dark:text-zinc-300">
-                                ThreadClient will (!TODO!) automatically syntax highlight code blocks
-                            </p>
-                        </div>
-                    </button>
-                    <button class="
-                        dark:border-t-1 dark:border-zinc-500
-                        block rounded-xl
-                        bg-slate-200 dark:bg-zinc-700
-                        p-4 text-left
-                        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-                    ">
-                        <div class="h-full">
-                            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
-                                Braille Art Fix
-                            </span>
-                            <p class="text-base text-slate-500 dark:text-zinc-300">
-                                ThreadClient will correctly display braille art on desktop and mobile
-                            </p>
-                        </div>
-                    </button>
-                    <button class="
-                        dark:border-t-1 dark:border-zinc-500
-                        block rounded-xl
-                        bg-slate-200 dark:bg-zinc-700
-                        p-4 text-left
-                        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-                    ">
-                        <div class="h-full">
-                            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
-                                Percent Upvoted
-                            </span>
-                            <p class="text-base text-slate-500 dark:text-zinc-300">
-                                ThreadClient shows you what percentage of voters upvoted the post
-                            </p>
-                        </div>
-                    </button>
-                    <button class="
-                        dark:border-t-1 dark:border-zinc-500
-                        block rounded-xl
-                        bg-slate-200 dark:bg-zinc-700
-                        p-4 text-left
-                        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-                    ">
-                        <div class="h-full">
-                            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
-                                See Comment Markdown
-                            </span>
-                            <p class="text-base text-slate-500 dark:text-zinc-300">
-                                Want to see how someone else formatted something? Press the Source button to see
-                                markdown
-                            </p>
-                        </div>
-                    </button>
-                    {/*<!-- <button class="
-                        dark:border-t-1 dark:border-zinc-500
-                        block rounded-xl
-                        bg-slate-200 dark:bg-zinc-700
-                        p-4 text-left
-                        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-                    ">
-                        <div class="h-full">
-                            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">Web App</span>
-                            <p class="text-base text-slate-500 dark:text-zinc-300">Add ThreadClient to your home screen to use it like an app on mobile</p>
-                        </div>
-                    </button> -->*/
-                    }
-                    <button class="
-                        dark:border-t-1 dark:border-zinc-500
-                        block rounded-xl
-                        bg-slate-200 dark:bg-zinc-700
-                        p-4 text-left
-                        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-                    ">
-                        <div class="h-full">
-                            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
-                                Offline Mode
-                            </span>
-                            <p class="text-base text-slate-500 dark:text-zinc-300">
-                                TODO: should support an offline mode where you can save a bunch of posts and read later
-                            </p>
-                        </div>
-                    </button>
-                    <button class="
-                        dark:border-t-1 dark:border-zinc-500
-                        block rounded-xl
-                        bg-slate-200 dark:bg-zinc-700
-                        p-4 text-left
-                        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-                    ">
-                        <div class="h-full">
-                            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
-                                Hide Automod
-                            </span>
-                            <p class="text-base text-slate-500 dark:text-zinc-300">
-                                TODO: automod commentss should have a checkbox "don't show me again" and it hides by
-                                content
-                            </p>
-                        </div>
-                    </button>
+                    <FeaturePreviewCard
+                        title="Syntax Highlighting"
+                        description={<>ThreadClient will (!TODO!) automatically syntax highlight code blocks</>}
+                        link="/homepage/syntax-highlighting"
+                    />
+                    <FeaturePreviewCard
+                        title="Braille Art Fix"
+                        description={<>ThreadClient will correctly display braille art on desktop and mobile</>}
+                        link="/homepage/braille-art-fix"
+                    />
+                    <FeaturePreviewCard
+                        title="Percent Upvoted"
+                        description={<>ThreadClient shows you what percentage of voters upvoted a post</>}
+                        link="/homepage/percent-upvoted"
+                    />
+                    <FeaturePreviewCard
+                        title="See Markdown"
+                        description={<>ThreadClient can show you how someone else formatted something</>}
+                        link="/homepage/see-comment-markdown"
+                    />
+                    <FeaturePreviewCard
+                        title="PWA"
+                        description={<>Add ThreadClient to your home screen to use it like an app on mobile</>}
+                        link="/homepage/pwa"
+                    />
+                    <FeaturePreviewCard
+                        title="Offline Mode"
+                        description={<>TODO: should support an offline mode where you can save and read later</>}
+                        link="/homepage/see-comment-markdown"
+                    />
+                    <FeaturePreviewCard
+                        title="Hide Automod"
+                        description={<>TODO: automod 'don't show me again' to auto collapse</>}
+                        link="/homepage/see-comment-markdown"
+                    />
                 </div>
             </div>
         </div>

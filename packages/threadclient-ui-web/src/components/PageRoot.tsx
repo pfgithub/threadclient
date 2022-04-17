@@ -6,7 +6,7 @@ import {
     For, JSX, untrack
 } from "solid-js";
 import { Show } from "tmeta-util-solid";
-import { getWholePageRootContext, size_lt } from "../util/utils_solid";
+import { DefaultErrorBoundary, getWholePageRootContext, size_lt } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { CollapseData, flatten } from "./flatten";
 import LandingPage from "./LandingPage";
@@ -35,12 +35,12 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
         if(fpsc == null) return null;
         return fpsc;
     };
-
-    return <Show when={specialCB()} fallback={
+    
+    return <DefaultErrorBoundary data={props}><Show when={specialCB()} fallback={
         <ClientPageMain pivot={props.pivot} />
     }>{cb => <>
         {untrack(cb)}
-    </>}</Show>;
+    </>}</Show></DefaultErrorBoundary>;
 }
 function ClientPageMain(props: ClientPageProps): JSX.Element {
     // [!] we'll want to fix this up and make it observable and stuff

@@ -9,8 +9,21 @@ export const client: ThreadClient = {
         // we can just return all the content i guess
         // might be nice if we structured it so it can be dynamically imported in the future but this
         // is okay for now
+        const link = linkToPost("/"+path.split("/").filter(v => v).join("/"));
+        if(all_content[link] == null) return {
+            pivot: link,
+            content: {[link]: {data: autoPost({
+                url: link as string,
+                parent: null,
+                replies: null,
+                content: [
+                    rt.p(rt.error("404 not found", "ERROR")),
+                    rt.p(rt.link({id: client.id}, "/", {}, rt.txt("Back to homepage"))),
+                ],
+            }).post}},
+        };
         return {
-            pivot: linkToPost("/"+path.split("/").filter(v => v).join("/")),
+            pivot: link,
             content: all_content,
         };
     }
