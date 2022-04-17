@@ -125,7 +125,7 @@ function ToggleButton(props: {value: string, setValue: Setter<string>}): JSX.Ele
         return next_shape;
     }, null);
 
-    return <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1">
+    return <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1 shadow-inner">
         <button class="block relative px-2" onClick={() => props.setValue("off")}>
             <Show if={selector("off") || prevSelector("off")}>
                 <div
@@ -275,7 +275,7 @@ export default function LandingPage(): JSX.Element {
                             ThreadClient automatically unthreads these chains.
                         </p>
                     </div>
-                    <div>
+                    <div class="shadow-md">
                         <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
@@ -299,14 +299,12 @@ export default function LandingPage(): JSX.Element {
                             many of the most popular sources.
                         </p>
                     </div>
-                    <div class="space-y-4">
-                        <div>
-                            <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
-                            <DisplayPost
-                                post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
-                            />
-                            <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
-                        </div>
+                    <div class="shadow-md">
+                        <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
+                        <DisplayPost
+                            post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
+                        />
+                        <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
                     </div>
                 </div>
             </div>
@@ -322,14 +320,12 @@ export default function LandingPage(): JSX.Element {
                             username to just see replies to that comment.
                         </p>
                     </div>
-                    <div class="space-y-4">
-                        <div>
-                            <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
-                            <DisplayPost
-                                post={"/homepage/repivot" as Generic.Link<Generic.PostNotLoaded>}
-                            />
-                            <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
-                        </div>
+                    <div class="shadow-md">
+                        <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
+                        <DisplayPost
+                            post={"/homepage/repivot" as Generic.Link<Generic.PostNotLoaded>}
+                        />
+                        <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
                     </div>
                 </div>
             </div>
@@ -348,7 +344,7 @@ export default function LandingPage(): JSX.Element {
                         <div class="relative">
                             <div class="
                                 absolute left-0 h-full w-full rounded-xl
-                                bg-slate-100 dark:bg-zinc-700 shadow-md
+                                bg-slate-100 dark:bg-zinc-800 shadow-md
                             " />
                             <div class="relative p-4">
                                 put this in a phone ui and use a flag to force enable treating pointer as touch within
@@ -374,7 +370,7 @@ export default function LandingPage(): JSX.Element {
                         <div class="relative">
                             <div class="
                                 absolute left-0 h-full w-full rounded-xl
-                                bg-slate-100 dark:bg-zinc-700 shadow-md
+                                bg-slate-100 dark:bg-zinc-800 shadow-md
                             " />
                             <div class="relative p-4">
                                 <ReplyEditor action={{
