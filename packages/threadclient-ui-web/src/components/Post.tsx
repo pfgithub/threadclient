@@ -39,7 +39,8 @@ function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
         "absolute bottom-1 right-1",
         "text-xs sm:text-base w-6 h-6 sm:w-8 sm:h-8 p-1 bg-gray-300",
         "rounded-md",
-    )}>
+        "flex items-center justify-center",
+    )}><span>
         <SwitchKind item={genv()!}>{{
             icon: (icn) => <InternalIcon
                 tag={({
@@ -58,7 +59,7 @@ function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
             />,
             gallery: (gal) => <>{gal.count}.</>,
         }}</SwitchKind>
-    </div> : null}</>;
+    </span></div> : null}</>;
 }
 
 export type ClientPostOpts = {
