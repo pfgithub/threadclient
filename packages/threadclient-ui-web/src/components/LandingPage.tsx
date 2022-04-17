@@ -48,13 +48,19 @@ function FeaturePreviewCard(props: {
     description: JSX.Element,
     link: string,
 }): JSX.Element {
+    const hprc = getWholePageRootContext();
     return <A href={props.link} client_id={"shell"} class={`
         dark:border-t-1 dark:border-zinc-500
         block rounded-xl
         bg-slate-200 dark:bg-zinc-700
         p-4 text-left
         hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-    `}>
+    `} page={(): Generic.Page2 => {
+        return {
+            content: hprc.content(),
+            pivot: props.link as Generic.Link<Generic.PostNotLoaded>,
+        };
+    }}>
         <div class="h-full">
             <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
                 {props.title}
