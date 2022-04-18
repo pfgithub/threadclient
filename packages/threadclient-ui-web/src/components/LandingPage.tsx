@@ -326,7 +326,7 @@ export default function LandingPage(): JSX.Element {
                             ["on", <>Unthread</>],
                         ]} />
                     </div>
-                    <div class="sm:col-start-2 shadow-md -mx-8 sm:mx-0">
+                    <div class="sm:col-start-2 h-max shadow-md -mx-8 sm:mx-0">
                         <ToggleColor>{color => <div class={"h-2 sm:rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
@@ -350,7 +350,7 @@ export default function LandingPage(): JSX.Element {
                             many of the most popular sources.
                         </p>
                     </div>
-                    <div class="shadow-md -mx-8 sm:mx-0">
+                    <div class="h-max shadow-md -mx-8 sm:mx-0">
                         <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
@@ -371,7 +371,7 @@ export default function LandingPage(): JSX.Element {
                             username to just see replies to that comment.
                         </p>
                     </div>
-                    <div class="shadow-md -mx-8 sm:mx-0">
+                    <div class="h-max shadow-md -mx-8 sm:mx-0">
                         <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/repivot" as Generic.Link<Generic.PostNotLoaded>}
@@ -391,7 +391,7 @@ export default function LandingPage(): JSX.Element {
                             Swipe comments to collapse them or repivot or something. Might be configurable eventually.
                         </p>
                     </div>
-                    <div class="shadow-md -mx-8 sm:mx-0">
+                    <div class="h-max shadow-md -mx-8 sm:mx-0">
                         <div class="relative">
                             <div class="
                                 absolute left-0 h-full w-full sm:rounded-xl
@@ -417,7 +417,7 @@ export default function LandingPage(): JSX.Element {
                             working on a full richtext editor but that's not out yet
                         </p>
                     </div>
-                    <div class="shadow-md -mx-8 sm:mx-0">
+                    <div class="h-max shadow-md -mx-8 sm:mx-0">
                         <div class="relative">
                             <div class="
                                 absolute left-0 h-full w-full sm:rounded-xl
