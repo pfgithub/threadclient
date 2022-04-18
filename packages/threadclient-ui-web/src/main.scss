@@ -34,6 +34,11 @@ a {
     @include outline-default;
 }
 
+// provided by tailwind but not windi
+.aspect-square {
+    aspect-ratio: 1 / 1;
+}
+
 // animation. this can also be defined in the windi/tailwind css config
 @keyframes bounceanim {
     0% {

@@ -241,17 +241,16 @@ export default function LandingPage(): JSX.Element {
                     </Listbox></div>
                 </div>
             </div>
-            <div class="mx-auto max-w-3xl pt-0 p-8">
+            <div class="mx-auto max-w-3xl pt-0 p-8 flex flex-wrap gap-4">
                 <A href="/" client_id="reddit" class={`
                     inline-block
                     relative group overflow-hidden
                     bg-gradient-to-br from-blue-500 to-blue-600
                     text-slate-100 dark:text-zinc-100
                     rounded-lg
-                    outline-default
                 `}>
                     <div class="
-                        absolute top-0 left-0 w-full h-full
+                        absolute inset-0
                         bg-gradient-to-br from-blue-400 to-blue-600
                         opacity-0 group-hover:opacity-100
                         transform -translate-y-3 group-hover:translate-y-0
@@ -259,6 +258,23 @@ export default function LandingPage(): JSX.Element {
                     "></div>
                     <div class="relative p-4">
                         Open ThreadClient
+                    </div>
+                </A>
+                <A href="/settings" client_id="" class={`
+                    inline-block
+                    relative group overflow-hidden
+                    text-slate-900 dark:text-zinc-100
+                    rounded-lg
+                    hover:bg-slate-200 dark:hover:bg-zinc-700
+                    transition
+                `}>
+                    <div class="
+                        absolute inset-0
+                        border-4 border-slate-300 dark:border-zinc-600
+                        rounded-lg
+                    "></div>
+                    <div class="relative p-4">
+                        <InternalIcon tag="fa-gear" filled={true} label="Settings" />
                     </div>
                 </A>
             </div>
