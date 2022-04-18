@@ -1,4 +1,5 @@
 import { Accessor, createEffect, createSelector, createSignal, untrack } from "solid-js";
+import { animationTime } from "./animation";
 
 export default function createExclusiveFlipSelector<T>(state: Accessor<T>): {
     ref: (item: HTMLElement) => void,
@@ -40,7 +41,7 @@ export default function createExclusiveFlipSelector<T>(state: Accessor<T>): {
             next_shape.style.transformOrigin = "top left";
 
             next_shape.offsetHeight;
-            next_shape.style.transition = "0.1s transform ease-out";
+            next_shape.style.transition = (animationTime() / 2) + "s transform ease-out";
             next_shape.style.transform = "";
 
             const ontransitionend = (e: Event) => {
