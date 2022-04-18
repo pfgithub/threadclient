@@ -92,7 +92,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         return [() => !cs.collapsed(), setter];
     })() : createSignal(
         props.opts.is_pivot ? true :
-        postContentCollapseInfo(props.content, props.opts).default_collapsed,
+        !postContentCollapseInfo(props.content, props.opts).default_collapsed,
     );
     const collapseInfo = createMemo(
         () => postContentCollapseInfo(props.content, props.opts),
