@@ -64,6 +64,7 @@ export type Loaded = BasePost & {
 };
 
 export type BasePost = {
+    disallow_pivot?: undefined | boolean,
     parent: Link<Post> | null,
     replies: ListingData | null,
     

@@ -126,10 +126,15 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     const hprc = getWholePageRootContextOpt();
 
-    const getPage = (): Generic.Page2 | undefined => props.opts.id && hprc ? {
-        pivot: props.opts.id,
-        content: hprc.content(),
-    } : undefined;
+    const getPage = (): Generic.Page2 | undefined => {
+        if(!props.opts.id) return undefined;
+        if(!hprc) return undefined;
+        if(props.opts.frame?.disallow_pivot ?? false) return undefined;
+        return {
+            pivot: props.opts.id,
+            content: hprc.content(),
+        };
+    };
 
     const getActions = useActions(() => props.content, () => props.opts);
 

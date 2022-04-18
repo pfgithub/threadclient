@@ -68,10 +68,12 @@ function unpivotablePostBelowPivot(
     opts: {
         internal_data: unknown,
         replies?: undefined | Generic.Link<Generic.Post>[],
+        link_to?: undefined | string,
     },
 ): Generic.Link<Generic.Post> {
     return createSymbolLinkToValue<Generic.Post>(content, {
-        url: null,
+        url: opts.link_to ?? null,
+        disallow_pivot: true,
         parent: null, // always below the pivot, doesn't matter.
         // ^ not true - top level posts below the pivot might show their parents. so we should be able to
         // pass something in here
@@ -153,6 +155,37 @@ function sidebarWidgetToGenericWidgetTry(
                     collapsible: {default_collapsed: true},
                 }, {
                     internal_data: itm,
+                });
+            }),
+        });
+    }else if(widget.kind === "post-flair") {
+        return unpivotablePostBelowPivot(content, {
+            kind: "post",
+            title: {text: widget.shortName},
+            body: {kind: "none"},
+            show_replies_when_below_pivot: true,
+            collapsible: false,
+        }, {
+            internal_data: {widget, subinfo},
+            replies: widget.order.map(id => {
+                const val = widget.templates[id]!;
+                const flair = flairToGenericFlair({
+                    type: val.type, text: val.text, text_color: val.textColor,
+                    background_color: val.backgroundColor, richtext: val.richtext,
+                });
+                return unpivotablePostBelowPivot(content, {
+                    // TODO this has to be pivotable
+                    // or maybe somehow define a link but no content
+                    kind: "post",
+                    title: null,
+                    flair,
+                    body: {kind: "none"},
+                    show_replies_when_below_pivot: false,
+                    collapsible: false,
+                }, {
+                    internal_data: val,
+                    link_to: "/r/"+subinfo.subreddit
+                    +"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
                 });
             }),
         });
