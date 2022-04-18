@@ -140,12 +140,16 @@ function ToggleButton(props: {
             <For each={props.choices}>{choice => <>
                 <RadioGroupOption
                     value={choice[0]}
-                    class={"block relative px-2 outline-default select-none"}
+                    class={"block relative px-2 group select-none"}
                 >
                     <Show if={selector(choice[0]) || prevSelector(choice[0])}>
                         <div
                             ref={itm => setShape(itm)}
-                            class="absolute top-0 left-0 w-full h-full rounded-md bg-slate-100 dark:bg-zinc-500 shadow"
+                            class="
+                                absolute top-0 left-0 w-full h-full
+                                rounded-md bg-slate-100 dark:bg-zinc-500 shadow
+                                group-focus-visible-outline-default
+                            "
                         />
                     </Show>
                     <RadioGroupLabel class="relative z-1">{choice[1]}</RadioGroupLabel>
@@ -244,6 +248,7 @@ export default function LandingPage(): JSX.Element {
                     bg-gradient-to-br from-blue-500 to-blue-600
                     text-slate-100 dark:text-zinc-100
                     rounded-lg
+                    outline-default
                 `}>
                     <div class="
                         absolute top-0 left-0 w-full h-full

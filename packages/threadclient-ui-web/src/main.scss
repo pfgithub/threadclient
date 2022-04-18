@@ -5,6 +5,35 @@ html {
     word-break: break-word;
 }
 
+@mixin outline-default {
+    outline: 2px solid #3B82F6;
+    outline-offset: 2px;
+    .dark & {
+        outline-color: #60A5FA;
+    }
+}
+
+// normalization
+button,
+input,
+textarea,
+a {
+    // border: 1px solid var(--collapse-line-color-hover);
+    &:focus {
+        outline: none;
+    }
+    &:focus-visible {
+        @include outline-default;
+    }
+}
+.group:focus-visible .group-focus-visible-outline-default {
+    @include outline-default;
+}
+
+.outline-default:focus-visible {
+    @include outline-default;
+}
+
 // animation. this can also be defined in the windi/tailwind css config
 @keyframes bounceanim {
     0% {
@@ -84,7 +113,6 @@ textarea {
     --border-color: black;
 
     --link-color: blue;
-    --outline-color: #212121;
     --upvote-color: #fa5f26;
     --downvote-color: #4d79fa;
 
@@ -130,7 +158,6 @@ textarea {
     --border-color: #736b5e;
 
     --link-color: #3391ff;
-    --outline-color: rgb(129, 120, 106);
     --upvote-color: rgb(255, 137, 93);
     --downvote-color: rgb(129, 175, 255);
 
@@ -237,7 +264,7 @@ ul.replies {
     all: unset;
     cursor: pointer;
     &:focus-visible {
-        outline: 1px dotted var(--outline-color);
+        @include outline-default;
     }
 }
 
@@ -376,7 +403,7 @@ html {
 }
 
 .post-content-buttons > button:focus-visible {
-    outline: 1px dotted var(--outline-color);
+    @include outline-default;
 }
 
 .post.layout-commentlike {
@@ -438,7 +465,7 @@ html {
         }
     }
     & > button:focus-visible {
-        outline: 1px dotted var(--outline-color);
+        @include outline-default;
     }
     & > .counter-increment-btn {
         background-position: -106px -1654px;
@@ -942,10 +969,6 @@ summary {
 .sub-subscribe-area {
     grid-row: remaining;
     grid-column: icon / end;
-}
-
-.outline-default:focus-visible {
-    outline: 1px dotted var(--outline-color);
 }
 
 .post.crosspost-post {
