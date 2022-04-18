@@ -133,6 +133,7 @@ export default function LandingPage(): JSX.Element {
                             hover:text-slate-900 hover:dark:text-zinc-100
                             transition duration-100
                             inline-block
+                            outline-default
                         `}>{({isOpen}) => <>
                             {/* instead of making this a listbox, we could make it an <A> to a page with a list of all
                             supported clients. there aren't enough clients yet for that to make sense though*/
