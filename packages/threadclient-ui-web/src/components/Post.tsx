@@ -146,9 +146,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             ] : "text-sm",
             "flex flex-row",
         )}
-        style={{
-            "--left-v": "8px",
-        }}
     >
         <Show if={collapseInfo().user_controllable && (
             props.content.thumbnail != null ? selfVisible() ? true : false : true
@@ -209,7 +206,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     )}</ToggleColor>
                 )}</Show>
                 <HSplit.Child fullwidth><div
-                    class={"flex-1" + (postIsClickable() ? " hover-outline" : "")}
+                    class={(postIsClickable() ? " hover-outline" : "")}
                     // note: screenreader or keyboard users must click the 'view' button
                     // or the title if there is one.
                     // I considered making the "x points x hours ago" a link but it's harder
