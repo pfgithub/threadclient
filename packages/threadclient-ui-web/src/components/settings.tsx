@@ -1,14 +1,15 @@
 import * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { createSignal, For, JSX } from "solid-js";
+import { createSignal, JSX } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { variables } from "virtual:_variables";
-import { availableForOfflineUse, link_styles_v, menuButtonStyle, updateAvailable, updateSW } from "../app";
+import { availableForOfflineUse, link_styles_v, updateAvailable, updateSW } from "../app";
 import { ComputeProperty, getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
 import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
+import ToggleButton from "./ToggleButton";
 export * from "../util/interop_solid";
 
 function SettingsSection(props: {title: string, children?: undefined | JSX.Element}): JSX.Element {
@@ -55,24 +56,21 @@ export function SettingPicker<T extends string>(props: {
     options: (T | undefined)[],
     name: (a: T | undefined) => string,
 }): JSX.Element {
-    return <div>
-        <For each={props.options}>{option => <>
-            <button
-                class={menuButtonStyle(props.setting.override() === option)}
-                aria-checked={props.setting.override() === option}
-                onclick={() => {
-                    props.setting.setOverride(option);
-                }}
-            >
+    return <div class="inline-block">
+        <ToggleButton
+            value={props.setting.override()}
+            setValue={nv => props.setting.setOverride(nv)}
+            choices={props.options.map(option => [
+                option, 
                 <Show when={option}
                     fallback={
                         <>{props.name(undefined)} ({props.name(props.setting.base())})</>
                     }
                 >{opt => <>
                     {props.name(opt)}
-                </>}</Show>
-            </button>
-        </>}</For>
+                </>}</Show>,
+            ])}
+        />
     </div>;
 }
 
@@ -283,27 +281,17 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 } as const)[v ?? "default"]}
             />
             <ShowAnimate when={settings.motion() === "full"}>
-                <div><For each={[0, 0.1, 0.2, 0.3, undefined]}>{option => {
-                    const setting = settings.animationTime;
-                    const name = (v: number | undefined) => {
-                        if(v == null) return "Default";
-                        return "" + v + "s";
-                    };
-                    return <button
-                        class={menuButtonStyle(setting.override() === option)}
-                        onclick={() => {
-                            setting.setOverride(option);
-                        }}
-                    >
-                        <Show when={option}
-                            fallback={
-                                <>{name(undefined)} ({name(setting.base())})</>
-                            }
-                        >{opt => <>
-                            {name(opt)}
-                        </>}</Show>
-                    </button>;
-                }}</For></div>
+                <div class="my-2"><div class="inline-block"><ToggleButton
+                    value={settings.animationTime.override()}
+                    setValue={nv => settings.animationTime.setOverride(nv)}
+                    choices={[
+                        [0, "0s"],
+                        [0.1, "0.1s"],
+                        [0.2, "0.2s"],
+                        [0.3, "0.3s"],
+                        [undefined, <>Default {settings.animationTime.base()}s</>],
+                    ]}
+                /></div></div>
                 <SettingPicker
                     setting={settings.animationDevMode}
                     options={["none", "shift_slow", undefined]}

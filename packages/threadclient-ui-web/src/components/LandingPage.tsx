@@ -115,8 +115,8 @@ export default function LandingPage(): JSX.Element {
                         settings.colorScheme.setOverride(upv);
                         return upv;
                     }} choices={[
-                        ["light", <InternalIcon tag="fa-sun" filled={true} label="Light" />],
-                        ["dark", <InternalIcon tag="fa-moon" filled={true} label="Dark" />],
+                        ["light" as const, <InternalIcon tag="fa-sun" filled={true} label="Light" />],
+                        ["dark" as const, <InternalIcon tag="fa-moon" filled={true} label="Dark" />],
                     ]} />
                 </div>
             </div>
@@ -225,7 +225,7 @@ export default function LandingPage(): JSX.Element {
             text-slate-900 dark:text-zinc-100
         ">
             <div class="mx-auto max-w-3xl p-8">{untrack(() => {
-                const [value, setValue] = createSignal<undefined | string>("on");
+                const [value, setValue] = createSignal<"off" | "on">("on");
 
                 return <div class="grid sm:grid-cols-2 sm:grid-flow-col-dense gap-x-8 gap-y-4">
                     <div class="hidden sm:block sm:col-start-1" />
@@ -240,9 +240,9 @@ export default function LandingPage(): JSX.Element {
                         </p>
                     </div>
                     <div class="sm:col-start-2 flex flex-row justify-center">
-                        <ToggleButton value={value()} setValue={setValue} choices={[
-                            ["off", <>Nest</>],
-                            ["on", <>Unthread</>],
+                        <ToggleButton value={value()} setValue={v => v ? setValue(v) : void 0} choices={[
+                            ["off" as const, <>Nest</>],
+                            ["on" as const, <>Unthread</>],
                         ]} />
                     </div>
                     <div class="sm:col-start-2 h-max shadow-md -mx-8 sm:mx-0">
