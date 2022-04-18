@@ -158,6 +158,13 @@ const all_content_raw_dontuse = [
     })),
 
     autoPost({
+        url: "/client-picker",
+        content: [rt.p(rt.txt("TODO client picker. should link to homepages for different clients."))],
+        parent: "/",
+        replies: [],
+    }),
+
+    autoPost({
         url: "/homepage/unthreading",
         content: [rt.p(
             rt.txt("It often gets difficult to read long comment chains because the indentation gets too deep"),

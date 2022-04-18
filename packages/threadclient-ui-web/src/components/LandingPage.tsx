@@ -1,10 +1,6 @@
 import * as Generic from "api-types-generic";
-import {
-    HeadlessDisclosureChild, Listbox, ListboxButton,
-    ListboxOption, ListboxOptions, Transition
-} from "solid-headless";
+import { Listbox } from "solid-headless";
 import { createSignal, For, JSX, untrack } from "solid-js";
-import { Portal } from "solid-js/web";
 import { getSettings, getWholePageRootContext, ToggleColor } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { autokey, CollapseData, flattenPost } from "./flatten";
@@ -125,7 +121,7 @@ export default function LandingPage(): JSX.Element {
                 <div class="text-2xl font-light text-slate-500 dark:text-zinc-400">
                     A new client for{" "}
                     <div class="inline-block relative"><Listbox value={homeFor()} onSelectChange={v => setHomeFor(v)}>
-                        <ListboxButton class={`
+                        <A class={`
                             border-slate-500 dark:border-zinc-400
                             border-b-2 border-dashed
                             hover:border-solid
@@ -134,47 +130,17 @@ export default function LandingPage(): JSX.Element {
                             transition duration-100
                             inline-block
                             outline-default
-                        `}>{({isOpen}) => <>
-                            {/* instead of making this a listbox, we could make it an <A> to a page with a list of all
-                            supported clients. there aren't enough clients yet for that to make sense though*/
-                            }
+                        `} href="/client-picker" client_id="shell">
                             <span class="text-slate-900 dark:text-zinc-100">
                                 {homeFor() === "reddit" ? "Reddit" : "Mastodon"}
                             </span>
                             {" "}
                             <InternalIcon
                                 class="text-lg"
-                                tag={isOpen() ? "fa-angle-up" : "fa-angle-down"}
+                                tag={"fa-angle-down"}
                                 filled={true} label={null}
                             />
-                        </>}</ListboxButton>
-                        {/* I wonder if we're allowed to <Portal> this? if we want to replace Dropdown.tsx we
-                        need that functionality */
-                        }
-                        <Portal mount={el("div").adto(document.body)}>
-                            <HeadlessDisclosureChild>{({isOpen}) => <Transition
-                                show={isOpen()}
-                                enter="transition ease-in duration-100"
-                                enterFrom="opacity-0"
-                                enterTo="opacity-100"
-                                leave="transition ease-out duration-100"
-                                leaveFrom="opacity-100"
-                                leaveTo="opacity-0"
-                            >
-                                <ListboxOptions class="absolute top-0 left-0 w-full">
-                                    <ListboxOption class="focus:outline-none group" value={"reddit"}>
-                                        {({ isActive, isSelected }) => <div>
-                                            Reddit isactive {""+isActive()} isselected {""+isSelected()}
-                                        </div>}
-                                    </ListboxOption>
-                                    <ListboxOption class="focus:outline-none group" value={"mastodon"}>
-                                        {({ isActive, isSelected }) => <div>
-                                            Mastodon isactive {""+isActive()} isselected {""+isSelected()}
-                                        </div>}
-                                    </ListboxOption>
-                                </ListboxOptions>
-                            </Transition>}</HeadlessDisclosureChild>
-                        </Portal>
+                        </A>
                     </Listbox></div>
                 </div>
             </div>
