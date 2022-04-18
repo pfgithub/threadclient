@@ -16,6 +16,7 @@ export type FlatPage = {
     sidebar?: undefined | (FlatItem & {
         [array_key]: unknown,
     })[],
+    title: string,
 };
 
 export type CollapseButton = {
@@ -383,12 +384,16 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
 
     const pivot = readLinkAssertFound(meta, pivot_link);
 
+    let title: string | null = null;
+
     const highest_arr = highestArray(pivot_link, meta);
     for(const item of highest_arr) {
         if(!('error' in item)) {
             const itmv = readLink(meta, item.value);
-            if(itmv.value != null && itmv.value.kind === "post" && itmv.value.content.kind === "page") {
-                const content = itmv.value.content;
+            if(itmv.value == null) continue;
+            const post = unwrapPost(itmv.value);
+            if(post.kind === "post" && post.content.kind === "page") {
+                const content = post.content;
                 if(res_sidebar == null) {
                     res_sidebar = flattenTopLevelReplies(content.wrap_page.sidebar, meta);
                 }
@@ -405,6 +410,11 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
 
                     // ok I'm just not going to worry about this for now
                     continue; // don't insert in the list
+                }
+            }
+            if(post.kind === "post" && post.content.kind === "post") {
+                if(title == null && post.content.title != null) {
+                    title = post.content.title.text;
                 }
             }
         }
@@ -437,6 +447,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
         header: res_header ?? undefined,
         sidebar: res_sidebar != null ? autokey(res_sidebar):  undefined,
         body: autokey(res),
+        title: title ?? "*ERR_NO_TITLE*",
     };
 }
 

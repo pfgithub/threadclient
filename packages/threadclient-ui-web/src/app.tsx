@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
-import { createEffect, createSignal, JSX } from "solid-js";
+import { createEffect, createSignal, JSX, untrack } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { gfyLike2, previewLink } from "threadclient-preview";
@@ -24,7 +24,7 @@ import {
     navigate_event_handlers, nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { bg_colors, getSettings, PageRootProvider } from "./util/utils_solid";
+import { bg_colors, DefaultErrorBoundary, getSettings, PageRootProvider } from "./util/utils_solid";
 
 // TODO add support for navigation without any browser navigation things
 // eg within the frame of /pwa-start, display the client and have custom nav buttons
@@ -2688,7 +2688,7 @@ let hidePage2!: () => void;
         page2_viewer_initialized = true;
 
         // TODO: set page title in here
-        vanillaToSolidBoundary(page2mainel, () => <>
+        vanillaToSolidBoundary(page2mainel, () => <DefaultErrorBoundary data={pgin}>
             <PageRootProvider
                 pgin={pgin()}
                 addContent={(upd_pgin, content) => {
@@ -2698,9 +2698,19 @@ let hidePage2!: () => void;
                     }
                 }}
             >
-                <ClientPage pivot={pgin().page.pivot} />
+                {untrack(() => {
+                    const  res = ClientPage({
+                        get pivot() {
+                            return pgin().page.pivot;
+                        }
+                    });
+                    createEffect(() => {
+                        document.title = res.title + " | " + "ThreadClient";
+                    });
+                    return () => res.children;
+                })}
             </PageRootProvider>
-        </>, {color_level: 0});
+        </DefaultErrorBoundary>, {color_level: 0});
     };
     showPage2 = (new_pgin: MutablePage2HistoryNode) => {
         console.log("showing page2", new_pgin.page);

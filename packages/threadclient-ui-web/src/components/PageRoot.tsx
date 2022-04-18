@@ -6,27 +6,28 @@ import {
     For, JSX, untrack
 } from "solid-js";
 import { Show } from "tmeta-util-solid";
-import { DefaultErrorBoundary, getWholePageRootContext, size_lt } from "../util/utils_solid";
+import { getWholePageRootContext, size_lt } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { CollapseData, flatten } from "./flatten";
 import LandingPage from "./LandingPage";
 import PageFlatItem from "./PageFlatItem";
 import { array_key } from "./symbols";
 
-type SpecialCallback = () => JSX.Element;
+type SpecialCallback = () => PageRes;
 const full_page_special_callbacks: Record<string, SpecialCallback> = {
-    'LandingPage@-N-ry9qt3N1VTG0iKMHy': (): JSX.Element => {
-        return <LandingPage />;
+    'LandingPage@-N-ry9qt3N1VTG0iKMHy': (): PageRes => {
+        return {title: "ThreadClient", children: <LandingPage />};
     },
 };
 
 export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
 };
-export default function ClientPage(props: ClientPageProps): JSX.Element {
+type PageRes = {children: JSX.Element, title: string};
+export default function ClientPage(props: ClientPageProps): PageRes {
     const hprc = getWholePageRootContext();
 
-    const specialCB = (): null | SpecialCallback => {
+    const specialCB = createMemo((): null | SpecialCallback => {
         const value = readLink(hprc.content(), props.pivot);
         if(value.value == null) return null;
         const v = value.value;
@@ -34,15 +35,28 @@ export default function ClientPage(props: ClientPageProps): JSX.Element {
         const fpsc = full_page_special_callbacks[v.content.tag_uuid];
         if(fpsc == null) return null;
         return fpsc;
-    };
+    });
     
-    return <DefaultErrorBoundary data={props}><Show when={specialCB()} fallback={
-        <ClientPageMain pivot={props.pivot} />
-    }>{cb => <>
-        {untrack(cb)}
-    </>}</Show></DefaultErrorBoundary>;
+    const res = createMemo((): PageRes => {
+        // unfortunately have to manually code this stuff because typescript doesn't support returning
+        // custom stuff from a jsx component without losing type safety
+        const scb = specialCB();
+        return untrack((): PageRes => {
+            if(scb) {
+                return scb();
+            }else{
+                return ClientPageMain({
+                    get pivot() {return props.pivot},
+                });
+            }
+        });
+    });
+    return {
+        get title() {return res().title},
+        get children() {return res().children},
+    };
 }
-function ClientPageMain(props: ClientPageProps): JSX.Element {
+function ClientPageMain(props: ClientPageProps): PageRes {
     // [!] we'll want to fix this up and make it observable and stuff
     // now that page2 is ready to be properly observable, flatten should be too.
 
@@ -69,7 +83,9 @@ function ClientPageMain(props: ClientPageProps): JSX.Element {
     // browser back button and stuff.
     const [tab, setTab] = createSignal<"content" | "sidebar">("content");
 
-    return <div class="flex flex-col gap-4 max-w-6xl mx-auto p-4 <sm:px-0">
+    return {get title() {
+        return view.data.title;
+    }, children: <div class="flex flex-col gap-4 max-w-6xl mx-auto p-4 <sm:px-0">
         <Show if={view.data.header != null}>
             <div class="flex-1">
                 TODO show header
@@ -107,5 +123,5 @@ function ClientPageMain(props: ClientPageProps): JSX.Element {
                 </div>
             </Show>
         </div>
-    </div>;
+    </div>};
 }
