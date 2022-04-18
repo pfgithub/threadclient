@@ -1,7 +1,7 @@
 import * as Generic from "api-types-generic";
 import {
     HeadlessDisclosureChild, Listbox, ListboxButton,
-    ListboxOption, ListboxOptions, Transition,
+    ListboxOption, ListboxOptions, RadioGroup, RadioGroupLabel, RadioGroupOption, Transition,
 } from "solid-headless";
 import { createEffect, createSelector, createSignal, For, JSX, Setter, untrack } from "solid-js";
 import { Portal } from "solid-js/web";
@@ -78,7 +78,11 @@ function FeaturePreviewCard(props: {
     </A>;
 }
 
-function ToggleButton(props: {value: string, setValue: Setter<string>}): JSX.Element {
+function ToggleButton(props: {
+    value: string | undefined,
+    setValue: Setter<string | undefined>,
+    choices: [id: string, text: JSX.Element][], // or we can use a typesafe children instead
+}): JSX.Element {
     const [prevValue, setPrevValue] = createSignal(props.value);
     const selector = createSelector(() => props.value);
     const prevSelector = createSelector(prevValue);
@@ -126,26 +130,29 @@ function ToggleButton(props: {value: string, setValue: Setter<string>}): JSX.Ele
         return next_shape;
     }, null);
 
-    return <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1 shadow-inner">
-        <button class="block relative px-2" onClick={() => props.setValue("off")}>
-            <Show if={selector("off") || prevSelector("off")}>
-                <div
-                    ref={itm => setShape(itm)}
-                    class="absolute top-0 left-0 w-full h-full rounded-md bg-slate-100 dark:bg-zinc-500 shadow"
-                />
-            </Show>
-            <span class="relative z-1">Nest</span>
-        </button>
-        <button class="block relative px-2" onClick={() => props.setValue("on")}>
-            <Show if={selector("on") || prevSelector("on")}>
-                <div
-                    ref={itm => setShape(itm)}
-                    class="absolute top-0 left-0 w-full h-full rounded-md bg-slate-100 dark:bg-zinc-500 shadow"
-                />
-            </Show>
-            <span class="relative z-1">Unthread</span>
-        </button>
-    </div>;
+    return <RadioGroup
+        value={props.value}
+        onChange={props.setValue}
+    >
+        {/*there's supposed to be a <RadioGroupLabel> here but we don't have one*/
+        }
+        <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1 shadow-inner">
+            <For each={props.choices}>{choice => <>
+                <RadioGroupOption
+                    value={choice[0]}
+                    class={"block relative px-2 outline-default select-none"}
+                >
+                    <Show if={selector(choice[0]) || prevSelector(choice[0])}>
+                        <div
+                            ref={itm => setShape(itm)}
+                            class="absolute top-0 left-0 w-full h-full rounded-md bg-slate-100 dark:bg-zinc-500 shadow"
+                        />
+                    </Show>
+                    <RadioGroupLabel class="relative z-1">{choice[1]}</RadioGroupLabel>
+                </RadioGroupOption>
+            </>}</For>
+        </div>
+    </RadioGroup>;
 }
 
 export default function LandingPage(): JSX.Element {
@@ -259,12 +266,15 @@ export default function LandingPage(): JSX.Element {
             text-slate-900 dark:text-zinc-100
         ">
             <div class="mx-auto max-w-3xl p-8">{untrack(() => {
-                const [value, setValue] = createSignal("on");
+                const [value, setValue] = createSignal<undefined | string>("on");
 
                 return <div class="grid grid-cols-2 gap-x-8 gap-y-4">
                     <div />
                     <div class="flex flex-row justify-center">
-                        <ToggleButton value={value()} setValue={setValue} />
+                        <ToggleButton value={value()} setValue={setValue} choices={[
+                            ["off", <>Nest</>],
+                            ["on", <>Unthread</>],
+                        ]} />
                     </div>
                     <div class="text-lg">
                         <span class="
