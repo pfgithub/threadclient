@@ -3,7 +3,7 @@ import {
     HeadlessDisclosureChild, Listbox, ListboxButton,
     ListboxOption, ListboxOptions, RadioGroup, RadioGroupLabel, RadioGroupOption, Transition,
 } from "solid-headless";
-import { createEffect, createSelector, createSignal, For, JSX, untrack } from "solid-js";
+import { Accessor, createEffect, createSelector, createSignal, For, JSX, untrack } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Show } from "tmeta-util-solid";
 import { getSettings, getWholePageRootContext, ToggleColor } from "../util/utils_solid";
@@ -83,13 +83,53 @@ function ToggleButton<T extends string>(props: {
     setValue: (nv: T | undefined) => string | undefined,
     choices: [id: T, text: JSX.Element][], // or we can use a typesafe children instead
 }): JSX.Element {
-    const [prevValue, setPrevValue] = createSignal(props.value);
-    const selector = createSelector(() => props.value);
+    const ef = createExclusiveFlipSelector(() => props.value);
+
+    return <RadioGroup
+        value={props.value as string | undefined}
+        onChange={(nv: string | undefined) => props.setValue(nv as T | undefined)}
+    >
+        {/*there's supposed to be a <RadioGroupLabel> here but we don't have one*/
+        }
+        <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1 shadow-inner">
+            <For each={props.choices}>{choice => <>
+                <RadioGroupOption
+                    value={choice[0]}
+                    class={"block relative px-2 group select-none cursor-pointer"}
+                >
+                    <Show if={ef.if(choice[0])}>
+                        <div
+                            ref={ef.ref}
+                            class="
+                                absolute top-0 left-0 w-full h-full
+                                rounded-md bg-slate-100 dark:bg-zinc-500 shadow
+                                group-focus-visible-outline-default
+                            "
+                        />
+                    </Show>
+                    <RadioGroupLabel class="relative z-1">{choice[1]}</RadioGroupLabel>
+                </RadioGroupOption>
+            </>}</For>
+        </div>
+    </RadioGroup>;
+}
+
+function createExclusiveFlipSelector<T>(state: Accessor<T>): {
+    ref: (item: HTMLElement) => void,
+    if: (v: T) => boolean,
+} {
+    const props = {
+        get value() {
+            return state();
+        }
+    };
+    const [prevValue, setPrevValue] = createSignal(untrack(() => props.value));
+    const selector = createSelector(state);
     const prevSelector = createSelector(prevValue);
     
-    const [shape, setShape] = createSignal<HTMLDivElement | null>(null);
+    const [shape, setShape] = createSignal<HTMLElement | null>(null);
 
-    createEffect<HTMLDivElement | null>(arg0 => {
+    createEffect<HTMLElement | null>(arg0 => {
         const prev_shape = arg0;
         const next_shape = shape();
         const current_value = untrack(() => props.value);
@@ -130,33 +170,10 @@ function ToggleButton<T extends string>(props: {
         return next_shape;
     }, null);
 
-    return <RadioGroup
-        value={props.value as string | undefined}
-        onChange={(nv: string | undefined) => props.setValue(nv as T | undefined)}
-    >
-        {/*there's supposed to be a <RadioGroupLabel> here but we don't have one*/
-        }
-        <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1 shadow-inner">
-            <For each={props.choices}>{choice => <>
-                <RadioGroupOption
-                    value={choice[0]}
-                    class={"block relative px-2 group select-none"}
-                >
-                    <Show if={selector(choice[0]) || prevSelector(choice[0])}>
-                        <div
-                            ref={itm => setShape(itm)}
-                            class="
-                                absolute top-0 left-0 w-full h-full
-                                rounded-md bg-slate-100 dark:bg-zinc-500 shadow
-                                group-focus-visible-outline-default
-                            "
-                        />
-                    </Show>
-                    <RadioGroupLabel class="relative z-1">{choice[1]}</RadioGroupLabel>
-                </RadioGroupOption>
-            </>}</For>
-        </div>
-    </RadioGroup>;
+    return {
+        if: v => selector(v) || prevSelector(v),
+        ref: itm => setShape(itm),
+    };
 }
 
 export default function LandingPage(): JSX.Element {
