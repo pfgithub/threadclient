@@ -2646,9 +2646,9 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             // const {default: ClientPage} = await import("./components/page2");
             loader_area.remove();
 
-            if(hsc.visible) showPage2(page);
+            if(hsc.visible) showPage2(page, true);
             hsc.on("hide", () => hidePage2());
-            hsc.on("show", () => showPage2(page));
+            hsc.on("show", () => showPage2(page, false));
         }else{
             const listing = await client.getThread(current_path);
             loader_area.remove();
@@ -2674,7 +2674,7 @@ export function addLayer(node: Generic.Page2, new_layer: Generic.Page2Content): 
     };
 }
 
-let showPage2!: (page: MutablePage2HistoryNode) => void;
+let showPage2!: (page: MutablePage2HistoryNode, first_show: boolean) => void;
 let hidePage2!: () => void;
 
 {
@@ -2712,7 +2712,7 @@ let hidePage2!: () => void;
             </PageRootProvider>
         </DefaultErrorBoundary>, {color_level: 0});
     };
-    showPage2 = (new_pgin: MutablePage2HistoryNode) => {
+    showPage2 = (new_pgin: MutablePage2HistoryNode, first_show: boolean) => {
         console.log("showing page2", new_pgin.page);
         page2mainel.style.display = "";
 
@@ -2720,6 +2720,11 @@ let hidePage2!: () => void;
         console.log("SHOWPAGE2 CALLED ON", new_pgin);
 
         initializePage2Viewer();
+
+        if(first_show) {
+            const pivot = document.querySelector(".\\@\\@IS_PIVOT\\@\\@") ?? document.body;
+            pivot.scrollIntoView();
+        }
     };
     hidePage2 = () => {
         page2mainel.style.display = "none";
@@ -3143,7 +3148,7 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
     if(historyitem) {
         // show the current history
         if(historyitem.node.kind === "t1") historyitem.node.show();
-        else showPage2(historyitem.node.page2);
+        else showPage2(historyitem.node.page2, false);
         return; // done
     } else {
         // remove
@@ -3161,7 +3166,7 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
         const page2 = page;
         const pagemut: MutablePage2HistoryNode = {page: page2};
 
-        showPage2(pagemut);
+        showPage2(pagemut, true);
         nav_history_map.set(to_key, {node: {
             kind: "t2",
             page2: pagemut,

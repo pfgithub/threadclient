@@ -75,7 +75,9 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                     },
                 });
             })()}
-        ><ToggleColor>{color => <div class={"px-2 "+color}>
+        ><ToggleColor>{color => <div
+            class={"px-2 "+color+" "+(loader_or_post.is_pivot ? "@@IS_PIVOT@@" : "")}
+        >
             <div class="flex flex-row gap-1">
                 <Show if={!size_lt.sm()} fallback={(
                     <Show if={loader_or_post.indent.length > 0}><div
