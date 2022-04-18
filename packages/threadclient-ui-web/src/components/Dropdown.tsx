@@ -4,7 +4,7 @@ import { Show } from "tmeta-util-solid";
 import { rootel } from "../router";
 import { classes } from "../util/utils_solid";
 import { animationTime } from "./animation";
-import Button from "./Button";
+import { InternalIconRaw } from "./Icon";
 
 // huh we can createsignal(undefined, {equals: false})
 const [closeDropdowns, setCloseDropdowns] = createSignal(Symbol());
@@ -12,8 +12,11 @@ export function closeAllDropdowns(): void {
     setCloseDropdowns(Symbol());
 }
 
+// currently specialized to what the post "…" button needs.
+// TODO:
+// - convert to headless ui
+// - generalize so it can be used by menus too
 export default function Dropdown(props: {
-    label: JSX.Element | ((open: () => boolean) => JSX.Element),
     children: JSX.Element,
 }): JSX.Element {
     type Position = {
@@ -75,7 +78,7 @@ export default function Dropdown(props: {
     // {target() ? "▴" : "▾"}
 
     return <>
-        <Button btnref={v => node1 = v} onClick={e => {
+        <button class="pl-2 pr-1" ref={v => node1 = v} onClick={e => {
             const button_rect = e.target.getBoundingClientRect();
             setPosition({
                 rect: button_rect,
@@ -84,8 +87,8 @@ export default function Dropdown(props: {
             });
             setTarget(v => !v);
         }}>
-            {typeof props.label === "function" ? props.label(target) : props.label}
-        </Button>
+            <InternalIconRaw class="fa-solid fa-ellipsis" label="More" />
+        </button>
         <Show if={target() || animating()}>{(() => {
             let node2!: HTMLDivElement;
 
