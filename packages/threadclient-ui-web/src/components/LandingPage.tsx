@@ -3,7 +3,7 @@ import {
     HeadlessDisclosureChild, Listbox, ListboxButton,
     ListboxOption, ListboxOptions, RadioGroup, RadioGroupLabel, RadioGroupOption, Transition,
 } from "solid-headless";
-import { createEffect, createSelector, createSignal, For, JSX, Setter, untrack } from "solid-js";
+import { createEffect, createSelector, createSignal, For, JSX, untrack } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Show } from "tmeta-util-solid";
 import { getSettings, getWholePageRootContext, ToggleColor } from "../util/utils_solid";
@@ -265,6 +265,8 @@ export default function LandingPage(): JSX.Element {
                     bg-gradient-to-br from-blue-500 to-blue-600
                     text-slate-100 dark:text-zinc-100
                     rounded-lg
+                    <sm:flex-1
+                    text-center
                 `}>
                     <div class="
                         absolute inset-0
@@ -306,15 +308,9 @@ export default function LandingPage(): JSX.Element {
             <div class="mx-auto max-w-3xl p-8">{untrack(() => {
                 const [value, setValue] = createSignal<undefined | string>("on");
 
-                return <div class="grid grid-cols-2 gap-x-8 gap-y-4">
-                    <div />
-                    <div class="flex flex-row justify-center">
-                        <ToggleButton value={value()} setValue={setValue} choices={[
-                            ["off", <>Nest</>],
-                            ["on", <>Unthread</>],
-                        ]} />
-                    </div>
-                    <div class="text-lg">
+                return <div class="grid sm:grid-cols-2 sm:grid-flow-col-dense gap-x-8 gap-y-4">
+                    <div class="hidden sm:block sm:col-start-1" />
+                    <div class="sm:col-start-1 text-lg">
                         <span class="
                             text-sm font-bold uppercase
                             text-slate-500 dark:text-zinc-400
@@ -324,21 +320,27 @@ export default function LandingPage(): JSX.Element {
                             ThreadClient automatically unthreads these chains.
                         </p>
                     </div>
-                    <div class="shadow-md">
-                        <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
+                    <div class="sm:col-start-2 flex flex-row justify-center">
+                        <ToggleButton value={value()} setValue={setValue} choices={[
+                            ["off", <>Nest</>],
+                            ["on", <>Unthread</>],
+                        ]} />
+                    </div>
+                    <div class="sm:col-start-2 shadow-md -mx-8 sm:mx-0">
+                        <ToggleColor>{color => <div class={"h-2 sm:rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
                             options={{
                                 allow_threading: value() === "on",
                             }}
                         />
-                        <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
+                        <ToggleColor>{color => <div class={"h-2 sm:rounded-b-xl "+color} />}</ToggleColor>
                     </div>
                 </div>;
             })}</div>
             
             <div class="mx-auto max-w-3xl p-8">
-                <div class="grid grid-cols-2 gap-8">
+                <div class="grid sm:grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                             Link Previews
@@ -348,7 +350,7 @@ export default function LandingPage(): JSX.Element {
                             many of the most popular sources.
                         </p>
                     </div>
-                    <div class="shadow-md">
+                    <div class="shadow-md -mx-8 sm:mx-0">
                         <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
@@ -359,7 +361,7 @@ export default function LandingPage(): JSX.Element {
             </div>
             
             <div class="mx-auto max-w-3xl p-8">
-                <div class="grid grid-cols-2 gap-8">
+                <div class="grid sm:grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                             Repivoting
@@ -369,7 +371,7 @@ export default function LandingPage(): JSX.Element {
                             username to just see replies to that comment.
                         </p>
                     </div>
-                    <div class="shadow-md">
+                    <div class="shadow-md -mx-8 sm:mx-0">
                         <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/repivot" as Generic.Link<Generic.PostNotLoaded>}
@@ -380,7 +382,7 @@ export default function LandingPage(): JSX.Element {
             </div>
             
             <div class="mx-auto max-w-3xl p-8">
-                <div class="grid grid-cols-2 gap-8">
+                <div class="grid sm:grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                             Swipe Actions
@@ -389,10 +391,10 @@ export default function LandingPage(): JSX.Element {
                             Swipe comments to collapse them or repivot or something. Might be configurable eventually.
                         </p>
                     </div>
-                    <div class="space-y-4">
+                    <div class="shadow-md -mx-8 sm:mx-0">
                         <div class="relative">
                             <div class="
-                                absolute left-0 h-full w-full rounded-xl
+                                absolute left-0 h-full w-full sm:rounded-xl
                                 bg-slate-100 dark:bg-zinc-800 shadow-md
                             " />
                             <div class="relative p-4">
@@ -405,7 +407,7 @@ export default function LandingPage(): JSX.Element {
             </div>
             
             <div class="mx-auto max-w-3xl p-8">
-                <div class="grid grid-cols-2 gap-8">
+                <div class="grid sm:grid-cols-2 gap-8">
                     <div class="text-lg">
                         <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                             Preview Before Posting
@@ -415,10 +417,10 @@ export default function LandingPage(): JSX.Element {
                             working on a full richtext editor but that's not out yet
                         </p>
                     </div>
-                    <div class="space-y-4">
+                    <div class="shadow-md -mx-8 sm:mx-0">
                         <div class="relative">
                             <div class="
-                                absolute left-0 h-full w-full rounded-xl
+                                absolute left-0 h-full w-full sm:rounded-xl
                                 bg-slate-100 dark:bg-zinc-800 shadow-md
                             " />
                             <div class="relative p-4">
