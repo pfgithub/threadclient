@@ -52,7 +52,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
 
             // TODO: start an animation that changes opacity after like 200ms rather
             // than setting it instantly
-            return <div class={a.loading ? "opacity-50" : "opacity-100"}><Show when={c()} fallback={
+            return <div class={a.loading ? "animate-loading" : ""}><Show when={c()} fallback={
                 <>Loading…</>
             }>{b => {
                 return <Body body={b} autoplay={false} />;

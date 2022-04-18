@@ -107,6 +107,19 @@ export default defineConfig({
                 'topography-zinc-800': `url("${heropatterns.topography("27272A")}")`,
                 'topography-slate-350': `url("${heropatterns.topography("B0BCCD")}")`,
             },
+            animation: {
+                'loading': "loading 1s ease-in-out normal forwards",
+            },
+            keyframes: {
+                'loading': {
+                    '50%': {
+                        'opacity': "1.0",
+                    },
+                    '100%': {
+                        'opacity': "0.5",
+                    }
+                },
+            },
         },
     },
     plugins: [
