@@ -427,7 +427,7 @@ export default function LandingPage(): JSX.Element {
                                 <ReplyEditor action={{
                                     kind: "reply",
                                     key: "@0",
-                                    text: "",
+                                    text: "Reply",
                                     reply_info: {encoding_type: "reply", encoding_symbol: Symbol()},
                                     client_id: "shell",
                                     mode: "reply",
