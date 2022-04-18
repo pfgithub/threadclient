@@ -474,7 +474,7 @@ export default function LandingPage(): JSX.Element {
                 </div>
                 <div>these should be cards you can click for a fullscreen demo</div>
                 <div class="pb-4" />
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid sm:grid-cols-3 gap-4">
                     <FeaturePreviewCard
                         title="Syntax Highlighting"
                         description={<>ThreadClient will (!TODO!) automatically syntax highlight code blocks</>}
