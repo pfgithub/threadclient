@@ -1,13 +1,11 @@
 import * as Generic from "api-types-generic";
 import {
     HeadlessDisclosureChild, Listbox, ListboxButton,
-    ListboxOption, ListboxOptions, RadioGroup, RadioGroupLabel, RadioGroupOption, Transition
+    ListboxOption, ListboxOptions, Transition
 } from "solid-headless";
 import { createSignal, For, JSX, untrack } from "solid-js";
 import { Portal } from "solid-js/web";
-import { Show } from "tmeta-util-solid";
 import { getSettings, getWholePageRootContext, ToggleColor } from "../util/utils_solid";
-import createExclusiveFlipSelector from "./createExclusiveFlipSelector";
 import { createMergeMemo } from "./createMergeMemo";
 import { autokey, CollapseData, flattenPost } from "./flatten";
 import { InternalIcon, InternalIconRaw } from "./Icon";
@@ -15,6 +13,7 @@ import { A } from "./links";
 import PageFlatItem from "./PageFlatItem";
 import ReplyEditor from "./reply";
 import { array_key } from "./symbols";
+import ToggleButton from "./ToggleButton";
 
 function DisplayPost(props: {
     post: Generic.Link<Generic.PostNotLoaded>,
@@ -77,42 +76,6 @@ function FeaturePreviewCard(props: {
             </p>
         </div>
     </A>;
-}
-
-function ToggleButton<T extends string>(props: {
-    value: T | undefined,
-    setValue: (nv: T | undefined) => string | undefined,
-    choices: [id: T, text: JSX.Element][], // or we can use a typesafe children instead
-}): JSX.Element {
-    const ef = createExclusiveFlipSelector(() => props.value);
-
-    return <RadioGroup
-        value={props.value as string | undefined}
-        onChange={(nv: string | undefined) => props.setValue(nv as T | undefined)}
-    >
-        {/*there's supposed to be a <RadioGroupLabel> here but we don't have one*/
-        }
-        <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1 shadow-inner">
-            <For each={props.choices}>{choice => <>
-                <RadioGroupOption
-                    value={choice[0]}
-                    class={"block relative px-2 group select-none cursor-pointer"}
-                >
-                    <Show if={ef.if(choice[0])}>
-                        <div
-                            ref={ef.ref}
-                            class="
-                                absolute top-0 left-0 w-full h-full
-                                rounded-md bg-slate-100 dark:bg-zinc-500 shadow
-                                group-focus-visible-outline-default
-                            "
-                        />
-                    </Show>
-                    <RadioGroupLabel class="relative z-1">{choice[1]}</RadioGroupLabel>
-                </RadioGroupOption>
-            </>}</For>
-        </div>
-    </RadioGroup>;
 }
 
 export default function LandingPage(): JSX.Element {
