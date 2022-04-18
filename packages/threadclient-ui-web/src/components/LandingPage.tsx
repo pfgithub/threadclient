@@ -107,6 +107,7 @@ function ToggleButton(props: {value: string, setValue: Setter<string>}): JSX.Ele
                 "translate("+diff_x+"px, "+diff_y+"px)",
                 "scale("+diff_w+", "+diff_h+")",
             ].join(" ");
+            next_shape.style.transformOrigin = "top left";
 
             next_shape.offsetHeight;
             next_shape.style.transition = "0.1s transform ease-out";
@@ -133,7 +134,7 @@ function ToggleButton(props: {value: string, setValue: Setter<string>}): JSX.Ele
                     class="absolute top-0 left-0 w-full h-full rounded-md bg-slate-100 dark:bg-zinc-500 shadow"
                 />
             </Show>
-            <span class="relative z-1">Off</span>
+            <span class="relative z-1">Nest</span>
         </button>
         <button class="block relative px-2" onClick={() => props.setValue("on")}>
             <Show if={selector("on") || prevSelector("on")}>
@@ -142,7 +143,7 @@ function ToggleButton(props: {value: string, setValue: Setter<string>}): JSX.Ele
                     class="absolute top-0 left-0 w-full h-full rounded-md bg-slate-100 dark:bg-zinc-500 shadow"
                 />
             </Show>
-            <span class="relative z-1">On</span>
+            <span class="relative z-1">Unthread</span>
         </button>
     </div>;
 }
