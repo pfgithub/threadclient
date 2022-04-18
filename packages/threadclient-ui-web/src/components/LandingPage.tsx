@@ -6,10 +6,10 @@ import {
 import { createEffect, createSelector, createSignal, For, JSX, Setter, untrack } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Show } from "tmeta-util-solid";
-import { getWholePageRootContext, ToggleColor } from "../util/utils_solid";
+import { getSettings, getWholePageRootContext, ToggleColor } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { autokey, CollapseData, flattenPost } from "./flatten";
-import { InternalIcon } from "./Icon";
+import { InternalIcon, InternalIconRaw } from "./Icon";
 import { A } from "./links";
 import PageFlatItem from "./PageFlatItem";
 import ReplyEditor from "./reply";
@@ -78,10 +78,10 @@ function FeaturePreviewCard(props: {
     </A>;
 }
 
-function ToggleButton(props: {
-    value: string | undefined,
-    setValue: Setter<string | undefined>,
-    choices: [id: string, text: JSX.Element][], // or we can use a typesafe children instead
+function ToggleButton<T extends string>(props: {
+    value: T | undefined,
+    setValue: (nv: T | undefined) => string | undefined,
+    choices: [id: T, text: JSX.Element][], // or we can use a typesafe children instead
 }): JSX.Element {
     const [prevValue, setPrevValue] = createSignal(props.value);
     const selector = createSelector(() => props.value);
@@ -125,14 +125,14 @@ function ToggleButton(props: {
             next_shape.addEventListener("transitionend", ontransitionend);
         });
 
-        setPrevValue(current_value); // delete old element
+        setPrevValue(() => current_value); // delete old element
 
         return next_shape;
     }, null);
 
     return <RadioGroup
-        value={props.value}
-        onChange={props.setValue}
+        value={props.value as string | undefined}
+        onChange={(nv: string | undefined) => props.setValue(nv as T | undefined)}
     >
         {/*there's supposed to be a <RadioGroupLabel> here but we don't have one*/
         }
@@ -178,11 +178,28 @@ export default function LandingPage(): JSX.Element {
     }; */
 
     const [homeFor, setHomeFor] = createSignal<undefined | string>("reddit");
+    const settings = getSettings();
 
     return <div class="min-h-screen overflow-x-hidden bg-slate-300 dark:bg-zinc-900 text-slate-900 dark:text-zinc-100">
         <div class="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100">
             <div class="mx-auto max-w-3xl p-4 pb-0">
-                <div>github link, light/dark mode toggle (toggles between system default and an override)</div>
+                <div class="flex flex-wrap justify-end items-center">
+                    <div>
+                        <A class="hover:underline" href="https://github.com/pfgithub/threadclient" client_id="">
+                            <InternalIconRaw class="fa-brands fa-github" label={null} />
+                            {" "}Github
+                        </A>
+                    </div>
+                    <div class="flex-1" />
+                    <ToggleButton value={settings.colorScheme()} setValue={nv => {
+                        const upv = settings.colorScheme.base() === nv ? undefined : nv;
+                        settings.colorScheme.setOverride(upv);
+                        return upv;
+                    }} choices={[
+                        ["light", <InternalIcon tag="fa-sun" filled={true} label="Light" />],
+                        ["dark", <InternalIcon tag="fa-moon" filled={true} label="Dark" />],
+                    ]} />
+                </div>
             </div>
             <div class="mx-auto max-w-3xl p-8">
                 <span role="heading" class="text-3xl font-bold">ThreadClient</span>
