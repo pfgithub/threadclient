@@ -51,7 +51,7 @@ export function animateHeight(
             window.visualViewport.offsetTop + window.visualViewport.height
         );
 
-        console.log(initial_size.top, initial_size.bottom, visualTop(), visualBottom());
+        console.log("ANIMATE!", initial_size.top, initial_size.bottom, visualTop(), visualBottom());
 
         let scroll_offset = 0;
         if(initial_size.top < visualTop() && initial_size.bottom > visualTop()) {
@@ -63,7 +63,12 @@ export function animateHeight(
         }
 
         const target = transitionTarget();
-        if(settings.motion() === "reduce" || settings.animationTime() === 0) {
+        if(
+            settings.motion() === "reduce"
+            || settings.animationTime() === 0
+            || initial_size.top > visualBottom()
+            || initial_size.bottom < visualTop()
+        ) {
             setState(target, false, false);
             return;
         }
@@ -101,6 +106,7 @@ export function animateHeight(
             comment_root.style.height = animating() + "px";
             comment_root.style.overflow = "hidden";
             comment_root.style.transition = animationTime() + "s height";
+            comment_root.offsetHeight;
         }else{
             comment_root.style.removeProperty("height");
             comment_root.style.removeProperty("overflow");

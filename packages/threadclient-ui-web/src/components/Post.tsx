@@ -1,8 +1,7 @@
 import type * as Generic from "api-types-generic";
-import batch from "refractor/lang/batch";
 import {
     Accessor, createMemo, createSignal,
-    For, JSX, Setter, untrack
+    For, JSX, Setter
 } from "solid-js";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, navigate } from "../app";
@@ -85,7 +84,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     // it would probably be better to have two seperate post renderes, one for collapsed and one for expanded,
     // and switch between the two
 
-    const [transitionTarget, setTransitionTargetRaw]: [Accessor<boolean>, Setter<boolean>] = (
+    const [transitionTarget, setTransitionTarget]: [Accessor<boolean>, Setter<boolean>] = (
     props.opts.collapse_data && props.opts.id) ?
     ((): [Accessor<boolean>, Setter<boolean>] => {
         const pivot_signal = createSignal(true);
@@ -114,13 +113,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         }},
     );
     const [selfVisible, setSelfVisible] = createSignal(transitionTarget());
-    const setTransitionTarget = (nvr: (pv: boolean) => boolean) => {
-        const nv = nvr(untrack(() => transitionTarget()));
-        batch(() => {
-            setTransitionTargetRaw(nv);
-            if(nv) setSelfVisible(nv); // selfVisible is "target || rising" so if target is true, it should be true
-        });
-    };
 
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
