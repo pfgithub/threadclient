@@ -384,7 +384,7 @@ export type Widget = {
     shortName: string,
 
     description: Markdown,
-    description_html: HTML,
+    descriptionHtml: HTML,
 
     buttons: ({
         kind: "text",

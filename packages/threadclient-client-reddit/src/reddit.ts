@@ -714,7 +714,7 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
             kind: "list",
             above_text: {
                 kind: "text",
-                content: data.description_html,
+                content: data.descriptionHtml,
                 client_id: client.id,
                 markdown_format: "reddit_html",
             },

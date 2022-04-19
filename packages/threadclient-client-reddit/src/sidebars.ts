@@ -1,8 +1,8 @@
-import { client, ec, flairToGenericFlair, redditRequest, SubInfo, SubrInfo } from "./reddit";
 import * as Generic from "api-types-generic";
+import { rt } from "api-types-generic";
 import * as Reddit from "api-types-reddit";
 import { createSymbolLinkToError, createSymbolLinkToValue } from "./page2_from_listing";
-import { rt } from "api-types-generic";
+import { client, ec, flairToGenericFlair, redditRequest, SubInfo, SubrInfo } from "./reddit";
 
 export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): Promise<Generic.ListingData> {
     if(sub.kind === "subreddit") {
@@ -197,6 +197,35 @@ function sidebarWidgetToGenericWidgetTry(
             show_replies_when_below_pivot: false,
             collapsible: {default_collapsed: false},
         }, {internal_data: widget});
+    }else if(widget.kind === "button") {
+        // doesn't support image buttons yet. not that the old version really did either
+        // image buttons are basically supposed to be pill links but with an image in the background that
+        // is object-fit:cover
+        // the button is usually 286x32
+        return unpivotablePostBelowPivot(content, {
+            kind: "post",
+            title: {text: widget.shortName},
+            body: {
+                kind: "text",
+                content: widget.descriptionHtml,
+                markdown_format: "reddit_html",
+                client_id: client.id
+            },
+            show_replies_when_below_pivot: true,
+            collapsible: {default_collapsed: false},
+        }, {
+            internal_data: widget,
+            replies: widget.buttons.map(button => unpivotablePostBelowPivot(content, {
+                kind: "post",
+                title: {text: button.kind === "text" ? button.text : "TODO SUPPORT BUTTON KIND "+button.kind},
+                body: {kind: "none"},
+                show_replies_when_below_pivot: false,
+                collapsible: false,
+            }, {
+                internal_data: button,
+                link_to: (button.kind === "image" ? button.linkUrl : button.kind === "text" ? button.url : undefined),
+            })),
+        });
     }else throw new Error("TODO support sidebar of type: "+widget.kind);
 }
 
