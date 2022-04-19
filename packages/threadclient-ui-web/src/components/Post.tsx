@@ -37,7 +37,7 @@ function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
     const genv = createMemo(() => getThumbnailPreview(props.body));
     return <>{genv() != null ? <div class={classes(
         "absolute bottom-1 right-1",
-        "text-xs sm:text-base w-6 h-6 sm:w-8 sm:h-8 p-1 bg-gray-300",
+        "text-xs sm:text-base w-6 h-6 sm:w-8 sm:h-8 p-1 bg-slate-300 dark:bg-zinc-700",
         "rounded-md",
         "flex items-center justify-center",
     )}><span>
