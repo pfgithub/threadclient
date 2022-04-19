@@ -57,7 +57,7 @@ function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
                     other: "",
                 } as const)[icn.icon]}
             />,
-            gallery: (gal) => <>{gal.count}.</>,
+            gallery: (gal) => <>{gal.count}</>,
         }}</SwitchKind>
     </span></div> : null}</>;
 }
