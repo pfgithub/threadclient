@@ -1,4 +1,5 @@
 import type * as Generic from "api-types-generic";
+import batch from "refractor/lang/batch";
 import {
     Accessor, createMemo, createSignal,
     For, JSX, Setter
@@ -77,7 +78,14 @@ export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPos
 export default function ClientPost(props: ClientPostProps): JSX.Element {
     // wow this is sketchy because we're supporting posts that
     // aren't rendered from <ClientPage />
-    const [transitionTarget, setTransitionTarget]: [Accessor<boolean>, Setter<boolean>] = (
+
+    // ok all these signals are a mess because we're trying to do clipping height animations but keep the original
+    // appearence while the post switches to a collapsed state
+
+    // it would probably be better to have two seperate post renderes, one for collapsed and one for expanded,
+    // and switch between the two
+
+    const [transitionTarget, setTransitionTargetRaw]: [Accessor<boolean>, Setter<boolean>] = (
     props.opts.collapse_data && props.opts.id) ?
     ((): [Accessor<boolean>, Setter<boolean>] => {
         const pivot_signal = createSignal(true);
@@ -106,6 +114,12 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         }},
     );
     const [selfVisible, setSelfVisible] = createSignal(transitionTarget());
+    const setTransitionTarget = (nv: boolean) => {
+        batch(() => {
+            setTransitionTargetRaw(nv);
+            if(nv) setSelfVisible(nv); // selfVisible is "target || rising" so if target is true, it should be true
+        });
+    };
 
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
