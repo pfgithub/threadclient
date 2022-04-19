@@ -176,7 +176,7 @@ function UITestingPage(): JSX.Element {
                     </HSplit.Child>
                     <HSplit.Child><div class="mr-2" /></HSplit.Child>
                     <HSplit.Child vertical="top">
-                        <Dropdown label={<>…</>}>
+                        <Dropdown>
                             <DropdownMenu />
                         </Dropdown>
                     </HSplit.Child>
