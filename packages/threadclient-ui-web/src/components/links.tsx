@@ -84,7 +84,7 @@ export function A(props: {
         ) {
             event.preventDefault();
             if(props.onClick) return props.onClick(event);
-            if(link == null) return alert(props.href);
+            if(link == null) return alert("E_LINK_HREF_EXPECT_NAVIGATE: "+props.href);
             navigate({path: link.url, page: props.page?.()});
         }
     };
