@@ -80,6 +80,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     const [transitionTarget, setTransitionTarget]: [Accessor<boolean>, Setter<boolean>] = (
     props.opts.collapse_data && props.opts.id) ?
     ((): [Accessor<boolean>, Setter<boolean>] => {
+        const pivot_signal = createSignal(true);
         if(props.opts.is_pivot) return createSignal(true);
         const cs = getCState(props.opts.collapse_data, props.opts.id);
         const setter: Setter<boolean> = (nv) => {
@@ -89,7 +90,10 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             }) as any; // jkjckdnacjkdsnajkldkl
             // why is this setter type so messy aaaa
         };
-        return [() => !cs.collapsed(), setter];
+        return [
+            createMemo(() => props.opts.is_pivot ? pivot_signal[0]() : !cs.collapsed()),
+            (arg) => props.opts.is_pivot ? pivot_signal[1](arg) : setter(arg),
+        ];
     })() : createSignal(
         props.opts.is_pivot ? true :
         !postContentCollapseInfo(props.content, props.opts).default_collapsed,
