@@ -101,7 +101,7 @@ function ClientPageMain(props: ClientPageProps): PageRes {
                 </button>
             </div>
         </Show>
-        <div class="flex flex-row gap-4 justify-center">
+        <div class="flex flex-row gap-8 justify-center">
             <Show if={tabbed() ? tab() === "content" : true}>
                 <div class="max-w-4xl w-full">
                     <For each={view.data.body}>{item => (
