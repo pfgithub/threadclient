@@ -1,7 +1,16 @@
 name: Deploy ThreadClient
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      release_id:
+        required: false
 jobs:
+  show-version: 
+    name: Version ${{ githun.events.inputs.release_id }}
+    steps:
+      - name: Show trigger source
+        run: |
+          echo "Trigger source: ${{ github.event.inputs.trigger }}"
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
