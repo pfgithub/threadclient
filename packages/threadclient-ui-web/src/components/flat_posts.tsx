@@ -4,7 +4,7 @@ import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
 import { CounterState } from "../app";
 import { addAction } from "./action_tracker";
 import { actAuto, getCounterState } from "./counter";
-import { getCState } from "./flatten";
+import { getCState, postContentCollapseInfo } from "./flatten";
 import { ClientPostOpts } from "./Post";
 
 export type InfoBarItem = {
@@ -190,7 +190,9 @@ function ActionBarItems(props: {
 }): JSX.Element {
     return <>
         {/* now I want a <Show whenAll={{a, b, c}}>{(props) => } */}
-        {props.opts.collapse_data && props.opts.id && props.post.collapsible !== false && !props.opts.is_pivot ? <>
+        {props.opts.collapse_data && props.opts.id && (
+            postContentCollapseInfo(props.post, {is_pivot: props.opts.is_pivot}).user_controllable
+        ) ? <>
             <ActionItemRaw {...((): ActionItem => {
                 const cs = getCState(props.opts.collapse_data, props.opts.id);
                 const collapsed = cs.collapsed();
