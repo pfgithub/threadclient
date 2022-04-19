@@ -9,13 +9,14 @@ export const client: ThreadClient = {
         // we can just return all the content i guess
         // might be nice if we structured it so it can be dynamically imported in the future but this
         // is okay for now
-        const link = linkToPost("/"+path.split("/").filter(v => v).join("/"));
+        const link = linkToPost("/"+path.split("/").filter(v => v && !v.startsWith("~")).join("/"));
         if(all_content[link] == null) return {
             pivot: link,
             content: {[link]: {data: autoPost({
                 url: link as string,
                 parent: null,
                 replies: null,
+            }, {
                 content: [
                     rt.p(rt.error("404 not found", "ERROR")),
                     rt.p(rt.link({id: client.id}, "/", {}, rt.txt("Back to homepage"))),
@@ -30,9 +31,8 @@ export const client: ThreadClient = {
 
     previewReply(body, reply_info) {
         return autoPostContent({
-            url: "/@reply-demo",
             content: {kind: "text", content: body, markdown_format: "reddit", client_id: client.id},
-        });
+        })("/@reply-demo");
     },
 };
 
@@ -46,11 +46,10 @@ function linkToPost(text: AllLinks): Generic.Link<Generic.Post> {
 
 type AutoPostContentProps = {
     content: Generic.Richtext.Paragraph[] | Generic.Body,
-    url: string,
     show_replies_when_below_pivot?: undefined | boolean,
 };
-function autoPostContent(value: AutoPostContentProps): Generic.PostContentPost {
-    return {
+function autoPostContent(value: AutoPostContentProps): (url: string) => Generic.PostContentPost {
+    return (url): Generic.PostContentPost => ({
         kind: "post",
         title: null,
         body: Array.isArray(value.content) ? {kind: "richtext", content: value.content} : value.content,
@@ -61,7 +60,7 @@ function autoPostContent(value: AutoPostContentProps): Generic.PostContentPost {
             vote: {
                 kind: "counter",
                 client_id: client.id,
-                unique_id: "VOTE_"+value.url,
+                unique_id: "VOTE_"+url,
                 increment: {
                     icon: "up_arrow",
                     color: "orange",
@@ -86,24 +85,27 @@ function autoPostContent(value: AutoPostContentProps): Generic.PostContentPost {
             link: "https://www.reddit.com/user/pfg___",
             client_id: client.id,
         },
-    };
+    });
 }
 type AutoPostProps<T> = {
     url: T,
-    parent: null | string,
-    replies: null | string[],
-} & AutoPostContentProps;
-function autoPost<T extends string>(value: AutoPostProps<T>): AllContentRawItemExtends<T> {
-    const {url, parent, replies} = value;
-    return {v: value.url, post: {
+    parent: null | AllLinks,
+    replies: null | AllLinks[],
+};
+function autoPost<T extends string>(
+    props: AutoPostProps<T>,
+    content: AutoPostContentProps | ((url: T) => Generic.PostContentPost),
+): AllContentRawItemExtends<T> {
+    const {url, parent, replies} = props;
+    return {v: props.url, post: {
         kind: "post",
         parent: parent != null ? linkToPost(parent) : null,
         replies: replies != null ? {items: replies.map(linkToPost)} : null,
         url: url,
         client_id: client.id,
-        internal_data: value,
+        internal_data: props,
         display_style: "centered",
-        content: autoPostContent(value),
+        content: (typeof content === "function" ? content : autoPostContent(content))(url),
     }};
 }
 
@@ -159,50 +161,59 @@ const all_content_raw_dontuse = [
 
     autoPost({
         url: "/client-picker",
-        content: [rt.p(rt.txt("TODO client picker. should link to homepages for different clients."))],
         parent: "/",
         replies: [],
+    }, {
+        content: [rt.p(rt.txt("TODO client picker. should link to homepages for different clients."))],    
     }),
 
     autoPost({
         url: "/homepage/unthreading",
+        parent: "/",
+        replies: ["/homepage/unthreading/0"],
+    }, {
         content: [rt.p(
             rt.txt("It often gets difficult to read long comment chains because the indentation gets too deep"),
         )],
-        parent: "/",
-        replies: ["/homepage/unthreading/0"],
     }),
     autoPost({
         url: "/homepage/unthreading/0",
+        parent: "/homepage/unthreading",
+        replies: ["/homepage/unthreading/0/0"],
+    }, {
         content: [rt.p(
             rt.txt("ThreadClient improves this by unthreading comment chains, like this!"),
         )],
-        parent: "/homepage/unthreading",
-        replies: ["/homepage/unthreading/0/0"],
     }),
     autoPost({
         url: "/homepage/unthreading/0/0",
+        parent: "/homepage/unthreading/0",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("Use the toggle switch above to see the difference"),
         )],
-        parent: "/homepage/unthreading/0",
-        replies: [],
     }),
 
     autoPost({
         url: "/homepage/link-previews",
+        
+        parent: "/",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("ThreadClient supports previewing links from many different sources, directly inline."),
         ), rt.p(
             rt.link({id: client.id}, "https://i.redd.it/p0y4mrku6xh61.png", {}, rt.txt("Try it out!")),
         )],
-
-        parent: "/",
-        replies: [],
     }),
 
     autoPost({
         url: "/homepage/repivot",
+        
+        parent: "/",
+        replies: ["/homepage/repivot/0", "/homepage/repivot/1"],
+    }, {
         content: [rt.p(
             rt.txt(
                 "When you're getting deep in a comment thread, press the top bar (next to the username)"
@@ -210,55 +221,62 @@ const all_content_raw_dontuse = [
             ),
         )],
         show_replies_when_below_pivot: false,
-
-        parent: "/",
-        replies: ["/homepage/repivot/0", "/homepage/repivot/1"],
     }),
 
     autoPost({
         url: "/homepage/repivot/0",
+        
+        parent: "/homepage/repivot",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("Now you can see just the replies to the comment you pressed"),
         )],
-
-        parent: "/homepage/repivot",
-        replies: [],
     }),
     autoPost({
         url: "/homepage/repivot/1",
+        
+        parent: "/homepage/repivot",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("Use the back button or swipe from the left side of the screen to go back"),
         )],
-
-        parent: "/homepage/repivot",
-        replies: [],
     }),
 
     autoPost({
         url: "/homepage/swipe-actions",
+        
+        parent: "/",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("something or other"),
         )],
-
-        parent: "/",
-        replies: [],
     }),
 
-    autoPost(((c = (v: string): AutoPostProps<"/homepage/syntax-highlighting"> => ({
+    autoPost({
         url: "/homepage/syntax-highlighting",
-        content: [rt.p(
+            
+        parent: "/",
+        replies: [],
+    }, ((c = (v: string): Generic.Richtext.Paragraph[] => ([
+        rt.p(
             rt.txt("Here's my code:"),
         ), {
-            kind: "code_block",
-            lang: "json",
-            text: v,
-        }],
+                kind: "code_block",
+                lang: "json",
+                text: v,
+        },
+    ])) => ({
+        content: c(JSON.stringify(c("{{value}}"), null, "  "))
+    }))()),
+    autoPost({
+        url: "/homepage/braille-art-fix",
 
         parent: "/",
         replies: [],
-    })) => c(JSON.stringify(c("{{value}}"), null, "  ")))()),
-    autoPost({
-        url: "/homepage/braille-art-fix",
+    }, {
         content: [rt.p(
             rt.txt("ThreadClient will correctly display braille art on desktop and mobile")
         ), rt.p(
@@ -296,59 +314,151 @@ const all_content_raw_dontuse = [
                 ⣿⡿⠋⠁⠀⠀⢀⣀⣠⡴⣸⣿⣇⡄⠀⠀⠀⠀⢀⡿⠄⠙⠛⠀⣀⣠⣤⣤⠄⠀
             `.trim().split("\n").map(l => l.trim()).join("\n")),
         )],
-
-        parent: "/",
-        replies: [],
     }),
     autoPost({
         url: "/homepage/percent-upvoted",
+        
+        parent: "/",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("TODO; Demonstrate % upvoted on a post"),
         )],
-
-        parent: "/",
-        replies: [],
     }),
     autoPost({
         url: "/homepage/see-comment-markdown",
+        
+        parent: "/",
+        replies: [],
+    }, {
         content: {kind: "text", client_id: client.id, markdown_format: "reddit", content: ""
              + "I put one line right after another  \n"
              + "Click the 'Code' button below to see how I did it\n"
              + "\n"
              + "TODO; ADD CODE BUTTON CONTAINING THIS"
         },
-
-        parent: "/",
-        replies: [],
     }),
     autoPost({
         url: "/homepage/pwa",
+        
+        parent: "/",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("TODO; Explain how to install ThreadClient as a PWA"),
         )],
-
-        parent: "/",
-        replies: [],
     }),
     autoPost({
         url: "/homepage/offline-mode",
+        
+        parent: "/",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("TODO; Support Offline Mode and explain how to use it"),
         )],
-
-        parent: "/",
-        replies: [],
     }),
     autoPost({
         url: "/homepage/hide-automod",
+        
+        parent: "/",
+        replies: [],
+    }, {
         content: [rt.p(
             rt.txt("TODO; Support 'Hide Automod' and have an example AutoModerator comment below"),
         )],
-
-        parent: "/",
-        replies: [],
     }),
+
+    autoPost({
+        url: "/changelog",
+        
+        parent: "/",
+        replies: [
+            // oh we could have sorting options on this
+            "/changelog/-N02c8ctxITU-BqvlytL"
+        ],
+    }, {
+        content: [rt.p(rt.txt("Changelog"))],
+    }),
+    // v we could make changelog entries loaders so they don't have to be loaded in order to load the homepagee
+    // put all the changelog stuff in "changelog.ts" or something
+    autoPost({
+        url: "/changelog/-N02c8ctxITU-BqvlytL", // "/~ThreadClient-Apr-19.-2022",
+        parent: "/changelog",
+        replies: [],
+        // vv we could implement these as replies instead of just a richtext list
+    }, changelogEntry({
+        title: "Apr 19, 2022 ThreadClient Update",
+
+        changes: [
+            rt.ili(rt.txt("Added a changelog")),
+            rt.ili(rt.txt("New colors - the background grays are a bit different. This improves contrast in dark "
+            +"mode and makes the colors more consistent across the UI.")),
+            rt.ili(rt.txt("Fancy new animated toggle switch in "),
+                rt.link({id: ""}, "/settings", {}, rt.txt("Settings")),
+            ),
+            rt.ili(rt.txt("Updates the focus outline color to be more visible when tabbing through elements")),
+        ],
+        bugfixes: [
+            rt.ili(rt.txt("Fixed headers not having the gradient")),
+            rt.ili(rt.txt("Fixed unnecessary reloads when using the browser url bar to navigate to a new page")),
+            rt.ili(rt.txt("Fixes flairs so the text should always be readable")),
+        ],
+        previews: [
+            rt.ili(
+                rt.txt("Started work on a new landing page for ThreadClient. You can see it at "),
+                rt.link({id: client.id}, "/", {}, rt.txt("https://thread.pfg.pw/#shell")),
+            ),
+            rt.ili(
+                rt.txt("Updated title links in page2 to act as a repivot rather than a full reload"),
+            ),
+            rt.ili(rt.txt("Set titles of some page2 pages now")),
+        ],
+    })),
 ];
+
+// ok changelog display
+// we can have a banner on update that doesn't go away until you press "dismiss"
+// the banner will store a value "listest viewed changelog" in localstorage. the banner will show if there
+// is a changelog available `>` the current localstorage latest. if there is no localstorage latest, set it to
+// the current version.
+
+function changelogEntry(props: {
+    title: string,
+
+    features?: undefined | Generic.Richtext.Paragraph[],
+    changes?: undefined | Generic.Richtext.ListItem[],
+    bugfixes?: undefined | Generic.Richtext.ListItem[],
+    previews?: undefined | Generic.Richtext.ListItem[],
+}): (url: string) => Generic.PostContentPost {
+    return (url): Generic.PostContentPost => ({
+        kind: "post",
+        title: {text: props.title},
+        body: {kind: "richtext", content: [
+            ...(props.features != null ? [
+                rt.h2(rt.txt("New Features")),
+                ...props.features,
+            ] : []),
+            ...(props.changes != null ? [
+                rt.h2(rt.txt("Minor Changes")),
+                rt.ul(...props.changes),
+            ] : []),
+            ...(props.bugfixes != null ? [
+                rt.h2(rt.txt("Bugfixes")),
+                rt.ul(...props.bugfixes),
+            ] : []),
+            ...(props.previews != null ? [
+                rt.h2(rt.txt("WIP Feature Previews")),
+                rt.blockquote(rt.p(rt.txt("These features are not ready yet, but you can try them out before "+
+                "release here"))),
+                rt.ul(...props.previews),
+            ] : []),
+        ]},
+        show_replies_when_below_pivot: true,
+        collapsible: "collapsed-unless-pivot",
+    });
+}
+
 const all_content: Generic.Page2Content = Object.fromEntries(
     all_content_raw_dontuse.map(itm => [itm.v, {data: itm.post}]),
 );
