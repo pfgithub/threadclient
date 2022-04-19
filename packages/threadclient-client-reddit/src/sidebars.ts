@@ -189,6 +189,14 @@ function sidebarWidgetToGenericWidgetTry(
                 });
             }),
         });
+    }else if(widget.kind === "textarea") {
+        return unpivotablePostBelowPivot(content, {
+            kind: "post",
+            title: {text: widget.shortName},
+            body: {kind: "text", content: widget.textHtml, markdown_format: "reddit_html", client_id: client.id},
+            show_replies_when_below_pivot: false,
+            collapsible: {default_collapsed: false},
+        }, {internal_data: widget});
     }else throw new Error("TODO support sidebar of type: "+widget.kind);
 }
 
