@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import batch from "refractor/lang/batch";
 import {
     Accessor, createMemo, createSignal,
-    For, JSX, Setter
+    For, JSX, Setter, untrack
 } from "solid-js";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, navigate } from "../app";
@@ -114,7 +114,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         }},
     );
     const [selfVisible, setSelfVisible] = createSignal(transitionTarget());
-    const setTransitionTarget = (nv: boolean) => {
+    const setTransitionTarget = (nvr: (pv: boolean) => boolean) => {
+        const nv = nvr(untrack(() => transitionTarget()));
         batch(() => {
             setTransitionTargetRaw(nv);
             if(nv) setSelfVisible(nv); // selfVisible is "target || rising" so if target is true, it should be true
@@ -246,7 +247,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             window.open(target_url);
                         }else{
                             if(collapseInfo().user_controllable && !transitionTarget()) {
-                                setTransitionTarget(true);
+                                setTransitionTarget(() => true);
                                 return;
                             }
                             if(props.opts.frame?.url == null) return;
