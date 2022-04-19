@@ -2,7 +2,10 @@ import * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import * as Reddit from "api-types-reddit";
 import { createSymbolLinkToError, createSymbolLinkToValue } from "./page2_from_listing";
-import { client, ec, flairToGenericFlair, redditRequest, SubInfo, SubrInfo } from "./reddit";
+import {
+    client, createSubscribeAction, ec, expectUnsupported,
+    flairToGenericFlair, redditRequest, SubInfo, SubrInfo,
+} from "./reddit";
 
 export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): Promise<Generic.ListingData> {
     if(sub.kind === "subreddit") {
@@ -195,7 +198,7 @@ function sidebarWidgetToGenericWidgetTry(
             title: {text: widget.shortName},
             body: {kind: "text", content: widget.textHtml, markdown_format: "reddit_html", client_id: client.id},
             show_replies_when_below_pivot: false,
-            collapsible: {default_collapsed: false},
+            collapsible: false,
         }, {internal_data: widget});
     }else if(widget.kind === "button") {
         // doesn't support image buttons yet. not that the old version really did either
@@ -212,7 +215,7 @@ function sidebarWidgetToGenericWidgetTry(
                 client_id: client.id
             },
             show_replies_when_below_pivot: true,
-            collapsible: {default_collapsed: false},
+            collapsible: false,
         }, {
             internal_data: widget,
             replies: widget.buttons.map(button => unpivotablePostBelowPivot(content, {
@@ -225,6 +228,37 @@ function sidebarWidgetToGenericWidgetTry(
                 internal_data: button,
                 link_to: (button.kind === "image" ? button.linkUrl : button.kind === "text" ? button.url : undefined),
             })),
+        });
+    }else if(widget.kind === "community-list") {
+        return unpivotablePostBelowPivot(content, {
+            kind: "post",
+            title: {text: widget.shortName},
+            body: {kind: "none"},
+            show_replies_when_below_pivot: true,
+            collapsible: false,
+        }, {
+            internal_data: widget,
+            // TODO: if we can make real `subreddit_unloaded` objects here that would be fun
+            replies: widget.data.map(community => community.type === "subreddit" ? unpivotablePostBelowPivot(content, {
+                kind: "post",
+                title: {text: "r/"+community.name},
+                thumbnail: {
+                    kind: "image",
+                    url: community.iconUrl,
+                },
+                body: {kind: "none"},
+                show_replies_when_below_pivot: false,
+                collapsible: "collapsed-unless-pivot",
+                actions: {
+                    vote: createSubscribeAction(community.name, community.subscribers, community.isSubscribed),
+                },
+            }, {
+                internal_data: community,
+                link_to: "/r/"+community.name,
+            }) : (
+                expectUnsupported(community.type),
+                createSymbolLinkToError(content, "unsupported community type: "+community.type, community)
+            )),
         });
     }else throw new Error("TODO support sidebar of type: "+widget.kind);
 }

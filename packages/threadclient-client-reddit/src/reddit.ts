@@ -533,7 +533,7 @@ export function updateQuery(path: string, update: {[key: string]: string | undef
     return pathname + "?" + query.toString() + (hash !== "" ? "#"+hash : "");
 }
 
-function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.Action {
+export function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.CounterAction {
     return {
         kind: "counter",
         client_id: client.id,
