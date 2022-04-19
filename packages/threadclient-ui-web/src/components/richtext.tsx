@@ -342,6 +342,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                 "p-2 px-4",
                 "block",
                 color, "rounded-xl",
+                "hover:dark:bg-zinc-700 dark:hover:shadow transition",
                 previewOpen().open ? "rounded-b-none" : "",
             )}
             href={props.link.url}
@@ -384,6 +385,7 @@ export function MobileLinkPreview(props: {link: Link}): JSX.Element {
                         "p-2 px-4",
                         "block",
                         color, "rounded-xl rounded-t-none",
+                        "hover:dark:bg-zinc-700 dark:hover:shadow transition",
                     )}
                     href={props.link.url}
                 >
