@@ -244,7 +244,7 @@ function sidebarWidgetToGenericWidgetTry(
                 title: {text: "r/"+community.name},
                 thumbnail: {
                     kind: "image",
-                    url: community.iconUrl,
+                    url: community.communityIcon,
                 },
                 body: {kind: "none"},
                 show_replies_when_below_pivot: false,

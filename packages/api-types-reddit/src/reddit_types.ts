@@ -308,7 +308,7 @@ export type Widget = {
 } | {
     kind: "community-list",
     data: ({
-        iconUrl: "" | string,
+        // iconUrl: "" | string, // unused?
         name: string,
         subscribers: number,
         primaryColor: "" | `#{string}`,
