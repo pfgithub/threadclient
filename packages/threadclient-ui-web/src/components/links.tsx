@@ -53,9 +53,7 @@ export function PreviewableLink(props: {
 }
 
 export function A(props: {
-    href?: undefined | string,
     class: string,
-    client_id: string,
     onClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
     /// preventDefault can be called in here if you want and it will cancel the onclick
     onClickNoPreventDefault?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
@@ -63,7 +61,12 @@ export function A(props: {
     btnref?: undefined | ((el: HTMLElement) => void),
     disabled?: undefined | boolean,
     page?: undefined | (() => Generic.Page2 | undefined),
-}): JSX.Element {
+} & ({
+    href: string,
+    client_id: string,
+} | {
+    href?: undefined,
+})): JSX.Element {
     const linkValue = createMemo(() => {
         if(props.href == null) return ({kind: "none"} as const);
         return unsafeLinkToSafeLink(props.client_id, props.href);

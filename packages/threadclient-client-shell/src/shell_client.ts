@@ -455,7 +455,8 @@ function changelogEntry(props: {
             ] : []),
         ]},
         show_replies_when_below_pivot: true,
-        collapsible: "collapsed-unless-pivot",
+        // collapsible: "collapsed-unless-pivot",
+        collapsible: false, // TODO make this "collapsed-unless-pivot" unless it's the most recent one
     });
 }
 

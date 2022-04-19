@@ -8,6 +8,7 @@ import {
     elButton, GlobalCounter, HistoryState, navigate, NavigationEntry,
     onNavigate, startDebugTool, URLLike,
 } from "./app";
+import { renderChangelogBannerIfNeeded } from "./components/changelog_manager";
 import { bg_colors, getSettings } from "./util/utils_solid";
 
 export let rootel!: HTMLElement;
@@ -50,6 +51,7 @@ export function fixURL(): void {
 }
 
 export function main(): void {
+    const bannerarea = document.createElement("div").adto(document.body);
     rootel = document.createElement("threadclient");
     document.body.appendChild(rootel);
 
@@ -177,6 +179,7 @@ export function main(): void {
     alertarea = el("div").adto(rootel).clss("alert-area");
 
     startDebugTool(rootel);
+    renderChangelogBannerIfNeeded(bannerarea);
 }
 
 const [availableForOfflineUse, setAvailableForOfflineUse] = createSignal(false);
