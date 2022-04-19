@@ -10,7 +10,7 @@ jobs:
 
       - name: Install and Build 🔧
         run: |
-          yarn install
+          yarn install --immutable --immutable-cache
           yarn lint
           yarn test
           yarn workspace animator-ui-web build

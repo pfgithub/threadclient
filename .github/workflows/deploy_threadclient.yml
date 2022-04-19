@@ -6,27 +6,29 @@ on:
         required: false
 jobs:
   show-version: 
-    name: Version ${{ githun.events.inputs.release_id }}
+    name: Version ${{ github.events.inputs.release_id }}
     steps:
-      - name: Show trigger source
+      - name: Show Release ID
         run: |
-          echo "Trigger source: ${{ github.event.inputs.trigger }}"
+          echo "Version: ${{ github.events.inputs.release_id }}"
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout 🛎️
+      - name: Checkout
         uses: actions/checkout@v2.3.1
         with:
           fetch-depth: 10
 
-      - name: Install and Build 🔧
-        run: |
-          yarn install
-          yarn lint
-          yarn test
-          yarn workspace threadclient-ui-web build
+      - name: Install
+        run: yarn install --immutable --immutable-cache
+      - name: Lint
+        run: yarn lint
+      - name: Test
+        run: yarn test
+      - name: Build
+        run: yarn workspace threadclient-ui-web build
 
-      - name: Deploy 🚀
+      - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.0.0
         with:
           branch: gh-pages # The branch the action should deploy to.

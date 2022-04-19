@@ -26,4 +26,4 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Check
         run: |
-          yarn install --check-cache
+          yarn install --immutable --immutable-cache --check-cache
