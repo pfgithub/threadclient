@@ -175,7 +175,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             </div>
         </Show>
         <div class="flex-1">
-            <HSplit.Container dir="right" vertical="baseline">
+            <HSplit.Container dir="right" vertical="center">
                 <Show if={!selfVisible()} when={props.content.thumbnail}>{thumb_any => (
                     <ToggleColor>{color => (
                         <HSplit.Child>
