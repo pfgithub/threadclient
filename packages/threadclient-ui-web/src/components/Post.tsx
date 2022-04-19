@@ -327,7 +327,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         </HSplit.Child>
                     </div></div>
                 </div></HSplit.Child>
-                <Show if={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
+                <Show if={selfVisible() || hasThumbnail()}>
                     <HSplit.Child>
                         <div class="pl-2" />
                         <Dropdown>
