@@ -330,7 +330,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                 <Show if={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
                     <HSplit.Child>
                         <div class="pl-2" />
-                        <Dropdown label={"…"}>
+                        <Dropdown>
                             <For each={getActions()}>{action => <>
                                 <DropdownActionButton action={action} />
                             </>}</For>
