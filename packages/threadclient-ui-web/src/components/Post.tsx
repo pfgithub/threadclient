@@ -175,7 +175,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             </div>
         </Show>
         <div class="flex-1">
-            <HSplit.Container dir="right" vertical="center">
+            <HSplit.Container dir="right" vertical="baseline">
                 <Show if={!selfVisible()} when={props.content.thumbnail}>{thumb_any => (
                     <ToggleColor>{color => (
                         <HSplit.Child>
@@ -328,7 +328,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     </div></div>
                 </div></HSplit.Child>
                 <Show if={!props.opts.is_pivot && (selfVisible() || hasThumbnail())}>
-                    <HSplit.Child vertical="top">
+                    <HSplit.Child>
                         <div class="pl-2" />
                         <Dropdown label={"…"}>
                             <For each={getActions()}>{action => <>
