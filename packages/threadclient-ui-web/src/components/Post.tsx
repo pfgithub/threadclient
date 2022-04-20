@@ -16,8 +16,8 @@ import { CollapseButton } from "./CollapseButton";
 import { VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import { Flair } from "./Flair";
-import { CollapseData, getCState, postContentCollapseInfo } from "./flatten";
-import { getThumbnailPreview, useActions } from "./flat_posts";
+import { CollapseData, CollapseInfo, getCState, postContentCollapseInfo } from "./flatten";
+import { ActionItem, getThumbnailPreview, useActions } from "./flat_posts";
 import { HSplit } from "./HSplit";
 import { InternalIcon, InternalIconRaw } from "./Icon";
 import InfoBar from "./InfoBar";
@@ -123,12 +123,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         return !!props.content.thumbnail && !visible();
     };
 
-    const settings = getSettings();
-
-    const postIsClickable = () => {
-        return !visible() || (props.opts.frame?.url != null && !props.opts.is_pivot);
-    };
-
     const hprc = getWholePageRootContextOpt();
 
     const getPage = (): Generic.Page2 | undefined => {
@@ -185,169 +179,19 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             </div>
         </Show>
         <div class="flex-1">
-            <HSplit.Container dir="right" vertical="center">
-                <Show if={!visible()} when={props.content.thumbnail}>{thumb_any => (
-                    <ToggleColor>{color => (
-                        <HSplit.Child>
-                            <A
-                                href={props.opts.frame?.url ?? "ENOHREF"}
-                                client_id={props.opts.frame?.client_id ?? "ENOCLIENTID"}
-                                class={classes(
-                                    "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
-                                    contentWarning() && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
-                                    "block",
-                                    "relative",
-                                )}
-                                onClick={collapseInfo().user_controllable ? () => {
-                                    setVisible(t => !t);
-                                } : undefined}
-                                page={getPage}
-                            >
-                                <SwitchKind item={thumb_any}>{{
-                                    image: img => <img
-                                        // TODO based on the img content, display eg a play button or something
-                                        src={img.url}
-                                        alt=""
-                                        class={classes(
-                                            "w-full h-full object-cover rounded-md"
-                                            // object-contain is nicer but we're using object-cover for now
-                                        )}
-                                    />,
-                                    default: def => <>TODO {def.kind}</>,
-                                }}</SwitchKind>
-                                <PreviewThumbnailIcon body={props.content.body} />
-                            </A>
-                        </HSplit.Child>
-                    )}</ToggleColor>
-                )}</Show>
-                <HSplit.Child fullwidth><div
-                    class={(postIsClickable() ? " hover-outline" : "")}
-                    // note: screenreader or keyboard users must click the 'view' button
-                    // or the title if there is one.
-                    // I considered making the "x points x hours ago" a link but it's harder
-                    // to do than it should be because of the {" "} and {", "} those get underlined
-                    onclick={e => {
-                        if(!postIsClickable()) return;
-                        if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
-                        e.stopPropagation();
+            <PostTopBar
+                content={props.content}
+                opts={props.opts}
 
-                        // support ctrl click
-                        const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
-                        if(e.ctrlKey || e.metaKey || e.altKey) {
-                            if(props.opts.frame?.url == null) return;
-                            window.open(target_url);
-                        }else{
-                            if(collapseInfo().user_controllable && !visible()) {
-                                setVisible(() => true);
-                                return;
-                            }
-                            if(props.opts.frame?.url == null) return;
-                            navigate({
-                                path: target_url,
-                                page: getPage(),
-                                // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
-                                // disabling this for now, we'll fix it in a bit
-                                // we just need to know what the link to the post is in the
-                                // post itself
-                            });
-                        }
-                    }}
-                >
-                    <div class={classes(
-                        "text-gray-500",
-                        "text-sm",
-                        visible() || hasThumbnail()
-                        ? ""
-                        : "filter grayscale text-$collapsed-header-color italic",
-                    )}><div class={classes([
-                        "flex",
-                        props.content.thumbnail ? "flex-col" : [
-                            "flex-row flex-wrap gap-2 items-baseline"
-                        ],
-                    ])}>
-                        <Show if={props.content.title != null || props.content.flair != null}>
-                            <div role="heading" class={classes(
-                                "text-black",
-                                (props.opts.is_pivot && visible()) ? "text-3xl sm:text-2xl" : "text-base",
-                            )}>
-                                <Show when={props.content.title}>{title => (
-                                    <Show if={!props.opts.is_pivot} when={props.opts.frame?.url} fallback={(
-                                        title.text
-                                    )}>{url => (
-                                        <A
-                                            client_id={props.opts.client_id}
-                                            href={url}
-                                            class="hover:underline"
-                                            page={getPage}
-                                        >{title.text}</A>
-                                    )}</Show>
-                                )}</Show>
-                            <Flair flairs={props.content.flair ?? []} />
-                            </div>
-                        </Show>
-                        <div>
-                            <Show when={props.content.author}>{author => <>
-                                <Show if={
-                                    visible() && settings.authorPfp() === "on"
-                                } when={author.pfp} fallback={"By "}>{pfp => <>
-                                    <AuthorPfp src_url={pfp.url} />{" "}
-                                </>}</Show>
-                                <UserLink
-                                    client_id={author.client_id}
-                                    href={author.link}
-                                    color_hash={author.color_hash}
-                                >
-                                    {author.name}
-                                </UserLink>{" "}
-                            </>}</Show>
-                            <Show if={visible() || hasTitleOrThumbnail()}>
-                                <Show when={props.content.author}>{author => <>
-                                    <Show when={author.flair}>{flair => <>
-                                        <Flair flairs={flair} />{" "}
-                                    </>}</Show>
-                                </>}</Show>
-                                <Show when={props.content.info?.in}>{in_sr => <>
-                                    {" in "}<LinkButton
-                                        href={in_sr.link}
-                                        style="previewable"
-                                        client_id={in_sr.client_id}
-                                    >{in_sr.name}</LinkButton>{" "}
-                                </>}</Show>
-                            </Show>
-                        </div>
-                        <Show if={!props.opts.is_pivot || !visible()}>
-                            <div>
-                                <InfoBar post={props.content} />
-                            </div>
-                        </Show>
-                        <HSplit.Child fullwidth>
-                            <Show if={!(visible() || hasThumbnail())}>
-                                <Show if={
-                                    !collapseInfo().default_collapsed
-                                } children={<div>
-                                    <div class="whitespace-normal max-lines max-lines-1">
-                                        {"“" + (() => {
-                                            const res = summarizeBody(props.content.body);
-                                            if(res.length > 500) return res.substring(0, 500) + "…";
-                                            return res;
-                                        })() + "”"}
-                                    </div>
-                                </div>} />
-                            </Show>
-                        </HSplit.Child>
-                    </div></div>
-                </div></HSplit.Child>
-                <Show if={visible() || hasThumbnail()}>
-                    <HSplit.Child>
-                        <div class="pl-2" />
-                        <Dropdown>
-                            <For each={getActions()}>{action => <>
-                                <DropdownActionButton action={action} />
-                            </>}</For>
-                        </Dropdown>
-                    </HSplit.Child>
-                </Show>
-            </HSplit.Container>
+                visible={visible()}
+                setVisible={setVisible}
+                contentWarning={contentWarning()}
+                collapseInfo={collapseInfo()}
+                hasThumbnail={hasThumbnail()}
+                hasTitleOrThumbnail={hasTitleOrThumbnail()}
+                actions={getActions()}
+                getPage={getPage}
+            />
             <div style={{display: visible() ? "block" : "none"}}><HideshowProvider
                 visible={() => visible()}
             >
@@ -380,4 +224,193 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             </HideshowProvider></div>
         </div>
     </article>;
+}
+
+// [!] RENDER THIS TWICE, ONCE WITH visible=true AND ONCE WITH visible=false
+// [!] USE A SHOWHIDE TOGGLE ANIMATED THING
+// [!] UPDATE THAT THING TO USE inert=true ON THE THING BEING HIDDEN
+//      [!] we also need to move focus to the right place immediately on toggle
+function PostTopBar(props: ClientPostProps & {
+    visible: boolean,
+    setVisible: Setter<boolean>,
+
+    contentWarning: boolean,
+    collapseInfo: CollapseInfo,
+
+    hasThumbnail: boolean,
+    hasTitleOrThumbnail: boolean,
+
+    actions: ActionItem[],
+
+    getPage: () => Generic.Page2 | undefined,
+}): JSX.Element {
+    const postIsClickable = () => {
+        return !props.visible || (props.opts.frame?.url != null && !props.opts.is_pivot);
+    };
+
+    const settings = getSettings();
+
+    return <HSplit.Container dir="right" vertical="center">
+        <Show if={!props.visible} when={props.content.thumbnail}>{thumb_any => (
+            <ToggleColor>{color => (
+                <HSplit.Child>
+                    <A
+                        href={props.opts.frame?.url ?? "ENOHREF"}
+                        client_id={props.opts.frame?.client_id ?? "ENOCLIENTID"}
+                        class={classes(
+                            "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
+                            props.contentWarning && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
+                            "block",
+                            "relative",
+                        )}
+                        onClick={props.collapseInfo.user_controllable ? () => {
+                            props.setVisible(t => !t);
+                        } : undefined}
+                        page={props.getPage}
+                    >
+                        <SwitchKind item={thumb_any}>{{
+                            image: img => <img
+                                // TODO based on the img content, display eg a play button or something
+                                src={img.url}
+                                alt=""
+                                class={classes(
+                                    "w-full h-full object-cover rounded-md"
+                                    // object-contain is nicer but we're using object-cover for now
+                                )}
+                            />,
+                            default: def => <>TODO {def.kind}</>,
+                        }}</SwitchKind>
+                        <PreviewThumbnailIcon body={props.content.body} />
+                    </A>
+                </HSplit.Child>
+            )}</ToggleColor>
+        )}</Show>
+        <HSplit.Child fullwidth><div
+            class={(postIsClickable() ? " hover-outline" : "")}
+            // note: screenreader or keyboard users must click the 'view' button
+            // or the title if there is one.
+            // I considered making the "x points x hours ago" a link but it's harder
+            // to do than it should be because of the {" "} and {", "} those get underlined
+            onclick={e => {
+                if(!postIsClickable()) return;
+                if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
+                e.stopPropagation();
+
+                // support ctrl click
+                const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
+                if(e.ctrlKey || e.metaKey || e.altKey) {
+                    if(props.opts.frame?.url == null) return;
+                    window.open(target_url);
+                }else{
+                    if(props.collapseInfo.user_controllable && !props.visible) {
+                        props.setVisible(() => true);
+                        return;
+                    }
+                    if(props.opts.frame?.url == null) return;
+                    navigate({
+                        path: target_url,
+                        page: props.getPage(),
+                        // page: props.opts.frame ? {pivot: {ref: props.opts.frame}} : undefined,
+                        // disabling this for now, we'll fix it in a bit
+                        // we just need to know what the link to the post is in the
+                        // post itself
+                    });
+                }
+            }}
+        >
+            <div class={classes(
+                "text-gray-500",
+                "text-sm",
+                props.visible || props.hasThumbnail
+                ? ""
+                : "filter grayscale text-$collapsed-header-color italic",
+            )}><div class={classes([
+                "flex",
+                props.content.thumbnail ? "flex-col" : [
+                    "flex-row flex-wrap gap-2 items-baseline"
+                ],
+            ])}>
+                <Show if={props.content.title != null || props.content.flair != null}>
+                    <div role="heading" class={classes(
+                        "text-black",
+                        (props.opts.is_pivot && props.visible) ? "text-3xl sm:text-2xl" : "text-base",
+                    )}>
+                        <Show when={props.content.title}>{title => (
+                            <Show if={!props.opts.is_pivot} when={props.opts.frame?.url} fallback={(
+                                title.text
+                            )}>{url => (
+                                <A
+                                    client_id={props.opts.client_id}
+                                    href={url}
+                                    class="hover:underline"
+                                    page={props.getPage}
+                                >{title.text}</A>
+                            )}</Show>
+                        )}</Show>
+                    <Flair flairs={props.content.flair ?? []} />
+                    </div>
+                </Show>
+                <div>
+                    <Show when={props.content.author}>{author => <>
+                        <Show if={
+                            props.visible && settings.authorPfp() === "on"
+                        } when={author.pfp} fallback={"By "}>{pfp => <>
+                            <AuthorPfp src_url={pfp.url} />{" "}
+                        </>}</Show>
+                        <UserLink
+                            client_id={author.client_id}
+                            href={author.link}
+                            color_hash={author.color_hash}
+                        >
+                            {author.name}
+                        </UserLink>{" "}
+                    </>}</Show>
+                    <Show if={props.visible || props.hasTitleOrThumbnail}>
+                        <Show when={props.content.author}>{author => <>
+                            <Show when={author.flair}>{flair => <>
+                                <Flair flairs={flair} />{" "}
+                            </>}</Show>
+                        </>}</Show>
+                        <Show when={props.content.info?.in}>{in_sr => <>
+                            {" in "}<LinkButton
+                                href={in_sr.link}
+                                style="previewable"
+                                client_id={in_sr.client_id}
+                            >{in_sr.name}</LinkButton>{" "}
+                        </>}</Show>
+                    </Show>
+                </div>
+                <Show if={!props.opts.is_pivot || !props.visible}>
+                    <div>
+                        <InfoBar post={props.content} />
+                    </div>
+                </Show>
+                <HSplit.Child fullwidth>
+                    <Show if={!(props.visible || props.hasThumbnail)}>
+                        <Show if={
+                            !props.collapseInfo.default_collapsed
+                        } children={<div>
+                            <div class="whitespace-normal max-lines max-lines-1">
+                                {"“" + (() => {
+                                    const res = summarizeBody(props.content.body);
+                                    if(res.length > 500) return res.substring(0, 500) + "…";
+                                    return res;
+                                })() + "”"}
+                            </div>
+                        </div>} />
+                    </Show>
+                </HSplit.Child>
+            </div></div>
+        </div></HSplit.Child>
+        <Show if={props.visible || props.hasThumbnail}>
+            <HSplit.Child>
+                <div class="pl-2" />
+                <Dropdown>
+                    <For each={props.actions}>{action => <>
+                        <DropdownActionButton action={action} />
+                    </>}</For>
+                </Dropdown>
+            </HSplit.Child>
+        </Show>
+    </HSplit.Container>;
 }
