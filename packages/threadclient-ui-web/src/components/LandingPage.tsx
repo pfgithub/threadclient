@@ -337,12 +337,39 @@ export default function LandingPage(): JSX.Element {
                     </span>
                     <ul class="list-disc">
                         <li>
-                            video. compare performance of threadclient, new.reddit, and old.reddit in these situations:
+                            Buttons react instantly, unlike on new.reddit
+                            [TODO; FIX COLLAPSE BUTTON PERF REGRESSION]
                         </li>
-                        <li>- first load</li>
-                        <li>- opening comments on a post</li>
-                        <li>we can even get technical and enable react devtools highlighting to show that threadclient
-                            doesn't update nearly as much as new.reddit</li>
+                        <li>
+                            Going back a page reacts instantly, unlike on old.reddit
+                            [TODO; FIX PAGE2 NAVIGATION PERFORMANCE REGRESSION]
+                        </li>
+                        {/*<li>
+                            loading is about the same speed on ThreadClient, new.reddit, old.reddit,
+                            and the mobile app
+                        </li>
+                        <li>
+                            new.reddit usually feels sluggish. when you click a button, it often takes a moment
+                            for something to happen.
+                        </li>
+                        <li>
+                            old.reddit is pretty good, but navigating back a page often requires a full reload
+                            and is slow.
+                        </li>
+                        <li>
+                            the mobile app is better than new.reddit but still pretty slow on my phone
+                        </li>
+                        <li>
+                            threadclient is generally pretty snappy. on page2, history navigations can lag
+                            a bit right now because of a change in how history is handled. also, collapsing
+                            can lag because of a change in how collapsing is handled. both of these issues
+                            need to be fixed before releasing page2.
+                        </li>
+                        <li>
+                            apollo (another third-party client for reddit) is better than threadclient because it's
+                            a native app
+                        </li>*/
+                        }
                     </ul>
                 </div>
             </div>
