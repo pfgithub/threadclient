@@ -58,7 +58,8 @@ function FeaturePreviewCard(props: {
         bg-slate-200 dark:bg-zinc-700
         p-4 text-left
         hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-    `} page={(): Generic.Page2 => {
+    `} page={(): Generic.Page2 | undefined => {
+        if(!hprc.content()[props.link]) return undefined;
         return {
             content: hprc.content(),
             pivot: props.link as Generic.Link<Generic.PostNotLoaded>,
@@ -334,6 +335,27 @@ export default function LandingPage(): JSX.Element {
             <div class="mx-auto max-w-3xl p-8">
                 <div class="text-lg">
                     <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
+                        Reddit Feature Coverage
+                    </span>
+                    <p>
+                        ThreadClient supports viewing most content on Reddit and creating some. If there's a Reddit
+                        feature that's missing that you use, ask for it{" "}
+                        <A
+                            class="text-blue-500 hover:underline"
+                            href="https://github.com/pfgithub/threadclient/issues/new/choose"
+                            client_id={"NA"}
+                        >
+                                here
+                        </A>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100">
+            <div class="mx-auto max-w-3xl p-8">
+                <div class="text-lg">
+                    <span class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                         Performance
                     </span>
                     <ul class="list-disc">
@@ -386,7 +408,6 @@ export default function LandingPage(): JSX.Element {
                 <div class="text-sm font-bold uppercase text-slate-500 dark:text-zinc-400" role="heading">
                     More Features
                 </div>
-                <div>these should be cards you can click for a fullscreen demo</div>
                 <div class="pb-4" />
                 <div class="grid sm:grid-cols-3 gap-4">
                     <FeaturePreviewCard
@@ -430,6 +451,12 @@ export default function LandingPage(): JSX.Element {
                         icon="fa-solid fa-circle-minus"
                         description={<>TODO: automod 'don't show me again' to auto collapse</>}
                         link="/homepage/hide-automod"
+                    />
+                    <FeaturePreviewCard
+                        title="Both Sidebars"
+                        icon="fa-solid fa-circle-minus"
+                        description={<>ThreadClient displays both the old.reddit and new.reddit sidebars</>}
+                        link="/homepage/both-sidebars"
                     />
                 </div>
             </div>

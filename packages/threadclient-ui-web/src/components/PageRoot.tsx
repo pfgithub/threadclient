@@ -68,10 +68,12 @@ function ClientPageMain(props: ClientPageProps): PageRes {
 
     const view = createMergeMemo(() => {
         console.log("Reloading data!");
-        return flatten(props.pivot, {
+        const fres = flatten(props.pivot, {
             collapse_data,
             content: hprc.content(),
         });
+        console.log("Data is:", fres);
+        return fres;
     }, {key: array_key, merge: true});
 
     // 320px sidebar
