@@ -155,14 +155,14 @@ export function ShowAnimate(props: {
         });
     }}>
         <Show if={show().main || show().animating}>
-            <tc:children class={show().animating && !show().main ? "hidden" : "flex"}>
+            <tc:children class={show().animating && !show().main ? "hidden" : "flex-col"}>
                 <div>
                     {props.children}
                 </div>
             </tc:children>
         </Show>
         <Show if={!show().main || show().animating}>
-            <tc:fallback class={show().animating && show().main ? "hidden" : "flex"}>
+            <tc:fallback class={show().animating && show().main ? "hidden" : "flex-col"}>
                 <div>
                     {props.fallback}
                 </div>
