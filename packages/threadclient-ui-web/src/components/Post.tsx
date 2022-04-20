@@ -133,19 +133,44 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         };
     };
 
+    const wholeObjectClickable = () => {
+        if(isPivot()) return false;
+        if(props.opts.flat_frame?.displayed_in === "repivot_list") return true;
+        return false;
+    };
+
     const getActions = useActions(() => props.content, () => props.opts);
 
-    return <ShowAnimate mode={props.opts.collapse_data ? "clip" : "height"} when={visible()} fallback={<>
-        <article
-            class={classes(
-                // note: can even consider <sm:text-xs
-                // we'll probably want a font size config in the settings
-                isPivot() ? [
-                    "text-base p-2",
-                ] : "text-sm",
-                "flex flex-row",
-            )}
-        >
+    return <article
+        class={classes(
+            // note: can even consider <sm:text-xs
+            // we'll probably want a font size config in the settings
+            isPivot() ? [
+                "text-base p-2",
+            ] : "text-sm",
+            wholeObjectClickable() ? "hover-outline" : "",
+        )}
+        onclick={e => {
+            if(!wholeObjectClickable()) return;
+            if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
+            e.stopPropagation();
+
+            if(props.opts.frame?.url == null) return;
+            const target_url = "/"+props.opts.client_id+props.opts.frame.url;
+            if(e.ctrlKey || e.metaKey || e.altKey) {
+                window.open(target_url);
+            }else{
+                navigate({
+                    path: target_url,
+                    page: getPage(),
+                });
+            }
+        }}
+    >
+        <ShowAnimate
+            mode={props.opts.collapse_data ? "clip" : "height"}
+            when={visible()}
+        fallback={<div class="flex flex-row">
             <Show if={collapseInfo().user_controllable && (
                 props.content.thumbnail != null ? false : true
             ) && !size_lt.sm()}>
@@ -170,24 +195,14 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
                     visible={false}
                     setVisible={setVisible}
+                    whole_object_clickable={wholeObjectClickable()}
                     contentWarning={contentWarning()}
                     collapseInfo={collapseInfo()}
                     actions={getActions()}
                     getPage={getPage}
                 />
             </div>
-        </article>
-    </>}>
-        <article
-            class={classes(
-                // note: can even consider <sm:text-xs
-                // we'll probably want a font size config in the settings
-                isPivot() ? [
-                    "text-base p-2",
-                ] : "text-sm",
-                "flex flex-row",
-            )}
-        >
+        </div>}><div class="flex flex-row">
             <Show if={collapseInfo().user_controllable && !size_lt.sm()}>
                 <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
                     <div>
@@ -224,6 +239,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
                     visible={true}
                     setVisible={setVisible}
+                    whole_object_clickable={wholeObjectClickable()}
                     contentWarning={contentWarning()}
                     collapseInfo={collapseInfo()}
                     actions={getActions()}
@@ -258,8 +274,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     </div></Show>
                 </div>
             </div>
-        </article>
-    </ShowAnimate>;
+        </div></ShowAnimate>
+    </article>;
 }
 
 // [!] RENDER THIS TWICE, ONCE WITH visible=true AND ONCE WITH visible=false
@@ -275,10 +291,13 @@ function PostTopBar(props: ClientPostProps & {
 
     actions: ActionItem[],
 
+    whole_object_clickable: boolean,
+
     getPage: () => Generic.Page2 | undefined,
 }): JSX.Element {
     const isPivot = () => props.opts.flat_frame?.is_pivot ?? false;
     const postIsClickable = () => {
+        if(props.whole_object_clickable) return false;
         return !props.visible || (props.opts.frame?.url != null && !isPivot());
     };
 
