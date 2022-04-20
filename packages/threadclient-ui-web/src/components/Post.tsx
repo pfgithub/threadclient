@@ -10,7 +10,7 @@ import {
 } from "../util/utils_solid";
 import { DropdownActionButton } from "./ActionButtonDropdown";
 import { HorizontalActionButton } from "./ActionButtonHorizontal";
-import { animateHeight, ShowAnimate } from "./animation";
+import { ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { CollapseButton } from "./CollapseButton";
 import { VerticalIconCounter } from "./counter";
@@ -84,7 +84,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     // it would probably be better to have two seperate post renderes, one for collapsed and one for expanded,
     // and switch between the two
 
-    const [transitionTarget, setTransitionTarget]: [Accessor<boolean>, Setter<boolean>] = (
+    const [visible, setVisible]: [Accessor<boolean>, Setter<boolean>] = (
     props.opts.collapse_data && props.opts.id) ?
     ((): [Accessor<boolean>, Setter<boolean>] => {
         const pivot_signal = createSignal(true);
@@ -112,7 +112,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             return JSON.stringify(a) === JSON.stringify(b);
         }},
     );
-    const [selfVisible, setSelfVisible] = createSignal(transitionTarget());
 
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
@@ -121,18 +120,13 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         return !!props.content.thumbnail || !!props.content.title;
     };
     const hasThumbnail = () => {
-        return !!props.content.thumbnail && !selfVisible();
+        return !!props.content.thumbnail && !visible();
     };
 
     const settings = getSettings();
 
-    const [animState, setAnimState] = createSignal<{visible: boolean, animating: boolean}>({
-        visible: selfVisible(),
-        animating: false,
-    });
-
     const postIsClickable = () => {
-        return !transitionTarget() || (props.opts.frame?.url != null && !props.opts.is_pivot);
+        return !visible() || (props.opts.frame?.url != null && !props.opts.is_pivot);
     };
 
     const hprc = getWholePageRootContextOpt();
@@ -150,10 +144,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     const getActions = useActions(() => props.content, () => props.opts);
 
     return <article
-        ref={node => animateHeight(node, settings, transitionTarget, (state, rising, animating) => {
-            setAnimState({visible: rising || state, animating});
-            setSelfVisible(state || rising);
-        })}
         class={classes(
             // note: can even consider <sm:text-xs
             // we'll probably want a font size config in the settings
@@ -164,14 +154,14 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         )}
     >
         <Show if={collapseInfo().user_controllable && (
-            props.content.thumbnail != null ? selfVisible() ? true : false : true
+            props.content.thumbnail != null ? visible() ? true : false : true
         ) && !size_lt.sm()}>
             <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
-                <div class={selfVisible() || hasThumbnail() ? "" : " hidden"}>
+                <div class={visible() || hasThumbnail() ? "" : " hidden"}>
                     <Show when={props.content.actions?.vote} fallback={<>
                         <button
                             onClick={() => {
-                                setTransitionTarget(t => !t);
+                                setVisible(t => !t);
                             }}
                             class="text-slate-500 dark:text-zinc-600 text-xs"
                         >
@@ -183,10 +173,10 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                 </div>
                 <CollapseButton
                     class="flex-1"
-                    collapsed_raw={!transitionTarget()}
-                    collapsed_anim={!selfVisible()}
+                    collapsed_raw={!visible()}
+                    collapsed_anim={!visible()}
                     onClick={() => {
-                        setTransitionTarget(t => !t);
+                        setVisible(t => !t);
                     }}
                     real={true}
                     cstates={props.opts.collapse_data}
@@ -196,7 +186,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         </Show>
         <div class="flex-1">
             <HSplit.Container dir="right" vertical="center">
-                <Show if={!selfVisible()} when={props.content.thumbnail}>{thumb_any => (
+                <Show if={!visible()} when={props.content.thumbnail}>{thumb_any => (
                     <ToggleColor>{color => (
                         <HSplit.Child>
                             <A
@@ -209,7 +199,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                     "relative",
                                 )}
                                 onClick={collapseInfo().user_controllable ? () => {
-                                    setTransitionTarget(t => !t);
+                                    setVisible(t => !t);
                                 } : undefined}
                                 page={getPage}
                             >
@@ -247,8 +237,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             if(props.opts.frame?.url == null) return;
                             window.open(target_url);
                         }else{
-                            if(collapseInfo().user_controllable && !transitionTarget()) {
-                                setTransitionTarget(() => true);
+                            if(collapseInfo().user_controllable && !visible()) {
+                                setVisible(() => true);
                                 return;
                             }
                             if(props.opts.frame?.url == null) return;
@@ -266,7 +256,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     <div class={classes(
                         "text-gray-500",
                         "text-sm",
-                        selfVisible() || hasThumbnail()
+                        visible() || hasThumbnail()
                         ? ""
                         : "filter grayscale text-$collapsed-header-color italic",
                     )}><div class={classes([
@@ -278,7 +268,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         <Show if={props.content.title != null || props.content.flair != null}>
                             <div role="heading" class={classes(
                                 "text-black",
-                                (props.opts.is_pivot && selfVisible()) ? "text-3xl sm:text-2xl" : "text-base",
+                                (props.opts.is_pivot && visible()) ? "text-3xl sm:text-2xl" : "text-base",
                             )}>
                                 <Show when={props.content.title}>{title => (
                                     <Show if={!props.opts.is_pivot} when={props.opts.frame?.url} fallback={(
@@ -298,7 +288,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         <div>
                             <Show when={props.content.author}>{author => <>
                                 <Show if={
-                                    selfVisible() && settings.authorPfp() === "on"
+                                    visible() && settings.authorPfp() === "on"
                                 } when={author.pfp} fallback={"By "}>{pfp => <>
                                     <AuthorPfp src_url={pfp.url} />{" "}
                                 </>}</Show>
@@ -310,7 +300,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                     {author.name}
                                 </UserLink>{" "}
                             </>}</Show>
-                            <Show if={selfVisible() || hasTitleOrThumbnail()}>
+                            <Show if={visible() || hasTitleOrThumbnail()}>
                                 <Show when={props.content.author}>{author => <>
                                     <Show when={author.flair}>{flair => <>
                                         <Flair flairs={flair} />{" "}
@@ -325,13 +315,13 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                                 </>}</Show>
                             </Show>
                         </div>
-                        <Show if={!props.opts.is_pivot || !selfVisible()}>
+                        <Show if={!props.opts.is_pivot || !visible()}>
                             <div>
                                 <InfoBar post={props.content} />
                             </div>
                         </Show>
                         <HSplit.Child fullwidth>
-                            <Show if={!(selfVisible() || hasThumbnail())}>
+                            <Show if={!(visible() || hasThumbnail())}>
                                 <Show if={
                                     !collapseInfo().default_collapsed
                                 } children={<div>
@@ -347,7 +337,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         </HSplit.Child>
                     </div></div>
                 </div></HSplit.Child>
-                <Show if={selfVisible() || hasThumbnail()}>
+                <Show if={visible() || hasThumbnail()}>
                     <HSplit.Child>
                         <div class="pl-2" />
                         <Dropdown>
@@ -358,12 +348,12 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     </HSplit.Child>
                 </Show>
             </HSplit.Container>
-            <div style={{display: selfVisible() ? "block" : "none"}}><HideshowProvider
-                visible={() => animState().visible || animState().animating}
+            <div style={{display: visible() ? "block" : "none"}}><HideshowProvider
+                visible={() => visible()}
             >
                 <section class={props.opts.is_pivot ? "py-4" : ""}>
-                    <Show if={animState().visible || animState().animating}>
-                        <Show if={selfVisible() && hasThumbnail()}><div class="mt-2"></div></Show>
+                    <Show if={visible()}>
+                        <Show if={visible()}><div class="mt-2"></div></Show>
                         <ShowAnimate when={!contentWarning()} fallback={
                             <>
                                 Content Warning:{" "}
