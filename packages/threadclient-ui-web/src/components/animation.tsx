@@ -125,7 +125,7 @@ export function ShowAnimate(props: {
 }): JSX.Element {
     const settings = getSettings();
     const [show, setShow] = createSignal({main: props.when, animating: false});
-    return <div ref={v => {
+    return <tc:show-animate ref={v => {
         animateHeight(v, settings, () => props.when, (state, rising, temporary) => {
             setShow({main: state || rising, animating: temporary});
         });
@@ -134,16 +134,16 @@ export function ShowAnimate(props: {
         });
     }}>
         <Show if={show().main || show().animating}>
-            <div class={show().animating && !show().main ? "hidden" : ""}>
+            <tc:children class={show().animating && !show().main ? "hidden" : ""}>
                 {props.children}
-            </div>
+            </tc:children>
         </Show>
         <Show if={!show().main || show().animating}>
-            <div class={show().animating && show().main ? "hidden" : ""}>
+            <tc:fallback class={show().animating && show().main ? "hidden" : ""}>
                 {props.fallback}
-            </div>
+            </tc:fallback>
         </Show>
-    </div>;
+    </tc:show-animate>;
 }
 
 // TODO <AnimateGroup>{(final: Accessor, animating: Accessor) => }</AnimateGroup>
