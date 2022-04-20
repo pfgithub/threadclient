@@ -5,7 +5,7 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
-import { MutablePage2HistoryNode, link_styles_v } from "../app";
+import { link_styles_v, MutablePage2HistoryNode } from "../app";
 
 export { localStorageSignal };
 export { screenWidth };
@@ -201,8 +201,24 @@ const global_settings = createRoot((): Settings => {
         changelog: localStorageProperty("changelog", () => "show", {}),
     };
 
+    const isDarkMode = createMemo(() => res.colorScheme() === "dark");
+    // vv this is fun but it lags too much (transitions the colors of every element when changing to dark mode)
+    // createEffect(on([isDarkMode], () => {
+    //     // on a scale of 1 to 10, how bad of an idea is this?
+    //     const styltxt = `* {
+    //         transition: 0.2s all !important;
+    //     }`;
+    //     const stylel = el("style").atxt(styltxt).adto(document.head);
+    //     setTimeout(() => stylel.remove(), 400);
+    // }, {defer: true}));
     createEffect(() => {
-        document.documentElement.classList.toggle("dark", res.colorScheme() === "dark");
+        const styltxt = `* {
+            transition: none !important;
+        }`;
+        const stylel = el("style").atxt(styltxt).adto(document.head);
+        document.documentElement.classList.toggle("dark", isDarkMode());
+        document.documentElement.offsetHeight;
+        stylel.remove();
     });
 
     return res;
