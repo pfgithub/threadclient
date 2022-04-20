@@ -6,7 +6,7 @@ import {
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, navigate } from "../app";
 import {
-    classes, getSettings, getWholePageRootContextOpt, HideshowProvider, size_lt, ToggleColor
+    classes, getSettings, getWholePageRootContextOpt, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { DropdownActionButton } from "./ActionButtonDropdown";
 import { HorizontalActionButton } from "./ActionButtonHorizontal";
@@ -122,6 +122,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     const hasThumbnail = () => {
         return !!props.content.thumbnail && !visible();
     };
+    // next: fix 'hastitleorthumbnail' / 'hasthumbnail' and fix focus
 
     const hprc = getWholePageRootContextOpt();
 
@@ -137,9 +138,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     const getActions = useActions(() => props.content, () => props.opts);
 
-    const visible_false = false;
-    const visible_true = true;
-
     return <ShowAnimate when={visible()} fallback={<>
         <article
             class={classes(
@@ -152,27 +150,13 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             )}
         >
             <Show if={collapseInfo().user_controllable && (
-                props.content.thumbnail != null ? visible_false ? true : false : true
+                props.content.thumbnail != null ? false : true
             ) && !size_lt.sm()}>
                 <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
-                    <div class={visible_false ? "" : " hidden"}>
-                        <Show when={props.content.actions?.vote} fallback={<>
-                            <button
-                                onClick={() => {
-                                    setVisible(t => !t);
-                                }}
-                                class="text-slate-500 dark:text-zinc-600 text-xs"
-                            >
-                                <InternalIconRaw class="fa-solid fa-circle-chevron-up" label="Collapse" />
-                            </button>
-                        </>}>{vote_action => (
-                            <VerticalIconCounter counter={vote_action} />
-                        )}</Show>
-                    </div>
                     <CollapseButton
                         class="flex-1"
-                        collapsed_raw={!visible_false}
-                        collapsed_anim={!visible_false}
+                        collapsed_raw={true}
+                        collapsed_anim={true}
                         onClick={() => {
                             setVisible(t => !t);
                         }}
@@ -187,7 +171,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     content={props.content}
                     opts={props.opts}
 
-                    visible={visible_false}
+                    visible={false}
                     setVisible={setVisible}
                     contentWarning={contentWarning()}
                     collapseInfo={collapseInfo()}
@@ -196,36 +180,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     actions={getActions()}
                     getPage={getPage}
                 />
-                <div style={{display: visible_false ? "block" : "none"}}><HideshowProvider
-                    visible={() => visible_false}
-                >
-                    <section class={props.opts.is_pivot ? "py-4" : ""}>
-                        <Show if={visible_false}>
-                            <Show if={visible_false}><div class="mt-2"></div></Show>
-                            <ShowAnimate when={!contentWarning()} fallback={
-                                <>
-                                    Content Warning:{" "}
-                                    <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}
-                                    <button
-                                        class={link_styles_v["pill-filled"]}
-                                        onClick={() => setContentWarning(false)}
-                                    >Show Anyway</button>
-                                </>
-                            }>
-                                <Body body={props.content.body} autoplay={false} />
-                            </ShowAnimate>
-                        </Show>
-                    </section>
-                    <Show if={props.opts.is_pivot}><div class="text-sm">
-                        <InfoBar post={props.content} />
-                        <div class="mt-2" />
-                        <div class="flex flex-wrap gap-2">
-                            <For each={getActions()}>{action => <>
-                                <HorizontalActionButton action={action} />
-                            </>}</For>
-                        </div>
-                    </div></Show>
-                </HideshowProvider></div>
             </div>
         </article>
     </>}>
@@ -239,11 +193,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                 "flex flex-row",
             )}
         >
-            <Show if={collapseInfo().user_controllable && (
-                props.content.thumbnail != null ? visible_true ? true : false : true
-            ) && !size_lt.sm()}>
+            <Show if={collapseInfo().user_controllable && !size_lt.sm()}>
                 <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
-                    <div class={visible_true ? "" : " hidden"}>
+                    <div>
                         <Show when={props.content.actions?.vote} fallback={<>
                             <button
                                 onClick={() => {
@@ -259,8 +211,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     </div>
                     <CollapseButton
                         class="flex-1"
-                        collapsed_raw={!visible_true}
-                        collapsed_anim={!visible_true}
+                        collapsed_raw={false}
+                        collapsed_anim={false}
                         onClick={() => {
                             setVisible(t => !t);
                         }}
@@ -275,7 +227,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     content={props.content}
                     opts={props.opts}
 
-                    visible={visible_true}
+                    visible={true}
                     setVisible={setVisible}
                     contentWarning={contentWarning()}
                     collapseInfo={collapseInfo()}
@@ -284,12 +236,10 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     actions={getActions()}
                     getPage={getPage}
                 />
-                <div style={{display: visible_true ? "block" : "none"}}><HideshowProvider
-                    visible={() => visible_true}
-                >
+                <div>
                     <section class={props.opts.is_pivot ? "py-4" : ""}>
-                        <Show if={visible_true}>
-                            <Show if={visible_true}><div class="mt-2"></div></Show>
+                        <Show if={true}>
+                            <Show if={true}><div class="mt-2"></div></Show>
                             <ShowAnimate when={!contentWarning()} fallback={
                                 <>
                                     Content Warning:{" "}
@@ -313,7 +263,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             </>}</For>
                         </div>
                     </div></Show>
-                </HideshowProvider></div>
+                </div>
             </div>
         </article>
     </ShowAnimate>;
