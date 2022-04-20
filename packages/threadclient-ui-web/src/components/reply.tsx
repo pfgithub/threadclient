@@ -85,7 +85,6 @@ export default function ReplyEditor(props: {
                                 body: {kind: "richtext", content: [
                                     rt.p(rt.error("Unsupported 'load more'", r)),
                                 ]},
-                                show_replies_when_below_pivot: false,
                                 collapsible: false,
                             },
                             display_style: "centered",
@@ -121,6 +120,7 @@ export default function ReplyEditor(props: {
                     is_pivot: true,
                     frame: null,
                     client_id: props.action.client_id,
+                    flat_frame: null,
                 }}/>
             </TopLevelWrapper>;
         }}</Show>

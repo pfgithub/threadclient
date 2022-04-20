@@ -130,6 +130,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                                 is_pivot: loader_or_post.is_pivot,
                                 collapse_data: props.collapse_data,
                                 id: loader_or_post.id,
+                                flat_frame: loader_or_post,
                             }}
                         />
                     </>,

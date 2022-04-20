@@ -150,8 +150,7 @@ function generatePost(id: string): Generic.PostContent {
         title: {text: faker.lorem.sentence()},
         body,
         author: generateAuthor(),
-        show_replies_when_below_pivot: false,
-        collapsible: "collapsed-unless-pivot",
+        collapsible: {default_collapsed: true},
         thumbnail: generateThumbnailFor(body),
 
         info: {
@@ -237,7 +236,6 @@ function generateComment(id: string): Generic.PostContent {
             generateTinyTextBody,
         ])(),
         author: generateAuthor(),
-        show_replies_when_below_pivot: true,
         collapsible: {default_collapsed: false},
 
         info: {
@@ -255,7 +253,6 @@ function generateTodo(id: string): Generic.PostContent {
         title: {text: "TODO"},
         body: {kind: "none"},
         
-        show_replies_when_below_pivot: false,
         collapsible: {default_collapsed: true},
     };
 }
@@ -299,6 +296,7 @@ function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.P
             ): null
         ) : parent_link,
         replies: {
+            display: "tree",
             items: mode === "parent" ? (
                 generateHorizontalLoader(content, replies, id_link)
             ) : (
@@ -343,8 +341,9 @@ export async function loadMore2(
         saveLink(content, key, {
             kind: "loaded",
 
-            parent: loader.parent, // TODO? technically it doesn't really matter does it
+            parent: null, // unused in 'Loaded's' below the pivot
             replies: {
+                display: "repivot_list", // unused in "Loaded"s
                 items: licopy,
             },
             
@@ -415,7 +414,7 @@ function generateVerticalLoader(
     const id = Symbol("loader") as Generic.Link<Generic.Loader>;
     saveLink(content, id, {
         parent,
-        replies: {items: replies},
+        replies: {display: "repivot_list", items: replies},
         url: null,
         client_id: "test",
         kind: "loader",
@@ -449,7 +448,9 @@ function fillReplies(
 
     if(root.replies == null) return maximum;
     if(root.kind === "post" && root.content.kind === "post") {
-        if(!opts.pivot && !root.content.show_replies_when_below_pivot) {
+        // TODO: the second condition should be if the parent of the item being filled's replies
+        // are a "repivot_list"
+        if(!opts.pivot && !true) {
             const items = root.replies.items.splice(0, root.replies.items.length);
             const loader = generateHorizontalLoader(content, items, root_link);
             root.replies.items.splice(0, 0, ...loader);

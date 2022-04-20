@@ -61,6 +61,15 @@ export type Loader = BasePost & {
 
 export type Loaded = BasePost & {
     kind: "loaded",
+    // i hate this. delete it.
+
+    // replace it with:
+    // - seperate vertical and horizontal loaders
+    // - a vertical loader is put in place of a parent for a node
+    // - a horizontal loader is put in place of a reply for a node
+    // - a horizontal loader returns an array of post links
+    // - a vertical loader returns an array of post links
+    // - neither loader has BasePost props. no 'parent', no 'replies', …
 };
 
 export type BasePost = {
@@ -79,6 +88,15 @@ export type ListingData = {
         action: ReplyAction,
         locked: boolean, // only moderators can comment
     },
+
+    // - "tree" displays a full replies tree
+    // - "repivot_list" does not show any replies
+    //   - if a post should be displayed in a repivot list:
+    //     - it should not be possible to change its collapse state
+    //     - there should be a click handler over the whole post, not just the title bar
+    //   - note that all parent posts (except the pivoted one) are displayed in a repivot list
+
+    display: "tree" | "repivot_list",
 
     // pinned: Post[],
     items: Link<Post>[],
@@ -107,12 +125,8 @@ export type PostContentPost = {
     info?: PostInfo | undefined,
     author?: InfoAuthor | undefined,
     body: Body,
-    /// if the item should display replies like
-    /// item
-    /// | reply
-    /// | | reply
-    show_replies_when_below_pivot: boolean,
-    collapsible: false | "collapsed-unless-pivot" | {default_collapsed: boolean},
+
+    collapsible: false | {default_collapsed: boolean},
     actions?: undefined | {
         // puts the up and down arrow in the gutter and points/% voted in the info line. could do
         // something similar but with a star for mastodon.

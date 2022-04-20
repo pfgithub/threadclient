@@ -292,7 +292,6 @@ export async function gfyLike2(
                 },
             } : undefined,
             body,
-            show_replies_when_below_pivot: false,
             collapsible: {default_collapsed: false},
             actions: {
                 vote: {

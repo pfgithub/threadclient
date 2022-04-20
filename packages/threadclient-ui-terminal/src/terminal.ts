@@ -39,7 +39,6 @@ function unlink(content: Generic.Page2Content, link: Generic.Link<Generic.Post>)
                     kind: "error", text: value.error, value: value.error,
                 }]}],
             },
-            show_replies_when_below_pivot: false,
             title: null,
             collapsible: false,
         },

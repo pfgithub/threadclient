@@ -34,6 +34,7 @@ function DisplayPost(props: {
             at_or_above_pivot: false,
             threaded: false,
             depth: 0,
+            displayed_in: "tree",
         }));
     }, {key: array_key, merge: true});
 

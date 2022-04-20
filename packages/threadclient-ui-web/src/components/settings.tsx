@@ -116,7 +116,6 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         },
                     },
                     collapsible: {default_collapsed: false},
-                    show_replies_when_below_pivot: true,
                     body: {
                         kind: "richtext",
                         content: [{kind: "paragraph", children: [
@@ -130,6 +129,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     client_id: "",
                     at_or_above_pivot: false,
                     is_pivot: false,
+                    flat_frame: null,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
@@ -213,7 +213,6 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
 
                     title: {text: "Video Example"},
                     collapsible: {default_collapsed: true},
-                    show_replies_when_below_pivot: false,
                     body: {
                         kind: "video",
                         gifv: false,
@@ -238,6 +237,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     replies: null,
                     at_or_above_pivot: false,
                     is_pivot: false,
+                    flat_frame: null,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
@@ -261,7 +261,6 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
 
                     title: {text: "Gallery Example"},
                     collapsible: {default_collapsed: true},
-                    show_replies_when_below_pivot: false,
                     body: {
                         kind: "gallery",
                         images: new Array(20).fill(0).map((__, i): Generic.GalleryItem => ({
@@ -282,6 +281,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     replies: null,
                     at_or_above_pivot: false,
                     is_pivot: false,
+                    flat_frame: null,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
@@ -323,7 +323,6 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
 
                     title: {text: "Motion Example"},
                     collapsible: {default_collapsed: false},
-                    show_replies_when_below_pivot: true,
                     body: {
                         kind: "richtext",
                         content: [
@@ -337,6 +336,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     replies: null,
                     at_or_above_pivot: false,
                     is_pivot: false,
+                    flat_frame: null,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>

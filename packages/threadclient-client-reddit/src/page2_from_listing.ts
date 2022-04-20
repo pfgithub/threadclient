@@ -61,7 +61,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.h1(rt.link(client, "raw!"+parsed.out, {}, rt.txt("View on reddit.com"))),
                             rt.p(rt.txt("ThreadClient does not support this URL")),
                         ]},
-                        show_replies_when_below_pivot: false,
                         collapsible: false,
                     },
                     display_style: "centered",
@@ -87,7 +86,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.p(rt.txt("ThreadClient does not yet support this URL")),
                             rt.p(rt.txt(parsed.msg)),
                         ]},
-                        show_replies_when_below_pivot: false,
                         collapsible: false,
                     },
                     display_style: "centered",
@@ -118,7 +116,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             )),
                             rt.p(rt.txt("Error! Redirect Loop. ThreadClient tried to redirect more than 100 times.")),
                         ]},
-                        show_replies_when_below_pivot: false,
                         collapsible: false,
                     },
                     display_style: "centered",
@@ -197,7 +194,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             ),
                         ),
                     ]},
-                    show_replies_when_below_pivot: false,
                     collapsible: false,
                 },
                 display_style: "centered",
@@ -431,7 +427,6 @@ function unsupportedPage(
                     rt.pre(JSON.stringify(page, null, "  "), "json"),
                 ],
             },
-            show_replies_when_below_pivot: false,
         },
         internal_data: null,
         display_style: "centered",
@@ -636,6 +631,7 @@ function postDataFromListingMayError(
         const listing = listing_raw.data;
 
         const replies: Generic.ListingData = {
+            display: "tree",
             reply: {action: replyButton(listing.name), locked: listing.locked},
             items: [],
         };
@@ -699,7 +695,6 @@ function postDataFromListingMayError(
                 body: getCommentBody(listing),
                 info: getPostInfo(listing_raw),
                 collapsible: {default_collapsed: (automatic_collapse) || (listing.collapsed ?? false)},
-                show_replies_when_below_pivot: true,
                 actions: {
                     vote: parent_post?.data.kind === "post" && parent_post.data.post.data.discussion_type === "CHAT"
                         ? undefined
@@ -732,6 +727,7 @@ function postDataFromListingMayError(
                 base: ["r", listing.subreddit],
             })),
             replies: {
+                display: "tree",
                 reply: {
                     action: replyButton(listing.name),
                     locked: listing.locked,
@@ -761,13 +757,12 @@ function postDataFromListingMayError(
             content: {
                 kind: "post",
                 title: {text: listing.title},
-                collapsible: "collapsed-unless-pivot",
+                collapsible: {default_collapsed: true},
                 flair: getPostFlair(listing),
                 author: authorFromPostOrComment(listing),
                 body: getPostBody(listing),
                 thumbnail: getPostThumbnail(listing, "open"),
                 info: getPostInfo(listing_raw),
-                show_replies_when_below_pivot: false,
 
                 actions: {
                     vote: getPointsOn(listing),
@@ -809,6 +804,7 @@ function postDataFromListingMayError(
             url,
             parent: null,
             replies: {
+                display: "repivot_list",
                 items: entry.data.missing_replies ? [
                     createSymbolLinkToValue(content, {
                         kind: "loader",
@@ -832,6 +828,7 @@ function postDataFromListingMayError(
                 title: getEntryFullname(entry.data),
                 wrap_page: {
                     sidebar: {
+                        display: "tree",
                         // return a loader with load_on_view: true
                         // also use load_on_view for any loader that should not be seen by default but
                         // might be seen on a repivot
@@ -920,7 +917,6 @@ function postDataFromListingMayError(
                     client_id: client.id,
                     markdown_format: "reddit_html",
                 },
-                show_replies_when_below_pivot: false,
 
                 info: {
                     // TODO a fancy system could have an array like

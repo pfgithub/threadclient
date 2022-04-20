@@ -67,7 +67,9 @@ export type FlatItem = ({
     kind: "error",
     note: string,
     data: unknown,
-});
+}); // TODO {kind: "collapse_anchor"}
+// ^ put a collapse anchor above and below everything that is going to change when a node is collapsed
+// then, when collapsing, scroll so the top collapse_anchor is in view
 
 export type FlatPost = {
     kind: "post",
@@ -81,6 +83,8 @@ export type FlatPost = {
     threaded: boolean,
     depth: number,
     id: Generic.Link<Generic.Post>,
+
+    displayed_in: "tree" | "repivot_list",
 };
 
 const fi = {
@@ -94,6 +98,7 @@ export type RenderPostOpts = {
     at_or_above_pivot: boolean,
     threaded: boolean,
     depth: number,
+    displayed_in: "tree" | "repivot_list",
 };
 
 function unwrapPost(post: Generic.PostNotLoaded): Generic.PostNotLoaded {
@@ -112,19 +117,24 @@ export type CollapseInfo = {
     default_collapsed: boolean,
     user_controllable: boolean,
 };
-export function postContentCollapseInfo(content: Generic.PostContent, opts: {is_pivot: boolean}): CollapseInfo {
+export type PostContentCollapseInfoOpts = {
+    is_pivot: boolean,
+    displayed_in: "tree" | "repivot_list",
+};
+export function postContentCollapseInfo(content: Generic.PostContent, opts: PostContentCollapseInfoOpts): CollapseInfo {
     if(content.kind === "post") {
         const collapsible = content.collapsible;
         if(collapsible === false) {
             return {default_collapsed: false, user_controllable: false};
-        }else if(collapsible === "collapsed-unless-pivot") {
-            return {default_collapsed: true, user_controllable: opts.is_pivot};
         }else {
-            return {default_collapsed: collapsible.default_collapsed, user_controllable: true};
+            return {
+                default_collapsed: collapsible.default_collapsed,
+                user_controllable: opts.is_pivot || opts.displayed_in === "tree",
+            };
         }
     }else return {default_collapsed: false, user_controllable: false};
 }
-export function postCollapseInfo(post: Generic.PostNotLoaded, opts: {is_pivot: boolean}): CollapseInfo {
+export function postCollapseInfo(post: Generic.PostNotLoaded, opts: PostContentCollapseInfoOpts): CollapseInfo {
     if(post.kind === "post") {
         return postContentCollapseInfo(post.content, opts);
     }else return {default_collapsed: false, user_controllable: false};
@@ -170,6 +180,8 @@ export function renderPost(
         threaded: opts.threaded,
         depth: opts.depth,
         id: post_link,
+
+        displayed_in: opts.displayed_in,
     };
 }
 
@@ -219,10 +231,7 @@ export function flattenPost(
     const indent_excl_self = rres.indent.map(v => v.threaded ? {...v, threaded: false} : v);
     const indent_incl_self: CollapseButton[] = [...indent_excl_self, ...rres.collapse ? [rres.collapse] : []];
 
-    const show_replies = post.kind === "post" ? post.content.kind === "post" ?
-        post.content.show_replies_when_below_pivot
-    : true : true;
-
+    const show_replies = rpo.displayed_in === "tree";
     if(show_replies) {
         const replies = postReplies(post.replies, meta);
         const replies_threaded = (
@@ -367,6 +376,7 @@ function flattenTopLevelReplies(replies: Generic.ListingData | null, meta: Meta)
             at_or_above_pivot: false,
             threaded: false,
             depth: 0,
+            displayed_in: replies!.display,
         }));
         res.push({kind: "wrapper_end"});
     } if(replies != null && post_replies.length === 0) {
@@ -429,6 +439,8 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
                 is_pivot: item.pivot ?? false,
                 threaded: false,
                 depth: 0,
+                displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
+                // note: the pivot is never clickable
             }));
         }
         res.push({kind: "wrapper_end"});

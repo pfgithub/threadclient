@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import {
     Accessor, createMemo, createSignal,
-    For, JSX, Setter
+    For, JSX, Setter, untrack
 } from "solid-js";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, navigate } from "../app";
@@ -16,7 +16,7 @@ import { CollapseButton } from "./CollapseButton";
 import { VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import { Flair } from "./Flair";
-import { CollapseData, CollapseInfo, getCState, postContentCollapseInfo } from "./flatten";
+import { CollapseData, CollapseInfo, FlatPost, getCState, postContentCollapseInfo } from "./flatten";
 import { ActionItem, getThumbnailPreview, useActions } from "./flat_posts";
 import { HSplit } from "./HSplit";
 import { InternalIcon, InternalIconRaw } from "./Icon";
@@ -63,6 +63,7 @@ function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
 }
 
 export type ClientPostOpts = {
+    // TODO: get rid of all of this except for flat_frame and maybe client_id. delete it. gone. gotten rid of.
     clickable: boolean,
     frame: Generic.PostData | null,
     replies: Generic.ListingData | null,
@@ -71,6 +72,8 @@ export type ClientPostOpts = {
     is_pivot: boolean,
     collapse_data?: undefined | CollapseData,
     id?: undefined | Generic.Link<Generic.Post>,
+
+    flat_frame: null | FlatPost,
 };
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
@@ -83,6 +86,17 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     // it would probably be better to have two seperate post renderes, one for collapsed and one for expanded,
     // and switch between the two
+
+    const collapseInfo = createMemo(
+        () => postContentCollapseInfo(props.content, {
+            is_pivot: props.opts.is_pivot,
+            displayed_in: props.opts.flat_frame?.displayed_in ?? "tree",
+        }),
+        undefined,
+        {equals: (a, b) => {
+            return JSON.stringify(a) === JSON.stringify(b);
+        }},
+    );
 
     const [visible, setVisible]: [Accessor<boolean>, Setter<boolean>] = (
     props.opts.collapse_data && props.opts.id) ?
@@ -103,14 +117,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         ];
     })() : createSignal(
         props.opts.is_pivot ? true :
-        !postContentCollapseInfo(props.content, props.opts).default_collapsed,
-    );
-    const collapseInfo = createMemo(
-        () => postContentCollapseInfo(props.content, props.opts),
-        undefined,
-        {equals: (a, b) => {
-            return JSON.stringify(a) === JSON.stringify(b);
-        }},
+        !untrack(() => collapseInfo()).default_collapsed,
     );
 
     const [contentWarning, setContentWarning] = createSignal(

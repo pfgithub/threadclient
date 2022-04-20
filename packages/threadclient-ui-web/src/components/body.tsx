@@ -157,6 +157,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 replies: null,
                 at_or_above_pivot: false,
                 is_pivot: false,
+                flat_frame: null,
             }} />
         </TopLevelWrapper>,
         richtext: richtext => <div>
@@ -357,6 +358,7 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
                 replies: null,
                 at_or_above_pivot: false,
                 is_pivot: false,
+                flat_frame: null,
             }} />,
             error: e => <div>
                 <button onClick={() => {

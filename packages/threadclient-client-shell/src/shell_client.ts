@@ -46,14 +46,12 @@ function linkToPost(text: AllLinks): Generic.Link<Generic.Post> {
 
 type AutoPostContentProps = {
     content: Generic.Richtext.Paragraph[] | Generic.Body,
-    show_replies_when_below_pivot?: undefined | boolean,
 };
 function autoPostContent(value: AutoPostContentProps): (url: string) => Generic.PostContentPost {
     return (url): Generic.PostContentPost => ({
         kind: "post",
         title: null,
         body: Array.isArray(value.content) ? {kind: "richtext", content: value.content} : value.content,
-        show_replies_when_below_pivot: value.show_replies_when_below_pivot ?? true,
         collapsible: {default_collapsed: false},
 
         actions: {
@@ -100,7 +98,7 @@ function autoPost<T extends string>(
     return {v: props.url, post: {
         kind: "post",
         parent: parent != null ? linkToPost(parent) : null,
-        replies: replies != null ? {items: replies.map(linkToPost)} : null,
+        replies: replies != null ? {display: "tree", items: replies.map(linkToPost)} : null,
         url: url,
         client_id: client.id,
         internal_data: props,
@@ -153,8 +151,7 @@ const all_content_raw_dontuse = [
                 title: {text: "ThreadClient Home"},
                 thumbnail: {kind: "image", url: "/images/threadclient_96.png"},
                 body: {kind: "none"},
-                show_replies_when_below_pivot: false,
-                collapsible: "collapsed-unless-pivot",
+                collapsible: {default_collapsed: true},
             },
         },
     })),
@@ -220,7 +217,6 @@ const all_content_raw_dontuse = [
                 +" to repivot. ↑",
             ),
         )],
-        show_replies_when_below_pivot: false,
     }),
 
     autoPost({
@@ -456,9 +452,8 @@ function changelogEntry(props: {
                 rt.ul(...props.previews),
             ] : []),
         ]},
-        show_replies_when_below_pivot: true,
-        // collapsible: "collapsed-unless-pivot",
-        collapsible: false, // TODO make this "collapsed-unless-pivot" unless it's the most recent one
+        // collapsible: {default_collapsed: true},
+        collapsible: false, // TODO make this {default_collapsed: true} unless it's the most recent one
     });
 }
 

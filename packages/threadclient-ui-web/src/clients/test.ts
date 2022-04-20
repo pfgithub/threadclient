@@ -159,7 +159,6 @@ function commitThread(path: string, entry: LogEntry): Generic.PostContent {
         body: {kind: "richtext", content: [
             rt.pre(entry.commit_body),
         ]},
-        show_replies_when_below_pivot: true,
     };
 }
 
@@ -199,7 +198,6 @@ const sitemap: SitemapEntry[] = [
                 ),
             ]},
             collapsible: false,
-            show_replies_when_below_pivot: false,
         },
         replies: sample_preview_links.map((spl, i) => ["" + i, (urlr): SitemapEntryData => ({
             content: {
@@ -215,7 +213,6 @@ const sitemap: SitemapEntry[] = [
                     ],
                 },
                 collapsible: {default_collapsed: false},
-                show_replies_when_below_pivot: true,
             },
         })]),
     })],
@@ -225,7 +222,6 @@ const sitemap: SitemapEntry[] = [
             title: {text: "Body Preview"},
             body: {kind: "none"},
             collapsible: false,
-            show_replies_when_below_pivot: false,
         },
         replies: ((): SitemapEntry[] => {
             type ITRes = {desc: string, body: Generic.Body};
@@ -439,7 +435,6 @@ const sitemap: SitemapEntry[] = [
                         title: {text: key},
                         body: {kind: "none"},
                         collapsible: {default_collapsed: false},
-                        show_replies_when_below_pivot: true,
                     },
                     replies: items.map(({body, desc}, i): SitemapEntry => [
                         "" + i,
@@ -449,7 +444,6 @@ const sitemap: SitemapEntry[] = [
                                 title: {text: desc},
                                 body,
                                 collapsible: {default_collapsed: true},
-                                show_replies_when_below_pivot: true,
                             },
                         }),
                     ])
@@ -466,7 +460,6 @@ const sitemap: SitemapEntry[] = [
                 rt.p(rt.txt("Built "), rt.timeAgo(variables.build_time)),
             ]},
             collapsible: false,
-            show_replies_when_below_pivot: false,
         },
         replies: variables.log.map((entry, i): SitemapEntry => [
             entry.hash_full,
@@ -504,6 +497,7 @@ const sitemap: SitemapEntry[] = [
             title: null,
             wrap_page: {
                 sidebar: {
+                    display: "tree",
                     items: [],
                 },
                 header: {
@@ -538,7 +532,6 @@ const sitemap: SitemapEntry[] = [
     //         title: {text: "Reddit HTML", body_collapsible: null},
     //         author: null,
     //         body: {kind: "none"},
-    //         show_replies_when_below_pivot: false,
     //     },
     //     replies: reddit_html_tests.map((test, i): SitemapEntry => [
     //         "" + i,
@@ -548,7 +541,6 @@ const sitemap: SitemapEntry[] = [
     //                 title: {text: "Test "+(i + 1), body_collapsible: null},
     //                 author: null,
     //                 body: {kind: "none"},
-    //                 show_replies_when_below_pivot: {default_collapsed: true},
     //             },
     //             replies: [
     //                 ["markdown", (urlr): SitemapEntryData => ({
@@ -557,7 +549,6 @@ const sitemap: SitemapEntry[] = [
     //                         title: {text: "Markdown", body_collapsible: {default_collapsed: true}},
     //                         author: null,
     //                         body: {kind: "text", markdown_format: "reddit", content: test[0]},
-    //                         show_replies_when_below_pivot: false,
     //                     },
     //                 })],
     //                 ["html", (urlr): SitemapEntryData => ({
@@ -566,7 +557,6 @@ const sitemap: SitemapEntry[] = [
     //                         title: {text: "HTML", body_collapsible: {default_collapsed: true}},
     //                         author: null,
     //                         body: {kind: "text", markdown_format: "reddit_html", content: test[1]},
-    //                         show_replies_when_below_pivot: false,
     //                     },
     //                 })],
     //                 ["richtext", (urlr): SitemapEntryData => ({
@@ -575,7 +565,6 @@ const sitemap: SitemapEntry[] = [
     //                         title: {text: "Richtext", body_collapsible: {default_collapsed: true}},
     //                         author: null,
     //                         body: {kind: "richtext", content: test[2] ?? []},
-    //                         show_replies_when_below_pivot: false,
     //                     },
     //                 })],
     //             ],
@@ -597,7 +586,6 @@ function demoPost(path: string, content: Generic.Body, replies: SitemapEntry[]):
             title: null,
             body: content,
             collapsible: {default_collapsed: false},
-            show_replies_when_below_pivot: true,
         },
         replyopts: replyable(),
         replies,
@@ -633,7 +621,7 @@ function getFromSitemap(
             url: urlr,
             client_id: client.id,
             parent,
-            replies: {...called.replyopts, items: [linkFromPostData(content, {
+            replies: {display: "tree", ...called.replyopts, items: [linkFromPostData(content, {
                 kind: "loader", parent: null, replies: null, url: null,
                 client_id: client.id,
                 key: 0 as unknown as Generic.Opaque<"loader">,
@@ -669,11 +657,13 @@ function getFromSitemap(
                     };
                     const thispost_key = linkFromPostData(content, thispost);
                     if(replyitm.replies) thispost.replies = {
+                        display: "tree",
                         ...replyitm.replyopts,
                         items: (
                             replyitm.content.kind === "post"
                             &&
-                            replyitm.content.show_replies_when_below_pivot !== false
+                            // replyitm.content.show_replies_when_below_pivot !== false
+                            (true as false) // TODO detect when a post should not display its replies
                         ) ? (
                             mapReplies(thispost_key, replyitm.replies, urlr2)
                         ) : [linkFromPostData(content, {
@@ -689,6 +679,7 @@ function getFromSitemap(
                 })
             );
             this_post.replies = {
+                display: "tree",
                 ...called.replyopts, items: mapReplies(this_post_link, called.replies, urlr),
             };
         }else{
@@ -710,7 +701,6 @@ function getFromSitemap(
                 rt.p(rt.txt("404 not found "+path)),
             ]},
             collapsible: false,
-            show_replies_when_below_pivot: false,
         },
         internal_data: 0,
         display_style: "centered",
@@ -791,7 +781,6 @@ export async function getPage(
     //             title: null,
     //             author: null,
     //             body: {kind: "none"},
-    //             show_replies_when_below_pivot: false,
     //         },
     //         internal_data: 0,
     //     };
@@ -839,7 +828,6 @@ export async function getPage(
             ],
         },
         collapsible: false,
-        show_replies_when_below_pivot: false,
     };
     const pivot: Generic.PostData = {
         kind: "post",
@@ -894,7 +882,6 @@ export const client: ThreadClient = {
                 title: null,
                 body: {kind: "richtext", content: markdownToRichtext(body)},
                 collapsible: false,
-                show_replies_when_below_pivot: false,
             };
             // return richtextPost("/", markdownToRichtext(body));
         }else if(decoded.kind === "other") {

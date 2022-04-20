@@ -92,6 +92,7 @@ function getPostData(content: Generic.Page2Content, map: IDMap, key: string): Ge
 function postDataFromListingMayError(content: Generic.Page2Content, map: IDMap, value: IDMapEntry): Generic.PostData {
     if(value.data.kind === "header") {
         return getPageHeader(value.data.parsed, {
+            display: "repivot_list",
             items: value.data.replies.map(reply => getPostData(content, map, getID(reply))),
         });
     }else if(value.data.kind === "item") {
@@ -103,6 +104,7 @@ function postDataFromListingMayError(content: Generic.Page2Content, map: IDMap, 
 
             parent: getPostData(content, map, value.data.parent),
             replies: {
+                display: "tree",
                 items: (item.comments ?? []).map(reply => getPostData(content, map, getID(reply))),
             },
             content: {
@@ -151,7 +153,6 @@ function postDataFromListingMayError(content: Generic.Page2Content, map: IDMap, 
                     } : undefined,
                 },
                 collapsible: {default_collapsed: item.title != null ? true : false},
-                show_replies_when_below_pivot: item.title != null ? false : true,
             },
             internal_data: value,
             display_style: "centered",
@@ -220,6 +221,7 @@ function getPageHeader(parsed: ParsedPath, replies: Generic.ListingData): Generi
             }[parsed.tab] : parsed.kind,
             wrap_page: {
                 sidebar: {
+                    display: "tree",
                     items: [],
                 },
                 header: {

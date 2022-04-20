@@ -49,7 +49,7 @@ function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Ge
     if(res.length === 0) {
         res.push(createSymbolLinkToError(content, "Failed to fetch sidebar for this page :(", {content, subinfo}));
     }
-    return {items: res};
+    return {display: "tree", items: res};
 }
 
 function sidebarWidgetToGenericWidget(
@@ -80,7 +80,7 @@ function unpivotablePostBelowPivot(
         parent: null, // always below the pivot, doesn't matter.
         // ^ not true - top level posts below the pivot might show their parents. so we should be able to
         // pass something in here
-        replies: opts.replies != null ? {items: opts.replies} : null,
+        replies: opts.replies != null ? {display: "tree", items: opts.replies} : null,
         client_id: client.id,
 
         kind: "post",
@@ -101,7 +101,6 @@ function unpivotableBelowPivotBody(
 
         title: {text: title},
         body,
-        show_replies_when_below_pivot: true,
         collapsible: false,
     }, {
         internal_data,
@@ -140,7 +139,6 @@ function sidebarWidgetToGenericWidgetTry(
 
             title: {text: widget.shortName},
             body: {kind: "none"},
-            show_replies_when_below_pivot: true,
             collapsible: false,
         }, {
             internal_data: {widget, subinfo},
@@ -154,7 +152,6 @@ function sidebarWidgetToGenericWidgetTry(
                         content: itm.descriptionHtml,
                         markdown_format: "reddit_html", client_id: client.id,
                     },
-                    show_replies_when_below_pivot: true,
                     collapsible: {default_collapsed: true},
                 }, {
                     internal_data: itm,
@@ -166,7 +163,6 @@ function sidebarWidgetToGenericWidgetTry(
             kind: "post",
             title: {text: widget.shortName},
             body: {kind: "none"},
-            show_replies_when_below_pivot: true,
             collapsible: false,
         }, {
             internal_data: {widget, subinfo},
@@ -183,7 +179,6 @@ function sidebarWidgetToGenericWidgetTry(
                     title: null,
                     flair,
                     body: {kind: "none"},
-                    show_replies_when_below_pivot: false,
                     collapsible: false,
                 }, {
                     internal_data: val,
@@ -197,7 +192,6 @@ function sidebarWidgetToGenericWidgetTry(
             kind: "post",
             title: {text: widget.shortName},
             body: {kind: "text", content: widget.textHtml, markdown_format: "reddit_html", client_id: client.id},
-            show_replies_when_below_pivot: false,
             collapsible: false,
         }, {internal_data: widget});
     }else if(widget.kind === "button") {
@@ -214,7 +208,6 @@ function sidebarWidgetToGenericWidgetTry(
                 markdown_format: "reddit_html",
                 client_id: client.id
             },
-            show_replies_when_below_pivot: true,
             collapsible: false,
         }, {
             internal_data: widget,
@@ -222,7 +215,6 @@ function sidebarWidgetToGenericWidgetTry(
                 kind: "post",
                 title: {text: button.kind === "text" ? button.text : "TODO SUPPORT BUTTON KIND "+button.kind},
                 body: {kind: "none"},
-                show_replies_when_below_pivot: false,
                 collapsible: false,
             }, {
                 internal_data: button,
@@ -234,7 +226,6 @@ function sidebarWidgetToGenericWidgetTry(
             kind: "post",
             title: {text: widget.shortName},
             body: {kind: "none"},
-            show_replies_when_below_pivot: true,
             collapsible: false,
         }, {
             internal_data: widget,
@@ -247,8 +238,7 @@ function sidebarWidgetToGenericWidgetTry(
                     url: community.communityIcon,
                 },
                 body: {kind: "none"},
-                show_replies_when_below_pivot: false,
-                collapsible: "collapsed-unless-pivot",
+                collapsible: {default_collapsed: true},
                 actions: {
                     vote: createSubscribeAction(community.name, community.subscribers, community.isSubscribed),
                 },
@@ -301,7 +291,6 @@ function oldSidebarWidget(
             content: t5.data.description_html,
         },
 
-        show_replies_when_below_pivot: true,
         collapsible: {default_collapsed: collapsed},
     }, {internal_data: {t5, subreddit}});
 }
