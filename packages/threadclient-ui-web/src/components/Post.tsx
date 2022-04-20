@@ -19,7 +19,7 @@ import { Flair } from "./Flair";
 import { CollapseData, getCState, postContentCollapseInfo } from "./flatten";
 import { getThumbnailPreview, useActions } from "./flat_posts";
 import { HSplit } from "./HSplit";
-import { InternalIcon } from "./Icon";
+import { InternalIcon, InternalIconRaw } from "./Icon";
 import InfoBar from "./InfoBar";
 import { A, LinkButton, UserLink } from "./links";
 
@@ -167,11 +167,20 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             props.content.thumbnail != null ? selfVisible() ? true : false : true
         ) && !size_lt.sm()}>
             <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
-                <Show when={props.content.actions?.vote}>{vote_action => (
-                    <div class={selfVisible() || hasThumbnail() ? "" : " hidden"}>
+                <div class={selfVisible() || hasThumbnail() ? "" : " hidden"}>
+                    <Show when={props.content.actions?.vote} fallback={<>
+                        <button
+                            onClick={() => {
+                                setTransitionTarget(t => !t);
+                            }}
+                            class="text-slate-500 dark:text-zinc-600 text-xs"
+                        >
+                            <InternalIconRaw class="fa-solid fa-circle-chevron-up" label="Collapse" />
+                        </button>
+                    </>}>{vote_action => (
                         <VerticalIconCounter counter={vote_action} />
-                    </div>
-                )}</Show>
+                    )}</Show>
+                </div>
                 <CollapseButton
                     class="flex-1"
                     collapsed_raw={!transitionTarget()}

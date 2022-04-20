@@ -86,6 +86,30 @@ export async function actAuto(
     }
 }
 
+export function VerticalIconButtonRaw(props: {
+    class?: undefined | string,
+    children: JSX.Element,
+    loading: boolean,
+    pressed: boolean,
+    onClick: () => void,
+}) {
+    return <button
+        style={{
+            'font-size': "15px",
+            'width': "15px",
+            'height': "15px",
+        }}
+        class={props.class}
+        disabled={props.loading}
+        aria-pressed={props.pressed}
+        onclick={() => {
+            props.onClick();
+        }}
+    >
+        {props.children}
+    </button>;
+}
+
 export function VerticalIconButton(props: {
     counter: Generic.CounterAction,
     mode: "increment" | "decrement",
@@ -94,18 +118,13 @@ export function VerticalIconButton(props: {
 
     const pressed = () => state().your_vote === props.mode;
 
-    return <button
-        style={{
-            'font-size': "15px",
-            'width': "15px",
-            'height': "15px",
-        }}
+    return <VerticalIconButtonRaw
         class={
             colorClass(pressed() ? props.counter[props.mode]!.color : null)
         }
-        disabled={state().loading}
-        aria-pressed={pressed()}
-        onclick={() => {
+        loading={state().loading}
+        pressed={pressed()}
+        onClick={() => {
             void actAuto(
                 pressed() ? undefined : props.mode,
                 state(),
@@ -122,7 +141,7 @@ export function VerticalIconButton(props: {
             label={props.counter[props.mode]![pressed() ? "undo_label" : "label"]}
             bold={pressed()}
         />
-    </button>;
+    </VerticalIconButtonRaw>;
 }
 
 export function VerticalIconCounter(props: {counter: Generic.CounterAction}): JSX.Element {
