@@ -134,6 +134,8 @@ export function animateHeight(
 // if={condition} when={condition}
 // it's hard to have a when= in showAnimate because if the thing
 // is removed you probably don't want to keep around a copy of it
+
+// TODO: when reduce motion is on, use opacity instead of animateHeight()
 export function ShowAnimate(props: {
     mode?: undefined | "clip" | "height", // = "height" //[!] not reactive
     when: boolean,
