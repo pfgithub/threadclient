@@ -123,12 +123,8 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         ]}],
                     },
                 }} opts={{
-                    clickable: false,
                     frame: null,
-                    replies: null,
                     client_id: "",
-                    at_or_above_pivot: false,
-                    is_pivot: false,
                     flat_frame: null,
                 }} />
             </TopLevelWrapper>
@@ -231,12 +227,8 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         },
                     },
                 }} opts={{
-                    clickable: false,
                     frame: null,
                     client_id: "n/a",
-                    replies: null,
-                    at_or_above_pivot: false,
-                    is_pivot: false,
                     flat_frame: null,
                 }} />
             </TopLevelWrapper>
@@ -275,12 +267,8 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         })),
                     },
                 }} opts={{
-                    clickable: false,
                     frame: null,
                     client_id: "n/a",
-                    replies: null,
-                    at_or_above_pivot: false,
-                    is_pivot: false,
                     flat_frame: null,
                 }} />
             </TopLevelWrapper>
@@ -330,12 +318,8 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         ],
                     },
                 }} opts={{
-                    clickable: false,
                     frame: null,
                     client_id: "n/a",
-                    replies: null,
-                    at_or_above_pivot: false,
-                    is_pivot: false,
                     flat_frame: null,
                 }} />
             </TopLevelWrapper>

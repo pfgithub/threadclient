@@ -78,6 +78,8 @@ export type FlatPost = {
     collapse: CollapseButton | null,
     first_in_wrapper: boolean,
 
+    // ok why am i representing an enum{above, pivot, below} with two booleans? like it works but one of them
+    // is an invalid state? we could even "position: -1 | 0 | 1" and then "position <= 0"
     is_pivot: boolean,
     at_or_above_pivot: boolean,
     threaded: boolean,

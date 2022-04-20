@@ -54,7 +54,7 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
                     // return clientContent()
                     //                             clientContent(client, r, {clickable: false}).defer(hsc).adto(el("div").adto(content_buttons_line));
                     const client = getClientCached(legacy.client_id)!;
-                    return clientContent(client, legacy.thread, {clickable: props.opts.clickable}).defer(hsc);
+                    return clientContent(client, legacy.thread, {clickable: true}).defer(hsc);
                 }}/>,
             }}</SwitchKind>
         </DefaultErrorBoundary>

@@ -190,16 +190,13 @@ function ActionBarItems(props: {
 }): JSX.Element {
     return <>
         {/* now I want a <Show whenAll={{a, b, c}}>{(props) => } */}
-        {props.opts.collapse_data && props.opts.id && (
-            postContentCollapseInfo(props.post, {
-                is_pivot: props.opts.is_pivot,
-                displayed_in: props.opts.flat_frame?.displayed_in ?? "tree",
-            }).user_controllable
+        {props.opts.collapse_data && props.opts.flat_frame?.id && (
+            postContentCollapseInfo(props.post, props.opts.flat_frame).user_controllable
             // TODO: dispatch this event to the post - eg a post may not have collapse data but still
             // have a collapse button and we need to tell it to collapse then
-        ) && !props.opts.is_pivot ? <>
+        ) && !props.opts.flat_frame.is_pivot ? <>
             <ActionItemRaw {...((): ActionItem => {
-                const cs = getCState(props.opts.collapse_data, props.opts.id);
+                const cs = getCState(props.opts.collapse_data, props.opts.flat_frame.id);
                 const collapsed = cs.collapsed();
                 return {
                     icon: collapsed ? "chevron_down" : "chevron_up",

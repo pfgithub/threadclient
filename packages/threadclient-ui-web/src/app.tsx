@@ -914,12 +914,8 @@ function renderReplyAction(
                         vanillaToSolidBoundary(vsbdiv, () => <>
                             <ul class="ml-10">
                                 <ClientContentAny content={r.content} opts={{
-                                    clickable: false,
-                                    at_or_above_pivot: false,
-                                    is_pivot: false,
                                     frame: r,
                                     client_id: r.client_id,
-                                    replies: r.replies,
                                     flat_frame: null,
                                 }} />
                             </ul>

@@ -114,10 +114,6 @@ export default function ReplyEditor(props: {
             console.log("Value changed", value);
             return <TopLevelWrapper restrict_w>
                 <ClientContent listing={value} opts={{
-                    clickable: false,
-                    replies: null,
-                    at_or_above_pivot: true,
-                    is_pivot: true,
                     frame: null,
                     client_id: props.action.client_id,
                     flat_frame: null,

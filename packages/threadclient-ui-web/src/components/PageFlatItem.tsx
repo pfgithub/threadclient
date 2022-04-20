@@ -122,14 +122,9 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                         <ClientContentAny
                             content={post.content}
                             opts={{
-                                clickable: false, // TODO
                                 frame: post,
                                 client_id: post.client_id,
-                                replies: post.replies,
-                                at_or_above_pivot: loader_or_post.at_or_above_pivot,
-                                is_pivot: loader_or_post.is_pivot,
                                 collapse_data: props.collapse_data,
-                                id: loader_or_post.id,
                                 flat_frame: loader_or_post,
                             }}
                         />

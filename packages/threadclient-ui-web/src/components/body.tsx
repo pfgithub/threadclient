@@ -151,12 +151,8 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 thread: xpost.source,
                 client_id: xpost.client_id,
             }} opts={{
-                clickable: true,
                 client_id: xpost.client_id,
                 frame: null,
-                replies: null,
-                at_or_above_pivot: false,
-                is_pivot: false,
                 flat_frame: null,
             }} />
         </TopLevelWrapper>,
@@ -352,12 +348,8 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
         <SwitchKind item={state()}>{{
             loading: () => <>loading...</>,
             loaded: ({frame}) => <ClientContent listing={frame.content} opts={{
-                clickable: true,
                 client_id: frame.client_id,
                 frame: frame,
-                replies: null,
-                at_or_above_pivot: false,
-                is_pivot: false,
                 flat_frame: null,
             }} />,
             error: e => <div>

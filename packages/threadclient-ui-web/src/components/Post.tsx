@@ -64,16 +64,10 @@ function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
 
 export type ClientPostOpts = {
     // TODO: get rid of all of this except for flat_frame and maybe client_id. delete it. gone. gotten rid of.
-    clickable: boolean,
-    frame: Generic.PostData | null,
-    replies: Generic.ListingData | null,
     client_id: string,
-    at_or_above_pivot: boolean,
-    is_pivot: boolean,
-    collapse_data?: undefined | CollapseData,
-    id?: undefined | Generic.Link<Generic.Post>,
-
+    frame: Generic.PostData | null, // oh and this too :(
     flat_frame: null | FlatPost,
+    collapse_data?: undefined | CollapseData, // oh we need this too unfortunately
 };
 
 export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
@@ -88,22 +82,24 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     // and switch between the two
 
     const collapseInfo = createMemo(
-        () => postContentCollapseInfo(props.content, {
-            is_pivot: props.opts.is_pivot,
-            displayed_in: props.opts.flat_frame?.displayed_in ?? "tree",
+        () => postContentCollapseInfo(props.content, props.opts.flat_frame ?? {
+            is_pivot: false,
+            displayed_in: "tree",
         }),
         undefined,
         {equals: (a, b) => {
             return JSON.stringify(a) === JSON.stringify(b);
         }},
     );
+    const isPivot = () => props.opts.flat_frame?.is_pivot ?? false;
 
     const [visible, setVisible]: [Accessor<boolean>, Setter<boolean>] = (
-    props.opts.collapse_data && props.opts.id) ?
+    props.opts.collapse_data && props.opts.flat_frame?.id) ?
     ((): [Accessor<boolean>, Setter<boolean>] => {
+        const ff = props.opts.flat_frame;
         const pivot_signal = createSignal(true);
-        if(props.opts.is_pivot) return createSignal(true);
-        const cs = getCState(props.opts.collapse_data, props.opts.id);
+        if(props.opts.flat_frame.is_pivot) return createSignal(true);
+        const cs = getCState(props.opts.collapse_data, ff.id);
         const setter: Setter<boolean> = (nv) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return !cs.setCollapsed((pv): boolean => {
@@ -112,11 +108,11 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             // why is this setter type so messy aaaa
         };
         return [
-            createMemo(() => props.opts.is_pivot ? pivot_signal[0]() : !cs.collapsed()),
-            (arg) => props.opts.is_pivot ? pivot_signal[1](arg) : setter(arg),
+            createMemo(() => ff.is_pivot ? pivot_signal[0]() : !cs.collapsed()),
+            (arg) => ff.is_pivot ? pivot_signal[1](arg) : setter(arg),
         ];
     })() : createSignal(
-        props.opts.is_pivot ? true :
+        untrack(isPivot) ? true :
         !untrack(() => collapseInfo()).default_collapsed,
     );
 
@@ -128,11 +124,11 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     const hprc = getWholePageRootContextOpt();
 
     const getPage = (): Generic.Page2 | undefined => {
-        if(!props.opts.id) return undefined;
+        if(!props.opts.flat_frame || !props.opts.frame) return undefined;
         if(!hprc) return undefined;
-        if(props.opts.frame?.disallow_pivot ?? false) return undefined;
+        if(props.opts.frame.disallow_pivot ?? false) return undefined;
         return {
-            pivot: props.opts.id,
+            pivot: props.opts.flat_frame.id,
             content: hprc.content(),
         };
     };
@@ -144,7 +140,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             class={classes(
                 // note: can even consider <sm:text-xs
                 // we'll probably want a font size config in the settings
-                props.opts.is_pivot ? [
+                isPivot() ? [
                     "text-base p-2",
                 ] : "text-sm",
                 "flex flex-row",
@@ -163,7 +159,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         }}
                         real={true}
                         cstates={props.opts.collapse_data}
-                        id={props.opts.id}
+                        id={props.opts.flat_frame?.id}
                     />
                 </div>
             </Show>
@@ -186,7 +182,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             class={classes(
                 // note: can even consider <sm:text-xs
                 // we'll probably want a font size config in the settings
-                props.opts.is_pivot ? [
+                isPivot() ? [
                     "text-base p-2",
                 ] : "text-sm",
                 "flex flex-row",
@@ -217,7 +213,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         }}
                         real={true}
                         cstates={props.opts.collapse_data}
-                        id={props.opts.id}
+                        id={props.opts.flat_frame?.id}
                     />
                 </div>
             </Show>
@@ -234,7 +230,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     getPage={getPage}
                 />
                 <div>
-                    <section class={props.opts.is_pivot ? "py-4" : ""}>
+                    <section class={isPivot() ? "py-4" : ""}>
                         <Show if={true}>
                             <Show if={true}><div class="mt-2"></div></Show>
                             <ShowAnimate when={!contentWarning()} fallback={
@@ -251,7 +247,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                             </ShowAnimate>
                         </Show>
                     </section>
-                    <Show if={props.opts.is_pivot}><div class="text-sm">
+                    <Show if={isPivot()}><div class="text-sm">
                         <InfoBar post={props.content} />
                         <div class="mt-2" />
                         <div class="flex flex-wrap gap-2">
@@ -281,8 +277,9 @@ function PostTopBar(props: ClientPostProps & {
 
     getPage: () => Generic.Page2 | undefined,
 }): JSX.Element {
+    const isPivot = () => props.opts.flat_frame?.is_pivot ?? false;
     const postIsClickable = () => {
-        return !props.visible || (props.opts.frame?.url != null && !props.opts.is_pivot);
+        return !props.visible || (props.opts.frame?.url != null && !isPivot());
     };
 
     const hasThumbnail = () => {
@@ -374,10 +371,10 @@ function PostTopBar(props: ClientPostProps & {
                 <Show if={props.content.title != null || props.content.flair != null}>
                     <div role="heading" class={classes(
                         "text-black",
-                        (props.opts.is_pivot && props.visible) ? "text-3xl sm:text-2xl" : "text-base",
+                        (isPivot() && props.visible) ? "text-3xl sm:text-2xl" : "text-base",
                     )}>
                         <Show when={props.content.title}>{title => (
-                            <Show if={!props.opts.is_pivot} when={props.opts.frame?.url} fallback={(
+                            <Show if={!isPivot()} when={props.opts.frame?.url} fallback={(
                                 title.text
                             )}>{url => (
                                 <A
@@ -421,7 +418,7 @@ function PostTopBar(props: ClientPostProps & {
                         >{in_sr.name}</LinkButton>{" "}
                     </>}</Show>
                 </div>
-                <Show if={!props.opts.is_pivot || !props.visible}>
+                <Show if={!isPivot() || !props.visible}>
                     <div>
                         <InfoBar post={props.content} />
                     </div>
