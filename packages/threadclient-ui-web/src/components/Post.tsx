@@ -135,8 +135,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     const wholeObjectClickable = () => {
         if(isPivot()) return false;
-        if(props.opts.flat_frame?.displayed_in === "repivot_list") return true;
-        return false;
+        if(props.opts.flat_frame?.displayed_in !== "repivot_list") return false;
+        if(props.opts.frame?.url == null) return false;
+        return true;
     };
 
     const getActions = useActions(() => props.content, () => props.opts);
