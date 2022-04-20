@@ -3,7 +3,7 @@ import { Accessor, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import type { ThreadClient } from "threadclient-client-base";
 import { Show } from "tmeta-util-solid";
 import {
-    CounterState, fetchClient, getPointsText, WatchableCounterState, watchCounterState
+    CounterState, fetchClient, getPointsText, watchCounterState
 } from "../app";
 import { colorClass } from "./color";
 import Icon from "./Icon";
@@ -11,9 +11,7 @@ import Icon from "./Icon";
 export function getCounterState(
     counter: Accessor<Generic.CounterAction>,
 ): [state: Accessor<CounterState>, setState: (news: CounterState) => void] {
-    const [res, setRes] = createSignal<CounterState>(null as unknown as CounterState);
-    let wcs!: WatchableCounterState;
-    createMemo(() => {
+    const resmemo = createMemo((): [state: Accessor<CounterState>, setState: (ns: CounterState) => void] => {
         const hscv = watchCounterState(counter().client_id + "_" + counter().unique_id, {
             count: counter().count_excl_you,
             you: counter().you,
@@ -24,17 +22,20 @@ export function getCounterState(
         });
 
         const {state, onupdate} = hscv.associated_data;
-        wcs = hscv.associated_data;
-        setRes({...state});
+        const wcs = hscv.associated_data;
+        const [res, setRes] = createSignal<CounterState>({...state});
         onupdate(() => setRes({...state}));
 
-        return 0;
-    })();
+        return [res, (new_state: CounterState) => {
+            Object.assign(wcs.state, new_state);
+            wcs.emit();
+        }];
+    });
 
-    return [res, (new_state) => {
-        Object.assign(wcs.state, new_state);
-        wcs.emit();
-    }];
+    return [
+        () => resmemo()[0](),
+        (a: CounterState) => resmemo()[1](a),
+    ];
 }
 
 export function CounterCount(props: {counter: Generic.CounterAction}): JSX.Element {

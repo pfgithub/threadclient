@@ -1237,7 +1237,7 @@ export type WatchableCounterState = {
 
 export function watchCounterState(
     counter_id_raw: string | null,
-    updates: {count: number | "hidden" | "none", you: "increment" | "decrement" | undefined, time: number}
+    updates: {count: number | "hidden" | "none", you: "increment" | "decrement" | undefined, time: number},
 ): HideShowCleanup<WatchableCounterState> {
     const counter_id = counter_id_raw ?? `${Math.random()}`;
     const global_state: GlobalCounter = global_counter_info.get(counter_id) ?? {
@@ -1280,7 +1280,6 @@ export function watchCounterState(
     global_state.users++;
     hsc.on("cleanup", () => {
         global_state.users--;
-        if(global_state.users === 0) global_counter_info.delete(counter_id);
     });
     return hsc;
 }

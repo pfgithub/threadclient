@@ -137,93 +137,186 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     const getActions = useActions(() => props.content, () => props.opts);
 
-    return <article
-        class={classes(
-            // note: can even consider <sm:text-xs
-            // we'll probably want a font size config in the settings
-            props.opts.is_pivot ? [
-                "text-base m-2",
-            ] : "text-sm",
-            "flex flex-row",
-        )}
-    >
-        <Show if={collapseInfo().user_controllable && (
-            props.content.thumbnail != null ? visible() ? true : false : true
-        ) && !size_lt.sm()}>
-            <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
-                <div class={visible() || hasThumbnail() ? "" : " hidden"}>
-                    <Show when={props.content.actions?.vote} fallback={<>
-                        <button
-                            onClick={() => {
-                                setVisible(t => !t);
-                            }}
-                            class="text-slate-500 dark:text-zinc-600 text-xs"
-                        >
-                            <InternalIconRaw class="fa-solid fa-circle-chevron-up" label="Collapse" />
-                        </button>
-                    </>}>{vote_action => (
-                        <VerticalIconCounter counter={vote_action} />
-                    )}</Show>
-                </div>
-                <CollapseButton
-                    class="flex-1"
-                    collapsed_raw={!visible()}
-                    collapsed_anim={!visible()}
-                    onClick={() => {
-                        setVisible(t => !t);
-                    }}
-                    real={true}
-                    cstates={props.opts.collapse_data}
-                    id={props.opts.id}
-                />
-            </div>
-        </Show>
-        <div class="flex-1">
-            <PostTopBar
-                content={props.content}
-                opts={props.opts}
+    const visible_false = false;
+    const visible_true = true;
 
-                visible={visible()}
-                setVisible={setVisible}
-                contentWarning={contentWarning()}
-                collapseInfo={collapseInfo()}
-                hasThumbnail={hasThumbnail()}
-                hasTitleOrThumbnail={hasTitleOrThumbnail()}
-                actions={getActions()}
-                getPage={getPage}
-            />
-            <div style={{display: visible() ? "block" : "none"}}><HideshowProvider
-                visible={() => visible()}
-            >
-                <section class={props.opts.is_pivot ? "py-4" : ""}>
-                    <Show if={visible()}>
-                        <Show if={visible()}><div class="mt-2"></div></Show>
-                        <ShowAnimate when={!contentWarning()} fallback={
-                            <>
-                                Content Warning:{" "}
-                                <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}
-                                <button
-                                    class={link_styles_v["pill-filled"]}
-                                    onClick={() => setContentWarning(false)}
-                                >Show Anyway</button>
-                            </>
-                        }>
-                            <Body body={props.content.body} autoplay={false} />
-                        </ShowAnimate>
-                    </Show>
-                </section>
-                <Show if={props.opts.is_pivot}><div class="text-sm">
-                    <InfoBar post={props.content} />
-                    <div class="mt-2" />
-                    <div class="flex flex-wrap gap-2">
-                        <For each={getActions()}>{action => <>
-                            <HorizontalActionButton action={action} />
-                        </>}</For>
+    return <ShowAnimate when={visible()} fallback={<>
+        <article
+            class={classes(
+                // note: can even consider <sm:text-xs
+                // we'll probably want a font size config in the settings
+                props.opts.is_pivot ? [
+                    "text-base m-2",
+                ] : "text-sm",
+                "flex flex-row",
+            )}
+        >
+            <Show if={collapseInfo().user_controllable && (
+                props.content.thumbnail != null ? visible_false ? true : false : true
+            ) && !size_lt.sm()}>
+                <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
+                    <div class={visible_false ? "" : " hidden"}>
+                        <Show when={props.content.actions?.vote} fallback={<>
+                            <button
+                                onClick={() => {
+                                    setVisible(t => !t);
+                                }}
+                                class="text-slate-500 dark:text-zinc-600 text-xs"
+                            >
+                                <InternalIconRaw class="fa-solid fa-circle-chevron-up" label="Collapse" />
+                            </button>
+                        </>}>{vote_action => (
+                            <VerticalIconCounter counter={vote_action} />
+                        )}</Show>
                     </div>
-                </div></Show>
-            </HideshowProvider></div>
-        </div>
-    </article>;
+                    <CollapseButton
+                        class="flex-1"
+                        collapsed_raw={!visible_false}
+                        collapsed_anim={!visible_false}
+                        onClick={() => {
+                            setVisible(t => !t);
+                        }}
+                        real={true}
+                        cstates={props.opts.collapse_data}
+                        id={props.opts.id}
+                    />
+                </div>
+            </Show>
+            <div class="flex-1">
+                <PostTopBar
+                    content={props.content}
+                    opts={props.opts}
+
+                    visible={visible_false}
+                    setVisible={setVisible}
+                    contentWarning={contentWarning()}
+                    collapseInfo={collapseInfo()}
+                    hasThumbnail={hasThumbnail()}
+                    hasTitleOrThumbnail={hasTitleOrThumbnail()}
+                    actions={getActions()}
+                    getPage={getPage}
+                />
+                <div style={{display: visible_false ? "block" : "none"}}><HideshowProvider
+                    visible={() => visible_false}
+                >
+                    <section class={props.opts.is_pivot ? "py-4" : ""}>
+                        <Show if={visible_false}>
+                            <Show if={visible_false}><div class="mt-2"></div></Show>
+                            <ShowAnimate when={!contentWarning()} fallback={
+                                <>
+                                    Content Warning:{" "}
+                                    <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}
+                                    <button
+                                        class={link_styles_v["pill-filled"]}
+                                        onClick={() => setContentWarning(false)}
+                                    >Show Anyway</button>
+                                </>
+                            }>
+                                <Body body={props.content.body} autoplay={false} />
+                            </ShowAnimate>
+                        </Show>
+                    </section>
+                    <Show if={props.opts.is_pivot}><div class="text-sm">
+                        <InfoBar post={props.content} />
+                        <div class="mt-2" />
+                        <div class="flex flex-wrap gap-2">
+                            <For each={getActions()}>{action => <>
+                                <HorizontalActionButton action={action} />
+                            </>}</For>
+                        </div>
+                    </div></Show>
+                </HideshowProvider></div>
+            </div>
+        </article>
+    </>}>
+        <article
+            class={classes(
+                // note: can even consider <sm:text-xs
+                // we'll probably want a font size config in the settings
+                props.opts.is_pivot ? [
+                    "text-base m-2",
+                ] : "text-sm",
+                "flex flex-row",
+            )}
+        >
+            <Show if={collapseInfo().user_controllable && (
+                props.content.thumbnail != null ? visible_true ? true : false : true
+            ) && !size_lt.sm()}>
+                <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
+                    <div class={visible_true ? "" : " hidden"}>
+                        <Show when={props.content.actions?.vote} fallback={<>
+                            <button
+                                onClick={() => {
+                                    setVisible(t => !t);
+                                }}
+                                class="text-slate-500 dark:text-zinc-600 text-xs"
+                            >
+                                <InternalIconRaw class="fa-solid fa-circle-chevron-up" label="Collapse" />
+                            </button>
+                        </>}>{vote_action => (
+                            <VerticalIconCounter counter={vote_action} />
+                        )}</Show>
+                    </div>
+                    <CollapseButton
+                        class="flex-1"
+                        collapsed_raw={!visible_true}
+                        collapsed_anim={!visible_true}
+                        onClick={() => {
+                            setVisible(t => !t);
+                        }}
+                        real={true}
+                        cstates={props.opts.collapse_data}
+                        id={props.opts.id}
+                    />
+                </div>
+            </Show>
+            <div class="flex-1">
+                <PostTopBar
+                    content={props.content}
+                    opts={props.opts}
+
+                    visible={visible_true}
+                    setVisible={setVisible}
+                    contentWarning={contentWarning()}
+                    collapseInfo={collapseInfo()}
+                    hasThumbnail={hasThumbnail()}
+                    hasTitleOrThumbnail={hasTitleOrThumbnail()}
+                    actions={getActions()}
+                    getPage={getPage}
+                />
+                <div style={{display: visible_true ? "block" : "none"}}><HideshowProvider
+                    visible={() => visible_true}
+                >
+                    <section class={props.opts.is_pivot ? "py-4" : ""}>
+                        <Show if={visible_true}>
+                            <Show if={visible_true}><div class="mt-2"></div></Show>
+                            <ShowAnimate when={!contentWarning()} fallback={
+                                <>
+                                    Content Warning:{" "}
+                                    <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}
+                                    <button
+                                        class={link_styles_v["pill-filled"]}
+                                        onClick={() => setContentWarning(false)}
+                                    >Show Anyway</button>
+                                </>
+                            }>
+                                <Body body={props.content.body} autoplay={false} />
+                            </ShowAnimate>
+                        </Show>
+                    </section>
+                    <Show if={props.opts.is_pivot}><div class="text-sm">
+                        <InfoBar post={props.content} />
+                        <div class="mt-2" />
+                        <div class="flex flex-wrap gap-2">
+                            <For each={getActions()}>{action => <>
+                                <HorizontalActionButton action={action} />
+                            </>}</For>
+                        </div>
+                    </div></Show>
+                </HideshowProvider></div>
+            </div>
+        </article>
+    </ShowAnimate>;
 }
 
 // [!] RENDER THIS TWICE, ONCE WITH visible=true AND ONCE WITH visible=false
