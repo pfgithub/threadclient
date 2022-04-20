@@ -116,13 +116,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
     );
-    const hasTitleOrThumbnail = () => {
-        return !!props.content.thumbnail || !!props.content.title;
-    };
-    const hasThumbnail = () => {
-        return !!props.content.thumbnail && !visible();
-    };
-    // next: fix 'hastitleorthumbnail' / 'hasthumbnail' and fix focus
+    // next: fix fix focus
 
     const hprc = getWholePageRootContextOpt();
 
@@ -175,8 +169,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     setVisible={setVisible}
                     contentWarning={contentWarning()}
                     collapseInfo={collapseInfo()}
-                    hasThumbnail={hasThumbnail()}
-                    hasTitleOrThumbnail={hasTitleOrThumbnail()}
                     actions={getActions()}
                     getPage={getPage}
                 />
@@ -231,8 +223,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     setVisible={setVisible}
                     contentWarning={contentWarning()}
                     collapseInfo={collapseInfo()}
-                    hasThumbnail={hasThumbnail()}
-                    hasTitleOrThumbnail={hasTitleOrThumbnail()}
                     actions={getActions()}
                     getPage={getPage}
                 />
@@ -280,15 +270,16 @@ function PostTopBar(props: ClientPostProps & {
     contentWarning: boolean,
     collapseInfo: CollapseInfo,
 
-    hasThumbnail: boolean,
-    hasTitleOrThumbnail: boolean,
-
     actions: ActionItem[],
 
     getPage: () => Generic.Page2 | undefined,
 }): JSX.Element {
     const postIsClickable = () => {
         return !props.visible || (props.opts.frame?.url != null && !props.opts.is_pivot);
+    };
+
+    const hasThumbnail = () => {
+        return !!props.content.thumbnail && !props.visible;
     };
 
     const settings = getSettings();
@@ -364,7 +355,7 @@ function PostTopBar(props: ClientPostProps & {
             <div class={classes(
                 "text-gray-500",
                 "text-sm",
-                props.visible || props.hasThumbnail
+                props.visible || hasThumbnail()
                 ? ""
                 : "filter grayscale text-$collapsed-header-color italic",
             )}><div class={classes([
@@ -408,20 +399,20 @@ function PostTopBar(props: ClientPostProps & {
                             {author.name}
                         </UserLink>{" "}
                     </>}</Show>
-                    <Show if={props.visible || props.hasTitleOrThumbnail}>
+                    <Show if={props.visible}>
                         <Show when={props.content.author}>{author => <>
                             <Show when={author.flair}>{flair => <>
                                 <Flair flairs={flair} />{" "}
                             </>}</Show>
                         </>}</Show>
-                        <Show when={props.content.info?.in}>{in_sr => <>
-                            {" in "}<LinkButton
-                                href={in_sr.link}
-                                style="previewable"
-                                client_id={in_sr.client_id}
-                            >{in_sr.name}</LinkButton>{" "}
-                        </>}</Show>
                     </Show>
+                    <Show when={props.content.info?.in}>{in_sr => <>
+                        {" in "}<LinkButton
+                            href={in_sr.link}
+                            style="previewable"
+                            client_id={in_sr.client_id}
+                        >{in_sr.name}</LinkButton>{" "}
+                    </>}</Show>
                 </div>
                 <Show if={!props.opts.is_pivot || !props.visible}>
                     <div>
@@ -429,7 +420,7 @@ function PostTopBar(props: ClientPostProps & {
                     </div>
                 </Show>
                 <HSplit.Child fullwidth>
-                    <Show if={!(props.visible || props.hasThumbnail)}>
+                    <Show if={!(props.visible || hasThumbnail())}>
                         <Show if={
                             !props.collapseInfo.default_collapsed
                         } children={<div>
@@ -445,7 +436,7 @@ function PostTopBar(props: ClientPostProps & {
                 </HSplit.Child>
             </div></div>
         </div></HSplit.Child>
-        <Show if={props.visible || props.hasThumbnail}>
+        <Show if={props.visible || hasThumbnail()}>
             <HSplit.Child>
                 <div class="pl-2" />
                 <Dropdown>
