@@ -47,6 +47,7 @@ function DisplayPost(props: {
 
 function FeaturePreviewCard(props: {
     title: JSX.Element,
+    icon: string,
     description: JSX.Element,
     link: string,
 }): JSX.Element {
@@ -64,9 +65,9 @@ function FeaturePreviewCard(props: {
         };
     }}>
         <div class="h-full">
-            <span class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
-                {props.title}
-            </span>
+            <div class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
+                <InternalIconRaw class={props.icon} label={null} /> {props.title}
+            </div>
             <p class="text-base text-slate-500 dark:text-zinc-300">
                 {props.description}
             </p>
@@ -390,36 +391,43 @@ export default function LandingPage(): JSX.Element {
                 <div class="grid sm:grid-cols-3 gap-4">
                     <FeaturePreviewCard
                         title="Syntax Highlighting"
+                        icon="fa-solid fa-code" // icon-pro="fa-regular fa-code"
                         description={<>ThreadClient will (!TODO!) automatically syntax highlight code blocks</>}
                         link="/homepage/syntax-highlighting"
                     />
                     <FeaturePreviewCard
                         title="Braille Art Fix"
+                        icon="fa-solid fa-image"
                         description={<>ThreadClient will correctly display braille art on desktop and mobile</>}
                         link="/homepage/braille-art-fix"
                     />
                     <FeaturePreviewCard
                         title="Percent Upvoted"
+                        icon="fa-solid fa-face-smile"
                         description={<>ThreadClient shows you what percentage of voters upvoted a post</>}
                         link="/homepage/percent-upvoted"
                     />
                     <FeaturePreviewCard
                         title="See Markdown"
+                        icon="fa-brands fa-markdown" // icon-pro="fa-solid fa-brackets-curly"
                         description={<>ThreadClient can show you how someone else formatted something</>}
                         link="/homepage/see-comment-markdown"
                     />
                     <FeaturePreviewCard
                         title="PWA"
+                        icon="fa-solid fa-mobile-button"
                         description={<>Add ThreadClient to your home screen to use it like an app on mobile</>}
                         link="/homepage/pwa"
                     />
                     <FeaturePreviewCard
                         title="Offline Mode"
+                        icon="fa-solid fa-wifi" // icon-pro="fa-solid fa-wifi-exclamation"
                         description={<>TODO: should support an offline mode where you can save and read later</>}
                         link="/homepage/offline-mode"
                     />
                     <FeaturePreviewCard
                         title="Hide Automod"
+                        icon="fa-solid fa-circle-minus"
                         description={<>TODO: automod 'don't show me again' to auto collapse</>}
                         link="/homepage/hide-automod"
                     />
