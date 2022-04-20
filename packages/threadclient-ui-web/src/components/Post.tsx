@@ -132,7 +132,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     const getActions = useActions(() => props.content, () => props.opts);
 
-    return <ShowAnimate mode="clip" when={visible()} fallback={<>
+    return <ShowAnimate mode={props.opts.collapse_data ? "clip" : "height"} when={visible()} fallback={<>
         <article
             class={classes(
                 // note: can even consider <sm:text-xs
