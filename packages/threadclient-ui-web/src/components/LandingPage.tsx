@@ -66,7 +66,7 @@ function FeaturePreviewCard(props: {
     }}>
         <div class="h-full">
             <div class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
-                <InternalIconRaw class={props.icon} label={null} /> {props.title}
+                {props.title}
             </div>
             <p class="text-base text-slate-500 dark:text-zinc-300">
                 {props.description}
