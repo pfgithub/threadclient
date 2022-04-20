@@ -138,7 +138,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                 // note: can even consider <sm:text-xs
                 // we'll probably want a font size config in the settings
                 props.opts.is_pivot ? [
-                    "text-base m-2",
+                    "text-base p-2",
                 ] : "text-sm",
                 "flex flex-row",
             )}
@@ -180,7 +180,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                 // note: can even consider <sm:text-xs
                 // we'll probably want a font size config in the settings
                 props.opts.is_pivot ? [
-                    "text-base m-2",
+                    "text-base p-2",
                 ] : "text-sm",
                 "flex flex-row",
             )}
