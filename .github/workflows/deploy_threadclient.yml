@@ -44,7 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           #artifacts: "" #TODO: support making fully offline builds of threadclient not linked to thread.pfg.pw
-          tag: "${{ github.event.inputs.release_id }}"
+          tag: "threadclient!${{ github.event.inputs.release_id }}!"
           name: "Version ${{ github.event.inputs.release_id }}"
           commit: main
           body: |
