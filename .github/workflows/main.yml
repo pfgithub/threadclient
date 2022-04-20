@@ -26,7 +26,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Install
         run: |
-          yarn install --immutable --immutable-cache
+          yarn install
       - name: Lint
         run: |
           yarn lint

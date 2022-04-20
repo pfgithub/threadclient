@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 10
 
       - name: Install
-        run: yarn install --immutable --immutable-cache
+        run: yarn install
       - name: Lint
         run: yarn lint
       - name: Test
