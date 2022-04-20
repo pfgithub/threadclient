@@ -2,6 +2,7 @@ import {
     Accessor,
     createEffect, createSignal, JSX, on, untrack
 } from "solid-js";
+import { assertNever } from "tmeta-util";
 import { Show } from "tmeta-util-solid";
 import { navbar } from "../app";
 import { getSettings, Settings } from "../util/utils_solid";
@@ -31,15 +32,16 @@ export function animateHeight(
     settings: Settings,
     transitionTarget: Accessor<boolean>,
     setState: (state: boolean, rising: boolean, temporary: boolean) => void,
+    opts: {mode?: undefined | "clip" | "height"},
 ): void {
-    const [animating, setAnimating] = createSignal<number | null>(null);
+    const mode = opts.mode ?? "height";
+
     comment_root.addEventListener("transitionend", e => {
         if(e.target !== e.currentTarget) return;
         setAnimating(null);
         setState(transitionTarget(), false, false);
     });
-    createEffect(on([transitionTarget], () => {
-
+    const onTransitionTargetChangedImmediate = () => {
         const initial_size = comment_root.getBoundingClientRect();
         const navbar_size = navbar.getBoundingClientRect();
         const visualTop = () => 5 + Math.max(
@@ -79,46 +81,61 @@ export function animateHeight(
         setAnimating(null);
         setState(target, false, true);
 
-        requestAnimationFrame(() => {
-            const final_size = comment_root.getBoundingClientRect();
-            const final_height = Math.min(final_size.bottom, visualBottom()) - final_size.top;
+        const final_size = comment_root.getBoundingClientRect();
+        const final_height = Math.min(final_size.bottom, visualBottom()) - final_size.top;
 
-            if(final_height === initial_height) {
-                setState(target, false, false);
-                return;
-            }
+        if(final_height === initial_height) {
+            setState(target, false, false);
+            return;
+        }
 
-            setState(target, true, true);
+        setState(target, true, true);
 
-            setAnimating(initial_height);
-            comment_root.scrollTop = scroll_offset;
-            requestAnimationFrame(() => {
-                document.documentElement.scrollTop = prev_scrolltop;
-                comment_root.scrollTop = scroll_offset;
+        const current_size = comment_root.getBoundingClientRect();
 
-                setAnimating(final_height);
-            });
-        });
+        setAnimating({target_height: initial_height, total_height: current_size.height});
+        comment_root.scrollTop = scroll_offset;
+
+        document.documentElement.scrollTop = prev_scrolltop;
+        comment_root.scrollTop = scroll_offset;
+
+        setAnimating({target_height: final_height, total_height: current_size.height});
+    };
+    createEffect(on([transitionTarget], () => {
+        setTimeout(() => onTransitionTargetChangedImmediate(), 0); // unbatch()
     }, {defer: true}));
-    createEffect(() => {
-        if(animating() != null) {
+    
+    const setAnimating = (anim: {
+        target_height: number,
+        total_height: number,
+    } | null) => {
+        if(anim) {
             console.log("ANIMATING", shift_pressed);
-            comment_root.style.height = animating() + "px";
-            comment_root.style.overflow = "hidden";
-            comment_root.style.transition = animationTime() + "s height";
+            
+            if(mode === "height") {
+                comment_root.style.height = anim.target_height + "px";
+                comment_root.style.overflow = "hidden";
+                comment_root.style.transition = animationTime() + "s height";
+            }else if(mode === "clip") {
+                comment_root.style.clipPath = "inset(0 0 "+(anim.total_height - anim.target_height)+"px "+"0px)";
+                comment_root.style.transition = animationTime() + "s clip-path";
+            }else assertNever(mode);
             comment_root.offsetHeight;
         }else{
             comment_root.style.removeProperty("height");
+            comment_root.style.removeProperty("clip-path");
             comment_root.style.removeProperty("overflow");
             comment_root.style.removeProperty("transition");
+            comment_root.offsetHeight;
         }
-    });
+    };
 }
 
 // if={condition} when={condition}
 // it's hard to have a when= in showAnimate because if the thing
 // is removed you probably don't want to keep around a copy of it
 export function ShowAnimate(props: {
+    mode?: undefined | "clip" | "height", // = "height" //[!] not reactive
     when: boolean,
     fallback?: undefined | JSX.Element,
     children: JSX.Element,
@@ -128,6 +145,8 @@ export function ShowAnimate(props: {
     return <tc:show-animate ref={v => {
         animateHeight(v, settings, () => props.when, (state, rising, temporary) => {
             setShow({main: state || rising, animating: temporary});
+        }, {
+            mode: props.mode,
         });
         createEffect(() => {
             v.style.display = show().main || (props.fallback != null) ? "block" : "none";
