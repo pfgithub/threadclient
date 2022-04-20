@@ -359,7 +359,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 client.
             </p>
         </SettingsSection>
-        <SettingsSection title="Open Links">
+        <SettingsSection title="External Links">
             <SettingPicker
                 setting={settings.links}
                 options={["new_tab", "same_tab", undefined]}
