@@ -32,9 +32,9 @@ export function animateHeight(
     settings: Settings,
     transitionTarget: Accessor<boolean>,
     setState: (state: boolean, rising: boolean, temporary: boolean) => void,
-    opts: {mode?: undefined | "clip" | "height"},
+    opts?: undefined | {mode?: undefined | "clip" | "height"},
 ): void {
-    const mode = opts.mode ?? "height";
+    const mode = opts?.mode ?? "height";
 
     comment_root.addEventListener("transitionend", e => {
         if(e.target !== e.currentTarget) return;
