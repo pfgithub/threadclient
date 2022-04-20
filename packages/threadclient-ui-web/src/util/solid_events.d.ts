@@ -4,5 +4,10 @@ declare module "solid-js" {
         interface CustomCaptureEvents {
             error: Event;
         }
+        interface IntrinsicElements {
+            "tc:show-animate": JSX.IntrinsicElements["div"];
+            "tc:fallback": JSX.IntrinsicElements["div"];
+            "tc:children": JSX.IntrinsicElements["div"];
+        }
     }
 }
