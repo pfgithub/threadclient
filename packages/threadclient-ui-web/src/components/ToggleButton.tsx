@@ -43,7 +43,7 @@ export default function ToggleButton<T>(props: {
     >
         {/*there's supposed to be a <RadioGroupLabel> here but we don't have one*/
         }
-        <div class="flex flex-row gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1 shadow-inner">
+        <div class="flex flex-row flex-wrap gap-1 rounded-md bg-slate-400 dark:bg-zinc-700 p-1 shadow-inner">
             <For each={props.choices}>{choice => <>
                 <RadioGroupOption
                     value={itmkey(choice[0])}
