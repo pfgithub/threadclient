@@ -37,15 +37,3 @@ jobs:
           clean: true # Automatically remove deleted files from the deploy branch
           repository-name: pfg-deploy/deploy-threadclient
           ssh-key: ${{ secrets.DEPLOY_THREADCLIENT_SSH_KEY }}
-
-      - name: Github Release
-        uses: ncipollo/release-action@v1.10.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          #artifacts: "" #TODO: support making fully offline builds of threadclient not linked to thread.pfg.pw
-          tag: "threadclient!${{ github.event.inputs.release_id }}!"
-          name: "Version ${{ github.event.inputs.release_id }}"
-          commit: main
-          body: |
-            https://thread.pfg.pw/#shell/changelog/${{ github.event.inputs.release_id }}
