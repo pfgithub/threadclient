@@ -391,7 +391,9 @@ const all_content_raw_dontuse = [
         title: "Apr 19, 2022 ThreadClient Update",
 
         changes: [
-            rt.ili(rt.txt("Added a changelog")),
+            rt.ili(rt.txt("Added a changelog and a banner when a new version is released. Disable in "),
+                rt.link({id: ""}, "/settings", {}, rt.txt("Settings")),
+            ),
             rt.ili(rt.txt("New colors - the background grays are a bit different. This improves contrast in dark "
             +"mode and makes the colors more consistent across the UI.")),
             rt.ili(rt.txt("Fancy new animated toggle switch in "),

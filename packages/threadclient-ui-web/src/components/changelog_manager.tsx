@@ -1,6 +1,7 @@
 import { untrack, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
+import { getSettings } from "../util/utils_solid";
 import { InternalIconRaw } from "./Icon";
 import { A } from "./links";
 
@@ -33,9 +34,11 @@ export function renderChangelogBannerIfNeeded(inel: HTMLElement): void {
         else setLsVersion(current_version);
     }
 
-    // show the banner
+    const settings = getSettings();
+
+    // show the banners
     // huh this is going to render above the navbar on mobile. kind of funny.
-    render(() => <Show if={shouldShowBanner()}>
+    render(() => <Show if={settings.changelog() === "show" && shouldShowBanner()}>
         <Banner />
     </Show>, inel);
 }

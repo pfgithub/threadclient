@@ -6,7 +6,7 @@ import { variables } from "virtual:_variables";
 import { availableForOfflineUse, link_styles_v, updateAvailable, updateSW } from "../app";
 import { ComputeProperty, getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
-import { LinkButton } from "./links";
+import { A, LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
 import ToggleButton from "./ToggleButton";
@@ -149,6 +149,21 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 page twice, or manually by clicking the Update button on an Update notice.
             </p>
             <UpdateStatus />
+        </SettingsSection>
+        <SettingsSection title="Changelog">
+            <SettingPicker
+                setting={settings.changelog}
+                options={["show", "hide", undefined]}
+                name={v => ({
+                    show: "Show",
+                    hide: "Hide",
+                    default: "Default",
+                } as const)[v ?? "default"]}
+            />
+            <p class="my-4">
+                Show a banner at the top of the page when a changelog is available.{" "}
+                <A class="text-blue-500 hover:underline" href="/changelog" client_id="shell">Past changelogs</A>
+            </p>
         </SettingsSection>
         <SettingsSection title="Link Helpers">
             <SettingPicker
