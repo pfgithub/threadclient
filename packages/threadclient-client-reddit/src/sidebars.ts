@@ -118,6 +118,9 @@ function sidebarWidgetToGenericWidgetTry(
     subinfo: SubInfo,
 ): Generic.Link<Generic.Post> {
     if(widget.kind === "moderators") {
+        // TODO:
+        // - when you're logged out, moderators returns an empty array
+        // - if logged out, show a notice "you can't view moderators when logged out"
         return unpivotableBelowPivotBody(content, "Moderators", {kind: "richtext", content: [
             rt.p(
                 rt.link(client, "/message/compose?to=/r/"+subinfo.subreddit,
