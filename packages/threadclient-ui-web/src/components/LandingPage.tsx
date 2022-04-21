@@ -1,7 +1,7 @@
 import * as Generic from "api-types-generic";
 import { Listbox } from "solid-headless";
 import { createSignal, For, JSX, untrack } from "solid-js";
-import { getSettings, getWholePageRootContext, ToggleColor } from "../util/utils_solid";
+import { getSettings, getWholePageRootContext } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
 import { autokey, CollapseData, flattenPost } from "./flatten";
 import { InternalIcon, InternalIconRaw } from "./Icon";
@@ -22,7 +22,7 @@ function DisplayPost(props: {
     const hprc = getWholePageRootContext();
 
     const view = createMergeMemo(() => {
-        return autokey(flattenPost(props.post, [], {
+        const res = autokey(flattenPost(props.post, [], {
             collapse_data,
             content: hprc.content(),
             settings: {
@@ -36,6 +36,9 @@ function DisplayPost(props: {
             depth: 0,
             displayed_in: "tree",
         }));
+        const lastitm = res[res.length - 1];
+        if(lastitm?.kind === "post") lastitm.last_in_wrapper = true;
+        return res;
     }, {key: array_key, merge: true});
 
     return <For each={view.data}>{item => (
@@ -216,14 +219,12 @@ export default function LandingPage(): JSX.Element {
                         ]} />
                     </div>
                     <div class="sm:col-start-2 h-max shadow-md -mx-8 sm:mx-0">
-                        <ToggleColor>{color => <div class={"h-2 sm:rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
                             options={{
                                 allow_threading: value() === "on",
                             }}
                         />
-                        <ToggleColor>{color => <div class={"h-2 sm:rounded-b-xl "+color} />}</ToggleColor>
                     </div>
                 </div>;
             })}</div>
@@ -240,11 +241,9 @@ export default function LandingPage(): JSX.Element {
                         </p>
                     </div>
                     <div class="h-max shadow-md -mx-8 sm:mx-0">
-                        <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
                         />
-                        <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
                     </div>
                 </div>
             </div>
@@ -261,11 +260,9 @@ export default function LandingPage(): JSX.Element {
                         </p>
                     </div>
                     <div class="h-max shadow-md -mx-8 sm:mx-0">
-                        <ToggleColor>{color => <div class={"h-2 rounded-t-xl "+color} />}</ToggleColor>
                         <DisplayPost
                             post={"/homepage/repivot" as Generic.Link<Generic.PostNotLoaded>}
                         />
-                        <ToggleColor>{color => <div class={"h-2 rounded-b-xl "+color} />}</ToggleColor>
                     </div>
                 </div>
             </div>

@@ -459,7 +459,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
 
     // add last_in_wrapper to posts
     res.forEach((post, i, a) => {
-        const next = res[i + 1];
+        const next = a[i + 1];
         if(next?.kind === "wrapper_end")  {
             if(post.kind === "post") {
                 post.last_in_wrapper = true;
