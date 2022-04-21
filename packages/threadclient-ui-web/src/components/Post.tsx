@@ -442,7 +442,7 @@ function PostTopBar(props: ClientPostProps & {
         <Show if={props.visible || hasThumbnail()}>
             <HSplit.Child>
                 <div class={props.hovering == null ? "" : (
-                    props.hovering ? "" : "can-hover:hidden"
+                    props.hovering ? "" : "can-hover:opacity-0 can-hover:focus:opacity-100"
                 )}>
                     <Dropdown>
                         <For each={props.actions}>{action => <>
