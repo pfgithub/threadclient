@@ -257,7 +257,9 @@ function sidebarWidgetToGenericWidgetTry(
                 createSymbolLinkToError(content, "unsupported community type: "+community.type, community)
             ))},
         });
-    }else throw new Error("TODO support sidebar of type: "+widget.kind);
+    }else if(widget.kind === "id-card" || widget.kind === "menu") {
+        throw new Error("TODO support widget of known type: "+widget.kind);
+    }else throw new Error("TODO support widget of type: "+widget.kind);
 }
 
 function customIDCardWidget(
