@@ -292,6 +292,27 @@ function sidebarWidgetToGenericWidgetTry(
                 collapsible: false,
             },
         }, {internal_data: widget});
+    }else if(widget.kind === "custom") {
+        return unpivotablePostBelowPivot(content, {
+            kind: "special",
+            tag_uuid: "FullscreenEmbed@-N0D96jIL-HGWHWbWKn1",
+            fallback: {
+                kind: "post",
+                title: {text: widget.shortName},
+                body: {
+                    kind: "iframe_srcdoc",
+                    srcdoc: `
+                        <head>
+                            <link rel="stylesheet" href="${widget.stylesheetUrl}">
+                            <base target="_blank">
+                        </head>
+                        <body>${widget.textHtml}</body>
+                    `,
+                    height_estimate: widget.height,
+                },
+                collapsible: false,
+            },
+        }, {internal_data: widget});
     }else if(widget.kind === "id-card" || widget.kind === "menu") {
         throw new Error("TODO support widget of known type: "+widget.kind);
     }else throw new Error("TODO support widget of type: "+widget.kind);

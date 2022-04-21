@@ -288,6 +288,30 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 </p>
             </div>;
         },
+        iframe_srcdoc: ifr => {
+            const [height, setHeight] = createSignal(ifr.height_estimate);
+            // el("iframe").adto(alt_frame).styl({width: "312px"}).attr({
+            //     width: "312",
+            //     height: content.height as unknown as `${number}`,
+            //     srcdoc: content.srcdoc,
+            // });
+            // iframe.onload = () => {
+            //     if(!iframe.contentWindow) return console.log("no content window");
+            //     iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 20) + "px";
+            // };
+            return <iframe height={height()} srcdoc={ifr.srcdoc} class="w-full" onload={(e) => {
+                const iframe = e.currentTarget;
+                if(!iframe.contentWindow) return console.warn("Edisplaying iframe srcdoc with no content window");
+                const obsvel = iframe.contentWindow.document.documentElement;
+                const rso = new ResizeObserver(ntries => {
+                    for(const ntry of ntries) {
+                        if(ntry.target !== obsvel) continue;
+                        setHeight(ntry.contentRect.height);
+                    }
+                });
+                rso.observe(obsvel);
+            }} />;
+        },
     }}</SwitchKind>;
 }
 
@@ -317,6 +341,7 @@ export function summarizeBody(body: Generic.Body): string {
         array: arr => arr.body.map(item => item ? summarizeBody(item) : "").join("\n"),
         link_preview: link => link.url,
         mastodon_instance_selector: () => "[mastodon instance selector]",
+        iframe_srcdoc: () => "[iframe srcdoc]",
     });
 }
 

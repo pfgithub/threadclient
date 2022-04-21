@@ -399,6 +399,10 @@ export type Body = BodyText | RichText | {
 } | LinkPreview | {
     kind: "mastodon_instance_selector",
     client_id: string,
+} | {
+    kind: "iframe_srcdoc",
+    srcdoc: string,
+    height_estimate: number,
 };
 export type OEmbedBody = {
     kind: "oembed",
