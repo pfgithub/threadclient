@@ -156,18 +156,28 @@ export default defineConfig({
                 return atRule("@media (hover: none)");
             });
             addVariant("pointer-coarse", ({atRule}) => {
-                return atRule("@media (hover: coarse)");
+                return atRule("@media (pointer: coarse)");
             });
             addVariant("pointer-fine", ({atRule}) => {
-                return atRule("@media (hover: fine)");
+                return atRule("@media (pointer: fine)");
             });
             addVariant("pointer-none", ({atRule}) => {
-                return atRule("@media (hover: none)");
+                return atRule("@media (pointer: none)");
             });
             addVariant("hocus", ({ modifySelectors }) => {
                 // wow I don't like this name but it's useful
                 return modifySelectors(({ className: class_name }) => {
                     return `.${class_name}:hover, .${class_name}:focus`;
+                });
+            });
+            addVariant("hactive", ({atRule, modifySelectors}) => {
+                // vv not sure if you can do this. this is why i want to switch to unocss
+                // @media (hover: hover) {
+                //   &:hover { … }
+                // }
+                // &:active {…}
+                return modifySelectors(({className: class_name}) => {
+                    return `html.atmedia-hover-hover .${class_name}:hover, .${class_name}:active`;
                 });
             });
         })

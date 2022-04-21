@@ -160,7 +160,7 @@ function localStorageProperty<
     return Object.assign(fn, opts);
 }
 
-function signalFromMatchMedia<True extends string, False extends string>(
+function signalFromMatchMedia<True, False>(
     query: string, when_true: True, when_false: False,
 ): Accessor<True | False> {
     const reduce_motion = window.matchMedia(query);
@@ -219,6 +219,11 @@ const global_settings = createRoot((): Settings => {
         document.documentElement.classList.toggle("dark", isDarkMode());
         document.documentElement.offsetHeight;
         stylel.remove();
+    });
+
+    const canHover = signalFromMatchMedia("(hover: hover)", true, false);
+    createEffect(() => {
+        document.documentElement.classList.toggle("atmedia-hover-hover", canHover());
     });
 
     return res;
