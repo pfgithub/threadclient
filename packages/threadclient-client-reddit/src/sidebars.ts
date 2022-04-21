@@ -7,6 +7,11 @@ import {
     flairToGenericFlair, redditRequest, SubInfo, SubrInfo,
 } from "./reddit";
 
+// ![!] once we're at sidebar parity, we can switch page1 to use the new page2 sidebar.
+// will
+// - faster pageloads (load the sidebar after loading the page)
+// - look nicer
+
 export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): Promise<Generic.ListingData> {
     if(sub.kind === "subreddit") {
         const onerror = () => undefined;
