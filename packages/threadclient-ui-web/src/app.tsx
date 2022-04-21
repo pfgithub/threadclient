@@ -3220,5 +3220,3 @@ if(import.meta.hot) {
         });
     });
 }
-
-localStorage.setItem("seen-page1", "true");
