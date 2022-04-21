@@ -138,6 +138,8 @@ function PageFlatPost(props: {
         }
     };
 
+    const [hovering, setHovering] = createSignal(false);
+
     return <SwipeActions
         {...(() => {
             // const getActions = useActions(() => props.content, () => props.opts);
@@ -174,6 +176,7 @@ function PageFlatPost(props: {
                     transition cursor-pointer outline-default
                     can-hover:hover:bg-slate-200 dark:can-hover:hover:bg-zinc-700
                     can-hover:hover:shadow-md
+                    relative
                 ` : "")+
                 (props.loader_or_post.first_in_wrapper ? `
                     pt-2 sm:rounded-t-lg
@@ -186,6 +189,7 @@ function PageFlatPost(props: {
             onKeyPress={e => {
                 if(!wholeObjectClickable()) return;
                 if(e.code !== "Enter") return;
+                e.stopPropagation();
 
                 onClick(e);
             }}
@@ -196,8 +200,11 @@ function PageFlatPost(props: {
 
                 onClick(e);
             }}
+
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
         >
-            <div class="flex flex-row gap-1">
+            <div class="relative flex flex-row gap-1">
                 <PostIndent
                     loader_or_post={props.loader_or_post}
                     collapse_data={props.collapse_data}
@@ -211,6 +218,8 @@ function PageFlatPost(props: {
                     <PageFlatPostContent
                         loader_or_post={props.loader_or_post}
                         collapse_data={props.collapse_data}
+
+                        hovering={hovering()}
                     />
                 </div>
             </div>
@@ -221,6 +230,8 @@ function PageFlatPost(props: {
 function PageFlatPostContent(props: {
     loader_or_post: FlatPost,
     collapse_data: CollapseData,
+
+    hovering: boolean,
 }): JSX.Element {
     return <SwitchKind item={props.loader_or_post.content}>{{
         post: post => <>
@@ -232,6 +243,8 @@ function PageFlatPostContent(props: {
                     collapse_data: props.collapse_data,
                     flat_frame: props.loader_or_post,
                 }}
+
+                hovering={props.hovering}
             />
         </>,
         loader: loader => {

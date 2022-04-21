@@ -6,10 +6,15 @@ import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { DefaultErrorBoundary, ToggleColor } from "../util/utils_solid";
 import ClientPost, { ClientPostOpts } from "./Post";
 
-export function ClientContentAny(props: {content: Generic.PostContent, opts: ClientPostOpts}): JSX.Element {
+export function ClientContentAny(props: {
+    content: Generic.PostContent,
+    opts: ClientPostOpts,
+
+    hovering?: undefined | boolean,
+}): JSX.Element {
     return <SwitchKind item={props.content}>{{
         post: content => (
-            <ClientPost content={content} opts={props.opts} />
+            <ClientPost content={content} opts={props.opts} hovering={props.hovering} />
         ),
         page: () => <>TODO page</>,
         legacy: legacy => <>

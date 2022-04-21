@@ -70,7 +70,11 @@ export type ClientPostOpts = {
     collapse_data?: undefined | CollapseData, // oh we need this too unfortunately
 };
 
-export type ClientPostProps = {content: Generic.PostContentPost, opts: ClientPostOpts};
+export type ClientPostProps = {
+    content: Generic.PostContentPost,
+    opts: ClientPostOpts,
+    hovering?: undefined | boolean,
+};
 export default function ClientPost(props: ClientPostProps): JSX.Element {
     // wow this is sketchy because we're supporting posts that
     // aren't rendered from <ClientPage />
@@ -176,6 +180,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     collapseInfo={collapseInfo()}
                     actions={getActions()}
                     getPage={getPage}
+                    hovering={props.hovering}
                 />
             </div>
         </div>}><div class="flex flex-row">
@@ -219,6 +224,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     collapseInfo={collapseInfo()}
                     actions={getActions()}
                     getPage={getPage}
+                    hovering={props.hovering}
                 />
                 <div>
                     <section class={isPivot() ? "py-4" : ""}>
@@ -265,6 +271,8 @@ function PostTopBar(props: ClientPostProps & {
     collapseInfo: CollapseInfo,
 
     actions: ActionItem[],
+
+    hovering: undefined | boolean,
 
     getPage: () => Generic.Page2 | undefined,
 }): JSX.Element {
@@ -433,12 +441,15 @@ function PostTopBar(props: ClientPostProps & {
         </div></HSplit.Child>
         <Show if={props.visible || hasThumbnail()}>
             <HSplit.Child>
-                <div class="pl-2" />
-                <Dropdown>
-                    <For each={props.actions}>{action => <>
-                        <DropdownActionButton action={action} />
-                    </>}</For>
-                </Dropdown>
+                <div class={props.hovering == null ? "" : (
+                    props.hovering ? "" : "can-hover:hidden"
+                )}>
+                    <Dropdown>
+                        <For each={props.actions}>{action => <>
+                            <DropdownActionButton action={action} />
+                        </>}</For>
+                    </Dropdown>
+                </div>
             </HSplit.Child>
         </Show>
     </HSplit.Container>;
