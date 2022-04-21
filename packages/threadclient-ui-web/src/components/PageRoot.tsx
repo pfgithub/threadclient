@@ -95,7 +95,10 @@ function ClientPageMain(props: ClientPageProps): PageRes {
             </div>
         </Show>
         <Show if={tabbed()}>
-            <div class="flex flex-col items-center justify-center">
+            <div class={
+                "flex flex-col items-center justify-center p-1 bg-slate-100 dark:bg-zinc-800 "
+                +(tab() === "sidebar" ? "sticky top-0 left-0 right-0 shadow-md z-2" : "")
+            }>
                 <ToggleButton
                     value={tab()}
                     setValue={v => v ? setTab(v) : void 0}
