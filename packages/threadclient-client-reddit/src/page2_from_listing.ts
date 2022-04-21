@@ -868,6 +868,10 @@ function postDataFromListingMayError(
                             autoload: true,
                         })],
                     },
+                    // v TODO: this should be a loader but [!] it is linked to the loader above.
+                    //   only one at a time should load and loading one should fill in both.
+                    // also for now we can keep using page1 bios but eventually we'll want to
+                    // redo bios
                     header: {
                         // TODO load this stuff but only when the banner needs to be displayed, not before
                         kind: "bio",
