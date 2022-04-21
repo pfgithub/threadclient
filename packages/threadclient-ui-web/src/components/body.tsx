@@ -299,7 +299,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             //     if(!iframe.contentWindow) return console.log("no content window");
             //     iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 20) + "px";
             // };
-            return <iframe height={height()} srcdoc={ifr.srcdoc} class="w-full" onload={(e) => {
+            return <iframe height={height()} srcdoc={ifr.srcdoc} class="border-0 w-full" onload={(e) => {
                 const iframe = e.currentTarget;
                 if(!iframe.contentWindow) return console.warn("Edisplaying iframe srcdoc with no content window");
                 const obsvel = iframe.contentWindow.document.documentElement;

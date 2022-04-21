@@ -293,23 +293,25 @@ function sidebarWidgetToGenericWidgetTry(
             },
         }, {internal_data: widget});
     }else if(widget.kind === "custom") {
+        const body: Generic.Body = {
+            kind: "iframe_srcdoc",
+            srcdoc: `
+                <head>
+                    <link rel="stylesheet" href="${widget.stylesheetUrl}">
+                    <base target="_blank">
+                </head>
+                <body>${widget.textHtml}</body>
+            `,
+            height_estimate: widget.height,
+        };
         return unpivotablePostBelowPivot(content, {
             kind: "special",
             tag_uuid: "FullscreenEmbed@-N0D96jIL-HGWHWbWKn1",
+            not_typesafe_data: body,
             fallback: {
                 kind: "post",
                 title: {text: widget.shortName},
-                body: {
-                    kind: "iframe_srcdoc",
-                    srcdoc: `
-                        <head>
-                            <link rel="stylesheet" href="${widget.stylesheetUrl}">
-                            <base target="_blank">
-                        </head>
-                        <body>${widget.textHtml}</body>
-                    `,
-                    height_estimate: widget.height,
-                },
+                body,
                 collapsible: false,
             },
         }, {internal_data: widget});
