@@ -21,6 +21,7 @@ import {
     classes, DefaultErrorBoundary, getIsVisible,
     getSettings, ToggleColor
 } from "../util/utils_solid";
+import { createMergeMemo } from "./createMergeMemo";
 import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextDocument, summarizeParagraphs } from "./richtext";
@@ -45,14 +46,18 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 () => JSON.parse(JSON.stringify(text)) as typeof text,
                 v => textToBody(v),
             );
-            const c = createMemo<Generic.Body | undefined>((prev) => {
+            const q = createMemo<Generic.Body | undefined>((prev) => {
                 const val = a();
                 return val ?? prev;
             }, undefined);
+            const c = createMergeMemo(q, {
+                key: null, // we have to do real diffing in order to try and figure out what changed. no thanks.
+                merge: true,
+            });
 
             // TODO: start an animation that changes opacity after like 200ms rather
             // than setting it instantly
-            return <div class={a.loading ? "animate-loading" : ""}><Show when={c()} fallback={
+            return <div class={a.loading ? "animate-loading" : ""}><Show when={c.data} fallback={
                 <>Loading…</>
             }>{b => {
                 return <Body body={b} autoplay={false} />;
