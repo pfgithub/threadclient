@@ -260,6 +260,32 @@ function sidebarWidgetToGenericWidgetTry(
                 createSymbolLinkToError(content, "unsupported community type: "+community.type, community)
             ))},
         });
+    }else if(widget.kind === "image") {
+        const imgdata = widget.data[widget.data.length - 1]!; // highest quality probably. TODO don't always
+        // use the highest quality image.
+        return unpivotablePostBelowPivot(content, {
+            kind: "special",
+            tag_uuid: "fullscreen-image@-N0D1IW1oTVxv8LLf7Ed",
+            fallback: {
+                kind: "post",
+                title: {text: widget.shortName},
+                body: {
+                    kind: "richtext",
+                    content: [
+                        {kind: "body", body: {
+                            kind: "captioned_image",
+                            url: imgdata.url,
+                            w: imgdata.width,
+                            h: imgdata.height,
+                        }},
+                        ...imgdata.linkUrl != null ? [
+                            rt.p(rt.link({id: client.id}, imgdata.linkUrl, {}, rt.txt(imgdata.linkUrl))),
+                        ] : [],
+                    ],
+                },
+                collapsible: false,
+            },
+        }, {internal_data: widget});
     }else if(widget.kind === "id-card" || widget.kind === "menu") {
         throw new Error("TODO support widget of known type: "+widget.kind);
     }else throw new Error("TODO support widget of type: "+widget.kind);
