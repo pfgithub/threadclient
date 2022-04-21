@@ -260,6 +260,46 @@ function sidebarWidgetToGenericWidgetTry(
                 createSymbolLinkToError(content, "unsupported community type: "+community.type, community)
             ))},
         });
+    }else if(widget.kind === "calendar") {
+        return unpivotablePostBelowPivot(content, {
+            kind: "post",
+            title: {text: widget.shortName},
+            // this could be displayed using children but I don't have a widget to test on so I don't want to
+            // risk messing it up. TODO: update this to use children.
+            body: {
+                kind: "array",
+                body: widget.data.flatMap((item, i): Generic.Body[] => {
+                    return [
+                        ...i !== 0 ? [{kind: "richtext", content: [rt.hr()]}] as const : [],
+                        {
+                            kind: "text",
+                            client_id: client.id,
+                            content: item.titleHtml,
+                            markdown_format: "reddit_html",
+                        },
+                        {
+                            kind: "richtext",
+                            content: [rt.p(rt.timeAgo(item.startTime * 1000))]
+                        },
+                        {
+                            kind: "text",
+                            client_id: client.id,
+                            content: item.locationHtml,
+                            markdown_format: "reddit_html",
+                        },
+                        {
+                            kind: "text",
+                            client_id: client.id,
+                            content: item.descriptionHtml,
+                            markdown_format: "reddit_html",
+                        },
+                    ];
+                }),
+            },
+            collapsible: false,
+        }, {
+            internal_data: widget,
+        });
     }else if(widget.kind === "image") {
         const imgdata = widget.data[widget.data.length - 1]!; // highest quality probably. TODO don't always
         // use the highest quality image.
@@ -317,7 +357,10 @@ function sidebarWidgetToGenericWidgetTry(
         }, {internal_data: widget});
     }else if(widget.kind === "id-card" || widget.kind === "menu") {
         throw new Error("TODO support widget of known type: "+widget.kind);
-    }else throw new Error("TODO support widget of type: "+widget.kind);
+    }else {
+        expectUnsupported(widget.kind);
+        throw new Error("TODO support widget of type: "+widget.kind);
+    }
 }
 
 function customIDCardWidget(
