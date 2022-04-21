@@ -96,7 +96,7 @@ export default function ReplyEditor(props: {
         <textarea
             class="
                 block w-full rounded-t-lg resize-y
-                bg-transparent border-2 border-b-0 border-zinc-700 p-2
+                bg-transparent border-2 border-b-0 border-slate-200 dark:border-zinc-700 p-2
             "
             rows={4}
             disabled={isSending()}
@@ -105,7 +105,7 @@ export default function ReplyEditor(props: {
                 setBaseContent(e.currentTarget.value);
             }}
         />
-        <div class="bg-zinc-700 rounded-b-lg p-2 flex flex-col gap-2">
+        <div class="bg-slate-200 dark:bg-zinc-700 rounded-b-lg p-2 flex flex-col gap-2">
             <Show if={!!settings.signature().trim()}>
                 <label>
                     <input type="checkbox" checked={showSignature()} onInput={nv => {
@@ -116,7 +116,8 @@ export default function ReplyEditor(props: {
             </Show>
             <div class="flex flex-wrap gap-2">
                 <button
-                    class={(empty() ? "bg-zinc-100" : "bg-blue-400") + " rounded-md text-zinc-900 py-1 px-3"}
+                    class={(empty() ? "bg-slate-400 dark:bg-zinc-100" : "bg-blue-400")
+                    + " rounded-md text-slate-900 py-1 px-3"}
                     disabled={empty() || isSending()}
                     onClick={sendReply}
                 >Reply</button>
