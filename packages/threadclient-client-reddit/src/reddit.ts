@@ -3507,9 +3507,11 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
     try {
         if(path.includes("-N0CqtLwXUWk6_Z2d0wZ")) {
             const imporv: {[key: string]: () => Promise<{default: unknown}>} = {
-                '/r/-N0CqtLwXUWk6_Z2d0wZ/hot?t=all': () => import("./sample_pages/apolloapp.json"),
-                '/r/-N0CqtLwXUWk6_Z2d0wZ/api/widgets': () => import("./sample_pages/apolloapp_widgets.json"),
-                '/r/-N0CqtLwXUWk6_Z2d0wZ/about': () => import("./sample_pages/apolloapp_about.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ-apollo/hot?t=all': () => import("./sample_pages/apolloapp.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ-apollo/api/widgets': () => import("./sample_pages/apolloapp_widgets.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ-apollo/about': () => import("./sample_pages/apolloapp_about.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ-hermitcraft/api/widgets': () => import("./sample_pages/hermitcraft_widgets.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ-hermitcraft/about': () => import("./sample_pages/hermitcraft_about.json"),
             };
             const vq = imporv[path];
             if(vq) {
