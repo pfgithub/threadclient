@@ -260,19 +260,23 @@ function customIDCardWidget(
     t5: Reddit.T5,
     subreddit: string,
 ): Generic.Link<Generic.Post> {
-    return createSymbolLinkToError(content, "TODO support id card widget", {t5, subreddit});
-    // return {
-    //     kind: "widget",
-    //     title: t5.data.title,
-    //     raw_value: t5,
-    //     widget_content: {
-    //         kind: "community-details",
-    //         description: t5.data.public_description,
-    //     },
-    //     actions_bottom: [
-    //         createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false),
-    //     ],
-    // };
+    return unpivotablePostBelowPivot(content, {
+        kind: "post",
+        title: {text: t5.data.title},
+        body: {
+            kind: "text",
+            content: t5.data.public_description_html,
+            markdown_format: "reddit_html",
+            client_id: client.id,
+        },
+        actions: {
+            vote: createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false),
+        },
+        collapsible: false,
+
+    }, {
+        internal_data: {content, t5, subreddit},
+    });
 }
 function oldSidebarWidget(
     content: Generic.Page2Content,
