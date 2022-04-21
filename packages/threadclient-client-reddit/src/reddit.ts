@@ -3500,6 +3500,22 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
 ): Promise<Reddit.Requests[Path]["response"] | Extra> {
     // TODO if error because token needs refreshing, refresh the token and try again
     try {
+        if(path.includes("-N0CqtLwXUWk6_Z2d0wZ")) {
+            const imporv: {[key: string]: () => Promise<{default: unknown}>} = {
+                '/r/-N0CqtLwXUWk6_Z2d0wZ/hot?t=all': () => import("./sample_pages/apolloapp.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ/api/widgets': () => import("./sample_pages/apolloapp_widgets.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ/about': () => import("./sample_pages/apolloapp_about.json"),
+            };
+            const vq = imporv[path];
+            if(vq) {
+                const res = await vq();
+                return res.default;
+            }
+            // vv this will false-positive sometimes eg if someone puts the text "-N0CqtLwXUWk6_Z2d0wZ"
+            //      in the title of a post.
+            throw new Error("force-offline path not offline force offline offline path force. `"+path+"`");
+        }
+
         const authorization = await getAuthorization();
 
         const full_url = pathURL(!!authorization, updateQuery(path, opts.query ?? {}), {override: opts.override});
