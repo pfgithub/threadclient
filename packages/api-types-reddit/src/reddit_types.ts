@@ -308,13 +308,13 @@ export type Widget = {
 } | {
     kind: "community-list",
     data: ({
-        // iconUrl: "" | string, // unused?
         name: string,
         subscribers: number,
         primaryColor: "" | `#{string}`,
         isSubscribed: boolean,
         type: "subreddit",
         communityIcon: "" | string,
+        iconUrl: "" | string, // some use "communityIcon" and some use "iconUrl"
         isNSFW: boolean,
     } | {
         type: "unsupported",

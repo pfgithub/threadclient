@@ -242,7 +242,7 @@ function sidebarWidgetToGenericWidgetTry(
                 title: {text: "r/"+community.name},
                 thumbnail: {
                     kind: "image",
-                    url: community.communityIcon,
+                    url: community.communityIcon || community.iconUrl,
                 },
                 body: {kind: "none"},
                 collapsible: {default_collapsed: true},
