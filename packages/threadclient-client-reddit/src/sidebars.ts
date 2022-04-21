@@ -70,7 +70,7 @@ function unpivotablePostBelowPivot(
     value: Generic.PostContent,
     opts: {
         internal_data: unknown,
-        replies?: undefined | Generic.Link<Generic.Post>[],
+        replies?: undefined | Generic.ListingData,
         link_to?: undefined | string,
     },
 ): Generic.Link<Generic.Post> {
@@ -80,7 +80,7 @@ function unpivotablePostBelowPivot(
         parent: null, // always below the pivot, doesn't matter.
         // ^ not true - top level posts below the pivot might show their parents. so we should be able to
         // pass something in here
-        replies: opts.replies != null ? {display: "tree", items: opts.replies} : null,
+        replies: opts.replies ?? null,
         client_id: client.id,
 
         kind: "post",
@@ -142,7 +142,7 @@ function sidebarWidgetToGenericWidgetTry(
             collapsible: false,
         }, {
             internal_data: {widget, subinfo},
-            replies: widget.data.map((itm, i) => {
+            replies: {display: "tree", items: widget.data.map((itm, i) => {
                 return unpivotablePostBelowPivot(content, {
                     kind: "post",
 
@@ -156,7 +156,7 @@ function sidebarWidgetToGenericWidgetTry(
                 }, {
                     internal_data: itm,
                 });
-            }),
+            })},
         });
     }else if(widget.kind === "post-flair") {
         return unpivotablePostBelowPivot(content, {
@@ -166,7 +166,7 @@ function sidebarWidgetToGenericWidgetTry(
             collapsible: false,
         }, {
             internal_data: {widget, subinfo},
-            replies: widget.order.map(id => {
+            replies: {display: "repivot_list", items: widget.order.map(id => {
                 const val = widget.templates[id]!;
                 const flair = flairToGenericFlair({
                     type: val.type, text: val.text, text_color: val.textColor,
@@ -185,7 +185,7 @@ function sidebarWidgetToGenericWidgetTry(
                     link_to: "/r/"+subinfo.subreddit
                     +"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
                 });
-            }),
+            })},
         });
     }else if(widget.kind === "textarea") {
         return unpivotablePostBelowPivot(content, {
@@ -211,7 +211,7 @@ function sidebarWidgetToGenericWidgetTry(
             collapsible: false,
         }, {
             internal_data: widget,
-            replies: widget.buttons.map(button => unpivotablePostBelowPivot(content, {
+            replies: {display: "repivot_list", items: widget.buttons.map(button => unpivotablePostBelowPivot(content, {
                 kind: "post",
                 title: {text: button.kind === "text" ? button.text : "TODO SUPPORT BUTTON KIND "+button.kind},
                 body: {kind: "none"},
@@ -219,7 +219,7 @@ function sidebarWidgetToGenericWidgetTry(
             }, {
                 internal_data: button,
                 link_to: (button.kind === "image" ? button.linkUrl : button.kind === "text" ? button.url : undefined),
-            })),
+            }))},
         });
     }else if(widget.kind === "community-list") {
         return unpivotablePostBelowPivot(content, {
@@ -230,7 +230,9 @@ function sidebarWidgetToGenericWidgetTry(
         }, {
             internal_data: widget,
             // TODO: if we can make real `subreddit_unloaded` objects here that would be fun
-            replies: widget.data.map(community => community.type === "subreddit" ? unpivotablePostBelowPivot(content, {
+            replies: {display: "repivot_list", items: widget.data.map(community => (
+                community.type === "subreddit"
+            ) ? unpivotablePostBelowPivot(content, {
                 kind: "post",
                 title: {text: "r/"+community.name},
                 thumbnail: {
@@ -248,7 +250,7 @@ function sidebarWidgetToGenericWidgetTry(
             }) : (
                 expectUnsupported(community.type),
                 createSymbolLinkToError(content, "unsupported community type: "+community.type, community)
-            )),
+            ))},
         });
     }else throw new Error("TODO support sidebar of type: "+widget.kind);
 }

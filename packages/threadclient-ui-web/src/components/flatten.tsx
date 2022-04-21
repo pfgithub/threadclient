@@ -248,7 +248,14 @@ export function flattenPost(
                 reply,
                 rpo.threaded && replies_threaded ? indent_excl_self : indent_incl_self,
                 meta,
-                {...rpo, first_in_wrapper: false, threaded: replies_threaded, depth: rpo.depth + 1},
+                {
+                    is_pivot: false,
+                    at_or_above_pivot: false,
+                    first_in_wrapper: false,
+                    threaded: replies_threaded,
+                    depth: rpo.depth + 1,
+                    displayed_in: post.replies!.display,
+                },
             ));
         }
     }
