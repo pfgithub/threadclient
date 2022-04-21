@@ -1412,6 +1412,9 @@ export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[
 }
 
 export type ParsedPath = {
+    kind: "subreddit_sidebar",
+    sub: SubrInfo,
+} | {
     kind: "subreddit",
     sub: SubrInfo,
     current_sort: {v: Reddit.SortMode, t: Reddit.SortTime},
@@ -2828,6 +2831,8 @@ export const client: ThreadClient = {
                     }], replies: []}},
                     display_style: "comments-view",
                 };
+            }else if(parsed.kind === "subreddit_sidebar") {
+                throw new Error("ENOTSUPPORTED;SUBREDDIT-SIDEBAR;PAGE1");
             }else assertNever(parsed);
 
             return pathFromListingRaw(pathraw, parsed, {sidebar: [{

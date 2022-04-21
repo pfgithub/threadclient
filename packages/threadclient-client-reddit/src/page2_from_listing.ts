@@ -125,6 +125,26 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     internal_data: parsed,
                 }),
             };
+        }else if(parsed.kind === "subreddit_sidebar") {
+            const sidebar_listing = await getSidebar(content, parsed.sub);
+            return {
+                content,
+                pivot: createSymbolLinkToValue<Generic.Post>(content, {
+                    kind: "post",
+                    client_id: client.id,
+                    content: {
+                        kind: "post",
+                        title: {text: "Sidebar"},
+                        body: {kind: "none"},
+                        collapsible: false,
+                    },
+                    display_style: "centered",
+                    parent: null,
+                    replies: sidebar_listing,
+                    url: "/"+[...parsed.sub.base, "@sidebar"].join("/"),
+                    internal_data: sidebar_listing,
+                }),
+            };
         }
 
         const link: string = switchKind(parsed, {
@@ -991,6 +1011,10 @@ export async function loadPage2(
         kind: "link_replies",
         url: `/comments/${data.post_id}/comment/${data.parent_id ?? ""}?context=0`,
     };
+    if(data.kind === "sidebar") data = {
+        kind: "link_replies",
+        url: "/"+[...data.sub.base, "@sidebar"].join("/"),
+    };
 
     const returnListing = (
         content: Generic.Page2Content,
@@ -1017,8 +1041,5 @@ export async function loadPage2(
         // ?context=9&limit=9 - this will load more than necessary most of the time but it's the best we
         // can do i think
         throw new Error("TODO vertical");
-    }else if(data.kind === "sidebar") {
-        const content: Generic.Page2Content = {};
-        return returnListing(content, await getSidebar(content, data.sub));
     }else assertNever(data);
 }
