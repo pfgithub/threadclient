@@ -3512,6 +3512,8 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
                 '/r/-N0CqtLwXUWk6_Z2d0wZ-apollo/about': () => import("./sample_pages/apolloapp_about.json"),
                 '/r/-N0CqtLwXUWk6_Z2d0wZ-hermitcraft/api/widgets': () => import("./sample_pages/hermitcraft_widgets.json"),
                 '/r/-N0CqtLwXUWk6_Z2d0wZ-hermitcraft/about': () => import("./sample_pages/hermitcraft_about.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ-place/api/widgets': () => import("./sample_pages/place_widgets.json"),
+                '/r/-N0CqtLwXUWk6_Z2d0wZ-place/about': () => import("./sample_pages/place_about.json"),
             };
             const vq = imporv[path];
             if(vq) {
