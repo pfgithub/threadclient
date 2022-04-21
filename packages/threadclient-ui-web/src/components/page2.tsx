@@ -11,10 +11,16 @@ export function ClientContentAny(props: {
     opts: ClientPostOpts,
 
     hovering?: undefined | boolean,
+    whole_object_clickable?: undefined | boolean,
 }): JSX.Element {
     return <SwitchKind item={props.content}>{{
         post: content => (
-            <ClientPost content={content} opts={props.opts} hovering={props.hovering} />
+            <ClientPost
+                content={content}
+                opts={props.opts}
+                hovering={props.hovering}
+                whole_object_clickable={props.whole_object_clickable}
+            />
         ),
         page: () => <>TODO page</>,
         legacy: legacy => <>

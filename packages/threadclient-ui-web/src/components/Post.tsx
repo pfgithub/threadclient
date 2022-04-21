@@ -74,6 +74,7 @@ export type ClientPostProps = {
     content: Generic.PostContentPost,
     opts: ClientPostOpts,
     hovering?: undefined | boolean,
+    whole_object_clickable?: undefined | boolean,
 };
 export default function ClientPost(props: ClientPostProps): JSX.Element {
     // wow this is sketchy because we're supporting posts that
@@ -181,6 +182,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     actions={getActions()}
                     getPage={getPage}
                     hovering={props.hovering}
+                    whole_object_clickable={props.whole_object_clickable}
                 />
             </div>
         </div>}><div class="flex flex-row">
@@ -225,6 +227,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     actions={getActions()}
                     getPage={getPage}
                     hovering={props.hovering}
+                    whole_object_clickable={props.whole_object_clickable}
                 />
                 <div>
                     <section class={isPivot() ? "py-4" : ""}>
@@ -273,11 +276,13 @@ function PostTopBar(props: ClientPostProps & {
     actions: ActionItem[],
 
     hovering: undefined | boolean,
+    whole_object_clickable: undefined | boolean,
 
     getPage: () => Generic.Page2 | undefined,
 }): JSX.Element {
     const isPivot = () => props.opts.flat_frame?.is_pivot ?? false;
     const postIsClickable = () => {
+        if(props.whole_object_clickable === true) return false;
         return !props.visible || (props.opts.frame?.url != null && !isPivot());
     };
 

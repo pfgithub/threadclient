@@ -220,6 +220,7 @@ function PageFlatPost(props: {
                         collapse_data={props.collapse_data}
 
                         hovering={hovering()}
+                        whole_object_clickable={wholeObjectClickable()}
                     />
                 </div>
             </div>
@@ -232,6 +233,7 @@ function PageFlatPostContent(props: {
     collapse_data: CollapseData,
 
     hovering: boolean,
+    whole_object_clickable: boolean,
 }): JSX.Element {
     return <SwitchKind item={props.loader_or_post.content}>{{
         post: post => <>
@@ -245,6 +247,7 @@ function PageFlatPostContent(props: {
                 }}
 
                 hovering={props.hovering}
+                whole_object_clickable={props.whole_object_clickable}
             />
         </>,
         loader: loader => {
