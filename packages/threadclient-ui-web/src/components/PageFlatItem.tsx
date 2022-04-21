@@ -1,8 +1,9 @@
 import * as Generic from "api-types-generic";
 import {
-    batch, createEffect, createSignal,
+    batch, createEffect, createMemo, createSignal,
     For,
-    JSX
+    JSX,
+    untrack
 } from "solid-js";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { getClientCached, navigate } from "../app";
@@ -12,6 +13,7 @@ import {
 import { addAction } from "./action_tracker";
 import { CollapseButton } from "./CollapseButton";
 import { CollapseData, FlatItem, FlatPost, getCState } from "./flatten";
+import { A } from "./links";
 import { ClientContentAny } from "./page2";
 import SwipeActions from "./SwipeActions";
 import swipeActionSet from "./SwipeActionSet";
@@ -29,6 +31,36 @@ function getRainbow(n: number): string {
     // doesn't matter though, n should never be less than 0
     return rainbow[n % rainbow.length]!;
 }
+
+type FullscreenImageProps = {
+    url: string,
+    link_url: string | null,
+    w: number,
+    h: number,
+};
+
+type SCProps<T> = {
+    data: T,
+
+    collapse_data: CollapseData,
+    loader_or_post: FlatPost,
+};
+type SpecialCallback = (props: SCProps<any>) => JSX.Element;
+const replace_post_special_callbacks: Record<string, SpecialCallback> = {
+    'FullscreenImage@-N0D1IW1oTVxv8LLf7Ed': (props: SCProps<FullscreenImageProps>) => {
+        return <A
+            href={props.data.link_url ?? undefined}
+            client_id={props.loader_or_post.content.client_id}
+            class={"block overflow-hidden " + (
+                props.loader_or_post.first_in_wrapper ? "sm:rounded-t-lg " : ""
+            ) + (
+                props.loader_or_post.last_in_wrapper ? "sm:rounded-b-lg " : ""
+            )}
+        >
+            <img class="block w-full h-full" src={props.data.url} width={props.data.w} height={props.data.h} />
+        </A>;
+    },
+};
 
 export default function PageFlatItem(props: {item: FlatItem, collapse_data: CollapseData}): JSX.Element {
     return <DefaultErrorBoundary data={props.item}>
@@ -99,6 +131,34 @@ function PostIndent(props: {
 }
 
 function PageFlatPost(props: {
+    collapse_data: CollapseData,
+    loader_or_post: FlatPost,
+}): JSX.Element {
+    const specialCB = createMemo((): null | (() => JSX.Element) => {
+        const v = props.loader_or_post.content;
+        if(v.kind !== "post" || v.content.kind !== "special") return null;
+        const vc = v.content;
+        const fpsc = replace_post_special_callbacks[vc.tag_uuid];
+        if(fpsc == null) return null;
+        return () => fpsc({get data() {
+            return vc.not_typesafe_data;
+        }, get collapse_data() {
+            return props.collapse_data;
+        }, get loader_or_post() {
+            return props.loader_or_post;
+        }});
+    });
+
+    return createMemo(() => {
+        const scb = specialCB();
+        if(scb) return untrack(() => scb());
+        return <PageFlatPostNotSpecial
+            collapse_data={props.collapse_data}
+            loader_or_post={props.loader_or_post}
+        />;
+    });
+}
+function PageFlatPostNotSpecial(props: {
     collapse_data: CollapseData,
     loader_or_post: FlatPost,
 }): JSX.Element {

@@ -265,7 +265,13 @@ function sidebarWidgetToGenericWidgetTry(
         // use the highest quality image.
         return unpivotablePostBelowPivot(content, {
             kind: "special",
-            tag_uuid: "fullscreen-image@-N0D1IW1oTVxv8LLf7Ed",
+            tag_uuid: "FullscreenImage@-N0D1IW1oTVxv8LLf7Ed",
+            not_typesafe_data: {
+                url: imgdata.url,
+                link_url: imgdata.linkUrl ?? null,
+                w: imgdata.width,
+                h: imgdata.height,
+            },
             fallback: {
                 kind: "post",
                 title: {text: widget.shortName},

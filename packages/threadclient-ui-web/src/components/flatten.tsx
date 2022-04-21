@@ -168,7 +168,7 @@ export function renderPost(
 
     return {
         kind: "post",
-        content: post,
+        content: post_read.value,
         indent: opts.threaded ? parent_indent.map((idnt, i, a) => {
             if(i === a.length - 1) {
                 return {...idnt, threaded: true};

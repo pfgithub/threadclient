@@ -158,6 +158,7 @@ export type PostContent = ClientPost | {
 } | {
     kind: "special",
     tag_uuid: `${string}@-${string}`,
+    not_typesafe_data?: undefined | unknown,
     fallback: PostContentPost,
 };
 export type SortData = {
