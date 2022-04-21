@@ -173,9 +173,10 @@ function PageFlatPost(props: {
             class={
                 "px-2 "+color+" "+(props.loader_or_post.is_pivot ? "@@IS_PIVOT@@ " : "")+
                 (wholeObjectClickable() ? `
-                    transition cursor-pointer outline-default
+                    cursor-pointer outline-default
                     can-hover:hover:bg-slate-200 dark:can-hover:hover:bg-zinc-700
                     can-hover:hover:shadow-md
+                    can-hover:hover:z-1
                     relative
                 ` : "")+
                 (props.loader_or_post.first_in_wrapper ? `
