@@ -12,6 +12,7 @@ import { CollapseData, flatten } from "./flatten";
 import LandingPage from "./LandingPage";
 import PageFlatItem from "./PageFlatItem";
 import { array_key } from "./symbols";
+import ToggleButton from "./ToggleButton";
 
 type SpecialCallback = () => PageRes;
 const full_page_special_callbacks: Record<string, SpecialCallback> = {
@@ -94,18 +95,20 @@ function ClientPageMain(props: ClientPageProps): PageRes {
             </div>
         </Show>
         <Show if={tabbed()}>
-            <div>
-                <button
-                    class="bg-gray-200 rounded-md p-2 px-3"
-                    onClick={() => setTab(v => v === "content" ? "sidebar" : "content")}
-                >
-                    {tab() === "content" ? "Sidebar" : "Content"}
-                </button>
+            <div class="flex flex-col items-center justify-center">
+                <ToggleButton
+                    value={tab()}
+                    setValue={v => v ? setTab(v) : void 0}
+                    choices={[
+                        ["content" as const, <>Content</>],
+                        ["sidebar" as const, <>Sidebar</>],
+                    ]}
+                />
             </div>
         </Show>
         <div class="flex flex-row gap-8 justify-center">
             <Show if={tabbed() ? tab() === "content" : true}>
-                <div class="max-w-4xl w-full">
+                <div class="sm:max-w-4xl w-full">
                     <For each={view.data.body}>{item => (
                         <PageFlatItem
                             item={item}
@@ -115,7 +118,7 @@ function ClientPageMain(props: ClientPageProps): PageRes {
                 </div>
             </Show>
             <Show if={view.data.sidebar != null && (tabbed() ? tab() === "sidebar" : true)}>
-                <div class="max-w-320px w-full">
+                <div class="sm:max-w-320px w-full">
                     <For each={view.data.sidebar}>{item => (
                         <PageFlatItem
                             item={item}
