@@ -77,6 +77,7 @@ export type FlatPost = {
     indent: CollapseButton[],
     collapse: CollapseButton | null,
     first_in_wrapper: boolean,
+    last_in_wrapper: boolean,
 
     // ok why am i representing an enum{above, pivot, below} with two booleans? like it works but one of them
     // is an invalid state? we could even "position: -1 | 0 | 1" and then "position <= 0"
@@ -176,6 +177,7 @@ export function renderPost(
         }) : parent_indent,
         collapse: final_indent,
         first_in_wrapper: opts.first_in_wrapper,
+        last_in_wrapper: false,
 
         is_pivot: opts.is_pivot,
         at_or_above_pivot: opts.at_or_above_pivot,
@@ -454,6 +456,16 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
         res.push({kind: "horizontal_line"});
         res.push(...flattenTopLevelReplies(pivot.replies, meta));
     }
+
+    // add last_in_wrapper to posts
+    res.forEach((post, i, a) => {
+        const next = res[i + 1];
+        if(next?.kind === "wrapper_end")  {
+            if(post.kind === "post") {
+                post.last_in_wrapper = true;
+            }
+        }
+    });
 
     console.log("FLATTEN RESULT", res, meta, Object.entries(meta.content).length);
 

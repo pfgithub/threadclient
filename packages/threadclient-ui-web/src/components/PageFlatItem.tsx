@@ -40,14 +40,8 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
         // TODO: remove wrapper_start and wrapper_end and instead make these properties of loader_or_post
         // TODO: improve how gaps are made. make gaps automatically between posts for example. margin
         // should not be used to make gaps.
-        wrapper_start: () => <ToggleColor>{color => <div class={""
-            + " " + color
-            + " h-2 sm:rounded-t-xl mt-4"
-        } />}</ToggleColor>,
-        wrapper_end: () => <ToggleColor>{color => <div class={""
-            + " " + color
-            + " h-2 sm:rounded-b-xl mb-4"
-        } />}</ToggleColor>,
+        wrapper_start: () => <div class="mt-4" />,
+        wrapper_end: () => <div class="mb-4" />,
         post: loader_or_post => <PageFlatPost
             collapse_data={props.collapse_data}
             loader_or_post={loader_or_post}
@@ -180,6 +174,12 @@ function PageFlatPost(props: {
                     transition cursor-pointer outline-default
                     can-hover:hover:bg-slate-200 dark:can-hover:hover:bg-zinc-700
                     can-hover:hover:shadow-md
+                ` : "")+
+                (props.loader_or_post.first_in_wrapper ? `
+                    pt-2 sm:rounded-t-lg
+                ` : "")+
+                (props.loader_or_post.last_in_wrapper ? `
+                    pb-2 sm:rounded-b-lg
                 ` : "")
             }
             tabindex={wholeObjectClickable() ? 0 : -1}
