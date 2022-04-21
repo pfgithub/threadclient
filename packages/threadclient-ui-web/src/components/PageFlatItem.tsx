@@ -174,9 +174,9 @@ function PageFlatPost(props: {
                 "px-2 "+color+" "+(props.loader_or_post.is_pivot ? "@@IS_PIVOT@@ " : "")+
                 (wholeObjectClickable() ? `
                     cursor-pointer outline-default
-                    can-hover:hover:bg-slate-200 dark:can-hover:hover:bg-zinc-700
-                    can-hover:hover:shadow-md
-                    can-hover:hover:z-1
+                    hover:bg-slate-200 dark:hover:bg-zinc-700
+                    hover:shadow-md
+                    hover:z-1
                     relative
                 ` : "")+
                 (props.loader_or_post.first_in_wrapper ? `
