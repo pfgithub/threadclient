@@ -122,9 +122,11 @@ export default defineConfig({
             },
         },
     },
+    // considering switching to unocss w/ tailwind preset just because writing rules like this is not very fun
+    // also need to use @unocss/reset/tailwind.css
     plugins: [
         require("@windicss/plugin-icons"),
-        plugin(({ addDynamic, addUtilities, variants }) => {
+        plugin(({ addDynamic, addUtilities, variants, addVariant }) => {
             addUtilities({
                 '.max-lines': {
                     'overflow': "hidden",
@@ -140,5 +142,34 @@ export default defineConfig({
                 ;
             }, variants("skew"));
         }),
+        plugin(({addVariant, e}) => {
+            // these are cool, i didn't know css has them
+            // makes it easy to eg make buttons bigger on touchscreen & mobile but not
+            // when you're using a mouse on a touchscreen device i assume
+            addVariant("can-hover", ({atRule}) => {
+                // would be nice if we could make all hover: states `can-hover:hover:`
+                // because it's annoying when you're scrolling on mobile and random stuff
+                // keeps highlighting
+                return atRule("@media (hover: hover)");
+            });
+            addVariant("no-hover", ({atRule}) => {
+                return atRule("@media (hover: none)");
+            });
+            addVariant("pointer-coarse", ({atRule}) => {
+                return atRule("@media (hover: coarse)");
+            });
+            addVariant("pointer-fine", ({atRule}) => {
+                return atRule("@media (hover: fine)");
+            });
+            addVariant("pointer-none", ({atRule}) => {
+                return atRule("@media (hover: none)");
+            });
+            addVariant("hocus", ({ modifySelectors }) => {
+                // wow I don't like this name but it's useful
+                return modifySelectors(({ className: class_name }) => {
+                    return `.${class_name}:hover, .${class_name}:focus`;
+                });
+            });
+        })
     ],
 });
