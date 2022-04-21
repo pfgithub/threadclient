@@ -1,10 +1,11 @@
+import * as Generic from "api-types-generic";
 import {
     batch, createEffect, createSignal,
     For,
     JSX
 } from "solid-js";
-import { Show, SwitchKind } from "tmeta-util-solid";
-import { getClientCached } from "../app";
+import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
+import { getClientCached, navigate } from "../app";
 import {
     classes, DefaultErrorBoundary, getWholePageRootContext, size_lt, ToggleColor
 } from "../util/utils_solid";
@@ -108,8 +109,40 @@ function PageFlatPost(props: {
     loader_or_post: FlatPost,
 }): JSX.Element {
     // ok detect if clickable:
-    // - post not pivot & post repivotable & post has url & post displayed_in repivot_list → make post
+    // - post not pivot & post has url & post displayed_in repivot_list → make post
     //   clickable and inform the content that its parent is clickable already (not necessary)
+
+    const isPivot = () => props.loader_or_post.is_pivot;
+    const wholeObjectClickable = () => {
+        if(isPivot()) return false;
+        if(props.loader_or_post.displayed_in !== "repivot_list") return false;
+        if(props.loader_or_post.content.url == null) return false;
+        return true;
+    };
+    const hprc = getWholePageRootContext();
+    const getPage = (): Generic.Page2 | undefined => {
+        if(props.loader_or_post.content.disallow_pivot ?? false) return undefined;
+        return {
+            pivot: props.loader_or_post.id,
+            content: hprc.content(),
+        };
+    };
+
+    const onClick = (e: MouseEvent | KeyboardEvent) => {
+        const frame = props.loader_or_post;
+        const post = frame.content;
+
+        // support ctrl click
+        const target_url = "/"+post.client_id+post.url;
+        if(e.ctrlKey || e.metaKey || e.altKey) {
+            window.open(target_url);
+        }else{
+            navigate({
+                path: target_url,
+                page: getPage(),
+            });
+        }
+    };
 
     return <SwipeActions
         {...(() => {
@@ -139,27 +172,50 @@ function PageFlatPost(props: {
                 },
             });
         })()}
-    ><ToggleColor>{color => <div
-        class={"px-2 "+color+" "+(props.loader_or_post.is_pivot ? "@@IS_PIVOT@@" : "")}
     >
-        <div class="flex flex-row gap-1">
-            <PostIndent
-                loader_or_post={props.loader_or_post}
-                collapse_data={props.collapse_data}
-            />
-            <div
-                class={"flex-1"}
-            >
-                <Show if={!props.loader_or_post.first_in_wrapper}>
-                    <div class="pt-2" />
-                </Show>
-                <PageFlatPostContent
+        <ToggleColor>{color => <div
+            class={
+                "px-2 "+color+" "+(props.loader_or_post.is_pivot ? "@@IS_PIVOT@@ " : "")+
+                (wholeObjectClickable() ? `
+                    transition cursor-pointer outline-default
+                    can-hover:hover:bg-slate-200 dark:can-hover:hover:bg-zinc-700
+                    can-hover:hover:shadow-md
+                ` : "")
+            }
+            tabindex={wholeObjectClickable() ? 0 : -1}
+            onKeyPress={e => {
+                if(!wholeObjectClickable()) return;
+                if(e.code !== "Enter") return;
+
+                onClick(e);
+            }}
+            onClick={e => {
+                if(!wholeObjectClickable()) return;
+                if(!allowedToAcceptClick(e.target, e.currentTarget)) return;
+                e.stopPropagation();
+
+                onClick(e);
+            }}
+        >
+            <div class="flex flex-row gap-1">
+                <PostIndent
                     loader_or_post={props.loader_or_post}
                     collapse_data={props.collapse_data}
                 />
+                <div
+                    class={"flex-1"}
+                >
+                    <Show if={!props.loader_or_post.first_in_wrapper}>
+                        <div class="pt-2" />
+                    </Show>
+                    <PageFlatPostContent
+                        loader_or_post={props.loader_or_post}
+                        collapse_data={props.collapse_data}
+                    />
+                </div>
             </div>
-        </div>
-    </div>}</ToggleColor></SwipeActions>;
+        </div>}</ToggleColor>
+    </SwipeActions>;
 }
 
 function PageFlatPostContent(props: {

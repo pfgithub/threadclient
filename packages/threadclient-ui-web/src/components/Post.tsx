@@ -133,13 +133,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
         };
     };
 
-    const wholeObjectClickable = () => {
-        if(isPivot()) return false;
-        if(props.opts.flat_frame?.displayed_in !== "repivot_list") return false;
-        if(props.opts.frame?.url == null) return false;
-        return true;
-    };
-
     const getActions = useActions(() => props.content, () => props.opts);
 
     return <article
@@ -149,24 +142,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             isPivot() ? [
                 "text-base p-2",
             ] : "text-sm",
-            wholeObjectClickable() ? "hover-outline" : "",
         )}
-        onclick={e => {
-            if(!wholeObjectClickable()) return;
-            if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
-            e.stopPropagation();
-
-            if(props.opts.frame?.url == null) return;
-            const target_url = "/"+props.opts.client_id+props.opts.frame.url;
-            if(e.ctrlKey || e.metaKey || e.altKey) {
-                window.open(target_url);
-            }else{
-                navigate({
-                    path: target_url,
-                    page: getPage(),
-                });
-            }
-        }}
     >
         <ShowAnimate
             mode={props.opts.collapse_data ? "clip" : "height"}
@@ -196,7 +172,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
                     visible={false}
                     setVisible={setVisible}
-                    whole_object_clickable={wholeObjectClickable()}
                     contentWarning={contentWarning()}
                     collapseInfo={collapseInfo()}
                     actions={getActions()}
@@ -240,7 +215,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
                     visible={true}
                     setVisible={setVisible}
-                    whole_object_clickable={wholeObjectClickable()}
                     contentWarning={contentWarning()}
                     collapseInfo={collapseInfo()}
                     actions={getActions()}
@@ -292,13 +266,10 @@ function PostTopBar(props: ClientPostProps & {
 
     actions: ActionItem[],
 
-    whole_object_clickable: boolean,
-
     getPage: () => Generic.Page2 | undefined,
 }): JSX.Element {
     const isPivot = () => props.opts.flat_frame?.is_pivot ?? false;
     const postIsClickable = () => {
-        if(props.whole_object_clickable) return false;
         return !props.visible || (props.opts.frame?.url != null && !isPivot());
     };
 
@@ -351,7 +322,7 @@ function PostTopBar(props: ClientPostProps & {
             // to do than it should be because of the {" "} and {", "} those get underlined
             onclick={e => {
                 if(!postIsClickable()) return;
-                if(!allowedToAcceptClick(e.target as Node, e.currentTarget)) return;
+                if(!allowedToAcceptClick(e.target, e.currentTarget)) return;
                 e.stopPropagation();
 
                 // support ctrl click
