@@ -2663,10 +2663,22 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 export type MutablePage2HistoryNode = {
     page: Generic.Page2,
 };
-export function addLayer(node: Generic.Page2, new_layer: Generic.Page2Content): Generic.Page2 {
+function addLayer(node: Generic.Page2, new_layer: Generic.Page2Content): Generic.Page2 {
+    console.log("!ADDDING LAYER", node, new_layer);
+    const filtered_keys = Reflect.ownKeys(new_layer).filter(key => {
+        const prev_val = node.content[key];
+        // vv this is hacky. the idea is that we shouldn't allow a 'loaded' to get replaced with a 'loader'
+        if(prev_val != null && ('data' in prev_val)) {
+            const datav = prev_val.data as Generic.Post;
+            if(typeof datav === "object" && datav.kind === "loaded") {
+                return false;
+            }
+        }
+        return true;
+    });
     return {
         ...node,
-        content: {...node.content, ...new_layer},
+        content: {...node.content, ...Object.fromEntries(filtered_keys.map(key => [key, new_layer[key]!] as const))},
     };
 }
 
@@ -2688,7 +2700,7 @@ let hidePage2!: () => void;
             <PageRootProvider
                 pgin={pgin()}
                 addContent={(upd_pgin, content) => {
-                    upd_pgin.page  = {...upd_pgin.page, content: {...upd_pgin.page.content, ...content}};
+                    upd_pgin.page  = addLayer(upd_pgin.page, content);
                     if(pgin() === upd_pgin) {
                         setPgin(pgin()); // the pgin that was updated is currently being viewed; refresh
                     }

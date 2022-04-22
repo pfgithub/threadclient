@@ -1057,6 +1057,7 @@ export async function loadPage2(
     key: Generic.Link<Generic.Post>,
     loader: Generic.Loader,
 ): Promise<Generic.LoaderResult> {
+    await new Promise(r => setTimeout(r, 1000));
     let data = loader_enc.decode(loader.key);
     if(data.kind === "parent_permalink") data = {
         kind: "link_replies",
