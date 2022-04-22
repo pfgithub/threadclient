@@ -426,6 +426,7 @@ const sitemap: SitemapEntry[] = [
                         client_id: client.id,
                     }),
                 ],
+                iframe_srcdoc: [],
             };
             return Object.entries(body_kinds).map(([key, items]): SitemapEntry => [
                 key,
