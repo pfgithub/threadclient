@@ -254,6 +254,7 @@ type IDMapData = {
     kind: "comment",
     comment: Reddit.T1,
     missing_replies?: undefined | true,
+    parent_fullname: string,
 } | {
     kind: "post",
     post: Reddit.T3,
@@ -276,7 +277,7 @@ type IDMapData = {
     kind: "depth_more",
     // a Reddit.More with 0 children
     item: Reddit.More,
-    parent_id: string,
+    parent_fullname: string,
 } | {
     kind: "more",
     item: Reddit.More,
@@ -313,15 +314,9 @@ export function page2FromListing(
         const children_root = page[1].data.children;
         const root0 = children_root[0];
         if(root0 && root0.kind === "t1" && root0.data.parent_id !== link_fullname) {
-            // TODO figure out how to handle these in IDMap
-            // there are two IDs which need to link to the same node
-            // the parent node's reply is this load more
-            // and the reply's parent is this load more
-            // header_children.push(loadMoreContextNode(
-            //     root0.data.subreddit,
-            //     (link_fullname ?? "").replace("t3_", ""),
-            //     root0.data.parent_id.replace("t1_", "")
-            // ));
+            // this says that there will be a vertical loader
+            // we don't care about that here though, that's handled by the comment. it makes its own
+            // vertical loader when the parent it was rendered from is not the same as its actual parent
         }
 
         const focus_comment = path.kind === "comments" ? path.focus_comment : null;
@@ -462,8 +457,8 @@ function unsupportedPage(
     });
 }
 
-function getPostFullname(post: Reddit.Post, parent_id: string | undefined): ID {
-    const value = commentOrUnmountedData(post, parent_id);
+function getPostFullname(post: Reddit.Post, opts: {parent_fullname: string}): ID {
+    const value = commentOrUnmountedData(post, {parent_fullname: opts.parent_fullname});
     if(!value) return "__ERROR_FULLNAME__" as ID;
     return getEntryFullname(value);
 }
@@ -475,7 +470,7 @@ function getEntryFullname(entry: IDMapData): ID {
     }else if(entry.kind === "subreddit_unloaded") {
         return getSrId(entry.details);
     }else if(entry.kind === "depth_more") {
-        return "DEPTH_MORE_"+entry.parent_id as ID;
+        return "DEPTH_MORE_"+entry.parent_fullname as ID;
     }else if(entry.kind === "more") {
         return "MORE_"+entry.item.data.children.join(",") as ID;
     }else if(entry.kind === "wikipage") {
@@ -485,11 +480,12 @@ function getEntryFullname(entry: IDMapData): ID {
     }else assertNever(entry);
 }
 
-function commentOrUnmountedData(item: Reddit.Post, parent_id: string | undefined): IDMapData | undefined {
+function commentOrUnmountedData(item: Reddit.Post, opts: {parent_fullname: string}): IDMapData | undefined {
     if(item.kind === "t1") {
         return {
             kind: "comment",
             comment: item,
+            parent_fullname: opts.parent_fullname,
         };
     }else if(item.kind === "t3") {
         return {
@@ -499,16 +495,10 @@ function commentOrUnmountedData(item: Reddit.Post, parent_id: string | undefined
         };
     }else if(item.kind === "more") {
         if(item.data.children.length === 0) {
-            if(parent_id == null) {
-                console.trace(
-                    "TODO setUpCommentOrUnmounted was called with not loaded parent but req. parent submission",
-                );
-                return undefined;
-            }
             return {
                 kind: "depth_more",
                 item,
-                parent_id,
+                parent_fullname: opts.parent_fullname,
             };
         }else{
             return {
@@ -523,8 +513,8 @@ function commentOrUnmountedData(item: Reddit.Post, parent_id: string | undefined
     }
 }
 
-function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, parent_id: string | undefined): void {
-    const data = commentOrUnmountedData(item, parent_id);
+function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, opts: {parent_fullname: string}): void {
+    const data = commentOrUnmountedData(item, {parent_fullname: opts.parent_fullname});
     if(data == null) return;
     setUpMap(map, data);
 }
@@ -555,7 +545,7 @@ export function setUpMap(
                     // TODO if it's load more it might need a parent_permalink
                     // pass that in here or something
                     // or make a fn to do this
-                    setUpCommentOrUnmounted(map, reply, listing.link_id.replace("t3_", ""));
+                    setUpCommentOrUnmounted(map, reply, {parent_fullname: listing.name});
                 }
             }
         }else if(listing_raw.kind === "more") {
@@ -576,11 +566,11 @@ export function setUpMap(
             }
         }
         if(data.replies !== "not_loaded") for(const reply of data.replies.data.children) {
-            setUpCommentOrUnmounted(map, reply, listing.id);
+            setUpCommentOrUnmounted(map, reply, {parent_fullname: listing.name});
         }
     }else if(data.kind === "subreddit_unloaded") {
         for(const post of data.listing.data.children) {
-            setUpCommentOrUnmounted(map, post, "not_loaded");
+            setUpCommentOrUnmounted(map, post, {parent_fullname: "E_PARENT_IS_SUBREDDIT"});
         }
         setUpMap(map, {
             kind: "subreddit_sidebar_unloaded",
@@ -699,13 +689,13 @@ function postDataFromListingMayError(
                 for(const reply of listing.replies.data.children) {
                     replies.items.push(getPostData(
                         content, map,
-                        getPostFullname(reply, listing.link_id.replace("t3_", "")),
+                        getPostFullname(reply, {parent_fullname: listing.name}),
                     ));
                 }
             }
         }
 
-        const parent_post = map.get(listing.parent_id as ID);
+        const link_info = map.get(listing.link_id as ID);
 
         // note: it would be preferable to have something similar to twitter "hidden" functionality
         //       where the post is displayed but it's just a box saying "this post is hidden because
@@ -722,7 +712,23 @@ function postDataFromListingMayError(
             client_id: client.id,
             url: updateQuery(listing.permalink, {context: "3"}),
 
-            parent: getPostData(content, map, listing.parent_id as ID),
+            parent: entry.data.parent_fullname !== listing.parent_id ? (
+                createSymbolLinkToValue<Generic.Loader>(content, {
+                    kind: "loader",
+                    parent: getPostData(content, map, entry.data.parent_fullname as ID),
+                    replies: null, // this is a vertical loader
+                    url: null,
+                    client_id: client.id,
+
+                    load_count: null,
+                    autoload: false,
+                    key: loader_enc.encode({
+                        kind: "vertical",
+                        bottom_post: listing.name,
+                        top_post: entry.data.parent_fullname,
+                    }),
+                })
+            ) : getPostData(content, map, listing.parent_id as ID),
             replies,
 
             content: {
@@ -733,7 +739,7 @@ function postDataFromListingMayError(
                 info: getPostInfo(listing_raw),
                 collapsible: {default_collapsed: (automatic_collapse) || (listing.collapsed ?? false)},
                 actions: {
-                    vote: parent_post?.data.kind === "post" && parent_post.data.post.data.discussion_type === "CHAT"
+                    vote: link_info?.data.kind === "post" && link_info.data.post.data.discussion_type === "CHAT"
                         ? undefined
                         : getPointsOn(listing)
                     ,
@@ -771,7 +777,7 @@ function postDataFromListingMayError(
                 // I don't think before and after are used here
                 items: !entry.data.missing_replies && entry.data.replies !== "not_loaded" ? (
                     entry.data.replies.data.children.map((reply): Generic.Link<Generic.Post> => (
-                        getPostData(content, map, getPostFullname(reply, listing.id))
+                        getPostData(content, map, getPostFullname(reply, {parent_fullname: listing.name}))
                     ))
                 ): [createSymbolLinkToValue(content, {
                     kind: "loader",
@@ -825,7 +831,7 @@ function postDataFromListingMayError(
         const replies: Generic.Link<Generic.Post>[] = [];
 
         for(const child of entry.data.listing.data.children) {
-            replies.push(getPostData(content, map, getPostFullname(child, undefined)));
+            replies.push(getPostData(content, map, getPostFullname(child, {parent_fullname: "E_SUBREDDIT"})));
         }
         if(entry.data.listing.data.after != null) {
             const next_path = updateQuery(entry.data.pathraw, {
@@ -912,6 +918,11 @@ function postDataFromListingMayError(
         };
     }else if(entry.data.kind === "depth_more") {
         const listing = entry.data.item.data;
+        const parent_node_data = map.get(listing.parent_id as ID);
+        if(!parent_node_data || (
+            parent_node_data.data.kind !== "post" && parent_node_data.data.kind !== "comment"
+        )) throw new Error("E_DEPTH_MORE_NO_PARENT");
+        const info = parent_node_data.data.kind === "post" ? parent_node_data.data.post : parent_node_data.data.comment;
         return {
             kind: "loader",
             client_id: client.id,
@@ -921,9 +932,8 @@ function postDataFromListingMayError(
             load_count: null,
 
             key: loader_enc.encode({
-                kind: "parent_permalink",
-                post_id: entry.data.parent_id,
-                parent_id: listing.parent_id,
+                kind: "link_replies",
+                url: updateQuery(info.data.permalink, {context: "0"}),
             }),
             autoload: false,
         };
@@ -1040,6 +1050,7 @@ type LoaderData = {
 } | {
     kind: "vertical",
     bottom_post: string,
+    top_post: string, // does not affect the url that gets fetched
     // fetches ?context=9&limit=9
 } | {
     kind: "sidebar",

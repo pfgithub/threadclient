@@ -247,7 +247,7 @@ function ActionBarItems(props: {
             <GetActionsFromAction action={action} opts={props.opts} />
         )}</For>
 
-        <Show when={props.post.actions?.code} fallback={(
+        <Show if={false /*TODO*/} when={props.post.actions?.code} fallback={(
             <ActionItemRaw
                 icon="code"
                 color={null}
