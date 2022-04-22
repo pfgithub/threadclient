@@ -582,8 +582,7 @@ export function setUpMap(
 
     map.set(entry_fullname, {
         kind: "unprocessed",
-        link: p2.symbolLink("id: "+entry_fullname), // oh, interesting. we're giving threadclient symbol ids for
-        // everything. that doesn't seem right
+        link: entry_fullname as string as Generic.Link<Generic.Post>,
         data,
     });
 
