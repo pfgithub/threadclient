@@ -7,6 +7,7 @@ const express = require("express");
 const proxy = require("express-http-proxy");
 const path = require("path");
 const fs = require("fs");
+const decompress = require("brotli/decompress");
 
 const app = express();
 const port = 3772;
@@ -77,7 +78,11 @@ if(process.env.ONLINE === "true") {
         userResDecorator: (proxy_res, proxy_res_data, req, user_res) => {
             const safilename = toSafeFilename(req);
             fs.mkdirSync(path.dirname(safilename), {recursive: true});
-            fs.writeFileSync(safilename, proxy_res_data);
+            let nprdata = proxy_res_data;
+            if(proxy_res.headers["content-encoding"] === "br") {
+                nprdata = decompress(nprdata);
+            }
+            fs.writeFileSync(safilename, nprdata, "binary");
             console.log("cached URL: "+req.method + " " + req.url);
             return proxy_res_data;
         },
