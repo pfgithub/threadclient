@@ -1,7 +1,6 @@
 import * as Generic from "api-types-generic";
-import { rt } from "api-types-generic";
+import { p2, rt } from "api-types-generic";
 import * as Reddit from "api-types-reddit";
-import { createSymbolLinkToError, createSymbolLinkToValue } from "./page2_from_listing";
 import {
     client, createSubscribeAction, ec, expectUnsupported,
     flairToGenericFlair, redditRequest, SubInfo, SubrInfo,
@@ -52,7 +51,7 @@ function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Ge
         ...widgets ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
     ];
     if(res.length === 0) {
-        res.push(createSymbolLinkToError(content, "Failed to fetch sidebar for this page :(", {content, subinfo}));
+        res.push(p2.createSymbolLinkToError(content, "Failed to fetch sidebar for this page :(", {content, subinfo}));
     }
     return {display: "tree", items: res};
 }
@@ -66,7 +65,7 @@ function sidebarWidgetToGenericWidget(
         return sidebarWidgetToGenericWidgetTry(content, widget, subinfo);
     } catch(er) {
         const e = er as Error;
-        return createSymbolLinkToError(content, "Widget errored: "+e.toString(), {widget, e});
+        return p2.createSymbolLinkToError(content, "Widget errored: "+e.toString(), {widget, e});
     }
 }
 
@@ -79,7 +78,7 @@ function unpivotablePostBelowPivot(
         link_to?: undefined | string,
     },
 ): Generic.Link<Generic.Post> {
-    return createSymbolLinkToValue<Generic.Post>(content, {
+    return p2.createSymbolLinkToValue<Generic.Post>(content, {
         url: opts.link_to ?? null,
         disallow_pivot: true,
         parent: null, // always below the pivot, doesn't matter.
@@ -256,7 +255,7 @@ function sidebarWidgetToGenericWidgetTry(
                 link_to: "/r/"+community.name,
             }) : (
                 expectUnsupported(community.type),
-                createSymbolLinkToError(content, "unsupported community type: "+community.type, community)
+                p2.createSymbolLinkToError(content, "unsupported community type: "+community.type, community)
             ))},
         });
     }else if(widget.kind === "calendar") {

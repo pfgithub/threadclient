@@ -595,11 +595,12 @@ export function getPostData(content: Generic.Page2Content, map: IDMap, key: ID):
     const value = map.get(key);
     if(!value) {
         // TODO determine which load more to use
-        return p2.createSymbolLinkToError(
-            content,
-            "post was not found in tree (TODO load more) ("+key+")",
-            {content, map, key},
-        );
+        // return p2.createSymbolLinkToError(
+        //     content,
+        //     "post was not found in tree (TODO load more) ("+key+")",
+        //     {content, map, key},
+        // );
+        return key as string as Generic.Link<Generic.Post>;
     }
     if(value.kind === "unprocessed") {
         value.kind = "processing";
