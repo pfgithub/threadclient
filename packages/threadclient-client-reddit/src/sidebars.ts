@@ -91,7 +91,6 @@ function unpivotablePostBelowPivot(
         kind: "post",
         content: value,
         internal_data: opts.internal_data,
-        display_style: "centered",
     });
 }
 

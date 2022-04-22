@@ -155,7 +155,6 @@ function postDataFromListingMayError(content: Generic.Page2Content, map: IDMap, 
                 collapsible: {default_collapsed: item.title != null ? true : false},
             },
             internal_data: value,
-            display_style: "centered",
         };
     }else assertNever(value.data);
 }
@@ -238,7 +237,6 @@ function getPageHeader(parsed: ParsedPath, replies: Generic.ListingData): Generi
             },
         },
         internal_data: parsed,
-        display_style: "fullscreen",
     };
 }
 

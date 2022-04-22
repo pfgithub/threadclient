@@ -43,7 +43,6 @@ function unlink(content: Generic.Page2Content, link: Generic.Link<Generic.Post>)
             collapsible: false,
         },
         internal_data: link,
-        display_style: "centered",
     };
     return value.value;
 }

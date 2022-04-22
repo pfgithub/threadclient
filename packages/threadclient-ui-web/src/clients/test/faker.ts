@@ -313,7 +313,6 @@ function generate(content: Generic.Page2Content, id_link: Generic.Link<Generic.P
             },
         } : content_value,
         internal_data: id,
-        display_style: "centered",
     };
     saveLink(content, newLink<Generic.Post>(id), result);
 }

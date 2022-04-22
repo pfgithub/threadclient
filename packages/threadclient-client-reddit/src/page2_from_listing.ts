@@ -63,7 +63,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         ]},
                         collapsible: false,
                     },
-                    display_style: "centered",
                     parent: null,
                     replies: null,
                     url: null,
@@ -88,7 +87,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         ]},
                         collapsible: false,
                     },
-                    display_style: "centered",
                     parent: null,
                     replies: null,
                     url: null,
@@ -118,7 +116,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         ]},
                         collapsible: false,
                     },
-                    display_style: "centered",
                     parent: null,
                     replies: null,
                     url: null,
@@ -138,7 +135,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         body: {kind: "none"},
                         collapsible: false,
                     },
-                    display_style: "centered",
                     parent: null,
                     replies: sidebar_listing,
                     url: "/"+[...parsed.sub.base, "@sidebar"].join("/"),
@@ -216,7 +212,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     ]},
                     collapsible: false,
                 },
-                display_style: "centered",
                 parent: null,
                 replies: null,
                 url: null,
@@ -459,7 +454,6 @@ function unsupportedPage(
             },
         },
         internal_data: null,
-        display_style: "centered",
     });
 }
 
@@ -748,7 +742,6 @@ function postDataFromListingMayError(
                 },
             },
             internal_data: entry.data,
-            display_style: "centered",
         };
     }else if(entry.data.kind === "post") {
         const listing_raw = entry.data.post;
@@ -822,7 +815,6 @@ function postDataFromListingMayError(
                 },
             },
             internal_data: entry.data,
-            display_style: "centered",
         };
     }else if(entry.data.kind === "subreddit_unloaded") {
         const replies: Generic.Link<Generic.Post>[] = [];
@@ -894,7 +886,6 @@ function postDataFromListingMayError(
                 },
             },
             internal_data: entry.data,
-            display_style: "fullscreen",
         };
     }else if(entry.data.kind === "depth_more") {
         const listing = entry.data.item.data;
@@ -974,7 +965,6 @@ function postDataFromListingMayError(
                 },
             },
             internal_data: entry.data,
-            display_style: "centered",
         };
     }else if(entry.data.kind === "subreddit_sidebar_unloaded") {
         if(entry.data.sub === "unknown") return {
@@ -984,7 +974,6 @@ function postDataFromListingMayError(
             client_id: client.id,
             url: null,
             
-            display_style: "centered", // @TODO remove this
             content: {
                 kind: "post", // we should have a kind: "error", it would be useful
                 title: {text: "Unknown URL"},

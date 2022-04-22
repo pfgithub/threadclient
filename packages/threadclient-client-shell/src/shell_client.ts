@@ -102,7 +102,6 @@ function autoPost<T extends string>(
         url: url,
         client_id: client.id,
         internal_data: props,
-        display_style: "centered",
         content: (typeof content === "function" ? content : autoPostContent(content))(url),
     }};
 }
@@ -126,7 +125,6 @@ const all_content_raw_dontuse = [
         url,
         client_id: client.id,
         internal_data: "",
-        display_style: "centered",
         content: {
             kind: "client",
             navbar: {
@@ -142,7 +140,6 @@ const all_content_raw_dontuse = [
         url,
         client_id: client.id,
         internal_data: "",
-        display_style: "centered",
         content: {
             kind: "special",
             tag_uuid: "LandingPage@-N-ry9qt3N1VTG0iKMHy",

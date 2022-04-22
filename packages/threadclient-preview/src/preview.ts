@@ -264,8 +264,6 @@ export async function gfyLike2(
         url: "https://www."+gfy_host+"/watch/"+gfy_link,
         client_id,
 
-        display_style: "centered",
-
         content: {
             kind: "post",
 

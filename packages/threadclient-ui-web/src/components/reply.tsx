@@ -74,7 +74,6 @@ export default function ReplyEditor(props: {
                     ]},
                     collapsible: false,
                 },
-                display_style: "centered",
 
                 parent: null,
                 replies: null,

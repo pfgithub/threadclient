@@ -630,7 +630,6 @@ function getFromSitemap(
             })]},
             content: called.content,
             internal_data: 0,
-            display_style: "centered",
         };
         const this_post_link = linkFromPostData(content, this_post);
         if(called.replies) {
@@ -653,7 +652,6 @@ function getFromSitemap(
                         replies: null,
                         content: replyitm.content,
                         internal_data: 0,
-                        display_style: "centered",
                     };
                     const thispost_key = linkFromPostData(content, thispost);
                     if(replyitm.replies) thispost.replies = {
@@ -703,7 +701,6 @@ function getFromSitemap(
             collapsible: false,
         },
         internal_data: 0,
-        display_style: "centered",
     });
     return this_post_link;
 }
@@ -725,7 +722,6 @@ function clientWrapperAdd(): Generic.PostData {
         parent: null,
         replies: null,
 
-        display_style: "centered",
         content: {
             kind: "client",
             navbar: {actions: [], inboxes: []},
@@ -775,7 +771,6 @@ export async function getPage(
     //             }),
     //         },
 
-    //         display_style: "centered",
     //         content: {
     //             kind: "post",
     //             title: null,
@@ -836,7 +831,6 @@ export async function getPage(
         parent: client_wrapper,
         replies: null,
 
-        display_style: "centered",
         content: home_page,
         internal_data: 0,
     };
@@ -862,7 +856,6 @@ export async function getPage(
 //         parent,
 //         replies,
 
-//         display_style: "centered",
 //         content: {
 //             kind: "legacy",
 //             thread: {...legacy, replies: undefined},

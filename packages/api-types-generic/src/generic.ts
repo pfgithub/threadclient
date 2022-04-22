@@ -38,7 +38,6 @@ export type PostData = BasePost & {
 
     content: PostContent, // content should always be in a PostData. eg: crossposts that are embedded in a body also need parent, replies.
     internal_data: unknown,
-    display_style: "fullscreen" | "centered",
 };
 
 export type Loader = BasePost & {
