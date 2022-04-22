@@ -66,7 +66,8 @@ function mkurl(host: string, ...bits: string[]): string {
 }
 async function getResult<T>(auth: TokenResult | undefined, url: string, method: "GET" | "POST" = "GET"): Promise<T | {error: string}> {
     try {
-        const [status, posts] = await fetch(url, {
+        const usemock = localStorage.getItem("--use-mock");
+        const [status, posts] = await fetch((usemock ?? "") + url, {
             method,
             headers: {
                 'Accept': "application/json",
