@@ -90,7 +90,11 @@ if(process.env.ONLINE === "true") {
 }
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(400).send("404!");
+    res.status(500).send("E_INTERNAL_SERVER_ERROR");
+});
+app.use((req, res, next) => {
+    console.log("E_URL_NOT_CACHED: "+req.method + " " + req.url);
+    res.status(404).send("E_404");
 });
 
 app.listen(port, () => {

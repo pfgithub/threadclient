@@ -264,6 +264,8 @@ type IDMapData = {
     // just use the id directly and getPostData will(todo) handle it.
     kind: "subreddit_unloaded",
     listing: Reddit.Listing,
+    pathraw: string, // not sure if this is good to have. i'm using it to copy the path and put ?after=… on it but
+    // maybe we should use /...details.base?after=…
     details: "unknown" | SubrInfo,
     missing_replies?: undefined | true,
 } | {
@@ -334,6 +336,7 @@ export function page2FromListing(
                 },
             },
             details: path.kind === "comments" ? path.sub : "unknown",
+            pathraw,
             missing_replies: true,
             // the reason there are two seperate calls are because that way we can
             // easily get the id of the focused post
@@ -388,6 +391,7 @@ export function page2FromListing(
             kind: "subreddit_unloaded",
             listing: page,
             details: path.kind === "subreddit" ? path.sub : "unknown",
+            pathraw,
         };
         setUpMap(id_map, sr_entry);
 
@@ -823,7 +827,25 @@ function postDataFromListingMayError(
             replies.push(getPostData(content, map, getPostFullname(child, undefined)));
         }
         if(entry.data.listing.data.after != null) {
-            replies.push(getPostData(content, map, "TODO next" as ID));
+            const next_path = updateQuery(entry.data.pathraw, {
+                before: undefined,
+                after: entry.data.listing.data.after,
+            });
+            replies.push(createSymbolLinkToValue<Generic.Post>(content, {
+                kind: "loader",
+                parent: null,
+                replies: null,
+                url: null,
+                client_id: client.id,
+
+                load_count: null,
+                autoload: false, // we can make this true if the user wants auto next page. eg autoload: "next_page"
+                key: loader_enc.encode({
+                    kind: "link_replies",
+                    // interestingly, these posts will make a new subreddit_unloaded for their parents
+                    url: next_path,
+                }),
+            }));
         }
 
         const url = entry.data.details === "unknown" ? null : "/"+entry.data.details.base.join("/");
@@ -1068,7 +1090,8 @@ export async function loadPage2(
 
     if(data.kind === "link_replies") {
         const res = await getPage(data.url);
-        return returnListing(res.content, (res.content[res.pivot] as {data: Generic.Post}).data.replies);
+        const listing = (res.content[res.pivot] as {data: Generic.Post}).data.replies;
+        return returnListing(res.content, listing);
     }else if(data.kind === "more") {
         throw new Error("TODO more");
     }else if(data.kind === "vertical") {
