@@ -1126,7 +1126,7 @@ export const client: ThreadClient = {
         for(const descendant of context.descendants) {
             const newpost: Generic.Post = {
                 kind: "post",
-                parent: "post_"+dec.center_id as Generic.Link<Generic.Post>,
+                parent: "post_"+descendant.in_reply_to_id as Generic.Link<Generic.Post>,
                 replies: repliesFor(descendant.id),
                 url: "/"+dec.host+"/statuses/"+descendant.id, // maybe url should be in the content
                 content: postToGeneric(dec.host, descendant, {}),
