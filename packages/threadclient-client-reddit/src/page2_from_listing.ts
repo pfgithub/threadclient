@@ -206,7 +206,8 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                                 rt.link(client, "https://www.redditstatus.com/", {}, rt.txt("Reddit is working")),
                             ),
                             rt.ili(
-                                rt.txt("If your browser has tracking protection, try disabling it."),
+                                rt.txt("If your browser has tracking protection, try disabling it. Tracking prevention "
+                                +"often blocks requests to social media sites, such as Reddit."),
                             ),
                         ),
                     ]},
