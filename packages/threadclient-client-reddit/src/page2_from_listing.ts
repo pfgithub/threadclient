@@ -1,5 +1,5 @@
 import * as Generic from "api-types-generic";
-import { rt } from "api-types-generic";
+import { p2, rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { assertNever, encodeQuery, switchKind } from "tmeta-util";
@@ -51,7 +51,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
         if(parsed.kind === "link_out") {
             return {
                 content,
-                pivot: createSymbolLinkToValue<Generic.Post>(content, {
+                pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
                     content: {
@@ -72,7 +72,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
         }else if(parsed.kind === "todo") {
             return {
                 content,
-                pivot: createSymbolLinkToValue<Generic.Post>(content, {
+                pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
                     content: {
@@ -102,7 +102,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
         }else if(parsed.kind === "redirect") {
             return {
                 content,
-                pivot: createSymbolLinkToValue<Generic.Post>(content, {
+                pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
                     content: {
@@ -126,7 +126,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             const sidebar_listing = await getSidebar(content, parsed.sub);
             return {
                 content,
-                pivot: createSymbolLinkToValue<Generic.Post>(content, {
+                pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
                     content: {
@@ -175,7 +175,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
 
         if(is_networkerror) return {
             content,
-            pivot: createSymbolLinkToValue<Generic.Post>(content, {
+            pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                 kind: "post",
                 client_id: client.id,
                 content: {
@@ -226,12 +226,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
 
         throw err;
     }
-}
-
-export function createSymbolLinkToValue<T>(content: Generic.Page2Content, value: T): Generic.Link<T> {
-    const link = createLink<T>("immediate value");
-    content[link] = {data: value};
-    return link;
 }
 
 
@@ -435,7 +429,7 @@ function getSrId(sub: "unknown" | SubrInfo): ID {
 function unsupportedPage(
     content: Generic.Page2Content, pathraw: string, page: unknown,
 ): Generic.Link<Generic.PostData> {
-    return createSymbolLinkToValue<Generic.PostData>(content, {
+    return p2.createSymbolLinkToValue<Generic.PostData>(content, {
         kind: "post",
         client_id: client.id,
         parent: null,
@@ -588,18 +582,12 @@ export function setUpMap(
 
     map.set(entry_fullname, {
         kind: "unprocessed",
-        link: createLink("id: "+entry_fullname),
+        link: p2.symbolLink("id: "+entry_fullname), // oh, interesting. we're giving threadclient symbol ids for
+        // everything. that doesn't seem right
         data,
     });
 
     return entry_fullname;
-}
-
-export function createSymbolLinkToError(content: Generic.Page2Content, emsg: string, data: unknown): Generic.Link<any> {
-    // TODO provide data for additional info about the error
-    const link = createLink<any>("immediate error value");
-    content[link] = {error: emsg};
-    return link;
 }
 
 // returns a pointer to the PostData
@@ -608,7 +596,7 @@ export function getPostData(content: Generic.Page2Content, map: IDMap, key: ID):
     const value = map.get(key);
     if(!value) {
         // TODO determine which load more to use
-        return createSymbolLinkToError(
+        return p2.createSymbolLinkToError(
             content,
             "post was not found in tree (TODO load more) ("+key+")",
             {content, map, key},
@@ -665,7 +653,7 @@ function postDataFromListingMayError(
         if(entry.data.missing_replies ?? false) {
             //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
             if(listing.replies && listing.replies.data.children.length > 0) {
-                const lr_sym = createSymbolLinkToValue<Generic.Loader>(content, {
+                const lr_sym = p2.createSymbolLinkToValue<Generic.Loader>(content, {
                     kind: "loader",
 
                     key: loader_enc.encode({
@@ -713,7 +701,7 @@ function postDataFromListingMayError(
             url: updateQuery(listing.permalink, {context: "3"}),
 
             parent: entry.data.parent_fullname !== listing.parent_id ? (
-                createSymbolLinkToValue<Generic.Loader>(content, {
+                p2.createSymbolLinkToValue<Generic.Loader>(content, {
                     kind: "loader",
                     parent: getPostData(content, map, entry.data.parent_fullname as ID),
                     replies: null, // this is a vertical loader
@@ -779,7 +767,7 @@ function postDataFromListingMayError(
                     entry.data.replies.data.children.map((reply): Generic.Link<Generic.Post> => (
                         getPostData(content, map, getPostFullname(reply, {parent_fullname: listing.name}))
                     ))
-                ): [createSymbolLinkToValue(content, {
+                ): [p2.createSymbolLinkToValue(content, {
                     kind: "loader",
                     key: loader_enc.encode({
                         kind:"parent_permalink",
@@ -838,7 +826,7 @@ function postDataFromListingMayError(
                 before: undefined,
                 after: entry.data.listing.data.after,
             });
-            replies.push(createSymbolLinkToValue<Generic.Post>(content, {
+            replies.push(p2.createSymbolLinkToValue<Generic.Post>(content, {
                 kind: "loader",
                 parent: null,
                 replies: null,
@@ -865,7 +853,7 @@ function postDataFromListingMayError(
             replies: {
                 display: "repivot_list",
                 items: entry.data.missing_replies ? [
-                    createSymbolLinkToValue(content, {
+                    p2.createSymbolLinkToValue(content, {
                         kind: "loader",
                         key: loader_enc.encode({
                             kind: "link_replies",
@@ -1064,11 +1052,6 @@ const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
 // - /comments/omvrb7/a/h6yus3q/?context=3 - a vertical loader is needed above the highest post
 // TO FIND:
 // - a depth-based horizontal loader
-
-function createLink<T>(debug_msg: string): Generic.Link<T> {
-    const value = Symbol(debug_msg) as Generic.Link<T>;
-    return value;
-}
 
 export async function loadPage2(
     key: Generic.Link<Generic.Post>,

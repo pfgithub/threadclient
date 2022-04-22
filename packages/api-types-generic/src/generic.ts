@@ -6,6 +6,25 @@ export type Page2Content = {
     [key: string | symbol]: {data: unknown} | {error: string} | undefined,
 };
 
+export const p2 = {
+    symbolLink<T>(debug_msg: string): Link<T> {
+        const value = Symbol(debug_msg) as Link<T>;
+        return value;
+    },
+    createSymbolLinkToError(content: Page2Content, emsg: string, data: unknown): Link<any> {
+        // TODO provide data for additional info about the error
+        const link = p2.symbolLink<any>("immediate error value");
+        content[link] = {error: emsg};
+        return link;
+    },
+    createSymbolLinkToValue<T>(content: Page2Content, value: T): Link<T> {
+        const link = p2.symbolLink<T>("immediate value");
+        content[link] = {data: value};
+        return link;
+    },
+};
+
+
 export type Page2 = {
     pivot: Link<Post>,
     content: Page2Content,
