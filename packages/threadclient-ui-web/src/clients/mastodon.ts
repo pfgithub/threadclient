@@ -26,7 +26,7 @@ function getNavbar(host: string | null): Generic.Navbar {
     ], inboxes: []};
 }
 
-const error404 = (host: string | null, msg = "404 not found"): Generic.Page => ({
+const error404 = (host: string | null, msg: string): Generic.Page => ({
     title: "Error",
     navbar: getNavbar(host),
     body: {kind: "one", item: {parents: [{
@@ -935,7 +935,7 @@ export const client: ThreadClient = {
             }, [], (account_info.display_name ?? "") + " (" + account_info.acct + ")");
         }else if(parsed.kind === "notifications") {
             const notifications = await getResult<Mastodon.Notification[]>(auth, mkurl(host, "api/v1/notifications"));
-            if('error' in notifications) return error404("error: "+notifications.error);
+            if('error' in notifications) return error404(host, "error: "+notifications.error);
             const notification_types = {
                 follow: "Someone followed you",
                 follow_request: "Someone requested to follow you",
@@ -1056,7 +1056,7 @@ async function timelineView(host: string, auth: undefined | TokenResult, api_pat
     const thisurl = mkurl(host, api_path);
     const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
 
-    if('error' in posts) return error404("Error! "+posts.error);
+    if('error' in posts) return error404(host, "Error! "+posts.error);
 
     const last_post = posts[posts.length - 1];
 
