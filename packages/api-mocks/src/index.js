@@ -34,16 +34,34 @@ function toSafeFilename(req) {
     return __dirname + "/../data/" + fsafe(req["@origin"]) + "/" + fsafe(`${req.method} ${req.url}`);
 }
 
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Content-Length, X-Requested-With");
+
+    res.header("Content-Type", "application/json");
+    res.header("Content-Disposition", "inline; filename=\"a.json\"");
+
+    if (req.method.toUpperCase() === "OPTIONS") {
+        return res.sendStatus(200);
+    }
+    return next();
+});
+
 app.use("/mock", (req, res, next) => {
     const urlv = req.url.replace("/", "");
     const urlq = new URL(urlv);
 
     req["@origin"] = urlq.origin;
 
-    req.url = urlq.pathname+(urlq.query || "");
+    req.url = urlq.pathname+urlq.search;
     return next();
 });
 app.use("/mock", (req, res, next) => {
+    if(req.method.toLowerCase() === "options") {
+        return res.sendStatus(200);
+    }
+
     const urlv = toSafeFilename(req);
     try {
         const file = fs.readFileSync(urlv);
