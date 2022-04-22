@@ -272,6 +272,9 @@ type IDMapData = {
     details: "unknown" | SubrInfo,
     missing_replies?: undefined | true,
 } | {
+    kind: "subreddit_sidebar_unloaded",
+    sub: "unknown" | SubrInfo,
+} | {
     kind: "depth_more",
     // a Reddit.More with 0 children
     item: Reddit.More,
@@ -337,6 +340,12 @@ export function page2FromListing(
             },
             details: path.kind === "comments" ? path.sub : "unknown",
             missing_replies: true,
+            // the reason there are two seperate calls are because that way we can
+            // easily get the id of the focused post
+            //
+            // why can't we just put the child in the subreddit_unloaded and specify the id of the item?
+            // - because then the post doesn't have replies
+            // hmm
         };
         setUpMap(id_map, sr_entry);
 
@@ -413,7 +422,8 @@ export function page2FromListing(
     return unsupportedPage(content, pathraw, page);
 }
 
-function getSrId(sub: SubrInfo): ID {
+function getSrId(sub: "unknown" | SubrInfo): ID {
+    if(sub === "unknown") return "SR_unknown" as ID;
     if(sub.kind === "homepage") {
         return "SR_home" as ID;
     }else if(sub.kind === "mod") {
@@ -464,13 +474,15 @@ function getEntryFullname(entry: IDMapData): ID {
     }else if(entry.kind === "post") {
         return entry.post.data.name as ID;
     }else if(entry.kind === "subreddit_unloaded") {
-        return (entry.details === "unknown" ? "__UNKNOWN_LISTING_ROOT" as ID : getSrId(entry.details));
+        return getSrId(entry.details);
     }else if(entry.kind === "depth_more") {
         return "DEPTH_MORE_"+entry.parent_id as ID;
     }else if(entry.kind === "more") {
         return "MORE_"+entry.item.data.children.join(",") as ID;
     }else if(entry.kind === "wikipage") {
-        return "WIKIPAGE_there_should_only_be_one" as ID;
+        return "WIKIPAGE_"+entry.pathraw as ID;
+    }else if(entry.kind === "subreddit_sidebar_unloaded") {
+        return "SIDEBAR_"+getSrId(entry.sub) as ID;
     }else assertNever(entry);
 }
 
@@ -571,11 +583,17 @@ export function setUpMap(
         for(const post of data.listing.data.children) {
             setUpCommentOrUnmounted(map, post, "not_loaded");
         }
+        setUpMap(map, {
+            kind: "subreddit_sidebar_unloaded",
+            sub: data.details,
+        });
     }else if(data.kind === "more") {
         // nothing to do
     }else if(data.kind === "depth_more") {
         // nothing to do
     }else if(data.kind === "wikipage") {
+        // nothing to do
+    }else if(data.kind === "subreddit_sidebar_unloaded") {
         // nothing to do
     }else assertNever(data);
 
@@ -852,21 +870,9 @@ function postDataFromListingMayError(
                         // return a loader with load_on_view: true
                         // also use load_on_view for any loader that should not be seen by default but
                         // might be seen on a repivot
-                        items: entry.data.details === "unknown" ? [] : [createSymbolLinkToValue(content, {
-                            kind: "loader",
-                            key: loader_enc.encode({
-                                kind: "sidebar",
-                                sub: entry.data.details,
-                            }),
-
-                            parent: entry.link,
-                            replies: null,
-                            client_id: client.id,
-                            url: null,
-                            load_count: null,
-
-                            autoload: true,
-                        })],
+                        items: entry.data.details === "unknown" ? [] : [
+                            getPostData(content, map, "SIDEBAR_"+getSrId(entry.data.details) as ID)
+                        ],
                     },
                     // v TODO: this should be a loader but [!] it is linked to the loader above.
                     //   only one at a time should load and loading one should fill in both.
@@ -969,6 +975,41 @@ function postDataFromListingMayError(
             },
             internal_data: entry.data,
             display_style: "centered",
+        };
+    }else if(entry.data.kind === "subreddit_sidebar_unloaded") {
+        if(entry.data.sub === "unknown") return {
+            kind: "post",
+            parent: getPostData(content, map, getSrId(entry.data.sub)),
+            replies: null,
+            client_id: client.id,
+            url: null,
+            
+            display_style: "centered", // @TODO remove this
+            content: {
+                kind: "post", // we should have a kind: "error", it would be useful
+                title: {text: "Unknown URL"},
+                body: {kind: "richtext", content: [
+                    rt.p(rt.txt("ThreadClient doesn't know how to display this URL.")),
+                    rt.p(rt.link({id: client.id}, "TODO", {}, rt.txt("TODO;add 'view on reddit' link"))),
+                ]},
+                collapsible: false,
+            },
+            internal_data: entry,
+        };
+        return {
+            kind: "loader",
+            key: loader_enc.encode({
+                kind: "sidebar",
+                sub: entry.data.sub,
+            }),
+
+            parent: getPostData(content, map, getSrId(entry.data.sub)),
+            replies: null,
+            client_id: client.id,
+            url: null, // we can actually give this a url - it links to /…subreddit.base/@sidebar
+            load_count: null,
+
+            autoload: true,
         };
     } else assertNever(entry.data);
 }
