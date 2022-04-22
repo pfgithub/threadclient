@@ -117,7 +117,7 @@ export type PostContentPost = {
     kind: "post",
 
     title: null | {
-        text: string,
+        text: string, // make this null | string instead of this null | {text: string} thing
     },
     flair?: Flair[] | undefined, // maybe content warnings should be seperate
     thumbnail?: Thumbnail | undefined,

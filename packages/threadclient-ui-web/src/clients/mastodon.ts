@@ -7,6 +7,8 @@ import type * as Mastodon from "api-types-mastodon";
 import { mnu, rt } from "api-types-generic";
 import { oembed } from "./oembed";
 
+() => [bodyPage, parseContentSpanHTML, htmlToPlaintext, postArrayToReparentedThread, mnu]; // TODO
+
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
 function getNavbar(host: string | null): Generic.Navbar {
@@ -362,60 +364,41 @@ function parseContentSpanHTML(host: string, content: string, meta: ParseContentM
     const [genmeta, children] = setupGenMeta(host, content, meta);
     return contentSpansToRichtextSpans(genmeta, children);
 }
-function postToThread(
+function postToThread(...a: unknown[]): never {
+    throw new Error("DELETE");
+}
+function postToGeneric(
     host: string,
     post: Mastodon.Post,
     opts: {
-        replies?: undefined | Generic.Thread[],
         reblogged_by?: undefined | Generic.RebloggedBy,
     } = {},
-): Generic.Thread {
+): Generic.PostContent {
     try {
-        return postToThreadCanError(host, post, opts);
+        return postToGenericCanError(host, post, opts);
     } catch(e) {
         return {
-            kind: "thread",
+            kind: "post",
             title: {text: "Error!"},
             body: {kind: "richtext", content: [rt.p(rt.error("Error "+(e as Error).toString(), e))]},
-            display_mode: {body: "visible", comments: "collapsed"},
-            link: "/"+host+"/statuses/"+post.id,
-            layout: "reddit-post",
-            default_collapsed: false,
-            actions: [],
-            raw_value: [host, post, opts],
+            collapsible: false,
         };
     }
 }
-function postToThreadCanError(
+function postToGenericCanError(
     host: string,
     post: Mastodon.Post,
     opts: {
-        replies?: undefined | Generic.Thread[],
         reblogged_by?: undefined | Generic.RebloggedBy,
     } = {},
-): Generic.Thread {
-    const info: Generic.Info = {
-        time: new Date(post.created_at).getTime(),
-        edited: false,
-        author: {
-            name: post.account.display_name + " (@"+post.account.acct+")",
-            client_id: client.id,
-            color_hash: post.account.username,
-            link: "/"+host+"/accounts/"+post.account.id,
-            flair: post.account.bot ? [{elems: [{kind: "text", text: "bot"}], content_warning: false}] : [],
-            pfp: {
-                url: post.account.avatar_static,
-                hover: post.account.avatar,
-            },
-        },
-        reblogged_by: opts.reblogged_by,
-        pinned: false,
-    };
+): Generic.PostContent {
     if(post.reblog) {
-        return postToThread(host, post.reblog, {...opts, reblogged_by: info});
+        throw new Error("TODO SUPPORT REBLOG");
+        // return postToThread(host, post.reblog, {...opts, reblogged_by: info});
     }
-    const res: Generic.Thread = {
-        kind: "thread",
+    const res: Generic.PostContent = {
+        kind: "post",
+        title: null,
         body: {
             kind: "array",
             body: [
@@ -434,15 +417,27 @@ function postToThreadCanError(
                 post.card ? oembed(post.card, client.id) : undefined,
             ],
         },
-        display_mode: {body: "visible", comments: "visible"},
-        link: "/"+host+"/statuses/"+post.id,
-        layout: "mastodon-post",
-        info,
-        flair: post.sensitive || post.spoiler_text ? [{content_warning: post.sensitive, elems: [{kind: "text", text: post.spoiler_text || "Sensitive"}]}] : undefined,
-        actions: [
-            {kind: "link", client_id: client.id, url: "/"+host+"/statuses/"+post.id, text: post.replies_count + " repl"+(post.replies_count === 1 ? "y" : "ies")},
-            {kind: "link", client_id: client.id, url: post.uri, text: "Permalink"},
-            {kind: "counter",
+        collapsible: {default_collapsed: false},
+        info: {
+            creation_date: new Date(post.created_at).getTime(),
+            comments: post.replies_count,
+        },
+        author: {
+            name: post.account.display_name + " (@"+post.account.acct+")",
+            client_id: client.id,
+            color_hash: post.account.username,
+            link: "/"+host+"/accounts/"+post.account.id,
+            flair: post.account.bot ? [{elems: [{kind: "text", text: "bot"}], content_warning: false}] : [],
+            pfp: {
+                url: post.account.avatar_static,
+                hover: post.account.avatar,
+            },
+        },
+        flair: post.sensitive || post.spoiler_text ? [
+            {content_warning: post.sensitive, elems: [{kind: "text", text: post.spoiler_text || "Sensitive"}]},
+        ] : undefined,
+        actions: {
+            vote: {kind: "counter",
                 client_id: client.id,
                 unique_id: host+"/favourite/"+post.id+"/",
                 neutral_icon: "star",
@@ -465,10 +460,10 @@ function postToThreadCanError(
                     reset: action_encoder.encode({kind: "favourite", direction: "un", status: post.id, host}),
                 },
             },
-        ],
-        default_collapsed: false,
-        raw_value: post,
-        replies: opts.replies,
+            other: [
+                {kind: "link", client_id: client.id, url: post.uri, text: "Source"},
+            ],
+        },
     };
     return res;
 }
@@ -793,216 +788,256 @@ export const client: ThreadClient = {
         console.log(resv);
     },
 
-    getThread: async (pathraw): Promise<Generic.Page> => {
+    getPage: async (pathraw): Promise<Generic.Page2> => {
         const parsed = url_parser.parse(pathraw) ?? {kind: "404", reason: "This should never happen"};
 
         if(parsed.kind === "instance-selector") {
-            return bodyPage("", "Choose Instance", {
-                kind: "mastodon_instance_selector",
-                client_id: client.id,
-            });
+            throw new Error("TODO INSTANCE-SELECTOR (use a kind:special thing)");
+            // return bodyPage("", "Choose Instance", {
+            //     kind: "mastodon_instance_selector",
+            //     client_id: client.id,
+            // });
         }else if(parsed.kind === "404") {
-            return error404("", parsed.reason);
+            throw new Error("TODO 404 PAGE");
+            // return error404("", parsed.reason);
         }
         
         const host = parsed.host;
         const auth = await getAuth(host);
 
         if(parsed.kind === "instance-home") {
-            return bodyPage(host, "Links | "+host, {
-                kind: "richtext",
-                content: [
-                    rt.h1(rt.txt(host)),
-                    rt.ul(...([
-                        ["/"+host+"/timelines/public", "Federated Timeline"],
-                        ["/"+host+"/timelines/local", "Local Timeline"],
-                    ] as const).map(([url, text]) => rt.li(rt.p(rt.link(client, url, {}, rt.txt(text)))))),
-                ],
-            });
+            throw new Error("TODO INSTANCE HOME; CONSIDER MAKING THIS A TAB AND PUT SOME ABOUT HERE");
+            // return bodyPage(host, "Links | "+host, {
+            //     kind: "richtext",
+            //     content: [
+            //         rt.h1(rt.txt(host)),
+            //         rt.ul(...([
+            //             ["/"+host+"/timelines/public", "Federated Timeline"],
+            //             ["/"+host+"/timelines/local", "Local Timeline"],
+            //         ] as const).map(([url, text]) => rt.li(rt.p(rt.link(client, url, {}, rt.txt(text)))))),
+            //     ],
+            // });
         }else if(parsed.kind === "timeline") {
-            const timelines_navbar: Generic.Menu = [
-                mnu.link(client, "Home", "/"+host+"/timelines/home", parsed.tmname === "home"),
-                mnu.link(client, "Local", "/"+host+"/timelines/local", parsed.tmname === "local"),
-                mnu.link(client, "Federated", "/"+host+"/timelines/public", parsed.tmname === "public"),
-                mnu.link(client, "Notifications", "/"+host+"/notifications", false),
-            ];
-            return await timelineView(host, auth, parsed.api_path, pathraw, genericHeader(), timelines_navbar, "Timeline "+parsed.tmname);
+            throw new Error("TODO TIMELINE");
+            // const timelines_navbar: Generic.Menu = [
+            //     mnu.link(client, "Home", "/"+host+"/timelines/home", parsed.tmname === "home"),
+            //     mnu.link(client, "Local", "/"+host+"/timelines/local", parsed.tmname === "local"),
+            //     mnu.link(client, "Federated", "/"+host+"/timelines/public", parsed.tmname === "public"),
+            //     mnu.link(client, "Notifications", "/"+host+"/notifications", false),
+            // ];
+            // return await timelineView(host, auth, parsed.api_path, pathraw, genericHeader(), timelines_navbar, "Timeline "+parsed.tmname);
         }else if(parsed.kind === "status") {
-            const [postinfo, context] = await Promise.all([
-                getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", parsed.status)),
-                getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", parsed.status, "context")),
-            ]);
+            const post = await getResult<Mastodon.Post>(auth, mkurl(host, "api/v1/statuses", parsed.status));
+            // NOTE THAT THE PARENT AND REPLY LOADERS WILL BE LINKED LOADERS B/C SAME REQUEST; TODO ADD LINKED LOADERS
+            if('error' in post) {
+                throw new Error("ERRORED; "+post.error+"; TODO SHOW EMSG SCREEN");
+            }
 
-            if('error' in postinfo) return error404(host, "Error! "+postinfo.error);
-            if('error' in context) return error404(host, "Error! "+context.error);
-            
-            return {
-                title: postinfo.account.acct + " on Mastodon: \""+htmlToPlaintext(postinfo.content)+"\"",
-                navbar: getNavbar(host),
-                body: {
-                    kind: "one",
-                    item: {
-                        parents: [
-                            ...context.ancestors.map(a => postToThread(host, a)),
-                            postToThread(host, postinfo),
-                        ],
-                        replies: [
-                            ...postArrayToReparentedThread(host, postinfo.id, context.descendants),
-                        ],
-                    },
-                },
-                display_style: "comments-view",
+            const createSymbolLinkToError = (msg: string) => {
+                return Symbol("E "+msg) as Generic.Link<any>;
             };
+
+            const content: Generic.Page2Content = {};
+
+            const respost_link = "post_"+post.id as Generic.Link<Generic.PostData>;
+            const respost: Generic.PostData = {
+                kind: "post",
+                content: postToGeneric(host, post),
+                internal_data: post,
+
+                parent: post.in_reply_to_id != null ? createSymbolLinkToError("TODO LINKED PARENT LOADER") : null,
+                replies: {
+                    display: "tree",
+                    items: [createSymbolLinkToError("TODO LINKED REPLY LOADER")],
+                },
+                url: "/"+host+"/statuses/"+post.id,
+                client_id: client.id,
+            };
+            content[respost_link] = {data: respost};
+
+            return {
+                content,
+                pivot: respost_link,
+            };
+
+            // const [postinfo, context] = await Promise.all([
+            //     getResult<Mastodon.Post>(auth, mkurl(host, "api/v1", "statuses", parsed.status)),
+            //     getResult<{ancestors: Mastodon.Post[], descendants: Mastodon.Post[]}>(auth, mkurl(host, "api/v1", "statuses", parsed.status, "context")),
+            // ]);
+
+            // if('error' in postinfo) return error404(host, "Error! "+postinfo.error);
+            // if('error' in context) return error404(host, "Error! "+context.error);
+            
+            // return {
+            //     title: postinfo.account.acct + " on Mastodon: \""+htmlToPlaintext(postinfo.content)+"\"",
+            //     navbar: getNavbar(host),
+            //     body: {
+            //         kind: "one",
+            //         item: {
+            //             parents: [
+            //                 ...context.ancestors.map(a => postToThread(host, a)),
+            //                 postToThread(host, postinfo),
+            //             ],
+            //             replies: [
+            //                 ...postArrayToReparentedThread(host, postinfo.id, context.descendants),
+            //             ],
+            //         },
+            //     },
+            //     display_style: "comments-view",
+            // };
         }else if(parsed.kind === "account") {
-            const acc_id = parsed.account;
+            throw new Error("TODO SUPPORT ACCOUNT PAGE");
+            // const acc_id = parsed.account;
 
-            const [account_info, account_relations] = await Promise.all([
-                getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id)),
-                getResult<Mastodon.AccountRelation[]>(auth, mkurl(host, "api/v1/accounts/relationships/?id[]="+acc_id)),
-            ]);
+            // const [account_info, account_relations] = await Promise.all([
+            //     getResult<Mastodon.Account>(auth, mkurl(host, "api/v1", "accounts", acc_id)),
+            //     getResult<Mastodon.AccountRelation[]>(auth, mkurl(host, "api/v1/accounts/relationships/?id[]="+acc_id)),
+            // ]);
             
-            if('error' in account_info) return error404(host, "Error! "+account_info.error);
-            if('error' in account_relations) console.log(account_relations);
+            // if('error' in account_info) return error404(host, "Error! "+account_info.error);
+            // if('error' in account_relations) console.log(account_relations);
             
-            const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
+            // const relation = ('error' in account_relations ? [] : account_relations).find(acc => acc.id === acc_id);
 
-            const pcmeta: ParseContentMeta = {
-                emojis: account_info.emojis ?? [],
-                mentions: account_info.mentions ?? [],
-            };
+            // const pcmeta: ParseContentMeta = {
+            //     emojis: account_info.emojis ?? [],
+            //     mentions: account_info.mentions ?? [],
+            // };
 
-            return await timelineView(host, auth, parsed.api_url, pathraw, {
-                kind: "bio",
-                banner: {
-                    kind: "image",
-                    desktop: account_info.header_static ?? account_info.header ?? "none",
-                },
-                icon: {
-                    url: account_info.avatar_static ?? account_info.avatar ?? "none",
-                },
-                name: {
-                    display: account_info.display_name,
-                    link_name: account_info.acct,
-                },
-                body: {
-                    kind: "richtext",
-                    content: [...parseContentHTML(host, account_info.note, pcmeta), rt.table([
-                        rt.th(undefined, rt.txt("Key")),
-                        rt.th(undefined, rt.txt("Value")),
-                        rt.th(undefined, rt.txt("V")),
-                    ], ...account_info.fields.map((field): Generic.Richtext.TableItem[] => {
-                        return [
-                            rt.td(rt.txt(field.name)),
-                            rt.td(...parseContentSpanHTML(host, field.value, pcmeta)),
-                            rt.td(rt.txt(field.verified_at != null ? "✓" : "✗")),
-                        ];
-                    }))],
-                },
-                subscribe: {
-                    kind: "counter",
-                    client_id: client.id,
-                    unique_id: "/follow/"+account_info.id+"/",
-                    time: Date.now(),
-                    neutral_icon: "join",
-                    increment: {
-                        icon: "join",
-                        color: "white",
-                        label: account_info.locked ? "Request Follow" : "Follow",
-                        undo_label: "Following",
-                    },
-                    decrement: null,
-                    count_excl_you: account_info.followers_count === -1
-                        ? "hidden"
-                        : account_info.followers_count + (relation?.following ?? false ? -1 : 0)
-                    ,
-                    you: relation?.following ?? false ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
-                    style: "pill-filled",
-                    incremented_style: "pill-empty",
+            // return await timelineView(host, auth, parsed.api_url, pathraw, {
+            //     kind: "bio",
+            //     banner: {
+            //         kind: "image",
+            //         desktop: account_info.header_static ?? account_info.header ?? "none",
+            //     },
+            //     icon: {
+            //         url: account_info.avatar_static ?? account_info.avatar ?? "none",
+            //     },
+            //     name: {
+            //         display: account_info.display_name,
+            //         link_name: account_info.acct,
+            //     },
+            //     body: {
+            //         kind: "richtext",
+            //         content: [...parseContentHTML(host, account_info.note, pcmeta), rt.table([
+            //             rt.th(undefined, rt.txt("Key")),
+            //             rt.th(undefined, rt.txt("Value")),
+            //             rt.th(undefined, rt.txt("V")),
+            //         ], ...account_info.fields.map((field): Generic.Richtext.TableItem[] => {
+            //             return [
+            //                 rt.td(rt.txt(field.name)),
+            //                 rt.td(...parseContentSpanHTML(host, field.value, pcmeta)),
+            //                 rt.td(rt.txt(field.verified_at != null ? "✓" : "✗")),
+            //             ];
+            //         }))],
+            //     },
+            //     subscribe: {
+            //         kind: "counter",
+            //         client_id: client.id,
+            //         unique_id: "/follow/"+account_info.id+"/",
+            //         time: Date.now(),
+            //         neutral_icon: "join",
+            //         increment: {
+            //             icon: "join",
+            //             color: "white",
+            //             label: account_info.locked ? "Request Follow" : "Follow",
+            //             undo_label: "Following",
+            //         },
+            //         decrement: null,
+            //         count_excl_you: account_info.followers_count === -1
+            //             ? "hidden"
+            //             : account_info.followers_count + (relation?.following ?? false ? -1 : 0)
+            //         ,
+            //         you: relation?.following ?? false ? "increment" : undefined, // uuh how do I not know if I'm following or not…?
+            //         style: "pill-filled",
+            //         incremented_style: "pill-empty",
 
-                    actions: {
-                        increment: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: ""}),
-                        reset: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: "un"}),
-                    },
-                },
-                more_actions: [{
-                    kind: "link",
-                    client_id: client.id,
-                    url: account_info.url,
-                    text: "Permalink",
-                }],
-                menu: null, // … Posts | … Following | … Followers
-                // link: "/"+host+"/accounts/"+acc_id,
-                raw_value: account_info,
-            }, [], (account_info.display_name ?? "") + " (" + account_info.acct + ")");
+            //         actions: {
+            //             increment: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: ""}),
+            //             reset: action_encoder.encode({kind: "follow", account_id: account_info.id, host, direction: "un"}),
+            //         },
+            //     },
+            //     more_actions: [{
+            //         kind: "link",
+            //         client_id: client.id,
+            //         url: account_info.url,
+            //         text: "Permalink",
+            //     }],
+            //     menu: null, // … Posts | … Following | … Followers
+            //     // link: "/"+host+"/accounts/"+acc_id,
+            //     raw_value: account_info,
+            // }, [], (account_info.display_name ?? "") + " (" + account_info.acct + ")");
         }else if(parsed.kind === "notifications") {
-            const notifications = await getResult<Mastodon.Notification[]>(auth, mkurl(host, "api/v1/notifications"));
-            if('error' in notifications) return error404(host, "error: "+notifications.error);
-            const notification_types = {
-                follow: "Someone followed you",
-                follow_request: "Someone requested to follow you",
-                mention: "Someone mentioned you in a status",
-                reblog: "Someone reblogged your status",
-                favourite: "Someone favourited your status",
-                poll: "A poll you interacted with has ended",
-                status: "Smomeone you have notifications on for posted a status",
-                unsupported: "Unsupported notification type. Error.",
-            } as const;
-            return {
-                title: "Notifications",
-                navbar: getNavbar(host),
-                body: {
-                    kind: "listing",
-                    header: genericHeader(),
-                    menu: undefined,
-                    items: notifications.map((notif): Generic.UnmountedNode => {
-                        return {parents: [{
-                            kind: "thread",
-                            title: {text: notification_types[notif.type] ?? notification_types.unsupported},
-                            body: {kind: "none"},
-                            display_mode: {body: "visible", comments: "collapsed"},
-                            link: "/"+host+"/notifications/"+notif.id,
-                            layout: "reddit-post",
-                            default_collapsed: false,
-                            actions: [],
-                            raw_value: notif,
-                        }, ...notif.status ? [postToThread(host, notif.status)] : []], replies: []};
-                    }),
-                    next: undefined,
-                },
-                display_style: "comments-view",
-            };
+            throw new Error("TODO SUPPORT NOTIFICATIONS TAB");
+            // const notifications = await getResult<Mastodon.Notification[]>(auth, mkurl(host, "api/v1/notifications"));
+            // if('error' in notifications) return error404(host, "error: "+notifications.error);
+            // const notification_types = {
+            //     follow: "Someone followed you",
+            //     follow_request: "Someone requested to follow you",
+            //     mention: "Someone mentioned you in a status",
+            //     reblog: "Someone reblogged your status",
+            //     favourite: "Someone favourited your status",
+            //     poll: "A poll you interacted with has ended",
+            //     status: "Smomeone you have notifications on for posted a status",
+            //     unsupported: "Unsupported notification type. Error.",
+            // } as const;
+            // return {
+            //     title: "Notifications",
+            //     navbar: getNavbar(host),
+            //     body: {
+            //         kind: "listing",
+            //         header: genericHeader(),
+            //         menu: undefined,
+            //         items: notifications.map((notif): Generic.UnmountedNode => {
+            //             return {parents: [{
+            //                 kind: "thread",
+            //                 title: {text: notification_types[notif.type] ?? notification_types.unsupported},
+            //                 body: {kind: "none"},
+            //                 display_mode: {body: "visible", comments: "collapsed"},
+            //                 link: "/"+host+"/notifications/"+notif.id,
+            //                 layout: "reddit-post",
+            //                 default_collapsed: false,
+            //                 actions: [],
+            //                 raw_value: notif,
+            //             }, ...notif.status ? [postToThread(host, notif.status)] : []], replies: []};
+            //         }),
+            //         next: undefined,
+            //     },
+            //     display_style: "comments-view",
+            // };
         }else if(parsed.kind === "raw") {
-            const result = await getResult<unknown>(auth, "https://"+host+parsed.path);
-            return {
-                title: "Error View",
-                navbar: getNavbar(host),
-                body: {
-                    kind: "one",
-                    item: {
-                        parents: [{
-                            kind: "thread",
-                            raw_value: result,
-                            body: {kind: "richtext", content: [rt.pre(JSON.stringify(result, null, "\t"), "json")]},
-                            display_mode: {body: "visible", comments: "visible"},
-                            link: parsed.path,
-                            layout: "error",
-                            actions: [],
-                            default_collapsed: false,
-                        }],
-                        replies: [],
-                    },
-                },
-                sidebar: [{
-                    kind: "widget",
-                    title: "Raw",
-                    widget_content: {kind: "body", body: {kind: "richtext", content: [
-                        rt.p(rt.txt("This is a raw page.")),
-                        rt.p(rt.link(client, parsed.path, {}, rt.txt("View Rendered"))),
-                    ]}},
-                    raw_value: parsed,
-                }],
-                display_style: "comments-view",
-            };
+            throw new Error("TODO SUPPORT RAW VIEW");
+            // const result = await getResult<unknown>(auth, "https://"+host+parsed.path);
+            // return {
+            //     title: "Error View",
+            //     navbar: getNavbar(host),
+            //     body: {
+            //         kind: "one",
+            //         item: {
+            //             parents: [{
+            //                 kind: "thread",
+            //                 raw_value: result,
+            //                 body: {kind: "richtext", content: [rt.pre(JSON.stringify(result, null, "\t"), "json")]},
+            //                 display_mode: {body: "visible", comments: "visible"},
+            //                 link: parsed.path,
+            //                 layout: "error",
+            //                 actions: [],
+            //                 default_collapsed: false,
+            //             }],
+            //             replies: [],
+            //         },
+            //     },
+            //     sidebar: [{
+            //         kind: "widget",
+            //         title: "Raw",
+            //         widget_content: {kind: "body", body: {kind: "richtext", content: [
+            //             rt.p(rt.txt("This is a raw page.")),
+            //             rt.p(rt.link(client, parsed.path, {}, rt.txt("View Rendered"))),
+            //         ]}},
+            //         raw_value: parsed,
+            //     }],
+            //     display_style: "comments-view",
+            // };
         }
         assertNever(parsed);
     },
