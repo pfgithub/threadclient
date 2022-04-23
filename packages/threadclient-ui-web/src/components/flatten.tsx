@@ -73,7 +73,7 @@ export type FlatItem = ({
 
 export type FlatPost = {
     kind: "post",
-    content: Generic.PostNotLoaded, // note rather than generic.post we can be fancier to reduce complexity when rendering
+    content: FlatTreeItem, // note rather than generic.post we can be fancier to reduce complexity when rendering
     indent: CollapseButton[],
     collapse: CollapseButton | null,
     first_in_wrapper: boolean,
@@ -85,10 +85,30 @@ export type FlatPost = {
     at_or_above_pivot: boolean,
     threaded: boolean,
     depth: number,
-    id: Generic.Link<Generic.Post>,
 
     displayed_in: "tree" | "repivot_list",
 };
+
+export type FlatLoader = {
+    kind: "flat_loader",
+} & Generic.BaseLoader;
+export type FlatTreeItem = {
+    kind: "error",
+    msg: string,
+} | {
+    kind: "flat_post",
+    link: Generic.Link<Generic.Post>,
+    post: Generic.Post,
+} | FlatLoader;
+
+function loaderToFlatLoader(loader: Generic.HorizontalLoader | Generic.VerticalLoader): FlatLoader {
+    return {
+        kind: "flat_loader",
+        load_count: loader.load_count,
+        request: loader.request,
+        client_id: loader.client_id,
+    };
+}
 
 const fi = {
     todo: (note: string, data: unknown): FlatItem => ({kind: "todo", note, data}),
@@ -104,7 +124,7 @@ export type RenderPostOpts = {
     displayed_in: "tree" | "repivot_list",
 };
 
-function unwrapPost(post: Generic.PostNotLoaded): Generic.PostNotLoaded {
+function unwrapPost(post: Generic.Post): Generic.Post {
     if(post.kind === "post") {
         if(post.content.kind === "special") {
             return {...post, content: post.content.fallback};
@@ -137,38 +157,39 @@ export function postContentCollapseInfo(content: Generic.PostContent, opts: Post
         }
     }else return {default_collapsed: false, user_controllable: false};
 }
-export function postCollapseInfo(post: Generic.PostNotLoaded, opts: PostContentCollapseInfoOpts): CollapseInfo {
-    if(post.kind === "post") {
-        return postContentCollapseInfo(post.content, opts);
+export function postCollapseInfo(post: FlatTreeItem, opts: PostContentCollapseInfoOpts): (CollapseInfo & {
+    collapse_link: Generic.Link<Generic.Post>,
+}) | ({
+    default_collapsed: boolean,
+    user_controllable: false,
+}) {
+    if(post.kind === "flat_post") {
+        return {...postContentCollapseInfo(post.post.content, opts), collapse_link: post.link};
     }else return {default_collapsed: false, user_controllable: false};
 }
 
-export function renderPost(
-    post_link: Generic.Link<Generic.PostNotLoaded>,
+export function renderTreeItem(
+    tree_item: FlatTreeItem,
     parent_indent: CollapseButton[],
     meta: Meta,
     opts: RenderPostOpts,
-): FlatItem {
-    const post_read = readLink(meta, post_link);
-    if(post_read.error != null) return fi.err(post_read.error, post_link);
-    const post = unwrapPost(post_read.value);
-
-    const {default_collapsed, user_controllable: is_collapsible} = postCollapseInfo(post, opts);
-    const self_collapsed = getCState(
+): FlatPost {
+    const ci = postCollapseInfo(tree_item, opts);
+    const self_collapsed = ci.user_controllable ? getCState(
         meta.collapse_data,
-        post_link,
-        {default: default_collapsed},
-    ).collapsed();
+        ci.collapse_link,
+        {default: ci.default_collapsed},
+    ).collapsed() : ci.default_collapsed;
 
-    const final_indent: CollapseButton | null = is_collapsible ? {
-        id: post_link,
+    const final_indent: CollapseButton | null = ci.user_controllable ? {
+        id: ci.collapse_link,
         threaded: false,
         collapsed: self_collapsed,
     } : null;
 
     return {
         kind: "post",
-        content: post_read.value,
+        content: tree_item,
         indent: opts.threaded ? parent_indent.map((idnt, i, a) => {
             if(i === a.length - 1) {
                 return {...idnt, threaded: true};
@@ -183,68 +204,107 @@ export function renderPost(
         at_or_above_pivot: opts.at_or_above_pivot,
         threaded: opts.threaded,
         depth: opts.depth,
-        id: post_link,
 
         displayed_in: opts.displayed_in,
     };
 }
 
-function postReplies(listing: Generic.ListingData | null, meta: Meta): Generic.Link<Generic.PostNotLoaded>[] {
-    const res: Generic.Link<Generic.PostNotLoaded>[] = [];
+function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeItem[] {
+    const res: FlatTreeItem[] = [];
     
-    function addReplies(replies: Generic.Link<Generic.Post>[]) {
-        for(const reply of replies) {
+    function addReplies(replies: Generic.HorizontalLoader) {
+        const val = readLink(meta, replies.key);
+        if(val == null) {
+            res.push(loaderToFlatLoader(replies));
+            return;
+        }
+        if(val.error != null) {
+            res.push({kind: "error", msg: val.error});
+        }
+        for(const reply of val.value ?? []) {
             const readlink = readLink(meta, reply);
-            if(readlink.error != null) {
-                res.push(Symbol("error; "+readlink.error) as Generic.Link<Generic.PostNotLoaded>);
+            if(readlink == null) {
+                res.push({kind: "error", msg: "e-link-bad: "+reply.toString()});
+            } else if(readlink.error != null) {
+                res.push({kind: "error", msg: readlink.error});
             }else{
                 const rpli = readlink.value;
-                if(rpli.kind === "loaded") {
-                    addReplies(rpli.replies?.items ?? []);
+                if(rpli.kind === "horizontal_loader") {
+                    addReplies(rpli);
                 }else{
-                    res.push(reply as Generic.Link<Generic.PostNotLoaded>);
+                    res.push({
+                        kind: "flat_post",
+                        post: rpli,
+                        link: reply as Generic.Link<Generic.Post>,
+                    });
                 }
             }
         }
     }
-    addReplies(listing?.items ?? []);
+    if(listing) addReplies(listing.loader);
 
     return res;
 }
 
-export function flattenPost(
-    post_link: Generic.Link<Generic.PostNotLoaded>,
+export function flattenTreeItem(
+    tree_item: FlatTreeItem,
     parent_indent: CollapseButton[],
     meta: Meta,
     rpo: RenderPostOpts,
 ): FlatItem[] {
     const res: FlatItem[] = [];
 
-    const post_read = readLink(meta, post_link);
-    if(post_read.error != null) {
-        res.push(fi.err(post_read.error, post_link));
-        return res;
-    }
-    const post = unwrapPost(post_read.value);
-
-    const rres = renderPost(post_link, parent_indent, meta, rpo);
+    const rres = renderTreeItem(tree_item, parent_indent, meta, rpo);
     res.push(rres);
 
-    if(rres.kind !== "post") return res;
+    if(tree_item.kind !== "flat_post") {
+        return res;
+    }
+
+    const post = unwrapPost(tree_item.post);
 
     const indent_excl_self = rres.indent.map(v => v.threaded ? {...v, threaded: false} : v);
     const indent_incl_self: CollapseButton[] = [...indent_excl_self, ...rres.collapse ? [rres.collapse] : []];
 
-    const show_replies = rpo.displayed_in === "tree";
-    if(show_replies) {
+    const maybe_show_replies = rpo.displayed_in === "tree";
+    if(maybe_show_replies) {
         const replies = postReplies(post.replies, meta);
-        const replies_threaded = (
-            meta.settings?.allow_threading !== false
-        ) && replies.length === 1 && (rpo.threaded ? true : (
-            readLink(meta, replies[0]!).value?.replies?.items.length === 1
-        ));
-        if((replies_threaded && rpo.threaded) || !(rres.collapse?.collapsed ?? false)) for(const reply of replies) {
-            res.push(...flattenPost(
+        const replies_threaded = ((): boolean => {
+            if(meta.settings?.allow_threading === false) return false;
+            if(replies.length !== 1) return false;
+
+            // v here we wish we could return true. there's one reply, so we should thread right?
+            //    unfortunately, we also need to check if that reply has one reply too so we don't
+            //    mark something as threaded that immediately unthreads next comment.
+            //
+            // | comment one
+            // ⤷ comment two
+            // | | comment three
+            // | | comment four
+            // that's what we don't want happening.
+            //
+            // this could maybe be improved by doing threading in a second pass.
+
+            // ok wait a second i'm missing something still
+            // can't we tell comment two that the parent 'allows threading' and then only thread it if
+            // it has one reply?
+            // - no, because if something is threaded it needs to know in the 'renderTreeItem' call but we
+            //   won't be able to tell it until this if statement down here
+
+            if(rpo.threaded) return true;
+            const rply0 = replies[0]!;
+            if(rply0.kind !== "flat_post") return false;
+            const rply0rplies = postReplies(rply0.post.replies, meta);
+            if(rply0rplies.length !== 1) return false;
+            return true;
+        })();
+        const show_replies = ((): boolean => {
+            if(replies_threaded && rpo.threaded) return true;
+            if(!(rres.collapse?.collapsed ?? false)) return true;
+            return false;
+        })();
+        if(show_replies) for(const reply of replies) {
+            res.push(...flattenTreeItem(
                 reply,
                 rpo.threaded && replies_threaded ? indent_excl_self : indent_incl_self,
                 meta,
@@ -280,7 +340,10 @@ export function getCState(cst: CollapseData, id: Generic.Link<Generic.Post>, opt
     return untrack((): CollapseEntry => {
         const csv = cst.map.get(id);
         if(csv == null) {
-            if(!opts) throw new Error("accessing cstate before it has been created");
+            if(!opts) {
+                console.error("Eaccessing cstate", cst, {id});
+                throw new Error("accessing cstate before it has been created");
+            }
             const [hovering, setHovering] = createSignal(0);
             const [collapsed, setCollapsed] = createSignal(opts.default);
             const nv: CollapseEntry = {
@@ -305,54 +368,66 @@ type Meta = {
     },
 };
 
-function readLink<T>(meta: Meta, link: Generic.Link<T>): Generic.ReadLinkResult<T> {
+function readLink<T>(meta: Meta, link: Generic.Link<T>): null | Generic.ReadLinkResult<T> {
     const root_context = meta.content;
     return Generic.readLink(root_context, link);
 }
-function readLinkAssertFound<T>(meta: Meta, link: Generic.Link<T>): T {
-    const res = readLink(meta, link);
-    if(res.error != null) {
-        console.log("Failed to read link. Link:", link, "Result:", res, "Searching in", meta.content);
-        throw new Error("Could not read link; "+res.error);
-    }
-    return res.value;
-}
 
-type HighestArrayItem = ({
-    value: Generic.Link<Generic.PostNotLoaded>,
-} | {
-    error: string,
-}) & {
+function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): (FlatTreeItem & {
     pivot?: undefined | boolean,
-};
-function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArrayItem[] {
-    const res: HighestArrayItem[] = [];
+})[] {
+    const res: (FlatTreeItem & {
+        pivot?: undefined | boolean,
+    })[] = [];
 
-    function addOne(item: Generic.Link<Generic.Post>): Generic.Link<Generic.Post> | null {
-        const loaded = readLink(meta, item);
-        if(loaded.error != null) {
-            res.push({error: loaded.error});
-            return null;
-        }
-        const child = loaded.value;
+    // working around a typescript bug. we should probably check if this is fixed in the latest release
+    let highest = ((): Generic.Link<Generic.Post> | null => post)();
+    const setHighest = (nh: Generic.Link<Generic.Post> | null): void => void (highest = nh);
 
-        if(child.kind === "loaded") {
-            for(const reply of [...child.replies?.items ?? []].reverse()) {
-                void addOne(reply);
-            }
-            // should we return the first item of the replies array's parent?
-            // instead of the "loaded"'s parent?
-        }else{
-            res.push({value: item as Generic.Link<Generic.PostNotLoaded>});
-        }
-
-        return child.parent;
-    }
-
-    // for(let highest = post; highest; highest = addOne(highest));
-    let highest: Generic.Link<Generic.Post> | null = post;
     while(highest) {
-        highest = addOne(highest);
+        const postloaded = readLink(meta, highest);
+        if(postloaded == null) {
+            res.push({kind: "error", msg: "[flat]link not found: "+highest.toString()});
+            highest = null;
+            break;
+        }
+        if(postloaded.error != null) {
+            res.push({kind: "error", msg: postloaded.error});
+            setHighest(null);
+            break;
+        }
+        res.push({
+            kind: "flat_post",
+            link: highest,
+            post: postloaded.value,
+        });
+
+        const parent = postloaded.value.parent;
+        if(!parent) {
+            setHighest(null);
+            continue;
+        }
+
+        const {loader} = parent;
+        const loaded = readLink(meta, loader.key);
+        if(!loaded) {
+            // insert a loader and the temp_parent and then continue with temp_parent.parent
+            res.push(loaderToFlatLoader(loader));
+            setHighest(loader.temp_parent);
+            continue;
+        }
+        if(loaded.error != null) {
+            //^ loader.key resolves to an error
+            //v display both the error and the temp_parent
+            res.push({kind: "error", msg: loaded.error});
+            setHighest(loader.temp_parent);
+            continue;
+        }
+        // vv this is weird, isn't it?
+        // there are a bunch of conditions we'll check at the top of the next loop that we don't need to
+        // because the link is known good
+        setHighest(loaded.value == null ? null : loader.key as Generic.Link<Generic.Post>);
+        continue;
     }
 
     const rrlm0 = res[0];
@@ -374,14 +449,14 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): HighestArra
 // ok I have to think about what my goal with repivoting is and how to keep the data
 // structured well for repivoting with minimal perf impact
 
-function flattenTopLevelReplies(replies: Generic.ListingData | null, meta: Meta): FlatItem[] {
+function flattenTopLevelReplies(replies: Generic.PostReplies | null, meta: Meta): FlatItem[] {
     const res: FlatItem[] = [];
 
     if(replies?.reply) res.push(fi.todo("(add reply)", replies));
     const post_replies = postReplies(replies, meta);
     for(const reply of post_replies) {
         res.push({kind: "wrapper_start"});
-        res.push(...flattenPost(reply, [], meta, {
+        res.push(...flattenTreeItem(reply, [], meta, {
             first_in_wrapper: true,
             is_pivot: false,
             at_or_above_pivot: false,
@@ -403,16 +478,16 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
     let res_sidebar: FlatItem[] | null = null;
     let res_header: Generic.RedditHeader | null = null;
 
-    const pivot = readLinkAssertFound(meta, pivot_link);
+    const pivot_read = readLink(meta, pivot_link);
+    if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
+    const {value: pivot} = pivot_read;
 
     let title: string | null = null;
 
     const highest_arr = highestArray(pivot_link, meta);
     for(const item of highest_arr) {
-        if(!('error' in item)) {
-            const itmv = readLink(meta, item.value);
-            if(itmv.value == null) continue;
-            const post = unwrapPost(itmv.value);
+        if(item.kind === "flat_post") {
+            const post = unwrapPost(item.post);
             if(post.kind === "post" && post.content.kind === "page") {
                 const content = post.content;
                 if(res_sidebar == null) {
@@ -441,19 +516,15 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
         }
 
         res.push({kind: "wrapper_start"});
-        if('error' in item) {
-            res.push(fi.err(item.error, highest_arr));
-        }else{
-            res.push(renderPost(item.value, [], meta, {
-                first_in_wrapper: true,
-                at_or_above_pivot: true,
-                is_pivot: item.pivot ?? false,
-                threaded: false,
-                depth: 0,
-                displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
-                // note: the pivot is never clickable
-            }));
-        }
+        res.push(renderTreeItem(item, [], meta, {
+            first_in_wrapper: true,
+            at_or_above_pivot: true,
+            is_pivot: item.pivot ?? false,
+            threaded: false,
+            depth: 0,
+            displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
+            // note: the pivot is never clickable
+        }));
         res.push({kind: "wrapper_end"});
     }
 
@@ -490,8 +561,8 @@ export function autokey(items: FlatItem[]): (FlatItem & {[array_key]: unknown})[
     let i_excl_post = 0;
     const autokeyItem = (itm: FlatItem): FlatItem & {[array_key]: unknown} => {
         const key: {v: unknown} = (() => {
-            if(itm.kind === "post") {
-                return {v: itm.id};
+            if(itm.kind === "post" && itm.content.kind === "flat_post") {
+                return {v: itm.content.link};
             }
             i_excl_post += 1;
             return {v: i_excl_post};

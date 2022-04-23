@@ -126,6 +126,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     frame: null,
                     client_id: "",
                     flat_frame: null,
+                    id: null,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
@@ -230,6 +231,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     frame: null,
                     client_id: "n/a",
                     flat_frame: null,
+                    id: null,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
@@ -270,6 +272,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     frame: null,
                     client_id: "n/a",
                     flat_frame: null,
+                    id: null,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>
@@ -321,6 +324,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     frame: null,
                     client_id: "n/a",
                     flat_frame: null,
+                    id: null,
                 }} />
             </TopLevelWrapper>
         </SettingsSection>

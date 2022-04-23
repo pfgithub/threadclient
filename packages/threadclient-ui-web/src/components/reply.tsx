@@ -18,7 +18,7 @@ import { ClientContent, TopLevelWrapper } from "./page2";
 export default function ReplyEditor(props: {
     action: Generic.ReplyAction,
     onCancel: () => void,
-    onAddReply: (response: Generic.PostData) => void,
+    onAddReply: (response: Generic.Post) => void,
 }): JSX.Element {
     const settings = getSettings();
     const [baseContent, setBaseContent] = localStorageSignal(
@@ -137,6 +137,7 @@ export default function ReplyEditor(props: {
                     frame: null,
                     client_id: props.action.client_id,
                     flat_frame: null,
+                    id: null,
                 }}/>
             </TopLevelWrapper>;
         }}</Show>

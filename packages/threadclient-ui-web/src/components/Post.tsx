@@ -22,6 +22,7 @@ import { HSplit } from "./HSplit";
 import { InternalIcon, InternalIconRaw } from "./Icon";
 import InfoBar from "./InfoBar";
 import { A, LinkButton, UserLink } from "./links";
+import { postGetPage } from "./PageFlatItem";
 
 const decorative_alt = "";
 
@@ -65,7 +66,8 @@ function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
 export type ClientPostOpts = {
     // TODO: get rid of all of this except for flat_frame and maybe client_id. delete it. gone. gotten rid of.
     client_id: string,
-    frame: Generic.PostData | null, // oh and this too :(
+    frame: Generic.Post | null, // oh and this too :(
+    id: Generic.Link<Generic.Post> | null,
     flat_frame: null | FlatPost,
     collapse_data?: undefined | CollapseData, // oh we need this too unfortunately
 };
@@ -99,12 +101,14 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     const isPivot = () => props.opts.flat_frame?.is_pivot ?? false;
 
     const [visible, setVisible]: [Accessor<boolean>, Setter<boolean>] = (
-    props.opts.collapse_data && props.opts.flat_frame?.id) ?
+    props.opts.collapse_data && props.opts.id && props.opts.flat_frame) ?
     ((): [Accessor<boolean>, Setter<boolean>] => {
         const ff = props.opts.flat_frame;
         const pivot_signal = createSignal(true);
-        if(props.opts.flat_frame.is_pivot) return createSignal(true);
-        const cs = getCState(props.opts.collapse_data, ff.id);
+        if(ff.is_pivot) return createSignal(true);
+        const ci = collapseInfo();
+        if(!ci.user_controllable) return createSignal(!ci.default_collapsed);
+        const cs = getCState(props.opts.collapse_data, props.opts.id);
         const setter: Setter<boolean> = (nv) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return !cs.setCollapsed((pv): boolean => {
@@ -129,13 +133,9 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     const hprc = getWholePageRootContextOpt();
 
     const getPage = (): Generic.Page2 | undefined => {
-        if(!props.opts.flat_frame || !props.opts.frame) return undefined;
+        if(!props.opts.flat_frame) return undefined;
         if(!hprc) return undefined;
-        if(props.opts.frame.disallow_pivot ?? false) return undefined;
-        return {
-            pivot: props.opts.flat_frame.id,
-            content: hprc.content(),
-        };
+        return postGetPage(hprc, props.opts.flat_frame.content);
     };
 
     const getActions = useActions(() => props.content, () => props.opts);
@@ -166,7 +166,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         }}
                         real={true}
                         cstates={props.opts.collapse_data}
-                        id={props.opts.flat_frame?.id}
+                        id={props.opts.flat_frame?.collapse?.id ?? undefined}
                     />
                 </div>
             </Show>
@@ -211,7 +211,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         }}
                         real={true}
                         cstates={props.opts.collapse_data}
-                        id={props.opts.flat_frame?.id}
+                        id={props.opts.flat_frame?.collapse?.id ?? undefined}
                     />
                 </div>
             </Show>

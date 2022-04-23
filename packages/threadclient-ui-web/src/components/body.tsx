@@ -159,6 +159,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 client_id: xpost.client_id,
                 frame: null,
                 flat_frame: null,
+                id: null,
             }} />
         </TopLevelWrapper>,
         richtext: richtext => <div>
@@ -350,7 +351,7 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
         kind: "loading",
     } | {
         kind: "loaded",
-        frame: Generic.PostData,
+        frame: Generic.Post,
     } | {
         kind: "error",
         message: string,
@@ -381,6 +382,7 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
                 client_id: frame.client_id,
                 frame: frame,
                 flat_frame: null,
+                id: null,
             }} />,
             error: e => <div>
                 <button onClick={() => {

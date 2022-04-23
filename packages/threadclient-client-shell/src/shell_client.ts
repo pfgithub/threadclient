@@ -1,19 +1,20 @@
-import type * as Generic from "api-types-generic";
-import { rt } from "api-types-generic";
+import * as Generic from "api-types-generic";
+import { p2, rt } from "api-types-generic";
 import { ThreadClient } from "threadclient-client-base";
 
 export const client: ThreadClient = {
     id: "shell",
 
     async getPage(path: string): Promise<Generic.Page2> {
+        console.log("!!ALL_CONTENT", all_content);
+
         // we can just return all the content i guess
         // might be nice if we structured it so it can be dynamically imported in the future but this
         // is okay for now
-        const link = linkToPost("/"+path.split("/").filter(v => v && !v.startsWith("~")).join("/"));
+        const link = "/"+path.split("/").filter(v => v && !v.startsWith("~")).join("/") as Generic.Link<Generic.Post>;
         if(all_content[link] == null) return {
             pivot: link,
             content: {[link]: {data: autoPost({
-                url: link as string,
                 parent: null,
                 replies: null,
             }, {
@@ -21,7 +22,7 @@ export const client: ThreadClient = {
                     rt.p(rt.error("404 not found", "ERROR")),
                     rt.p(rt.link({id: client.id}, "/", {}, rt.txt("Back to homepage"))),
                 ],
-            }).post}},
+            })(link.toString() as AllLinks)}},
         };
         return {
             pivot: link,
@@ -85,40 +86,67 @@ function autoPostContent(value: AutoPostContentProps): (url: string) => Generic.
         },
     });
 }
-type AutoPostProps<T> = {
-    url: T,
+type AutoPostProps = {
     parent: null | AllLinks,
     replies: null | AllLinks[],
 };
-function autoPost<T extends string>(
-    props: AutoPostProps<T>,
-    content: AutoPostContentProps | ((url: T) => Generic.PostContentPost),
-): AllContentRawItemExtends<T> {
-    const {url, parent, replies} = props;
-    return {v: props.url, post: {
-        kind: "post",
-        parent: parent != null ? linkToPost(parent) : null,
-        replies: replies != null ? {display: "tree", items: replies.map(linkToPost)} : null,
-        url: url,
+function autoPost(
+    props: AutoPostProps,
+    content: AutoPostContentProps | ((url: AllLinks) => Generic.PostContentPost),
+): AllContentRawItem {
+    return url => {
+        const {parent, replies} = props;
+        return {
+            kind: "post",
+            parent: parent != null ? parentLink(linkToPost(parent)) : null,
+            replies: replies != null ? repliesLink(url, replies.map(linkToPost)) : null,
+            url: url,
+            client_id: client.id,
+            internal_data: props,
+            content: (typeof content === "function" ? content : autoPostContent(content))(url),
+        };
+    };
+}
+
+function u(cb: (v: AllLinks) => Generic.Post): AllContentRawItem {
+    return url => cb(url);
+}
+type AllContentRawItem = (url: AllLinks) => Generic.Post;
+type AllLinks = keyof typeof all_content_raw_dontuse;
+
+function parentLink(post: Generic.Link<Generic.Post>): Generic.PostParent {
+    const request_link = p2.stringLink<Generic.Opaque<"loader">>("loadparent_"+post.toString());
+    p2.fillLink(extra_content, request_link, 0 as unknown as Generic.Opaque<"loader">);
+    return {loader: {
+        kind: "vertical_loader",
+        key: post,
+        temp_parent: null,
+        load_count: null,
+        request: request_link,
         client_id: client.id,
-        internal_data: props,
-        content: (typeof content === "function" ? content : autoPostContent(content))(url),
     }};
 }
-
-function u<V extends string>(v: V, cb: (v: V) => Generic.Post): AllContentRawItemExtends<V> {
-    return {v, post: cb(v)};
+function repliesLink(post_id: AllLinks, replies: Generic.Link<Generic.Post>[]): Generic.PostReplies {
+    const key_link = p2.stringLink<Generic.Link<Generic.Post>[]>("replies_"+post_id.toString());
+    const request_link = p2.stringLink<Generic.Opaque<"loader">>("loadreplies_"+post_id.toString());
+    p2.fillLink(extra_content, key_link, replies);
+    p2.fillLink(extra_content, request_link, 0 as unknown as Generic.Opaque<"loader">);
+    return {
+        display: "tree",
+        loader: {
+            kind: "horizontal_loader",
+            key: key_link,
+            load_count: replies.length,
+            request: request_link,
+            client_id: client.id,
+        }
+    };
 }
-type AllContentRawItemExtends<V> = {
-    v: V,
-    post: Generic.Post,
-};
-// type AllLinks = (typeof all_content_raw_dontuse)["v"];
-// ^ dang it circular references. i think we have to use a Record<string, post> instead.
-type AllLinks = string;
 
-const all_content_raw_dontuse = [
-    u("/@special-navbar", url => ({
+const extra_content: Generic.Page2Content = {};
+
+const all_content_raw_dontuse = {
+    "/@special-navbar": () => u(url => ({
         kind: "post",
         parent: null,
         replies: null,
@@ -133,9 +161,9 @@ const all_content_raw_dontuse = [
             },
         },
     })),
-    u("/", url => ({
+    "/": () => u(url => ({
         kind: "post",
-        parent: linkToPost("/@special-navbar"),
+        parent: parentLink(linkToPost("/@special-navbar")),
         replies: null,
         url,
         client_id: client.id,
@@ -153,16 +181,14 @@ const all_content_raw_dontuse = [
         },
     })),
 
-    autoPost({
-        url: "/client-picker",
+    "/client-picker": () => autoPost({
         parent: "/",
         replies: [],
     }, {
         content: [rt.p(rt.txt("TODO client picker. should link to homepages for different clients."))],    
     }),
 
-    autoPost({
-        url: "/homepage/unthreading",
+    "/homepage/unthreading": () => autoPost({
         parent: "/",
         replies: ["/homepage/unthreading/0"],
     }, {
@@ -170,8 +196,7 @@ const all_content_raw_dontuse = [
             rt.txt("It often gets difficult to read long comment chains because the indentation gets too deep"),
         )],
     }),
-    autoPost({
-        url: "/homepage/unthreading/0",
+    "/homepage/unthreading/0": () => autoPost({
         parent: "/homepage/unthreading",
         replies: ["/homepage/unthreading/0/0"],
     }, {
@@ -179,8 +204,7 @@ const all_content_raw_dontuse = [
             rt.txt("ThreadClient improves this by unthreading comment chains, like this!"),
         )],
     }),
-    autoPost({
-        url: "/homepage/unthreading/0/0",
+    "/homepage/unthreading/0/0": () => autoPost({
         parent: "/homepage/unthreading/0",
         replies: [],
     }, {
@@ -189,9 +213,7 @@ const all_content_raw_dontuse = [
         )],
     }),
 
-    autoPost({
-        url: "/homepage/link-previews",
-        
+    "/homepage/link-previews": () => autoPost({
         parent: "/",
         replies: [],
     }, {
@@ -202,9 +224,7 @@ const all_content_raw_dontuse = [
         )],
     }),
 
-    autoPost({
-        url: "/homepage/repivot",
-        
+    "/homepage/repivot": () => autoPost({
         parent: "/",
         replies: ["/homepage/repivot/0", "/homepage/repivot/1"],
     }, {
@@ -216,9 +236,7 @@ const all_content_raw_dontuse = [
         )],
     }),
 
-    autoPost({
-        url: "/homepage/repivot/0",
-        
+    "/homepage/repivot/0": () => autoPost({
         parent: "/homepage/repivot",
         replies: [],
     }, {
@@ -226,9 +244,7 @@ const all_content_raw_dontuse = [
             rt.txt("Now you can see just the replies to the comment you pressed"),
         )],
     }),
-    autoPost({
-        url: "/homepage/repivot/1",
-        
+    "/homepage/repivot/1": () => autoPost({
         parent: "/homepage/repivot",
         replies: [],
     }, {
@@ -237,9 +253,7 @@ const all_content_raw_dontuse = [
         )],
     }),
 
-    autoPost({
-        url: "/homepage/swipe-actions",
-        
+    "/homepage/swipe-actions": () => autoPost({
         parent: "/",
         replies: [],
     }, {
@@ -248,9 +262,7 @@ const all_content_raw_dontuse = [
         )],
     }),
 
-    autoPost({
-        url: "/homepage/syntax-highlighting",
-            
+    "/homepage/syntax-highlighting": () => autoPost({
         parent: "/",
         replies: [],
     }, ((c = (v: string): Generic.Richtext.Paragraph[] => ([
@@ -264,9 +276,7 @@ const all_content_raw_dontuse = [
     ])) => ({
         content: c(JSON.stringify(c("{{value}}"), null, "  "))
     }))()),
-    autoPost({
-        url: "/homepage/braille-art-fix",
-
+    "/homepage/braille-art-fix": () => autoPost({
         parent: "/",
         replies: [],
     }, {
@@ -308,9 +318,7 @@ const all_content_raw_dontuse = [
             `.trim().split("\n").map(l => l.trim()).join("\n")),
         )],
     }),
-    autoPost({
-        url: "/homepage/percent-upvoted",
-        
+    "/homepage/percent-upvoted": () => autoPost({
         parent: "/",
         replies: [],
     }, {
@@ -318,9 +326,7 @@ const all_content_raw_dontuse = [
             rt.txt("TODO; Demonstrate % upvoted on a post"),
         )],
     }),
-    autoPost({
-        url: "/homepage/see-comment-markdown",
-        
+    "/homepage/see-comment-markdown": () => autoPost({
         parent: "/",
         replies: [],
     }, {
@@ -331,9 +337,7 @@ const all_content_raw_dontuse = [
              + "TODO; ADD CODE BUTTON CONTAINING THIS"
         },
     }),
-    autoPost({
-        url: "/homepage/pwa",
-        
+    "/homepage/pwa": () => autoPost({
         parent: "/",
         replies: [],
     }, {
@@ -341,9 +345,7 @@ const all_content_raw_dontuse = [
             rt.txt("TODO; Explain how to install ThreadClient as a PWA"),
         )],
     }),
-    autoPost({
-        url: "/homepage/offline-mode",
-        
+    "/homepage/offline-mode": () => autoPost({
         parent: "/",
         replies: [],
     }, {
@@ -351,9 +353,7 @@ const all_content_raw_dontuse = [
             rt.txt("TODO; Support Offline Mode and explain how to use it"),
         )],
     }),
-    autoPost({
-        url: "/homepage/hide-automod",
-        
+    "/homepage/hide-automod": () => autoPost({
         parent: "/",
         replies: [],
     }, {
@@ -362,9 +362,7 @@ const all_content_raw_dontuse = [
         )],
     }),
 
-    autoPost({
-        url: "/changelog",
-        
+    "/changelog": () => autoPost({
         parent: "/",
         replies: [
             // oh we could have sorting options on this
@@ -375,8 +373,7 @@ const all_content_raw_dontuse = [
     }),
     // v we could make changelog entries loaders so they don't have to be loaded in order to load the homepagee
     // put all the changelog stuff in "changelog.ts" or something
-    autoPost({
-        url: "/changelog/-N02c8ctxITU-BqvlytL", // "/~ThreadClient-Apr-19.-2022",
+    "/changelog/-N02c8ctxITU-BqvlytL": () => autoPost({
         parent: "/changelog",
         replies: [],
         // vv we could implement these as replies instead of just a richtext list
@@ -410,7 +407,7 @@ const all_content_raw_dontuse = [
             rt.ili(rt.txt("Set titles of some page2 pages now")),
         ],
     })),
-];
+};
 
 // ok changelog display
 // we can have a banner on update that doesn't go away until you press "dismiss"
@@ -454,6 +451,7 @@ function changelogEntry(props: {
     });
 }
 
-const all_content: Generic.Page2Content = Object.fromEntries(
-    all_content_raw_dontuse.map(itm => [itm.v, {data: itm.post}]),
+const evaluated_content = Object.fromEntries(
+    Object.entries(all_content_raw_dontuse).map(([k, v]) => [k, {data: v()(k as AllLinks)}]),
 );
+const all_content: Generic.Page2Content = {...extra_content, ...evaluated_content};

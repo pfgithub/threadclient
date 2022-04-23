@@ -30,6 +30,7 @@ export default function ClientPage(props: ClientPageProps): PageRes {
 
     const specialCB = createMemo((): null | SpecialCallback => {
         const value = readLink(hprc.content(), props.pivot);
+        if(value == null) return null;
         if(value.value == null) return null;
         const v = value.value;
         if(v.kind !== "post" || v.content.kind !== "special") return null;

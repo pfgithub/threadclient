@@ -6,14 +6,14 @@ import {
     untrack
 } from "solid-js";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
-import { getClientCached, navigate } from "../app";
+import { fetchClient, navigate } from "../app";
 import {
-    classes, DefaultErrorBoundary, getWholePageRootContext, size_lt, ToggleColor
+    classes, DefaultErrorBoundary, getWholePageRootContext, PageRootContext, size_lt, ToggleColor
 } from "../util/utils_solid";
 import { addAction } from "./action_tracker";
 import { Body } from "./body";
 import { CollapseButton } from "./CollapseButton";
-import { CollapseData, FlatItem, FlatPost, getCState } from "./flatten";
+import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import { A } from "./links";
 import { ClientContentAny } from "./page2";
 import SwipeActions from "./SwipeActions";
@@ -45,6 +45,7 @@ type SCProps<T> = {
 
     collapse_data: CollapseData,
     loader_or_post: FlatPost,
+    post: Generic.Post,
 };
 
 
@@ -66,7 +67,7 @@ const replace_post_special_callbacks: Record<string, SpecialCallback> = {
         return <FullscreenObject loader_or_post={props.loader_or_post}>
             <A
                 href={props.data.link_url ?? undefined}
-                client_id={props.loader_or_post.content.client_id}
+                client_id={props.post.client_id}
                 class={"block w-full"}
             >
                 <img class="block w-full h-full" src={props.data.url} width={props.data.w} height={props.data.h} />
@@ -154,8 +155,8 @@ function PageFlatPost(props: {
 }): JSX.Element {
     const specialCB = createMemo((): null | (() => JSX.Element) => {
         const v = props.loader_or_post.content;
-        if(v.kind !== "post" || v.content.kind !== "special") return null;
-        const vc = v.content;
+        if(v.kind !== "flat_post" || v.post.content.kind !== "special") return null;
+        const vc = v.post.content;
         const fpsc = replace_post_special_callbacks[vc.tag_uuid];
         if(fpsc == null) return null;
         return () => fpsc({get data() {
@@ -164,6 +165,8 @@ function PageFlatPost(props: {
             return props.collapse_data;
         }, get loader_or_post() {
             return props.loader_or_post;
+        }, get post() {
+            return v.post;
         }});
     });
 
@@ -176,6 +179,32 @@ function PageFlatPost(props: {
         />;
     });
 }
+
+export function postGetPage(hprc: PageRootContext, lpc: FlatTreeItem): Generic.Page2 | undefined {
+    if(lpc.kind !== "flat_post") return undefined; // only posts are focusable
+    if(lpc.post.disallow_pivot ?? false) return undefined;
+    return {
+        pivot: lpc.link,
+        content: hprc.content(),
+    };
+}
+export function postOnClick(hprc: PageRootContext, frame: FlatPost, e: MouseEvent | KeyboardEvent): void {
+    const post = frame.content;
+
+    if(post.kind !== "flat_post") return alert("EONCLICK-ON-NON-POST");
+
+    // support ctrl click
+    const target_url = "/"+post.post.client_id+post.post.url;
+    if(e.ctrlKey || e.metaKey || e.altKey) {
+        window.open(target_url);
+    }else{
+        navigate({
+            path: target_url,
+            page: postGetPage(hprc, post),
+        });
+    }
+}
+
 function PageFlatPostNotSpecial(props: {
     collapse_data: CollapseData,
     loader_or_post: FlatPost,
@@ -187,33 +216,17 @@ function PageFlatPostNotSpecial(props: {
     const isPivot = () => props.loader_or_post.is_pivot;
     const wholeObjectClickable = () => {
         if(isPivot()) return false;
-        if(props.loader_or_post.displayed_in !== "repivot_list") return false;
-        if(props.loader_or_post.content.url == null) return false;
+        const lp = props.loader_or_post;
+        if(lp.content.kind !== "flat_post") return false; // only posts are clickable
+        if(lp.displayed_in !== "repivot_list") return false;
+        if(lp.content.post.url == null) return false;
         return true;
     };
     const hprc = getWholePageRootContext();
-    const getPage = (): Generic.Page2 | undefined => {
-        if(props.loader_or_post.content.disallow_pivot ?? false) return undefined;
-        return {
-            pivot: props.loader_or_post.id,
-            content: hprc.content(),
-        };
-    };
 
     const onClick = (e: MouseEvent | KeyboardEvent) => {
         const frame = props.loader_or_post;
-        const post = frame.content;
-
-        // support ctrl click
-        const target_url = "/"+post.client_id+post.url;
-        if(e.ctrlKey || e.metaKey || e.altKey) {
-            window.open(target_url);
-        }else{
-            navigate({
-                path: target_url,
-                page: getPage(),
-            });
-        }
+        return postOnClick(hprc, frame, e);
     };
 
     const [hovering, setHovering] = createSignal(false);
@@ -314,22 +327,27 @@ function PageFlatPostContent(props: {
     hovering: boolean,
     whole_object_clickable: boolean,
 }): JSX.Element {
+    console.log("pageflatpostcontent called on", props);
     return <SwitchKind item={props.loader_or_post.content}>{{
-        post: post => <>
+        error: er => <div class="py-1">
+            <div class="text-red-500">!ERROR!</div> {er.msg}
+        </div>,
+        flat_post: fp => <>
             <ClientContentAny
-                content={post.content}
+                content={fp.post.content}
                 opts={{
-                    frame: post,
-                    client_id: post.client_id,
+                    frame: fp.post,
+                    client_id: fp.post.client_id,
                     collapse_data: props.collapse_data,
                     flat_frame: props.loader_or_post,
+                    id: fp.link,
                 }}
 
                 hovering={props.hovering}
                 whole_object_clickable={props.whole_object_clickable}
             />
         </>,
-        loader: loader => {
+        flat_loader: loader => {
             const [loading, setLoading] = createSignal(false);
             const [error, setError] = createSignal<null | string>(null);
             const hprc = getWholePageRootContext();
@@ -339,14 +357,17 @@ function PageFlatPostContent(props: {
                 setLoading(true);
 
                 const pgin = hprc.pgin();
-                
+
+                // TODO: make sure there are never two loaders with the same request loading at once
                 addAction(
                     (async () => {
                         if(error() != null) await new Promise(r => setTimeout(r, 200));
-                        return await getClientCached(loader.client_id)!.loader!(
-                            props.loader_or_post.id,
-                            loader,
-                        );
+
+                        const request = Generic.readLink(hprc.content(), loader.request);
+                        if(request == null) throw new Error("e-request-null: "+loader.request.toString());
+                        if(request.error != null) throw new Error(request.error);
+                        const client = await fetchClient(loader.client_id);
+                        return await client!.loader!(loader, request.value);
                     })(),
                 ).then(r => {
                     batch(() => {
@@ -369,7 +390,11 @@ function PageFlatPostContent(props: {
                 disabled={loading()}
                 onClick={doLoad}
                 ref={btn => {
-                    if(loader.autoload) {
+                    // !!@@TODO ADD BACK AUTOLOAD
+                    // we need a proper thing this time though. maybe eg: autoload all visible loaders
+                    // on refocus. but that isn't right, we don't want to autoload a morecomments if we
+                    // focus the parent. or maybe we do. not sure.
+                    if(false as boolean) {
                         const observer = new IntersectionObserver(doLoad, {
                             root: document.body,
                             rootMargin: "0px",

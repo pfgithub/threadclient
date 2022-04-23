@@ -22,7 +22,10 @@ export type ThreadClient = {
         action: Generic.Opaque<"load_more_unmounted">
     ) => Promise<{children: Generic.UnmountedNode[], next?: undefined | Generic.LoadMoreUnmounted}>),
 
-    loader?: undefined | ((key: Generic.Link<Generic.Post>, loader: Generic.Loader) => Promise<Generic.LoaderResult>),
+    loader?: undefined | ((
+        loader: Generic.BaseLoader,
+        request: Generic.Opaque<"loader">,
+    ) => Promise<Generic.LoaderResult>),
 
     hydrateInbox?: undefined | ((inbox: Generic.Opaque<"deferred_inbox">) => Promise<Generic.InboxData>),
 };

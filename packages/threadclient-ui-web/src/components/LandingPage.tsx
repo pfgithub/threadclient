@@ -3,7 +3,7 @@ import { Listbox } from "solid-headless";
 import { createSignal, For, JSX, untrack } from "solid-js";
 import { getSettings, getWholePageRootContext } from "../util/utils_solid";
 import { createMergeMemo } from "./createMergeMemo";
-import { autokey, CollapseData, flattenPost } from "./flatten";
+import { autokey, CollapseData, flattenTreeItem, FlatTreeItem } from "./flatten";
 import { InternalIcon, InternalIconRaw } from "./Icon";
 import { A } from "./links";
 import PageFlatItem from "./PageFlatItem";
@@ -12,7 +12,7 @@ import { array_key } from "./symbols";
 import ToggleButton from "./ToggleButton";
 
 function DisplayPost(props: {
-    post: Generic.Link<Generic.PostNotLoaded>,
+    post: Generic.Link<Generic.Post>,
     options?: undefined | {allow_threading?: undefined | boolean},
 }): JSX.Element {
     const collapse_data: CollapseData = {
@@ -22,7 +22,10 @@ function DisplayPost(props: {
     const hprc = getWholePageRootContext();
 
     const view = createMergeMemo(() => {
-        const res = autokey(flattenPost(props.post, [], {
+        const readlink = Generic.readLink(hprc.content(), props.post);
+        if(readlink == null || readlink.error != null) throw new Error("e;b;a;d;;"+readlink);
+        const flat_tree_item: FlatTreeItem = {kind: "flat_post", link: props.post, post: readlink.value};
+        const res = autokey(flattenTreeItem(flat_tree_item, [], {
             collapse_data,
             content: hprc.content(),
             settings: {
@@ -66,7 +69,7 @@ function FeaturePreviewCard(props: {
         if(!hprc.content()[props.link]) return undefined;
         return {
             content: hprc.content(),
-            pivot: props.link as Generic.Link<Generic.PostNotLoaded>,
+            pivot: props.link as Generic.Link<Generic.Post>,
         };
     }}>
         <div class="h-full">
@@ -220,7 +223,7 @@ export default function LandingPage(): JSX.Element {
                     </div>
                     <div class="sm:col-start-2 h-max shadow-md -mx-8 sm:mx-0">
                         <DisplayPost
-                            post={"/homepage/unthreading" as Generic.Link<Generic.PostNotLoaded>}
+                            post={"/homepage/unthreading" as Generic.Link<Generic.Post>}
                             options={{
                                 allow_threading: value() === "on",
                             }}
@@ -242,7 +245,7 @@ export default function LandingPage(): JSX.Element {
                     </div>
                     <div class="h-max shadow-md -mx-8 sm:mx-0">
                         <DisplayPost
-                            post={"/homepage/link-previews" as Generic.Link<Generic.PostNotLoaded>}
+                            post={"/homepage/link-previews" as Generic.Link<Generic.Post>}
                         />
                     </div>
                 </div>
@@ -261,7 +264,7 @@ export default function LandingPage(): JSX.Element {
                     </div>
                     <div class="h-max shadow-md -mx-8 sm:mx-0">
                         <DisplayPost
-                            post={"/homepage/repivot" as Generic.Link<Generic.PostNotLoaded>}
+                            post={"/homepage/repivot" as Generic.Link<Generic.Post>}
                         />
                     </div>
                 </div>

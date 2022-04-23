@@ -22,6 +22,13 @@ export const p2 = {
         content[link] = {data: value};
         return link;
     },
+
+    stringLink<T>(link: string): Link<T> {
+        return link as Link<T>;
+    },
+    fillLink<T>(content: Page2Content, link: Link<T>, value: T): void {
+        content[link] = {data: value};
+    }
 };
 
 
@@ -37,10 +44,10 @@ export type LoaderResult = {
 export type Link<T> = (string | symbol) & {__is_link: T};
 
 export type ReadLinkResult<T> = {value: T, error: null} | {error: string, value: null};
-export function readLink<T>(content: Page2Content, link: Link<T>): ReadLinkResult<T> {
+export function readLink<T>(content: Page2Content, link: Link<T>): null | ReadLinkResult<T> {
     const root_context = content;
     const value = root_context[link]; // get the value first to put a solid js watcher on it
-    if(!value) return {error: "[read]Link not found: "+link.toString(), value: null};
+    if(!value) return null;
     if(Object.hasOwnProperty.call(root_context, link)) {
         if('error' in value) return {error: value.error, value: null};
         return {value: value.data as T, error: null};
@@ -49,75 +56,59 @@ export function readLink<T>(content: Page2Content, link: Link<T>): ReadLinkResul
     }
 }
 
-export type Post = PostNotLoaded | Loaded;
-export type PostNotLoaded = PostData | Loader;
+export type PostParent = {
+    loader: VerticalLoader,
+};
+export type PostReplies = {
+    sort?: undefined | Link<SortData>, // TODO: there should be
+    // a loader specified below for each available sort key or something. also sorts need to change the url.
+    // we'll have to figure this out i guess. it's a bit more complicated than this.
 
-export type PostData = BasePost & {
+    reply?: undefined | {
+        action: ReplyAction,
+        locked: boolean,
+    }, // does this even belong here? feels like it should be part of the post. having it here just makes
+    // a mess that clients have to deal with and the ui has to deal with. anyway it's staying here for now
+    // but it really doesn't belong here.
+
+    display: "tree" | "repivot_list",
+
+    loader: HorizontalLoader,
+};
+export type VerticalLoader = {
+    kind: "vertical_loader",
+    key: Link<Post | null>, // null = no parent. unfilled = not yet loaded
+
+    temp_parent: null | Link<Post>, // temporary parent until the link is fliled. we could, after loading, assert that
+    // this parent is somewhere in the loaded post's tree because if it isn't, it's likely an error.
+} & BaseLoader;
+export type HorizontalLoader = {
+    kind: "horizontal_loader",
+    key: Link<Link<(Post | HorizontalLoader)>[]>, // unfilled = not yet loaded
+} & BaseLoader;
+
+export type BaseLoader = {
+    load_count: null | number, // number of items to be loaded, or null if it is not known.
+    request: Link<Opaque<"loader">>, // ← never load when another loader with the same link is loading.
+    // this is how we create linked loaders, they are two loaders that have the same request key.
+    client_id: string,
+};
+
+// vv we don't know typesafely that it's unloaded but don't call something this unless it's unloaded
+export type PostOrUnloadedLoader = Post | HorizontalLoader | VerticalLoader;
+
+export type Post = {
     kind: "post",
 
     content: PostContent, // content should always be in a PostData. eg: crossposts that are embedded in a body also need parent, replies.
     internal_data: unknown,
-};
 
-export type Loader = BasePost & {
-    kind: "loader",
-    // note: horizontal loaders are not allowed to have replies
-
-    // a loader:
-
-    // loadLoader(replies) -> tree
-
-    // note: when a loader is used, the ui should pass the sort mode to the client
-    key: Opaque<"loader">,
-    // loaded_key: Link<Loaded>, // when displaying a loader, check if this
-    // key is present and display it instead
-
-    load_count: null | number,
-
-    autoload: boolean,
-};
-
-export type Loaded = BasePost & {
-    kind: "loaded",
-    // i hate this. delete it.
-
-    // replace it with:
-    // - seperate vertical and horizontal loaders
-    // - a vertical loader is put in place of a parent for a node
-    // - a horizontal loader is put in place of a reply for a node
-    // - a horizontal loader returns an array of post links
-    // - a vertical loader returns an array of post links
-    // - neither loader has BasePost props. no 'parent', no 'replies', …
-};
-
-export type BasePost = {
     disallow_pivot?: undefined | boolean,
-    parent: Link<Post> | null,
-    replies: ListingData | null,
+    parent: null | PostParent,
+    replies: null | PostReplies,
     
     url: string | null, // if a thing does not have a url, it cannot be the pivot
     client_id: string,
-};
-
-export type ListingData = {
-    // TODO redo sort. sort should be preserved when loading more comments
-    sort?: undefined | SortData,
-    reply?: undefined | {
-        action: ReplyAction,
-        locked: boolean, // only moderators can comment
-    },
-
-    // - "tree" displays a full replies tree
-    // - "repivot_list" does not show any replies
-    //   - if a post should be displayed in a repivot list:
-    //     - it should not be possible to change its collapse state
-    //     - there should be a click handler over the whole post, not just the title bar
-    //   - note that all parent posts (except the pivoted one) are displayed in a repivot list
-
-    display: "tree" | "repivot_list",
-
-    // pinned: Post[],
-    items: Link<Post>[],
 };
 
 export type ClientPost = {
@@ -165,8 +156,8 @@ export type PostContent = ClientPost | {
     kind: "page",
     title: null | string,
     wrap_page: {
-        sidebar: ListingData,
-        header: RedditHeader,
+        sidebar: PostReplies,
+        header: RedditHeader, // todo this needs to be able to be a loader
     },
     // overview: ClientPost, // I think this is supposed to be for if rendered below the pivot
 } | PostContentPost | {

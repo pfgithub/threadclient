@@ -917,6 +917,7 @@ function renderReplyAction(
                                     frame: r,
                                     client_id: r.client_id,
                                     flat_frame: null,
+                                    id: null,
                                 }} />
                             </ul>
                         </>, {color_level: 1}).defer(hsc);
@@ -2665,21 +2666,7 @@ export type MutablePage2HistoryNode = {
 };
 function addLayer(node: Generic.Page2, new_layer: Generic.Page2Content): Generic.Page2 {
     console.log("!ADDDING LAYER", node, new_layer);
-    const filtered_keys = Reflect.ownKeys(new_layer).filter(key => {
-        const prev_val = node.content[key];
-        // vv this is hacky. the idea is that we shouldn't allow a 'loaded' to get replaced with a 'loader'
-        if(prev_val != null && ('data' in prev_val)) {
-            const datav = prev_val.data as Generic.Post;
-            if(typeof datav === "object" && datav.kind === "loaded") {
-                return false;
-            }
-        }
-        return true;
-    });
-    return {
-        ...node,
-        content: {...node.content, ...Object.fromEntries(filtered_keys.map(key => [key, new_layer[key]!] as const))},
-    };
+    return {...node, ...new_layer};
 }
 
 let showPage2!: (page: MutablePage2HistoryNode, first_show: boolean) => void;
@@ -2796,6 +2783,9 @@ export async function fetchClient(name_any: string): Promise<ThreadClient | unde
     if(client_cache[name]!.id !== name) throw new Error("client has incorrect id");
     return client_cache[name];
 }
+/**
+ * @deprecated Use async fetchClient
+ */
 export function getClientCached(name: string): ThreadClient | undefined {
     return client_cache[name] ?? undefined;
 }
