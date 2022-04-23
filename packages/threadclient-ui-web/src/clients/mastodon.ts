@@ -714,6 +714,9 @@ function postLink(post_id: string): Generic.Link<Generic.Post> {
 function postRepliesLink(post_id: string): Generic.Link<Generic.HorizontalLoaded> {
     return p2.stringLink("post-replies_"+post_id);
 }
+function clientLink(): Generic.Link<Generic.Post> {
+    return p2.stringLink("client");
+}
 function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Post) {
     const respost_link = postLink(post.id);
 
@@ -734,12 +737,21 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
             loader: {
                 kind: "vertical_loader",
                 key: postLink(post.in_reply_to_id),
-                temp_parent: null,
+                temp_parent: clientLink(),
                 load_count: null,
                 request: request_link,
                 client_id: client.id,
             },
-        } : null, // TODO we should have a root component up here
+        } : {
+            loader: {
+                kind: "vertical_loader",
+                key: clientLink(),
+                temp_parent: clientLink(),
+                load_count: null,
+                request: p2.createSymbolLinkToError(content, "should never be unloaded", clientLink()),
+                client_id: client.id,
+            },
+        },
         replies: {
             display: "tree",
             loader: {
@@ -883,6 +895,21 @@ export const client: ThreadClient = {
             }
 
             const content: Generic.Page2Content = {};
+            p2.fillLink(content, clientLink(), {
+                kind: "post",
+                content: {
+                    kind: "client",
+                    navbar: {
+                        actions: [],
+                        inboxes: [],
+                    },
+                },
+                internal_data: "@root",
+                parent: null,
+                replies: null,
+                client_id: client.id,
+                url: null,
+            });
 
             fillPost(host, content, post);
 
