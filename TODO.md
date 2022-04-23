@@ -27,6 +27,90 @@ expose to support threadclient" but i need to stop doing that. we have a client 
 now, we shouldn't skip out on working solutions because we'll have to rework them in the future if we want
 to go clientless.
 
+ok so an obvious solution is to assume the parent exists when evaluating a horizontal loader
+
+wait that's what i'm doing in mastodon
+
+ok what's the problem with that?
+
+right i was thinking about cases: eg you're on r/all. posts have their subreddit as their parent. we're going
+to end up replacing some subreddits
+
+ok so here's the worst case:
+
+- you load a subreddit page. you repivot to r/all. r/all's content loads. it replaces the subreddit page you
+  were just on with one that has an empty loader
+
+wait a second we solve this by keying loaders. because the loader is identical.
+
+- right, what if there isn't a loader and it's just raw posts
+
+ok issue again
+
+so obviously we can solve that by making it a loader every time, but we can't do that. oh right, easy
+example:
+
+- you load a post. you repivot to the subreddit, and the post's children get replaced with a loader
+
+so: you can't implement the post as having a loader children because the post needs to be a loader too
+
+- \* we can use linked loaders here and it would work fine
+- would it work if somehow all replies were loader keys into a linked loader?
+
+ok we need to solve this problem
+
+so the easy way is keeping around the IDMap
+
+- can we do that? can IDMaps be part of the Generic.Page2 api?
+- when a load completes, we mutate the IDMap for the page
+- when we repivot, we copy the IDMap
+  - is this even necessary? this is for eg seeing deleted posts if you load something and the content is
+    different than it was before
+  - oh right, it's also so the page doesn't only go up in memory. bc if we don't copy the id map, you can
+    load a bunch of posts and then go back a bunch of times and all those others are still in memory
+
+ok but actually can we do that though? i'm pretty sure that was part of the original dream of page2 if not
+the original dream of threadclient
+
+huh
+
+ok so the thing we're solving is:
+
+- after loading, we don't want to add any bad info. eg we don't want to put a loader where we already
+  know the content from the first load. we do want to update with new info
+
+the trivial solution is:
+
+- keep around IDMaps. seperate load into an `async fetchstuff` and a synchronous convert. the sync convert
+  can be pure and passed in the current idmap and return a new idmap with the changes applied (this is
+  to prevent race conditions if two loads are running at the same time. one will complete and update and
+  then the other will complete and remove some info from the first one)
+
+ok that sounds resonable. we'll have to figure out how to do it tomorrow
+
+also sounds way better than any of the other solutions
+
+wait no this is bad
+
+consider:
+
+- loading comments also provides more information about the post and the comment that the replies of
+  were loaded on
+- we'll get warnings about double idmap entries
+- no this is bad
+
+ok the idmap thing isn't quite a solution
+
+ig the main idea is figuring out what is up-to-date info and what is outdated or fake info and only replacing
+outdated/fake with up-to-date stuff, never the other way around
+
+eg if you load depth replies to a comment it should:
+
+- update the parent comment and its replies
+- update the parent link but not its replies
+
+and how do we describe that
+
 ## TODO
 
 Currently, the reason posts don't show comments when looking at a subreddit is because there is a flag
