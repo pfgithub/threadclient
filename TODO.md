@@ -111,6 +111,58 @@ eg if you load depth replies to a comment it should:
 
 and how do we describe that
 
+ok so an option noted above is making every reply section a loader
+
+so it has a key and if the key is unfilled, a loader is displayed
+
+oh and that could make some stuff easier in the clients too
+
+ok so plan:
+
+```ts
+type Post = {
+  parent: ParentLoader
+  replies: ReplyLoader
+};
+
+…
+
+type ParentLoader = {
+  key: Generic.Link<Generic.Post>,
+  temp_parent: Generic.Link<Generic.Post>, // this parent will be used until 'key' links to a post, and then
+  // the loader will be replaced with the post in 'key'
+  load_count: null | number, // I think reddit comments might have a 'depth' property maybe? if so, use that
+}
+type RepliesLoader = {
+  key: Generic.Link<Generic.Post[]>,
+  load_count: null,// | {total: number} | {top_level: number},
+};
+```
+
+ok. does this solve all the problems listed above?
+
+now we can eg: update the post at the top of the page while keeping the replies. because we replace its
+comments with a loader but the loader has the same key as before so the replies stay.
+
+i think this works
+
+ok now we need to account for a case:
+
+- what if part of the replies load and then there is a loader for more at the bottom?
+  - feels like we handle this the same way as before. the loader is a normal node. so basically repliesloader
+    should contain `(Generic.Post | Generic.RepliesLoader)[]`
+
+and also the bad case for vertical loadrs:
+
+- how do we update the temp_parent? can we lose information on a loader that isn't loaded if we replace
+  it with a worse temp_parent
+  - yes but i don't think this case matters, and if it does, we can solve it in the future
+
+ok i think i like this solution. it makes depth loaders better, it makes vertical loaders better, it probably
+reduces complexity in the client implementation, it still allows for a server api for threadclient, …
+
+let's try it
+
 ## TODO
 
 Currently, the reason posts don't show comments when looking at a subreddit is because there is a flag
