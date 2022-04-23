@@ -1,3 +1,10 @@
+## twitter client notes
+
+do something similar to this: https://github.com/zedeus/nitter
+
+although it will likely be all clientside for now w/ the threadclient extension exposing twitter's internal
+apis to the app
+
 ## notes on page2
 
 ok so we generally have a pretty clear path forwards. some things that still need working out are
