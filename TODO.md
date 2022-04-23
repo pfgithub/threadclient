@@ -1,3 +1,32 @@
+## notes on page2
+
+ok so we generally have a pretty clear path forwards. some things that still need working out are
+
+- how will sorting work. like when you sort, if you repivot it should keep the sort. maybe that means sort
+  should be a property that's on the top level, the highest possible place you can sort, and then the ones
+  below it all have a sorter with the same key. so when you update the sort it updates the value for that key
+  ok yeah that's an easy answer
+- linked loaders. i think this means just giving loaders a key and having them load their content into that
+  key and limiting it so a loader will not start if someone else already started it. seems easy enough.
+
+the one thing i noticed though was:
+
+- when we load more comments, all the new ones need parents
+- we can fully regenerate the parents ig but imagine this:
+  - a: null, [b] | b: a, [c] | c: horizontal loader
+  - you load the horizzontal loader and now you get this:
+  - a: null, [b] | b: d, [c] | c: b, [e] | d: vertical loader | e: c, []
+  - we just lost information in the load. when you repivot to b now, it shows a vertical loader whereas
+    before it would have showed 'a'
+- so something is wrong with how loaders work
+  - using symbol keys kinda improves this but now we get lots of duplicate comments in our trees
+- what do we do about this?
+
+so 1: i keep thinking "oh [x solution] is a bad idea because i eventually want to make an api websites can
+expose to support threadclient" but i need to stop doing that. we have a client component to extensions right
+now, we shouldn't skip out on working solutions because we'll have to rework them in the future if we want
+to go clientless.
+
 ## TODO
 
 Currently, the reason posts don't show comments when looking at a subreddit is because there is a flag
