@@ -367,7 +367,7 @@ function PageFlatPostContent(props: {
                         if(request == null) throw new Error("e-request-null: "+loader.request.toString());
                         if(request.error != null) throw new Error(request.error);
                         const client = await fetchClient(loader.client_id);
-                        return await client!.loader!(loader, request.value);
+                        return await client!.loader!(request.value);
                     })(),
                 ).then(r => {
                     batch(() => {

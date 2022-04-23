@@ -23,7 +23,6 @@ export type ThreadClient = {
     ) => Promise<{children: Generic.UnmountedNode[], next?: undefined | Generic.LoadMoreUnmounted}>),
 
     loader?: undefined | ((
-        loader: Generic.BaseLoader,
         request: Generic.Opaque<"loader">,
     ) => Promise<Generic.LoaderResult>),
 

@@ -1,10 +1,10 @@
 /* eslint-disable max-len */
 
-import { assertNever, encodeQuery, router } from "tmeta-util";
 import * as Generic from "api-types-generic";
-import {encoderGenerator, ThreadClient} from "threadclient-client-base";
-import type * as Mastodon from "api-types-mastodon";
 import { mnu, p2, rt } from "api-types-generic";
+import type * as Mastodon from "api-types-mastodon";
+import { encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { assertNever, encodeQuery, router } from "tmeta-util";
 import { oembed } from "./oembed";
 
 () => [bodyPage, parseContentSpanHTML, htmlToPlaintext, postArrayToReparentedThread, mnu]; // TODO
@@ -707,6 +707,55 @@ url_parser.catchall(() => ({
     kind: "instance-selector"
 }));
 
+
+function postLink(post_id: string): Generic.Link<Generic.Post> {
+    return p2.stringLink("post_"+post_id);
+}
+function postRepliesLink(post_id: string): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("post-replies_"+post_id);
+}
+function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Post) {
+    const respost_link = postLink(post.id);
+
+    const request_link = p2.stringLink<Generic.Opaque<"loader">>("post-loadcontext_"+post.id);
+    p2.fillLink(content, request_link, loader_enc.encode({
+        kind: "context",
+        host,
+        center_id: post.id,
+        center_parent: post.in_reply_to_id,
+    }));
+
+    p2.fillLink(content, respost_link, {
+        kind: "post",
+        content: postToGeneric(host, post),
+        internal_data: post,
+
+        parent: post.in_reply_to_id != null ? {
+            loader: {
+                kind: "vertical_loader",
+                key: postLink(post.in_reply_to_id),
+                temp_parent: null,
+                load_count: null,
+                request: request_link,
+                client_id: client.id,
+            },
+        } : null, // TODO we should have a root component up here
+        replies: {
+            display: "tree",
+            loader: {
+                kind: "horizontal_loader",
+                key: postRepliesLink(post.id),
+                load_count: post.replies_count,
+                request: request_link,
+                client_id: client.id,
+            },
+        },
+
+        url: "/"+host+"/statuses/"+post.id,
+        client_id: client.id,
+    });
+}
+
 type LoginURL = {
     host: string,
 };
@@ -833,45 +882,13 @@ export const client: ThreadClient = {
                 throw new Error("ERRORED; "+post.error+"; TODO SHOW EMSG SCREEN");
             }
 
-            const createSymbolLinkToError = (msg: string) => {
-                return Symbol("E "+msg) as Generic.Link<any>;
-            };
-
             const content: Generic.Page2Content = {};
 
-            const respost_link = "post_"+post.id as Generic.Link<Generic.PostData>;
-            const respost: Generic.PostData = {
-                kind: "post",
-                content: postToGeneric(host, post),
-                internal_data: post,
-
-                parent: post.in_reply_to_id != null ? createSymbolLinkToError("TODO LINKED PARENT LOADER") : null,
-                replies: {
-                    display: "tree",
-                    items: [p2.createSymbolLinkToValue<Generic.Loader>(content, {
-                        kind: "loader",
-                        parent: respost_link,
-                        replies: null,
-                        url: null,
-                        client_id: client.id,
-
-                        key: loader_enc.encode({
-                            kind: "context",
-                            host,
-                            center_id: post.id,
-                        }),
-                        load_count: post.replies_count,
-                        autoload: true,
-                    })],
-                },
-                url: "/"+host+"/statuses/"+post.id,
-                client_id: client.id,
-            };
-            content[respost_link] = {data: respost};
+            fillPost(host, content, post);
 
             return {
                 content,
-                pivot: respost_link,
+                pivot: postLink(post.id),
             };
 
             // const [postinfo, context] = await Promise.all([
@@ -1072,40 +1089,19 @@ export const client: ThreadClient = {
         throw new Error("NIY");
     },
 
-    async loader(link, loader): Promise<Generic.LoaderResult> {
-        const dec = loader_enc.decode(loader.key);
+    async loader(lreq): Promise<Generic.LoaderResult> {
+        const req = loader_enc.decode(lreq);
+        const {host} = req;
 
-        const auth = await getAuth(dec.host);
+        const auth = await getAuth(req.host);
 
         // eventually this will be a linked loader. i'm not yet sure howt hat will work, but we'll have to
         // replace two values not just one. anyway not yet.
         const context = await getResult<{
             ancestors: Mastodon.Post[],
             descendants: Mastodon.Post[],
-        }>(auth, mkurl(dec.host, "api/v1/statuses", dec.center_id, "context"));
+        }>(auth, mkurl(host, "api/v1/statuses", req.center_id, "context"));
         if('error' in context) throw new Error("got error: "+context.error);
-
-        // loaders are going to be replaced with vertical/horizontal loaders and linked loader support so
-        // this is fine for now
-        // - oh maybe a linked loader says to perform this load and then replace self with the result with
-        //   the key "key"
-        // - so we load ancestors and descendants and return {ancestors: …, descendants: …} and then
-        //   those two keys are given values basically
-        const returnListing = (
-            content: Generic.Page2Content,
-            listing: Generic.ListingData | null,
-        ): Generic.LoaderResult => {
-            const loaded: Generic.Loaded = {
-                kind: "loaded",
-
-                parent: loader.parent,
-                replies: listing,
-
-                url: null,
-                client_id: client.id,
-            };
-            return {content: {...content, [link]: {data: loaded}}};
-        };
 
         const content: Generic.Page2Content = {};
 
@@ -1116,27 +1112,22 @@ export const client: ThreadClient = {
             rid.push(descendant.id);
         }
 
-        const repliesFor = (id: string): Generic.ListingData | null => {
-            return {
-                display: "tree",
-                items: (reply_ids.get(id) ?? []).map(pid => "post_"+pid as Generic.Link<Generic.Post>),
-            };
+        const repliesFor = (id: string): Generic.HorizontalLoaded | null => {
+            return (reply_ids.get(id) ?? []).map(postLink);
         };
 
         for(const descendant of context.descendants) {
-            const newpost: Generic.Post = {
-                kind: "post",
-                parent: "post_"+descendant.in_reply_to_id as Generic.Link<Generic.Post>,
-                replies: repliesFor(descendant.id),
-                url: "/"+dec.host+"/statuses/"+descendant.id, // maybe url should be in the content
-                content: postToGeneric(dec.host, descendant, {}),
-                client_id: client.id,
-                internal_data: descendant,
-            };
-            content["post_"+descendant.id as Generic.Link<Generic.Post>] = {data: newpost};
+            fillPost(host, content, descendant);
+            p2.fillLink(content, postRepliesLink(descendant.id), repliesFor(descendant.id));
+        }
+        p2.fillLink(content, postRepliesLink(req.center_id), repliesFor(req.center_id));
+
+
+        for(const ancestor of context.ancestors) {
+            fillPost(host, content, ancestor);
         }
 
-        return returnListing(content, repliesFor(dec.center_id));
+        return {content};
     },
 
     async loadMore(action) {
@@ -1219,6 +1210,7 @@ type LoaderData = {
     kind: "context",
     host: string,
     center_id: string,
+    center_parent: string | null,
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 const loader_enc = encoderGenerator<LoaderData, "loader">("loader");

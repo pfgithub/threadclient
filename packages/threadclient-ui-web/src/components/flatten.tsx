@@ -210,6 +210,7 @@ export function renderTreeItem(
 }
 
 function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeItem[] {
+    console.log("GETTING POST REPLIES ON", listing, meta);
     const res: FlatTreeItem[] = [];
     
     function addReplies(replies: Generic.HorizontalLoader) {
@@ -222,6 +223,7 @@ function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeI
             res.push({kind: "error", msg: val.error});
         }
         for(const reply of val.value ?? []) {
+            console.log("READING POST REPLY LINK", reply);
             const readlink = readLink(meta, reply);
             if(readlink == null) {
                 res.push({kind: "error", msg: "e-link-bad: "+reply.toString()});
@@ -426,7 +428,7 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): (FlatTreeIt
         // vv this is weird, isn't it?
         // there are a bunch of conditions we'll check at the top of the next loop that we don't need to
         // because the link is known good
-        setHighest(loaded.value == null ? null : loader.key as Generic.Link<Generic.Post>);
+        setHighest(loaded.value == null ? null : loader.key);
         continue;
     }
 

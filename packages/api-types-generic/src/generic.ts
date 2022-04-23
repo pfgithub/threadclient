@@ -75,16 +75,18 @@ export type PostReplies = {
 
     loader: HorizontalLoader,
 };
+export type VerticalLoaded = Post;
 export type VerticalLoader = {
     kind: "vertical_loader",
-    key: Link<Post | null>, // null = no parent. unfilled = not yet loaded
+    key: Link<VerticalLoaded>, // null = no parent. unfilled = not yet loaded
 
     temp_parent: null | Link<Post>, // temporary parent until the link is fliled. we could, after loading, assert that
     // this parent is somewhere in the loaded post's tree because if it isn't, it's likely an error.
 } & BaseLoader;
+export type HorizontalLoaded = Link<(Post | HorizontalLoader)>[];
 export type HorizontalLoader = {
     kind: "horizontal_loader",
-    key: Link<Link<(Post | HorizontalLoader)>[]>, // unfilled = not yet loaded
+    key: Link<HorizontalLoaded>, // unfilled = not yet loaded
 } & BaseLoader;
 
 export type BaseLoader = {
