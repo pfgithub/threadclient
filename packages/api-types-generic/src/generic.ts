@@ -28,7 +28,41 @@ export const p2 = {
     },
     fillLink<T>(content: Page2Content, link: Link<T>, value: T): void {
         content[link] = {data: value};
-    }
+    },
+
+    /// a vertical loader that has filled content, so there's no need to describe how to load it
+    /// todo: reflect this in the data rather than requiring this mess
+    prefilledVerticalLoader(
+        content: Page2Content,
+        key: Link<VerticalLoaded>,
+        fill: VerticalLoaded | undefined,
+    ): VerticalLoader {
+        // eslint-disable-next-line eqeqeq
+        if(fill !== undefined) p2.fillLink(content, key, fill);
+        return {
+            kind: "vertical_loader",
+            key,
+            temp_parent: p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled", fill),
+            load_count: null,
+            request: p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled @2", fill),
+            client_id: "@E@UNNECESSARY",
+        };
+    },
+    prefilledHorizontalLoader(
+        content: Page2Content,
+        key: Link<HorizontalLoaded>,
+        fill: HorizontalLoaded | undefined,
+    ): HorizontalLoader {
+        // eslint-disable-next-line eqeqeq
+        if(fill !== undefined) p2.fillLink(content, key, fill);
+        return {
+            kind: "horizontal_loader",
+            key,
+            load_count: null,
+            request: p2.createSymbolLinkToError(content, "horizontal loader claimed to be prefilled", fill),
+            client_id: "@E@UNNECESSARY",
+        };
+    },
 };
 
 

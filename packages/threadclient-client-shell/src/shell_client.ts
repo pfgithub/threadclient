@@ -115,31 +115,12 @@ type AllContentRawItem = (url: AllLinks) => Generic.Post;
 type AllLinks = keyof typeof all_content_raw_dontuse;
 
 function parentLink(post: Generic.Link<Generic.Post>): Generic.PostParent {
-    const request_link = p2.stringLink<Generic.Opaque<"loader">>("loadparent_"+post.toString());
-    p2.fillLink(extra_content, request_link, 0 as unknown as Generic.Opaque<"loader">);
-    return {loader: {
-        kind: "vertical_loader",
-        key: post,
-        temp_parent: null,
-        load_count: null,
-        request: request_link,
-        client_id: client.id,
-    }};
+    return {loader: p2.prefilledVerticalLoader(extra_content, post, undefined)};
 }
 function repliesLink(post_id: AllLinks, replies: Generic.Link<Generic.Post>[]): Generic.PostReplies {
-    const key_link = p2.stringLink<Generic.Link<Generic.Post>[]>("replies_"+post_id.toString());
-    const request_link = p2.stringLink<Generic.Opaque<"loader">>("loadreplies_"+post_id.toString());
-    p2.fillLink(extra_content, key_link, replies);
-    p2.fillLink(extra_content, request_link, 0 as unknown as Generic.Opaque<"loader">);
     return {
         display: "tree",
-        loader: {
-            kind: "horizontal_loader",
-            key: key_link,
-            load_count: replies.length,
-            request: request_link,
-            client_id: client.id,
-        }
+        loader: p2.prefilledHorizontalLoader(extra_content, p2.stringLink("replies_"+post_id.toString()), replies),
     };
 }
 
