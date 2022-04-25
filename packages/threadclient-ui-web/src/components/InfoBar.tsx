@@ -6,6 +6,7 @@ import { assertNever } from "tmeta-util";
 import { timeAgoTextWatchable } from "tmeta-util-solid";
 import { classes } from "../util/utils_solid";
 import { colorClass } from "./color";
+import DevCodeButton from "./DevCodeButton";
 import { InfoBarItem, useInfoBar } from "./flat_posts";
 import Icon from "./Icon";
 
@@ -70,5 +71,6 @@ export default function InfoBar(props: {post: Generic.PostContentPost}): JSX.Ele
         <For each={getInfoBar()}>{item => (
             <InfoBarItemNode item={item} />
         )}</For>
+        <DevCodeButton data={props} />
     </div>;
 }
