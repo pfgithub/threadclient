@@ -458,11 +458,17 @@ export function renderOembed(body: Generic.OEmbedBody): HideShowCleanup<HTMLDivE
     const content = el("div");
     const hsc = hideshow(content);
 
-    fetchPromiseThen(fetch(body.url, {headers: {'Accept': "application/json"}}).then(r => r.json()), resp => {
+    fetchPromiseThen(('url' in body) ? (
+        fetch(body.url, {headers: {'Accept': "application/json"}}).then(r => r.json() as Promise<OEmbed>)
+    ) : (
+        (async () => {
+            return body.card;
+        })()
+    ), (resp: OEmbed) => {
         console.log("oembed resp", resp);
         const outerel = el("div");
         const ihsc = hideshow(outerel);
-        renderBody(oembed(resp as OEmbed, body.client_id), {autoplay: false}).defer(hsc).adto(outerel);
+        renderBody(oembed(resp, body.client_id), {autoplay: false}).defer(hsc).adto(outerel);
         return ihsc;
     }).defer(hsc).adto(content);
 
@@ -2770,7 +2776,7 @@ function clientLoginPage(
 
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     reddit: () => import("threadclient-client-reddit").then(client => client.client),
-    mastodon: () =>  import("./clients/mastodon").then(client => client.client),
+    mastodon: () =>  import("threadclient-client-mastodon").then(client => client.client),
     hackernews: () =>  import("threadclient-client-hackernews").then(client => client.client),
     test: () =>  import("./clients/test").then(client => client.client),
     shell: () =>  import("threadclient-client-shell").then(client => client.client),

@@ -1,3 +1,5 @@
+import type {OEmbed} from "api-types-oembed";
+
 // always use object.hasownpropertyvalue because this isn't a Map();
 // TODO: store history?
 // this will likely be backed by a solid Store to provide updates when
@@ -456,9 +458,12 @@ export type Body = BodyText | RichText | {
 };
 export type OEmbedBody = {
     kind: "oembed",
-    url: string,
     client_id: string,
-};
+} & ({
+    url: string,
+} | {
+    card: OEmbed,
+});
 export type LinkPreview = {
     kind: "link_preview",
     client_id: string,

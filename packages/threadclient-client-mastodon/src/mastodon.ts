@@ -5,7 +5,6 @@ import { mnu, p2, rt } from "api-types-generic";
 import type * as Mastodon from "api-types-mastodon";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { assertNever, encodeQuery, router } from "tmeta-util";
-import { oembed } from "./oembed";
 
 () => [bodyPage, parseContentSpanHTML, htmlToPlaintext, postArrayToReparentedThread, mnu]; // TODO
 
@@ -331,7 +330,7 @@ function contentSpanToRichtextSpan(meta: GenMeta, node: Node, styles: Generic.Ri
 }
 
 function htmlToPlaintext(html: string): string {
-    const container = el("div");
+    const container = document.createElement("div");
     container.innerHTML = html;
     return container.textContent ?? "*no content*";
 }
@@ -414,7 +413,7 @@ function postToGenericCanError(
                     your_votes: (post.poll.own_votes ?? []).map(ov => ({id: "" + ov})),
                     close_time: new Date(post.poll.expires_at).getTime(),
                 } : undefined,
-                post.card ? oembed(post.card, client.id) : undefined,
+                post.card ? {kind: "oembed", card: post.card, client_id: client.id} : undefined,
             ],
         },
         collapsible: {default_collapsed: false},
