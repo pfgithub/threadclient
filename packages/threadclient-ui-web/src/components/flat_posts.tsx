@@ -190,13 +190,13 @@ function ActionBarItems(props: {
 }): JSX.Element {
     return <>
         {/* now I want a <Show whenAll={{a, b, c}}>{(props) => } */}
-        {props.opts.collapse_data && props.opts.flat_frame?.id && (
+        {props.opts.collapse_data && props.opts.flat_frame != null && (
             postContentCollapseInfo(props.post, props.opts.flat_frame).user_controllable
             // TODO: dispatch this event to the post - eg a post may not have collapse data but still
             // have a collapse button and we need to tell it to collapse then
         ) && !props.opts.flat_frame.is_pivot ? <>
             <ActionItemRaw {...((): ActionItem => {
-                const cs = getCState(props.opts.collapse_data, props.opts.flat_frame.id);
+                const cs = getCState(props.opts.collapse_data, props.opts.flat_frame.collapse!.id);
                 const collapsed = cs.collapsed();
                 return {
                     icon: collapsed ? "chevron_down" : "chevron_up",
@@ -247,18 +247,7 @@ function ActionBarItems(props: {
             <GetActionsFromAction action={action} opts={props.opts} />
         )}</For>
 
-        <Show if={false /*TODO*/} when={props.post.actions?.code} fallback={(
-            <ActionItemRaw
-                icon="code"
-                color={null}
-                text="Code"
-                onClick={() => {
-                    console.log(props.post, props.opts);
-                }}
-
-                client_id={props.opts.client_id}
-            />
-        )}>{codeact => (
+        <Show when={props.post.actions?.code}>{codeact => (
             <GetActionsFromAction action={codeact} opts={props.opts} />
         )}</Show>
     </>;

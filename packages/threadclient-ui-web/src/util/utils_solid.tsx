@@ -106,7 +106,6 @@ export type Settings = {
     customVideoControls: ComputeProperty<CustomVideoControls>,
     pageVersion: ComputeProperty<PageVersion>,
     linkHelpers: ComputeProperty<LinkHelpers>,
-    highlightRerenders: ComputeProperty<DeveloperMode>,
     galleryDisplay: ComputeProperty<GalleryDisplay>,
     motion: ComputeProperty<Motion>,
     animationTime: ComputeProperty<number>,
@@ -114,6 +113,12 @@ export type Settings = {
     signature: ComputeProperty<string>,
     links: ComputeProperty<LinkTarget>,
     changelog: ComputeProperty<Changelog>,
+
+    dev: {
+        showLogButtons: ComputeProperty<"on" | "off">,
+        highlightUpdates: ComputeProperty<"on" | "off">,
+        mockRequests: ComputeProperty<string | null>,
+    },
 };
 
 type SerializerDeserializer<T> = {
@@ -122,7 +127,7 @@ type SerializerDeserializer<T> = {
 };
 
 function localStorageProperty<
-    T, Serializer extends (T extends string ? Partial<SerializerDeserializer<T>> : SerializerDeserializer<T>),
+    T, Serializer extends (T extends string | null ? Partial<SerializerDeserializer<T>> : SerializerDeserializer<T>),
 >(ls_key: string, accessBase: Accessor<T>, serializer: Serializer): ComputeProperty<T> {
     const getLocalStorageValue = (): T | undefined => {
         const lsv = localStorage.getItem(ls_key) ?? undefined;
@@ -188,7 +193,6 @@ const global_settings = createRoot((): Settings => {
         linkHelpers: localStorageProperty("link_helpers",
             signalFromMatchMedia("(pointer: coarse)", "show", "hide"), {},
         ),
-        highlightRerenders: localStorageProperty("cors_proxy", () => "off", {}),
         galleryDisplay: localStorageProperty("gallery_display", () => "fullscreen", {}),
         motion: localStorageProperty("motion",
             signalFromMatchMedia("(prefers-reduced-motion: reduce)", "reduce", "full"),
@@ -201,6 +205,12 @@ const global_settings = createRoot((): Settings => {
         signature: localStorageProperty("signature", () => "", {}),
         links: localStorageProperty("links", () => "new_tab", {}),
         changelog: localStorageProperty("changelog", () => "show", {}),
+
+        dev: {
+            showLogButtons: localStorageProperty("dev.show-log-buttons", () => "off", {}),
+            highlightUpdates: localStorageProperty("dev.highlight-updates", () => "off", {}),
+            mockRequests: localStorageProperty("--use-mock", () => null, {}),
+        },
     };
 
     const isDarkMode = createMemo(() => res.colorScheme() === "dark");

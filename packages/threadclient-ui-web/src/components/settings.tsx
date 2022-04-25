@@ -389,9 +389,9 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 <p class="my-2">
                     Uses the new page2 renderer.
                 </p>
-                <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Developer Mode</h3>
+                <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Highlight Updates</h3>
                 <SettingPicker
-                    setting={settings.highlightRerenders}
+                    setting={settings.dev.highlightUpdates}
                     options={["on", "off", undefined]}
                     name={v => ({
                         'on': "On",
@@ -399,9 +399,16 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         'default': "Default",
                     } as const)[v ?? "default"]}
                 />
-                <p class="my-2">
-                    Highlight updates
-                </p>
+                <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Log Buttons</h3>
+                <SettingPicker
+                    setting={settings.dev.showLogButtons}
+                    options={["on", "off", undefined]}
+                    name={v => ({
+                        'on': "On",
+                        'off': "Off",
+                        'default': "Default",
+                    } as const)[v ?? "default"]}
+                />
             </ShowAnimate>
         </SettingsSection>
     </div></main>;

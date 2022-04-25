@@ -3202,7 +3202,7 @@ export function startDebugTool(root: HTMLElement) {
 
     const settings = getSettings();
 
-    render(() => <Show if={settings.highlightRerenders() === "on"}>
+    render(() => <Show if={settings.dev.highlightUpdates() === "on"}>
         <Debugtool observe_root={root} />
     </Show>, belowbody);
     // <Show when={enabled in settings}>

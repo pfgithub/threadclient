@@ -14,6 +14,7 @@ import { ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { CollapseButton } from "./CollapseButton";
 import { VerticalIconCounter } from "./counter";
+import DevCodeButton from "./DevCodeButton";
 import Dropdown from "./Dropdown";
 import { Flair } from "./Flair";
 import { CollapseData, CollapseInfo, FlatPost, getCState, postContentCollapseInfo } from "./flatten";
@@ -427,6 +428,7 @@ function PostTopBar(props: ClientPostProps & {
                         <InfoBar post={props.content} />
                     </div>
                 </Show>
+                <DevCodeButton data={props} />
                 <HSplit.Child fullwidth>
                     <Show if={!(props.visible || hasThumbnail())}>
                         <Show if={
