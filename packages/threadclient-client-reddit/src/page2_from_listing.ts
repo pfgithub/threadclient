@@ -9,6 +9,7 @@ import {
     getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, updateQuery, urlNotSupportedYet
 } from "./reddit";
+import { getSidebar } from "./sidebars";
 
 function warn(...message: unknown[]) {
     console.log(...message);
@@ -120,25 +121,31 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 }),
             };
         }else if(parsed.kind === "subreddit_sidebar") {
-            throw new Error("TODO reimplement subreddit sidebars");
-            // const sidebar_listing = await getSidebar(content, parsed.sub);
-            // return {
-            //     content,
-            //     pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
-            //         kind: "post",
-            //         client_id: client.id,
-            //         content: {
-            //             kind: "post",
-            //             title: {text: "Sidebar"},
-            //             body: {kind: "none"},
-            //             collapsible: false,
-            //         },
-            //         parent: null,
-            //         replies: sidebar_listing,
-            //         url: "/"+[...parsed.sub.base, "@sidebar"].join("/"),
-            //         internal_data: sidebar_listing,
-            //     }),
-            // };
+            const sb_content = await getSidebar(content, parsed.sub);
+            return {
+                content,
+                pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
+                    kind: "post",
+                    client_id: client.id,
+                    content: {
+                        kind: "post",
+                        title: {text: "Sidebar"},
+                        body: {kind: "none"},
+                        collapsible: false,
+                    },
+                    parent: null,
+                    replies: {
+                        display: "tree",
+                        loader: p2.prefilledHorizontalLoader(
+                            content,
+                            subredditSidebarUnloadedID(parsed.sub),
+                            sb_content,
+                        ),
+                    },
+                    url: "/"+[...parsed.sub.base, "@sidebar"].join("/"),
+                    internal_data: parsed,
+                }),
+            };
         }
 
         const link: string = switchKind(parsed, {
@@ -255,9 +262,6 @@ type IDMapData = {
     // // maybe we should use /...details.base?after=… ← yeah we should use details to get the url
     details: SubrInfo,
     missing_replies?: undefined | true,
-} | {
-    kind: "subreddit_sidebar_unloaded",
-    sub: SubrInfo,
 } | {
     kind: "depth_more",
     // a Reddit.More with 0 children
@@ -461,6 +465,9 @@ function wikipageID(pathraw: string): Generic.Link<Generic.Post> {
 }
 function subredditSidebarUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoaded> {
     return p2.stringLink("SIDEBAR_"+getSrId(sr_id));
+}
+function subredditSidebarLoaderID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("SIDEBAR-LOADER_"+getSrId(sr_id));
 }
 
 function commentOrUnmountedData(item: Reddit.Post, opts: {parent_fullname: Reddit.Fullname}): IDMapData | undefined {
@@ -811,12 +818,18 @@ function postDataFromListingMayError(
                         // also use load_on_view for any loader that should not be seen by default but
                         // might be seen on a repivot
 
-                        // TODO: this is wrong. display a sidebar loader here.
-                        loader: p2.prefilledHorizontalLoader(
-                            content,
-                            subredditSidebarUnloadedID(data.details),
-                            undefined,
-                        ),
+                        loader: {
+                            kind: "horizontal_loader",
+                            key: subredditSidebarUnloadedID(data.details),
+                            load_count: null,
+                            request: p2.fillLinkOnce(content, subredditSidebarLoaderID(data.details), () => (
+                                loader_enc.encode({
+                                    kind: "sidebar",
+                                    sub: data.details,
+                                })
+                            )),
+                            client_id: client.id,
+                        },
                     },
                     // v TODO: this should be a loader but [!] it is linked to the loader above.
                     //   only one at a time should load and loading one should fill in both.
@@ -898,41 +911,6 @@ function postDataFromListingMayError(
             internal_data: entry.data,
         }));
         return self_id;
-    }else if(entry.data.kind === "subreddit_sidebar_unloaded") {
-        return p2.createSymbolLinkToError(content, "TODO support sidebars again", entry);
-        // if(entry.data.sub === "unknown") return {
-        //     kind: "post",
-        //     parent: getPostData(content, map, getSrId(entry.data.sub)),
-        //     replies: null,
-        //     client_id: client.id,
-        //     url: null,
-            
-        //     content: {
-        //         kind: "post", // we should have a kind: "error", it would be useful
-        //         title: {text: "Unknown URL"},
-        //         body: {kind: "richtext", content: [
-        //             rt.p(rt.txt("ThreadClient doesn't know how to display this URL.")),
-        //             rt.p(rt.link({id: client.id}, "TODO", {}, rt.txt("TODO;add 'view on reddit' link"))),
-        //         ]},
-        //         collapsible: false,
-        //     },
-        //     internal_data: entry,
-        // };
-        // return {
-        //     kind: "loader",
-        //     key: loader_enc.encode({
-        //         kind: "sidebar",
-        //         sub: entry.data.sub,
-        //     }),
-
-        //     parent: getPostData(content, map, getSrId(entry.data.sub)),
-        //     replies: null,
-        //     client_id: client.id,
-        //     url: null, // we can actually give this a url - it links to /…subreddit.base/@sidebar
-        //     load_count: null,
-
-        //     autoload: true,
-        // };
     } else assertNever(entry.data);
 }
 

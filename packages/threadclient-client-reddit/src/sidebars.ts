@@ -11,7 +11,7 @@ import {
 // - faster pageloads (load the sidebar after loading the page)
 // - look nicer
 
-export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): Promise<Generic.ListingData> {
+export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): Promise<Generic.HorizontalLoaded> {
     if(sub.kind === "subreddit") {
         const onerror = () => undefined;
         const [widgets, about] = await Promise.all([
@@ -26,7 +26,7 @@ export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): 
     }
 }
 
-function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Generic.ListingData {
+function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Generic.HorizontalLoaded {
     const widgets = subinfo.widgets;
 
     const getItem = (id: string): Reddit.Widget => {
@@ -40,7 +40,7 @@ function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Ge
     };
     
     // TODO moderator widget
-    const res: Generic.Link<Generic.Post>[] = [
+    const res: Generic.HorizontalLoaded = [
         // ...widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
         // ...widgets ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
         ...subinfo.sub_t5 ? [customIDCardWidget(content, subinfo.sub_t5, subinfo.subreddit)] : [],
@@ -53,7 +53,7 @@ function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Ge
     if(res.length === 0) {
         res.push(p2.createSymbolLinkToError(content, "Failed to fetch sidebar for this page :(", {content, subinfo}));
     }
-    return {display: "tree", items: res};
+    return res;
 }
 
 function sidebarWidgetToGenericWidget(
@@ -74,7 +74,7 @@ function unpivotablePostBelowPivot(
     value: Generic.PostContent,
     opts: {
         internal_data: unknown,
-        replies?: undefined | Generic.ListingData,
+        replies?: undefined | Generic.PostReplies,
         link_to?: undefined | string,
     },
 ): Generic.Link<Generic.Post> {
@@ -91,6 +91,13 @@ function unpivotablePostBelowPivot(
         content: value,
         internal_data: opts.internal_data,
     });
+}
+function horizontal(
+    content: Generic.Page2Content,
+    value: Generic.HorizontalLoaded,
+): Generic.HorizontalLoader {
+    const ksym = p2.createSymbolLinkToValue(content, value);
+    return p2.prefilledHorizontalLoader(content, ksym, value);
 }
 
 function unpivotableBelowPivotBody(
@@ -148,7 +155,7 @@ function sidebarWidgetToGenericWidgetTry(
             collapsible: false,
         }, {
             internal_data: {widget, subinfo},
-            replies: {display: "tree", items: widget.data.map((itm, i) => {
+            replies: {display: "tree", loader: horizontal(content, widget.data.map((itm, i) => {
                 return unpivotablePostBelowPivot(content, {
                     kind: "post",
 
@@ -162,7 +169,7 @@ function sidebarWidgetToGenericWidgetTry(
                 }, {
                     internal_data: itm,
                 });
-            })},
+            }))},
         });
     }else if(widget.kind === "post-flair") {
         return unpivotablePostBelowPivot(content, {
@@ -172,7 +179,7 @@ function sidebarWidgetToGenericWidgetTry(
             collapsible: false,
         }, {
             internal_data: {widget, subinfo},
-            replies: {display: "repivot_list", items: widget.order.map(id => {
+            replies: {display: "repivot_list", loader: horizontal(content, widget.order.map(id => {
                 const val = widget.templates[id]!;
                 const flair = flairToGenericFlair({
                     type: val.type, text: val.text, text_color: val.textColor,
@@ -191,7 +198,7 @@ function sidebarWidgetToGenericWidgetTry(
                     link_to: "/r/"+subinfo.subreddit
                     +"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
                 });
-            })},
+            }))},
         });
     }else if(widget.kind === "textarea") {
         return unpivotablePostBelowPivot(content, {
@@ -217,15 +224,19 @@ function sidebarWidgetToGenericWidgetTry(
             collapsible: false,
         }, {
             internal_data: widget,
-            replies: {display: "repivot_list", items: widget.buttons.map(button => unpivotablePostBelowPivot(content, {
-                kind: "post",
-                title: {text: button.kind === "text" ? button.text : "TODO SUPPORT BUTTON KIND "+button.kind},
-                body: {kind: "none"},
-                collapsible: false,
-            }, {
-                internal_data: button,
-                link_to: (button.kind === "image" ? button.linkUrl : button.kind === "text" ? button.url : undefined),
-            }))},
+            replies: {display: "repivot_list", loader: horizontal(content, widget.buttons.map(button => (
+                unpivotablePostBelowPivot(content, {
+                    kind: "post",
+                    title: {text: button.kind === "text" ? button.text : "TODO SUPPORT BUTTON KIND "+button.kind},
+                    body: {kind: "none"},
+                    collapsible: false,
+                }, {
+                    internal_data: button,
+                    link_to: (
+                        button.kind === "image" ? button.linkUrl : button.kind === "text" ? button.url : undefined
+                    ),
+                })
+            )))},
         });
     }else if(widget.kind === "community-list") {
         return unpivotablePostBelowPivot(content, {
@@ -236,7 +247,7 @@ function sidebarWidgetToGenericWidgetTry(
         }, {
             internal_data: widget,
             // TODO: if we can make real `subreddit_unloaded` objects here that would be fun
-            replies: {display: "repivot_list", items: widget.data.map(community => (
+            replies: {display: "repivot_list", loader: horizontal(content, widget.data.map(community => (
                 community.type === "subreddit"
             ) ? unpivotablePostBelowPivot(content, {
                 kind: "post",
@@ -256,7 +267,7 @@ function sidebarWidgetToGenericWidgetTry(
             }) : (
                 expectUnsupported(community.type),
                 p2.createSymbolLinkToError(content, "unsupported community type: "+community.type, community)
-            ))},
+            )))},
         });
     }else if(widget.kind === "calendar") {
         return unpivotablePostBelowPivot(content, {

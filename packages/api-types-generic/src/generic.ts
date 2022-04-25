@@ -26,11 +26,13 @@ export const p2 = {
     stringLink<T>(link: string): Link<T> {
         return link as Link<T>;
     },
-    fillLink<T>(content: Page2Content, link: Link<T>, value: T): void {
+    fillLink<T>(content: Page2Content, link: Link<T>, value: T): Link<T> {
         content[link] = {data: value};
+        return link;
     },
-    fillLinkOnce<T>(content: Page2Content, link: Link<T>, value: () => T): void {
+    fillLinkOnce<T>(content: Page2Content, link: Link<T>, value: () => T): Link<T> {
         if(content[link] == null) p2.fillLink(content, link, value());
+        return link;
     },
 
     /// a vertical loader that has filled content, so there's no need to describe how to load it
