@@ -445,9 +445,6 @@ function subredditPostsID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoade
 function subredditLoadPostsID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
     return p2.stringLink("SUBREDDIT-LOAD-POSTS_"+getSrId(sr_id));
 }
-function subredditNextPageID(sr_id: SubrInfo, after: string): Generic.Link<Generic.HorizontalLoader> {
-    return p2.stringLink("SUBREDDIT-NEXTPAGE-LOADER["+getSrId(sr_id)+"]_"+after);
-}
 function subredditNextPageContentID(sr_id: SubrInfo, after: string): Generic.Link<Generic.HorizontalLoaded> {
     return p2.stringLink("SUBREDDIT-NEXTPAGE-CONTENT_["+getSrId(sr_id)+"]_"+after);
 }
@@ -558,6 +555,9 @@ function postDataFromListingMayError(
                 load_count: null, // unknown
                 request: load_request_id,
                 client_id: client.id,
+                autoload: true, // TODO it should be false for real load objectss. we can fix this
+                // by making reddit's depth loaders real rather than simulating them in the top
+                // level vertical loader
             },
         };
 
@@ -619,6 +619,7 @@ function postDataFromListingMayError(
                 request: load_parent_id,
                 load_count: listing.depth, // this might be off by one or smth
                 client_id: client.id,
+                autoload: false,
             },
         };
 
@@ -683,6 +684,7 @@ function postDataFromListingMayError(
                 load_count: listing.num_comments,
                 client_id: client.id,
                 request: replies_loader_data,
+                autoload: true,
             },
         };
 
@@ -767,6 +769,7 @@ function postDataFromListingMayError(
                 load_count: null,
                 request: sub_content_request,
                 client_id: client.id,
+                autoload: true,
             },
         };
 
@@ -777,17 +780,9 @@ function postDataFromListingMayError(
                 posts.push(renderCommentOrUnmounted(content, child, {parent_fullname: "@E_SUBREDDIT"}));
             }
             if(listing.data.after != null) {
-                const objid = subredditNextPageID(entry.data.details, listing.data.after);
                 const nextid = subredditNextPageContentID(entry.data.details, listing.data.after);
                 const nextrequest = subredditNextPageRequestID(entry.data.details, listing.data.after);
 
-                p2.fillLink(content, objid, {
-                    kind: "horizontal_loader",
-                    key: nextid,
-                    load_count: null,
-                    request: nextrequest,
-                    client_id: client.id,
-                });
                 // whoops, we can't quite do this
                 // this loader will rewrite all the replies when it should really just be filling the 'nextid' item
                 // p2.fillLink(content, nextrequest, loader_enc.encode({
@@ -795,7 +790,14 @@ function postDataFromListingMayError(
                 //     url: updateQuery("/"+data.details.base.join("/"), {before: undefined, after: listing.data.after}),
                 // }));
 
-                posts.push(objid);
+                posts.push({
+                    kind: "horizontal_loader",
+                    key: nextid,
+                    load_count: null,
+                    request: nextrequest,
+                    client_id: client.id,
+                    autoload: false,
+                });
             }
 
             p2.fillLink(content, sub_content, posts);
@@ -829,6 +831,7 @@ function postDataFromListingMayError(
                                 })
                             )),
                             client_id: client.id,
+                            autoload: true,
                         },
                     },
                     // v TODO: this should be a loader but [!] it is linked to the loader above.

@@ -53,6 +53,7 @@ export const p2 = {
             load_count: null,
             request: p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled @2", fill),
             client_id: "@E@UNNECESSARY",
+            autoload: false,
         };
     },
     prefilledHorizontalLoader(
@@ -68,6 +69,7 @@ export const p2 = {
             load_count: null,
             request: p2.createSymbolLinkToError(content, "horizontal loader claimed to be prefilled", fill),
             client_id: "@E@UNNECESSARY",
+            autoload: false,
         };
     },
 };
@@ -135,6 +137,7 @@ export type BaseLoader = {
     request: Link<Opaque<"loader">>, // ← never load when another loader with the same link is loading.
     // this is how we create linked loaders, they are two loaders that have the same request key.
     client_id: string,
+    autoload: boolean,
 };
 
 // vv we don't know typesafely that it's unloaded but don't call something this unless it's unloaded

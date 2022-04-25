@@ -585,6 +585,7 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
                 load_count: null,
                 request: request_link,
                 client_id: client.id,
+                autoload: true,
             },
         } : {
             loader: {
@@ -594,6 +595,7 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
                 load_count: null,
                 request: p2.createSymbolLinkToError(content, "should never be unloaded", clientLink(host)),
                 client_id: client.id,
+                autoload: true,
             },
         },
         replies: {
@@ -604,6 +606,7 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
                 load_count: post.replies_count,
                 request: request_link,
                 client_id: client.id,
+                autoload: true,
             },
         },
 
@@ -1131,6 +1134,7 @@ function timelineLoader(
             timeline: tl,
         })),
         client_id: client.id,
+        autoload: true,
     };
 }
 

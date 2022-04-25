@@ -107,6 +107,7 @@ function loaderToFlatLoader(loader: Generic.HorizontalLoader | Generic.VerticalL
         load_count: loader.load_count,
         request: loader.request,
         client_id: loader.client_id,
+        autoload: loader.autoload,
     };
 }
 
@@ -224,6 +225,10 @@ function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeI
         }
         for(const reply of val.value ?? []) {
             console.log("READING POST REPLY LINK", reply);
+            if(typeof reply === "object") {
+                addReplies(reply);
+                continue;
+            }
             const readlink = readLink(meta, reply);
             if(readlink == null) {
                 res.push({kind: "error", msg: "e-link-bad: "+reply.toString()});
@@ -231,15 +236,11 @@ function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeI
                 res.push({kind: "error", msg: readlink.error});
             }else{
                 const rpli = readlink.value;
-                if(rpli.kind === "horizontal_loader") {
-                    addReplies(rpli);
-                }else{
-                    res.push({
-                        kind: "flat_post",
-                        post: rpli,
-                        link: reply as Generic.Link<Generic.Post>,
-                    });
-                }
+                res.push({
+                    kind: "flat_post",
+                    post: rpli,
+                    link: reply,
+                });
             }
         }
     }
@@ -563,8 +564,10 @@ export function autokey(items: FlatItem[]): (FlatItem & {[array_key]: unknown})[
     let i_excl_post = 0;
     const autokeyItem = (itm: FlatItem): FlatItem & {[array_key]: unknown} => {
         const key: {v: unknown} = (() => {
-            if(itm.kind === "post" && itm.content.kind === "flat_post") {
-                return {v: itm.content.link};
+            if(itm.kind === "post") {
+                if(itm.content.kind === "flat_post") {
+                    return {v: itm.content.link};
+                }
             }
             i_excl_post += 1;
             return {v: i_excl_post};

@@ -13,6 +13,7 @@ import {
 import { addAction } from "./action_tracker";
 import { Body } from "./body";
 import { CollapseButton } from "./CollapseButton";
+import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import { A } from "./links";
 import { ClientContentAny } from "./page2";
@@ -390,11 +391,8 @@ function PageFlatPostContent(props: {
                 disabled={loading()}
                 onClick={doLoad}
                 ref={btn => {
-                    // !!@@TODO ADD BACK AUTOLOAD
-                    // we need a proper thing this time though. maybe eg: autoload all visible loaders
-                    // on refocus. but that isn't right, we don't want to autoload a morecomments if we
-                    // focus the parent. or maybe we do. not sure.
-                    if(false as boolean) {
+                    // ok autoload is not a good way to handle this but we're using it for now
+                    if(loader.autoload) {
                         const observer = new IntersectionObserver(doLoad, {
                             root: document.body,
                             rootMargin: "0px",
@@ -411,7 +409,7 @@ function PageFlatPostContent(props: {
                 ? "Loading…"
                 : (error() != null ? "Retry Load" : "Load More")
                 + (loader.load_count != null ? " ("+loader.load_count+")" : "")
-            }</button><Show when={error()}>{err => (
+            }</button><DevCodeButton data={props} /><Show when={error()}>{err => (
                 <p class="text-red-600 dark:text-red-500">
                     Error loading; {err}
                 </p>
