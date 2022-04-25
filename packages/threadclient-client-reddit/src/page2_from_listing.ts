@@ -679,6 +679,16 @@ function postDataFromListingMayError(
             },
         };
 
+        if(entry.data.missing_replies !== true && entry.data.replies !== "not_loaded") {
+            const postreplies = entry.data.replies.data.children;
+            p2.fillLinkOnce(content, replies_data, (): Generic.HorizontalLoaded => {
+                return postreplies.map((reply): Generic.Link<Generic.Post> => {
+                    return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name});
+                    // TODO: support 'more' here
+                });
+            });
+        }
+
         const our_id = fullnameID(listing.name);
         p2.fillLinkOnce(content, our_id, (): Generic.Post => ({
             kind: "post",
