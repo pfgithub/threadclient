@@ -543,17 +543,26 @@ url_parser.catchall(() => ({
 }));
 
 
-function postLink(post_id: string): Generic.Link<Generic.Post> {
-    return p2.stringLink("post_"+post_id);
+function postLink(host: string, post_id: string): Generic.Link<Generic.Post> {
+    return p2.stringLink("["+host+"]"+"post_"+post_id);
 }
-function postRepliesLink(post_id: string): Generic.Link<Generic.HorizontalLoaded> {
-    return p2.stringLink("post-replies_"+post_id);
+function postRepliesLink(host: string, post_id: string): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("["+host+"]"+"post-replies_"+post_id);
 }
-function clientLink(): Generic.Link<Generic.Post> {
-    return p2.stringLink("client");
+function timelineObjectLink(host: string, tl: RootTimelineInfo): Generic.Link<Generic.Post> {
+    return p2.stringLink("["+host+"]"+"timeline-object_"+tl.root_api_path);
 }
-function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Post) {
-    const respost_link = postLink(post.id);
+function timelineContentLink(host: string, tl: TimelineInfo): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("["+host+"]"+"timeline-content_"+tl.current_api_path);
+}
+function timelineLoaderLink(host: string, tl: TimelineInfo): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("["+host+"]"+"timeline-loader_"+tl.current_api_path);
+}
+function clientLink(host: string): Generic.Link<Generic.Post> {
+    return p2.stringLink("["+host+"]"+"client");
+}
+function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Post): Generic.Link<Generic.Post> {
+    const respost_link = postLink(host, post.id);
 
     const request_link = p2.stringLink<Generic.Opaque<"loader">>("post-loadcontext_"+post.id);
     p2.fillLink(content, request_link, loader_enc.encode({
@@ -571,8 +580,8 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
         parent: post.in_reply_to_id != null ? {
             loader: {
                 kind: "vertical_loader",
-                key: postLink(post.in_reply_to_id),
-                temp_parent: clientLink(),
+                key: postLink(host, post.in_reply_to_id),
+                temp_parent: clientLink(host),
                 load_count: null,
                 request: request_link,
                 client_id: client.id,
@@ -580,10 +589,10 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
         } : {
             loader: {
                 kind: "vertical_loader",
-                key: clientLink(),
-                temp_parent: clientLink(),
+                key: clientLink(host),
+                temp_parent: clientLink(host),
                 load_count: null,
-                request: p2.createSymbolLinkToError(content, "should never be unloaded", clientLink()),
+                request: p2.createSymbolLinkToError(content, "should never be unloaded", clientLink(host)),
                 client_id: client.id,
             },
         },
@@ -591,7 +600,7 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
             display: "tree",
             loader: {
                 kind: "horizontal_loader",
-                key: postRepliesLink(post.id),
+                key: postRepliesLink(host, post.id),
                 load_count: post.replies_count,
                 request: request_link,
                 client_id: client.id,
@@ -601,6 +610,8 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
         url: "/"+host+"/statuses/"+post.id,
         client_id: client.id,
     });
+    
+    return respost_link;
 }
 
 type LoginURL = {
@@ -702,7 +713,7 @@ export const client: ThreadClient = {
         const auth = await getAuth(host);
     
         const content: Generic.Page2Content = {};
-        p2.fillLink(content, clientLink(), {
+        p2.fillLink(content, clientLink(host), {
             kind: "post",
             content: {
                 kind: "client",
@@ -728,25 +739,33 @@ export const client: ThreadClient = {
             //     ],
             // });
         }else if(parsed.kind === "timeline") {
-            throw new Error("TODO TIMELINE");
+            const res = fillTimeline(content, host, {
+                root_api_path: parsed.api_path,
+                root_web_path: pathraw,
+                root_title: "Timeline "+parsed.tmname,
+            });
+            return {
+                content,
+                pivot: res,
+            };
             // const timelines_navbar: Generic.Menu = [
+            //     mnu.link(client, "About", "/"+host", false),
             //     mnu.link(client, "Home", "/"+host+"/timelines/home", parsed.tmname === "home"),
             //     mnu.link(client, "Local", "/"+host+"/timelines/local", parsed.tmname === "local"),
             //     mnu.link(client, "Federated", "/"+host+"/timelines/public", parsed.tmname === "public"),
             //     mnu.link(client, "Notifications", "/"+host+"/notifications", false),
             // ];
-            // return await timelineView(host, auth, parsed.api_path, pathraw, genericHeader(), timelines_navbar, "Timeline "+parsed.tmname);
         }else if(parsed.kind === "status") {
             const post = await getResult<Mastodon.Post>(auth, mkurl(host, "api/v1/statuses", parsed.status));
             if('error' in post) {
                 throw new Error("ERRORED; "+post.error+"; TODO SHOW EMSG SCREEN");
             }
 
-            fillPost(host, content, post);
+            const res = fillPost(host, content, post);
 
             return {
                 content,
-                pivot: postLink(post.id),
+                pivot: res,
             };
 
             // const [postinfo, context] = await Promise.all([
@@ -775,7 +794,16 @@ export const client: ThreadClient = {
             //     display_style: "comments-view",
             // };
         }else if(parsed.kind === "account") {
-            throw new Error("TODO SUPPORT ACCOUNT PAGE");
+            const res = fillTimeline(content, host, {
+                root_api_path: parsed.api_url,
+                root_web_path: pathraw,
+                root_title: "@"+parsed.account,
+            });
+            return {
+                content,
+                pivot: res,
+            };
+
             // const acc_id = parsed.account;
 
             // const [account_info, account_relations] = await Promise.all([
@@ -950,42 +978,74 @@ export const client: ThreadClient = {
     async loader(lreq): Promise<Generic.LoaderResult> {
         const req = loader_enc.decode(lreq);
         const {host} = req;
-
+        
         const auth = await getAuth(req.host);
-
-        // eventually this will be a linked loader. i'm not yet sure howt hat will work, but we'll have to
-        // replace two values not just one. anyway not yet.
-        const context = await getResult<{
-            ancestors: Mastodon.Post[],
-            descendants: Mastodon.Post[],
-        }>(auth, mkurl(host, "api/v1/statuses", req.center_id, "context"));
-        if('error' in context) throw new Error("got error: "+context.error);
 
         const content: Generic.Page2Content = {};
 
-        const reply_ids = new Map<string | null, string[]>();
-        for(const descendant of context.descendants) {
-            if(!reply_ids.has(descendant.in_reply_to_id)) reply_ids.set(descendant.in_reply_to_id, []);
-            const rid = reply_ids.get(descendant.in_reply_to_id)!;
-            rid.push(descendant.id);
-        }
+        if(req.kind === "context") {
+            // eventually this will be a linked loader. i'm not yet sure howt hat will work, but we'll have to
+            // replace two values not just one. anyway not yet.
+            const context = await getResult<{
+                ancestors: Mastodon.Post[],
+                descendants: Mastodon.Post[],
+            }>(auth, mkurl(host, "api/v1/statuses", req.center_id, "context"));
+            if('error' in context) throw new Error("got error: "+context.error);
 
-        const repliesFor = (id: string): Generic.HorizontalLoaded | null => {
-            return (reply_ids.get(id) ?? []).map(postLink);
-        };
+            const reply_ids = new Map<string | null, string[]>();
+            for(const descendant of context.descendants) {
+                if(!reply_ids.has(descendant.in_reply_to_id)) reply_ids.set(descendant.in_reply_to_id, []);
+                const rid = reply_ids.get(descendant.in_reply_to_id)!;
+                rid.push(descendant.id);
+            }
 
-        for(const descendant of context.descendants) {
-            fillPost(host, content, descendant);
-            p2.fillLink(content, postRepliesLink(descendant.id), repliesFor(descendant.id));
-        }
-        p2.fillLink(content, postRepliesLink(req.center_id), repliesFor(req.center_id));
+            const repliesFor = (id: string): Generic.HorizontalLoaded | null => {
+                return (reply_ids.get(id) ?? []).map(itm => postLink(host, itm));
+            };
+
+            for(const descendant of context.descendants) {
+                fillPost(host, content, descendant);
+                p2.fillLink(content, postRepliesLink(host, descendant.id), repliesFor(descendant.id));
+            }
+            p2.fillLink(content, postRepliesLink(host, req.center_id), repliesFor(req.center_id));
 
 
-        for(const ancestor of context.ancestors) {
-            fillPost(host, content, ancestor);
-        }
+            for(const ancestor of context.ancestors) {
+                fillPost(host, content, ancestor);
+            }
 
-        return {content};
+            return {content};
+        }else if(req.kind === "timeline") {
+            const posts = await getResult<Mastodon.Post[]>(auth, mkurl(host, req.timeline.current_api_path));
+
+            if('error' in posts) throw new Error("got error: "+posts.error);
+        
+            const fill_location = timelineContentLink(host, req.timeline);
+            // const parent: Generic.PostParent = {
+            //     loader: p2.prefilledVerticalLoader(content, fillTimeline(content, host, req.timeline), undefined),
+            // };
+            // ^ i don't need this for anything
+
+            const last_post = posts[posts.length - 1];
+
+            const replies: Generic.HorizontalLoaded = posts.map(post => fillPost(host, content, post));
+        
+            if(last_post) {
+                const updated_api_path = updateQuery(req.timeline.root_api_path, {
+                    since_id: undefined,
+                    min_id: undefined,
+                    max_id: last_post.id,
+                });
+                replies.push(timelineLoader(content, host, {
+                    ...req.timeline,
+                    current_api_path: updated_api_path,
+                }));
+            }
+
+            p2.fillLinkOnce(content, fill_location, () => replies);
+
+            return {content};
+        }else assertNever(req);
     },
 
     async loadMore(action) {
@@ -1016,6 +1076,62 @@ async function performBasicPostAction(host: string, url: string): Promise<void> 
 function assertUnreachable(value: never): never {
     console.log(value);
     throw new Error("Expected unreachable: "+value);
+}
+
+type RootTimelineInfo = {
+    root_api_path: string,
+    root_web_path: string,
+    root_title: string,
+}; 
+type TimelineInfo = RootTimelineInfo & {
+    current_api_path: string,
+};
+
+function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTimelineInfo): Generic.Link<Generic.Post> {
+    const tl: TimelineInfo = {...tl_in, current_api_path: tl_in.root_api_path};
+    const tl_root = timelineObjectLink(host, tl);
+
+    const replies: Generic.PostReplies = {
+        display: "repivot_list",
+        loader: timelineLoader(content, host, tl),
+    };
+    const parent: Generic.PostParent = {
+        loader: p2.prefilledVerticalLoader(content, clientLink(host), undefined),
+    };
+
+    return p2.fillLinkOnce(content, tl_root, (): Generic.Post => ({
+        kind: "post",
+        url: tl_in.root_web_path,
+        parent,
+        replies,
+        internal_data: tl_in,
+        client_id: client.id,
+        content: {
+            kind: "post",
+            title: {text: tl_in.root_title},
+            body: {kind: "none"},
+            collapsible: {default_collapsed: true},
+        },
+    }));
+}
+
+function timelineLoader(
+    content: Generic.Page2Content,
+    host: string,
+    tl: TimelineInfo,
+): Generic.HorizontalLoader {
+    return {
+        kind: "horizontal_loader",
+        key: timelineContentLink(host, tl),
+
+        load_count: null,
+        request: p2.fillLinkOnce(content, timelineLoaderLink(host, tl), () => loader_enc.encode({
+            kind: "timeline",
+            host,
+            timeline: tl,
+        })),
+        client_id: client.id,
+    };
 }
 
 async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode, navbar: Generic.Menu, timeline_title: string): Promise<Generic.Page> {
@@ -1069,6 +1185,10 @@ type LoaderData = {
     host: string,
     center_id: string,
     center_parent: string | null,
+} | {
+    kind: "timeline",
+    host: string,
+    timeline: TimelineInfo,
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 const loader_enc = encoderGenerator<LoaderData, "loader">("loader");

@@ -124,7 +124,7 @@ export type VerticalLoader = {
     temp_parent: null | Link<Post>, // temporary parent until the link is fliled. we could, after loading, assert that
     // this parent is somewhere in the loaded post's tree because if it isn't, it's likely an error.
 } & BaseLoader;
-export type HorizontalLoaded = Link<(Post | HorizontalLoader)>[];
+export type HorizontalLoaded = (Link<Post> | HorizontalLoader)[];
 export type HorizontalLoader = {
     kind: "horizontal_loader",
     key: Link<HorizontalLoaded>, // unfilled = not yet loaded
