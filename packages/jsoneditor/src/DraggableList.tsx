@@ -238,6 +238,38 @@ export function DragButton(props: {
         style={{
             "touch-action": "none",
         }}
+        onKeyDown={e => {
+            if(state.dragging()) return;
+            const self = state.index();
+            if(e.code === "ArrowUp") {
+                e.preventDefault();
+                e.stopPropagation();
+                state.setItems(prev => {
+                    const target = Math.max(self - 1, 0);
+                    const dup = [...prev];
+                    const value = dup.splice(self, 1); // delete self
+                    dup.splice(target, 0, ...value);
+                    return dup;
+                });
+                e.currentTarget.focus();
+            }else if(e.code === "ArrowDown") {
+                e.preventDefault();
+                e.stopPropagation();
+                // state.setFlipState(3);
+                state.setItems(prev => {
+                    const target = Math.min(self + 1, prev.length);
+                    const dup = [...prev];
+                    const value = dup.splice(self, 1); // delete self
+                    dup.splice(target, 0, ...value);
+                    return dup;
+                });
+                // state.setFlipState(2);
+                e.currentTarget.focus();
+                // state.setFlipState(0);
+
+                // the animation doesn't work going up for some reason
+            }
+        }}
         onPointerDown={initial_ev => {
             if(!initial_ev.isPrimary) return; // ignore
             if(state.dragging()) return;
