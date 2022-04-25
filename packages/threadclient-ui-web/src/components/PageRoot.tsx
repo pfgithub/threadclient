@@ -122,7 +122,7 @@ function ClientPageMain(props: ClientPageProps): PageRes {
                 </div>
             </Show>
             <Show if={view.data.sidebar != null && (tabbed() ? tab() === "sidebar" : true)}>
-                <div class="sm:max-w-320px w-full">
+                <div class="sm:max-w-320px w-full h-max" ref={stickySidebar}>
                     <For each={view.data.sidebar}>{item => (
                         <PageFlatItem
                             item={item}
@@ -133,4 +133,17 @@ function ClientPageMain(props: ClientPageProps): PageRes {
             </Show>
         </div>
     </div>};
+}
+
+function stickySidebar(el: HTMLDivElement) {
+    // css was so close to getting this right
+    // unfortunately, position:sticky doesn't scroll down as you scroll down the page
+    // https://stackoverflow.com/questions/47618271/position-sticky-scrollable-when-longer-than-viewport
+    // look at how much of a mess you have to make to work around this
+
+    // this feels like when they added 'background-attachment: fixed' but didn't add
+    // percentages to enable parallax
+
+    // el.style.position = "sticky";
+    // el.style.top = "0";
 }
