@@ -751,8 +751,12 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
                     ...i !== 0 ? [{kind: "richtext", content: [rt.hr()]}] as const : [],
                     {kind: "text", client_id: client.id, content: item.titleHtml, markdown_format: "reddit_html"},
                     {kind: "richtext", content: [rt.p(rt.timeAgo(item.startTime * 1000))]},
-                    {kind: "text", client_id: client.id, content: item.locationHtml, markdown_format: "reddit_html"},
-                    {kind: "text", client_id: client.id, content: item.descriptionHtml, markdown_format: "reddit_html"},
+                    ...item.locationHtml != null ? [
+                        {kind: "text" as const, client_id: client.id, content: item.locationHtml, markdown_format: "reddit_html" as const}
+                    ] : [],
+                    ...item.descriptionHtml != null ? [
+                        {kind: "text" as const, client_id: client.id, content: item.descriptionHtml, markdown_format: "reddit_html" as const}
+                    ] : [],
                 ];
             }),
         }},
