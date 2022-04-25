@@ -420,11 +420,11 @@ export type CalendarItem = {
     startTime: Date.Sec,
     endTime: Date.Sec,
     
-    location: Markdown,
-    locationHtml: HTML,
+    location: Markdown | null,
+    locationHtml?: never | HTML,
 
-    description: Markdown,
-    descriptionHtml: HTML,
+    description: Markdown | null,
+    descriptionHtml?: never | HTML,
 
     title: Markdown,
     titleHtml: HTML,

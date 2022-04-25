@@ -275,39 +275,45 @@ function sidebarWidgetToGenericWidgetTry(
             title: {text: widget.shortName},
             // this could be displayed using children but I don't have a widget to test on so I don't want to
             // risk messing it up. TODO: update this to use children.
-            body: {
-                kind: "array",
-                body: widget.data.flatMap((item, i): Generic.Body[] => {
-                    return [
-                        ...i !== 0 ? [{kind: "richtext", content: [rt.hr()]}] as const : [],
-                        {
-                            kind: "text",
-                            client_id: client.id,
-                            content: item.titleHtml,
-                            markdown_format: "reddit_html",
-                        },
-                        {
-                            kind: "richtext",
-                            content: [rt.p(rt.timeAgo(item.startTime * 1000))]
-                        },
-                        {
-                            kind: "text",
-                            client_id: client.id,
-                            content: item.locationHtml,
-                            markdown_format: "reddit_html",
-                        },
-                        {
-                            kind: "text",
-                            client_id: client.id,
-                            content: item.descriptionHtml,
-                            markdown_format: "reddit_html",
-                        },
-                    ];
-                }),
-            },
+            body: {kind: "none"},
             collapsible: false,
         }, {
             internal_data: widget,
+            replies: {display: "tree", loader: horizontal(content, widget.data.map((item) => {
+                return unpivotablePostBelowPivot(content, {
+                    kind: "post",
+                    title: {text: item.title},
+                    // info: {
+                    //     creation_date: item.startTime * 1000,
+                    // },
+                    // we need to specify a time to show
+                    body: {kind: "array", body: [
+                        {
+                            kind: "richtext",
+                            content: [rt.p(
+                                rt.txt("From "),
+                                // vv todo: use a date formatter instead of timeAgo
+                                rt.timeAgo(item.startTime * 1000),
+                                rt.txt(", to "),
+                                rt.timeAgo(item.endTime * 1000),
+                            )]
+                        },
+                        ...item.locationHtml != null ? [{
+                            kind: "text" as const,
+                            client_id: client.id,
+                            content: item.locationHtml,
+                            markdown_format: "reddit_html" as const,
+                        }] : [],
+                        ...item.descriptionHtml != null ? [{
+                            kind: "text" as const,
+                            client_id: client.id,
+                            content: item.descriptionHtml,
+                            markdown_format: "reddit_html" as const,
+                        }] : [],
+                    ]},
+                    collapsible: {default_collapsed: true},
+                }, {internal_data: item});
+            }))},
         });
     }else if(widget.kind === "image") {
         const imgdata = widget.data[widget.data.length - 1]!; // highest quality probably. TODO don't always
