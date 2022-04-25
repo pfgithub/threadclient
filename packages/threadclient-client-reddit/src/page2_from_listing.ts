@@ -9,7 +9,6 @@ import {
     getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, updateQuery, urlNotSupportedYet
 } from "./reddit";
-import { getSidebar } from "./sidebars";
 
 function warn(...message: unknown[]) {
     console.log(...message);
@@ -36,8 +35,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
     //   that has some loaders with all the links it needs
     // - the issue is when eg: sidebar widget and header banner both rely on the same
     //   web request. how is that represented? is it?
-
-    const id_map: IDMap = new Map();
 
     const start_time = Date.now();
 
@@ -123,24 +120,25 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 }),
             };
         }else if(parsed.kind === "subreddit_sidebar") {
-            const sidebar_listing = await getSidebar(content, parsed.sub);
-            return {
-                content,
-                pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
-                    kind: "post",
-                    client_id: client.id,
-                    content: {
-                        kind: "post",
-                        title: {text: "Sidebar"},
-                        body: {kind: "none"},
-                        collapsible: false,
-                    },
-                    parent: null,
-                    replies: sidebar_listing,
-                    url: "/"+[...parsed.sub.base, "@sidebar"].join("/"),
-                    internal_data: sidebar_listing,
-                }),
-            };
+            throw new Error("TODO reimplement subreddit sidebars");
+            // const sidebar_listing = await getSidebar(content, parsed.sub);
+            // return {
+            //     content,
+            //     pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
+            //         kind: "post",
+            //         client_id: client.id,
+            //         content: {
+            //             kind: "post",
+            //             title: {text: "Sidebar"},
+            //             body: {kind: "none"},
+            //             collapsible: false,
+            //         },
+            //         parent: null,
+            //         replies: sidebar_listing,
+            //         url: "/"+[...parsed.sub.base, "@sidebar"].join("/"),
+            //         internal_data: sidebar_listing,
+            //     }),
+            // };
         }
 
         const link: string = switchKind(parsed, {
@@ -164,7 +162,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
 
         return {
             content,
-            pivot: page2FromListing(content, id_map, pathraw, parsed, page),
+            pivot: page2FromListing(content, pathraw, parsed, page),
         };
     }catch(e) {
         const err = e as Error;
@@ -230,16 +228,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
 
 
 export type ID = string & {__is_id: true}; // TODO string & {__is_id: true}
-export type IDMap = Map<ID, IDMapEntry>;
-// // needs to be able to tell you if it's a thing or load more or whatever
-// // also it should like update in the future
-// // idk
-type IDMapEntry = {
-    kind: "unprocessed" | "processing" | "processed",
-    link: Generic.Link<Generic.Post>,
-
-    data: IDMapData,
-};
 
 // 'missing_replies' says that the provided replies should not be trusted and should be replaced with a loader
 // instead. eg: if you look at a single coment thread, all the parents will be listed as "missing_replies" because
@@ -248,7 +236,10 @@ type IDMapData = {
     kind: "comment",
     comment: Reddit.T1,
     missing_replies?: undefined | true,
-    parent_fullname: string,
+    // vv TODO: i don't think we need this anymore
+    // - morechildren just needs the link id which is not the parent_fullname
+    // - checking if we're missing a parent is no longer something we have to handle in the post
+    parent_fullname: Reddit.Fullname,
 } | {
     kind: "post",
     post: Reddit.T3,
@@ -260,13 +251,13 @@ type IDMapData = {
     // just use the id directly and getPostData will(todo) handle it.
     kind: "subreddit_unloaded",
     listing: Reddit.Listing,
-    pathraw: string, // not sure if this is good to have. i'm using it to copy the path and put ?after=… on it but
-    // maybe we should use /...details.base?after=…
-    details: "unknown" | SubrInfo,
+    // pathraw: string, // not sure if this is good to have. i'm using it to copy the path and put ?after=… on it but
+    // // maybe we should use /...details.base?after=… ← yeah we should use details to get the url
+    details: SubrInfo,
     missing_replies?: undefined | true,
 } | {
     kind: "subreddit_sidebar_unloaded",
-    sub: "unknown" | SubrInfo,
+    sub: SubrInfo,
 } | {
     kind: "depth_more",
     // a Reddit.More with 0 children
@@ -283,7 +274,6 @@ type IDMapData = {
 
 export function page2FromListing(
     content: Generic.Page2Content,
-    id_map: IDMap,
     pathraw: string,
     path: ParsedPath,
     page: Reddit.AnyResult,
@@ -325,8 +315,7 @@ export function page2FromListing(
                     after: null,
                 },
             },
-            details: path.kind === "comments" ? path.sub : "unknown",
-            pathraw,
+            details: path.kind === "comments" ? path.sub : {kind: "error", base: [pathraw], pathraw},
             missing_replies: true,
             // the reason there are two seperate calls are because that way we can
             // easily get the id of the focused post
@@ -335,59 +324,35 @@ export function page2FromListing(
             // - because then the post doesn't have replies
             // hmm
         };
-        setUpMap(id_map, sr_entry);
+        postDataFromListingMayError(content, sr_entry);
 
-        let focus = setUpMap(id_map, {
+        let focus = postDataFromListingMayError(content, {
             kind: "post",
             post: parent_post,
             replies: page[1],
+            // @TODO!! (this is how you fix the bug that parent comments know their replies when they shouldn't)
+            // - i think we can support passing missing_replies - we say missing_replies: Fullname | null
+            //   and then once the post is found that has that fullname, it turns missing_replies off but until then
+            //   every comment is treated as missing_replies
+            // - the issue with that is if the focused comment isn't found in the tree, it messes up
+            // - but that's probably acceptable
             missing_replies: focus_comment != null ? true : undefined,
         });
 
-        const post_node = focus;
-
         if(focus_comment != null) {
-            const new_focus = "t1_"+focus_comment.toLowerCase() as ID;
-            if(id_map.has(new_focus)) focus = new_focus;
-            else warn("focused comment not found in tree `"+new_focus+"`");
+            const new_focus = fullnameID(`t1_${focus_comment.toLowerCase()}`);
+            if(content[new_focus]) focus = new_focus;
+            else warn("focused comment not found in tree `"+new_focus.toString()+"`");
         }
 
-        // on all posts above the focus, we need to 
-        // here's an idea:
-        // we can use ?threaded=false
-        // then transform the data like this:
-        // - all posts → {[id: string]: {parent: id, content: …, children: []}}
-        // - for each post: posts[parent].children.push(post)
-        // - for each post above the pivot: .children = []
-
-        // ok i'm not quite sure how we should do this
-        // anything above the pivot needs a loader as its children, and we don't
-        // know what is above the pivot until that id_map.has
-        // I think we have to do like in page1 and determine that first
-
-        // ok this *works* but it's not ideal
-        let focus_iter = focus;
-        while(focus_iter !== post_node) {
-            const parent = id_map.get(focus_iter)?.data;
-            if(parent?.kind === "comment") {
-                if(focus_iter !== focus) parent.missing_replies = true;
-                focus_iter = parent.comment.data.parent_id as ID;
-            }else break;
-        }
-
-        return getPostData(content, id_map, focus);
+        return focus;
     }else if(page.kind === "Listing") {
         const sr_entry: IDMapData = {
             kind: "subreddit_unloaded",
             listing: page,
-            details: path.kind === "subreddit" ? path.sub : "unknown",
-            pathraw,
+            details: path.kind === "subreddit" ? path.sub : {kind: "error", pathraw, base: [pathraw]},
         };
-        setUpMap(id_map, sr_entry);
-
-        const pivot_id = getEntryFullname(sr_entry);
-
-        return getPostData(content, id_map, pivot_id);
+        return postDataFromListingMayError(content, sr_entry);
     }else if(page.kind === "wikipage") {
         const sr_entry: IDMapData = {
             kind: "wikipage",
@@ -395,11 +360,7 @@ export function page2FromListing(
             pathraw,
             // TODO it should have a subreddit header
         };
-        setUpMap(id_map, sr_entry);
-
-        const pivot_id = getEntryFullname(sr_entry);
-
-        return getPostData(content, id_map, pivot_id);
+        return postDataFromListingMayError(content, sr_entry);
     }else if(page.kind === "t5") {
         warn("TODO t5");
     }else if(page.kind === "UserList") {
@@ -411,8 +372,8 @@ export function page2FromListing(
     return unsupportedPage(content, pathraw, page);
 }
 
-function getSrId(sub: "unknown" | SubrInfo): ID {
-    if(sub === "unknown") return "SR_unknown" as ID;
+// ! string is for pathraw
+function getSrId(sub: SubrInfo): ID {
     if(sub.kind === "homepage") {
         return "SR_home" as ID;
     }else if(sub.kind === "mod") {
@@ -423,13 +384,15 @@ function getSrId(sub: "unknown" | SubrInfo): ID {
         return "SR_user/"+sub.user.toLowerCase() as ID;
     }else if(sub.kind === "subreddit") {
         return "SR_sub/"+sub.subreddit.toLowerCase() as ID;
+    }else if(sub.kind === "error") {
+        return "SR_eunsupported/"+sub.pathraw as ID;
     }else assertNever(sub);
 }
 
 function unsupportedPage(
     content: Generic.Page2Content, pathraw: string, page: unknown,
-): Generic.Link<Generic.PostData> {
-    return p2.createSymbolLinkToValue<Generic.PostData>(content, {
+): Generic.Link<Generic.Post> {
+    return p2.createSymbolLinkToValue<Generic.Post>(content, {
         kind: "post",
         client_id: client.id,
         parent: null,
@@ -451,30 +414,56 @@ function unsupportedPage(
     });
 }
 
-function getPostFullname(post: Reddit.Post, opts: {parent_fullname: string}): ID {
-    const value = commentOrUnmountedData(post, {parent_fullname: opts.parent_fullname});
-    if(!value) return "__ERROR_FULLNAME__" as ID;
-    return getEntryFullname(value);
+// we will have to redo this id systm
+// function getPostFullname(post: Reddit.Post, opts: {parent_fullname: string}): Generic.Link<Generic.Post> {
+//     const value = commentOrUnmountedData(post, {parent_fullname: opts.parent_fullname});
+//     if(!value) return p2.stringLink("__ERROR_FULLNAME__");
+//     return getEntryFullname(value);
+// }
+function fullnameID(fullname: Reddit.Fullname): Generic.Link<Generic.Post> {
+    return p2.stringLink("OBJECT_"+fullname);
 }
-function getEntryFullname(entry: IDMapData): ID {
-    if(entry.kind === "comment") {
-        return entry.comment.data.name as ID;
-    }else if(entry.kind === "post") {
-        return entry.post.data.name as ID;
-    }else if(entry.kind === "subreddit_unloaded") {
-        return getSrId(entry.details);
-    }else if(entry.kind === "depth_more") {
-        return "DEPTH_MORE_"+entry.parent_fullname as ID;
-    }else if(entry.kind === "more") {
-        return "MORE_"+entry.item.data.children.join(",") as ID;
-    }else if(entry.kind === "wikipage") {
-        return "WIKIPAGE_"+entry.pathraw as ID;
-    }else if(entry.kind === "subreddit_sidebar_unloaded") {
-        return "SIDEBAR_"+getSrId(entry.sub) as ID;
-    }else assertNever(entry);
+function fullnameRepliesID(fullname: Reddit.Fullname): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("OBJECT-REPLIES_"+fullname);
+}
+function fullnameDepthLoaderID(parent_fullname: Reddit.Fullname): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("OBJECT-DEPTH-LOADER_"+parent_fullname);
+}
+function fullnameContextLoaderID(center_fullname: Reddit.Fullname): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("OBJECT-CONTEXT-LOADER_"+center_fullname);
+}
+function subredditUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.Post> {
+    return p2.stringLink("SUBREDDIT_"+getSrId(sr_id));
+}
+function subredditPostsID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("SUBREDDIT-POSTS_"+getSrId(sr_id));
+}
+function subredditLoadPostsID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("SUBREDDIT-LOAD-POSTS_"+getSrId(sr_id));
+}
+function subredditNextPageID(sr_id: SubrInfo, after: string): Generic.Link<Generic.HorizontalLoader> {
+    return p2.stringLink("SUBREDDIT-NEXTPAGE-LOADER["+getSrId(sr_id)+"]_"+after);
+}
+function subredditNextPageContentID(sr_id: SubrInfo, after: string): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("SUBREDDIT-NEXTPAGE-CONTENT_["+getSrId(sr_id)+"]_"+after);
+}
+function subredditNextPageRequestID(sr_id: SubrInfo, after: string): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("SUBREDDIT-NEXTPAGE-REQUEST["+getSrId(sr_id)+"]_"+after);
+}
+// [!] depth mores do not have an id; instead, the parent should report not knowing if it has comments
+//  -   interestingly, it doesn't really matter if we display it as a loader as long as the comments for the post
+//      get replaced
+// function moreID(children: string[]): Generic.Link<Generic.HorizontalLoader> {
+//     return p2.stringLink("MORE_"+children.join(","));
+// }
+function wikipageID(pathraw: string): Generic.Link<Generic.Post> {
+    return p2.stringLink("WIKIPAGE_"+pathraw);
+}
+function subredditSidebarUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("SIDEBAR_"+getSrId(sr_id));
 }
 
-function commentOrUnmountedData(item: Reddit.Post, opts: {parent_fullname: string}): IDMapData | undefined {
+function commentOrUnmountedData(item: Reddit.Post, opts: {parent_fullname: Reddit.Fullname}): IDMapData | undefined {
     if(item.kind === "t1") {
         return {
             kind: "comment",
@@ -507,114 +496,14 @@ function commentOrUnmountedData(item: Reddit.Post, opts: {parent_fullname: strin
     }
 }
 
-function setUpCommentOrUnmounted(map: IDMap, item: Reddit.Post, opts: {parent_fullname: string}): void {
+function renderCommentOrUnmounted(
+    content: Generic.Page2Content,
+    item: Reddit.Post,
+    opts: {parent_fullname: Reddit.Fullname},
+): Generic.Link<Generic.Post> {
     const data = commentOrUnmountedData(item, {parent_fullname: opts.parent_fullname});
-    if(data == null) return;
-    setUpMap(map, data);
-}
-
-export function setUpMap(
-    map: IDMap,
-    data: IDMapData,
-): ID {
-    const entry_fullname = getEntryFullname(data);
-    const prev_value = map.get(entry_fullname);
-    if(prev_value) {
-        console.log("Note: Two objects with the same id were created. ID: `"+entry_fullname+"`");
-        // Note: In the future, consider reconciling both into one data entry that has data from both.
-        return entry_fullname;
-
-        // there are many reasons two things with the same id might get added
-        // eg: adding a post and then a crosspost of that post, both on the same listing
-    }
-
-    if(data.kind === "comment") {
-        const listing_raw = data.comment;
-        if(listing_raw.kind === "t1") {
-            const listing = listing_raw.data;
-
-            //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-            if(listing.replies) {
-                for(const reply of listing.replies.data.children) {
-                    // TODO if it's load more it might need a parent_permalink
-                    // pass that in here or something
-                    // or make a fn to do this
-                    setUpCommentOrUnmounted(map, reply, {parent_fullname: listing.name});
-                }
-            }
-        }else if(listing_raw.kind === "more") {
-            // TODO this doesn't belong here
-            if(listing_raw.data.name === "t1__") return entry_fullname; // depth-based
-        }else {
-            console.log("TODO setUpMap "+listing_raw.kind);
-        }
-    }else if(data.kind === "post") {
-        const listing = data.post.data;
-        if(listing.crosspost_parent_list) {
-            for(const xpost_parent of listing.crosspost_parent_list) {
-                setUpMap(map, {
-                    kind: "post",
-                    post: {kind: "t3", data: xpost_parent},
-                    replies: "not_loaded",
-                });
-            }
-        }
-        if(data.replies !== "not_loaded") for(const reply of data.replies.data.children) {
-            setUpCommentOrUnmounted(map, reply, {parent_fullname: listing.name});
-        }
-    }else if(data.kind === "subreddit_unloaded") {
-        for(const post of data.listing.data.children) {
-            setUpCommentOrUnmounted(map, post, {parent_fullname: "E_PARENT_IS_SUBREDDIT"});
-        }
-        setUpMap(map, {
-            kind: "subreddit_sidebar_unloaded",
-            sub: data.details,
-        });
-    }else if(data.kind === "more") {
-        // nothing to do
-    }else if(data.kind === "depth_more") {
-        // nothing to do
-    }else if(data.kind === "wikipage") {
-        // nothing to do
-    }else if(data.kind === "subreddit_sidebar_unloaded") {
-        // nothing to do
-    }else assertNever(data);
-
-    map.set(entry_fullname, {
-        kind: "unprocessed",
-        link: entry_fullname as string as Generic.Link<Generic.Post>,
-        data,
-    });
-
-    return entry_fullname;
-}
-
-// returns a pointer to the PostData
-// TODO support load more in both parents and replies
-export function getPostData(content: Generic.Page2Content, map: IDMap, key: ID): Generic.Link<Generic.Post> {
-    const value = map.get(key);
-    if(!value) {
-        // TODO determine which load more to use
-        // return p2.createSymbolLinkToError(
-        //     content,
-        //     "post was not found in tree (TODO load more) ("+key+")",
-        //     {content, map, key},
-        // );
-        return key as string as Generic.Link<Generic.Post>;
-    }
-    if(value.kind === "unprocessed") {
-        value.kind = "processing";
-
-        const res = postDataFromListingMayError(content, map, value); // uuh… this is mayerror… should handle errors here
-
-        content[value.link] = {data: res};
-
-        value.kind = "processed";
-
-        return value.link;
-    }else if(value.kind === "processing" || value.kind === "processed") {
-        return value.link;
-    }else assertNever(value.kind);
+    if(data == null) return p2.createSymbolLinkToError(content, "eunsupported", item);
+    return postDataFromListingMayError(content, data);
 }
 
 function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
@@ -638,52 +527,66 @@ function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
 
 function postDataFromListingMayError(
     content: Generic.Page2Content,
-    map: IDMap,
-    entry: IDMapEntry,
-): Generic.Post {
+    id_map_data: IDMapData,
+): Generic.Link<Generic.Post> {
+    const entry = {data: id_map_data};
     if(entry.data.kind === "comment") {
         const listing_raw = entry.data.comment;
         const listing = listing_raw.data;
 
-        const replies: Generic.ListingData = {
+        const replies_id = fullnameRepliesID(listing.name);
+        const load_request_id = fullnameDepthLoaderID(listing.name);
+        p2.fillLinkOnce(content, load_request_id, () => loader_enc.encode({
+            kind: "parent_permalink",
+            post_id: listing.link_id.replace("t3_", ""),
+            parent_id: listing.id,
+        }));
+        const replies: Generic.PostReplies = {
             display: "tree",
             reply: {action: replyButton(listing.name), locked: listing.locked},
-            items: [],
+            loader: {
+                kind: "horizontal_loader",
+                key: replies_id,
+
+                load_count: null, // unknown
+                request: load_request_id,
+                client_id: client.id,
+            },
         };
-        if(entry.data.missing_replies ?? false) {
+
+        const should_fill_replies = ((): boolean => {
             //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-            if(listing.replies && listing.replies.data.children.length > 0) {
-                const lr_sym = p2.createSymbolLinkToValue<Generic.Loader>(content, {
-                    kind: "loader",
+            if(!listing.replies) return true; // there are no replies. no point having a loader to 0 items.
 
-                    key: loader_enc.encode({
-                        kind: "parent_permalink",
-                        post_id: listing.link_id.replace("t3_", ""),
-                        parent_id: listing.id,
-                    }),
-                    load_count: null, // who knows
-                    autoload: true,
-
-                    parent: entry.link,
-                    replies: null,
-                    url: null,
-                    client_id: client.id,
-                });
-                replies.items.push(lr_sym);
+            const lreplies = listing.replies.data.children;
+            if(entry.data.missing_replies ?? false) {
+                if(lreplies.length > 0) {
+                    return false;
+                }
+                return true; // we should fill replies even though the post is marked as "missing_replies"
+                // because there are no replies. no point in having a loader to 0 items.
             }
-        }else{
-            //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-            if(listing.replies) {
-                for(const reply of listing.replies.data.children) {
-                    replies.items.push(getPostData(
-                        content, map,
-                        getPostFullname(reply, {parent_fullname: listing.name}),
-                    ));
+            if(lreplies.length === 1) {
+                const rply0 = lreplies[0]!;
+                if(rply0.kind === "more" && rply0.data.name === "t1__") {
+                    // depth-based loadmore. do not fill replies because we'll display one automatically
+                    return false;
                 }
             }
+            return true;
+        })();
+        if(should_fill_replies) {
+            p2.fillLinkOnce(content, replies_id, (): Generic.HorizontalLoaded => {
+                //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+                if(!listing.replies) return [];
+                return listing.replies.data.children.map((reply): Generic.Link<Generic.Post> => {
+                    return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name});
+                    // TODO: support 'more' here
+                });
+            });
         }
 
-        const link_info = map.get(listing.link_id as ID);
+        // const link_info = map.get(listing.link_id as ID);
 
         // note: it would be preferable to have something similar to twitter "hidden" functionality
         //       where the post is displayed but it's just a box saying "this post is hidden because
@@ -695,28 +598,30 @@ function postDataFromListingMayError(
             listing.author === "FatFingerHelperBot"
         );
 
-        return {
+        const load_parent_id = fullnameContextLoaderID(listing.name);
+        p2.fillLinkOnce(content, load_parent_id, () => loader_enc.encode({
+            kind: "vertical",
+            bottom_post: listing.name,
+            top_post: listing.link_id,
+        }));
+        const parent: Generic.PostParent = {
+            loader: {
+                kind: "vertical_loader",
+                key: fullnameID(listing.parent_id),
+                temp_parent: fullnameID(listing.link_id),
+                request: load_parent_id,
+                load_count: listing.depth, // this might be off by one or smth
+                client_id: client.id,
+            },
+        };
+
+        const our_id = fullnameID(listing.name);
+        p2.fillLinkOnce(content, our_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
             url: updateQuery(listing.permalink, {context: "3"}),
 
-            parent: entry.data.parent_fullname !== listing.parent_id ? (
-                p2.createSymbolLinkToValue<Generic.Loader>(content, {
-                    kind: "loader",
-                    parent: getPostData(content, map, entry.data.parent_fullname as ID),
-                    replies: null, // this is a vertical loader
-                    url: null,
-                    client_id: client.id,
-
-                    load_count: null,
-                    autoload: false,
-                    key: loader_enc.encode({
-                        kind: "vertical",
-                        bottom_post: listing.name,
-                        top_post: entry.data.parent_fullname,
-                    }),
-                })
-            ) : getPostData(content, map, listing.parent_id as ID),
+            parent,
             replies,
 
             content: {
@@ -727,10 +632,12 @@ function postDataFromListingMayError(
                 info: getPostInfo(listing_raw),
                 collapsible: {default_collapsed: (automatic_collapse) || (listing.collapsed ?? false)},
                 actions: {
-                    vote: link_info?.data.kind === "post" && link_info.data.post.data.discussion_type === "CHAT"
-                        ? undefined
-                        : getPointsOn(listing)
-                    ,
+                    vote: getPointsOn(listing),
+                    // TODO: pass down info about the post
+                    // vote: link_info?.data.kind === "post" && link_info.data.post.data.discussion_type === "CHAT"
+                    //     ? undefined
+                    //     : getPointsOn(listing)
+                    // ,
                     code: getCodeButton(listing.body),
                     other: [
                         editButton(listing.name),
@@ -741,48 +648,54 @@ function postDataFromListingMayError(
                 },
             },
             internal_data: entry.data,
-        };
+        }));
+        return our_id;
     }else if(entry.data.kind === "post") {
         const listing_raw = entry.data.post;
         const listing = listing_raw.data;
 
-        return {
+        const replies_data = fullnameRepliesID(listing.name);
+        const replies_loader_data = fullnameDepthLoaderID(listing.name);
+        p2.fillLinkOnce(content, replies_loader_data, (): Generic.Opaque<"loader"> => {
+            return loader_enc.encode({
+                kind:"parent_permalink",
+                post_id: listing.id,
+                parent_id: null,
+            });
+        });
+
+        const replies: Generic.PostReplies = {
+            display: "tree",
+            reply: {
+                action: replyButton(listing.name),
+                locked: listing.locked,
+            },
+            loader: {
+                kind: "horizontal_loader",
+                key: replies_data,
+                load_count: listing.num_comments,
+                client_id: client.id,
+                request: replies_loader_data,
+            },
+        };
+
+        const our_id = fullnameID(listing.name);
+        p2.fillLinkOnce(content, our_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
             url: listing.permalink,
 
-            parent: getPostData(content, map, getSrId({
-                kind: "subreddit",
-                subreddit: listing.subreddit,
-                base: ["r", listing.subreddit],
-            })),
-            replies: {
-                display: "tree",
-                reply: {
-                    action: replyButton(listing.name),
-                    locked: listing.locked,
+            parent: {loader: p2.prefilledVerticalLoader(content, postDataFromListingMayError(content, {
+                kind: "subreddit_unloaded",
+                missing_replies: true,
+                listing: {kind: "Listing", data: {before: null, after: null, children: []}},
+                details: {
+                    kind: "subreddit",
+                    subreddit: listing.subreddit,
+                    base: ["r", listing.subreddit],
                 },
-                // I don't think before and after are used here
-                items: !entry.data.missing_replies && entry.data.replies !== "not_loaded" ? (
-                    entry.data.replies.data.children.map((reply): Generic.Link<Generic.Post> => (
-                        getPostData(content, map, getPostFullname(reply, {parent_fullname: listing.name}))
-                    ))
-                ): [p2.createSymbolLinkToValue(content, {
-                    kind: "loader",
-                    key: loader_enc.encode({
-                        kind:"parent_permalink",
-                        post_id: listing.id,
-                        parent_id: null,
-                    }),
-                    autoload: true,
-
-                    parent: entry.link,
-                    replies: null,
-                    client_id: client.id,
-                    url: null,
-                    load_count: null,
-                })],
-            },
+            }), undefined)},
+            replies,
 
             content: {
                 kind: "post",
@@ -814,74 +727,86 @@ function postDataFromListingMayError(
                 },
             },
             internal_data: entry.data,
-        };
+        }));
+        return our_id;
     }else if(entry.data.kind === "subreddit_unloaded") {
-        const replies: Generic.Link<Generic.Post>[] = [];
+        const data = entry.data;
+        const listing = data.listing;
 
-        for(const child of entry.data.listing.data.children) {
-            replies.push(getPostData(content, map, getPostFullname(child, {parent_fullname: "E_SUBREDDIT"})));
-        }
-        if(entry.data.listing.data.after != null) {
-            const next_path = updateQuery(entry.data.pathraw, {
-                before: undefined,
-                after: entry.data.listing.data.after,
-            });
-            replies.push(p2.createSymbolLinkToValue<Generic.Post>(content, {
-                kind: "loader",
-                parent: null,
-                replies: null,
-                url: null,
-                client_id: client.id,
+        const sub_content = subredditPostsID(entry.data.details);
+        const sub_content_request = subredditLoadPostsID(entry.data.details);
+        p2.fillLinkOnce(content, sub_content_request, () => loader_enc.encode({
+            kind: "link_replies",
+            url: updateQuery("/"+data.details.base.join("/"), {before: undefined, after: undefined}),
+        }));
 
+        // url: updateQuery("/"+data.details.base.join("/"), {before: undefined, after: listing.data.after!}),
+
+        const replies: Generic.PostReplies = {
+            display: "repivot_list",
+            loader: {
+                kind: "horizontal_loader",
+                key: sub_content,
                 load_count: null,
-                autoload: false, // we can make this true if the user wants auto next page. eg autoload: "next_page"
-                key: loader_enc.encode({
-                    kind: "link_replies",
-                    // interestingly, these posts will make a new subreddit_unloaded for their parents
-                    url: next_path,
-                }),
-            }));
+                request: sub_content_request,
+                client_id: client.id,
+            },
+        };
+
+        if(!entry.data.missing_replies && (listing.data.children.length > 0 || listing.data.after != null)) {
+            const posts: Generic.HorizontalLoaded = [];
+
+            for(const child of listing.data.children) {
+                posts.push(renderCommentOrUnmounted(content, child, {parent_fullname: "@E_SUBREDDIT"}));
+            }
+            if(listing.data.after != null) {
+                const objid = subredditNextPageID(entry.data.details, listing.data.after);
+                const nextid = subredditNextPageContentID(entry.data.details, listing.data.after);
+                const nextrequest = subredditNextPageRequestID(entry.data.details, listing.data.after);
+
+                p2.fillLink(content, objid, {
+                    kind: "horizontal_loader",
+                    key: nextid,
+                    load_count: null,
+                    request: nextrequest,
+                    client_id: client.id,
+                });
+                // whoops, we can't quite do this
+                // this loader will rewrite all the replies when it should really just be filling the 'nextid' item
+                // p2.fillLink(content, nextrequest, loader_enc.encode({
+                //     kind: "link_replies",
+                //     url: updateQuery("/"+data.details.base.join("/"), {before: undefined, after: listing.data.after}),
+                // }));
+
+                posts.push(objid);
+            }
+
+            p2.fillLink(content, sub_content, posts);
         }
 
-        const url = entry.data.details === "unknown" ? null : "/"+entry.data.details.base.join("/");
-
-        return {
+        const self_id = subredditUnloadedID(entry.data.details);
+        p2.fillLinkOnce(content, self_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
-            url,
+            url: "/"+data.details.base.join("/"),
             parent: null,
-            replies: {
-                display: "repivot_list",
-                items: entry.data.missing_replies ? [
-                    p2.createSymbolLinkToValue(content, {
-                        kind: "loader",
-                        key: loader_enc.encode({
-                            kind: "link_replies",
-                            url: url ?? "@ERROR",
-                        }),
-    
-                        parent: entry.link,
-                        replies: null,
-                        client_id: client.id,
-                        url: null,
-                        load_count: null,
-
-                        autoload: true,
-                    })
-                ] : replies,
-            },
+            replies,
             content: {
                 kind: "page",
-                title: getEntryFullname(entry.data),
+                title: JSON.stringify(id_map_data),
                 wrap_page: {
                     sidebar: {
                         display: "tree",
                         // return a loader with load_on_view: true
                         // also use load_on_view for any loader that should not be seen by default but
                         // might be seen on a repivot
-                        items: entry.data.details === "unknown" ? [] : [
-                            getPostData(content, map, "SIDEBAR_"+getSrId(entry.data.details) as ID)
-                        ],
+
+                        // TODO: this is wrong. display a sidebar loader here.
+                        loader: p2.prefilledHorizontalLoader(
+                            content,
+                            subredditSidebarUnloadedID(data.details),
+                            undefined,
+                        ),
                     },
                     // v TODO: this should be a loader but [!] it is linked to the loader above.
                     //   only one at a time should load and loading one should fill in both.
@@ -893,8 +818,8 @@ function postDataFromListingMayError(
                         banner: null,
                         icon: null,
                         name: {
-                            display: getEntryFullname(entry.data),
-                            link_name: getEntryFullname(entry.data),
+                            display: JSON.stringify(id_map_data).toString(),
+                            link_name: JSON.stringify(id_map_data).toString(),
                         },
                         body: null,
                         menu: null,
@@ -903,52 +828,27 @@ function postDataFromListingMayError(
                 },
             },
             internal_data: entry.data,
-        };
+        }));
+        return self_id;
     }else if(entry.data.kind === "depth_more") {
-        const listing = entry.data.item.data;
-        const parent_node_data = map.get(listing.parent_id as ID);
-        if(!parent_node_data || (
-            parent_node_data.data.kind !== "post" && parent_node_data.data.kind !== "comment"
-        )) throw new Error("E_DEPTH_MORE_NO_PARENT");
-        const info = parent_node_data.data.kind === "post" ? parent_node_data.data.post : parent_node_data.data.comment;
-        return {
-            kind: "loader",
-            client_id: client.id,
-            parent: getPostData(content, map, listing.parent_id as ID),
-            replies: null,
-            url: null,
-            load_count: null,
-
-            key: loader_enc.encode({
-                kind: "link_replies",
-                url: updateQuery(info.data.permalink, {context: "0"}),
-            }),
-            autoload: false,
-        };
+        // actually we're handling it by skipping the replies right now but reply iterators would also work
+        // fine for solving this one
+        return p2.createSymbolLinkToError(content,
+            "ERROR; 'depth_more' be handled seperately by reply iterators",
+        entry);
     }else if(entry.data.kind === "more") {
-        const listing = entry.data.item.data;
-        return {
-            kind: "loader",
-            client_id: client.id,
-            parent: getPostData(content, map, listing.parent_id as ID),
-            replies: null,
-            url: null,
-            load_count: listing.children.length,
-
-            key: loader_enc.encode({
-                kind: "more",
-                data: listing,
-            }),
-            autoload: false,
-        };
+        return p2.createSymbolLinkToError(content, "ERROR; 'more' be handled seperately by reply iterators", entry);
     }else if(entry.data.kind === "wikipage") {
-        const listing = entry.data.listing;
-        const title = entry.data.pathraw.substr(entry.data.pathraw.lastIndexOf("/") + 1);
-        return {
+        const data = entry.data;
+        const listing = data.listing;
+        const title = data.pathraw.substring(data.pathraw.lastIndexOf("/") + 1);
+        const self_id = wikipageID(data.pathraw);
+        p2.fillLinkOnce(content, self_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
-            url: entry.data.pathraw,
+            url: data.pathraw,
             parent: null, // TODO subreddit (this should also add `| SubName`) in the page title
+            // simple; just add subrinfo into wikipage
             replies: null,
             content: {
                 kind: "post",
@@ -986,41 +886,43 @@ function postDataFromListingMayError(
                 },
             },
             internal_data: entry.data,
-        };
+        }));
+        return self_id;
     }else if(entry.data.kind === "subreddit_sidebar_unloaded") {
-        if(entry.data.sub === "unknown") return {
-            kind: "post",
-            parent: getPostData(content, map, getSrId(entry.data.sub)),
-            replies: null,
-            client_id: client.id,
-            url: null,
+        return p2.createSymbolLinkToError(content, "TODO support sidebars again", entry);
+        // if(entry.data.sub === "unknown") return {
+        //     kind: "post",
+        //     parent: getPostData(content, map, getSrId(entry.data.sub)),
+        //     replies: null,
+        //     client_id: client.id,
+        //     url: null,
             
-            content: {
-                kind: "post", // we should have a kind: "error", it would be useful
-                title: {text: "Unknown URL"},
-                body: {kind: "richtext", content: [
-                    rt.p(rt.txt("ThreadClient doesn't know how to display this URL.")),
-                    rt.p(rt.link({id: client.id}, "TODO", {}, rt.txt("TODO;add 'view on reddit' link"))),
-                ]},
-                collapsible: false,
-            },
-            internal_data: entry,
-        };
-        return {
-            kind: "loader",
-            key: loader_enc.encode({
-                kind: "sidebar",
-                sub: entry.data.sub,
-            }),
+        //     content: {
+        //         kind: "post", // we should have a kind: "error", it would be useful
+        //         title: {text: "Unknown URL"},
+        //         body: {kind: "richtext", content: [
+        //             rt.p(rt.txt("ThreadClient doesn't know how to display this URL.")),
+        //             rt.p(rt.link({id: client.id}, "TODO", {}, rt.txt("TODO;add 'view on reddit' link"))),
+        //         ]},
+        //         collapsible: false,
+        //     },
+        //     internal_data: entry,
+        // };
+        // return {
+        //     kind: "loader",
+        //     key: loader_enc.encode({
+        //         kind: "sidebar",
+        //         sub: entry.data.sub,
+        //     }),
 
-            parent: getPostData(content, map, getSrId(entry.data.sub)),
-            replies: null,
-            client_id: client.id,
-            url: null, // we can actually give this a url - it links to /…subreddit.base/@sidebar
-            load_count: null,
+        //     parent: getPostData(content, map, getSrId(entry.data.sub)),
+        //     replies: null,
+        //     client_id: client.id,
+        //     url: null, // we can actually give this a url - it links to /…subreddit.base/@sidebar
+        //     load_count: null,
 
-            autoload: true,
-        };
+        //     autoload: true,
+        // };
     } else assertNever(entry.data);
 }
 
@@ -1054,11 +956,10 @@ const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
 // - a depth-based horizontal loader
 
 export async function loadPage2(
-    key: Generic.Link<Generic.Post>,
-    loader: Generic.Loader,
+    lreq: Generic.Opaque<"loader">,
 ): Promise<Generic.LoaderResult> {
     await new Promise(r => setTimeout(r, 1000));
-    let data = loader_enc.decode(loader.key);
+    let data = loader_enc.decode(lreq);
     if(data.kind === "parent_permalink") data = {
         kind: "link_replies",
         url: `/comments/${data.post_id}/comment/${data.parent_id ?? ""}?context=0`,
@@ -1068,26 +969,9 @@ export async function loadPage2(
         url: "/"+[...data.sub.base, "@sidebar"].join("/"),
     };
 
-    const returnListing = (
-        content: Generic.Page2Content,
-        listing: Generic.ListingData | null,
-    ): Generic.LoaderResult => {
-        const loaded: Generic.Loaded = {
-            kind: "loaded",
-
-            parent: loader.parent,
-            replies: listing,
-
-            url: null,
-            client_id: client.id,
-        };
-        return {content: {...content, [key]: {data: loaded}}};
-    };
-
     if(data.kind === "link_replies") {
         const res = await getPage(data.url);
-        const listing = (res.content[res.pivot] as {data: Generic.Post}).data.replies;
-        return returnListing(res.content, listing);
+        return {content: res.content};
     }else if(data.kind === "more") {
         throw new Error("TODO more");
     }else if(data.kind === "vertical") {

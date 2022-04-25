@@ -1006,7 +1006,7 @@ export type RemovedByCategory =
 
 export type PostComment = PostOrComment & {
     replies: Listing | "",
-    parent_id: string,
+    parent_id: Fullname,
 
     author_flair_richtext: RichtextFlair,
 
@@ -1038,13 +1038,24 @@ export type PostComment = PostOrComment & {
     __nothing?: undefined,
 });
 
+export type Fullname = `${string}_${string}`;
+
 export type PostMore = {
+    // /api/morechildren loader
     count: number,
     depth: number,
     id: string,
-    name: string,
-    parent_id: string,
+    name: Fullname,
+    parent_id: Fullname,
     children: string[],
+} | {
+    // depth-based loader
+    count: number,
+    depth: number,
+    id: string,
+    name: "t1__",
+    parent_id: Fullname,
+    children: [],
 };
 
 export type T1 = {

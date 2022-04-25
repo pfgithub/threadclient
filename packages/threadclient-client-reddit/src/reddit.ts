@@ -1533,8 +1533,12 @@ export type SubrInfo = {
     base: string[],
     subreddit: string,
 } | {
-    base: string[],
     kind: "mod",
+    base: string[],
+} | {
+    kind: "error",
+    base: string[],
+    pathraw: string,
 };
 
 type LoadMoreUnmountedData = {
@@ -2051,8 +2055,6 @@ export function getCommentBody(listing: Reddit.PostComment): Generic.Body {
     return comment_body;
 }
 
-export type { IDMap } from "./page2_from_listing";
-
 export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
     if(
         listing.crosspost_parent_list && listing.crosspost_parent_list.length === 1
@@ -2444,6 +2446,7 @@ async function fetchSubInfo(sub: SubrInfo): Promise<{
             sidebar: multi_info ? sidebarFromMulti(multi_info) : null,
         };
     }
+    if(sub.kind === "error") return {sidebar: null};
     assertNever(sub);
 }
 

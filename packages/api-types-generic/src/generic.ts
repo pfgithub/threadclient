@@ -29,6 +29,9 @@ export const p2 = {
     fillLink<T>(content: Page2Content, link: Link<T>, value: T): void {
         content[link] = {data: value};
     },
+    fillLinkOnce<T>(content: Page2Content, link: Link<T>, value: () => T): void {
+        if(content[link] == null) p2.fillLink(content, link, value());
+    },
 
     /// a vertical loader that has filled content, so there's no need to describe how to load it
     /// todo: reflect this in the data rather than requiring this mess
