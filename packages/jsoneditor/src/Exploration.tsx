@@ -55,11 +55,20 @@ const doc = {id: capsule.id, content: [
     ]}},
 ]};
 
+function cursorin(crs, i) {
+    return crs.cursor.length === 1 && crs.cursor[0] === i;
+}
+// i forgot how to program so we're juts displaying the cursor and anchor for now. eventually we'll display
+// the full selection with a highlighted background.
+function anchorin(crs, i) {
+    return crs.anchor.length === 1 && crs.anchor[0] === i;
+}
+
 function VCursor(props): JSX.Element {
     return <div class="h-2 relative">
-        <Show if={props.crs.cursor.length === 1 && props.crs.cursor[0] === props.i}>
+        <Show if={cursorin(props.crs, props.i) || anchorin(props.crs, props.i)}>
             <div class="absolute top-0 bottom-0 w-full flex flex-col justify-center">
-                <div class="h-[2px] rounded-md bg-blue-400" />
+                <div class={"h-[2px] rounded-md "+(cursorin(props.crs, props.i) ? "bg-blue-400" : "bg-gray-400")} />
             </div>
         </Show>
     </div>;
@@ -67,11 +76,11 @@ function VCursor(props): JSX.Element {
 
 function HCursor(props): JSX.Element {
     return <div class="inline relative">
-        <Show if={props.crs.cursor.length === 1 && props.crs.cursor[0] === props.i}>
-            <div class="
-                absolute inline-block bg-blue-400 w-[2px] text-transparent select-none transform translate-x-[-50%]
-                rounded-md
-            ">.</div>
+        <Show if={cursorin(props.crs, props.i) || anchorin(props.crs, props.i)}>
+            <div class={`
+                absolute inline-block w-[2px] text-transparent select-none transform translate-x-[-50%]
+                rounded-md ${cursorin(props.crs, props.i) ? "bg-blue-400" : "bg-gray-400"}
+            `}>.</div>
         </Show>
     </div>;
 }
@@ -79,7 +88,7 @@ function HCursor(props): JSX.Element {
 function crsdown(crs, i) {
     return {
         anchor: crs.anchor[0] === i ? crs.anchor.slice(1) : [],
-        cursor: crs.cursor[0] === i ? crs.cursor.slice(1) : [],
+        cursor:  crs.cursor[0] === i ? crs.cursor.slice(1) : [],
     };
 }
 
@@ -119,7 +128,8 @@ function Object(props): JSX.Element {
 
 export default function Exploration(): JSX.Element {
     const [cursorPos, setCursorPos] = createSignal({
-        anchor: [0, 2, 0, 1],
+        // anchor: [0, 2, 0, 1],
+        anchor: [0, 0, 2],
         cursor: [0, 0, 2],
     });
 
@@ -133,6 +143,16 @@ export default function Exploration(): JSX.Element {
                 focus:bg-gray-600
             "
             placeholder="Click here"
+            onKeyDown={e => {
+                e.stopPropagation();
+                e.preventDefault();
+                setCursorPos(prev => {
+                    return {
+                        anchor: prev.anchor,
+                        cursor: prev.cursor,
+                    };
+                });
+            }}
         />
         <CopyUUIDButton />
         <div class="py-4 space-y-2">
