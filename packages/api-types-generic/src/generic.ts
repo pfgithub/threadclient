@@ -114,6 +114,13 @@ and also sorts have to change the url, how do we do that?
 
 ok here's the easy method and we can start with it and upgrade later:
 - sorts are just urls, as before, and do a full-page reload
+
+oh here's an option:
+- sorts are loaders. on click, they load and then:
+  - update the key for the active sort
+  - replace the children on the affected nodes
+no that method doesn't work nvm. if you sort a reply and then look at a parent node, it won't have
+refreshed the content
 */
 
 export type PostParent = {
