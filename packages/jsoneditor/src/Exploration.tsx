@@ -214,12 +214,15 @@ function deleteRange(range_start, range_end, obj, saved_positions): InsertRes {
             }
             let full_obj_start = range_start.length === 1 ? range_start[0] : range_start[0] + 1;
             const full_obj_end = range_end[0];
-            if(full_obj_start < full_obj_end) unreachable();
+            if(full_obj_end < full_obj_start) unreachable();
 
             const content_dup = [...obj.content];
             content_dup.splice(full_obj_start, full_obj_end - full_obj_start);
             
-            alert("TODO");
+            console.warn("TODO delete within start and end and then merge");
+            return {
+                obj: {...obj, content: content_dup},
+            }
 
             // deleteRange(start, lastIn(obj[start[0]]))
             // deleteRange(end, firstIn(obj[end[0]]))
