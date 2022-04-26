@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import { createMemo, createSignal, ErrorBoundary, For, JSX, untrack } from "solid-js";
-import { Show } from "tmeta-util-solid";
+import { createMergeMemo, Show } from "tmeta-util-solid";
 import CopyUUIDButton from "./CopyUUIDButton";
 import { unreachable } from "./guards";
 
@@ -250,7 +250,10 @@ export default function Exploration(): JSX.Element {
         // anchor: [0, 2],
         // cursor: [0, 2],
     });
-    const [object, setObject] = createSignal(doc);
+    const [objRaw, setObject] = createSignal(doc);
+    const object = createMergeMemo(objRaw, {key: null, merge: false});
+    // const object = {get data() {return objRaw()}};
+    
 
     return <div class="max-w-xl bg-gray-800 mx-auto min-h-screen p-2 space-y-2">
         <textarea
@@ -275,7 +278,7 @@ export default function Exploration(): JSX.Element {
                             const t = dir === -1 ? l : r;
                             return {anchor: t, cursor: t};
                         }
-                        let moveres = moveCursor(prev.cursor, object(), dir);
+                        let moveres = moveCursor(prev.cursor, object.data, dir);
                         if(!Array.isArray(moveres)) moveres = prev.cursor;
                         return {
                             anchor: e.shiftKey ? prev.anchor : moveres,
@@ -290,10 +293,11 @@ export default function Exploration(): JSX.Element {
                     e.preventDefault();
 
                     const text = e.data;
-                    const nobj = insertNode(cursorPos().cursor, object(), {
+                    const nobj = insertNode(cursorPos().cursor, object.data, {
                         id: "@sys_rawtext",
                         content: text,
                     });
+                    console.log(nobj);
                     setObject(nobj);
                     // setCursorPos(ncrs);
                 }
@@ -302,7 +306,7 @@ export default function Exploration(): JSX.Element {
         />
         <CopyUUIDButton />
         <div class="py-4 space-y-2">
-            <Object crs={cursorPos()} obj={object()} />
+            <Object crs={cursorPos()} obj={object.data} />
         </div>
     </div>;
 }
