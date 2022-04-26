@@ -126,11 +126,69 @@ function Object(props): JSX.Element {
     })} />;
 }
 
+type CursorMoveResult = -1 | 1 | number[];
+function firstIn(obj): number | null {
+    if(typeof obj.content === "string") return null;
+    if(Array.isArray(obj.content)) {
+        return 0;
+    }
+    return firstIn(obj.content);
+}
+function lastIn(obj): number | null {
+    if(typeof obj.content === "string") return null;
+    if(Array.isArray(obj.content)) {
+        return obj.content.length;
+    }
+    return lastIn(obj.content);
+}
+function moveCursor(cursorPos, obj, dir): CursorMoveResult {
+    console.log(cursorPos, obj, dir);
+    if(!Array.isArray(obj.content)) return moveCursor(cursorPos, obj.content, dir);
+
+    const start = cursorPos[0];
+    if(cursorPos.length === 1) {
+        if(dir > 0) {
+            if(start >= obj.content.length) return 1;
+            const next = firstIn(obj.content[start]);
+            if(next != null) return [start, next];
+            return [start + 1];
+        }else{
+            const si = start - 1;
+            if(si < 0) return -1;
+            const prev = lastIn(obj.content[si]);
+            if(prev != null) return [si, prev];
+            return [si];
+        }
+    }
+
+    const ncp = cursorPos.slice(1);
+    const subch = obj.content[start];
+    const mcres = moveCursor(ncp, subch, dir);
+    if(typeof mcres !== "number") return [start, ...mcres];
+    if(mcres > 0) {
+        const next = start + 1;
+        if(next > obj.content.length) return 1;
+        return [next];
+    }else{
+        return [start];
+    }
+}
+
+function compareCursorPos(a, b) {
+    if(a[0] == null && b[0] != null) return -1;
+    if(a[0] == null && b[0] == null) return 0;
+    if(a[0] != null && b[0] == null) return 1;
+    if(a[0] < b[0]) return -1;
+    if(a[0] > b[0]) return 1;
+    return compareCursorPos(a.slice(1), b.slice(1));
+}
+
 export default function Exploration(): JSX.Element {
     const [cursorPos, setCursorPos] = createSignal({
-        // anchor: [0, 2, 0, 1],
-        anchor: [0, 0, 2],
-        cursor: [0, 0, 2],
+        anchor: [2, 0, 1],
+        cursor: [2, 0, 1],
+        // anchor: [0, 2],
+        // cursor: [0, 2],
     });
 
     return <div class="max-w-xl bg-gray-800 mx-auto min-h-screen p-2 space-y-2">
@@ -146,17 +204,28 @@ export default function Exploration(): JSX.Element {
             onKeyDown={e => {
                 e.stopPropagation();
                 e.preventDefault();
+
+                if(e.code !== "ArrowLeft" && e.code !== "ArrowRight") return;
+                const dir = e.code === "ArrowLeft" ? -1 : 1;
                 setCursorPos(prev => {
+                    const cmp = compareCursorPos(prev.anchor, prev.cursor)
+                    if(!e.shiftKey && cmp != 0) {
+                        const [l, r] = cmp < 0 ? [prev.anchor, prev.cursor] : [prev.cursor, prev.anchor];
+                        const t = dir === -1 ? l : r;
+                        return {anchor: t, cursor: t};
+                    }
+                    let moveres = moveCursor(prev.cursor, doc, dir);
+                    if(!Array.isArray(moveres)) moveres = prev.cursor;
                     return {
-                        anchor: prev.anchor,
-                        cursor: prev.cursor,
+                        anchor: e.shiftKey ? prev.anchor : moveres,
+                        cursor: moveres,
                     };
                 });
             }}
         />
         <CopyUUIDButton />
         <div class="py-4 space-y-2">
-            <Object crs={crsdown(cursorPos(), 0)} obj={doc} />
+            <Object crs={cursorPos()} obj={doc} />
         </div>
     </div>;
 }
