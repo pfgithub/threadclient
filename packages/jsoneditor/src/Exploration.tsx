@@ -4,6 +4,7 @@
 import { createMemo, createSignal, ErrorBoundary, For, JSX, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import CopyUUIDButton from "./CopyUUIDButton";
+import { unreachable } from "./guards";
 
 // keybinds:
 // ← out / → in
@@ -19,6 +20,10 @@ const text: Dot = {
 };
 const char: Dot = {
     id: "-N0XWfQf03qhkJoqskTQ",
+};
+
+const sys_rawtext: Dot = {
+    id: "@sys_rawtext",
 };
 
 const doc = {id: capsule.id, content: [
@@ -175,6 +180,7 @@ function moveCursor(cursorPos, obj, dir): CursorMoveResult {
 }
 
 function insertNode(insert_pos, obj, new_node) {
+    console.log("!insert", insert_pos, obj, new_node);
     // in capsule:
     // - create capsule containing text
     // - call insertNode on that text
@@ -194,19 +200,32 @@ function insertNode(insert_pos, obj, new_node) {
     if(obj.id === capsule.id) {
         if(Array.isArray(obj.content)) {
             if(insert_pos.length === 1) {
-                // call insertNode([0], {id: text.id, content: []},  new_node);
-                // splice that into a copy of the content array
-                // return
+                const nnode = insertNode([0], {id: capsule.id, content: {
+                    id: text.id,
+                    content: [],
+                }}, new_node);
+                const ncontent = [...obj.content];
+                ncontent.splice(insert_pos[0], 0, nnode);
+                return {...obj, content: ncontent};
             }else{
-                // update in a copy of the array the value at the index with insertNode(…)
-                // return
+                const idx = insert_pos[0];
+                const nnode = insertNode(insert_pos.slice(1), obj.content[idx], new_node);
+                const ncontent = [...obj.content];
+                ncontent[idx] = nnode;
+                return {...obj, content: ncontent};
             }
         }else{
-            // update the object with insertNode()
-            // return
+            const nnode = insertNode(insert_pos, obj.content, new_node);
+            return {...obj, content: nnode};
         }
     }else if(obj.id === text.id) {
+        if(insert_pos.length !== 1) unreachable();
 
+        const nnodes = [...new_node.content].map(c => ({id: char.id, content: c}));
+        console.log(nnodes);
+        const ncontent = [...obj.content];
+        ncontent.splice(insert_pos[0], 0, ...nnodes);
+        return {...obj, content: ncontent};
     }
 
     // ok I guess the question is still how to do stuff eg:
@@ -231,6 +250,7 @@ export default function Exploration(): JSX.Element {
         // anchor: [0, 2],
         // cursor: [0, 2],
     });
+    const [object, setObject] = createSignal(doc);
 
     return <div class="max-w-xl bg-gray-800 mx-auto min-h-screen p-2 space-y-2">
         <textarea
@@ -243,30 +263,46 @@ export default function Exploration(): JSX.Element {
             "
             placeholder="Click here"
             onKeyDown={e => {
-                e.stopPropagation();
-                e.preventDefault();
+                if(e.code === "ArrowLeft" || e.code === "ArrowRight") {
+                    e.stopPropagation();
+                    e.preventDefault();
+    
+                    const dir = e.code === "ArrowLeft" ? -1 : 1;
+                    setCursorPos(prev => {
+                        const cmp = compareCursorPos(prev.anchor, prev.cursor)
+                        if(!e.shiftKey && cmp != 0) {
+                            const [l, r] = cmp < 0 ? [prev.anchor, prev.cursor] : [prev.cursor, prev.anchor];
+                            const t = dir === -1 ? l : r;
+                            return {anchor: t, cursor: t};
+                        }
+                        let moveres = moveCursor(prev.cursor, object(), dir);
+                        if(!Array.isArray(moveres)) moveres = prev.cursor;
+                        return {
+                            anchor: e.shiftKey ? prev.anchor : moveres,
+                            cursor: moveres,
+                        };
+                    });
+                }
+            }}
+            onBeforeInput={e => {
+                if(e.inputType === "insertText") {
+                    e.stopPropagation();
+                    e.preventDefault();
 
-                if(e.code !== "ArrowLeft" && e.code !== "ArrowRight") return;
-                const dir = e.code === "ArrowLeft" ? -1 : 1;
-                setCursorPos(prev => {
-                    const cmp = compareCursorPos(prev.anchor, prev.cursor)
-                    if(!e.shiftKey && cmp != 0) {
-                        const [l, r] = cmp < 0 ? [prev.anchor, prev.cursor] : [prev.cursor, prev.anchor];
-                        const t = dir === -1 ? l : r;
-                        return {anchor: t, cursor: t};
-                    }
-                    let moveres = moveCursor(prev.cursor, doc, dir);
-                    if(!Array.isArray(moveres)) moveres = prev.cursor;
-                    return {
-                        anchor: e.shiftKey ? prev.anchor : moveres,
-                        cursor: moveres,
-                    };
-                });
+                    const text = e.data;
+                    const nobj = insertNode(cursorPos().cursor, object(), {
+                        id: "@sys_rawtext",
+                        content: text,
+                    });
+                    setObject(nobj);
+                    // setCursorPos(ncrs);
+                }
+
             }}
         />
         <CopyUUIDButton />
         <div class="py-4 space-y-2">
-            <Object crs={cursorPos()} obj={doc} />
+            <Object crs={cursorPos()} obj={object()} />
         </div>
     </div>;
 }
