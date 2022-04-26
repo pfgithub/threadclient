@@ -1084,7 +1084,7 @@ function timelineLoader(
             max_id,
         })),
         client_id: client.id,
-        autoload: true,
+        autoload: max_id == null,
     };
 }
 
