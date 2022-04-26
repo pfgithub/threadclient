@@ -73,7 +73,24 @@ function ClientPageMain(props: ClientPageProps): PageRes {
             collapse_data,
             content: hprc.content(),
         });
-        console.log("Data is:", fres);
+        console.log("Reloaded. New data:", fres);
+
+        // function findCycle(obj, path, parents) {
+        //     if(obj != null && typeof obj === "object") {
+        //         const np = new Map(parents);
+        //         np.set(obj, path);
+        //         for(const [key, value] of Object.entries(obj)) {
+        //             const subpath = [...path, key];
+        //             const prev = np.get(value);
+        //             if(prev != null) {
+        //                 console.log("ECYCLIC. value", prev, "repeated at", subpath);
+        //                 continue;
+        //             }
+        //             findCycle(value, subpath, np);
+        //         }
+        //     }
+        // }
+
         return fres;
     }, {key: array_key, merge: true});
 

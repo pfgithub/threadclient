@@ -3052,7 +3052,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         const [text, setText] = createSignal("loading…");
 
         (async () => {
-            const {client} = await import("threadclient-client-reddit");
+            const {client} = await import("threadclient-client-mastodon");
             const {stringify} = await import("@effectful/serialization");
             const v = await client.getPage!("/"+path.join("/")+search);
             setText(stringify(v));

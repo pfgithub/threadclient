@@ -211,7 +211,6 @@ export function renderTreeItem(
 }
 
 function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeItem[] {
-    console.log("GETTING POST REPLIES ON", listing, meta);
     const res: FlatTreeItem[] = [];
     
     function addReplies(replies: Generic.HorizontalLoader) {
@@ -224,7 +223,6 @@ function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeI
             res.push({kind: "error", msg: val.error});
         }
         for(const reply of val.value ?? []) {
-            console.log("READING POST REPLY LINK", reply);
             if(typeof reply === "object") {
                 addReplies(reply);
                 continue;
@@ -549,8 +547,6 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
     });
     addLastInWrapper(res);
     if(res_sidebar) addLastInWrapper(res_sidebar);
-
-    console.log("FLATTEN RESULT", res, meta, Object.entries(meta.content).length);
 
     return {
         header: res_header ?? undefined,
