@@ -189,12 +189,15 @@ function deleteRange(range_start, range_end, obj, saved_positions): InsertRes {
                 if(range_end.length === 1) {
                     // nothing to do
                     return {
-                        obj: {...obj, content: ncontent},
-                        saved_positions: saved_positions,
+                        obj,
+                        saved_positions,
                     }
                 }
                 let spos = range_start;
                 if(spos.length === 1) {
+                    // oh actually
+                    // in this case, I want to unwrap the child nodes
+
                     const fires = firstIn(obj.content[spos[0]]);
                     if(fires == null) unreachable();
                     spos = [id0, fires];
