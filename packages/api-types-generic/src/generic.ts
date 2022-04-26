@@ -99,6 +99,23 @@ export function readLink<T>(content: Page2Content, link: Link<T>): null | ReadLi
     }
 }
 
+/*
+thinking about sorting
+for every sort, there is a different copy of the post
+- the post has the url, so changing sort should change the post
+
+ok that is one possible approach, it doesn't seem great
+
+consider:
+- the reply loader specifies different keys for different sorts. the loader is the same, we pass in the selected
+  sort option when calling it
+ok sure sounds good. now how do we specify sorts and key it and use the type system and stuff
+and also sorts have to change the url, how do we do that?
+
+ok here's the easy method and we can start with it and upgrade later:
+- sorts are just urls, as before, and do a full-page reload
+*/
+
 export type PostParent = {
     loader: VerticalLoader,
 };
