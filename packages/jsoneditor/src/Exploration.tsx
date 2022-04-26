@@ -147,7 +147,6 @@ function lastIn(obj): number | null {
     return lastIn(obj.content);
 }
 function moveCursor(cursorPos, obj, dir): CursorMoveResult {
-    console.log(cursorPos, obj, dir);
     if(!Array.isArray(obj.content)) return moveCursor(cursorPos, obj.content, dir);
 
     const start = cursorPos[0];
@@ -180,7 +179,6 @@ function moveCursor(cursorPos, obj, dir): CursorMoveResult {
 }
 
 function insertNode(insert_pos, obj, new_node) {
-    console.log("!insert", insert_pos, obj, new_node);
     // in capsule:
     // - create capsule containing text
     // - call insertNode on that text
