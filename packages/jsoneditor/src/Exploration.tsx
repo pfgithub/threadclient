@@ -67,7 +67,7 @@ function anchorin(crs, i) {
 function VCursor(props): JSX.Element {
     return <div class="h-2 relative">
         <Show if={cursorin(props.crs, props.i) || anchorin(props.crs, props.i)}>
-            <div class="absolute top-0 bottom-0 w-full flex flex-col justify-center">
+            <div class="absolute top-0 bottom-0 w-full flex flex-col justify-center px-2">
                 <div class={"h-[2px] rounded-md "+(cursorin(props.crs, props.i) ? "bg-blue-400" : "bg-gray-400")} />
             </div>
         </Show>
