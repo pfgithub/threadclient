@@ -6,7 +6,7 @@ import type * as Mastodon from "api-types-mastodon";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { assertNever, encodeQuery } from "tmeta-util";
 import { parseContentHTML } from "./mastodon_html_to_rt";
-import { url_parser } from "./mastodon_url_parser";
+import { Timeline, timelineApiUrl, timelineAppUrl, url_parser } from "./mastodon_url_parser";
 
 () => [bodyPage, postArrayToReparentedThread, mnu]; // TODO
 
@@ -444,17 +444,17 @@ function postLink(host: string, post_id: string): Generic.Link<Generic.Post> {
 function postRepliesLink(host: string, post_id: string): Generic.Link<Generic.HorizontalLoaded> {
     return p2.stringLink("["+host+"]"+"post-replies_"+post_id);
 }
-function timelineObjectLink(host: string, tl: RootTimelineInfo): Generic.Link<Generic.Post> {
-    return p2.stringLink("["+host+"]"+"timeline-object_"+tl.root_api_path);
+function timelineObjectLink(host: string, tl: Timeline): Generic.Link<Generic.Post> {
+    return p2.stringLink("["+host+"]"+"timeline-object_"+timelineApiUrl(tl));
 }
-function timelineContentLink(host: string, tl: TimelineInfo): Generic.Link<Generic.HorizontalLoaded> {
-    return p2.stringLink("["+host+"]"+"timeline-content_"+tl.current_api_path);
+function timelineContentLink(host: string, tl: Timeline, max_id: string | null): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("["+host+"]"+"timeline-content_"+timelineApiUrl(tl)+"[max:"+max_id+"]");
 }
-function timelineLoaderLink(host: string, tl: TimelineInfo): Generic.Link<Generic.Opaque<"loader">> {
-    return p2.stringLink("["+host+"]"+"timeline-loader_"+tl.current_api_path);
+function timelineLoaderLink(host: string, tl: Timeline, max_id: string | null): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("["+host+"]"+"timeline-loader_"+timelineApiUrl(tl)+"[max:"+max_id+"]");
 }
-function timelineSidebarLink(host: string, tl: TimelineInfo): Generic.Link<Generic.HorizontalLoaded> {
-    return p2.stringLink("["+host+"]"+"timeline-sidebar_"+tl.current_api_path);
+function timelineSidebarLink(host: string, tl: Timeline): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("["+host+"]"+"timeline-sidebar_"+timelineApiUrl(tl));
 }
 function timelineSwitcherLink(host: string): Generic.Link<Generic.Post> {
     return p2.stringLink("["+host+"]"+"timeline-switcher");
@@ -647,11 +647,7 @@ export const client: ThreadClient = {
             //     ],
             // });
         }else if(parsed.kind === "timeline") {
-            const res = fillTimeline(content, host, {
-                root_api_path: parsed.api_path,
-                root_web_path: pathraw,
-                root_title: "Timeline "+parsed.tmname,
-            });
+            const res = fillTimeline(content, host, parsed.tl);
             return {
                 content,
                 pivot: res,
@@ -701,16 +697,7 @@ export const client: ThreadClient = {
             //     },
             //     display_style: "comments-view",
             // };
-        }else if(parsed.kind === "account") {
-            const res = fillTimeline(content, host, {
-                root_api_path: parsed.api_url,
-                root_web_path: pathraw,
-                root_title: "@"+parsed.account,
-            });
-            return {
-                content,
-                pivot: res,
-            };
+    //}else if(parsed.kind === "account") {
 
             // const acc_id = parsed.account;
 
@@ -792,6 +779,7 @@ export const client: ThreadClient = {
             //     // link: "/"+host+"/accounts/"+acc_id,
             //     raw_value: account_info,
             // }, [], (account_info.display_name ?? "") + " (" + account_info.acct + ")");
+        // }else
         }else if(parsed.kind === "notifications") {
             throw new Error("TODO SUPPORT NOTIFICATIONS TAB");
             // const notifications = await getResult<Mastodon.Notification[]>(auth, mkurl(host, "api/v1/notifications"));
@@ -863,6 +851,8 @@ export const client: ThreadClient = {
             //     }],
             //     display_style: "comments-view",
             // };
+        }else if(parsed.kind === "todo") {
+            throw new Error("TODO support page: "+pathraw);
         }
         assertNever(parsed);
     },
@@ -924,11 +914,15 @@ export const client: ThreadClient = {
 
             return {content};
         }else if(req.kind === "timeline") {
-            const posts = await getResult<Mastodon.Post[]>(auth, mkurl(host, req.timeline.current_api_path));
+            const posts = await getResult<Mastodon.Post[]>(auth, mkurl(host, updateQuery(timelineApiUrl(req.timeline), {
+                since_id: undefined,
+                min_id: undefined,
+                max_id: req.max_id ?? undefined,
+            })));
 
             if('error' in posts) throw new Error("got error: "+posts.error);
         
-            const fill_location = timelineContentLink(host, req.timeline);
+            const fill_location = timelineContentLink(host, req.timeline, req.max_id);
             // const parent: Generic.PostParent = {
             //     loader: p2.prefilledVerticalLoader(content, fillTimeline(content, host, req.timeline), undefined),
             // };
@@ -939,15 +933,7 @@ export const client: ThreadClient = {
             const replies: Generic.HorizontalLoaded = posts.map(post => fillPost(host, content, post));
         
             if(last_post) {
-                const updated_api_path = updateQuery(req.timeline.root_api_path, {
-                    since_id: undefined,
-                    min_id: undefined,
-                    max_id: last_post.id,
-                });
-                replies.push(timelineLoader(content, host, {
-                    ...req.timeline,
-                    current_api_path: updated_api_path,
-                }));
+                replies.push(timelineLoader(content, host, req.timeline, last_post.id));
             }
 
             p2.fillLinkOnce(content, fill_location, () => replies);
@@ -985,15 +971,6 @@ function assertUnreachable(value: never): never {
     console.log(value);
     throw new Error("Expected unreachable: "+value);
 }
-
-type RootTimelineInfo = {
-    root_api_path: string,
-    root_web_path: string,
-    root_title: string,
-}; 
-type TimelineInfo = RootTimelineInfo & {
-    current_api_path: string,
-};
 
 function unpivotablePostBelowPivot(
     content: Generic.Page2Content,
@@ -1034,28 +1011,15 @@ function fillTimelineSwitcher(content: Generic.Page2Content, host: string): Gene
     }, {
         link: timelineSwitcherLink(host),
         replies: {display: "repivot_list", loader: horizontal([
-            fillTimeline(content, host, {
-                root_api_path: "/api/v1/timelines/home?",
-                root_web_path: "/home",
-                root_title: "home",
-            }),
-            fillTimeline(content, host, {
-                root_api_path: "/api/v1/timelines/public?local=true",
-                root_web_path: "/public/local",
-                root_title: "local",
-            }),
-            fillTimeline(content, host, {
-                root_api_path: "/api/v1/timelines/public",
-                root_web_path: "/public",
-                root_title: "public",
-            }),
+            fillTimeline(content, host, {kind: "home"}),
+            fillTimeline(content, host, {kind: "public"}),
+            fillTimeline(content, host, {kind: "local"}),
             // TOOD: notifications
         ])},
     });
 }
 
-function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTimelineInfo): Generic.Link<Generic.Post> {
-    const tl: TimelineInfo = {...tl_in, current_api_path: tl_in.root_api_path};
+function fillTimeline(content: Generic.Page2Content, host: string, tl: Timeline): Generic.Link<Generic.Post> {
     const tl_root = timelineObjectLink(host, tl);
 
     if(content[tl_root]) {
@@ -1065,7 +1029,7 @@ function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTi
 
     const replies: Generic.PostReplies = {
         display: "repivot_list",
-        loader: timelineLoader(content, host, tl),
+        loader: timelineLoader(content, host, tl, null),
     };
     const parent: Generic.PostParent = {
         loader: p2.prefilledVerticalLoader(content, clientLink(host), undefined),
@@ -1073,14 +1037,14 @@ function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTi
 
     return p2.fillLink(content, tl_root, {
         kind: "post",
-        url: tl_in.root_web_path,
+        url: timelineAppUrl(host, tl),
         parent,
         replies,
-        internal_data: tl_in,
+        internal_data: tl,
         client_id: client.id,
         content: {
             kind: "page",
-            title: tl_in.root_title,
+            title: tl.kind,
             wrap_page: {
                 sidebar: {
                     display: "tree",
@@ -1092,7 +1056,7 @@ function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTi
                     kind: "bio",
                     banner: null,
                     icon: null,
-                    name: {link_name: tl_in.root_title},
+                    name: {link_name: tl.kind},
                     body: {kind: "none"},
                     menu: null,
                     raw_value: tl,
@@ -1105,17 +1069,19 @@ function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTi
 function timelineLoader(
     content: Generic.Page2Content,
     host: string,
-    tl: TimelineInfo,
+    tl: Timeline,
+    max_id: string | null,
 ): Generic.HorizontalLoader {
     return {
         kind: "horizontal_loader",
-        key: timelineContentLink(host, tl),
+        key: timelineContentLink(host, tl, max_id),
 
         load_count: null,
-        request: p2.fillLinkOnce(content, timelineLoaderLink(host, tl), () => loader_enc.encode({
+        request: p2.fillLinkOnce(content, timelineLoaderLink(host, tl, max_id), () => loader_enc.encode({
             kind: "timeline",
             host,
             timeline: tl,
+            max_id,
         })),
         client_id: client.id,
         autoload: true,
@@ -1176,7 +1142,8 @@ type LoaderData = {
 } | {
     kind: "timeline",
     host: string,
-    timeline: TimelineInfo,
+    timeline: Timeline,
+    max_id: string | null,
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
