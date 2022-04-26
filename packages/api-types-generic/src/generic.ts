@@ -99,38 +99,10 @@ export function readLink<T>(content: Page2Content, link: Link<T>): null | ReadLi
     }
 }
 
-/*
-thinking about sorting
-for every sort, there is a different copy of the post
-- the post has the url, so changing sort should change the post
-
-ok that is one possible approach, it doesn't seem great
-
-consider:
-- the reply loader specifies different keys for different sorts. the loader is the same, we pass in the selected
-  sort option when calling it
-ok sure sounds good. now how do we specify sorts and key it and use the type system and stuff
-and also sorts have to change the url, how do we do that?
-
-ok here's the easy method and we can start with it and upgrade later:
-- sorts are just urls, as before, and do a full-page reload
-
-oh here's an option:
-- sorts are loaders. on click, they load and then:
-  - update the key for the active sort
-  - replace the children on the affected nodes
-no that method doesn't work nvm. if you sort a reply and then look at a parent node, it won't have
-refreshed the content
-*/
-
 export type PostParent = {
     loader: VerticalLoader,
 };
 export type PostReplies = {
-    sort?: undefined | Link<SortData>, // TODO: there should be
-    // a loader specified below for each available sort key or something. also sorts need to change the url.
-    // we'll have to figure this out i guess. it's a bit more complicated than this.
-
     reply?: undefined | {
         action: ReplyAction,
         locked: boolean,
@@ -139,9 +111,27 @@ export type PostReplies = {
     // but it really doesn't belong here.
 
     display: "tree" | "repivot_list",
-
     loader: HorizontalLoader,
 };
+
+// ok two options:
+// - tabbed replies
+//   - issue is in switching the url of all the posts when changing tabs
+// - tabbed post
+//   - issue is in us having like 20 copies of the same data if there are 20 sort methods
+//     - maybe as long as we make sure post content is a reference, that won't be much of an issue
+
+// export type TabbedPost = {
+//     // I don't like this, this requires us to generate like 8 copies of each post if there are 8 sort methods
+//     // I'd rather this used a loader, when you click a tab it switches to an unfilled link and the description
+//     // for how to fill it is here
+//     // ok actually 
+//     selected_tab: Link<string>,
+//     default_tab: Link<Post>,
+//     tabs: {
+//         [key: string]: Link<Post>,
+//     },
+// };
 export type VerticalLoaded = Post;
 export type VerticalLoader = {
     kind: "vertical_loader",
@@ -239,14 +229,6 @@ export type PostContent = ClientPost | {
     tag_uuid: `${string}@-${string}`,
     not_typesafe_data?: undefined | unknown,
     fallback: PostContentPost,
-};
-export type SortData = {
-    sort_methods: "TODO",
-    current_method: number,
-    // this can be more than just sort.
-    // eg it should have a way
-    // to have stuff like post duplicates and subreddit
-    // navbars.
 };
 
 // /---------------\
