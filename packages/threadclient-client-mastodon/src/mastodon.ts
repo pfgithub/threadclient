@@ -558,6 +558,12 @@ function timelineContentLink(host: string, tl: TimelineInfo): Generic.Link<Gener
 function timelineLoaderLink(host: string, tl: TimelineInfo): Generic.Link<Generic.Opaque<"loader">> {
     return p2.stringLink("["+host+"]"+"timeline-loader_"+tl.current_api_path);
 }
+function timelineSidebarLink(host: string, tl: TimelineInfo): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("["+host+"]"+"timeline-sidebar_"+tl.current_api_path);
+}
+function timelineSwitcherLink(host: string): Generic.Link<Generic.Post> {
+    return p2.stringLink("["+host+"]"+"timeline-switcher");
+}
 function clientLink(host: string): Generic.Link<Generic.Post> {
     return p2.stringLink("["+host+"]"+"client");
 }
@@ -1094,9 +1100,73 @@ type TimelineInfo = RootTimelineInfo & {
     current_api_path: string,
 };
 
+function unpivotablePostBelowPivot(
+    content: Generic.Page2Content,
+    value: Generic.PostContent,
+    opts: {
+        replies?: undefined | Generic.PostReplies,
+        link_to?: undefined | string,
+        link?: undefined | Generic.Link<Generic.Post>,
+    },
+): Generic.Link<Generic.Post> {
+    return p2.fillLinkOnce<Generic.Post>(content, opts.link ?? p2.symbolLink(""), () => ({
+        url: opts.link_to ?? null,
+        disallow_pivot: true,
+        parent: null, // always below the pivot, doesn't matter.
+        // ^ not true - top level posts below the pivot might show their parents. so we should be able to
+        // pass something in here
+        replies: opts.replies ?? null,
+        client_id: client.id,
+
+        kind: "post",
+        content: value,
+        internal_data: [content, value, opts],
+    }));
+}
+function fillTimelineSwitcher(content: Generic.Page2Content, host: string): Generic.Link<Generic.Post> {
+    function horizontal(
+        value: Generic.HorizontalLoaded,
+    ): Generic.HorizontalLoader {
+        const ksym = p2.createSymbolLinkToValue(content, value);
+        return p2.prefilledHorizontalLoader(content, ksym, value);
+    }
+
+    return unpivotablePostBelowPivot(content, {
+        kind: "post",
+        title: {text: "Sidebar"},
+        body: {kind: "none"},
+        collapsible: false,
+    }, {
+        link: timelineSwitcherLink(host),
+        replies: {display: "repivot_list", loader: horizontal([
+            fillTimeline(content, host, {
+                root_api_path: "/api/v1/timelines/home?",
+                root_web_path: "/home",
+                root_title: "home",
+            }),
+            fillTimeline(content, host, {
+                root_api_path: "/api/v1/timelines/public?local=true",
+                root_web_path: "/public/local",
+                root_title: "local",
+            }),
+            fillTimeline(content, host, {
+                root_api_path: "/api/v1/timelines/public",
+                root_web_path: "/public",
+                root_title: "public",
+            }),
+            // TOOD: notifications
+        ])},
+    });
+}
+
 function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTimelineInfo): Generic.Link<Generic.Post> {
     const tl: TimelineInfo = {...tl_in, current_api_path: tl_in.root_api_path};
     const tl_root = timelineObjectLink(host, tl);
+
+    if(content[tl_root]) {
+        return tl_root;
+    }
+    content[tl_root] = {error: "filling…"};
 
     const replies: Generic.PostReplies = {
         display: "repivot_list",
@@ -1106,7 +1176,7 @@ function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTi
         loader: p2.prefilledVerticalLoader(content, clientLink(host), undefined),
     };
 
-    return p2.fillLinkOnce(content, tl_root, (): Generic.Post => ({
+    return p2.fillLink(content, tl_root, {
         kind: "post",
         url: tl_in.root_web_path,
         parent,
@@ -1114,12 +1184,27 @@ function fillTimeline(content: Generic.Page2Content, host: string, tl_in: RootTi
         internal_data: tl_in,
         client_id: client.id,
         content: {
-            kind: "post",
-            title: {text: tl_in.root_title},
-            body: {kind: "none"},
-            collapsible: {default_collapsed: true},
+            kind: "page",
+            title: tl_in.root_title,
+            wrap_page: {
+                sidebar: {
+                    display: "tree",
+                    loader: p2.prefilledHorizontalLoader(content, timelineSidebarLink(host, tl), [
+                        fillTimelineSwitcher(content, host),
+                    ]),
+                },
+                header: {
+                    kind: "bio",
+                    banner: null,
+                    icon: null,
+                    name: {link_name: tl_in.root_title},
+                    body: {kind: "none"},
+                    menu: null,
+                    raw_value: tl,
+                },
+            },
         },
-    }));
+    });
 }
 
 function timelineLoader(
