@@ -448,3 +448,42 @@ export default function Exploration(props): JSX.Element {
         </div>
     </div>;
 }
+
+/*
+
+ok here's a plan
+- meaningful selections
+: every selection must be meaningful. when you're using the arrows, it brings you to meaningful stops
+  only. when you press backspace, it deletes to the next meaningful stop
+
+what does that mean?
+- i'm not sure
+
+ok another idea
+
+the left arrow should be able to bring you through every possible location
+- is that good? probably not. but we could do it
+- like if you have three blockquotes, it would let you select all the blockquote nodes
+
+ok here another idea
+- the goal of this was exploration, not current text editor semantics
+- what if we tried out weird keys?
+  - like what?
+
+hmm
+
+ok here's an option:
+- allow 'syntax errors'
+  eg:
+  [ [One] [Two] [| [Three] [Four] ] ]
+  what should happen when you press backspace?
+- i don't want to have to delete matching pairs, no thanks
+
+ok what type of data do we even want to edit with this?
+- this current weird document format
+- obviously, standard richtext editor stuff
+- code would be cool
+- structured json
+how?
+
+*/
