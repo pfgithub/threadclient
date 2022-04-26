@@ -1,32 +1,22 @@
-import { createEffect, createSignal, onCleanup } from "solid-js";
+import { createSignal } from "solid-js";
 import { ErrorBoundary, render } from "solid-js/web";
 import { Debugtool, Show } from "tmeta-util-solid";
 import App from "./App";
 import { anBool, createAppData } from "./app_data";
-import { Button, Buttons } from "./components";
+import CopyUUIDButton from "./CopyUUIDButton";
 import { RootState, Settings } from "./editor_data";
+import Exploration from "./Exploration";
 import System from "./fun/System";
 import "./index.css";
-import { uuid } from "./uuid";
 
 const root_el = document.getElementById("root") as HTMLElement;
 
 // this should really be a solid router thing
-const [tab, setTab] = createSignal<"jsoneditor" | "system" | null>(null);
+const [tab, setTab] = createSignal<"jsoneditor" | "system" | "exploration" | null>(null);
 
 const root = createAppData<RootState>();
 const settings = createAppData<Settings>();
 render(() => {
-  const [copied, setCopied] = createSignal(false);
-  createEffect(() => {
-    if(copied()) {
-      const to = setTimeout(() => {
-        setCopied(false);
-      }, 1000);
-      onCleanup(() => clearTimeout(to));
-    }
-  });
-
   return <div class="h-full select-none"><ErrorBoundary fallback={(err: Error, reset) => {
     console.log("app error", err);
     return <div>
@@ -48,23 +38,21 @@ render(() => {
           class="bg-gray-700 rounded-md block w-full p-2"
           onClick={() => setTab("system")}
         >System</button>
+        <button
+          class="bg-gray-700 rounded-md block w-full p-2"
+          onClick={() => setTab("exploration")}
+        >Exploration</button>
         <div class="flex flex-row flex-wrap gap-2">
-          <Buttons>
-            <Button
-              disabled={copied()}
-              onClick={() => void navigator.clipboard.writeText(uuid()).then(() => setCopied(true))}
-              // .catch(setCopied(false))
-            >
-              {copied() ? "✓ Copied" : "Copy New UUID"}
-            </Button>
-          </Buttons>
+          <CopyUUIDButton />
         </div>
       </div>
     </>}>{tabv => <>{
       tabv === "jsoneditor" ? (
         <App node={root} settings={settings} />
-      ) : (
+      ) : tabv === "system" ? (
         <System />
+      ) : (
+        <Exploration />
       )
     }</>}</Show>
   </ErrorBoundary></div>;
