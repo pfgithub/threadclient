@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable */
 
-import { createMemo, createSignal, ErrorBoundary, For, JSX, untrack } from "solid-js";
+import { batch, createMemo, createSignal, ErrorBoundary, For, JSX, untrack } from "solid-js";
 import { createMergeMemo, Show } from "tmeta-util-solid";
 import CopyUUIDButton from "./CopyUUIDButton";
 import { unreachable } from "./guards";
@@ -146,11 +146,12 @@ function lastIn(obj): number | null {
     }
     return lastIn(obj.content);
 }
-function moveCursor(cursorPos, obj, dir): CursorMoveResult {
-    if(!Array.isArray(obj.content)) return moveCursor(cursorPos, obj.content, dir);
 
-    const start = cursorPos[0];
-    if(cursorPos.length === 1) {
+function moveCursor(cursor_pos, obj, dir): CursorMoveResult {
+    if(!Array.isArray(obj.content)) return moveCursor(cursor_pos, obj.content, dir);
+
+    const start = cursor_pos[0];
+    if(cursor_pos.length === 1) {
         if(dir > 0) {
             if(start >= obj.content.length) return 1;
             const next = firstIn(obj.content[start]);
@@ -165,7 +166,7 @@ function moveCursor(cursorPos, obj, dir): CursorMoveResult {
         }
     }
 
-    const ncp = cursorPos.slice(1);
+    const ncp = cursor_pos.slice(1);
     const subch = obj.content[start];
     const mcres = moveCursor(ncp, subch, dir);
     if(typeof mcres !== "number") return [start, ...mcres];
@@ -178,43 +179,56 @@ function moveCursor(cursorPos, obj, dir): CursorMoveResult {
     }
 }
 
-function insertNode(insert_pos, obj, new_node) {
-    // in capsule:
-    // - create capsule containing text
-    // - call insertNode on that text
-
-    // in text:
-    // - convert the raw node to characters
-    // - insert
-
-    // back in the capsule:
-    // - break up any newlines? sure why not
-
-    // also this can probably be a pure function that just returns
-    // either the layer's state or an array of operations
-
-    // operations are nicer because we can transform cursor positions by applying operations
-
+type InsertRes = {
+    obj: Obj,
+    saved_positions: Pos[],
+};
+function insertNode(insert_pos, obj, new_node, saved_positions): InsertRes {
     if(obj.id === capsule.id) {
         if(Array.isArray(obj.content)) {
             if(insert_pos.length === 1) {
+                const ipos0 = insert_pos[0];
                 const nnode = insertNode([0], {id: capsule.id, content: {
                     id: text.id,
                     content: [],
-                }}, new_node);
+                }}, new_node, []);
                 const ncontent = [...obj.content];
-                ncontent.splice(insert_pos[0], 0, nnode);
-                return {...obj, content: ncontent};
+                ncontent.splice(ipos0, 0, nnode.obj);
+                const lo = lastIn(nnode.obj);
+
+                return {
+                    obj: {...obj, content: ncontent},
+                    saved_positions: saved_positions.map(pos => {
+                        const cmpres = compareCursorPos(insert_pos, pos);
+                        if(cmpres < 0) return pos;
+                        if(pos.length !== 1) unreachable();
+                        if(lo == null) return [pos[0] + 1];
+                        return [pos[0], lo];
+                    }),
+                };
             }else{
-                const idx = insert_pos[0];
-                const nnode = insertNode(insert_pos.slice(1), obj.content[idx], new_node);
+                const ipos0 = insert_pos[0];
+                const filteredpositions = saved_positions.filter(pos => pos[0] === ipos0 && pos[1] != null).map(pos => pos.slice(1));
+                const nnode = insertNode(insert_pos.slice(1), obj.content[ipos0], new_node, filteredpositions);
                 const ncontent = [...obj.content];
-                ncontent[idx] = nnode;
-                return {...obj, content: ncontent};
+                ncontent[ipos0] = nnode.obj;
+
+                let spi = 0;
+                saved_positions = saved_positions.map(pos => {
+                    if(pos[0] !== ipos0) return pos;
+                    return [ipos0, ...nnode.saved_positions[spi++]];
+                });
+                return {
+                    obj: {...obj, content: ncontent},
+                    saved_positions,
+                };
             }
         }else{
-            const nnode = insertNode(insert_pos, obj.content, new_node);
-            return {...obj, content: nnode};
+            const nnode = insertNode(insert_pos, obj.content, new_node, saved_positions);
+            return {
+                obj: {...obj, content: nnode.obj},
+                saved_positions: nnode.saved_positions,
+            };
         }
     }else if(obj.id === text.id) {
         if(insert_pos.length !== 1) unreachable();
@@ -223,7 +237,15 @@ function insertNode(insert_pos, obj, new_node) {
         console.log(nnodes);
         const ncontent = [...obj.content];
         ncontent.splice(insert_pos[0], 0, ...nnodes);
-        return {...obj, content: ncontent};
+        return {
+            obj: {...obj, content: ncontent},
+            saved_positions: saved_positions.map(pos => {
+                const cmpres = compareCursorPos(insert_pos, pos);
+                if(cmpres < 0) return pos;
+                if(pos.length !== 1) unreachable();
+                return [pos[0] + nnodes.length];
+            }),
+        };
     }
 
     // ok I guess the question is still how to do stuff eg:
@@ -291,13 +313,19 @@ export default function Exploration(): JSX.Element {
                     e.preventDefault();
 
                     const text = e.data;
-                    const nobj = insertNode(cursorPos().cursor, object.data, {
+                    const sp_in = [cursorPos().cursor, cursorPos().anchor];
+                    const nnode = insertNode(cursorPos().cursor, object.data, {
                         id: "@sys_rawtext",
                         content: text,
+                    }, sp_in);
+                    console.log(nnode, sp_in, nnode.saved_positions);
+                    batch(() => {
+                        setObject(nnode.obj);
+                        setCursorPos({
+                            cursor: nnode.saved_positions[0],
+                            anchor: nnode.saved_positions[1],
+                        });
                     });
-                    console.log(nobj);
-                    setObject(nobj);
-                    // setCursorPos(ncrs);
                 }
 
             }}
