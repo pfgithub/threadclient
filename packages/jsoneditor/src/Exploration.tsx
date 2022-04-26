@@ -174,6 +174,47 @@ function moveCursor(cursorPos, obj, dir): CursorMoveResult {
     }
 }
 
+function insertNode(insert_pos, obj, new_node) {
+    // in capsule:
+    // - create capsule containing text
+    // - call insertNode on that text
+
+    // in text:
+    // - convert the raw node to characters
+    // - insert
+
+    // back in the capsule:
+    // - break up any newlines? sure why not
+
+    // also this can probably be a pure function that just returns
+    // either the layer's state or an array of operations
+
+    // operations are nicer because we can transform cursor positions by applying operations
+
+    if(obj.id === capsule.id) {
+        if(Array.isArray(obj.content)) {
+            if(insert_pos.length === 1) {
+                // call insertNode([0], {id: text.id, content: []},  new_node);
+                // splice that into a copy of the content array
+                // return
+            }else{
+                // update in a copy of the array the value at the index with insertNode(…)
+                // return
+            }
+        }else{
+            // update the object with insertNode()
+            // return
+        }
+    }else if(obj.id === text.id) {
+
+    }
+
+    // ok I guess the question is still how to do stuff eg:
+    // when you press enter, insert a newline. if there are two newlines, split the capsule in two
+
+    // not sure. but it shouldn't be too hard to handle this way.
+}
+
 function compareCursorPos(a, b) {
     if(a[0] == null && b[0] != null) return -1;
     if(a[0] == null && b[0] == null) return 0;
