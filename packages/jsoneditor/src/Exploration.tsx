@@ -341,89 +341,93 @@ export default function Exploration(props): JSX.Element {
     const [objRaw, setObject] = createSignal(doc);
     const object = createMergeMemo(objRaw, {key: null, merge: false});
     // const object = {get data() {return objRaw()}};
-    
 
-    return <div class="max-w-xl bg-gray-800 mx-auto min-h-screen p-2 space-y-2 whitespace-pre-wrap">
-        <textarea
-            rows={1}
-            class="
-                block
-                bg-transparent resize-none border border-gray-600 rounded-md px-1
-                focus:outline-none text-transparent placeholder-gray-500 focus:placeholder-transparent
-                focus:bg-gray-600
-            "
-            placeholder="Click here"
-            onKeyDown={e => {
-                if(e.code === "ArrowLeft" || e.code === "ArrowRight") {
-                    e.stopPropagation();
-                    e.preventDefault();
-    
-                    const dir = e.code === "ArrowLeft" ? -1 : 1;
-                    setCursorPos(prev => {
-                        const cmp = compareCursorPos(prev.anchor, prev.cursor)
-                        if(!e.shiftKey && cmp != 0) {
-                            const [l, r] = cmp < 0 ? [prev.anchor, prev.cursor] : [prev.cursor, prev.anchor];
-                            const t = dir === -1 ? l : r;
-                            return {anchor: t, cursor: t};
-                        }
-                        let moveres = moveCursor(prev.cursor, object.data, dir);
-                        if(!Array.isArray(moveres)) moveres = prev.cursor;
-                        return {
-                            anchor: e.shiftKey ? prev.anchor : moveres,
-                            cursor: moveres,
-                        };
-                    });
-                }
-            }}
-            onBeforeInput={e => {
-                e.stopPropagation();
-                e.preventDefault();
+    const onKeyDown = (e: KeyboardEvent) => {
+        if(e.code === "ArrowLeft" || e.code === "ArrowRight") {
+            e.stopPropagation();
+            e.preventDefault();
 
-                if(e.inputType === "insertText") {
-                    const text = e.data;
-                    const sp_in = [cursorPos().cursor, cursorPos().anchor];
-                    const nnode = insertNode(cursorPos().cursor, object.data, {
-                        id: "@sys_rawtext",
-                        content: text,
-                    }, sp_in);
-                    batch(() => {
-                        setObject(nnode.obj);
-                        setCursorPos({
-                            cursor: nnode.saved_positions[0],
-                            anchor: nnode.saved_positions[1],
-                        });
-                    });
-                }else if(e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward") {
-                    const dir = e.inputType === "deleteContentBackward" ? -1 : 1;
-                    const cpos = cursorPos();
-                    const cmp = compareCursorPos(cpos.anchor, cpos.cursor);
-                    const [l, r] = cmp < 0 ? [
-                        cpos.anchor, cpos.cursor,
-                    ] : cmp > 0 ? [
-                        cpos.cursor, cpos.anchor,
-                    ] : [
-                        // note: we have to tell moveCursor that this is for a text deletion otherwise
-                        //          it might move the cursor to a useless spot 
-                        moveCursor(cpos.cursor, object.data, dir), cpos.cursor,
-                    ];
-                    const nnode = deleteRange(l, r, object.data, [l, r]);
-                    batch(() => {
-                        setObject(nnode.obj);
-                        // const [l, r] = nnode.saved_positions;
-                        setCursorPos({
-                            cursor: dir < 0 ? l : r,
-                            anchor: dir < 0 ? l : r,
-                        });
-                    });
-                }else{
-                    console.log(e);
+            const dir = e.code === "ArrowLeft" ? -1 : 1;
+            setCursorPos(prev => {
+                const cmp = compareCursorPos(prev.anchor, prev.cursor)
+                if(!e.shiftKey && cmp != 0) {
+                    const [l, r] = cmp < 0 ? [prev.anchor, prev.cursor] : [prev.cursor, prev.anchor];
+                    const t = dir === -1 ? l : r;
+                    return {anchor: t, cursor: t};
                 }
-            }}
-        />
-        <CopyUUIDButton />
-        <Settings node={props.settings} />
-        <div class="py-4 space-y-2">
-            <Object crs={cursorPos()} obj={object.data} />
+                let moveres = moveCursor(prev.cursor, object.data, dir);
+                if(!Array.isArray(moveres)) moveres = prev.cursor;
+                return {
+                    anchor: e.shiftKey ? prev.anchor : moveres,
+                    cursor: moveres,
+                };
+            });
+        }
+    };
+    const onBeforeInput = (e: InputEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        if(e.inputType === "insertText") {
+            const text = e.data;
+            const sp_in = [cursorPos().cursor, cursorPos().anchor];
+            const nnode = insertNode(cursorPos().cursor, object.data, {
+                id: "@sys_rawtext",
+                content: text,
+            }, sp_in);
+            batch(() => {
+                setObject(nnode.obj);
+                setCursorPos({
+                    cursor: nnode.saved_positions[0],
+                    anchor: nnode.saved_positions[1],
+                });
+            });
+        }else if(e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward") {
+            const dir = e.inputType === "deleteContentBackward" ? -1 : 1;
+            const cpos = cursorPos();
+            const cmp = compareCursorPos(cpos.anchor, cpos.cursor);
+            const [l, r] = cmp < 0 ? [
+                cpos.anchor, cpos.cursor,
+            ] : cmp > 0 ? [
+                cpos.cursor, cpos.anchor,
+            ] : [
+                // note: we have to tell moveCursor that this is for a text deletion otherwise
+                //          it might move the cursor to a useless spot 
+                moveCursor(cpos.cursor, object.data, dir), cpos.cursor,
+            ];
+            const nnode = deleteRange(l, r, object.data, [l, r]);
+            batch(() => {
+                setObject(nnode.obj);
+                // const [l, r] = nnode.saved_positions;
+                setCursorPos({
+                    cursor: dir < 0 ? l : r,
+                    anchor: dir < 0 ? l : r,
+                });
+            });
+        }else{
+            console.log(e);
+        }
+    };
+
+    return <div class="max-w-xl bg-gray-800 mx-auto min-h-screen p-2 space-y-4 whitespace-pre-wrap">
+        <div class="space-y-2 p-2">
+            <CopyUUIDButton />
+            <Settings node={props.settings} />
+        </div>
+        <div class="relative">
+            <div class="space-y-2">
+                <Object crs={cursorPos()} obj={object.data} />
+            </div>
+            <textarea
+                rows={1}
+                class="
+                    block absolute top-0 left-0 w-full h-full rounded-md
+                    bg-transparent text-transparent focus:outline
+                    outline-blue-400 outline-2 outline-offset-2
+                "
+                onKeyDown={onKeyDown}
+                onBeforeInput={onBeforeInput}
+            />
         </div>
     </div>;
 }
