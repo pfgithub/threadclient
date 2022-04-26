@@ -52,7 +52,7 @@ render(() => {
       ) : tabv === "system" ? (
         <System />
       ) : (
-        <Exploration />
+        <Exploration settings={settings} />
       )
     }</>}</Show>
   </ErrorBoundary></div>;

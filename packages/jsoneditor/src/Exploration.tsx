@@ -5,6 +5,7 @@ import { batch, createMemo, createSignal, ErrorBoundary, For, JSX, untrack } fro
 import { createMergeMemo, Show } from "tmeta-util-solid";
 import CopyUUIDButton from "./CopyUUIDButton";
 import { unreachable } from "./guards";
+import Settings from "./Settings";
 
 // keybinds:
 // ← out / → in
@@ -263,7 +264,7 @@ function compareCursorPos(a, b) {
     return compareCursorPos(a.slice(1), b.slice(1));
 }
 
-export default function Exploration(): JSX.Element {
+export default function Exploration(props): JSX.Element {
     const [cursorPos, setCursorPos] = createSignal({
         anchor: [2, 0, 1],
         cursor: [2, 0, 1],
@@ -331,6 +332,7 @@ export default function Exploration(): JSX.Element {
             }}
         />
         <CopyUUIDButton />
+        <Settings node={props.settings} />
         <div class="py-4 space-y-2">
             <Object crs={cursorPos()} obj={object.data} />
         </div>
