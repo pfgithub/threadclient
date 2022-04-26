@@ -702,6 +702,10 @@ export const client: ThreadClient = {
         const parsed = url_parser.parse(pathraw) ?? {kind: "404", reason: "This should never happen"};
 
         if(parsed.kind === "instance-selector") {
+            // https://api.joinmastodon.org/categories
+            // https://api.joinmastodon.org/servers?category=general
+            // https://api.joinmastodon.org/languages?category=general
+
             throw new Error("TODO INSTANCE-SELECTOR (use a kind:special thing)");
             // return bodyPage("", "Choose Instance", {
             //     kind: "mastodon_instance_selector",
