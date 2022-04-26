@@ -3,6 +3,7 @@ import { MatchFn, switchKindCB } from "tmeta-util";
 
 export { default as Debugtool } from "./debugtool";
 export { Key } from "./Key";
+export { default as createMergeMemo } from "./createMergeMemo";
 
 /// note that the key 'unsupported' is special-cased to be equivalent to `fallback={}`
 export function SwitchKind<T extends {kind: string}>(props: {

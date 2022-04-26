@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { Show, SwitchKind } from "tmeta-util-solid";
+import { createMergeMemo, Show, SwitchKind } from "tmeta-util-solid";
 import { switchKind } from "../../../tmeta-util/src/util";
 import {
     fetchClient,
@@ -21,7 +21,6 @@ import {
     classes, DefaultErrorBoundary, getIsVisible,
     getSettings, ToggleColor
 } from "../util/utils_solid";
-import { createMergeMemo } from "./createMergeMemo";
 import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextDocument, summarizeParagraphs } from "./richtext";

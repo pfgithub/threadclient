@@ -1,10 +1,9 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import { createSignal, JSX } from "solid-js";
-import { Show } from "tmeta-util-solid";
+import { createMergeMemo, Show } from "tmeta-util-solid";
 import { getClientCached } from "../app";
 import { getSettings, localStorageSignal } from "../util/utils_solid";
-import { createMergeMemo } from "./createMergeMemo";
 import { ClientContent, TopLevelWrapper } from "./page2";
 
 // ok the dream for replies is to have a comment appear where you edit the actual body and it

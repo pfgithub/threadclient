@@ -5,9 +5,8 @@ import {
     createSignal,
     For, JSX, untrack
 } from "solid-js";
-import { Show } from "tmeta-util-solid";
+import { createMergeMemo, Show } from "tmeta-util-solid";
 import { getWholePageRootContext, size_lt } from "../util/utils_solid";
-import { createMergeMemo } from "./createMergeMemo";
 import { CollapseData, flatten } from "./flatten";
 import LandingPage from "./LandingPage";
 import PageFlatItem from "./PageFlatItem";

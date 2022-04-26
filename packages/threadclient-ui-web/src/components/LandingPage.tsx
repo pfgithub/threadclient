@@ -1,8 +1,8 @@
 import * as Generic from "api-types-generic";
 import { Listbox } from "solid-headless";
 import { createSignal, For, JSX, untrack } from "solid-js";
+import { createMergeMemo } from "tmeta-util-solid";
 import { getSettings, getWholePageRootContext } from "../util/utils_solid";
-import { createMergeMemo } from "./createMergeMemo";
 import { autokey, CollapseData, flattenTreeItem, FlatTreeItem } from "./flatten";
 import { InternalIcon, InternalIconRaw } from "./Icon";
 import { A } from "./links";
