@@ -390,10 +390,12 @@ export default function Exploration(props): JSX.Element {
                 cpos.anchor, cpos.cursor,
             ] : cmp > 0 ? [
                 cpos.cursor, cpos.anchor,
-            ] : [
+            ] : dir < 0 ? [
                 // note: we have to tell moveCursor that this is for a text deletion otherwise
                 //          it might move the cursor to a useless spot 
                 moveCursor(cpos.cursor, object.data, dir), cpos.cursor,
+            ] : [
+                cpos.cursor, moveCursor(cpos.cursor, object.data, dir),
             ];
             const nnode = deleteRange(l, r, object.data, [l, r]);
             batch(() => {
