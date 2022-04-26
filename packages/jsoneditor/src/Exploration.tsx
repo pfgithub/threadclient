@@ -180,6 +180,67 @@ function moveCursor(cursor_pos, obj, dir): CursorMoveResult {
     }
 }
 
+function deleteRange(range_start, range_end, obj, saved_positions): InsertRes {
+    if(obj.id === capsule.id) {
+        if(Array.isArray(obj.content)) {
+            if(range_start[0] === range_end[0]) {
+                const id0 = range_start[0];
+
+                if(range_end.length === 1) {
+                    // nothing to do
+                    return {
+                        obj: {...obj, content: ncontent},
+                        saved_positions: saved_positions,
+                    }
+                }
+                let spos = range_start;
+                if(spos.length === 1) {
+                    const fires = firstIn(obj.content[spos[0]]);
+                    if(fires == null) unreachable();
+                    spos = [id0, fires];
+                }
+                // just call deleteRange on the thing
+
+                const delres = deleteRange(spos.slice(1), range_end.slice(1), obj.content[id0]);
+
+                const content_dup = [...obj.content];
+                content_dup[id0] = delres.obj;
+                return {
+                    obj: {...obj, content: content_dup},
+                };
+            }
+            let full_obj_start = range_start.length === 1 ? range_start[0] : range_start[0] + 1;
+            const full_obj_end = range_end[0];
+            if(full_obj_start < full_obj_end) unreachable();
+
+            const content_dup = [...obj.content];
+            content_dup.splice(full_obj_start, full_obj_end - full_obj_start);
+            
+            alert("TODO");
+
+            // deleteRange(start, lastIn(obj[start[0]]))
+            // deleteRange(end, firstIn(obj[end[0]]))
+            // oh and then we need to somehow get the content inside end and call insertNode
+            // on our object with it? and if the insert fails, we have to keep around? something weird
+            // maybe we make a function mergeNodes(a, b) that will join the nodes if they're next to
+            // eachother and mergable. and if they're not mergable, we just do the best we can
+        }else {
+            const nnode = deleteRange(range_start, range_end, obj.content, saved_positions);
+            return {
+                obj: {...obj, content: nnode.obj},
+                saved_positions: nnode.saved_positions,
+            };
+        }
+    }else if(obj.id === text.id) {
+        if(range_start.length !== 1 || range_end.length !== 1) unreachable();
+        const new_content = [...obj.content];
+        new_content.splice(range_start[0], range_end[0] - range_start[0]);
+        return {
+            obj: {...obj, content: new_content},
+        };
+    }
+}
+
 type InsertRes = {
     obj: Obj,
     saved_positions: Pos[],
@@ -276,7 +337,7 @@ export default function Exploration(props): JSX.Element {
     // const object = {get data() {return objRaw()}};
     
 
-    return <div class="max-w-xl bg-gray-800 mx-auto min-h-screen p-2 space-y-2">
+    return <div class="max-w-xl bg-gray-800 mx-auto min-h-screen p-2 space-y-2 whitespace-pre-wrap">
         <textarea
             rows={1}
             class="
@@ -309,17 +370,16 @@ export default function Exploration(props): JSX.Element {
                 }
             }}
             onBeforeInput={e => {
-                if(e.inputType === "insertText") {
-                    e.stopPropagation();
-                    e.preventDefault();
+                e.stopPropagation();
+                e.preventDefault();
 
+                if(e.inputType === "insertText") {
                     const text = e.data;
                     const sp_in = [cursorPos().cursor, cursorPos().anchor];
                     const nnode = insertNode(cursorPos().cursor, object.data, {
                         id: "@sys_rawtext",
                         content: text,
                     }, sp_in);
-                    console.log(nnode, sp_in, nnode.saved_positions);
                     batch(() => {
                         setObject(nnode.obj);
                         setCursorPos({
@@ -327,8 +387,31 @@ export default function Exploration(props): JSX.Element {
                             anchor: nnode.saved_positions[1],
                         });
                     });
+                }else if(e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward") {
+                    const dir = e.inputType === "deleteContentBackward" ? -1 : 1;
+                    const cpos = cursorPos();
+                    const cmp = compareCursorPos(cpos.anchor, cpos.cursor);
+                    const [l, r] = cmp < 0 ? [
+                        cpos.anchor, cpos.cursor,
+                    ] : cmp > 0 ? [
+                        cpos.cursor, cpos.anchor,
+                    ] : [
+                        // note: we have to tell moveCursor that this is for a text deletion otherwise
+                        //          it might move the cursor to a useless spot 
+                        moveCursor(cpos.cursor, object.data, dir), cpos.cursor,
+                    ];
+                    const nnode = deleteRange(l, r, object.data, [l, r]);
+                    batch(() => {
+                        setObject(nnode.obj);
+                        // const [l, r] = nnode.saved_positions;
+                        setCursorPos({
+                            cursor: dir < 0 ? l : r,
+                            anchor: dir < 0 ? l : r,
+                        });
+                    });
+                }else{
+                    console.log(e);
                 }
-
             }}
         />
         <CopyUUIDButton />
