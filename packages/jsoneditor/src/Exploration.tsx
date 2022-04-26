@@ -440,6 +440,7 @@ export default function Exploration(props): JSX.Element {
                     block absolute top-0 left-0 w-full h-full rounded-md
                     bg-transparent text-transparent focus:outline
                     outline-blue-400 outline-2 outline-offset-2
+                    resize-none
                 "
                 onKeyDown={onKeyDown}
                 onBeforeInput={onBeforeInput}
