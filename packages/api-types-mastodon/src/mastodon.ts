@@ -561,11 +561,35 @@ export type Application = {
 };
 
 export type Notification = {
-    id: string,
-    // https://docs.joinmastodon.org/entities/notification/
-    type: "follow" | "follow_request" | "mention" | "reblog" | "favourite" | "poll" | "status" | "unsupported",
-    created_at: string,
+   // Required attributes
+
+    /** The id of the notification in the database. */
+    id: ID,
+    /** The type of event that resulted in the notification. */
+    type: (
+        /** Someone followed you */
+        | "follow"
+        /** Someone requested to follow you */
+        | "follow_request"
+        /** Someone mentioned you in their status */
+        | "mention"
+        /** Someone boosted one of your statuses */
+        | "reblog"
+        /** Someone favourited one of your statuses */
+        | "favourite"
+        /** A poll you have voted in or created has ended */
+        | "poll"
+        /** Someone you enabled notifications for has posted a status */
+        | "status"
+    ),
+    /** The timestamp of the notification. */
+    created_at: DateStr,
+    /** The account that performed the action that generated the notification. */
     account: Account,
+
+    // Optional attributes
+
+    /** Status that was the object of the notification, e.g. in mentions, reblogs, favourites, or polls. */
     status?: undefined | Status,
 };
 export type HTML = string; // symbol & {__opaque_is_html_string: true};
