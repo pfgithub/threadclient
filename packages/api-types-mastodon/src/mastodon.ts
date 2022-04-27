@@ -47,6 +47,7 @@ const map = {
 'String (cast from an integer, but not guaranteed to be a number)': "ID",
 'String (ISO 8601 Datetime) if value is a verified URL. Otherwise, null': "DateStr | null",
 'String (ISO 639-1 language two-letter code)': "Lang",
+'String (ISO 639 Part 1-5 language codes)': "Lang",
 };
 if(Object.hasOwnProperty.call(map, desc)) return map[desc];
 
@@ -54,15 +55,36 @@ const base = [
 "Account", "Field", "Source", "Emoji"
 ];
 if(base.includes(desc)) return desc;
+
 const aof = "Array of ";
 if(desc.startsWith(aof)){
 return typeOf(desc.substring(aof.length)) + "[]";
 }
+const onul = " or null";
+if(desc.endsWith(onul)) {
+return typeOf(desc.substring(0, desc.length - onul.length)) + 
+" | null";
+}
+
+
+const ish = desc.match(/^Hash \((.+)\)$/);
+if(ish) {
+const v = ish[1].split(", ");
+return "{" + v.map(m => {
+return m+": "+(({
+'user_count': "number",
+'status_count': "number",
+'domain_count': "number",
+'streaming_api': "string",
+})[m] ?? "TODO<\""+m+"\">")
+}).join(", ") + "}";
+}
+
 return "TODO<"+JSON.stringify(desc)+">";
 }
 
 return "" +
-`    /// ${itms['Description']}`+"\n"+
+`    /** ${itms['Description']}`+" *"+"/\n"+
 `    ${name}: ${typeOf(itms['Type'])},`
 }).join("\n"))
 */
@@ -164,74 +186,74 @@ export type Poll = {
 export type Account = {
     // Base Attributes
 
-    /// The account idheader.
+    /** The account idheader. */
     id: ID,
-    /// The username of the account, not including domain.
+    /** The username of the account, not including domain. */
     username: string,
-    /// The Webfinger account URI. Equal to username for local users, or username@domain for remote users.
+    /** The Webfinger account URI. Equal to username for local users, or username@domain for remote users. */
     acct: string,
-    /// The location of the user's profile page.
+    /** The location of the user's profile page. */
     url: URLStr,
 
     // Display Attributes
 
-    /// The profile's display name.
+    /** The profile's display name. */
     display_name: string,
-    /// The profile's bio / description.
+    /** The profile's bio / description. */
     note: HTML,
-    /// An image icon that is shown next to statuses and in the profile.
+    /** An image icon that is shown next to statuses and in the profile. */
     avatar: URLStr,
-    /// A static version of the avatar. Equal to avatar if its value is a static image; different if avatar is an animated GIF.
+    /** A static version of the avatar. Equal to avatar if its value is a static image; different if avatar is an animated GIF. */
     avatar_static: URLStr,
-    /// An image banner that is shown above the profile and in profile cards.
+    /** An image banner that is shown above the profile and in profile cards. */
     header: URLStr,
-    /// A static version of the header. Equal to header if its value is a static image; different if header is an animated GIF.
+    /** A static version of the header. Equal to header if its value is a static image; different if header is an animated GIF. */
     header_static: URLStr,
-    /// Whether the account manually approves follow requests.
+    /** Whether the account manually approves follow requests. */
     locked: boolean,
-    /// Custom emoji entities to be used when rendering the profile. If none, an empty array will be returned.
+    /** Custom emoji entities to be used when rendering the profile. If none, an empty array will be returned. */
     emojis: Emoji[],
-    /// Whether the account has opted into discovery features such as the profile directory.
+    /** Whether the account has opted into discovery features such as the profile directory. */
     discoverable: boolean,
-    /// not in documentatino
+    /** not in documentatino */
     group: boolean,
 
     // Statistical Attributes
 
-    /// When the account was created.
+    /** When the account was created. */
     created_at: DateStr,
-    /// When the most recent status was posted.
+    /** When the most recent status was posted. */
     last_status_at: DateStr,
-    /// How many statuses are attached to this account.
+    /** How many statuses are attached to this account. */
     statuses_count: number,
-    /// The reported followers of this profile.
+    /** The reported followers of this profile. */
     followers_count: number,
-    /// The reported follows of this profile.
+    /** The reported follows of this profile. */
     following_count: number,
 
     // Optional Attributes
 
-    // Indicates that the profile is currently inactive and that its user has moved to a new account.
+    /** Indicates that the profile is currently inactive and that its user has moved to a new account. */
     moved?: undefined | Account,
-    // Additional metadata attached to a profile as name-value pairs.
+    /** Additional metadata attached to a profile as name-value pairs. */
     fields?: undefined | Field[],
-    // A presentational flag. Indicates that the account may perform automated actions, may not be monitored, or identifies as a robot.
+    /** A presentational flag. Indicates that the account may perform automated actions, may not be monitored, or identifies as a robot. */
     bot?: undefined | boolean,
-    // An extra entity to be used with API methods to verify credentials and update credentials.
+    /** An extra entity to be used with API methods to verify credentials and update credentials. */
     source?: undefined | Source,
-    // An extra entity returned when an account is suspended.
+    /** An extra entity returned when an account is suspended. */
     suspended?: undefined | boolean,
-    // When a timed mute will expire, if applicable.
+    /** When a timed mute will expire, if applicable. */
     mute_expires_at?: undefined | DateStr,
 };
 
 // https://docs.joinmastodon.org/entities/field/
 export type Field = {
-    /// The key of a given field's key-value pair.
+    /** The key of a given field's key-value pair. */
     name: string,
-    /// The value associated with the name key.
+    /** The value associated with the name key. */
     value: HTML,
-    /// Timestamp of when the server verified a URL value for a rel="me” link.
+    /** Timestamp of when the server verified a URL value for a rel="me” link. */
     verified_at: DateStr | null,
 };
 
@@ -239,57 +261,57 @@ export type Field = {
 export type Source = {
     // Base attributes
 
-    /// Profile bio.
+    /** Profile bio. */
     note: string,
-    /// Metadata about the account.
+    /** Metadata about the account. */
     fields: Field[],
 
     // Nullable attributes
 
-    /// The default post privacy to be used for new statuses.
+    /** The default post privacy to be used for new statuses. */
     privacy?:
         | undefined
-        | "public" /// Public post
-        | "unlisted" /// Unlisted post
-        | "private" /// Followers-only post
-        | "direct" /// Direct post
+        | "public" /** Public post */
+        | "unlisted" /** Unlisted post */
+        | "private" /** Followers-only post */
+        | "direct" /** Direct post */
     ,
-    /// Whether new statuses should be marked sensitive by default.
+    /** Whether new statuses should be marked sensitive by default. */
     sensitive?: undefined | boolean,
-    /// The default posting language for new statuses.
+    /** The default posting language for new statuses. */
     language?: undefined | Lang,
-    /// The number of pending follow requests.
+    /** The number of pending follow requests. */
     follow_requests_count?: undefined | number,
 };
 
 export type AccountRelation = {
     // Required attributes
 
-    /// The account id.
+    /** The account id. */
     id: ID,
-    /// Are you following this user?
+    /** Are you following this user? */
     following: boolean,
-    /// Do you have a pending follow request for this user?
+    /** Do you have a pending follow request for this user? */
     requested: boolean,
-    /// Are you featuring this user on your profile?
+    /** Are you featuring this user on your profile? */
     endorsed: boolean,
-    /// Are you followed by this user?
+    /** Are you followed by this user? */
     followed_by: boolean,
-    /// Are you muting this user?
+    /** Are you muting this user? */
     muting: boolean,
-    /// Are you muting notifications from this user?
+    /** Are you muting notifications from this user? */
     muting_notifications: boolean,
-    /// Are you receiving this user's boosts in your home timeline?
+    /** Are you receiving this user's boosts in your home timeline? */
     showing_reblogs: boolean,
-    /// Have you enabled notifications for this user?
+    /** Have you enabled notifications for this user? */
     notifying: boolean,
-    /// Are you blocking this user?
+    /** Are you blocking this user? */
     blocking: boolean,
-    /// Are you blocking this user's domain?
+    /** Are you blocking this user's domain? */
     domain_blocking: boolean,
-    /// Is this user blocking you?
+    /** Is this user blocking you? */
     blocked_by: boolean,
-    /// This user's profile bio
+    /** This user's profile bio */
     note: string,
 };
 export type Mention = {
@@ -343,36 +365,36 @@ export type Lang = string;
 export type Instance = {
     // Required attributes
 
-    /// The domain name of the instance.
+    /** The domain name of the instance. */
     uri: string,
-    /// The title of the website.
+    /** The title of the website. */
     title: string,
-    /// Admin-defined description of the Mastodon site.
+    /** Admin-defined description of the Mastodon site. */
     description: string,
-    /// A shorter description defined by the admin.
+    /** A shorter description defined by the admin. */
     short_description: string,
-    /// An email that may be contacted for any inquiries.
+    /** An email that may be contacted for any inquiries. */
     email: string,
-    /// The version of Mastodon installed on the instance.
+    /** The version of Mastodon installed on the instance. */
     version: string,
-    /// Primary languages of the website and its staff.
+    /** Primary languages of the website and its staff. */
     languages: Lang[],
-    /// Whether registrations are enabled.
+    /** Whether registrations are enabled. */
     registrations: boolean,
-    /// Whether registrations require moderator approval.
+    /** Whether registrations require moderator approval. */
     approval_required: boolean,
-    /// Whether invites are enabled.
+    /** Whether invites are enabled. */
     invites_enabled: boolean,
-    /// URLs of interest for clients apps.
+    /** URLs of interest for clients apps. */
     urls: {streaming_api: string},
-    /// Statistics about how much information the instance contains.
+    /** Statistics about how much information the instance contains. */
     stats: {user_count: number, status_count: number, domain_count: number},
 
     // Optional attributes
 
-    /// Banner image for the website.
+    /** Banner image for the website. */
     thumbnail: URLStr | null,
-    /// A user that can be contacted, as an alternative to email.
+    /** A user that can be contacted, as an alternative to email. */
     contact_account: Account | null,
 
 
