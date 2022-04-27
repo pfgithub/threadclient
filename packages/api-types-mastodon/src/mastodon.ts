@@ -85,7 +85,7 @@ return typeOf(desc.substring(0, desc.length - onul.length)) +
 for(const enonof of ["String (Enumerable, oneOf)\n", "String (Enumerable oneOf)\n"]) {
 if(desc.startsWith(enonof)) {
 const itms = desc.replace(enonof, "").split("\n");
-return "(\n" + itms.map(itm => {
+return "(\n" + [...itms, "unsupported = In case new choices are added in the future"].map(itm => {
 	const v = itm.split(" = ");
 	return "        /** "+v.slice(1).join(" = ")+" *"+"/\n        | " + JSON.stringify(v[0]) + "\n";
 }).join("") + "    )"
@@ -146,6 +146,8 @@ export type Card = {
         | "video"
         /** iframe OEmbed. Not currently accepted, so won't show up in practice. */
         | "rich"
+        /** In case new choices are added in the future */
+        | "unsupported"
     ),
 
     // Optional attributes
@@ -375,13 +377,18 @@ export type Source = {
     // Nullable attributes
 
     /** The default post privacy to be used for new statuses. */
-    privacy?:
-        | undefined
-        | "public" /** Public post */
-        | "unlisted" /** Unlisted post */
-        | "private" /** Followers-only post */
-        | "direct" /** Direct post */
-    ,
+    privacy?: undefined | (
+        /** Public post */
+        | "public"
+        /** Unlisted post */
+        | "unlisted"
+        /** Followers-only post */
+        | "private"
+        /** Direct post */
+        | "direct"
+        /** In case new choices are added in the future */
+        | "unsupported"
+    ),
     /** Whether new statuses should be marked sensitive by default. */
     sensitive?: undefined | boolean,
     /** The default posting language for new statuses. */
@@ -455,6 +462,8 @@ export type Status = {
         | "private"
         /** Visible only to mentioned users. */
         | "direct"
+        /** In case new choices are added in the future */
+        | "unsupported"
     ),
     /** Is this status marked as sensitive content? */
     sensitive: boolean,
@@ -581,6 +590,8 @@ export type Notification = {
         | "poll"
         /** Someone you enabled notifications for has posted a status */
         | "status"
+        /** In case new choices are added in the future */
+        | "unsupported"
     ),
     /** The timestamp of the notification. */
     created_at: DateStr,
