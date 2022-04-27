@@ -1,5 +1,72 @@
 import type { OEmbed } from "api-types-oembed";
 
+/*
+// WIP Scraper for `docs.joinmastodon.org/entities/…`
+// we might want to try the rb source code instead:
+// https://github.com/mastodon/mastodon/blob/main/app/serializers/rest/account_serializer.rb
+// although it doesn't have doc comments
+// or the markdown docs source
+
+console.log(Array.from(document.querySelectorAll("h2, h3")).map(itm => {
+
+if(itm.nodeName === "H2") {
+const bad = [
+"See also", "Sponsored by", "Example"
+];
+if(bad.includes(itm.textContent)) return;
+return "    // "+itm.textContent+"\n";
+}
+
+const name = itm.textContent;
+const details = document.querySelector("#"+name+" + p");
+
+const lines = details.innerText.split("\n");
+const itms = {};
+let prevl;
+for(const line of lines) {
+const splres = line.split(": ");
+if(splres.length < 1) {
+if(prevl != null) {
+itms[prevl] += "\n"+line
+continue;
+}
+}
+prevl = splres[0];
+itms[splres[0]] = splres.slice(1).join(": ");
+}
+
+function typeOf(desc) {
+const map = {
+'Boolean': "boolean",
+'Number': "number",
+'String': "string",
+'String (ISO 8601 Datetime)': "DateStr",
+'String (URL)': "URLStr",
+'String (HTTPS URL)': "URLStr",
+'String (HTML)': "HTML",
+'String (cast from an integer, but not guaranteed to be a number)': "ID",
+'String (ISO 8601 Datetime) if value is a verified URL. Otherwise, null': "DateStr | null",
+'String (ISO 639-1 language two-letter code)': "Lang",
+};
+if(Object.hasOwnProperty.call(map, desc)) return map[desc];
+
+const base = [
+"Account", "Field", "Source", "Emoji"
+];
+if(base.includes(desc)) return desc;
+const aof = "Array of ";
+if(desc.startsWith(aof)){
+return typeOf(desc.substring(aof.length)) + "[]";
+}
+return "TODO<"+JSON.stringify(desc)+">";
+}
+
+return "" +
+`    /// ${itms['Description']}`+"\n"+
+`    ${name}: ${typeOf(itms['Type'])},`
+}).join("\n"))
+*/
+
 export type ImageMeta = {
     width: number,
     height: number,
@@ -92,45 +159,137 @@ export type Poll = {
     own_votes: number[] | null,
     options: {title: string, votes_count: number}[],
 };
-export type Account = {
-    id: string,
-    username: string,
-    acct: string,
-    display_name: string,
-    url: string,
-    bot: boolean,
-    locked: boolean,
 
+// https://docs.joinmastodon.org/entities/account/
+export type Account = {
+    // Base Attributes
+
+    /// The account idheader.
+    id: ID,
+    /// The username of the account, not including domain.
+    username: string,
+    /// The Webfinger account URI. Equal to username for local users, or username@domain for remote users.
+    acct: string,
+    /// The location of the user's profile page.
+    url: URLStr,
+
+    // Display Attributes
+
+    /// The profile's display name.
+    display_name: string,
+    /// The profile's bio / description.
+    note: HTML,
+    /// An image icon that is shown next to statuses and in the profile.
+    avatar: URLStr,
+    /// A static version of the avatar. Equal to avatar if its value is a static image; different if avatar is an animated GIF.
+    avatar_static: URLStr,
+    /// An image banner that is shown above the profile and in profile cards.
+    header: URLStr,
+    /// A static version of the header. Equal to header if its value is a static image; different if header is an animated GIF.
+    header_static: URLStr,
+    /// Whether the account manually approves follow requests.
+    locked: boolean,
+    /// Custom emoji entities to be used when rendering the profile. If none, an empty array will be returned.
+    emojis: Emoji[],
+    /// Whether the account has opted into discovery features such as the profile directory.
+    discoverable: boolean,
+    /// not in documentatino
+    group: boolean,
+
+    // Statistical Attributes
+
+    /// When the account was created.
+    created_at: DateStr,
+    /// When the most recent status was posted.
+    last_status_at: DateStr,
+    /// How many statuses are attached to this account.
+    statuses_count: number,
+    /// The reported followers of this profile.
     followers_count: number,
+    /// The reported follows of this profile.
     following_count: number,
 
-    header: string,
-    header_static: string,
+    // Optional Attributes
 
-    note: string,
-
-    last_status_at: string,
-    
-    fields: {name: string, value: string, verified_at: null}[],
-
-    avatar: string,
-    avatar_static: string,
-
-    mentions?: undefined | Mention[],
-    emojis?: undefined | Emoji[],
-    tags?: undefined | Tag[],
+    // Indicates that the profile is currently inactive and that its user has moved to a new account.
+    moved?: undefined | Account,
+    // Additional metadata attached to a profile as name-value pairs.
+    fields?: undefined | Field[],
+    // A presentational flag. Indicates that the account may perform automated actions, may not be monitored, or identifies as a robot.
+    bot?: undefined | boolean,
+    // An extra entity to be used with API methods to verify credentials and update credentials.
+    source?: undefined | Source,
+    // An extra entity returned when an account is suspended.
+    suspended?: undefined | boolean,
+    // When a timed mute will expire, if applicable.
+    mute_expires_at?: undefined | DateStr,
 };
+
+// https://docs.joinmastodon.org/entities/field/
+export type Field = {
+    /// The key of a given field's key-value pair.
+    name: string,
+    /// The value associated with the name key.
+    value: HTML,
+    /// Timestamp of when the server verified a URL value for a rel="me” link.
+    verified_at: DateStr | null,
+};
+
+// https://docs.joinmastodon.org/entities/source/
+export type Source = {
+    // Base attributes
+
+    /// Profile bio.
+    note: string,
+    /// Metadata about the account.
+    fields: Field[],
+
+    // Nullable attributes
+
+    /// The default post privacy to be used for new statuses.
+    privacy?:
+        | undefined
+        | "public" /// Public post
+        | "unlisted" /// Unlisted post
+        | "private" /// Followers-only post
+        | "direct" /// Direct post
+    ,
+    /// Whether new statuses should be marked sensitive by default.
+    sensitive?: undefined | boolean,
+    /// The default posting language for new statuses.
+    language?: undefined | Lang,
+    /// The number of pending follow requests.
+    follow_requests_count?: undefined | number,
+};
+
 export type AccountRelation = {
-    id: string,
+    // Required attributes
+
+    /// The account id.
+    id: ID,
+    /// Are you following this user?
     following: boolean,
-    showing_reblogs: boolean,
-    notifying: boolean,
-    followed_by: boolean,
-    blocking: boolean,
-    muting: boolean,
-    muting_notifications: boolean,
+    /// Do you have a pending follow request for this user?
     requested: boolean,
+    /// Are you featuring this user on your profile?
     endorsed: boolean,
+    /// Are you followed by this user?
+    followed_by: boolean,
+    /// Are you muting this user?
+    muting: boolean,
+    /// Are you muting notifications from this user?
+    muting_notifications: boolean,
+    /// Are you receiving this user's boosts in your home timeline?
+    showing_reblogs: boolean,
+    /// Have you enabled notifications for this user?
+    notifying: boolean,
+    /// Are you blocking this user?
+    blocking: boolean,
+    /// Are you blocking this user's domain?
+    domain_blocking: boolean,
+    /// Is this user blocking you?
+    blocked_by: boolean,
+    /// This user's profile bio
     note: string,
 };
 export type Mention = {
@@ -173,4 +332,55 @@ export type Notification = {
     created_at: string,
     account: Account,
     status?: undefined | Post,
+};
+export type HTML = string; // symbol & {__opaque_is_html_string: true};
+export type DateStr = string;
+export type URLStr = string;
+export type ID = string;
+export type Lang = string;
+
+// https://docs.joinmastodon.org/entities/instance/
+export type Instance = {
+    uri: string,
+    title: string,
+    short_description: HTML,
+    description: HTML,
+    email: string,
+    version: string,
+    urls: {
+        streaming_api: string,
+    },
+    stats: {
+        user_count: number,
+        status_count: number,
+        domain_count: number,
+    },
+    thumbnail: string,
+    languages: string[],
+    registration: boolean,
+    approval_required: boolean,
+    invites_enabled: boolean,
+    configuration: {
+        statuses: {
+            max_characters: number,
+            max_media_attachments: number,
+            characters_reserved_per_url: number,
+        },
+        media_attachments: {
+            supported_mime_types: string[],
+            image_size_limit: number,
+            image_matrix_limit: number,
+            video_size_limit: number,
+            video_frame_rate_limit: number,
+            video_matrix_limit: number,
+        },
+        polls: {
+            max_options: number,
+            max_characters_per_option: number,
+            min_expiration: number,
+            max_expiration: number,
+        },
+    },
+    contact_account: Account,
+    rules: {id: string, text: string}[],
 };

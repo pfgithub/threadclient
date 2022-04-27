@@ -2,7 +2,7 @@
 
 import * as Generic from "api-types-generic";
 import { mnu, p2, rt } from "api-types-generic";
-import type * as Mastodon from "api-types-mastodon";
+import * as Mastodon from "api-types-mastodon";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { assertNever, encodeQuery } from "tmeta-util";
 import { parseContentHTML } from "./mastodon_html_to_rt";
@@ -263,7 +263,7 @@ function postToGenericCanError(
             client_id: client.id,
             color_hash: post.account.username,
             link: "/"+host+"/accounts/"+post.account.id,
-            flair: post.account.bot ? [{elems: [{kind: "text", text: "bot"}], content_warning: false}] : [],
+            flair: post.account.bot ?? false ? [{elems: [{kind: "text", text: "bot"}], content_warning: false}] : [],
             pfp: {
                 url: post.account.avatar_static,
                 hover: post.account.avatar,
@@ -453,11 +453,17 @@ function timelineContentLink(host: string, tl: Timeline, max_id: string | null):
 function timelineLoaderLink(host: string, tl: Timeline, max_id: string | null): Generic.Link<Generic.Opaque<"loader">> {
     return p2.stringLink("["+host+"]"+"timeline-loader_"+timelineApiUrl(tl)+"[max:"+max_id+"]");
 }
-function timelineSidebarLink(host: string, tl: Timeline): Generic.Link<Generic.HorizontalLoaded> {
-    return p2.stringLink("["+host+"]"+"timeline-sidebar_"+timelineApiUrl(tl));
+function instanceSidebarLink(host: string): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("["+host+"]"+"instance-sidebar");
 }
 function timelineSwitcherLink(host: string): Generic.Link<Generic.Post> {
-    return p2.stringLink("["+host+"]"+"timeline-switcher");
+    return p2.stringLink("["+host+"]"+"instance-timeline-switcher");
+}
+function instanceInfoRequestKey(host: string): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("["+host+"]"+"instance-info-request");
+}
+function instanceInfoSidebarWidgetKey(host: string): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("["+host+"]"+"instance-info-sidebar-widget");
 }
 function clientLink(host: string): Generic.Link<Generic.Post> {
     return p2.stringLink("["+host+"]"+"client");
@@ -624,8 +630,22 @@ export const client: ThreadClient = {
         p2.fillLink(content, clientLink(host), {
             kind: "post",
             content: {
-                kind: "client",
-                navbar: getNavbar(host),
+                // kind: "client",
+                // navbar: getNavbar(host),
+                kind: "page",
+                title: null,
+                wrap_page: {
+                    sidebar: sidebar(content, host),
+                    header: {
+                        kind: "bio",
+                        banner: null,
+                        icon: null,
+                        name: {link_name: pathraw},
+                        body: {kind: "none"},
+                        menu: null,
+                        raw_value: [pathraw, parsed],
+                    },
+                },
             },
             internal_data: "@root",
             parent: null,
@@ -939,6 +959,112 @@ export const client: ThreadClient = {
             p2.fillLinkOnce(content, fill_location, () => replies);
 
             return {content};
+        }else if(req.kind === "instance-info") {
+            const instance_info = await getResult<Mastodon.Instance>(auth, mkurl(host, "api/v1/instance"));
+            
+            if('error' in instance_info) throw new Error("got error: "+instance_info.error);
+
+            p2.fillLink(content, instanceInfoSidebarWidgetKey(host), [
+                p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: {text: instance_info.title},
+                        thumbnail: {
+                            kind: "image",
+                            url: instance_info.thumbnail,
+                        },
+                        body: {kind: "richtext", content: [
+                            rt.p(
+                                rt.txt(
+                                    instance_info.stats.user_count.toLocaleString(undefined) + " users · " +
+                                    instance_info.stats.status_count.toLocaleString(undefined) + " statuses · " +
+                                    instance_info.stats.domain_count.toLocaleString(undefined) + " domains",
+                                ),
+                            ),
+                            ...parseContentHTML(host, instance_info.description, {
+                                emojis: [],
+                                mentions: [],
+                            }),
+                            rt.p(
+                                rt.txt("Running version "+instance_info.version),
+                            ),
+                            rt.p(
+                                rt.txt(instance_info.email),
+                            ),
+                        ]},
+                        collapsible: {default_collapsed: false},
+                    },
+                    internal_data: instance_info,
+                    parent: null,
+                    url: null,
+                    replies: null,
+                    client_id: client.id,
+                }),
+                p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: {text: "Rules"},
+                        body: {kind: "none"},
+                        collapsible: false,
+                    },
+                    internal_data: instance_info,
+                    parent: null,
+                    url: null,
+                    client_id: client.id,
+                    replies: {display: "tree", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("instance-info"), (
+                        instance_info.rules.map(rule => p2.fillLink(content, p2.symbolLink<Generic.Post>(""), {
+                            kind: "post",
+                            content: {
+                                kind: "post",
+                                title: {text: rule.id + ". " + rule.text},
+                                body: {kind: "none"},
+                                collapsible: false,
+                            },
+                            parent: null,
+                            url: null,
+                            client_id: client.id,
+                            internal_data: rule,
+                            replies: null,
+                        }))
+                    ))},
+                }),
+                p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: {text: "Contact"},
+                        body: {kind: "none"},
+                        collapsible: false,
+                    },
+                    internal_data: instance_info,
+                    parent: null,
+                    url: null,
+                    replies: {display: "tree", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("instance-info"), [
+                        fillAccount(content, host, instance_info.contact_account)
+                    ])},
+                    client_id: client.id,
+                }),
+                p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: {text: "Configuration"},
+                        body: {kind: "richtext", content: [
+                            {kind: "code_block", lang: "json", text: JSON.stringify(instance_info, null, " ")},
+                        ]},
+                        collapsible: {default_collapsed: true},
+                    },
+                    internal_data: instance_info,
+                    parent: null,
+                    url: null,
+                    replies: null,
+                    client_id: client.id,
+                }),
+            ]);
+
+            return {content};
         }else assertNever(req);
     },
 
@@ -1019,6 +1145,32 @@ function fillTimelineSwitcher(content: Generic.Page2Content, host: string): Gene
     });
 }
 
+function fillAccount(content: Generic.Page2Content, host: string, account: Mastodon.Account): Generic.Link<Generic.Post> {
+    return p2.createSymbolLinkToError(content, "TODO display account", account);
+}
+
+function sidebar(content: Generic.Page2Content, host: string): Generic.PostReplies {
+    // contains the sidebar visible everywhere
+
+    return {
+        display: "tree",
+        loader: p2.prefilledHorizontalLoader(content, instanceSidebarLink(host), [
+            fillTimelineSwitcher(content, host),
+            {
+                kind: "horizontal_loader",
+                key: instanceInfoSidebarWidgetKey(host),
+                load_count: 1,
+                client_id: client.id,
+                autoload: true,
+                request: p2.fillLink(content, instanceInfoRequestKey(host), loader_enc.encode({
+                    kind: "instance-info",
+                    host,
+                })),
+            },
+        ]),
+    };
+}
+
 function fillTimeline(content: Generic.Page2Content, host: string, tl: Timeline): Generic.Link<Generic.Post> {
     const tl_root = timelineObjectLink(host, tl);
 
@@ -1043,25 +1195,10 @@ function fillTimeline(content: Generic.Page2Content, host: string, tl: Timeline)
         internal_data: tl,
         client_id: client.id,
         content: {
-            kind: "page",
-            title: tl.kind,
-            wrap_page: {
-                sidebar: {
-                    display: "tree",
-                    loader: p2.prefilledHorizontalLoader(content, timelineSidebarLink(host, tl), [
-                        fillTimelineSwitcher(content, host),
-                    ]),
-                },
-                header: {
-                    kind: "bio",
-                    banner: null,
-                    icon: null,
-                    name: {link_name: tl.kind},
-                    body: {kind: "none"},
-                    menu: null,
-                    raw_value: tl,
-                },
-            },
+            kind: "post",
+            title: {text: tl.kind},
+            body: {kind: "none"},
+            collapsible: {default_collapsed: true},
         },
     });
 }
@@ -1144,6 +1281,9 @@ type LoaderData = {
     host: string,
     timeline: Timeline,
     max_id: string | null,
+} | {
+    kind: "instance-info",
+    host: string,
 };
 const load_more_encoder = encoderGenerator<LoadMoreData, "load_more">("load_more");
 const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
