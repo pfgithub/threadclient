@@ -185,7 +185,7 @@ function moveCursor(cpos, obj, dir, shift): CursorMoveResult {
         }else{
             const si = start - 1;
             if(si < 0) return -1;
-            const lt = cdir < 0 && si !== cpos.anchor[0];
+            const lt = cdir < 0 && (si !== cpos.anchor[0] || cpos.anchor[1] == null);
             const prev = cdir > 0 || mt || lt ? null : lastIn(obj.content[si]);
             if(prev != null) return [si, prev];
             return [si];
