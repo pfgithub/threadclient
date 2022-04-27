@@ -1118,7 +1118,7 @@ function unpivotablePostBelowPivot(
 
         kind: "post",
         content: value,
-        internal_data: [content, value, opts],
+        internal_data: 0,
     }));
 }
 function fillTimelineSwitcher(content: Generic.Page2Content, host: string): Generic.Link<Generic.Post> {
