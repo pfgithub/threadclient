@@ -341,25 +341,42 @@ export type Lang = string;
 
 // https://docs.joinmastodon.org/entities/instance/
 export type Instance = {
+    // Required attributes
+
+    /// The domain name of the instance.
     uri: string,
+    /// The title of the website.
     title: string,
-    short_description: HTML,
-    description: HTML,
+    /// Admin-defined description of the Mastodon site.
+    description: string,
+    /// A shorter description defined by the admin.
+    short_description: string,
+    /// An email that may be contacted for any inquiries.
     email: string,
+    /// The version of Mastodon installed on the instance.
     version: string,
-    urls: {
-        streaming_api: string,
-    },
-    stats: {
-        user_count: number,
-        status_count: number,
-        domain_count: number,
-    },
-    thumbnail: string,
-    languages: string[],
-    registration: boolean,
+    /// Primary languages of the website and its staff.
+    languages: Lang[],
+    /// Whether registrations are enabled.
+    registrations: boolean,
+    /// Whether registrations require moderator approval.
     approval_required: boolean,
+    /// Whether invites are enabled.
     invites_enabled: boolean,
+    /// URLs of interest for clients apps.
+    urls: {streaming_api: string},
+    /// Statistics about how much information the instance contains.
+    stats: {user_count: number, status_count: number, domain_count: number},
+
+    // Optional attributes
+
+    /// Banner image for the website.
+    thumbnail: URLStr | null,
+    /// A user that can be contacted, as an alternative to email.
+    contact_account: Account | null,
+
+
+    // not documented:
     configuration: {
         statuses: {
             max_characters: number,
@@ -381,6 +398,8 @@ export type Instance = {
             max_expiration: number,
         },
     },
-    contact_account: Account,
     rules: {id: string, text: string}[],
 };
+
+// https://github.com/neet/masto.js/tree/main/src/entities
+// consider using this lib for the types

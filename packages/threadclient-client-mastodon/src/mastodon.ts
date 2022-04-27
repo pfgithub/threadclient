@@ -970,10 +970,10 @@ export const client: ThreadClient = {
                     content: {
                         kind: "post",
                         title: {text: instance_info.title},
-                        thumbnail: {
+                        thumbnail: instance_info.thumbnail != null ? {
                             kind: "image",
                             url: instance_info.thumbnail,
-                        },
+                        } : undefined,
                         body: {kind: "richtext", content: [
                             rt.p(
                                 rt.txt(
@@ -1030,7 +1030,7 @@ export const client: ThreadClient = {
                         }))
                     ))},
                 }),
-                p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
+                ...instance_info.contact_account != null ? [p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
                     kind: "post",
                     content: {
                         kind: "post",
@@ -1045,7 +1045,7 @@ export const client: ThreadClient = {
                         fillAccount(content, host, instance_info.contact_account)
                     ])},
                     client_id: client.id,
-                }),
+                })] : [],
                 p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
                     kind: "post",
                     content: {
