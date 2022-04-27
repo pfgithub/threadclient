@@ -161,26 +161,32 @@ function subanchor(nchor, cp0) {
     return nchor.slice(1);
 }
 
-function moveCursor(cpos, obj, dir): CursorMoveResult {
+// cursor positions always end up as
+// {node: Path, start: number, end: number}
+// however, moveCursor needs to keep track of an exact current point and anchorpoint so that
+// if you select left and then back to the right, it doesn't lose your position
+function moveCursor(cpos, obj, dir, shift): CursorMoveResult {
     console.log("!MOVECURSOR", cpos, obj, dir);
-    if(!Array.isArray(obj.content)) return moveCursor(cpos, obj.content, dir);
+    if(!Array.isArray(obj.content)) return moveCursor(cpos, obj.content, dir, shift);
 
     const start = cpos.cursor[0];
     if(cpos.cursor.length === 1) {
         const cdir = compareCursorPos(cpos.anchor, cpos.cursor);
         console.log(cdir, cpos.anchor, cpos.cursor);
 
+        const mt = cdir === 0 && shift;
+
         if(dir > 0) {
             if(start >= obj.content.length) return 1;
             const gt = cdir > 0 && start !== cpos.anchor[0];
-            const next = cdir < 0 || gt ? null : firstIn(obj.content[start]);
+            const next = cdir < 0 || mt || gt ? null : firstIn(obj.content[start]);
             if(next != null) return [start, next];
             return [start + 1];
         }else{
             const si = start - 1;
             if(si < 0) return -1;
             const lt = cdir < 0 && si !== cpos.anchor[0];
-            const prev = cdir > 0 || lt ? null : lastIn(obj.content[si]);
+            const prev = cdir > 0 || mt || lt ? null : lastIn(obj.content[si]);
             if(prev != null) return [si, prev];
             return [si];
         }
@@ -188,7 +194,7 @@ function moveCursor(cpos, obj, dir): CursorMoveResult {
 
     const ncp = cpos.cursor.slice(1);
     const subch = obj.content[start];
-    const mcres = moveCursor({cursor: ncp, anchor: subanchor(cpos.anchor, cpos.cursor[0])}, subch, dir);
+    const mcres = moveCursor({cursor: ncp, anchor: subanchor(cpos.anchor, cpos.cursor[0])}, subch, dir, shift);
     if(typeof mcres !== "number") return [start, ...mcres];
     if(mcres > 0) {
         const next = start + 1;
@@ -424,7 +430,7 @@ export default function Exploration(props): JSX.Element {
                     const t = dir === -1 ? l : r;
                     return {anchor: t, cursor: t};
                 }
-                let moveres = moveCursor(prev, object.data, dir);
+                let moveres = moveCursor(prev, object.data, dir, e.shiftKey);
                 if(!Array.isArray(moveres)) moveres = prev.cursor;
                 return {
                     anchor: e.shiftKey ? prev.anchor : moveres,
@@ -456,7 +462,7 @@ export default function Exploration(props): JSX.Element {
             let cpos = cursorPos();
             if(compareCursorPos(cpos.anchor, cpos.cursor) === 0) {
                 cpos = normalizeCursorPos({
-                    cursor: moveCursor(cpos, object.data, dir),
+                    cursor: moveCursor(cpos, object.data, dir, true),
                     anchor: cpos.anchor,
                 });
             }
