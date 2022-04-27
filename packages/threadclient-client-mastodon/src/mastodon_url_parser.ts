@@ -5,7 +5,7 @@ export type UrlReturning<T> = string & {__m_returns: T};
 function u<T>(s: string): UrlReturning<T> {
     return s as UrlReturning<T>;
 }
-export function timelineApiUrl(tl: Timeline): UrlReturning<Mastodon.Post[]> {
+export function timelineApiUrl(tl: Timeline): UrlReturning<Mastodon.Status[]> {
     const tl_query = {};
     if(tl.kind === "home") {
         return u("/api/v1/timelines/home?"+encodeQuery({...tl_query}));
