@@ -91,9 +91,16 @@ function HCursor(props): JSX.Element {
     </div>;
 }
 
+// 0 3
+// 1
+
 function crsdown(crs, i) {
     return {
-        anchor: crs.anchor[0] === i ? crs.anchor.slice(1) : [],
+        anchor: crs.cursor.length === 1 ? (
+            crs.anchor[0] === i ? crs.anchor.slice(1) : []
+        ) : (
+            crs.anchor[0] === i ? crs.anchor.slice(1) : []
+        ),
         cursor:  crs.cursor[0] === i ? crs.cursor.slice(1) : [],
     };
 }
@@ -345,13 +352,49 @@ function compareCursorPos(a, b) {
     return compareCursorPos(a.slice(1), b.slice(1));
 }
 
+function normalizeCursorPos(cpos) {
+    const cpr = cpos;
+
+    const lr = compareCursorPos(cpr.anchor, cpr.cursor) < 0;
+    let [l, r] = lr ? [cpr.anchor, cpr.cursor] : [cpr.cursor, cpr.anchor];
+
+    const zip = (a, b) => new Array(Math.min(a.length, b.length)).fill(0).map((__, i) => [a[i], b[i], a.slice(i), b.slice(i)]);
+    const res = [];
+    for(const [a, b, ar, br] of zip(l, r)) {
+        if(a < b || (a === b && ar[1] == null && br[1] != null)) {
+            res.push([a, br.length > 1 ? b + 1 : b]);
+            break;
+        }
+        res.push([a, b]);
+    }
+    const unzip = m => {
+        const q = [];
+        const w = [];
+        m.forEach(([a, b]) => {
+            q.push(a);
+            w.push(b);
+        });
+        return [q, w];
+    };
+    const qzr = unzip(res);
+    
+    if(lr) {
+        return {anchor: qzr[0], cursor: qzr[1]};
+    }else{
+        return {anchor: qzr[1], cursor: qzr[0]};
+    };
+}
+
 export default function Exploration(props): JSX.Element {
-    const [cursorPos, setCursorPos] = createSignal({
+    const [cursorPosRaw, setCursorPos] = createSignal({
         anchor: [2, 0, 1],
         cursor: [2, 0, 1],
         // anchor: [0, 2],
         // cursor: [0, 2],
     });
+    const cursorPos = () => {
+        return normalizeCursorPos(cursorPosRaw());
+    };
     const [objRaw, setObject] = createSignal(doc);
     const object = createMergeMemo(objRaw, {key: null, merge: false});
     // const object = {get data() {return objRaw()}};
@@ -485,5 +528,21 @@ ok what type of data do we even want to edit with this?
 - code would be cool
 - structured json
 how?
+
+
+
+
+ok:
+- let's make it so selections can only select within a thing
+- eg:
+  [ [One] [Tw|o] ]
+- ⇧→ ⇧→
+  [ [One] |[Two]| ]
+- so now how do you merge nodes?
+  - you don't, you copy/paste instead
+  - completely sidesteps the issue
+- that makes this not work very well as a rich text editor though, because things
+   won't behave as you expect
+- but that's okay
 
 */
