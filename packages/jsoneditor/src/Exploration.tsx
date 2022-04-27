@@ -155,28 +155,40 @@ function lastIn(obj): number | null {
     return lastIn(obj.content);
 }
 
-function moveCursor(cursor_pos, obj, dir): CursorMoveResult {
-    if(!Array.isArray(obj.content)) return moveCursor(cursor_pos, obj.content, dir);
+function subanchor(nchor, cp0) {
+    if(nchor[0] < cp0) return [-Infinity];
+    if(nchor[0] > cp0) return [Infinity];
+    return nchor.slice(1);
+}
 
-    const start = cursor_pos[0];
-    if(cursor_pos.length === 1) {
+function moveCursor(cpos, obj, dir): CursorMoveResult {
+    console.log("!MOVECURSOR", cpos, obj, dir);
+    if(!Array.isArray(obj.content)) return moveCursor(cpos, obj.content, dir);
+
+    const start = cpos.cursor[0];
+    if(cpos.cursor.length === 1) {
+        const cdir = compareCursorPos(cpos.anchor, cpos.cursor);
+        console.log(cdir, cpos.anchor, cpos.cursor);
+
         if(dir > 0) {
             if(start >= obj.content.length) return 1;
-            const next = firstIn(obj.content[start]);
+            const gt = cdir > 0 && start !== cpos.anchor[0];
+            const next = cdir < 0 || gt ? null : firstIn(obj.content[start]);
             if(next != null) return [start, next];
             return [start + 1];
         }else{
             const si = start - 1;
             if(si < 0) return -1;
-            const prev = lastIn(obj.content[si]);
+            const lt = cdir < 0 && si !== cpos.anchor[0];
+            const prev = cdir > 0 || lt ? null : lastIn(obj.content[si]);
             if(prev != null) return [si, prev];
             return [si];
         }
     }
 
-    const ncp = cursor_pos.slice(1);
+    const ncp = cpos.cursor.slice(1);
     const subch = obj.content[start];
-    const mcres = moveCursor(ncp, subch, dir);
+    const mcres = moveCursor({cursor: ncp, anchor: subanchor(cpos.anchor, cpos.cursor[0])}, subch, dir);
     if(typeof mcres !== "number") return [start, ...mcres];
     if(mcres > 0) {
         const next = start + 1;
@@ -412,7 +424,7 @@ export default function Exploration(props): JSX.Element {
                     const t = dir === -1 ? l : r;
                     return {anchor: t, cursor: t};
                 }
-                let moveres = moveCursor(prev.cursor, object.data, dir);
+                let moveres = moveCursor(prev, object.data, dir);
                 if(!Array.isArray(moveres)) moveres = prev.cursor;
                 return {
                     anchor: e.shiftKey ? prev.anchor : moveres,
@@ -450,9 +462,9 @@ export default function Exploration(props): JSX.Element {
             ] : dir < 0 ? [
                 // note: we have to tell moveCursor that this is for a text deletion otherwise
                 //          it might move the cursor to a useless spot 
-                moveCursor(cpos.cursor, object.data, dir), cpos.cursor,
+                moveCursor(cpos, object.data, dir), cpos.cursor,
             ] : [
-                cpos.cursor, moveCursor(cpos.cursor, object.data, dir),
+                cpos.cursor, moveCursor(cpos, object.data, dir),
             ];
             const nnode = deleteRange(l, r, object.data, [l, r]);
             batch(() => {
