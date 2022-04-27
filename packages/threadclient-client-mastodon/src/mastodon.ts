@@ -87,7 +87,7 @@ async function getResult<T>(auth: TokenResult | undefined, url: string, method: 
         return {error: "Failed to load! "+(e as Error).toString()};
     }
 }
-function postArrayToReparentedTimeline(host: string, posts: Mastodon.Post[]): Generic.UnmountedNode[] {
+function postArrayToReparentedTimeline(host: string, posts: Mastodon.Status[]): Generic.UnmountedNode[] {
     let nextv: Generic.Node[] = [];
     return posts.flatMap((post, i): Generic.UnmountedNode[] => {
         const thread = postToThread(host, post);
@@ -111,7 +111,7 @@ function postArrayToReparentedTimeline(host: string, posts: Mastodon.Post[]): Ge
         return [{parents: [...loadmore_v, thread, ...thispv], replies: []}];
     });
 }
-function postArrayToReparentedThread(host: string, root_id: string, posts: Mastodon.Post[]): Generic.Node[] {
+function postArrayToReparentedThread(host: string, root_id: string, posts: Mastodon.Status[]): Generic.Node[] {
     const id_map = new Map<string, {replies?: undefined | Generic.Node[]}>();
 
     const root: {replies: Generic.Node[]} = {replies: []};
@@ -133,7 +133,7 @@ function postArrayToReparentedThread(host: string, root_id: string, posts: Masto
     return root.replies;
 }
 function expectUnsupported(a: "unsupported") {/**/}
-function mediaToGalleryItem(host: string, media: Mastodon.Media): Generic.GalleryItem {
+function mediaToGalleryItem(host: string, media: Mastodon.Attachment): Generic.GalleryItem {
     if(media.type === "image") {
         return {
             thumb: media.preview_url ?? "https://dummyimage.com/100x100/ff0000/000000&text=image",
@@ -205,7 +205,7 @@ function postToThread(...a: unknown[]): never {
 }
 function postToGeneric(
     host: string,
-    post: Mastodon.Post,
+    post: Mastodon.Status,
     opts: {
         reblogged_by?: undefined | Generic.RebloggedBy,
     } = {},
@@ -223,7 +223,7 @@ function postToGeneric(
 }
 function postToGenericCanError(
     host: string,
-    post: Mastodon.Post,
+    post: Mastodon.Status,
     opts: {
         reblogged_by?: undefined | Generic.RebloggedBy,
     } = {},
@@ -288,8 +288,8 @@ function postToGenericCanError(
                 },
                 decrement: null,
 
-                count_excl_you: post.favourites_count + (post.favourited ? -1 : 0),
-                you: post.favourited ? "increment" : undefined,
+                count_excl_you: post.favourites_count + ((post.favourited ?? false) ? -1 : 0),
+                you: (post.favourited ?? false) ? "increment" : undefined,
 
                 actions: {
                     increment: action_encoder.encode({kind: "favourite", direction: "", status: post.id, host}),
@@ -468,7 +468,7 @@ function instanceInfoSidebarWidgetKey(host: string): Generic.Link<Generic.Horizo
 function clientLink(host: string): Generic.Link<Generic.Post> {
     return p2.stringLink("["+host+"]"+"client");
 }
-function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Post): Generic.Link<Generic.Post> {
+function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Status): Generic.Link<Generic.Post> {
     const respost_link = postLink(host, post.id);
 
     const request_link = p2.stringLink<Generic.Opaque<"loader">>("post-loadcontext_"+post.id);
@@ -476,7 +476,7 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Po
         kind: "context",
         host,
         center_id: post.id,
-        center_parent: post.in_reply_to_id,
+        center_parent: post.in_reply_to_id ?? null,
     }));
 
     p2.fillLink(content, respost_link, {
@@ -680,7 +680,7 @@ export const client: ThreadClient = {
             //     mnu.link(client, "Notifications", "/"+host+"/notifications", false),
             // ];
         }else if(parsed.kind === "status") {
-            const post = await getResult<Mastodon.Post>(auth, mkurl(host, "api/v1/statuses", parsed.status));
+            const post = await getResult<Mastodon.Status>(auth, mkurl(host, "api/v1/statuses", parsed.status));
             if('error' in post) {
                 throw new Error("ERRORED; "+post.error+"; TODO SHOW EMSG SCREEN");
             }
@@ -905,12 +905,12 @@ export const client: ThreadClient = {
             // eventually this will be a linked loader. i'm not yet sure howt hat will work, but we'll have to
             // replace two values not just one. anyway not yet.
             const context = await getResult<{
-                ancestors: Mastodon.Post[],
-                descendants: Mastodon.Post[],
+                ancestors: Mastodon.Status[],
+                descendants: Mastodon.Status[],
             }>(auth, mkurl(host, "api/v1/statuses", req.center_id, "context"));
             if('error' in context) throw new Error("got error: "+context.error);
 
-            const reply_ids = new Map<string | null, string[]>();
+            const reply_ids = new Map<string | undefined, string[]>();
             for(const descendant of context.descendants) {
                 if(!reply_ids.has(descendant.in_reply_to_id)) reply_ids.set(descendant.in_reply_to_id, []);
                 const rid = reply_ids.get(descendant.in_reply_to_id)!;
@@ -934,7 +934,7 @@ export const client: ThreadClient = {
 
             return {content};
         }else if(req.kind === "timeline") {
-            const posts = await getResult<Mastodon.Post[]>(auth, mkurl(host, updateQuery(timelineApiUrl(req.timeline), {
+            const posts = await getResult<Mastodon.Status[]>(auth, mkurl(host, updateQuery(timelineApiUrl(req.timeline), {
                 since_id: undefined,
                 min_id: undefined,
                 max_id: req.max_id ?? undefined,
@@ -1085,7 +1085,7 @@ export const client: ThreadClient = {
 
 async function performBasicPostAction(host: string, url: string): Promise<void> {
     const auth = await getAuth(host);
-    const resp = await getResult<Mastodon.Post>(auth, mkurl(host, url), "POST");
+    const resp = await getResult<Mastodon.Status>(auth, mkurl(host, url), "POST");
     if('error' in resp) {
         console.log(resp);
         throw new Error("Got error: "+resp.error);
@@ -1227,7 +1227,7 @@ function timelineLoader(
 
 async function timelineView(host: string, auth: undefined | TokenResult, api_path: string, web_path: string, header: Generic.ContentNode, navbar: Generic.Menu, timeline_title: string): Promise<Generic.Page> {
     const thisurl = mkurl(host, api_path);
-    const posts = await getResult<Mastodon.Post[]>(auth, thisurl);
+    const posts = await getResult<Mastodon.Status[]>(auth, thisurl);
 
     if('error' in posts) return error404(host, "Error! "+posts.error);
 
