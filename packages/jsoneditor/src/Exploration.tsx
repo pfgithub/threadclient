@@ -453,19 +453,19 @@ export default function Exploration(props): JSX.Element {
             });
         }else if(e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward") {
             const dir = e.inputType === "deleteContentBackward" ? -1 : 1;
-            const cpos = cursorPos();
+            let cpos = cursorPos();
+            if(compareCursorPos(cpos.anchor, cpos.cursor) === 0) {
+                cpos = normalizeCursorPos({
+                    cursor: moveCursor(cpos, object.data, dir),
+                    anchor: cpos.anchor,
+                });
+            }
             const cmp = compareCursorPos(cpos.anchor, cpos.cursor);
             const [l, r] = cmp < 0 ? [
                 cpos.anchor, cpos.cursor,
             ] : cmp > 0 ? [
                 cpos.cursor, cpos.anchor,
-            ] : dir < 0 ? [
-                // note: we have to tell moveCursor that this is for a text deletion otherwise
-                //          it might move the cursor to a useless spot 
-                moveCursor(cpos, object.data, dir), cpos.cursor,
-            ] : [
-                cpos.cursor, moveCursor(cpos, object.data, dir),
-            ];
+            ] : unreachable();
             const nnode = deleteRange(l, r, object.data, [l, r]);
             batch(() => {
                 setObject(nnode.obj);
