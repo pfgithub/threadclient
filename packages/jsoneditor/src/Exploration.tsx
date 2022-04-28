@@ -1,12 +1,12 @@
 // @ts-nocheck
 /* eslint-disable */
 
-import { batch, createMemo, createSignal, ErrorBoundary, For, JSX, untrack } from "solid-js";
+import { batch, createMemo, createSignal, ErrorBoundary, For, JSX, mergeProps, untrack } from "solid-js";
 import { createMergeMemo, Show } from "tmeta-util-solid";
 import CopyUUIDButton from "./CopyUUIDButton";
 import { unreachable } from "./guards";
 import Settings from "./Settings";
-import * as q from "./exploration_ts";
+import ExplorationEditor2 from "./exploration_ts";
 () => q.a;
 
 // keybinds:
@@ -559,23 +559,31 @@ function ExplorationEditor1(props): JSX.Element {
             console.log(e);
         }
     };
-
-    return <div class="relative">
+    
+    return <InputHandler 
+        onKeyDown={onKeyDown}
+        onBeforeInput={onBeforeInput}
+    >
         <div class="space-y-2">
             <Object crs={cursorPos()} obj={object.data} />
         </div>
-        <textarea
-            rows={1}
-            class="
+    </InputHandler>;
+}
+
+export function InputHandler(props: JSX.IntrinsicElements["textarea"]): JSX.Element {
+    return <div class="relative">
+        {props.children}
+        <textarea {... mergeProps(props, {
+            children: null,
+            rows: 1,
+            class: `
                 block absolute top-0 left-0 w-full h-full rounded-md
                 bg-transparent text-transparent focus:outline
                 outline-blue-400 outline-2 outline-offset-2
                 resize-none
-            "
-            onKeyDown={onKeyDown}
-            onBeforeInput={onBeforeInput}
-        />
-    </div>;
+            `,
+        })} />
+    </div>
 }
 
 export default function Exploration(props): JSX.Element {
@@ -585,6 +593,7 @@ export default function Exploration(props): JSX.Element {
             <Settings node={props.settings} />
         </div>
         <ExplorationEditor1 />
+        <ExplorationEditor2 />
     </div>;
 }
 
