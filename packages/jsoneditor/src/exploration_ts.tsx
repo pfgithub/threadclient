@@ -77,6 +77,34 @@ function JField(props: {field: JField, depth: number}): JSX.Element {
 }
 
 function JFields(props: {obj: JFields, depth: number}): JSX.Element {
+    // I think fields are going to offer node positions for:
+    // "key": "value",
+    // "key"|: |"value"|,
+    // and then the object/array will offer positions for:
+    // |"key": "value",|
+    // that feels like the best option
+    //
+    // and then for selection:
+    //  "key"|: |"value"|,
+    // 0      1  2          3
+    // 1→3
+    // 3→2→1
+    // 2→0
+    //
+    // 0 is a special location that only appears when you're selecting, you can't get
+    // there with normal cursor movement. if you select left from star it goes to the parent as usual
+    // which selects over the whole field. it's there to allow you to backspace at 2.
+    //
+    // also, 3 probably should not be there if there is no trailing comma in the parent. if that is the case,
+    // 3 should only be available for selection, not normal cursor movement.
+    //
+    // hmm:
+    // "value"|
+    // 0        1
+    //
+    // notice how if your cursor is on the left, you delete the whole entry vs on the right, you
+    // make a slot. interesting.
+    //
     return <span class={props.obj.multiline ? "block pl-2 w-full" : ""}>{createMemo((): JSX.Element => {
         if(props.obj.fields.length === 0) return <>…</>;
         return <For each={props.obj.fields}>{(field, i) => (
@@ -195,12 +223,25 @@ const a = {
             fields: obj.map(o => a.jfield(o))
         };
     },
+
+    // v this is misleading. a slot should be handled by its parent node because of how cusor
+    //    movement works around it
     slot(): JSlot {
         return {kind: "-N0gpdqw6BjkuWrRqqTG"};
     },
 };
 
+type NodePath = number[];
+
+type VisualCursor = {
+    root: NodePath,
+    from: number,
+    to: number,
+};
+
 export default function ExplorationEditor2(): JSX.Element {
+    const [visualCursor, setVisualCursor] = createSignal<VisualCursor>();
+
     const [jsonObj, setJsonObj] = createSignal<JValue>(a.obj("multiline",
         ["types", a.obj("multiline",
             ["string", "hi! this is a test string"],
