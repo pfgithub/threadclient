@@ -6,6 +6,8 @@ import { createMergeMemo, Show } from "tmeta-util-solid";
 import CopyUUIDButton from "./CopyUUIDButton";
 import { unreachable } from "./guards";
 import Settings from "./Settings";
+import * as q from "./exploration_ts";
+() => q.a;
 
 // keybinds:
 // ← out / → in
@@ -19,6 +21,8 @@ const capsule: Dot = {
 const text: Dot = {
     id: "-N0XV2FiLWJAMynVk0ZX",
 };
+// TODO: this will be a fake object. instead, text will store
+// a string and pretend it contains chars when asked about specific children
 const char: Dot = {
     id: "-N0XWfQf03qhkJoqskTQ",
 };
@@ -28,37 +32,37 @@ const sys_rawtext: Dot = {
 };
 
 const doc = {id: capsule.id, content: [
-    {id: capsule.id, content: {id: text.id, content: [
+    {id: text.id, content: [
         {id: char.id, content: "O"},
         {id: char.id, content: "n"},
         {id: char.id, content: "e"},
-    ]}},
-    {id: capsule.id, content: {id: text.id, content: [
+    ]},
+    {id: text.id, content: [
         {id: char.id, content: "T"},
         {id: char.id, content: "w"},
         {id: char.id, content: "o"},
-    ]}},
+    ]},
     {id: capsule.id, content: [
-        {id: capsule.id, content: {id: text.id, content: [
+        {id: text.id, content: [
             {id: char.id, content: "T"},
             {id: char.id, content: "h"},
             {id: char.id, content: "r"},
             {id: char.id, content: "e"},
             {id: char.id, content: "e"},
-        ]}},
-        {id: capsule.id, content: {id: text.id, content: [
+        ]},
+        {id: text.id, content: [
             {id: char.id, content: "F"},
             {id: char.id, content: "o"},
             {id: char.id, content: "u"},
             {id: char.id, content: "r"},
-        ]}},
+        ]},
     ]},
-    {id: capsule.id, content: {id: text.id, content: [
+    {id: text.id, content: [
         {id: char.id, content: "F"},
         {id: char.id, content: "i"},
         {id: char.id, content: "v"},
         {id: char.id, content: "e"},
-    ]}},
+    ]},
 ]};
 
 function cursorin(crs, i) {
@@ -112,25 +116,23 @@ function Object(props): JSX.Element {
         const id = props.obj.id;
         if(id === capsule.id) return untrack(() => <>
             <div class="rounded-md border border-gray-600 px-2 border-collapse">
-                {Array.isArray(props.obj.content) ? <>
+                <>
                     <VCursor crs={props.crs} i={0} />
                     <For each={props.obj.content}>{(obj, i) => <>
                         <Object crs={crsdown(props.crs, i())} obj={obj} />
                         <VCursor crs={props.crs} i={i() + 1} />
                     </>}</For>
-                </> : <div class="py-2">
-                    <Object crs={props.crs} obj={props.obj.content} />
-                </div>}
+                </>
             </div>
         </>);
         if(id === text.id) return untrack(() => <>
-            <span>
+            <div class="rounded-md border border-gray-600 px-2 py-1 border-collapse">
                 <HCursor crs={props.crs} i={0} />
                 <For each={props.obj.content}>{(obj, i) => <>
                     <Object crs={crsdown(props.crs, i())} obj={obj} />
                     <HCursor crs={props.crs} i={i() + 1} />
                 </>}</For>
-            </span>
+            </div>
         </>);
         if(id === char.id) return untrack(() => <>
             <span>{props.obj.content}</span>
@@ -139,20 +141,35 @@ function Object(props): JSX.Element {
     })} />;
 }
 
+function nodeContentLen(obj): number | null {
+    if(obj.id === capsule.id) {
+        return obj.content.length;
+    }else if(obj.id === text.id) {
+        return obj.content.length;
+    }else if(obj.id === char.id) {
+        return null;
+    }
+}
+function nodeChild(obj, n): Obj {
+    if(obj.id === capsule.id) {
+        return obj.content[n];
+    }else if(obj.id === text.id) {
+        return obj.content[n];
+    }else if(obj.id === char.id) {
+        unreachable();
+    }
+}
+
 type CursorMoveResult = -1 | 1 | number[];
 function firstIn(obj): number | null {
-    if(typeof obj.content === "string") return null;
-    if(Array.isArray(obj.content)) {
-        return 0;
-    }
-    return firstIn(obj.content);
+    const clen = nodeContentLen(obj);
+    if(clen == null) return null;
+    return 0;
 }
 function lastIn(obj): number | null {
-    if(typeof obj.content === "string") return null;
-    if(Array.isArray(obj.content)) {
-        return obj.content.length;
-    }
-    return lastIn(obj.content);
+    const clen = nodeContentLen(obj);
+    if(clen == null) return clen;
+    return 0;s
 }
 
 function subanchor(nchor, cp0) {
@@ -167,7 +184,9 @@ function subanchor(nchor, cp0) {
 // if you select left and then back to the right, it doesn't lose your position
 function moveCursor(cpos, obj, dir, shift): CursorMoveResult {
     console.log("!MOVECURSOR", cpos, obj, dir);
-    if(!Array.isArray(obj.content)) return moveCursor(cpos, obj.content, dir, shift);
+
+    const node_len = nodeContentLen(obj);
+    if(node_len == null) unreachable();
 
     const start = cpos.cursor[0];
     if(cpos.cursor.length === 1) {
@@ -177,28 +196,28 @@ function moveCursor(cpos, obj, dir, shift): CursorMoveResult {
         const mt = cdir === 0 && shift;
 
         if(dir > 0) {
-            if(start >= obj.content.length) return 1;
+            if(start >= node_len) return 1;
             const gt = cdir > 0 && start !== cpos.anchor[0];
-            const next = cdir < 0 || mt || gt ? null : firstIn(obj.content[start]);
+            const next = cdir < 0 || mt || gt ? null : firstIn(nodeChild(obj, start));
             if(next != null) return [start, next];
             return [start + 1];
         }else{
             const si = start - 1;
             if(si < 0) return -1;
             const lt = cdir < 0 && (si !== cpos.anchor[0] || cpos.anchor[1] == null);
-            const prev = cdir > 0 || mt || lt ? null : lastIn(obj.content[si]);
+            const prev = cdir > 0 || mt || lt ? null : lastIn(nodeChild(obj, si));
             if(prev != null) return [si, prev];
             return [si];
         }
     }
 
     const ncp = cpos.cursor.slice(1);
-    const subch = obj.content[start];
+    const subch = nodeChild(obj, start);
     const mcres = moveCursor({cursor: ncp, anchor: subanchor(cpos.anchor, cpos.cursor[0])}, subch, dir, shift);
     if(typeof mcres !== "number") return [start, ...mcres];
     if(mcres > 0) {
         const next = start + 1;
-        if(next > obj.content.length) return 1;
+        if(next > node_len) return 1;
         return [next];
     }else{
         return [start];
@@ -286,55 +305,110 @@ function deleteRange(range_start, range_end, obj, saved_positions): InsertRes {
     }
 }
 
+function normalizeNode(obj) {
+    if(obj.id === capsule.id) {
+        for(const [i, child] of capsule.content.entries()) {
+            
+        }
+    }else if(obj.id === text.id) {
+        
+    }else{
+
+    }
+}
+
+function replaceRange(obj, index, delete_count, insert_items, saved_positions): {
+    objects: Obj[], // any object array. parent has to deal with it if it's not what they wanted.
+    saved_positions: Pos[], // each position should be brought out one layer bc ^
+} {
+    if(obj.id === capsule.id) {
+        let cdup = [...obj.content];
+        cdup.splice(index, delete_count, ...insert_items);
+        // ok here we have to handle if eg you pasted a bunch of chars
+        // they shouldn't all get encapsulated
+        // idk we'll figure it out later
+        cdup = cdup.flatMap(itm => {
+            if(itm.id === sys_rawtext.id) {
+                return [...replaceRange({id: text.id, content: []}, 0, 0, [itm], []).objects.map(itm => {
+                    if(itm.id !== text.id) unreachable();
+                    return itm;
+                })];
+            }else if(item.id !== capsule.id && item.id !== text.id) {
+                // TODO these should be spilled into the parent node using the
+                // objects array we return from this fn
+                unreachable();
+            }
+            return [itm];
+        });
+        return {
+            objects: [{
+                id: capsule.id,
+                content: cdup,
+            }],
+        };
+    }else if(obj.id === text.id) {
+        let cdup = [...obj.content];
+        cdup.splice(index, delete_count, ...insert_items);
+        cdup = cdup.flatMap(itm => {
+            if(itm.id === sys_rawtext.id) {
+                return [...itm.content].map(c => ({id: char.id, content: c}));
+            }else if(item.id !== char.id) {
+                // TODO these should be spilled into the parent node using the
+                // objects array we return from this fn
+                unreachable();
+            }
+            return [itm];
+        });
+        return {
+            objects: [{
+                id: text.id,
+                content: cdup,
+            }],
+        };
+    }else unreachable();
+}
+
 type InsertRes = {
     obj: Obj,
     saved_positions: Pos[],
 };
 function insertNode(insert_pos, obj, new_node, saved_positions): InsertRes {
     if(obj.id === capsule.id) {
-        if(Array.isArray(obj.content)) {
-            if(insert_pos.length === 1) {
-                const ipos0 = insert_pos[0];
-                const nnode = insertNode([0], {id: capsule.id, content: {
-                    id: text.id,
-                    content: [],
-                }}, new_node, []);
-                const ncontent = [...obj.content];
-                ncontent.splice(ipos0, 0, nnode.obj);
-                const lo = lastIn(nnode.obj);
+        if(insert_pos.length === 1) {
+            const ipos0 = insert_pos[0];
+            const nnode = insertNode([0], {id: capsule.id, content: {
+                id: text.id,
+                content: [],
+            }}, new_node, []);
+            const ncontent = [...obj.content];
+            ncontent.splice(ipos0, 0, nnode.obj);
+            const lo = lastIn(nnode.obj);
 
-                return {
-                    obj: {...obj, content: ncontent},
-                    saved_positions: saved_positions.map(pos => {
-                        const cmpres = compareCursorPos(insert_pos, pos);
-                        if(cmpres < 0) return pos;
-                        if(pos.length !== 1) unreachable();
-                        if(lo == null) return [pos[0] + 1];
-                        return [pos[0], lo];
-                    }),
-                };
-            }else{
-                const ipos0 = insert_pos[0];
-                const filteredpositions = saved_positions.filter(pos => pos[0] === ipos0 && pos[1] != null).map(pos => pos.slice(1));
-                const nnode = insertNode(insert_pos.slice(1), obj.content[ipos0], new_node, filteredpositions);
-                const ncontent = [...obj.content];
-                ncontent[ipos0] = nnode.obj;
-
-                let spi = 0;
-                saved_positions = saved_positions.map(pos => {
-                    if(pos[0] !== ipos0) return pos;
-                    return [ipos0, ...nnode.saved_positions[spi++]];
-                });
-                return {
-                    obj: {...obj, content: ncontent},
-                    saved_positions,
-                };
-            }
-        }else{
-            const nnode = insertNode(insert_pos, obj.content, new_node, saved_positions);
             return {
-                obj: {...obj, content: nnode.obj},
-                saved_positions: nnode.saved_positions,
+                obj: {...obj, content: ncontent},
+                saved_positions: saved_positions.map(pos => {
+                    const cmpres = compareCursorPos(insert_pos, pos);
+                    if(cmpres < 0) return pos;
+                    if(pos.length !== 1) unreachable();
+                    if(lo == null) return [pos[0] + 1];
+                    return [pos[0], lo];
+                }),
+            };
+        }else{
+            const ipos0 = insert_pos[0];
+            const filteredpositions = saved_positions.filter(pos => pos[0] === ipos0 && pos[1] != null).map(pos => pos.slice(1));
+            const nnode = insertNode(insert_pos.slice(1), obj.content[ipos0], new_node, filteredpositions);
+            const ncontent = [...obj.content];
+            ncontent[ipos0] = nnode.obj;
+
+            let spi = 0;
+            saved_positions = saved_positions.map(pos => {
+                if(pos[0] !== ipos0) return pos;
+                return [ipos0, ...nnode.saved_positions[spi++]];
+            });
+            return {
+                obj: {...obj, content: ncontent},
+                saved_positions,
             };
         }
     }else if(obj.id === text.id) {
@@ -403,7 +477,7 @@ function normalizeCursorPos(cpos) {
     };
 }
 
-export default function Exploration(props): JSX.Element {
+function ExplorationEditor1(props): JSX.Element {
     const [cursorPosRaw, setCursorPos] = createSignal({
         anchor: [2, 0, 1],
         cursor: [2, 0, 1],
@@ -486,27 +560,31 @@ export default function Exploration(props): JSX.Element {
         }
     };
 
+    return <div class="relative">
+        <div class="space-y-2">
+            <Object crs={cursorPos()} obj={object.data} />
+        </div>
+        <textarea
+            rows={1}
+            class="
+                block absolute top-0 left-0 w-full h-full rounded-md
+                bg-transparent text-transparent focus:outline
+                outline-blue-400 outline-2 outline-offset-2
+                resize-none
+            "
+            onKeyDown={onKeyDown}
+            onBeforeInput={onBeforeInput}
+        />
+    </div>;
+}
+
+export default function Exploration(props): JSX.Element {
     return <div class="max-w-xl bg-gray-800 mx-auto min-h-screen p-2 space-y-4 whitespace-pre-wrap">
         <div class="space-y-2 p-2">
             <CopyUUIDButton />
             <Settings node={props.settings} />
         </div>
-        <div class="relative">
-            <div class="space-y-2">
-                <Object crs={cursorPos()} obj={object.data} />
-            </div>
-            <textarea
-                rows={1}
-                class="
-                    block absolute top-0 left-0 w-full h-full rounded-md
-                    bg-transparent text-transparent focus:outline
-                    outline-blue-400 outline-2 outline-offset-2
-                    resize-none
-                "
-                onKeyDown={onKeyDown}
-                onBeforeInput={onBeforeInput}
-            />
-        </div>
+        <ExplorationEditor1 />
     </div>;
 }
 
