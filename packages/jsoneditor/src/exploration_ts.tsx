@@ -50,6 +50,11 @@ type JSlot = {
     kind: "-N0gpdqw6BjkuWrRqqTG",
 };
 
+type SysText = {
+    kind: "@systext",
+    text: string,
+};
+
 type JValue = JObject | JArray | JString | JNumber | JBoolean | JNull | JSlot;
 
 const colors: {white: string, dark: string, light: string}[] = [
@@ -228,12 +233,16 @@ type ObjHandlers<T> = {
     move(itm: T, vc: VisualCursor, stop: StopOpts): null | CursorMoveRes,
     side(itm: T, side: -1 | 1): null | CursorMoveRes,
     child(itm: T, idx: number): Obj,
+    asText(itm: T): string,
+
+    insert(obj: T, insert: Obj[], range: {start: number, end: number}): T,
+    cut(obj: T, range: {start: number, end: number}): {node: T, removed: Obj[]},
 };
 
-const handlers_map = new Map<string, ObjHandlers<Obj>>();
-function register<T extends Obj>(kind: T["kind"], handlers: ObjHandlers<T>): ObjHandlers<T> {
-    handlers_map.set(kind, handlers); // wow that's not typesafe, ts is lying.
-    return handlers;
+const handlers_map = new Map<string, Partial<ObjHandlers<Obj>>>();
+function register<T extends Obj>(kind: T["kind"], handlers: Partial<ObjHandlers<T>>): void {
+    handlers_map.set(kind, handlers); // wow that's not typesafe, ts is lying. it's nice that it pretends
+    // it's okay for me though.
 }
 
 let dbprefix = 0;
@@ -254,28 +263,35 @@ function debugprint<T>(msg: unknown[], cb: () => T): T {
     }
 }
 
+function anyhandler<Method extends keyof ObjHandlers<Obj>>(
+    method: Method,
+    args: Parameters<ObjHandlers<Obj>[Method]>,
+    defaultval: () => ReturnType<ObjHandlers<Obj>[Method]>,
+): ReturnType<ObjHandlers<Obj>[Method]> {
+    const itm = args[0];
+    return debugprint([method, itm, ...args], (): ReturnType<ObjHandlers<Obj>[Method]> => {
+        const ih = handlers_map.get(itm.kind);
+        const ihm = ih?.[method];
+        if(ihm == null) {
+            console.warn("missing "+method+" handler for "+itm.kind);
+            return defaultval();
+        }
+        // @ts-expect-error
+        return ihm(...args);
+    });
+}
+
+// isn't this literally what interfaces are for?
+// like you would have the objects themselves have a prototype with all these methods on them already?
+// and then you don't have to do this manual dispatch?
+// yeah, it is.
 const any: ObjHandlers<Obj> = {
-    move(itm, vc, stop) {
-        return debugprint(["move handler", itm, vc, stop], () => {
-            const ih = handlers_map.get(itm.kind);
-            if(!ih) throw new Error("missing handler for "+itm.kind);
-            return ih.move(itm, vc, stop);
-        });
-    },
-    side(itm, side) {
-        return debugprint(["side handler", itm, side], () => {
-            const ih = handlers_map.get(itm.kind);
-            if(!ih) throw new Error("missing handler for "+itm.kind);
-            return ih.side(itm, side);
-        });
-    },
-    child(itm, idx) {
-        return debugprint(["child handler", itm, idx], () => {
-            const ih = handlers_map.get(itm.kind);
-            if(!ih) throw new Error("missing handler for "+itm.kind);
-            return ih.child(itm, idx);
-        });
-    },
+    move(...a) {return anyhandler("move", a, () => null)},
+    side(...a) {return anyhandler("side", a, () => null)},
+    child(...a) {return anyhandler("child", a, () => unreachable())},
+    asText(...a) {return anyhandler("asText", a, () => "[EUNSUPPORTED STRINGIFY "+a[0].kind+"]")},
+    insert(...a) {return anyhandler("insert", a, () => unreachable())},
+    cut(...a) {return anyhandler("cut", a, () => unreachable())},
 };
 
 type StopOpts = {
@@ -336,6 +352,9 @@ register<JString>("-N0gkxU5wAjciRZnERvO", {
     child(field, idx) {
         throw new Error("no children in text");
     },
+    asText(str) {
+        return JSON.stringify(new TextDecoder().decode(str.text));
+    },
 });
 
 register<JNumber>("-N0gkzBWv3Cx0Ryyouky", {
@@ -359,6 +378,17 @@ register<JNumber>("-N0gkzBWv3Cx0Ryyouky", {
     },
 });
 
+// deleting a slot:
+// - select left and delete range
+// - this is default behaviour, the slot doesn't have to define it
+// - the field will then detect if a slot is deleted, it wlil put the key in the value or something
+//   - not sure about how this will be implemented yet but the interaction is simple
+//        → "key": [|]
+//     ⌫ → "key"
+//    just the question is how to implement that
+//    and what does deleting right do inside there?
+//    and do we really need to have all these cursor positions? []"key"[: |]{[]}[]
+//    seems like we should just have []"key"[: ]{[]}
 register<JSlot>("-N0gpdqw6BjkuWrRqqTG", {
     move(field, vc, stop) {
         return null;
@@ -369,6 +399,15 @@ register<JSlot>("-N0gpdqw6BjkuWrRqqTG", {
     child(field, idx) {
         throw new Error("no children in slot");
     },
+});
+
+// booleans don't actually need any selection points. you delete and retype.
+// deleting turns the node into a slot and then the slot shows one of those fancy headless ui comboboxes
+// to pick the value
+register<JBoolean>("-N0gl-Obi0cyd58QHO85", {
+    move() {return null},
+    side() {return null},
+    child() {unreachable()}
 });
 
 register<JField>("-N0gkJ4N6etM-Md1KiyT", {
@@ -409,9 +448,12 @@ register<JField>("-N0gkJ4N6etM-Md1KiyT", {
         if(idx === 0) return field.key!;
         unreachable();
     },
+    asText(field) {
+        return (field.key != null ? any.asText(field.key) + ": " : "") + any.asText(field.value);
+    },
 });
 
-const fields_move: ObjHandlers<JObject | JArray> = {
+const fields_move: Partial<ObjHandlers<JObject | JArray>> = {
     move(obj, vc, stop) {
         // cursor positions:
         // inline:
@@ -460,9 +502,22 @@ const fields_move: ObjHandlers<JObject | JArray> = {
         return obj.fields[idx]!;
     },
 };
+function fieldsStringify(fields: JField[]): string {
+    return fields.map(field => any.asText(field)).join(",");
+}
 
-register<JObject>("-N0gk9Mfm2iXGUkeWUMS", fields_move);
-register<JArray>("-N0gkrMd2kkRkNrVMEU2", fields_move);
+register<JObject>("-N0gk9Mfm2iXGUkeWUMS", {
+    ...fields_move as Partial<ObjHandlers<JObject>>,
+    asText(itm) {
+        return "{" + fieldsStringify(itm.fields) + "}";
+    },
+});
+register<JArray>("-N0gkrMd2kkRkNrVMEU2", {
+    ...fields_move as Partial<ObjHandlers<JArray>>,
+    asText(itm) {
+        return "[" + fieldsStringify(itm.fields) + "]";
+    },
+});
 
 type userstr = string | JString;
 type usernum = number | JNumber;
@@ -602,7 +657,7 @@ export default function ExplorationEditor2(): JSX.Element {
         )],
     ));
 
-    return <InputHandler
+    return <><InputHandler
         onKeyDown={e => {
             if(e.code.startsWith("Arrow")) {
                 e.preventDefault();
@@ -628,7 +683,14 @@ export default function ExplorationEditor2(): JSX.Element {
         >
             <JSONValueRender vc={visualCursor()} val={jsonObj()} depth={0} />
         </div>
-    </InputHandler>;
+    </InputHandler><div>
+        <div
+            class="border border-gray-600 rounded-md p-2 whitespace-pre-wrap select-text"
+            style="overflow-wrap: anywhere"
+        >
+            {any.asText(jsonObj())}
+        </div>
+    </div></>;
 }
 
 
