@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import { createMemo, createSignal, For, JSX } from "solid-js";
+import { batch, createMemo, createSignal, For, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { InputHandler } from "./Exploration";
 import { unreachable } from "./guards";
@@ -208,9 +208,9 @@ function JSONValueRender(props: {
                     jstr.text.includes("\n".codePointAt(0)!) ? "block pl-2 "+colrfor(props.depth + 1).light : ""
                 }>
                     <TempCrs vc={props.vc} idx={0} covers={""} view={"vertical"} />
-                    {new TextDecoder().decode(jstr.text.slice(0, halfwayPoint()))}
+                    {new TextDecoder().decode(jstr.text.subarray(0, halfwayPoint()))}
                     <TempCrs vc={props.vc} idx={halfwayPoint()} covers={""} view={"vertical"} />
-                    {new TextDecoder().decode(jstr.text.slice(halfwayPoint()))}
+                    {new TextDecoder().decode(jstr.text.subarray(halfwayPoint()))}
                 </span>
                 <span class={colrfor(props.depth).dark}>"</span>
             </>;
@@ -235,7 +235,7 @@ type ObjHandlers<T> = {
     child(itm: T, idx: number): Obj,
     asText(itm: T): string,
 
-    insert(obj: T, insert: Obj[], range: {start: number, end: number}): T,
+    insert(obj: T, insert: Obj, at: {path: NodePath, index: number}): T,
     cut(obj: T, range: {start: number, end: number}): {node: T, removed: Obj[]},
 };
 
@@ -355,6 +355,27 @@ register<JString>("-N0gkxU5wAjciRZnERvO", {
     asText(str) {
         return JSON.stringify(new TextDecoder().decode(str.text));
     },
+    insert(str, item, at) {
+        if(at.path.length !== 0) unreachable();
+
+        // hmm. if we copy fields and paste them in a text, it won't keep the commas.
+        // we'll have to solve that. later.
+        // ^ maybe: rather than cut() returning an array of objects, have it return a single holder object
+        // then, that object can say "the items in here should be multiline fields seperated by commas"
+        // but it can be interpreted differently based on where it's being pasted. I think that's good. do that.
+        const insert_text = new TextEncoder().encode(any.asText(item));
+
+        const new_val = new Uint8Array(str.text.length + insert_text.length);
+        new_val.set(str.text.subarray(0, at.index), 0);
+        new_val.set(insert_text, at.index);
+        new_val.set(str.text.subarray(at.index), at.index + insert_text.length);
+        // manual string concatenation in javascript. fun.
+
+        return {
+            kind: "-N0gkxU5wAjciRZnERvO",
+            text: new_val,
+        };
+    },
 });
 
 register<JNumber>("-N0gkzBWv3Cx0Ryyouky", {
@@ -451,6 +472,21 @@ register<JField>("-N0gkJ4N6etM-Md1KiyT", {
     asText(field) {
         return (field.key != null ? any.asText(field.key) + ": " : "") + any.asText(field.value);
     },
+
+    insert(obj, item, at) {
+        if(at.path.length === 0) {
+            alert("TODO");
+            unreachable();
+        }
+        const at0 = at.path[0]!;
+        const atr = at.path.slice(1);
+        const upd = {...obj};
+        const nch = any.insert(any.child(obj, at0), item, {path: atr, index: at.index});
+        if(at0 === 0) upd.key = nch as typeof upd.key;
+        else if(at0 === 1) upd.value = nch as typeof upd.value;
+        else unreachable();
+        return upd;
+    },
 });
 
 const fields_move: Partial<ObjHandlers<JObject | JArray>> = {
@@ -500,6 +536,21 @@ const fields_move: Partial<ObjHandlers<JObject | JArray>> = {
     },
     child(obj, idx) {
         return obj.fields[idx]!;
+    },
+
+    insert(obj, item, at) {
+        if(at.path.length === 0) {
+            alert("TODO");
+            unreachable();
+        }
+        const at0 = at.path[0]!;
+        const atr = at.path.slice(1);
+        const updfields = [...obj.fields];
+        updfields.splice(at0, 1, any.insert(any.child(obj, at0), item, {path: atr, index: at.index}) as typeof obj.fields[number]);
+        return {
+            ...obj,
+            fields: updfields,
+        };
     },
 };
 function fieldsStringify(fields: JField[]): string {
@@ -675,7 +726,22 @@ export default function ExplorationEditor2(): JSX.Element {
                 });
             }
         }}
-        onBeforeInput={() => {}}
+        onBeforeInput={(e) => {
+            if(e.inputType === "insertText") {
+                const systext: SysText = {
+                    kind: "@systext",
+                    text: e.data ?? "",
+                };
+                const vc = visualCursor();
+                const nobj = any.insert(jsonObj(), systext, {
+                    path: vc.path,
+                    index: vc.value.focus,
+                }) as ReturnType<typeof jsonObj>;
+                batch(() => {
+                    setJsonObj(() => nobj);
+                });
+            }
+        }}
     >
         <div
             class="border border-gray-600 rounded-md p-2 whitespace-pre-wrap"
