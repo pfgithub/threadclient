@@ -1,8 +1,9 @@
 /* eslint-disable */
 
 import { createMemo, createSignal, For, JSX } from "solid-js";
-import { SwitchKind } from "tmeta-util-solid";
+import { Show, SwitchKind } from "tmeta-util-solid";
 import { InputHandler } from "./Exploration";
+import { unreachable } from "./guards";
 
 const idStr = <T,>() => <W extends string>(w: W): W & {__is: T} => {
     return w as W & {__is: T};
@@ -32,7 +33,7 @@ type JArray = {
 } & JFields;
 type JString = {
     kind: "-N0gkxU5wAjciRZnERvO",
-    text: string,
+    text: Uint8Array,
 };
 type JNumber = {
     kind: "-N0gkzBWv3Cx0Ryyouky",
@@ -62,70 +63,129 @@ const colors: {white: string, dark: string, light: string}[] = [
 const colrfor = (depth: number)  =>  colors[(depth + colors.length - 1) % colors.length]!;
 
 
-function JField(props: {field: JField, depth: number}): JSX.Element {
+function JField(props: {
+    vc: VisualCursor | null,
+    field: JField,
+    depth: number,
+}): JSX.Element {
+    // cursor positions:
+    // []"key"[: ]"value"[]
+    // note that these indices do not change if the key is not set. instead, the function should handle that.
+
     return <span>
         {props.field.key != null ? <>
+            <TempCrs vc={props.vc} idx={0} covers={""} view="vertical" />
             <span class={colrfor(props.depth).dark}>
-                <JSONValueRender val={props.field.key} depth={props.depth} />
+                <JSONValueRender vc={subvc(props.vc, 0)} val={props.field.key} depth={props.depth} />
             </span>
-            {": "}
         </> : <></>}
+        <TempCrs
+            vc={props.vc} idx={1}
+            covers={props.field.key != null ? ": " : ""}
+            view={props.field.key != null ? "covers" : "vertical"}
+        />
         <span class={colrfor(props.depth).light}>
-            <JSONValueRender val={props.field.value} depth={props.depth} />
+            <JSONValueRender vc={subvc(props.vc, 1)} val={props.field.value} depth={props.depth} />
         </span>
+        <TempCrs vc={props.vc} idx={2} covers={""} view="vertical" />
     </span>;
 }
 
-function JFields(props: {obj: JFields, depth: number}): JSX.Element {
-    // I think fields are going to offer node positions for:
-    // "key": "value",
-    // "key"|: |"value"|,
-    // and then the object/array will offer positions for:
-    // |"key": "value",|
-    // that feels like the best option
-    //
-    // and then for selection:
-    //  "key"|: |"value"|,
-    // 0      1  2          3
-    // 1→3
-    // 3→2→1
-    // 2→0
-    //
-    // 0 is a special location that only appears when you're selecting, you can't get
-    // there with normal cursor movement. if you select left from star it goes to the parent as usual
-    // which selects over the whole field. it's there to allow you to backspace at 2.
-    //
-    // also, 3 probably should not be there if there is no trailing comma in the parent. if that is the case,
-    // 3 should only be available for selection, not normal cursor movement.
-    //
-    // hmm:
-    // "value"|
-    // 0        1
-    //
-    // notice how if your cursor is on the left, you delete the whole entry vs on the right, you
-    // make a slot. interesting.
-    //
-    return <span class={props.obj.multiline ? "block pl-2 w-full" : ""}>{createMemo((): JSX.Element => {
-        if(props.obj.fields.length === 0) return <>…</>;
-        return <For each={props.obj.fields}>{(field, i) => (
-            <span class={props.obj.multiline ? "block" : ""}>
-                <JField field={field} depth={props.depth + 1} />
-                {(props.obj.multiline ? "," : i() !== props.obj.fields.length  - 1) ? ", " : ""}
-            </span>
-        )}</For>;
-    })}</span>;
+function TempCrs(props: {
+    vc: VisualCursor | null,
+    idx: number,
+    covers: JSX.Element,
+    view: "horizontal" | "vertical" | "covers",
+}) {
+    const match = createMemo(() => {
+        return props.vc?.path.length === 0 ? (
+            props.vc.value.focus === props.idx ? "focus" as const :
+            props.vc.value.anchor === props.idx ? "anchor" as const :
+            null
+        ) : null;
+    });
+    return <>{props.view === "horizontal" ? <>
+        {props.covers}
+        <span class="block relative">{match() != null ? (
+            <div class={[
+                "absolute top-0 left-0 w-full h-1 transform translate-y-[-50%]",
+                "rounded",
+                match() === "focus" ? "bg-blue-400" : "bg-gray-400",
+            ].join(" ")}></div>
+        ) : null}</span>
+    </> : props.view === "vertical" ? <>
+        {props.covers}
+        <div class="inline relative">
+            <Show if={match() != null}>
+                <div class={`
+                    absolute inline-block w-[2px] text-transparent select-none transform translate-x-[-50%]
+                    rounded-md ${match() === "focus" ? "bg-blue-400" : "bg-gray-400"}
+                `}>.</div>
+            </Show>
+        </div>
+    </> : (
+        <span class={({
+            'focus': "bg-blue-400 text-blue-900 rounded",
+            'anchor': "bg-gray-400 text-gray-900 rounded",
+            'none': "",
+        } as const)[match() ?? "none"]}>{props.covers}</span>
+    )}</>;
 }
 
-function JSONValueRender(props: {val: JValue, depth: number}): JSX.Element {
+function subvc(vc: VisualCursor | null, i: number): VisualCursor | null {
+    if(vc == null) return null;
+    if(vc.path[0] !== i) return null;
+    return {
+        path: vc.path.slice(1),
+        value: vc.value,
+    };
+}
+
+function JFields(props: {
+    vc: VisualCursor | null,
+    obj: JFields,
+    depth: number,
+}): JSX.Element {
+    // v 
+    return <span class={props.obj.multiline ? "block pl-2 w-full border-l border-gray-700" : ""}>
+        <TempCrs vc={props.vc} idx={0} covers={
+            <>{props.obj.multiline ? "" : " "}</>
+        } view={props.obj.multiline ? "horizontal" : "covers"} />
+        {createMemo((): JSX.Element => {
+            if(props.obj.fields.length === 0) return <>…</>;
+            return <For each={props.obj.fields}>{(field, i) => (
+                <span class={props.obj.multiline ? "block" : ""}>
+                    <JField
+                        vc={subvc(props.vc, i())}
+                        field={field}
+                        depth={props.depth + 1}
+                    />
+                    <TempCrs vc={props.vc} idx={i() + 1} covers={
+                        <>
+                            {(props.obj.multiline ? "," : i() !== props.obj.fields.length  - 1) ? "," : ""}
+                            {props.obj.multiline ? "" : " "}
+                        </>
+                    } view={props.obj.multiline ? "horizontal" : "covers"} />
+                </span>
+            )}</For>;
+        })}
+    </span>;
+}
+
+function JSONValueRender(props: {
+    vc: VisualCursor | null,
+    val: JValue,
+    depth: number,
+}): JSX.Element {
     return <SwitchKind item={props.val}>{{
         [j_array.kind]: jarr => <span class={colrfor(props.depth).white}>
             <span>{"["}</span>
-                <JFields obj={jarr} depth={props.depth} />
+                <JFields vc={props.vc} obj={jarr} depth={props.depth} />
             <span>{"]"}</span>
         </span>,
         [j_object.kind]: jobj => <span class={colrfor(props.depth).white}>
             <span>{"{"}</span>
-                <JFields obj={jobj} depth={props.depth} />
+                <JFields vc={props.vc} obj={jobj} depth={props.depth} />
             <span>{"}"}</span>
         </span>,
         // we could even do jnum.toLocaleString() or Intl.NumberFormat
@@ -134,18 +194,275 @@ function JSONValueRender(props: {val: JValue, depth: number}): JSX.Element {
         [j_number.kind]: jnum  => <>{JSON.stringify(jnum.num)}</>,
         ["-N0gl-Obi0cyd58QHO85"]: jbool => <>{jbool.value.toString()}</>,
         ["-N0l0aP4SXjljg-GoC-S"]: () => <>{"null"}</>,
-        [j_string.kind]:  jstr => <>
-            <span class={colrfor(props.depth).dark}>"</span>
-            <span class={
-                jstr.text.includes("\n") ? "block pl-2 "+colrfor(props.depth + 1).light : ""
-            }>{jstr.text}</span>
-            <span class={colrfor(props.depth).dark}>"</span>
-        </>,
+        [j_string.kind]:  jstr => {
+            const halfwayPoint = createMemo(() => props.vc === null ? 0
+            : props.vc.path.length === 0 ? props.vc.value.focus : unreachable());
+            return <>
+                <span class={colrfor(props.depth).dark}>"</span>
+                <span class={
+                    jstr.text.includes("\n".codePointAt(0)!) ? "block pl-2 "+colrfor(props.depth + 1).light : ""
+                }>
+                    <TempCrs vc={props.vc} idx={0} covers={""} view={"vertical"} />
+                    {new TextDecoder().decode(jstr.text.slice(0, halfwayPoint()))}
+                    <TempCrs vc={props.vc} idx={halfwayPoint()} covers={""} view={"vertical"} />
+                    {new TextDecoder().decode(jstr.text.slice(halfwayPoint()))}
+                </span>
+                <span class={colrfor(props.depth).dark}>"</span>
+            </>;
+        },
         ["-N0gpdqw6BjkuWrRqqTG"]: () => <>
-            <span class="bg-gray-600 px-1 rounded-md">{" "}</span>
+            <span class="bg-gray-600 px-1 rounded-md">
+                <TempCrs vc={props.vc} idx={0} covers={" "} view={"covers"} />
+            </span>
         </>,
     }}</SwitchKind>;
 }
+
+function TextNodeRaw(props: {children: JSX.Element, [key: string]: unknown}): JSX.Element {
+    //@todo
+    // also we can use display="contents" here, it's supported in browsers now
+    return <>{props.children}</>;
+}
+
+type ObjHandlers<T> = {
+    move(itm: T, vc: VisualCursor, stop: StopOpts): null | CursorMoveRes,
+    side(itm: T, side: -1 | 1): null | CursorMoveRes,
+    child(itm: T, idx: number): Obj,
+};
+
+const handlers_map = new Map<string, ObjHandlers<Obj>>();
+function register<T extends Obj>(kind: T["kind"], handlers: ObjHandlers<T>): ObjHandlers<T> {
+    handlers_map.set(kind, handlers); // wow that's not typesafe, ts is lying.
+    return handlers;
+}
+
+let dbprefix = 0;
+function debugprint<T>(msg: unknown[], cb: () => T): T {
+    let res;
+    const pfx = "[dbg] " + "|  ".repeat(dbprefix);
+    // console.log(pfx, msg);
+    dbprefix++;
+    try {
+        res = cb();
+        return res;
+    }catch(e) {
+        res = e;
+        throw e;
+    }finally{
+        dbprefix--;
+        // console.log(pfx + "→ ", [res]);
+    }
+}
+
+const any: ObjHandlers<Obj> = {
+    move(itm, vc, stop) {
+        return debugprint(["move handler", itm, vc, stop], () => {
+            const ih = handlers_map.get(itm.kind);
+            if(!ih) throw new Error("missing handler for "+itm.kind);
+            return ih.move(itm, vc, stop);
+        });
+    },
+    side(itm, side) {
+        return debugprint(["side handler", itm, side], () => {
+            const ih = handlers_map.get(itm.kind);
+            if(!ih) throw new Error("missing handler for "+itm.kind);
+            return ih.side(itm, side);
+        });
+    },
+    child(itm, idx) {
+        return debugprint(["child handler", itm, idx], () => {
+            const ih = handlers_map.get(itm.kind);
+            if(!ih) throw new Error("missing handler for "+itm.kind);
+            return ih.child(itm, idx);
+        });
+    },
+};
+
+type StopOpts = {
+    dir: -1 | 1,
+    selecting: boolean, // ← can't we just check if focus equals anchor? no need for this
+};
+// function jStringMove(str: JString, vc: VisualCursor, stop: StopOpts): null | CursorMoveRes {
+//     if(vc.path.length !== 0) unreachable();
+//     const svcdup = {...svc};
+//     svcdup.focus += stop.dir;
+//     if(svcdup.focus < 0) return null;
+//     if(svcdup.focus < str.text.length) return null;
+//     return {path: [], index: svcdup.focus};
+// }
+
+function defaultSubMove(obj: Obj, vc: VisualCursor, stop: StopOpts): {
+    kind: "update",
+    vc: VisualCursor,
+} | {
+    kind: "return",
+    res: CursorMoveRes,
+} {
+    if(vc.path.length !== 0) {
+        const idx = vc.path[0]!;
+        const res = any.move(any.child(obj, idx), {
+            path: vc.path.slice(1),
+            value: vc.value,
+        }, stop);
+        if(res != null) {
+            return {kind: "return", res: {
+                path: [idx, ...res.path],
+                index: res.index,
+            }};
+        }
+        const nq = stop.dir < 0 ? idx : idx + 1; // idx + + (stop.dir > 0)
+        return {kind: "return", res: {
+            path: [],
+            index: nq,
+        }};
+    }
+    return {kind: "update", vc};
+}
+
+register<JString>("-N0gkxU5wAjciRZnERvO", {
+    move(field, vc, stop) {
+        const idx = vc.value.focus;
+        const res = idx + stop.dir; // TODO Intl.Segmenter
+        if(res < 0) return null;
+        if(res > field.text.length) return null;
+        return {
+            path: [],
+            index: res,
+        };
+    },
+    side(field, dir) {
+        return {path: [], index: dir === -1 ? 0 : field.text.length};
+    },
+    child(field, idx) {
+        throw new Error("no children in text");
+    },
+});
+
+register<JNumber>("-N0gkzBWv3Cx0Ryyouky", {
+    move(field, vc, stop) {
+        // we're actually going to pop out a little number editor so we're treating all numbers as if
+        // they have two positions
+        const idx = vc.value.focus;
+        const res = idx + stop.dir; // TODO Intl.Segmenter
+        if(res < 0) return null;
+        if(res > 1) return null;
+        return {
+            path: [],
+            index: res,
+        };
+    },
+    side(field, dir) {
+        return {path: [], index: dir === -1 ? 0 : 1};
+    },
+    child(field, idx) {
+        throw new Error("no children in number");
+    },
+});
+
+register<JSlot>("-N0gpdqw6BjkuWrRqqTG", {
+    move(field, vc, stop) {
+        return null;
+    },
+    side(field, dir) {
+        return {path: [], index: 0};
+    },
+    child(field, idx) {
+        throw new Error("no children in slot");
+    },
+});
+
+register<JField>("-N0gkJ4N6etM-Md1KiyT", {
+    move(field, vc, stop) {
+        const dsmres = defaultSubMove(field, vc, stop);
+        if(dsmres.kind === "return") return dsmres.res;
+        vc = dsmres.vc;
+
+        const idx = vc.value.focus;
+
+        // || if the actual selection start point is in here
+        if(!stop.selecting) do {
+            const nidx = idx + (stop.dir < 0 ? -1 : 0);
+            const item = nidx === 0 ? field.key : nidx === 1 ? field.value : null;
+            if(item == null) break;
+            const val = any.side(item, -stop.dir as -1 | 1);
+            if(val == null) break;
+            return {
+                path: [nidx, ...val.path],
+                index: val.index,
+            };
+        } while(false);
+    
+        const res = idx + stop.dir;
+        // my favourite js operator, the <+! operator
+        if(res <+! field.key || res > 2) return null;
+        return {
+            path: [],
+            index: res,
+        }
+    },
+    side(field, dir) {
+        if(dir === 1) return {path: [], index: 2};
+        return {path: [], index: field.key != null ? 0 : 1};
+    },
+    child(field, idx) {
+        if(idx === 1) return field.value;
+        if(idx === 0) return field.key!;
+        unreachable();
+    },
+});
+
+const fields_move: ObjHandlers<JObject | JArray> = {
+    move(obj, vc, stop) {
+        // cursor positions:
+        // inline:
+        //   {field, field, field}
+        //   {|field, |field, |field|}
+        // multiline:
+        //   {field,field,field,}
+        //   {|field,|field,|field,|}
+        
+        // display:
+        // - multiline will use horizontal cursors
+        // - inline have saces before, after, and between where vertical cursors will go
+
+        const dsmres = defaultSubMove(obj, vc, stop);
+        if(dsmres.kind === "return") return dsmres.res;
+        vc = dsmres.vc;
+    
+        const idx = vc.value.focus;
+        const stops = obj.fields.length;
+    
+        // || if the actual selection start point is in here
+        if(!stop.selecting) do {
+            const nidx = idx + (stop.dir < 0 ? -1 : 0);
+            const field = obj.fields[nidx];
+            if(field == null) break;
+            const val = any.side(field, -stop.dir as -1 | 1);
+            if(val == null) break;
+            return {
+                path: [nidx, ...val.path],
+                index: val.index,
+            };
+        } while(false);
+    
+        const res = idx + stop.dir;
+        if(res < 0 || res > stops) return null;
+        return {
+            path: [],
+            index: res,
+        }
+    },
+    side(obj, dir) {
+        if(dir == -1) return {path: [], index: 0};
+        return {path: [], index: obj.fields.length};
+    },
+    child(obj, idx) {
+        return obj.fields[idx]!;
+    },
+};
+
+register<JObject>("-N0gk9Mfm2iXGUkeWUMS", fields_move);
+register<JArray>("-N0gkrMd2kkRkNrVMEU2", fields_move);
 
 type userstr = string | JString;
 type usernum = number | JNumber;
@@ -172,7 +489,7 @@ type test = targetsof<userstr | JSlot>;
 const a = {
     auto<T extends sources>(val: T): targetsof<T> {
         if(typeof val === "string") {
-            const res: JString = {kind: "-N0gkxU5wAjciRZnERvO", text: val};
+            const res: JString = {kind: "-N0gkxU5wAjciRZnERvO", text: new TextEncoder().encode(val)};
             return res as targetsof<T>;
         };
         if(typeof val === "number") {
@@ -233,14 +550,29 @@ const a = {
 
 type NodePath = number[];
 
+type SubVC = {
+    focus: number,
+    anchor: number,
+    anchor_sub: null | VisualCursor
+};
 type VisualCursor = {
-    root: NodePath,
-    from: number,
-    to: number,
+    path: NodePath,
+    value: SubVC,
+};
+type CursorMoveRes = {
+    path: NodePath,
+    index: number,
 };
 
 export default function ExplorationEditor2(): JSX.Element {
-    const [visualCursor, setVisualCursor] = createSignal<VisualCursor>();
+    const [visualCursor, setVisualCursor] = createSignal<VisualCursor>({
+        path: [],
+        value: {
+            focus: 0,
+            anchor: 0,
+            anchor_sub: null,
+        },
+    });
 
     const [jsonObj, setJsonObj] = createSignal<JValue>(a.obj("multiline",
         ["types", a.obj("multiline",
@@ -271,14 +603,30 @@ export default function ExplorationEditor2(): JSX.Element {
     ));
 
     return <InputHandler
-        onKeyDown={() => {}}
+        onKeyDown={e => {
+            if(e.code.startsWith("Arrow")) {
+                e.preventDefault();
+                e.stopPropagation();
+                const lr = e.code === "ArrowLeft" || e.code === "ArrowUp" ? -1 : 1;
+                const vc = visualCursor();
+                const nv = any.move(jsonObj(), vc, {dir: lr, selecting: e.shiftKey || e.code === "ArrowUp" || e.code === "ArrowDown"});
+                if(nv) setVisualCursor({
+                    path: nv.path,
+                    value: {
+                        focus: nv.index,
+                        anchor: nv.index,
+                        anchor_sub: null,
+                    },
+                });
+            }
+        }}
         onBeforeInput={() => {}}
     >
         <div
             class="border border-gray-600 rounded-md p-2 whitespace-pre-wrap"
             style="overflow-wrap: anywhere"
         >
-            <JSONValueRender val={jsonObj()} depth={0} />
+            <JSONValueRender vc={visualCursor()} val={jsonObj()} depth={0} />
         </div>
     </InputHandler>;
 }
