@@ -9,17 +9,13 @@ const idStr = <T,>() => <W extends string>(w: W): W & {__is: T} => {
     return w as W & {__is: T};
 };
 
-type JFields = {
-    fields: JField[],
-    multiline: boolean,
-};
-
-// ok… why are array/object seperate nodes? they both contain a field[], they should maybe be the same node
-// but with a flag
-
 type JObject = {
     kind: "-N0gk9Mfm2iXGUkeWUMS",
-} & JFields;
+
+    fields: JField[],
+    multiline: boolean,
+    mode: "array" | "object",
+};
 type JField = {
     kind: "-N0gkJ4N6etM-Md1KiyT",
     key?: JString | JSlot | undefined,
@@ -31,9 +27,6 @@ type JField = {
     // ok there's no reason to do this, we can just have seperate objectfield/arrayfield and handle
     // that on paste
 };
-type JArray = {
-    kind: "-N0gkrMd2kkRkNrVMEU2",
-} & JFields;
 type JString = {
     kind: "-N0gkxU5wAjciRZnERvO",
     text: Uint8Array,
@@ -58,7 +51,7 @@ type SysText = {
     text: string,
 };
 
-type JValue = JObject | JArray | JString | JNumber | JBoolean | JNull | JSlot;
+type JValue = JObject | JString | JNumber | JBoolean | JNull | JSlot;
 
 const colors: {white: string, dark: string, light: string}[] = [
     {white: "text-red-100", dark: "text-red-400", light: "text-red-200"},
@@ -149,9 +142,9 @@ function subvc(vc: VisualCursor | null, i: number): VisualCursor | null {
     };
 }
 
-function JFields(props: {
+function JObjectContent(props: {
     vc: VisualCursor | null,
-    obj: JFields,
+    obj: JObject,
     depth: number,
 }): JSX.Element {
     // v 
@@ -186,15 +179,10 @@ function JSONValueRender(props: {
     depth: number,
 }): JSX.Element {
     return <SwitchKind item={props.val}>{{
-        '-N0gkrMd2kkRkNrVMEU2': jarr => <span class={colrfor(props.depth).white}>
-            <span>{"["}</span>
-                <JFields vc={props.vc} obj={jarr} depth={props.depth} />
-            <span>{"]"}</span>
-        </span>,
         '-N0gk9Mfm2iXGUkeWUMS': jobj => <span class={colrfor(props.depth).white}>
-            <span>{"{"}</span>
-                <JFields vc={props.vc} obj={jobj} depth={props.depth} />
-            <span>{"}"}</span>
+            <span>{jobj.mode === "object" ? "{" : "["}</span>
+                <JObjectContent vc={props.vc} obj={jobj} depth={props.depth} />
+            <span>{jobj.mode === "object" ? "}" : "]"}</span>
         </span>,
         // we could even do jnum.toLocaleString() or Intl.NumberFormat
         // also note: consider making numbers, booleans, and null a different color
@@ -507,7 +495,7 @@ register<SysText>("@systext", {
     },
 });
 
-const fields_move: Partial<ObjHandlers<JObject | JArray>> = {
+register<JObject>("-N0gk9Mfm2iXGUkeWUMS", {
     move(obj, vc, stop) {
         // cursor positions:
         // inline:
@@ -570,21 +558,10 @@ const fields_move: Partial<ObjHandlers<JObject | JArray>> = {
             fields: updfields,
         };
     },
-};
-function fieldsStringify(fields: JField[]): string {
-    return fields.map(field => any.asText(field)).join(",");
-}
-
-register<JObject>("-N0gk9Mfm2iXGUkeWUMS", {
-    ...fields_move as Partial<ObjHandlers<JObject>>,
     asText(itm) {
-        return "{" + fieldsStringify(itm.fields) + "}";
-    },
-});
-register<JArray>("-N0gkrMd2kkRkNrVMEU2", {
-    ...fields_move as Partial<ObjHandlers<JArray>>,
-    asText(itm) {
-        return "[" + fieldsStringify(itm.fields) + "]";
+        return (itm.mode === "object" ? "{" : "[")
+            + itm.fields.map(field => any.asText(field)).join(",") + (itm.mode === "object" ? "}" : "]"
+        );
     },
 });
 
@@ -592,13 +569,12 @@ type userstr = string | JString;
 type usernum = number | JNumber;
 type userbool = boolean | JBoolean;
 type useractualobj = {[key: string]: userval | JSlot};
-type userobj = useractualobj | JObject;
+type userobj = useractualarr | useractualobj | JObject;
 type useractualarr = (userval | JSlot)[];
-type userarr = useractualarr | JArray;
 type useronefield = [value: userval | JSlot];
 type userfield = [key: userstr | JSlot, value: userval | JSlot] | useronefield;
 
-type userval = userstr | usernum | userbool | userobj | userarr;
+type userval = userstr | usernum | userbool | userobj;
 
 type sources = userval | JSlot;
 
@@ -606,7 +582,7 @@ type targetsof<T extends sources> = T extends {
     kind: string,
 } ? T : T extends string ? JString : T extends number ? JNumber : T extends boolean ? (
     JBoolean
-) : T extends useractualobj ? JObject : T extends useractualarr ? JArray : never;
+) : T extends useractualobj ? JObject : T extends useractualarr ? JObject : never;
 
 type test = targetsof<userstr | JSlot>;
 
@@ -626,7 +602,7 @@ const a = {
         };
         if(typeof val === "object") {
             if('kind' in val && [
-                "-N0gk9Mfm2iXGUkeWUMS", "-N0gkrMd2kkRkNrVMEU2", "-N0gkxU5wAjciRZnERvO",
+                "-N0gk9Mfm2iXGUkeWUMS", "-N0gkxU5wAjciRZnERvO",
                 "-N0gkzBWv3Cx0Ryyouky", "-N0gl-Obi0cyd58QHO85", "-N0gpdqw6BjkuWrRqqTG",
                 "-N0l0aP4SXjljg-GoC-S" as unknown,
             ].includes(val.kind as unknown)) {
@@ -654,14 +630,16 @@ const a = {
         return {
             kind: "-N0gk9Mfm2iXGUkeWUMS",
             multiline: v === "multiline", 
-            fields: obj.map(o => a.jfield(o))
+            fields: obj.map(o => a.jfield(o)),
+            mode: "object",
         };
     },
-    arr(v: "inline" | "multiline", ...obj: userfield[]): JArray {
+    arr(v: "inline" | "multiline", ...obj: userfield[]): JObject {
         return {
-            kind: "-N0gkrMd2kkRkNrVMEU2",
+            kind: "-N0gk9Mfm2iXGUkeWUMS",
             multiline: v === "multiline", 
-            fields: obj.map(o => a.jfield(o))
+            fields: obj.map(o => a.jfield(o)),
+            mode: "array",
         };
     },
 
