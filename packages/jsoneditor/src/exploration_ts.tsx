@@ -150,26 +150,23 @@ function JObjectContent(props: {
     // v 
     return <span class={props.obj.multiline ? "block pl-2 w-full border-l border-gray-700" : ""}>
         <TempCrs vc={props.vc} idx={0} covers={
-            <>{props.obj.fields.length === 0 ? "…" : props.obj.multiline ? "" : " "}</>
-        } view={props.obj.fields.length !== 0 && props.obj.multiline ? "horizontal" : "covers"} />
-        {createMemo((): JSX.Element => {
-            if(props.obj.fields.length === 0) return <></>;
-            return <For each={props.obj.fields}>{(field, i) => (
-                <span class={props.obj.multiline ? "block" : ""}>
-                    <JField
-                        vc={subvc(props.vc, i())}
-                        field={field}
-                        depth={props.depth + 1}
-                    />
-                    <TempCrs vc={props.vc} idx={i() + 1} covers={
-                        <>
-                            {(props.obj.multiline ? "," : i() !== props.obj.fields.length  - 1) ? "," : ""}
-                            {props.obj.multiline ? "" : " "}
-                        </>
-                    } view={props.obj.multiline ? "horizontal" : "covers"} />
-                </span>
-            )}</For>;
-        })}
+            props.obj.fields.length === 0 ? "…" : ""
+        } view={props.obj.multiline ? "horizontal" : "vertical"} />
+        <>{props.obj.multiline ? "" : " "}</>
+        <For each={props.obj.fields}>{(field, i) => {
+            const last = createMemo(() => i() === props.obj.fields.length - 1);
+            return <span class={props.obj.multiline ? "block" : ""}>
+                <JField
+                    vc={subvc(props.vc, i())}
+                    field={field}
+                    depth={props.depth + 1}
+                />
+                {props.obj.multiline || !last() ? "," : ""}
+                {props.obj.multiline || !last() ? "" : " "}
+                <TempCrs vc={props.vc} idx={i() + 1} covers={[]} view={props.obj.multiline ? "horizontal" : "vertical"} />
+                {props.obj.multiline || last() ? "" : " "}
+            </span>
+}}</For>
     </span>;
 }
 
@@ -226,6 +223,10 @@ type ObjHandlers<T> = {
     child(itm: T, idx: number): Obj,
     asText(itm: T): string,
 
+    // we could have this return {remainder: Obj, value: T}
+    // that way we can bubble events up
+    // eg if you try to insert an image in a text node, it can say it doesn't accept it and then the parent has to
+    // deal with it. not sure if we want to do this but we could.
     insert(obj: T, insert: Obj, at: {path: NodePath, index: number}): T,
     cut(obj: T, range: {start: number, end: number}): {node: T, removed: Obj[]},
 };
