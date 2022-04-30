@@ -397,6 +397,9 @@ register<JNumber>("-N0gkzBWv3Cx0Ryyouky", {
     child(field, idx) {
         throw new Error("no children in number");
     },
+    asText(num) {
+        return JSON.stringify(num.num);
+    },
 });
 
 // deleting a slot:
@@ -420,6 +423,9 @@ register<JSlot>("-N0gpdqw6BjkuWrRqqTG", {
     child(field, idx) {
         throw new Error("no children in slot");
     },
+    asText(num) {
+        return "<slot />";
+    },
 });
 
 // booleans don't actually need any selection points. you delete and retype.
@@ -428,7 +434,10 @@ register<JSlot>("-N0gpdqw6BjkuWrRqqTG", {
 register<JBoolean>("-N0gl-Obi0cyd58QHO85", {
     move() {return null},
     side() {return null},
-    child() {unreachable()}
+    child() {unreachable()},
+    asText(bool) {
+        return JSON.stringify(bool.value);
+    },
 });
 
 register<JField>("-N0gkJ4N6etM-Md1KiyT", {
@@ -486,6 +495,12 @@ register<JField>("-N0gkJ4N6etM-Md1KiyT", {
         else if(at0 === 1) upd.value = nch as typeof upd.value;
         else unreachable();
         return upd;
+    },
+});
+
+register<SysText>("@systext", {
+    asText(srt) {
+        return srt.text;
     },
 });
 
