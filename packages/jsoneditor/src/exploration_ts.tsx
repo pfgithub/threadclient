@@ -150,10 +150,10 @@ function JObjectContent(props: {
     // v 
     return <span class={props.obj.multiline ? "block pl-2 w-full border-l border-gray-700" : ""}>
         <TempCrs vc={props.vc} idx={0} covers={
-            <>{props.obj.multiline ? "" : " "}</>
-        } view={props.obj.multiline ? "horizontal" : "covers"} />
+            <>{props.obj.fields.length === 0 ? "…" : props.obj.multiline ? "" : " "}</>
+        } view={props.obj.fields.length !== 0 && props.obj.multiline ? "horizontal" : "covers"} />
         {createMemo((): JSX.Element => {
-            if(props.obj.fields.length === 0) return <>…</>;
+            if(props.obj.fields.length === 0) return <></>;
             return <For each={props.obj.fields}>{(field, i) => (
                 <span class={props.obj.multiline ? "block" : ""}>
                     <JField
@@ -546,6 +546,11 @@ register<JObject>("-N0gk9Mfm2iXGUkeWUMS", {
 
     insert(obj, item, at) {
         if(at.path.length === 0) {
+            if(is<SysText>(item, "@systext")) {
+                if(item.text === "\n") {
+                    return {...obj, multiline: true};
+                }
+            }
             alert("TODO");
             unreachable();
         }
@@ -564,6 +569,10 @@ register<JObject>("-N0gk9Mfm2iXGUkeWUMS", {
         );
     },
 });
+
+function is<T extends Obj>(item: Obj, kind: T["kind"]): item is T {
+    return item.kind === kind;
+}
 
 type userstr = string | JString;
 type usernum = number | JNumber;
@@ -694,6 +703,8 @@ export default function ExplorationEditor2(): JSX.Element {
                     ["content", "Welcome!"],
                 )],
             )],
+            ["empty inline object", a.obj("inline")],
+            ["empty multiline object", a.obj("multiline")],
         )],
         ["slots", a.obj("multiline", 
             ["key", "value"],
@@ -723,19 +734,34 @@ export default function ExplorationEditor2(): JSX.Element {
             }
         }}
         onBeforeInput={(e) => {
-            if(e.inputType === "insertText") {
-                const systext: SysText = {
-                    kind: "@systext",
-                    text: e.data ?? "",
-                };
+            const insert = (val: Obj) => {
                 const vc = visualCursor();
-                const nobj = any.insert(jsonObj(), systext, {
+                const nobj = any.insert(jsonObj(), val, {
                     path: vc.path,
                     index: vc.value.focus,
                 }) as ReturnType<typeof jsonObj>;
                 batch(() => {
                     setJsonObj(() => nobj);
                 });
+            }
+            if(e.inputType === "insertText") {
+                e.preventDefault();
+                e.stopPropagation();
+                const systext: SysText = {
+                    kind: "@systext",
+                    text: e.data ?? "",
+                };
+                insert(systext);
+            }else if(e.inputType === "insertLineBreak") {
+                const systext: SysText = {
+                    kind: "@systext",
+                    text: "\n",
+                };
+                insert(systext);
+            // deleteContentBackward
+            // deleteContentForward
+            }else{
+                console.log(e);
             }
         }}
     >
