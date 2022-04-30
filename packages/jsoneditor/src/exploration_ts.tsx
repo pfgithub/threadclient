@@ -74,6 +74,7 @@ function JField(props: {
     // note that these indices do not change if the key is not set. instead, the function should handle that.
 
     return <span>
+        <span class="text-gray-500">{false ? "(" : null}</span>
         {props.field.key != null ? <>
             <TempCrs vc={props.vc} idx={0} covers={""} view="vertical" />
             <span class={colrfor(props.depth).dark}>
@@ -89,6 +90,7 @@ function JField(props: {
             <JSONValueRender vc={subvc(props.vc, 1)} val={props.field.value} depth={props.depth} />
         </span>
         <TempCrs vc={props.vc} idx={2} covers={""} view="vertical" />
+        <span class="text-gray-500">{false ? ")" : null}</span>
     </span>;
 }
 
@@ -163,7 +165,7 @@ function JObjectContent(props: {
                 />
                 {props.obj.multiline || !last() ? "," : ""}
                 {props.obj.multiline || !last() ? "" : " "}
-                <TempCrs vc={props.vc} idx={i() + 1} covers={[]} view={props.obj.multiline ? "horizontal" : "vertical"} />
+                <TempCrs vc={props.vc} idx={i() + 1} covers={null} view={props.obj.multiline ? "horizontal" : "vertical"} />
                 {props.obj.multiline || last() ? "" : " "}
             </span>
 }}</For>
