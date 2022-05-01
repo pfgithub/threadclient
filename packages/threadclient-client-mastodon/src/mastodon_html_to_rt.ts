@@ -36,13 +36,17 @@ export function childNodesToRichtextParagraphs(
 export function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic.Richtext.Paragraph | undefined {
     if(node instanceof HTMLElement) {
         if(node.nodeName === "P") {
-            return rt.p(...contentSpansToRichtextSpans(meta, node.childNodes));
+            return rt.p(...contentSpansToRichtextSpans(meta, node.childNodes, {}));
         }
     }
     return undefined;
 }
-export function contentSpansToRichtextSpans(meta: GenMeta, node: NodeListOf<ChildNode>): Generic.Richtext.Span[] {
-    return Array.from(node).flatMap(child => contentSpanToRichtextSpan(meta, child, {}));
+export function contentSpansToRichtextSpans(
+    meta: GenMeta,
+    node: NodeListOf<ChildNode>,
+    styles: Generic.Richtext.Style,
+): Generic.Richtext.Span[] {
+    return Array.from(node).flatMap(child => contentSpanToRichtextSpan(meta, child, styles));
 }
 export function contentSpanToRichtextSpan(
     meta: GenMeta,
@@ -99,9 +103,7 @@ export function contentSpanToRichtextSpan(
 
             if(eatClass("hashtag")) {
                 eatClass("mention");
-                const content = Array.from(node.childNodes).flatMap(child => (
-                    contentSpanToRichtextSpan(meta, child, styles)
-                ));
+                const content = contentSpansToRichtextSpans(meta, node.childNodes, styles);
                 const flat_content = node.textContent;
                 if(flat_content == null || !flat_content.startsWith("#")) return [
                     rt.error("bad hashtag", [content, node]),
@@ -120,16 +122,14 @@ export function contentSpanToRichtextSpan(
             }
 
             return noClasses(rt.link(client, href_v, {},
-                ...Array.from(node.childNodes).flatMap(child => contentSpanToRichtextSpan(meta, child, styles)),
+                ...contentSpansToRichtextSpans(meta, node.childNodes, styles),
             ));
         }
         if(node.nodeName === "BR") {
             return noClasses(rt.br());
         }
         if(node.nodeName === "SPAN") {
-            const res_nodes = Array.from(node.childNodes).flatMap(child => (
-                contentSpanToRichtextSpan(meta, child, styles)
-            ));
+            const res_nodes = contentSpansToRichtextSpans(meta, node.childNodes, styles);
 
             if(classes.includes("invisible")) return [];
 
@@ -140,6 +140,12 @@ export function contentSpanToRichtextSpan(
 
             return noClasses(...res_nodes);
             // return rt.link(href_v ?? "no href", ...Array.from(node.childNodes).map(child => contentSpanToRichtextSpan(host, child, styles)));
+        }
+        if(node.nodeName === "STRONG" || node.nodeName === "B") {
+            return contentSpansToRichtextSpans(meta, node.childNodes, {...styles, strong: true});
+        }
+        if(node.nodeName === "EM" || node.nodeName === "I") {
+            return contentSpansToRichtextSpans(meta, node.childNodes, {...styles, emphasis: true});
         }
         return [rt.error("<"+node.nodeName+">", {node, html: node.outerHTML})];
     }
@@ -178,5 +184,5 @@ export function parseContentHTML(host: string, content: string, meta: ParseConte
 
 export function parseContentSpanHTML(host: string, content: string, meta: ParseContentMeta): Generic.Richtext.Span[] {
     const [genmeta, children] = setupGenMeta(host, content, meta);
-    return contentSpansToRichtextSpans(genmeta, children);
+    return contentSpansToRichtextSpans(genmeta, children, {});
 }
