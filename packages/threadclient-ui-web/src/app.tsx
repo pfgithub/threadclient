@@ -15,6 +15,7 @@ import { Flair } from "./components/Flair";
 import { Homepage } from "./components/homepage";
 import { ClientContentAny } from "./components/page2";
 import ClientPage from "./components/PageRoot";
+import proxyURL from "./components/proxy_url";
 import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
@@ -421,10 +422,10 @@ export function linkPreview(client_id: string, body: Generic.LinkPreview): HideS
     ;
     if(body.thumb != null) {
         if(body.click_enabled) {
-            thumb_box.adch(el("img").clss(body.click_enabled ? "w-full h-full" : "").attr({src: body.thumb}));
+            thumb_box.adch(el("img").clss(body.click_enabled ? "w-full h-full" : "").attr({src: proxyURL(body.thumb)}));
         }else{
             el("div")
-                .styl({'background-image': `url(${JSON.stringify(body.thumb)})`, 'background-size': "contain",
+                .styl({'background-image': `url(${JSON.stringify(proxyURL(body.thumb))})`, 'background-size': "contain",
                     'background-position': "center", 'background-repeat': "no-repeat"
                 })
                 .clss("w-full h-full")
@@ -813,7 +814,7 @@ function elImg(url: string, opt: {
 }): HTMLImageElement {
     const res = el("img").clss("image-loading")
         .attr({
-            src: url,
+            src: proxyURL(url),
             width: opt.w != null ? `${opt.w}` as const : undefined,
             height: opt.h != null ? `${opt.h}` as const : undefined,
             alt: opt.alt, title: opt.alt
@@ -1630,7 +1631,7 @@ export function bioRender(
         const gradientclss = "absolute left-0 right-0 bottom-0 header-gradient ";
         if(listing.banner.kind === "image") {
             const zoomframe = zoomableFrame(
-                el("img").clss(imgclss).attr({src: listing.banner.desktop})
+                el("img").clss(imgclss).attr({src: proxyURL(listing.banner.desktop)})
             ).clss(frameclss).adto(frame);
             zoomframe.adch(el("div").clss(gradientclss + "top-150px"));
             // <div style="position: absolute;top: 150px;left: 0;right: 0;
@@ -1647,7 +1648,7 @@ export function bioRender(
     const area = el("div").clss("subreddit-banner-content").adto(frame);
 
     if(listing.icon) {
-        el("img").clss("sub-icon-img drop-shadow").attr({alt: "", src: listing.icon.url}).adto(area);
+        el("img").clss("sub-icon-img drop-shadow").attr({alt: "", src: proxyURL(listing.icon.url)}).adto(area);
     }
     const title_area = el("div").clss("subreddit-title-area").adto(area);
     if(listing.name.display != null) el("h1").atxt(listing.name.display).clss("text-lg").adto(title_area);
@@ -1731,7 +1732,7 @@ function widgetRender(
                 name_node = txt(item.name.username);
             }else if(item.name.kind === "image") {
                 name_node = el("img").clss("w-fill h-auto").attr({
-                    src: item.name.src,
+                    src: proxyURL(item.name.src),
                     alt: item.name.alt,
                     width: `${item.name.w}` as const,
                     height: `${item.name.h}` as const
@@ -2029,7 +2030,7 @@ export function clientListing(
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
         if(listing.layout === "reddit-comment" && listing.info.author?.pfp) {
-            const pfpimg = el("img").attr({src: listing.info.author.pfp.url}).adto(content_subminfo_line)
+            const pfpimg = el("img").attr({src: proxyURL(listing.info.author.pfp.url)}).adto(content_subminfo_line)
                 .clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp")
             ;
             pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
@@ -2085,7 +2086,7 @@ export function clientListing(
     {
         if(listing.thumbnail) {
             if(listing.thumbnail.kind === "image") {
-                thumbnail_loc.adch(el("img").attr({src: listing.thumbnail.url, alt: ""}));
+                thumbnail_loc.adch(el("img").attr({src: proxyURL(listing.thumbnail.url), alt: ""}));
                 if(content_warnings.length) thumbnail_loc.clss("thumbnail-content-warning");
             }else if(listing.thumbnail.kind === "default") {
                 const thumbimg: string = {

@@ -11,6 +11,7 @@ import { animateHeight } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { Flair } from "./Flair";
 import { A, LinkButton, PreviewableLink, UserLink } from "./links";
+import proxyURL from "./proxy_url";
 export * from "../util/interop_solid";
 
 const generic_linkstyle_mappings: {
@@ -88,7 +89,10 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                 </span>
             </span>;
         },
-        emoji: (emoji) => <img class="w-4 h-4 object-contain inline-block" src={emoji.url} title={emoji.name} />,
+        emoji: (emoji) => <img
+            class="w-4 h-4 object-contain inline-block"
+            src={proxyURL(emoji.url)} title={emoji.name}
+        />,
         flair: (flair) => <Flair flairs={[flair.flair]} />,
         time_ago: (time) => <TimeAgo start={time.start} />,
         error: (err) => <SolidToVanillaBoundary getValue={hsc => {

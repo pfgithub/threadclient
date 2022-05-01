@@ -17,6 +17,7 @@ import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import { A } from "./links";
 import { ClientContentAny } from "./page2";
+import proxyURL from "./proxy_url";
 import SwipeActions from "./SwipeActions";
 import swipeActionSet from "./SwipeActionSet";
 
@@ -71,7 +72,11 @@ const replace_post_special_callbacks: Record<string, SpecialCallback> = {
                 client_id={props.post.client_id}
                 class={"block w-full"}
             >
-                <img class="block w-full h-full" src={props.data.url} width={props.data.w} height={props.data.h} />
+                <img
+                    class="block w-full h-full"
+                    src={proxyURL(props.data.url)}
+                    width={props.data.w} height={props.data.h}
+                />
             </A>
         </FullscreenObject>;
     },

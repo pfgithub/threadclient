@@ -4,6 +4,7 @@ import {
     For, JSX
 } from "solid-js";
 import { SwitchKind } from "tmeta-util-solid";
+import proxyURL from "./proxy_url";
 
 function luminance([r, g, b]: [number, number, number]) {
     const a = [r, g, b].map((itm) => {
@@ -89,7 +90,7 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
                 text: (txt) => <>{txt.text}</>,
                 emoji: (emoji) => <img
                     title={emoji.name}
-                    src={emoji.url}
+                    src={proxyURL(emoji.url)}
                     width={emoji.w} height={emoji.h}
                     class="inline-block w-4 h-4 align-middle object-contain"
                 />,

@@ -23,6 +23,7 @@ import {
 } from "../util/utils_solid";
 import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
+import proxyURL from "./proxy_url";
 import { RichtextDocument, summarizeParagraphs } from "./richtext";
 
 const PreviewVideo = lazy(() => import("./preview_video"));
@@ -521,7 +522,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                         }
                     }}
                 >
-                    <img src={image.thumb ?? "error"}
+                    <img src={proxyURL(image.thumb ?? "error")}
                         class={classes(
                             "w-24 h-24 object-contain img-"+i(),
                             fullscreenState().enabled && fullscreenState().index === i() ? (

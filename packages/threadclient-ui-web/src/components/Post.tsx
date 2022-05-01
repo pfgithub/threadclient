@@ -23,12 +23,13 @@ import { InternalIcon, InternalIconRaw } from "./Icon";
 import InfoBar from "./InfoBar";
 import { A, LinkButton, UserLink } from "./links";
 import { postGetPage } from "./PageFlatItem";
+import proxyURL from "./proxy_url";
 
 const decorative_alt = "";
 
 function AuthorPfp(props: {src_url: string}): JSX.Element {
     return <img
-        src={props.src_url}
+        src={proxyURL(props.src_url)}
         alt={decorative_alt}
         class="w-8 h-8 object-center inline-block rounded-full"
     />;
@@ -313,7 +314,7 @@ function PostTopBar(props: ClientPostProps & {
                         <SwitchKind item={thumb_any}>{{
                             image: img => <img
                                 // TODO based on the img content, display eg a play button or something
-                                src={img.url}
+                                src={proxyURL(img.url)}
                                 alt=""
                                 class={classes(
                                     "w-full h-full object-cover rounded-md"
