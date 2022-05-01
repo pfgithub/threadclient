@@ -468,6 +468,9 @@ function instanceInfoSidebarWidgetKey(host: string): Generic.Link<Generic.Horizo
 function clientLink(host: string): Generic.Link<Generic.Post> {
     return p2.stringLink("["+host+"]"+"client");
 }
+function instanceSelectorLink(): Generic.Link<Generic.Post> {
+    return p2.stringLink("instance-selector");
+}
 function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.Status): Generic.Link<Generic.Post> {
     const respost_link = postLink(host, post.id);
 
@@ -523,6 +526,31 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.St
     
     return respost_link;
 }
+
+function fillInstanceSelector(content: Generic.Page2Content, link: Generic.Link<Generic.Post>) {
+    // https://api.joinmastodon.org/categories
+    // https://api.joinmastodon.org/servers?category=general
+    // https://api.joinmastodon.org/languages?category=general
+
+    if(content[link]) return;
+
+    p2.fillLink(content, link, {
+        kind: "post",
+        content: {
+            // TODO use a content kind: "special"
+            kind: "post",
+            title: {text: "Instance Selector"},
+            body: {kind: "mastodon_instance_selector", client_id: client.id},
+            collapsible: false,
+        },
+        internal_data: link,
+        parent: null,
+        replies: null,
+        url: "/",
+        client_id: client.id,
+    });
+}
+
 
 type LoginURL = {
     host: string,
@@ -609,15 +637,10 @@ export const client: ThreadClient = {
         const parsed = url_parser.parse(pathraw) ?? {kind: "404", reason: "This should never happen"};
 
         if(parsed.kind === "instance-selector") {
-            // https://api.joinmastodon.org/categories
-            // https://api.joinmastodon.org/servers?category=general
-            // https://api.joinmastodon.org/languages?category=general
-
-            throw new Error("TODO INSTANCE-SELECTOR (use a kind:special thing)");
-            // return bodyPage("", "Choose Instance", {
-            //     kind: "mastodon_instance_selector",
-            //     client_id: client.id,
-            // });
+            const link = instanceSelectorLink();
+            const content: Generic.Page2Content = {};
+            fillInstanceSelector(content, link);
+            return {pivot: link, content};
         }else if(parsed.kind === "404") {
             throw new Error("TODO 404 PAGE");
             // return error404("", parsed.reason);
