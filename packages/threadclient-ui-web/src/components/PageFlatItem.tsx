@@ -47,7 +47,7 @@ type SCProps<T> = {
 
     collapse_data: CollapseData,
     loader_or_post: FlatPost,
-    post: Generic.Post,
+    post: Generic.ActualPost,
 };
 
 

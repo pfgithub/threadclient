@@ -157,7 +157,10 @@ export type BaseLoader = {
 // vv we don't know typesafely that it's unloaded but don't call something this unless it's unloaded
 export type PostOrUnloadedLoader = Post | HorizontalLoader | VerticalLoader;
 
-export type Post = {
+// TODO: f2 rename these things
+// type Object = Post | Tabbed
+// maybe? not sure
+export type ActualPost = {
     kind: "post",
 
     content: PostContent, // content should always be in a PostData. eg: crossposts that are embedded in a body also need parent, replies.
@@ -170,6 +173,19 @@ export type Post = {
     url: string | null, // if a thing does not have a url, it cannot be the pivot
     client_id: string,
 };
+export type Post = ActualPost | {
+    kind: "tabbed",
+    active_tab: Link<Link<Post>>,
+    tabs: Link<TabSet>,
+
+    // url switching is going to be accomplished by changing the url of the pivoted post and updating
+    // our title thing to suppport pivoted post changes
+};
+
+export type TabSet = {
+    link: Link<Post>,
+    text: string,
+}[];
 
 export type ClientPost = {
     kind: "client",

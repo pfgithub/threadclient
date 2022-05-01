@@ -914,6 +914,9 @@ function renderReplyAction(
                         reply_state = "none";
                         update();
                     }} onAddReply={r => {
+                        if(r.kind !== "post") throw new Error(
+                            "TODO delete this code so we don't have to deal with this case",
+                        );
                         console.log("Got response", r);
                         reply_state = "none";
                         update();

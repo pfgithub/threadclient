@@ -98,7 +98,7 @@ export type FlatTreeItem = {
 } | {
     kind: "flat_post",
     link: Generic.Link<Generic.Post>,
-    post: Generic.Post,
+    post: Generic.ActualPost,
 } | FlatLoader;
 
 function loaderToFlatLoader(loader: Generic.HorizontalLoader | Generic.VerticalLoader): FlatLoader {
