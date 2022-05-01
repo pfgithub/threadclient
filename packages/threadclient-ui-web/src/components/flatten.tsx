@@ -234,6 +234,7 @@ function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeI
                 res.push({kind: "error", msg: readlink.error});
             }else{
                 const rpli = readlink.value;
+                if(rpli.kind === "tabbed") throw new Error("TODO support tabbed");
                 res.push({
                     kind: "flat_post",
                     post: rpli,
@@ -263,6 +264,7 @@ export function flattenTreeItem(
     }
 
     const post = unwrapPost(tree_item.post);
+    if(post.kind === "tabbed") throw new Error("TODO support tabbed");
 
     const indent_excl_self = rres.indent.map(v => v.threaded ? {...v, threaded: false} : v);
     const indent_incl_self: CollapseButton[] = [...indent_excl_self, ...rres.collapse ? [rres.collapse] : []];
@@ -397,6 +399,7 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): (FlatTreeIt
             setHighest(null);
             break;
         }
+        if(postloaded.value.kind === "tabbed") throw new Error("TODO support tabbed");
         res.push({
             kind: "flat_post",
             link: highest,
@@ -482,6 +485,8 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
     const pivot_read = readLink(meta, pivot_link);
     if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
     const {value: pivot} = pivot_read;
+
+    if(pivot.kind === "tabbed") throw new Error("TODO support tabbed");
 
     let title: string | null = null;
 
