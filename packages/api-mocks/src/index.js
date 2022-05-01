@@ -82,6 +82,8 @@ if(process.env.ONLINE === "true") {
             if(proxy_res.headers["content-encoding"] === "br") {
                 nprdata = decompress(nprdata);
             }
+            // TODO consider brotli compressing file content
+            // - 386kb → 24kb for the reddit results
             fs.writeFileSync(safilename, nprdata, "binary");
             console.log("cached URL: "+req.method + " " + req.url);
             return proxy_res_data;
