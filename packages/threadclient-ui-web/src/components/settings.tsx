@@ -409,6 +409,16 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         'default': "Default",
                     } as const)[v ?? "default"]}
                 />
+                <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Proxy URL</h3>
+                {/*<ToggleButton  'None' | 'localhost:3772' | 'Custom' */}
+                <input
+                    class="w-full bg-slate-300 dark:bg-zinc-900 p-2 placeholder-slate-500 dark:placeholder-slate-400"
+                    placeholder={"http://localhost:3772/mock/"}
+                    value={settings.dev.mockRequests() ?? ""}
+                    onInput={v => {
+                        settings.dev.mockRequests.setOverride(v.currentTarget.value || undefined);
+                    }}
+                />
             </ShowAnimate>
         </SettingsSection>
     </div></main>;
