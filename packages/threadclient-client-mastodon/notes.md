@@ -24,3 +24,34 @@ activitypub:
     3. fetch that with `'Accept': `application/ld+json; profile="https://www.w3.org/ns/activitystreams"``
     4. find the outbox link
     5. add all their posts to your server
+
+---
+
+fcn:
+
+`site/.fcn/objects?id=…`
+
+```json
+{
+    "id": "",
+    "summary": {
+        "text": "My amazing video",
+        "thumbnail": "",
+    },
+    "content": {
+        "type": "thread.pfg.pw/video-schema",
+        …
+    },
+    "author": …
+}
+```
+
+actions:
+
+- like
+- reblog/quote reblog
+- comment
+
+`site/.fcn/actors?id=…`
+
+the main goal of this thing is basically a federated comment system
