@@ -1024,7 +1024,7 @@ export const client: ThreadClient = {
                     replies: null,
                     client_id: client.id,
                 }),
-                p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
+                ...instance_info.rules.length > 0 ? [p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
                     kind: "post",
                     content: {
                         kind: "post",
@@ -1052,7 +1052,7 @@ export const client: ThreadClient = {
                             replies: null,
                         }))
                     ))},
-                }),
+                })] : [],
                 ...instance_info.contact_account != null ? [p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
                     kind: "post",
                     content: {
