@@ -2,15 +2,15 @@ import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch, untrack } from "solid-js";
 import { assertNever, switchKind } from "tmeta-util";
 import { Show, SwitchKind, TimeAgo } from "tmeta-util-solid";
-import { elButton, LinkStyle, previewLink, unsafeLinkToSafeLink } from "../app";
+import { elButton, LinkStyle } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
-    classes, getSettings, Icon, ToggleColor
+    classes, getSettings
 } from "../util/utils_solid";
-import { animateHeight } from "./animation";
 import { Body, summarizeBody } from "./body";
 import { Flair } from "./Flair";
-import { A, LinkButton, PreviewableLink, UserLink } from "./links";
+import LinkHelper from "./LinkHelper";
+import { LinkButton, PreviewableLink, UserLink } from "./links";
 import proxyURL from "./proxy_url";
 export * from "../util/interop_solid";
 
@@ -314,97 +314,6 @@ export function CodeBlock(props: {
     </pre>;
 }
 
-// TODO support thumbnails
-// previewLink should give a thumbnail back somehow
-// eg for youtube videos, it's an image `https://img.youtube.com/vi/${id}/default.jpg`
-export function MobileLinkPreview(props: {link: Link}): JSX.Element {
-    const settings = getSettings();
-    const linkPreview: () => {
-        visible: () => boolean,
-        toggleVisible: () => void,
-        body: Generic.Body,
-    } | undefined = createMemo(() => {
-        const body = previewLink(props.link.url, {});
-        if(!body) return undefined;
-        const [visible, setVisible] = createSignal(false);
-        return {visible, toggleVisible: () => setVisible(v => !v), body};
-    });
-    const human = createMemo((): {link: string, external: boolean} => {
-        const res = unsafeLinkToSafeLink(props.link.client_id, props.link.url);
-        if(res.kind === "link") {
-            return {link: res.url, external: res.external};
-        }else return {link: "error", external: true};
-    });
-
-    const [previewOpen, setPreviewOpen] = createSignal<{open: boolean, temporary: boolean}>(
-        {open: false, temporary: false},
-    );
-    return <Show if={human().link !== "error"}><div class="my-2">
-        <ToggleColor>{color => <A
-            client_id={props.link.client_id}
-            class={classes(
-                "p-2 px-4",
-                "block",
-                color, "rounded-xl",
-                "hover:dark:bg-zinc-700 dark:hover:shadow transition",
-                previewOpen().open ? "rounded-b-none" : "",
-            )}
-            href={props.link.url}
-            onClick={linkPreview() ? () => {
-                linkPreview()!.toggleVisible();
-            } : undefined}
-        >
-            <div class="max-lines max-lines-1 select-none">
-                <Show when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</Show>
-                {props.link.title}
-            </div>
-            <Show if={!previewOpen().open || previewOpen().temporary}>
-                <div style={{display: previewOpen().open ? "none" : "block"}}>
-                    <div
-                        class="max-lines max-lines-1 break-all font-light text-slate-800 dark:text-zinc-500 select-none"
-                    >
-                        <Show if={!linkPreview() && human().external}>
-                            <ExternalIcon />{" "}
-                        </Show>
-                        {human().link}
-                    </div>
-                </div>
-            </Show>
-        </A>}</ToggleColor>
-        <Show when={linkPreview()}>{preview => <><div ref={v => animateHeight(
-            v, settings, preview.visible, (state, rising, temporary) => {
-                setPreviewOpen({open: state || rising, temporary});
-            },
-        )}>
-            <Show if={previewOpen().open || previewOpen().temporary}>
-                <div style={{display: previewOpen().open ? "block" : "none"}}>
-                    <Body body={preview.body} autoplay={true} />
-                </div>
-            </Show>
-        </div><Show if={previewOpen().open || previewOpen().temporary}>
-            <div style={{display: previewOpen().open ? "block" : "none"}}>
-                <ToggleColor>{color => <A
-                    client_id={props.link.client_id}
-                    class={classes(
-                        "p-2 px-4",
-                        "block",
-                        color, "rounded-xl rounded-t-none",
-                        "hover:dark:bg-zinc-700 dark:hover:shadow transition",
-                    )}
-                    href={props.link.url}
-                >
-                    <div class="max-1-line break-all font-light text-slate-800 dark:text-zinc-500 select-none">
-                        <Show if={human().external}>
-                            <ExternalIcon />{" "}
-                        </Show>
-                        {human().link}
-                    </div>
-                </A>}</ToggleColor>
-            </div>
-        </Show></>}</Show>
-    </div></Show>;
-}
-
 export function RichtextParagraphs(props: {
     content: readonly Generic.Richtext.Paragraph[],
     tight?: undefined | boolean,
@@ -416,7 +325,7 @@ export function RichtextParagraphs(props: {
         </div>
         <Show if={settings.linkHelpers() === "show"}>
             <For each={extractLinks(paragraph)}>{link => (
-                <MobileLinkPreview link={link} />
+                <LinkHelper link={link} />
             )}</For>
         </Show>
     </>}</For>;
@@ -427,10 +336,6 @@ export function RichtextDocument(props: {
 }): JSX.Element {
     // if there is a lot of content, add a "reader mode" button
     return <RichtextParagraphs content={props.content} />;
-}
-
-function ExternalIcon(): JSX.Element {
-    return <div class="inline-block"><Icon size="icon-sm" icon={{class: "icon-external", label: "External"}} /></div>;
 }
 
 type Link = {

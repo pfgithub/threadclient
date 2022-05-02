@@ -394,67 +394,6 @@ function renderBodyMayError(
     return hsc;
 }
 
-export function linkPreview(client_id: string, body: Generic.LinkPreview): HideShowCleanup<HTMLDivElement> {
-    const content = el("div");
-    const hsc = hideshow(content);
-    // maybe outline with body background and no shadow?
-    let button_box: HTMLElement;
-    if(body.click_enabled) {
-        button_box = el("div").clss("bg-body rounded-lg block").adto(content);
-    }else{
-        button_box = linkButton(client_id, body.url, "none", {onclick: body.click_enabled ? () => {
-            button_box.remove();
-            renderBody(body.click, {autoplay: true}).defer(hsc).adto(content);
-        } : undefined}).clss("bg-body rounded-lg hover:shadow-md hover:bg-gray-100 block").adto(content);
-    }
-    const link_preview_box = el("article")
-        .clss("flex", body.click_enabled ? "flex-col" : "flex-row")
-        .adto(button_box)
-    ;
-    const thumb_box = el("div").clss(
-        body.click_enabled
-            ? "w-full h-auto min-h-10 relative"
-            : "w-24 h-full flex items-center justify-center bg-gray-100"
-        ,
-        "rounded-lg overflow-hidden",
-    )
-        .adto(el("div").adto(link_preview_box))
-    ;
-    if(body.thumb != null) {
-        if(body.click_enabled) {
-            thumb_box.adch(el("img").clss(body.click_enabled ? "w-full h-full" : "").attr({src: proxyURL(body.thumb)}));
-        }else{
-            el("div")
-                .styl({'background-image': `url(${JSON.stringify(proxyURL(body.thumb))})`, 'background-size': "contain",
-                    'background-position': "center", 'background-repeat': "no-repeat"
-                })
-                .clss("w-full h-full")
-                .adto(thumb_box)
-            ;
-        }
-    }else{
-        thumb_box.adch(el("div").atxt("🔗"));
-    }
-    if(body.click_enabled) {
-        const choicearea = el("div").adto(thumb_box);
-        choicearea.clss("flex items-center justify-center absolute top-0 left-0 bottom-0 right-0");
-        const choicebox = el("div").clss("rounded-lg bg-gray-200 p-2 flex shadow-md gap-3").adto(choicearea);
-        el("button").clss("hover:underline").adto(choicebox).atxt("Play").onev("click", e => {
-            e.stopPropagation();
-            thumb_box.innerHTML = "";
-            renderBody(body.click, {autoplay: true}).defer(hsc).adto(thumb_box);
-        });
-        choicebox.atxt(" ");
-        linkButton(client_id, body.url, "none").clss("hover:underline").atxt("Open").adto(choicebox);
-    }
-    const meta_box = el("div").clss("flex flex-col p-3 text-sm").adto(link_preview_box);
-    meta_box.adch(el("h1").clss("max-lines max-lines-1 font-black").atxt(body.title));
-    meta_box.adch(el("p").clss("max-lines max-lines-2").atxt(body.description));
-    meta_box.adch(el("div").clss("max-lines max-lines-1 font-light break-all").atxt(body.url));
-
-    return hsc;
-}
-
 export function renderOembed(body: Generic.OEmbedBody): HideShowCleanup<HTMLDivElement> {
     const content = el("div");
     const hsc = hideshow(content);

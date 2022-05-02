@@ -7,7 +7,6 @@ import {
     fetchClient,
     getTwitchClip, gfyLike2, gfyLikeV1,
     imgurImage,
-    linkPreview,
     link_styles_v,
     navigate,
     previewLink,
@@ -21,6 +20,7 @@ import {
     classes, DefaultErrorBoundary, getIsVisible,
     getSettings, ToggleColor
 } from "../util/utils_solid";
+import LinkHelper from "./LinkHelper";
 import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import proxyURL from "./proxy_url";
@@ -225,10 +225,13 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             redditSuggestedEmbed(se.suggested_embed).defer(hsc).adto(div);
             return div;
         }} />,
-        link_preview: link_preview => <SolidToVanillaBoundary getValue={hsc => {
-            const div = el("div");
-            linkPreview(link_preview.client_id, link_preview).defer(hsc).adto(div);
-            return div;
+        link_preview: link_preview => <LinkHelper link={{
+            title: link_preview.title,
+            url: link_preview.url,
+            client_id: link_preview.client_id,
+
+            summary: link_preview.description,
+            thumbnail: link_preview.thumb,
         }} />,
         oembed: oembed => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
