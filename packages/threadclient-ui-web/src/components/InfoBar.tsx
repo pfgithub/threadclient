@@ -4,7 +4,7 @@ import {
 } from "solid-js";
 import { assertNever } from "tmeta-util";
 import { timeAgoTextWatchable } from "tmeta-util-solid";
-import { classes } from "../util/utils_solid";
+import { classes, size_lt } from "../util/utils_solid";
 import { colorClass } from "./color";
 import DevCodeButton from "./DevCodeButton";
 import { InfoBarItem, useInfoBar } from "./flat_posts";
@@ -60,8 +60,11 @@ export function InfoBarItemNode(props: {item: InfoBarItem}): JSX.Element {
         )}
         title={lblv() + fmt()[1]}
     >
-        <Icon icon={props.item.icon} bold={props.item.color != null} label={lblv()} />
+        {(true as boolean) || size_lt.sm() ? 
+            <Icon icon={props.item.icon} bold={props.item.color != null} label={lblv()} />
+        : <></>}
         {fmt()[0]}
+        {(true as boolean) || size_lt.sm() ? <></> : <>{props.item.value[0] === "none" ? "" : " "}{props.item.text}</>}
     </span>;
 }
 
