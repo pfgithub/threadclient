@@ -1066,7 +1066,7 @@ export const client: ThreadClient = {
                     parent: null,
                     url: null,
                     replies: instance_info.contact_account != null ? {
-                        display: "tree", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("instance-info"), [
+                        display: "repivot_list", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("instance-info"), [
                             fillAccount(content, host, instance_info.contact_account)
                         ]),
                     } : null,
@@ -1172,7 +1172,14 @@ function fillTimelineSwitcher(content: Generic.Page2Content, host: string): Gene
 }
 
 function fillAccount(content: Generic.Page2Content, host: string, account: Mastodon.Account): Generic.Link<Generic.Post> {
-    return p2.createSymbolLinkToError(content, "TODO display account", account);
+    // TODO:
+    // accounts might need multiple stages
+    // - stage where we don't know any info about the account
+    // - stage where we have a Mastodon.Account structure
+    // the timeline will fill without knowing about the account
+    // and then we in fillAccount will also fill in the link for replacing the account post once the account
+    // is loaded.
+    return fillTimeline(content, host, {kind: "account", account_id: account.id});
 }
 
 function sidebar(content: Generic.Page2Content, host: string): Generic.PostReplies {
