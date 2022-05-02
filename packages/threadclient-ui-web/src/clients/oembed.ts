@@ -14,26 +14,27 @@ export function oembed(card: OEmbed, client_id: string): Generic.Body {
             ],
         };
     }
-    return card.url != null ? {
-        kind: "link_preview",
+    if(card.url != null) return {
+        kind: "link_preview" as const,
         client_id,
-        thumb: card.embed_url || card.image || undefined,
-        click: card.embed_url ? {
+        thumb: (card.embed_url ?? "") || card.image || undefined,
+        click: (card.embed_url ?? "") ? {
             kind: "captioned_image",
-            url: card.embed_url,
+            url: card.embed_url ?? "",
             w: null, h: null,
         } : {
             kind: "link",
             client_id,
             url: card.url,
-            embed_html: card.html || undefined,
+            embed_html: (card.html ?? "") || undefined,
         },
-        click_enabled: !!(card.embed_url || card.html || false),
+        click_enabled: !!((card.embed_url ?? "") || (card.html ?? "") || false),
         title: card.title,
         description: card.description,
         url: card.url,
-    } : {
-        kind: "reddit_suggested_embed",
-        suggested_embed: card.html,
+    };
+    return {
+        kind: "reddit_suggested_embed" as const,
+        suggested_embed: card.html ?? "ERROR",
     };
 }
