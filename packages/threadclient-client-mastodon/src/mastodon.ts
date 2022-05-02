@@ -648,6 +648,21 @@ export const client: ThreadClient = {
 
         const host = parsed.host;
         const auth = await getAuth(host);
+
+        if(parsed.kind === "acct_internal_redirect") {
+            const value = await getResult<Mastodon.Account>(auth, mkurl(host, updateQuery(
+                "api/v1/accounts/lookup",
+                {acct: parsed.acct},
+            )));
+            if('error' in value) {
+                throw new Error("mastodon error: "+value.error);
+            }
+            const rplcv = pathraw.replace("/@"+parsed.acct, "/accounts/"+value.id);
+            if(rplcv === pathraw) throw new Error("bad acct_internal_redirect");
+            // TODO: fillAccount()
+            // return {content: [...content, filled account]}
+            return await client.getPage!(rplcv);
+        }
     
         const content: Generic.Page2Content = {};
         p2.fillLink(content, clientLink(host), {

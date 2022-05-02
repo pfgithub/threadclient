@@ -55,6 +55,10 @@ type ParseResult = {
     tl: Timeline,
     host: string,
 } | {
+    kind: "acct_internal_redirect",
+    acct: string,
+    host: string,
+} | {
     kind: "status",
     status: string,
     host: string,
@@ -146,6 +150,9 @@ url_parser.with([{host: "any"}] as const, urlr => {
         urlr.route(["followers"], o => ({kind: "todo", host: o.host}));
         urlr.route(["following"], o => ({kind: "todo", host: o.host}));
         urlr.route(["media"], o => ({kind: "todo", host: o.host}));
+    });
+    urlr.with([{acct: {kind: "starts-with", text: "@"}}] as const, urlr => {
+        urlr.catchall(o => ({kind: "acct_internal_redirect", host: o.host, acct: o.acct}));
     });
     // TODO support route(/@:acct/:status_id) → status()
 
