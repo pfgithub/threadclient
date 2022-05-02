@@ -398,7 +398,13 @@ function PageFlatPostContent(props: {
                 ref={btn => {
                     // ok autoload is not a good way to handle this but we're using it for now
                     if(loader.autoload) {
-                        const observer = new IntersectionObserver(doLoad, {
+                        const observer = new IntersectionObserver((e) => {
+                            e.forEach(entry => {
+                                if(entry.isIntersecting) {
+                                    doLoad();
+                                }
+                            });
+                        }, {
                             root: document.body,
                             rootMargin: "0px",
                             threshold: 1.0,
