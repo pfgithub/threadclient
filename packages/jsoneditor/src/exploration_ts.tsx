@@ -43,7 +43,9 @@ type JNull = {
     kind: "-N0l0aP4SXjljg-GoC-S",
 };
 type JSlot = {
+    // a slot doesn't really need a kind, it shouldn't be a real node
     kind: "-N0gpdqw6BjkuWrRqqTG",
+    value?: JValue | undefined,
 };
 
 type SysText = {
@@ -420,7 +422,51 @@ register<JSlot>("-N0gpdqw6BjkuWrRqqTG", {
     asText(num) {
         return "<slot />";
     },
+    insert(obj, item, at) {
+        alert("E-SLOT-INSERT-ATTEMPT");
+        unreachable();
+    },
 });
+
+function slotInsert(item: Obj, at: {path: NodePath, index: number}): JValue {
+    if(is<SysText>(item, "@systext")) {
+        const text = item.text;
+        // if someone eg pastes `"test"` this won't work
+        // or if they use an ime and input that
+
+        // TODO: more robust handling here^^^
+
+        // maybe we could loop over each byte and call slotInsert?
+        // that requires that we make sure typing the exact conetnt should always
+        // create the same thing. eg typing "{"a": "b"}" should create that structure
+        // exactly.
+        // but the problem is it doesn't - typing \" doesn't break you out of a string, you
+        // have to move your cursor to get out of a string
+
+        if(text === "\"") {
+            const res: JString = {
+                kind: "-N0gkxU5wAjciRZnERvO",
+                text: new Uint8Array([]),
+            };
+            return res;
+        }
+        if(text === "{" || text === "[") {
+            const res: JObject = {
+                kind: "-N0gk9Mfm2iXGUkeWUMS",
+                fields: [],
+                multiline: false,
+                mode: text === "[" ? "array" : "object",
+            };
+            return res;
+        }
+        // TODO: make a headlessui listbox or whatever it is that lets you search for a thing and
+        // press enter to insert it
+        alert("TODO support that character");
+        unreachable();
+    }
+    alert("TODO support paste into slot");
+    unreachable();
+}
 
 // booleans don't actually need any selection points. you delete and retype.
 // deleting turns the node into a slot and then the slot shows one of those fancy headless ui comboboxes
@@ -478,13 +524,56 @@ register<JField>("-N0gkJ4N6etM-Md1KiyT", {
 
     insert(obj, item, at) {
         if(at.path.length === 0) {
-            alert("TODO");
+            if(!is<SysText>(item, "@systext")) {
+                alert("not supported paste arbitrary in field");
+                return obj;
+            }
+            if(item.text !== ":") {
+                alert("not supported type anything other than ':'");
+                return obj;
+            }
+
+            // 0 - only exists if there is a key
+            // 1 - 
+            // 2
+
+            if(at.index === 0) {
+                alert("not supported here");
+                return obj;
+            }
+            if(at.index === 1) {
+                if(obj.key != null) {
+                    alert("not supported here");
+                    return obj;
+                }
+                return {
+                    ...obj,
+                    key: {kind: "-N0gpdqw6BjkuWrRqqTG"},
+                };
+            }
+            if(at.index === 2) {
+                if(obj.key != null) {
+                    alert("not supported here");
+                    return obj;
+                }
+                if(obj.value.kind !== "-N0gkxU5wAjciRZnERvO" && obj.value.kind !== "-N0gpdqw6BjkuWrRqqTG") {
+                    alert("not supported non-string key");
+                    return obj;
+                }
+                return {
+                    ...obj,
+                    key: obj.value,
+                    value: {kind: "-N0gpdqw6BjkuWrRqqTG"},
+                };
+            }
             unreachable();
         }
         const at0 = at.path[0]!;
         const atr = at.path.slice(1);
         const upd = {...obj};
-        const nch = any.insert(any.child(obj, at0), item, {path: atr, index: at.index});
+        const chv = any.child(obj, at0);
+        const chp = {path: atr, index: at.index};
+        const nch = any.insert(chv, item, chp);
         if(at0 === 0) upd.key = nch as typeof upd.key;
         else if(at0 === 1) upd.value = nch as typeof upd.value;
         else unreachable();
@@ -549,13 +638,25 @@ register<JObject>("-N0gk9Mfm2iXGUkeWUMS", {
 
     insert(obj, item, at) {
         if(at.path.length === 0) {
+            // systext.is(item)?
             if(is<SysText>(item, "@systext")) {
                 if(item.text === "\n") {
                     return {...obj, multiline: true};
                 }
             }
-            alert("TODO");
-            unreachable();
+            // create a slot
+            // type in the slot
+            const newchild: JField = {
+                kind: "-N0gkJ4N6etM-Md1KiyT",
+                value: slotInsert(item, {path: [], index: 0}),
+            };
+            
+            const updfields = [...obj.fields];
+            updfields.splice(at.index, 0, newchild);
+            return {
+                ...obj,
+                fields: updfields,
+            };
         }
         const at0 = at.path[0]!;
         const atr = at.path.slice(1);
