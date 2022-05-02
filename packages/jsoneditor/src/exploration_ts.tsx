@@ -113,7 +113,7 @@ function TempCrs(props: {
         {props.covers}
         <span class="block relative">{match() != null ? (
             <div class={[
-                "absolute top-0 left-0 w-full h-1 transform translate-y-[-50%]",
+                "absolute top-0 left-0 w-full h-[2px] transform translate-y-[-50%]",
                 "rounded",
                 match() === "focus" ? "bg-blue-400" : "bg-gray-400",
             ].join(" ")}></div>
@@ -429,6 +429,14 @@ register<JSlot>("-N0gpdqw6BjkuWrRqqTG", {
 });
 
 function slotInsert(item: Obj, at: {path: NodePath, index: number}): JValue {
+    // ok I think we're handling this wrong
+    // ! when you press a key in a slot, we need to show a suggestions list
+    // your typing will filter that suggestions list and also offer up dynamic suggestions
+    // we can have a few hotkeys that will insert a node directly instead of opening up the suggestions
+    // list: `"`, `{`, `[`
+
+    // that seems like a much better method than what we're trying to do here
+
     if(is<SysText>(item, "@systext")) {
         const text = item.text;
         // if someone eg pastes `"test"` this won't work
@@ -459,6 +467,13 @@ function slotInsert(item: Obj, at: {path: NodePath, index: number}): JValue {
             };
             return res;
         }
+        // when your cursor is inside a slot, we should show that listbox
+        // something we could do is if you type something in the listbox that isn't
+        // true, false, or null, we can detect if it's a string/number and offer up suggestions
+
+        // makes typing json nicer - you don't need the quotes when typing the string key, you just
+        // have to accept the suggestion
+
         // TODO: make a headlessui listbox or whatever it is that lets you search for a thing and
         // press enter to insert it
         alert("TODO support that character");
