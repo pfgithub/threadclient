@@ -1,5 +1,5 @@
 import "@fortawesome/fontawesome-free/css/all.css";
-import { JSX } from "solid-js";
+import { JSX, onCleanup } from "solid-js";
 
 // ok iconsets I tried:
 // - remixicon
@@ -63,7 +63,31 @@ import { JSX } from "solid-js";
 // - comments do not have a title or a thumbnail
 
 export default function UITestingPageRoot(): JSX.Element {
-    return <div class="h-full min-h-screen bg-slate-300 dark:bg-zinc-900">
-        TOOD
-    </div>;
+    document.documentElement.style.overflowY = "hidden";
+    onCleanup(() => {
+        document.documentElement.style.overflowY = "";
+    });
+
+    return (
+        <div class="
+            h-screen overflow-hidden overflow-x-scroll dark:bg-zinc-800
+            snap-x snap-mandatory flex flex-row gap-6 relative
+        ">
+            {[
+                [640, 480],
+                [480, 640],
+                [1000, 10],
+                [10, 1000],
+            ].map((size, i) => (
+                <div class="w-screen flex-shrink-0 snap-center bg-zinc-900">
+                    <img
+                        src={"https://picsum.photos/seed/n"+i+"/"+size[0]+"/"+size[1]+".jpg"}
+                        width={size[0]}
+                        height={size[1]}
+                        class="w-full h-full object-contain"
+                    />
+                </div>
+            ))}
+        </div>
+    );
 }

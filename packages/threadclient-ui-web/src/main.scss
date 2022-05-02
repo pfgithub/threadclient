@@ -52,6 +52,15 @@ a {
 .aspect-square {
     aspect-ratio: 1 / 1;
 }
+.snap-x {
+    scroll-snap-type: x var(--tw-scroll-snap-strictness);
+}
+.snap-mandatory {
+    --tw-scroll-snap-strictness: mandatory;
+}
+.snap-center {
+    scroll-snap-align: center;
+}
 
 // animation. this can also be defined in the windi/tailwind css config
 @keyframes bounceanim {
