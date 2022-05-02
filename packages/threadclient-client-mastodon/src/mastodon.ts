@@ -659,9 +659,9 @@ export const client: ThreadClient = {
             }
             const rplcv = pathraw.replace("/@"+parsed.acct, "/accounts/"+value.id);
             if(rplcv === pathraw) throw new Error("bad acct_internal_redirect");
-            // TODO: fillAccount()
-            // return {content: [...content, filled account]}
-            return await client.getPage!(rplcv);
+            const res = await client.getPage!(rplcv);
+            fillAccount(res.content, host, value);
+            return res;
         }
     
         const content: Generic.Page2Content = {};
