@@ -222,7 +222,7 @@ export function previewLink(
 export async function gfyLike2(
     gfy_host: string,
     gfy_link: string,
-): Promise<Generic.Post> {
+): Promise<Generic.ActualPost> {
     const res = (
         await fetch("https://api."+gfy_host+"/v2/gifs/"+gfy_link).then(r => r.json())
     ) as Gfycat.V2.GfyResponse;
