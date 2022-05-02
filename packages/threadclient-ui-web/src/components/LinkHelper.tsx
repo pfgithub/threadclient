@@ -60,7 +60,7 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
                 "p-2 px-4",
                 "flex flex-row flex-wrap items-center",
                 color, "rounded-xl",
-                "hover:dark:bg-zinc-700 dark:hover:shadow transition",
+                "hover:bg-slate-200 hover:dark:bg-zinc-700 hover:shadow transition",
                 previewOpen().open ? "rounded-b-none" : "",
             )}
             href={props.link.url}
