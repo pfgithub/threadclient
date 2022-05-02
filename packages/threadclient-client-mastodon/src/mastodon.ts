@@ -1012,9 +1012,6 @@ export const client: ThreadClient = {
                             rt.p(
                                 rt.txt("Running version "+instance_info.version),
                             ),
-                            rt.p(
-                                rt.txt(instance_info.email),
-                            ),
                         ]},
                         collapsible: {default_collapsed: false},
                     },
@@ -1053,22 +1050,28 @@ export const client: ThreadClient = {
                         }))
                     ))},
                 })] : [],
-                ...instance_info.contact_account != null ? [p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
+                p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
                     kind: "post",
                     content: {
                         kind: "post",
                         title: {text: "Contact"},
-                        body: {kind: "none"},
+                        body: {kind: "richtext", content: [
+                            rt.p(
+                                rt.txt(instance_info.email),
+                            ),
+                        ]},
                         collapsible: false,
                     },
                     internal_data: instance_info,
                     parent: null,
                     url: null,
-                    replies: {display: "tree", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("instance-info"), [
-                        fillAccount(content, host, instance_info.contact_account)
-                    ])},
+                    replies: instance_info.contact_account != null ? {
+                        display: "tree", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("instance-info"), [
+                            fillAccount(content, host, instance_info.contact_account)
+                        ]),
+                    } : null,
                     client_id: client.id,
-                })] : [],
+                }),
                 p2.fillLink(content, p2.symbolLink<Generic.Post>("instance-info"), {
                     kind: "post",
                     content: {
