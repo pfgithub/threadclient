@@ -1,3 +1,15 @@
+## note
+
+woah we have parent selectors now
+
+```css
+.hover-effect:hover:not(:has(.hover-effect:hover)) {
+  background-color: …;
+}
+```
+
+will do the thing where only one item can be hovered at once. we had to implement this in javascript.
+
 ## twitter client notes
 
 do something similar to this: https://github.com/zedeus/nitter
