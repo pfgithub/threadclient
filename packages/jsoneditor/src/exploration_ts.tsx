@@ -9,15 +9,19 @@ const idStr = <T,>() => <W extends string>(w: W): W & {__is: T} => {
     return w as W & {__is: T};
 };
 
+// a simple thing to make with this would be lisp
+// - it has pretty uniform syntax. basically json but without even having object field/value which means
+//   we can handle all cursor movement inside the list
+
 type JObject = {
-    kind: "-N0gk9Mfm2iXGUkeWUMS",
+    kind: "JObject@-N0gk9Mfm2iXGUkeWUMS",
 
     fields: JField[],
     multiline: boolean,
     mode: "array" | "object",
 };
 type JField = {
-    kind: "-N0gkJ4N6etM-Md1KiyT",
+    kind: "JField@-N0gkJ4N6etM-Md1KiyT",
     key?: JString | JSlot | undefined,
     value: JValue,
     // enables copy/pasting between objects and arrays eg
@@ -28,23 +32,23 @@ type JField = {
     // that on paste
 };
 type JString = {
-    kind: "-N0gkxU5wAjciRZnERvO",
+    kind: "JString@-N0gkxU5wAjciRZnERvO",
     text: Uint8Array,
 };
 type JNumber = {
-    kind: "-N0gkzBWv3Cx0Ryyouky",
+    kind: "JNumber@-N0gkzBWv3Cx0Ryyouky",
     num: number,
 };
 type JBoolean = {
-    kind: "-N0gl-Obi0cyd58QHO85",
+    kind: "JBoolean@-N0gl-Obi0cyd58QHO85",
     value: true | false,
 };
 type JNull = {
-    kind: "-N0l0aP4SXjljg-GoC-S",
+    kind: "JNull@-N0l0aP4SXjljg-GoC-S",
 };
 type JSlot = {
     // a slot doesn't really need a kind, it shouldn't be a real node
-    kind: "-N0gpdqw6BjkuWrRqqTG",
+    kind: "JSlot@-N0gpdqw6BjkuWrRqqTG",
     value?: JValue | undefined,
 };
 
@@ -180,7 +184,7 @@ function JSONValueRender(props: {
     depth: number,
 }): JSX.Element {
     return <SwitchKind item={props.val}>{{
-        '-N0gk9Mfm2iXGUkeWUMS': jobj => <span class={colrfor(props.depth).white}>
+        'JObject@-N0gk9Mfm2iXGUkeWUMS': jobj => <span class={colrfor(props.depth).white}>
             <span>{jobj.mode === "object" ? "{" : "["}</span>
                 <JObjectContent vc={props.vc} obj={jobj} depth={props.depth} />
             <span>{jobj.mode === "object" ? "}" : "]"}</span>
@@ -188,10 +192,10 @@ function JSONValueRender(props: {
         // we could even do jnum.toLocaleString() or Intl.NumberFormat
         // also note: consider making numbers, booleans, and null a different color
         // https://github.com/th00ber/atom-json-color
-        '-N0gkzBWv3Cx0Ryyouky': jnum  => <>{JSON.stringify(jnum.num)}</>,
-        '-N0gl-Obi0cyd58QHO85': jbool => <>{jbool.value.toString()}</>,
-        '-N0l0aP4SXjljg-GoC-S': () => <>{"null"}</>,
-        '-N0gkxU5wAjciRZnERvO':  jstr => {
+        'JNumber@-N0gkzBWv3Cx0Ryyouky': jnum  => <>{JSON.stringify(jnum.num)}</>,
+        'JBoolean@-N0gl-Obi0cyd58QHO85': jbool => <>{jbool.value.toString()}</>,
+        'JNull@-N0l0aP4SXjljg-GoC-S': () => <>{"null"}</>,
+        'JString@-N0gkxU5wAjciRZnERvO':  jstr => {
             const halfwayPoint = createMemo(() => props.vc === null ? 0
             : props.vc.path.length === 0 ? props.vc.value.focus : unreachable());
             return <>
@@ -207,7 +211,7 @@ function JSONValueRender(props: {
                 <span class={colrfor(props.depth).dark}>"</span>
             </>;
         },
-        ["-N0gpdqw6BjkuWrRqqTG"]: () => <>
+        ["JSlot@-N0gpdqw6BjkuWrRqqTG"]: () => <>
             <span class="bg-gray-600 px-1 rounded-md">
                 <TempCrs vc={props.vc} idx={0} covers={" "} view={"covers"} />
             </span>
@@ -331,7 +335,7 @@ function defaultSubMove(obj: Obj, vc: VisualCursor, stop: StopOpts): {
     return {kind: "update", vc};
 }
 
-register<JString>("-N0gkxU5wAjciRZnERvO", {
+register<JString>("JString@-N0gkxU5wAjciRZnERvO", {
     move(field, vc, stop) {
         const idx = vc.value.focus;
         const res = idx + stop.dir; // TODO Intl.Segmenter
@@ -368,13 +372,13 @@ register<JString>("-N0gkxU5wAjciRZnERvO", {
         // manual string concatenation in javascript. fun.
 
         return {
-            kind: "-N0gkxU5wAjciRZnERvO",
+            kind: "JString@-N0gkxU5wAjciRZnERvO",
             text: new_val,
         };
     },
 });
 
-register<JNumber>("-N0gkzBWv3Cx0Ryyouky", {
+register<JNumber>("JNumber@-N0gkzBWv3Cx0Ryyouky", {
     move(field, vc, stop) {
         // we're actually going to pop out a little number editor so we're treating all numbers as if
         // they have two positions
@@ -409,7 +413,7 @@ register<JNumber>("-N0gkzBWv3Cx0Ryyouky", {
 //    and what does deleting right do inside there?
 //    and do we really need to have all these cursor positions? []"key"[: |]{[]}[]
 //    seems like we should just have []"key"[: ]{[]}
-register<JSlot>("-N0gpdqw6BjkuWrRqqTG", {
+register<JSlot>("JSlot@-N0gpdqw6BjkuWrRqqTG", {
     move(field, vc, stop) {
         return null;
     },
@@ -453,14 +457,14 @@ function slotInsert(item: Obj, at: {path: NodePath, index: number}): JValue {
 
         if(text === "\"") {
             const res: JString = {
-                kind: "-N0gkxU5wAjciRZnERvO",
+                kind: "JString@-N0gkxU5wAjciRZnERvO",
                 text: new Uint8Array([]),
             };
             return res;
         }
         if(text === "{" || text === "[") {
             const res: JObject = {
-                kind: "-N0gk9Mfm2iXGUkeWUMS",
+                kind: "JObject@-N0gk9Mfm2iXGUkeWUMS",
                 fields: [],
                 multiline: false,
                 mode: text === "[" ? "array" : "object",
@@ -486,7 +490,7 @@ function slotInsert(item: Obj, at: {path: NodePath, index: number}): JValue {
 // booleans don't actually need any selection points. you delete and retype.
 // deleting turns the node into a slot and then the slot shows one of those fancy headless ui comboboxes
 // to pick the value
-register<JBoolean>("-N0gl-Obi0cyd58QHO85", {
+register<JBoolean>("JBoolean@-N0gl-Obi0cyd58QHO85", {
     move() {return null},
     side() {return null},
     child() {unreachable()},
@@ -495,7 +499,7 @@ register<JBoolean>("-N0gl-Obi0cyd58QHO85", {
     },
 });
 
-register<JField>("-N0gkJ4N6etM-Md1KiyT", {
+register<JField>("JField@-N0gkJ4N6etM-Md1KiyT", {
     move(field, vc, stop) {
         const dsmres = defaultSubMove(field, vc, stop);
         if(dsmres.kind === "return") return dsmres.res;
@@ -563,7 +567,7 @@ register<JField>("-N0gkJ4N6etM-Md1KiyT", {
                 }
                 return {
                     ...obj,
-                    key: {kind: "-N0gpdqw6BjkuWrRqqTG"},
+                    key: {kind: "JSlot@-N0gpdqw6BjkuWrRqqTG"},
                 };
             }
             if(at.index === 2) {
@@ -571,14 +575,14 @@ register<JField>("-N0gkJ4N6etM-Md1KiyT", {
                     alert("not supported here");
                     return obj;
                 }
-                if(obj.value.kind !== "-N0gkxU5wAjciRZnERvO" && obj.value.kind !== "-N0gpdqw6BjkuWrRqqTG") {
+                if(obj.value.kind !== "JString@-N0gkxU5wAjciRZnERvO" && obj.value.kind !== "JSlot@-N0gpdqw6BjkuWrRqqTG") {
                     alert("not supported non-string key");
                     return obj;
                 }
                 return {
                     ...obj,
                     key: obj.value,
-                    value: {kind: "-N0gpdqw6BjkuWrRqqTG"},
+                    value: {kind: "JSlot@-N0gpdqw6BjkuWrRqqTG"},
                 };
             }
             unreachable();
@@ -602,7 +606,7 @@ register<SysText>("@systext", {
     },
 });
 
-register<JObject>("-N0gk9Mfm2iXGUkeWUMS", {
+register<JObject>("JObject@-N0gk9Mfm2iXGUkeWUMS", {
     move(obj, vc, stop) {
         // cursor positions:
         // inline:
@@ -662,7 +666,7 @@ register<JObject>("-N0gk9Mfm2iXGUkeWUMS", {
             // create a slot
             // type in the slot
             const newchild: JField = {
-                kind: "-N0gkJ4N6etM-Md1KiyT",
+                kind: "JField@-N0gkJ4N6etM-Md1KiyT",
                 value: slotInsert(item, {path: [], index: 0}),
             };
             
@@ -717,22 +721,22 @@ type test = targetsof<userstr | JSlot>;
 const a = {
     auto<T extends sources>(val: T): targetsof<T> {
         if(typeof val === "string") {
-            const res: JString = {kind: "-N0gkxU5wAjciRZnERvO", text: new TextEncoder().encode(val)};
+            const res: JString = {kind: "JString@-N0gkxU5wAjciRZnERvO", text: new TextEncoder().encode(val)};
             return res as targetsof<T>;
         };
         if(typeof val === "number") {
-            const res: JNumber = {kind: "-N0gkzBWv3Cx0Ryyouky", num: val};
+            const res: JNumber = {kind: "JNumber@-N0gkzBWv3Cx0Ryyouky", num: val};
             return res as targetsof<T>;
         };
         if(typeof val === "boolean") {
-            const res: JBoolean = {kind: "-N0gl-Obi0cyd58QHO85", value: val};
+            const res: JBoolean = {kind: "JBoolean@-N0gl-Obi0cyd58QHO85", value: val};
             return res as targetsof<T>;
         };
         if(typeof val === "object") {
             if('kind' in val && [
-                "-N0gk9Mfm2iXGUkeWUMS", "-N0gkxU5wAjciRZnERvO",
-                "-N0gkzBWv3Cx0Ryyouky", "-N0gl-Obi0cyd58QHO85", "-N0gpdqw6BjkuWrRqqTG",
-                "-N0l0aP4SXjljg-GoC-S" as unknown,
+                "JObject@-N0gk9Mfm2iXGUkeWUMS", "JString@-N0gkxU5wAjciRZnERvO",
+                "JNumber@-N0gkzBWv3Cx0Ryyouky", "JBoolean@-N0gl-Obi0cyd58QHO85", "JSlot@-N0gpdqw6BjkuWrRqqTG",
+                "JNull@-N0l0aP4SXjljg-GoC-S" as unknown,
             ].includes(val.kind as unknown)) {
                 return val as targetsof<T>;
             }
@@ -743,12 +747,12 @@ const a = {
         const guarda = (a: userfield): a is useronefield => a.length === 1;
         if(guarda(field)) {
             return {
-                kind: "-N0gkJ4N6etM-Md1KiyT",
+                kind: "JField@-N0gkJ4N6etM-Md1KiyT",
                 value: a.auto(field[0]),
             };
         }else{
             return {
-                kind: "-N0gkJ4N6etM-Md1KiyT",
+                kind: "JField@-N0gkJ4N6etM-Md1KiyT",
                 key: a.auto(field[0]),
                 value: a.auto(field[1]),
             };
@@ -756,7 +760,7 @@ const a = {
     },
     obj(v: "inline" | "multiline", ...obj: userfield[]): JObject {
         return {
-            kind: "-N0gk9Mfm2iXGUkeWUMS",
+            kind: "JObject@-N0gk9Mfm2iXGUkeWUMS",
             multiline: v === "multiline", 
             fields: obj.map(o => a.jfield(o)),
             mode: "object",
@@ -764,7 +768,7 @@ const a = {
     },
     arr(v: "inline" | "multiline", ...obj: userfield[]): JObject {
         return {
-            kind: "-N0gk9Mfm2iXGUkeWUMS",
+            kind: "JObject@-N0gk9Mfm2iXGUkeWUMS",
             multiline: v === "multiline", 
             fields: obj.map(o => a.jfield(o)),
             mode: "array",
@@ -774,7 +778,7 @@ const a = {
     // v this is misleading. a slot should be handled by its parent node because of how cusor
     //    movement works around it
     slot(): JSlot {
-        return {kind: "-N0gpdqw6BjkuWrRqqTG"};
+        return {kind: "JSlot@-N0gpdqw6BjkuWrRqqTG"};
     },
 };
 
