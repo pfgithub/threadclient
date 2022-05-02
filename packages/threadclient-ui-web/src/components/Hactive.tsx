@@ -1,5 +1,5 @@
 import {
-    Accessor, createSignal, JSX, untrack
+    Accessor, createMemo, createSignal, JSX, untrack
 } from "solid-js";
 import { signalFromMatchMedia } from "../util/utils_solid";
 
@@ -16,13 +16,14 @@ export default function Hactive(props: {
     clickable: boolean,
     children: (state: Accessor<boolean>, ref: (el: HTMLElement) => void, addClass: Accessor<string>) => JSX.Element,
 }): JSX.Element {
-    const noChildrenHovering = () => true;
-
     const [hovering, setHovering] = createSignal(false);
     const [active, setActive] = createSignal(false);
-    const state = () => {
-        return props.clickable && (active()) || (noChildrenHovering() && canHover() && hovering());
-    };
+    const state = createMemo(() => {
+        const res = props.clickable && (
+            (active()) || (canHover() && hovering())
+        );
+        return res;
+    });
 
     return <>{untrack(() => props.children(state, el => {
         el.addEventListener("mouseenter", () => {
