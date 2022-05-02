@@ -208,6 +208,12 @@ export type PostContentPost = {
     flair?: Flair[] | undefined, // maybe content warnings should be seperate
     thumbnail?: Thumbnail | undefined,
     info?: PostInfo | undefined,
+
+    // TODO: author?: Link<Post> | undefined
+    // - author will be rendered using a different post renderer
+    // - it will render the thumbnail and title
+    // - if we use a Bio content type instead of a normal Post content type, we could maybe make it a little
+    //   better
     author?: InfoAuthor | undefined,
     body: Body,
 
