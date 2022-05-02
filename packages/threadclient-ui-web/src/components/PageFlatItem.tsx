@@ -15,6 +15,7 @@ import { Body } from "./body";
 import { CollapseButton } from "./CollapseButton";
 import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
+import Hactive from "./Hactive";
 import { A } from "./links";
 import { ClientContentAny } from "./page2";
 import proxyURL from "./proxy_url";
@@ -266,14 +267,17 @@ function PageFlatPostNotSpecial(props: {
             });
         })()}
     >
-        <ToggleColor>{color => <div
+        <ToggleColor>{color => <Hactive clickable={wholeObjectClickable()}>{(hactive, divRef, divAddClass) => <div
+            ref={divRef}
             class={
-                "px-2 "+color+" "+(props.loader_or_post.is_pivot ? "@@IS_PIVOT@@ " : "")+
+                divAddClass() + " px-2 "+(
+                    hactive() ? `
+                    bg-slate-200 dark:bg-zinc-700
+                        shadow-md z-1
+                    ` : color
+                )+" "+(props.loader_or_post.is_pivot ? "@@IS_PIVOT@@ " : "")+
                 (wholeObjectClickable() ? `
                     cursor-pointer outline-default
-                    hactive:bg-slate-200 hactive:bg-zinc-700
-                    hactive:shadow-md
-                    hactive:z-1
                     relative
                 ` : "")+
                 (props.loader_or_post.first_in_wrapper ? `
@@ -322,7 +326,7 @@ function PageFlatPostNotSpecial(props: {
                     />
                 </div>
             </div>
-        </div>}</ToggleColor>
+        </div>}</Hactive>}</ToggleColor>
     </SwipeActions>;
 }
 

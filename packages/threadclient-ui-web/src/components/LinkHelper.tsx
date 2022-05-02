@@ -7,6 +7,7 @@ import {
 } from "../util/utils_solid";
 import { animateHeight } from "./animation";
 import { Body } from "./body";
+import Hactive from "./Hactive";
 import { InternalIconRaw } from "./Icon";
 import { A } from "./links";
 import proxyURL from "./proxy_url";
@@ -50,7 +51,9 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
     // TODO: get rid of this, use showAnimate instead.
     // right, the reason we couldn't is because we had to split the thing in half
     // - just start it split in half already?
-    return <Show if={human().link !== "error"}><div class="my-2">
+    return <Show if={human().link !== "error"}><Hactive
+        clickable={true}
+    >{(__, divRef, divAddClass) => <div ref={divRef} class={"my-2 "+divAddClass()}>
         <ToggleColor>{color => <A
             client_id={props.link.client_id}
             class={classes(
@@ -115,7 +118,7 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
                 </A>}</ToggleColor>
             </div>
         </Show></>}</Show>
-    </div></Show>;
+    </div>}</Hactive></Show>;
 }
 
 function LinkLocationSection(props: {url: string, external: boolean}): JSX.Element {

@@ -13,6 +13,20 @@ html {
     }
 }
 
+.js-detect-active:active{
+    // see: hactive.ts
+    animation: js_detect_active_on 1000s linear ;
+    animation-iteration-count: infinite;
+}
+@keyframes js_detect_active_of {
+    0% {--unused: 0}
+    100% { --unused: 1}
+}
+@keyframes js_detect_active_on {
+    0% {--unused: 0}
+    100% { --unused: 1}
+}
+
 // normalization
 button,
 input,
@@ -90,7 +104,7 @@ textarea {
     & ::-webkit-scrollbar-thumb:hover {
         background-color: #575e62;
     }
-    & ::-webkit-scrollbar-thumb:active {
+    & ::-webkit-scrollbar-thumb:js-detect-active {
         background-color: #484e51;
     }
     & ::-webkit-scrollbar-corner {

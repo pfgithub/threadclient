@@ -165,7 +165,7 @@ function localStorageProperty<
     return Object.assign(fn, opts);
 }
 
-function signalFromMatchMedia<True, False>(
+export function signalFromMatchMedia<True, False>(
     query: string, when_true: True, when_false: False,
 ): Accessor<True | False> {
     const reduce_motion = window.matchMedia(query);
