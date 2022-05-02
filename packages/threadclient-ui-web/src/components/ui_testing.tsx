@@ -71,6 +71,9 @@ export default function UITestingPageRoot(): JSX.Element {
     // the swipe to close animation is basically the same as SwipeActions.tsx but vertical instead
     // of horizontal.
 
+    // oh nevermind, we can't do this. disabling pan-y means we can't zoom in and look around the
+    // image like we could before. nevermind
+
     return (
         <div class="
             h-screen overflow-hidden overflow-x-scroll dark:bg-zinc-800
