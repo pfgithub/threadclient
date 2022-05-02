@@ -68,11 +68,16 @@ export default function UITestingPageRoot(): JSX.Element {
         document.documentElement.style.overflowY = "";
     });
 
+    // the swipe to close animation is basically the same as SwipeActions.tsx but vertical instead
+    // of horizontal.
+
     return (
         <div class="
             h-screen overflow-hidden overflow-x-scroll dark:bg-zinc-800
             snap-x snap-mandatory flex flex-row gap-6 relative
-        ">
+        " style={{
+            'touch-action': "pan-x pinch-zoom",
+        }}>
             {[
                 [640, 480],
                 [480, 640],
