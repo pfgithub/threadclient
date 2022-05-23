@@ -70,12 +70,14 @@ function ImageBody(props: {
                     src={url()}
                     class="w-full h-full object-cover filter blur-24px "
                     alt={props.alt}
+                    loading="lazy"
                 />
             </div>
         </div>
         <img
             src={url()}
             class="relative block w-full h-full object-contain"
+            loading="lazy"
         />
     </div>;
 }
