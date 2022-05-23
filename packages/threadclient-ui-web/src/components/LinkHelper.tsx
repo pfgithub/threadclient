@@ -53,7 +53,7 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
     // - just start it split in half already?
     return <Show if={human().link !== "error"}><Hactive
         clickable={true}
-    >{(__, divRef, divAddClass) => <div ref={divRef} class={"my-2 "+divAddClass()}>
+    >{(__, divRef, divAddClass) => <div ref={divRef} class={divAddClass()}>
         <ToggleColor>{color => <A
             client_id={props.link.client_id}
             class={classes(

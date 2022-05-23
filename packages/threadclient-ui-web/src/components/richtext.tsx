@@ -319,16 +319,16 @@ export function RichtextParagraphs(props: {
     tight?: undefined | boolean,
 }): JSX.Element {
     const settings = getSettings();
-    return <For each={props.content}>{paragraph => <>
-        <div classList={{'my-2': !(props.tight ?? false)}}>
+    return <div class={props.tight ?? false ? "" : "space-y-2"}>
+        <For each={props.content}>{paragraph => <>
             <RichtextParagraph paragraph={paragraph} />
-        </div>
-        <Show if={settings.linkHelpers() === "show"}>
-            <For each={extractLinks(paragraph)}>{link => (
-                <LinkHelper link={link} />
-            )}</For>
-        </Show>
-    </>}</For>;
+            <Show if={settings.linkHelpers() === "show"}>
+                <For each={extractLinks(paragraph)}>{link => (
+                    <LinkHelper link={link} />
+                )}</For>
+            </Show>
+        </>}</For>
+    </div>;
 }
 
 export function RichtextDocument(props: {
