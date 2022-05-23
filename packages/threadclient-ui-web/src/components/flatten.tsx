@@ -210,7 +210,7 @@ export function renderTreeItem(
     };
 }
 
-function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeItem[] {
+export function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeItem[] {
     const res: FlatTreeItem[] = [];
     
     function addReplies(replies: Generic.HorizontalLoader) {

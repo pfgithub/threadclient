@@ -3077,13 +3077,30 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         });
     }
     if(path0 === "@fullscreen") {
-        return fetchPromiseThen(import("./experiments/fullscreen_snap_view/FullscreenSnapView"), (fsv) => {
+        const [p1, ...p2] = path;
+
+        return fetchPromiseThen((async () => {
+            const reader_promise = import("./experiments/fullscreen_snap_view/FullscreenSnapView");
+
+            const client = await fetchClient(p1 ?? "E");
+            if(!client) throw new Error("bad client: "+p1);
+            const page = await client.getPage!("/"+p2.join("/")+search);
+            return {
+                fsv: await reader_promise,
+                client,
+                page,
+            };
+        })(), ({fsv: fsv, client, page}) => {
             const res = el("div");
             const hsc = hideshow(res);
-            const title = updateTitle(hsc, "NA");
+            const title = updateTitle(hsc, client.id);
             title.setTitle(path0);
             vanillaToSolidBoundary(res, () => <>
-                <fsv.default/>
+                <PageRootProvider pgin={{page}} addContent={() => {
+                    throw new Error("TODO add content");
+                }}>
+                    <fsv.default url={"/"+path.join("/")} pivot={page.pivot} />
+                </PageRootProvider>
             </>, {color_level: 0}).defer(hsc);
             return hsc;
         });
