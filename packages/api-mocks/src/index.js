@@ -71,7 +71,14 @@ app.use("/mock", (req, res, next) => {
         return next();
     }
 });
-if(process.env.ONLINE === "true") {
+let passthrough_cache = new Map();
+if(process.env.ONLINE === "true" || process.env.ONLINE === "passthrough") {
+    app.use("/mock", (req, res, next) => {
+        const urlv = toSafeFilename(req);
+        const v = passthrough_cache.get(urlv);
+        if(v != null) return res.send(v);
+        return next();
+    });
     app.use("/mock", proxy((req) => {
         return req["@origin"];
     }, {
@@ -84,8 +91,14 @@ if(process.env.ONLINE === "true") {
             }
             // TODO consider brotli compressing file content
             // - 386kb → 24kb for the reddit results
-            fs.writeFileSync(safilename, nprdata, "binary");
-            console.log("cached URL: "+req.method + " " + req.url);
+            if(process.env.ONLINE === "true") {
+                fs.writeFileSync(safilename, nprdata, "binary");
+                console.log("cached URL: "+req.method + " " + req.url);
+            }
+            if(process.env.ONLINE === "passthrough") {
+                console.log("viewed URL: "+req.method + " " + req.url);
+                passthrough_cache.set(safilename, nprdata);
+            }
             return proxy_res_data;
         },
     }));

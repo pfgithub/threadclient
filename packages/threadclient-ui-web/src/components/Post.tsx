@@ -27,7 +27,7 @@ import proxyURL from "./proxy_url";
 
 const decorative_alt = "";
 
-function AuthorPfp(props: {src_url: string}): JSX.Element {
+export function AuthorPfp(props: {src_url: string}): JSX.Element {
     return <img
         src={proxyURL(props.src_url)}
         alt={decorative_alt}
@@ -267,7 +267,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 // [!] USE A SHOWHIDE TOGGLE ANIMATED THING
 // [!] UPDATE THAT THING TO USE inert=true ON THE THING BEING HIDDEN
 //      [!] we also need to move focus to the right place immediately on toggle
-function PostTopBar(props: ClientPostProps & {
+export function PostTopBar(props: ClientPostProps & {
     visible: boolean,
     setVisible: Setter<boolean>,
 

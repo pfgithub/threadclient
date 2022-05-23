@@ -376,7 +376,9 @@ function pathURL(oauth: boolean, path: string, opts: {override?: undefined | boo
     query.set("emotes_as_images", "true"); // enables sending {t: "gif"} span elements in richtext rather than sending a link
     query.set("gilding_detail", "1"); // not sure what this does but new.reddit sends it in an oauth.reddit.com request so it sounds good
     query.set("profile_img", "true"); // profile images
-    return baseURL(oauth) + pathname + ".json?"+query.toString() + (hash === "" ? "" : "#"+hash);
+    const res = baseURL(oauth) + pathname + ".json?"+query.toString() + (hash === "" ? "" : "#"+hash);
+    console.log("!PATHURL", res);
+    return res;
 }
 
 // ok so the idea::
