@@ -3076,6 +3076,18 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             return hsc;
         });
     }
+    if(path0 === "@fullscreen") {
+        return fetchPromiseThen(import("./experiments/fullscreen_snap_view/FullscreenSnapView"), (fsv) => {
+            const res = el("div");
+            const hsc = hideshow(res);
+            const title = updateTitle(hsc, "NA");
+            title.setTitle(path0);
+            vanillaToSolidBoundary(res, () => <>
+                <fsv.default/>
+            </>, {color_level: 0}).defer(hsc);
+            return hsc;
+        });
+    }
 
     return fetchClientThen(path0, (client) => {
         return clientMain(client, "/"+path.join("/")+search);
