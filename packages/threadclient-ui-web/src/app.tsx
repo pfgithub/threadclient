@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
-import { createEffect, createSignal, JSX, untrack } from "solid-js";
+import { createEffect, createMemo, createSignal, JSX, untrack } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { gfyLike2, previewLink } from "threadclient-preview";
@@ -3101,6 +3101,30 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
                 }}>
                     <fsv.default url={"/"+path.join("/")} pivot={page.pivot} />
                 </PageRootProvider>
+            </>, {color_level: 0}).defer(hsc);
+            return hsc;
+        });
+    }
+    if(path0 === "@term") {
+        // const [p1, ...p2] = path;
+
+        return fetchPromiseThen(import("./experiments/term_app/TermApp"), (term) => {
+            const res = el("div");
+            const hsc = hideshow(res);
+            const title = updateTitle(hsc, "term");
+            title.setTitle(path0);
+
+            const [shouldReload, setReload] = createSignal(undefined, {equals: () => false});
+
+            vanillaToSolidBoundary(res, () => <>
+                <DefaultErrorBoundary data={""}>
+                    {createMemo(() => {
+                        shouldReload();
+                        return <term.default reloadSelf={() => {
+                            setReload(undefined);
+                        }} />;
+                    })}
+                </DefaultErrorBoundary>
             </>, {color_level: 0}).defer(hsc);
             return hsc;
         });
