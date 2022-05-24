@@ -1,49 +1,59 @@
-import { createSignal, Index, JSX, onCleanup, onMount } from "solid-js";
+import { createSignal, For, JSX, onCleanup, onMount } from "solid-js";
 
-type TermLine = symbol & {__is_term_line: TermLine};
+type ReadOpts = {
+    onProgress?: undefined | ((progress: string) => void),
+};
 type Term = {
-    print: (msg: string) => TermLine,
-    update: (line: TermLine, msg: string) => void,
-    read: () => Promise<string>,
+    // print: (msg: string) => TermLine,
+    // update: (line: TermLine, msg: string) => void,
+    print: (line: JSX.Element) => void,
+    read: (opts?: undefined | ReadOpts) => Promise<string>,
 };
 
 async function adventureGame(t: Term): Promise<void> {
-    t.print("You are standing in a forest.");
+    t.print(<Line>You are standing in a forest.</Line>);
     while(true) {
-        const printline = t.print("[What to do?]");
-        const v = (await t.read()).split(" ");
-        t.update(printline, "[What to do?] " + v.join(" ")+"");
+        const [printcmd, setPrintcmd] = createSignal<string>("");
+        t.print(<Line class="bg-zinc-900">[What to do?] {printcmd()}</Line>);
+        const v = (await t.read({
+            onProgress: q => void setPrintcmd(q),
+        })).split(" ");
+        setPrintcmd(v.join(" ")+"");
+
         if(v[0] === "look") {
-            t.print("There are quite a few trees");
+            t.print(<Line>There are quite a few trees</Line>);
         }else if(v[0] === "help") {
-            t.print("Commands: `look`, `exit`");
+            t.print(<Line>Commands: `look`, `exit`</Line>);
         }else if(v[0] === "exit") {
-            t.print("Goodbye.");
+            t.print(<Line>Goodbye.</Line>);
             break;
         }else{
-            t.print("I'm not sure what you mean. `help` for help.");
+            t.print(<Line>I'm not sure what you mean. `help` for help.</Line>);
         }
     }
 }
 
 async function app(t: Term): Promise<void> {
     while(true) {
-        const l1 = t.print("~/t/g/7/tmp$");
-        const text = await t.read();
-        t.update(l1, "~/t/g/7/tmp$ "+text);
+        const [printcmd, setPrintcmd] = createSignal<string>("");
+        t.print(<Line class="bg-zinc-900">~/t/g/7/tmp$ {printcmd()}</Line>);
+        const text = await t.read({
+            onProgress: v => void setPrintcmd(v),
+        });
+        setPrintcmd(text);
 
         if(text === "adventure") {
             try {
                 await adventureGame(t);
             }catch(er) {
                 const e = er as Error;
-                t.print("Adventure game errored: "+e.toString()+"\n"+e.stack);
+                t.print(<Line>Adventure game errored: {e.toString() + "\n" + e.stack}</Line>);
             }
         }else if(text === "exit") {
-            t.print("Goodbye.");
+            t.print(<Line>Goodbye.</Line>);
             break;
         }else {
-            t.print("Command not found: `"+text+"`");
+            t.print(<Line>Command not found: `{text}`</Line>);
         }
     }
 }
@@ -54,6 +64,28 @@ type HMRData = {
 function hmrview(): string[] {
     const hd = window as unknown as HMRData;
     return (hd["@term-app-hmr-data"] ??= []);
+}
+
+function Line(props: {
+    class?: undefined | string,
+    children: JSX.Element,
+}): JSX.Element {
+    return <div class={props.class + " px-2 whitespace-pre-wrap"} ref={el => {
+        onMount(() => {
+            // ok wow this is so much better than the horrible .style.opacity .offsetHeight .style.opacity thing
+            // I need to find everything using `.offsetHeight` and switch it to this animations api
+            el.animate([
+                {opacity: 0},
+                {opacity: 1}
+            ], {
+                duration: 200,
+                iterations: 1,
+            });
+            //
+        });
+    }}>
+        {props.children}
+    </div>;
 }
 
 export default function TermApp(props: {
@@ -71,45 +103,44 @@ export default function TermApp(props: {
     });
     document.body.appendChild(sel);
 
-    const [lines, setLines] = createSignal<string[]>([]);
+    const [lines, setLines] = createSignal<{itm: JSX.Element}[]>([]);
 
     const waiting_reads: string[] = [...hmrview()];
-    const waiting_cbs: ((v: string) => void)[] = [];
+    const waiting_cbs: ({
+        complete: (v: string) => void,
+        progress: (v: string) => void,
+    })[] = [];
     const emitRead = (msg: string) => {
         hmrview().push(msg);
 
         const wcb = waiting_cbs.shift();
         if(wcb != null) {
-            wcb(msg);
+            wcb.complete(msg);
             return;
         }
         waiting_reads.push(msg);
         return;
     };
-    const awaitRead = async (): Promise<string> => {
+    const awaitRead = async (opts?: undefined | ReadOpts): Promise<string> => {
         const wr = waiting_reads.shift();
         if(wr != null) return wr;
-        return await new Promise(r => waiting_cbs.push(r));
+        const res = await new Promise<string>(r => waiting_cbs.push({
+            complete: r,
+            progress: v => {
+                opts?.onProgress?.(v);
+            },
+        }));
+        return res;
     };
 
     const term: Term = {
         print: (msg) => {
-            let resl!: number;
             setLines(v => {
-                resl = v.length;
-                return [...v, msg];
-            });
-            return resl as unknown as TermLine;
-        },
-        update: (line, msg) => {
-            setLines(v => {
-                const vdup = [...v];
-                vdup[line as unknown as number] = msg;
-                return vdup;
+                return [...v, {itm: msg}];
             });
         },
-        read: async () => {
-            return awaitRead();
+        read: async (opts) => {
+            return awaitRead(opts);
         },
     };
     app(term).then(r => {
@@ -119,40 +150,30 @@ export default function TermApp(props: {
     });
     // on cleanup: send a cancel signal
 
-    return <div class="bg-hex-000 h-screen p-2" style={{
+    return <div class="bg-hex-000 h-screen py-2" style={{
         'font-family': "Verdana",
     }}>
-        <Index each={[...lines().entries()]}>{line => <>
-            <div class="whitespace-pre-wrap" ref={el => {
+        <For each={lines()}>{line => <>
+            {line.itm}
+        </>}</For>
+        <div class="pt-2 px-2">
+            <input class="block w-full border border-hex-fff rounded-md px-1" ref={el => {
                 onMount(() => {
-                    // ok wow this is so much better than the horrible .style.opacity .offsetHeight .style.opacity thing
-                    // I need to find everything using `.offsetHeight` and switch it to this animations api
-                    el.animate([
-                        {opacity: 0},
-                        {opacity: 1}
-                    ], {
-                        duration: 200,
-                        iterations: 1,
-                    });
-                    //
+                    el.focus();
                 });
-            }}>
-                {line()[1]}
-            </div>
-        </>}</Index>
-        <input class="block w-full mt-2 border border-hex-fff rounded-md px-1" ref={el => {
-            onMount(() => {
-                el.focus();
-            });
-        }} onKeyDown={e => {
-            if(e.code === "Enter") {
-                e.preventDefault();
-                e.stopPropagation();
-                emitRead(e.currentTarget.value);
-                e.currentTarget.value = "";
-            }
-        }} />
-        <div class="mt-2">
+            }} onKeyDown={e => {
+                if(e.code === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    emitRead(e.currentTarget.value);
+                    e.currentTarget.value = "";
+                }
+            }} onInput={e => {
+                const wcb0 = waiting_cbs[0];
+                wcb0?.progress(e.currentTarget.value);
+            }} />
+        </div>
+        <div class="pt-2 px-2">
             <button class="border border-hex-fff rounded-md px-1" onClick={() => {
                 hmrview().pop();
                 props.reloadSelf();
