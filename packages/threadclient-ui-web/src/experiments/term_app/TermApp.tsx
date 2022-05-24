@@ -202,7 +202,9 @@ function Line(props: {
     class?: undefined | string,
     children: JSX.Element,
 }): JSX.Element {
-    return <div class={props.class + " px-2 whitespace-pre-wrap"}>
+    return <div class={props.class + " px-2 whitespace-pre-wrap font-mono"} style={{
+        // 'font-family': "Verdana",
+    }}>
         {props.children}
     </div>;
 }
@@ -269,9 +271,7 @@ export default function TermApp(props: {
     });
     // on cleanup: send a cancel signal
 
-    return <div class="bg-hex-000 h-screen py-2" style={{
-        'font-family': "Verdana",
-    }} ref={el => {
+    return <div class="bg-hex-000 h-screen py-2" ref={el => {
         onMount(() => {
             // ok wow this is so much better than the horrible .style.opacity .offsetHeight .style.opacity thing
             // I need to find everything using `.offsetHeight` and switch it to this animations api
