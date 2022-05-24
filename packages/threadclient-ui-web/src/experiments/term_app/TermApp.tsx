@@ -1,4 +1,5 @@
 import { createSignal, For, JSX, onCleanup, onMount } from "solid-js";
+import { Show } from "tmeta-util-solid";
 
 type ReadOpts = {
     onProgress?: undefined | ((progress: string) => void),
@@ -96,6 +97,9 @@ async function projectsApp(t: Term): Promise<void> {
             }else{
                 t.print(<Line>file not found</Line>);
             }
+        }else if(v[0] === "exit") {
+            t.print(<Line>Exiting</Line>);
+            break;
         }else{
             t.print(<Line>I'm not sure what you mean. `help` for help.</Line>);
         }
@@ -125,6 +129,58 @@ async function app(t: Term): Promise<void> {
                 const e = er as Error;
                 t.print(<Line>Projects app errored: {e.toString() + "\n" + e.stack}</Line>);
             }
+        }else if(text === "showanimtest") {
+            const target_msg = "Here is some text. I'm trying out animating it in";
+            const [animvalue, setAnimvalue] = createSignal("");
+            const updatep = (p: number): void=> {
+                if(p >= 1) return void setAnimvalue(target_msg);
+                setAnimvalue([...target_msg].map(v => {
+                    if(v === " ") return v;
+                    if(Math.random() > p) return "!";
+                    return v;
+                }).join(""));
+            };
+            const replay = () => {
+                updatep(0);
+                setTimeout(() => {
+                    updatep(0.2);
+                    setTimeout(() => {
+                        updatep(0.4);
+                        setTimeout(() => {
+                            updatep(0.6);
+                            setTimeout(() => {
+                                updatep(0.8);
+                                setTimeout(() => {
+                                    updatep(1.0);
+                                }, 40);
+                            }, 40);
+                        }, 40);
+                    }, 40);
+                }, 40);
+            };
+            replay();
+            t.print(<Line>
+                {animvalue()}
+                <Show if={animvalue() === target_msg}>
+                    {" "}<button onClick={() => {
+                        replay();
+                    }} class="underline" ref={v => {
+                        onMount(() => {
+                            v.style.opacity = "0";
+                            setTimeout(() => {
+                                v.style.opacity = "1";
+                                v.animate([
+                                    {opacity: 0},
+                                    {opacity: 1},
+                                ], {
+                                    duration: 200,
+                                    iterations: 1,
+                                });
+                            }, 500);
+                        });
+                    }}>Replay</button>
+                </Show>
+            </Line>);
         }else if(text === "exit") {
             t.print(<Line>Goodbye.</Line>);
             break;
@@ -146,20 +202,7 @@ function Line(props: {
     class?: undefined | string,
     children: JSX.Element,
 }): JSX.Element {
-    return <div class={props.class + " px-2 whitespace-pre-wrap"} ref={el => {
-        onMount(() => {
-            // ok wow this is so much better than the horrible .style.opacity .offsetHeight .style.opacity thing
-            // I need to find everything using `.offsetHeight` and switch it to this animations api
-            el.animate([
-                {opacity: 0},
-                {opacity: 1}
-            ], {
-                duration: 200,
-                iterations: 1,
-            });
-            //
-        });
-    }}>
+    return <div class={props.class + " px-2 whitespace-pre-wrap"}>
         {props.children}
     </div>;
 }
@@ -228,6 +271,20 @@ export default function TermApp(props: {
 
     return <div class="bg-hex-000 h-screen py-2" style={{
         'font-family': "Verdana",
+    }} ref={el => {
+        onMount(() => {
+            // ok wow this is so much better than the horrible .style.opacity .offsetHeight .style.opacity thing
+            // I need to find everything using `.offsetHeight` and switch it to this animations api
+            el.animate([
+                {opacity: 1},
+                {opacity: 0},
+                {opacity: 1},
+            ], {
+                duration: 200,
+                iterations: 1,
+            });
+            //
+        });
     }}>
         <For each={lines()}>{line => <>
             {line.itm}
