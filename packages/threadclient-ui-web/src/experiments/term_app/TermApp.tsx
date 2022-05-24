@@ -54,16 +54,39 @@ async function projectsApp(t: Term): Promise<void> {
                             <div class="my-2 flex flex-col sm:flex-row hover:shadow-md bg-slate-100 hover:bg-hex-fff">
                                 <div class="sm:w-40 sm:h-auto flex-none overflow-hidden" aria-hidden="true">
                                     <a rel="noopener" target="" tabindex="-1" href="/projects/interpunct_bot">
-                                        <img src="https://pfg.pw/icons/interpunct_img.png" alt="" class="w-full h-full object-cover " width="960" height="600" />
+                                        <img
+                                            src="https://pfg.pw/icons/interpunct_img.png"
+                                            alt="" class="w-full h-full object-cover " width="960" height="600"
+                                        />
                                     </a>
                                 </div>
                                 <div class="p-4 flex flex-col z-10 relative">
                                     <h3>
-                                        <a rel="noopener" target="" class="font-black hover:underline" href="https://pfg.pw/projects/interpunct_bot">inter·punct bot</a>
+                                        <a
+                                            rel="noopener" target="_blank" class="font-black hover:underline"
+                                            href="https://pfg.pw/projects/interpunct_bot"
+                                        >inter·punct bot</a>
                                     </h3>
-                                    <div class="mb-2 mt-1">A bot for the chat service <a href="https://discord.com" class="hover:underline text-blue-900" target="_blank" rel="noopener">Discord</a> that adds many features including games such as Checkers and Paper Soccer and moderator functions such as a ticketing system and a way for mods to give people roles faster using emojis.</div>
+                                    <div class="mb-2 mt-1">
+                                        A bot for the chat service <a
+                                            href="https://discord.com"
+                                            class="hover:underline text-blue-900"
+                                            target="_blank" rel="noopener"
+                                        >Discord</a> that adds many features including games such as Checkers and
+                                        Paper Soccer and moderator functions such as a ticketing system and a way for
+                                        moderators to give people roles faster using emojis.
+                                    </div>
                                     <div class="font-light text-sm">
-                                        <a href="https://www.typescriptlang.org/" class="hover:underline" target="_blank" rel="noopener">Typescript</a> • <a href="https://nodejs.org/en/" class="hover:underline" target="_blank" rel="noopener">NodeJS</a> • <a href="https://discord.js.org/" class="hover:underline" target="_blank" rel="noopener">discord.js</a>
+                                        <a
+                                            href="https://www.typescriptlang.org/" class="hover:underline"
+                                            target="_blank" rel="noopener"
+                                        >Typescript</a> • <a
+                                            href="https://nodejs.org/en/" class="hover:underline"
+                                            target="_blank" rel="noopener"
+                                        >NodeJS</a> • <a
+                                            href="https://discord.js.org/" class="hover:underline"
+                                            target="_blank" rel="noopener"
+                                        >discord.js</a>
                                     </div>
                                 </div>
                             </div>
