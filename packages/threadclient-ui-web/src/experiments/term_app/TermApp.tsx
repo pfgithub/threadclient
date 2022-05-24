@@ -276,14 +276,22 @@ export default function TermApp(props: {
             // ok wow this is so much better than the horrible .style.opacity .offsetHeight .style.opacity thing
             // I need to find everything using `.offsetHeight` and switch it to this animations api
             el.animate([
-                {opacity: 1},
+                {backgroundColor: "#222"},
+                {},
+            ], {
+                duration: 200,
+                iterations: 1,
+            });
+        });
+    }}><div ref={el => {
+        onMount(() => {
+            el.animate([
                 {opacity: 0},
                 {opacity: 1},
             ], {
                 duration: 200,
                 iterations: 1,
             });
-            //
         });
     }}>
         <For each={lines()}>{line => <>
@@ -314,5 +322,5 @@ export default function TermApp(props: {
                 dbg:undo
             </button>
         </div>
-    </div>;
+    </div></div>;
 }
