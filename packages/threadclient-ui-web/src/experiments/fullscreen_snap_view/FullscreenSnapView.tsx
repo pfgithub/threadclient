@@ -24,6 +24,27 @@ tap:
 swipe horizontal:
 - swipe between photos
 - seek in video
+pinch:
+~ zoom content
+
+I think we should handle touches ourselves
+
+advantages:
+- we can implement all the gestures better
+  - pinch zoom can eg:
+    - hide the ui (we can implement this currently with that visual viewport change notification thing)
+    - zoom the image
+    - not zoom the visual viewport (makes it feel nicer to use)
+    - not be completely broken because of a scroll-snap bug in every browser and possibly in the spec too
+- scroll snap is broken on every browser and possibly in the spec too
+
+disadvantages:
+- have to implement for:
+  - mouse
+  - keyboard
+  - touch
+  - screenreader
+- need the inertia or spring effects or whatever it is (no bouncing but a smooth transition)
 */
 
 function SidebarButton(props: {
