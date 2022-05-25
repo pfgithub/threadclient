@@ -109,13 +109,6 @@ function DemoObject(props: {
     </div>;
 }
 
-let osla: (() => void)[] | undefined = [];
-function onSVGLoaded(cb: () => void): void {
-    if(osla == null) return cb();
-    osla.push(cb);
-    return;
-}
-
 // add the svg filter (I tried using a filter url but it has to async load and so it doesn't work the
 // first time you render) (a filter url is url(JSON.stringify(data:image/svg+xml,encodeURIComponent(<svg>…</svg>)#sharpBlur))
 // https://codepen.io/johndjameson/full/xVjgPy/
@@ -132,11 +125,7 @@ document.body.appendChild(<div>
             width: 1px;
         }
     `}</style>
-    <svg  class="hideSvgSoThatItSupportsFirefox" onLoad={() => {
-        const v = osla ?? [];
-        osla = undefined;
-        v.forEach(c => c());
-    }}>
+    <svg class="hideSvgSoThatItSupportsFirefox">
         <filter id="sharpBlur">
             <feGaussianBlur stdDeviation="2"></feGaussianBlur>
             <feColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 9 0"></feColorMatrix>
@@ -167,7 +156,7 @@ function ImageBody(props: {
             src={url()}
             class="relative block w-full h-full object-contain"
             onClick={() => props.toggleUI()}
-            onLoad={(e) => onSVGLoaded(() => {
+            onLoad={e => {
                 const ctx2d = canvasel.getContext("2d");
                 if(!ctx2d) {
                     // ?
@@ -187,7 +176,7 @@ function ImageBody(props: {
                 // vv this filter url is working fine but it seems the js canvas doesn't like it for some reason
                 ctx2d.filter = "url(#sharpBlur)";
                 ctx2d.drawImage(canvasel, 0, 0);
-            })}
+            }}
         />
     </div>;
 }
