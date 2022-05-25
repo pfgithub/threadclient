@@ -216,7 +216,7 @@ function FullscreenBody(props: {
                         <div class="w-full snap-center shrink-0 h-full py-8">
                             <div class="relative h-full">
                                 <FullscreenBody body={img.body} toggleUI={props.toggleUI} />
-                                <div class="absolute top-0 bg-hex-000 bg-opacity-50 max-h-50% overflow-y-scroll p-2">
+                                <div class="absolute left-0 top-0 w-full bg-hex-000 bg-opacity-50 max-h-50% overflow-y-scroll p-2">
                                     <FullscreenBodyInfoLine body={img.body} />
                                 </div>
                             </div>
