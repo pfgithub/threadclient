@@ -52,6 +52,9 @@ a {
 .aspect-square {
     aspect-ratio: 1 / 1;
 }
+.shrink-0 {
+    flex-shrink: 0;
+}
 .snap-x {
     scroll-snap-type: x var(--tw-scroll-snap-strictness);
 }

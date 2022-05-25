@@ -77,13 +77,13 @@ function DemoObject(props: {
             <div class="flex h-full">
                 <div class="flex-1 flex flex-col drop-shadow-md">
                     <div class="flex-1" />
-                    <div class="p-4 pointer-events-auto bg-hex-000000 bg-opacity-50 max-h-50vh overflow-y-scroll">
+                    <div class="p-4 pointer-events-auto bg-hex-000000 bg-opacity-50 max-h-50% overflow-y-scroll">
                         {props.title}
                     </div>
                 </div>
                 <div class="w-14 flex flex-col drop-shadow-md">
                     <div class="flex-1" />
-                    <div class="w-full pointer-events-auto bg-hex-000000 bg-opacity-50">
+                    <div class="w-full pointer-events-auto bg-hex-000000 bg-opacity-50 max-h-full overflow-y-scroll">
                         <SidebarButton
                             icon="up_arrow"
                             label="Upvote"
@@ -111,6 +111,7 @@ function DemoObject(props: {
 
 // add the svg filter (I tried using a filter url but it has to async load and so it doesn't work the
 // first time you render) (a filter url is url(JSON.stringify(data:image/svg+xml,encodeURIComponent(<svg>…</svg>)#sharpBlur))
+// https://codepen.io/johndjameson/full/xVjgPy/
 document.body.appendChild(<div>
     <style>{`
         .hideSvgSoThatItSupportsFirefox {
@@ -190,6 +191,7 @@ function FullscreenBodyInfoLine(props: {
         captioned_image: img => <Show when={img.caption}>{caption => <>
             <div>{caption}</div>
         </>}</Show>,
+        gallery: gal => <div>{gal.images.length} images</div>,
     }}</SwitchKind>;
 }
 
@@ -207,6 +209,18 @@ function FullscreenBody(props: {
 
             toggleUI={props.toggleUI}
         />,
+        gallery: gal => <div class="h-full w-full overflow-x-scroll snap-x">
+            <div class="w-full h-full px-8">
+                <div class="flex h-full gap-4">
+                    <For each={gal.images}>{img => (
+                        <div class="w-full snap-center shrink-0 h-full py-8">
+                            <FullscreenBody body={img.body} toggleUI={props.toggleUI} />
+                        </div>
+                    )}</For>
+                    <div class="shrink-0 w-4" />
+                </div>
+            </div>
+        </div>,
     }}</SwitchKind>;
 }
 
