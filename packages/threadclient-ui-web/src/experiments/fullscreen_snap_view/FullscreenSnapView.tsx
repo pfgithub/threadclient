@@ -96,28 +96,71 @@ function psurl(v: string): string {
     return "https://picsum.photos/seed/"+v;
 }
 
+// add the svg filter (I tried using a filter url but it has to async load and so it doesn't work the
+// first time you render) (a filter url is url(JSON.stringify(data:image/svg+xml,encodeURIComponent(<svg>…</svg>)#sharpBlur))
+document.body.appendChild(<div>
+    <style>{`
+        .hideSvgSoThatItSupportsFirefox {
+            border: 0;
+            clip: rect(0 0 0 0);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            position: absolute;
+            width: 1px;
+        }
+    `}</style>
+    <svg class="hideSvgSoThatItSupportsFirefox">
+        <filter id="sharpBlur">
+            <feGaussianBlur stdDeviation="2"></feGaussianBlur>
+            <feColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 9 0"></feColorMatrix>
+            <feComposite in2="SourceGraphic" operator="in"></feComposite>
+        </filter>
+    </svg>
+</div> as HTMLElement);
+
 function ImageBody(props: {
     url: string,
     blurhash?: string | undefined,
     color?: string | undefined,
     alt?: string | undefined,
 }): JSX.Element {
+    let canvasel!: HTMLCanvasElement;
+
     const url = () => proxyURL(props.url);
     return <div class="w-full h-full relative" style={{'background-color': props.color ?? ""}}>
         <div class="absolute inset-0 w-full h-full overflow-hidden">
-            <div class="w-full h-full transform scale-150">
-                <img
-                    src={url()}
-                    class="w-full h-full object-cover filter blur-24px "
-                    alt={props.alt}
-                    loading="lazy"
-                />
-            </div>
+            <canvas
+                ref={canvasel} width={20} height={20}
+                class="w-full h-full"
+            />
         </div>
         <img
             src={url()}
             class="relative block w-full h-full object-contain"
             loading="lazy"
+            onLoad={(e) => {
+                const ctx2d = canvasel.getContext("2d");
+                if(!ctx2d) {
+                    // ?
+                    return;
+                }
+                // wow we can almost do the entire filter thing with an svg filter url. no canvas needed
+                // https://yoksel.github.io/svg-filters/#/
+                // Blur ColorMatrix Composite Offset Merge
+                // the only issue is we need to scale it right and that's a dynamic value
+                // = we could build a solid js thing to update the filter but that seems wrong
+
+                ctx2d.drawImage(
+                    e.currentTarget, 0, 0,
+                    canvasel.width, canvasel.height,
+                );
+                ctx2d.globalCompositeOperation = "copy";
+                // vv this filter url is working fine but it seems the js canvas doesn't like it for some reason
+                ctx2d.filter = "url(#sharpBlur)";
+                ctx2d.drawImage(canvasel, 0, 0);
+            }}
         />
     </div>;
 }

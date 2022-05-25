@@ -39,7 +39,13 @@ module.exports = {
             multilineDetection: "last-member",
         }],
         "custom-quote-rule/func-style": "warn",
-        "max-len": ["warn", 120, {ignoreComments: true}],
+        "max-len": ["warn", 120, {
+            ignoreComments: true,
+            ignoreUrls: true,
+            ignoreStrings: true,
+            ignoreTemplateLiterals: true,
+            ignoreRegExpLiterals: true,
+        }],
         "custom-quote-rule/indent": "warn",
         "one-var": ["warn", "never"],
 
