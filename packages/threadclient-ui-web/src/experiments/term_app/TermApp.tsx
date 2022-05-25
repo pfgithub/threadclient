@@ -1,5 +1,6 @@
 import { createSignal, For, JSX, onCleanup, onMount } from "solid-js";
 import { Show } from "tmeta-util-solid";
+import { A } from "../../components/links";
 
 type ReadOpts = {
     onProgress?: undefined | ((progress: string) => void),
@@ -9,7 +10,14 @@ type Term = {
     // update: (line: TermLine, msg: string) => void,
     print: (line: JSX.Element) => void,
     read: (opts?: undefined | ReadOpts) => Promise<string>,
+    suggest: (msg: string) => void,
 };
+
+function ChatLink(props: {t: Term, to: string, children: JSX.Element}): JSX.Element {
+    return <A class="underline" onClick={() => {
+        props.t.suggest(props.to);
+    }}>{props.children}</A>;
+}
 
 async function adventureGame(t: Term): Promise<void> {
     t.print(<Line>You are standing in a forest.</Line>);
@@ -22,7 +30,10 @@ async function adventureGame(t: Term): Promise<void> {
         setPrintcmd(v.join(" ")+"");
 
         if(v[0] === "look") {
-            t.print(<Line>There are quite a few trees</Line>);
+            t.print(<Line>
+                There are quite a few trees. You see
+                a <ChatLink t={t} to={"open trapdoor"}>Trapdoor</ChatLink>.
+            </Line>);
         }else if(v[0] === "help") {
             t.print(<Line>Commands: `look`, `exit`</Line>);
         }else if(v[0] === "exit") {
@@ -34,7 +45,7 @@ async function adventureGame(t: Term): Promise<void> {
     }
 }
 
-async function projectsApp(t: Term): Promise<void> {
+async function app(t: Term): Promise<void> {
     /*
     <div class="m-2"><div class="bg-slate-300 text-slate-900">
         <div class="max-w-screen-lg mx-auto">
@@ -191,6 +202,8 @@ async function projectsApp(t: Term): Promise<void> {
         return pathjoin(cwd, vsplit);
     }
 
+    // TODO: set the URL of the page we're on to match the cwd
+
     while(true) {
         const [printcmd, setPrintcmd] = createSignal<string>("");
         t.print(<Line class="bg-zinc-900">https://pfg.pw/{cwd.join("/")}$ {printcmd()}</Line>);
@@ -224,44 +237,33 @@ async function projectsApp(t: Term): Promise<void> {
         }else if(v[0] === "exit") {
             t.print(<Line>Exiting</Line>);
             break;
-        }else{
-            t.print(<Line>I'm not sure what you mean. `help` for help.</Line>);
-        }
-    }
-}
-
-async function app(t: Term): Promise<void> {
-    while(true) {
-        const [printcmd, setPrintcmd] = createSignal<string>("");
-        t.print(<Line class="bg-zinc-900">~/t/g/7/tmp$ {printcmd()}</Line>);
-        const text = await t.read({
-            onProgress: v => void setPrintcmd(v),
-        });
-        setPrintcmd(text);
-
-        if(text === "adventure") {
+        }else if(v[0] === "pwd") {
+            t.print(<Line>/{cwd.join("/")}</Line>);
+        }else if(v[0] === "adventure") {
             try {
                 await adventureGame(t);
             }catch(er) {
                 const e = er as Error;
                 t.print(<Line>Adventure game errored: {e.toString() + "\n" + e.stack}</Line>);
             }
-        }else if(text === "projects") {
-            try {
-                await projectsApp(t);
-            }catch(er) {
-                const e = er as Error;
-                t.print(<Line>Projects app errored: {e.toString() + "\n" + e.stack}</Line>);
-            }
-        }else if(text === "showanimtest") {
+        }else if(v[0] === "showanimtest") {
             const target_msg = "Here is some text. I'm trying out animating it in";
             const [animvalue, setAnimvalue] = createSignal("");
             const updatep = (p: number): void=> {
                 if(p >= 1) return void setAnimvalue(target_msg);
-                setAnimvalue([...target_msg].map(v => {
-                    if(v === " ") return v;
-                    if(Math.random() > p) return "!";
-                    return v;
+                setAnimvalue([...target_msg].map(q => {
+                    if(q === " ") return q;
+
+                    // ok I'd rather for each char we start at ' ' and then upgrade it randomly
+                    // so like ' ' → '.' → '$' → 'a'
+                    // but we never go backwards
+
+                    const picks = ["@", "$", "#", "^", "&"];
+                    const char = picks[(Math.random() * picks.length) |0]!;
+                    const picks2 = ["", " ", "!", ".", ",", "*", "-"];
+                    const char2 = picks2[(Math.random() * picks2.length) |0]!;
+                    if(Math.random() > p) return Math.random() < p ? char : char2;
+                    return q;
                 }).join(""));
             };
             const replay = () => {
@@ -288,12 +290,12 @@ async function app(t: Term): Promise<void> {
                 <Show if={animvalue() === target_msg}>
                     {" "}<button onClick={() => {
                         replay();
-                    }} class="underline" ref={v => {
+                    }} class="underline" ref={q => {
                         onMount(() => {
-                            v.style.opacity = "0";
+                            q.style.opacity = "0";
                             setTimeout(() => {
-                                v.style.opacity = "1";
-                                v.animate([
+                                q.style.opacity = "1";
+                                q.animate([
                                     {opacity: 0},
                                     {opacity: 1},
                                 ], {
@@ -305,11 +307,8 @@ async function app(t: Term): Promise<void> {
                     }}>Replay</button>
                 </Show>
             </Line>);
-        }else if(text === "exit") {
-            t.print(<Line>Goodbye.</Line>);
-            break;
-        }else {
-            t.print(<Line>Command not found: `{text}`</Line>);
+        }else{
+            t.print(<Line>I'm not sure what you mean. `help` for help.</Line>);
         }
     }
 }
@@ -378,6 +377,7 @@ export default function TermApp(props: {
         return res;
     };
 
+    let inputref!: HTMLInputElement;
     const term: Term = {
         print: (msg) => {
             setLines(v => {
@@ -386,6 +386,10 @@ export default function TermApp(props: {
         },
         read: async (opts) => {
             return awaitRead(opts);
+        },
+        suggest: (msg) => {
+            inputref.value = msg;
+            inputref.focus();
         },
     };
     app(term).then(r => {
@@ -423,6 +427,7 @@ export default function TermApp(props: {
         </>}</For>
         <div class="pt-2 px-2">
             <input class="block w-full border border-hex-fff rounded-md px-1" ref={el => {
+                inputref = el;
                 onMount(() => {
                     el.focus();
                 });
