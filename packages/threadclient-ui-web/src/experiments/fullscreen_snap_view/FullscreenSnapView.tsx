@@ -68,7 +68,7 @@ function DemoObject(props: {
     showUI: boolean,
 }): JSX.Element {
     return <div class={
-        "snap-start h-screen relative"
+        "h-screen relative"
     }>
         {props.children}
         <div class="absolute inset-0 w-full h-full pb-12 pointer-events-none" style={{
@@ -166,7 +166,6 @@ function ImageBody(props: {
         <img
             src={url()}
             class="relative block w-full h-full object-contain"
-            loading="lazy"
             onClick={() => props.toggleUI()}
             onLoad={(e) => onSVGLoaded(() => {
                 const ctx2d = canvasel.getContext("2d");
@@ -333,21 +332,66 @@ export default function FullscreenSnapView(props: {
     });
 
     return <div class="bg-hex-000 h-screen overflow-y-scroll snap-y snap-mandatory text-zinc-100">
-        <For each={list().items}>{item => <>
-            <SwitchKind item={item}>{{
-                'error': (emsg) => <div class="snap-start w-full h-full">
-                    E;ERROR;{emsg.msg}
-                </div>,
-                'flat_loader': fl => <div class="snap-start w-full h-full">
-                    TODO loader
-                </div>,
-                'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
-                    E;TODO;{obj.kind}
-                </>}>{{
-                    'post': post => <FullscreenPost content={post} />,
-                }}</SwitchKind>,
-            }}</SwitchKind>
-        </>}</For>
+        <For each={list().items}>{item => {
+            const [showContent, setShowContent] = createSignal(false);
+
+            let visible_now = false;
+            let req: number | undefined;
+
+            return <div class="snap-center w-full h-full" ref={el => {
+                new IntersectionObserver((e) => {
+                    e.forEach(entry => {
+                        // ios safari:
+                        if(!('requestIdleCallback' in window)) {
+                            (window as unknown as {
+                                requestIdleCallback: (cb: () => void) => void,
+                            })["requestIdleCallback"] = cb => cb();
+                        }
+                        if(!('cancleIdleCallback' in window)) {
+                            (window as unknown as {
+                                cancleIdleCallback: () => void,
+                            })["cancleIdleCallback"] = () => void 0;
+                        }
+
+                        if(entry.isIntersecting) {
+                            visible_now = true;
+                            if(req != null) cancelIdleCallback(req);
+                            req = requestIdleCallback(() => {
+                                setShowContent(visible_now);
+                            }, {timeout: 500});
+                            // ^ ideally we should just skip the idle callback the moment the first pixel is
+                            // visible but that's complicated because intersectionobserver doesn't allow negative
+                            // margins and you have to use rootMargin instead
+                        }else{
+                            visible_now = false;
+                            if(req != null) cancelIdleCallback(req);
+                            req = requestIdleCallback(() => {
+                                setShowContent(visible_now);
+                            });
+                        }
+                    });
+                }, {
+                    rootMargin: "50%",
+                    threshold: 0,
+                }).observe(el);
+            }}>
+                <Show if={showContent()} fallback="… loading">
+                    <SwitchKind item={item}>{{
+                        'error': (emsg) => <div class="w-full h-full">
+                            E;ERROR;{emsg.msg}
+                        </div>,
+                        'flat_loader': fl => <div class="w-full h-full">
+                            TODO loader
+                        </div>,
+                        'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
+                            E;TODO;{obj.kind}
+                        </>}>{{
+                            'post': post => <FullscreenPost content={post} />,
+                        }}</SwitchKind>,
+                    }}</SwitchKind>
+                </Show>
+            </div>;
+        }}</For>
 
         <A
             class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
