@@ -2569,6 +2569,19 @@ function renderClientPage(
 // const top_level_wrapper: string[] = [];
 // const object_wrapper = ["shadow-md m-5 p-3 dark:bg-gray-800 rounded-xl m-5 p-3"];
 
+function splitPath(inpath: string): {path: string, search: string, hash: string} {
+    // const res = new URL(path, "https://www.example.com")
+    // return {path: res.pathname, search: res.search, hash: res.hash};
+    const [path1, ...rest] = inpath.split("?");
+    const path = path1!;
+    const inpath2 = rest.join("?");
+    const [search1, ...rest2] = inpath2.split("#");
+    const search = search1 !== "" ? "?"+search1 : "";
+    const hash1 = rest2.join("#");
+    const hash = hash1 !== "" ? "#" + hash1 : "";
+    return {path, search, hash};
+}
+
 function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
     const outer = el("div").clss("client-wrapper");
     const hsc = hideshow(outer);
@@ -2587,7 +2600,8 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         // await new Promise(r => 0);
         if(!client.getThread || client.getPage && getSettings().pageVersion() === "2") {
             const page2 = await client.getPage!(current_path);
-            const page: MutablePage2HistoryNode = {page: page2};
+            const split = splitPath(current_path);
+            const page: MutablePage2HistoryNode = {page: page2, query: split.search};
 
             // const {default: ClientPage} = await import("./components/page2");
             loader_area.remove();
@@ -2612,6 +2626,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
 export type MutablePage2HistoryNode = {
     page: Generic.Page2,
+    query: string,
 };
 function addLayer(node: Generic.Page2, new_layer: Generic.Page2Content): Generic.Page2 {
     console.log("!ADDDING LAYER", node, new_layer);
@@ -2646,7 +2661,10 @@ let hidePage2!: () => void;
                     const  res = ClientPage({
                         get pivot() {
                             return pgin().page.pivot;
-                        }
+                        },
+                        get query() {
+                            return pgin().query;
+                        },
                     });
                     createEffect(() => {
                         document.title = res.title + " | " + "ThreadClient";
@@ -2750,14 +2768,20 @@ export type NavigationEntry = {url: string, node: NavigationEntryNode};
 
 export type HistoryState = {key: UUID};
 
-export function navigate({path, page}: {
+export function navigate({path, page, mode}: {
     path: string,
     page?: undefined | Generic.Page2,
+    mode?: undefined | "navigate" | "replace",
 }): void {
     if(path.startsWith("/")) path = path.replace("/", "#") || "#/";
     const hstate: HistoryState = {key: uuid()};
     console.log("Appending history state index", hstate, path);
-    history.pushState(hstate, "", path);
+    if(mode === "replace") {
+        history.replaceState(hstate, "", path);
+    }else{
+        history.pushState(hstate, "", path);
+    }
+    // TODO: work differently for replacestate
     onNavigate(hstate.key, location, page);
 }
 
@@ -3067,39 +3091,10 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             const title = updateTitle(hsc, client.id);
             title.setTitle(path0);
             vanillaToSolidBoundary(res, () => <>
-                <PageRootProvider pgin={{page}} addContent={() => {
+                <PageRootProvider pgin={{page, query: ""}} addContent={() => {
                     throw new Error("TODO add content");
                 }}>
                     <reader.default url={"/"+path.join("/")} pivot={page.pivot} />
-                </PageRootProvider>
-            </>, {color_level: 0}).defer(hsc);
-            return hsc;
-        });
-    }
-    if(path0 === "@fullscreen") {
-        const [p1, ...p2] = path;
-
-        return fetchPromiseThen((async () => {
-            const reader_promise = import("./experiments/fullscreen_snap_view/FullscreenSnapView");
-
-            const client = await fetchClient(p1 ?? "E");
-            if(!client) throw new Error("bad client: "+p1);
-            const page = await client.getPage!("/"+p2.join("/")+search);
-            return {
-                fsv: await reader_promise,
-                client,
-                page,
-            };
-        })(), ({fsv: fsv, client, page}) => {
-            const res = el("div");
-            const hsc = hideshow(res);
-            const title = updateTitle(hsc, client.id);
-            title.setTitle(path0);
-            vanillaToSolidBoundary(res, () => <>
-                <PageRootProvider pgin={{page}} addContent={() => {
-                    throw new Error("TODO add content");
-                }}>
-                    <fsv.default url={"/"+path.join("/")} pivot={page.pivot} />
                 </PageRootProvider>
             </>, {color_level: 0}).defer(hsc);
             return hsc;
@@ -3194,7 +3189,7 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
 
     if(page) {
         const page2 = page;
-        const pagemut: MutablePage2HistoryNode = {page: page2};
+        const pagemut: MutablePage2HistoryNode = {page: page2, query: url.search};
 
         showPage2(pagemut, true);
         nav_history_map.set(to_key, {node: {

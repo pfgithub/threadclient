@@ -64,8 +64,10 @@ export function A(props: {
 } & ({
     href: string,
     client_id: string,
+    mode?: undefined | "navigate" | "replace",
 } | {
     href?: undefined,
+    mode?: undefined,
 })): JSX.Element {
     const linkValue = createMemo(() => {
         if(props.href == null) return ({kind: "none"} as const);
@@ -88,7 +90,7 @@ export function A(props: {
             event.preventDefault();
             if(props.onClick) return props.onClick(event);
             if(link == null) return alert("E_LINK_HREF_EXPECT_NAVIGATE: "+props.href);
-            navigate({path: link.url, page: props.page?.()});
+            navigate({path: link.url, page: props.page?.(), mode: props.mode});
         }
     };
     return <SwitchKind item={linkValue()}>{{

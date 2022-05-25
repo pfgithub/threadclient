@@ -6,6 +6,7 @@ import {
     For, JSX, untrack
 } from "solid-js";
 import { createMergeMemo, Show } from "tmeta-util-solid";
+import FullscreenSnapView from "../experiments/fullscreen_snap_view/FullscreenSnapView";
 import { getWholePageRootContext, size_lt } from "../util/utils_solid";
 import { CollapseData, flatten } from "./flatten";
 import LandingPage from "./LandingPage";
@@ -24,7 +25,7 @@ export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
 };
 type PageRes = {children: JSX.Element, title: string};
-export default function ClientPage(props: ClientPageProps): PageRes {
+export default function ClientPage(props: ClientPageProps & {query: string}): PageRes {
     const hprc = getWholePageRootContext();
 
     const specialCB = createMemo((): null | SpecialCallback => {
@@ -39,8 +40,16 @@ export default function ClientPage(props: ClientPageProps): PageRes {
     });
     
     const res = createMemo((): PageRes => {
-        // unfortunately have to manually code this stuff because typescript doesn't support returning
-        // custom stuff from a jsx component without losing type safety
+        const use_fullscreen_view = (new URLSearchParams(props.query)).get("--tc-fullscreen") === "true";
+        if(use_fullscreen_view) {
+            return untrack((): PageRes => ({
+                title: "TODO fullscreen title",
+                children: FullscreenSnapView({
+                    pivot: props.pivot,
+                }),
+            }));
+        }
+
         const scb = specialCB();
         return untrack((): PageRes => {
             if(scb) {

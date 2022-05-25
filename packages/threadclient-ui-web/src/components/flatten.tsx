@@ -4,6 +4,7 @@
 // it's a trivial change just change the entrypoint and export.
 import * as Generic from "api-types-generic";
 import { Accessor, createSignal, Setter, untrack } from "solid-js";
+import { updateQuery } from "threadclient-client-reddit";
 import { array_key } from "./symbols";
 
 // indent: post id[]
@@ -59,6 +60,12 @@ export type CollapseButton = {
 // TODO probably add a key: string/symbol for easier diffing
 export type FlatItem = ({
     kind: "wrapper_start" | "wrapper_end" | "horizontal_line",
+} | {
+    kind: "repivot_list_fullscreen_button",
+
+    client_id: string,
+    page: () => Generic.Page2,
+    href: string,
 } | FlatPost | {
     kind: "todo",
     note: string,
@@ -538,6 +545,14 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
     // up like twitter does
     if(pivot.replies) {
         res.push({kind: "horizontal_line"});
+        if(pivot.replies.display === "repivot_list") {
+            res.push({
+                kind: "repivot_list_fullscreen_button",
+                client_id: pivot.client_id,
+                page: () => ({pivot: pivot_link, content: meta.content}),
+                href: updateQuery(pivot.url ?? "@ENO", {'--tc-fullscreen': "true"}),
+            });
+        }
         res.push(...flattenTopLevelReplies(pivot.replies, meta));
     }
 

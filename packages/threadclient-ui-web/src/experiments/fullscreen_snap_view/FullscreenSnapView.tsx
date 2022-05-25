@@ -1,9 +1,11 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
 import { createMemo, For, JSX, onCleanup } from "solid-js";
+import { updateQuery } from "threadclient-client-reddit";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { CollapseData, postReplies } from "../../components/flatten";
+import { CollapseData, FlatTreeItem, postReplies } from "../../components/flatten";
 import { InternalIconRaw } from "../../components/Icon";
+import { A } from "../../components/links";
 import proxyURL from "../../components/proxy_url";
 import { getWholePageRootContext } from "../../util/utils_solid";
 
@@ -108,7 +110,6 @@ function FullscreenBody(props: {
 }
 
 export default function FullscreenSnapView(props: {
-    url: string,
     pivot: Generic.Link<Generic.Post>,
 }): JSX.Element {
     const sel = document.createElement("style");
@@ -123,23 +124,29 @@ export default function FullscreenSnapView(props: {
     document.body.appendChild(sel);
 
     const hprc = getWholePageRootContext();
-    const list = createMemo(() => {
+    const list = createMemo((): {
+        items: FlatTreeItem[],
+        pivot: Generic.ActualPost,
+    } => {
         const res = readLink(hprc.content(), props.pivot);
         if(res == null || res.error != null) throw new Error("rve");
         const v = res.value;
         if(v.kind !== "post") throw new Error("rve2");
         if(v.replies == null) throw new Error("rve3");
-        if(v.replies.display !== "repivot_list") throw new Error("rve4");
+        // if(v.replies.display !== "repivot_list") throw new Error("rve4");
         const rpls = v.replies;
         const rps = postReplies(rpls, {
             collapse_data: undefined as unknown as CollapseData,
             content: hprc.content(),
         });
-        return rps;
+        return {
+            items: rps,
+            pivot: v,
+        };
     });
 
-    return <div class="bg-white h-screen overflow-y-scroll snap-y snap-mandatory">
-        <For each={list()}>{item => <>
+    return <div class="bg-hex-000 h-screen overflow-y-scroll snap-y snap-mandatory text-zinc-100">
+        <For each={list().items}>{item => <>
             <SwitchKind item={item}>{{
                 'error': (emsg) => <div class="snap-start w-full h-full">
                     E;ERROR;{emsg.msg}
@@ -186,5 +193,18 @@ export default function FullscreenSnapView(props: {
                 Text body? We'll have to display a bunch and end it with a 'read more' button
             </div>
         </DemoObject>
+
+        <A
+            class="fixed top-0 left-0 bg-hex-000000 bg-opacity-40 p-4"
+            mode="replace"
+            client_id={list().pivot.client_id}
+            page={(): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot})}
+            href={updateQuery(list().pivot.url ?? "ENO", {'--tc-fullscreen': undefined})}
+        >
+            <InternalIconRaw
+                class="fa-solid fa-down-left-and-up-right-to-center text-base"
+                label={"Exit Fullscreen"}
+            />
+        </A>
     </div>;
 }

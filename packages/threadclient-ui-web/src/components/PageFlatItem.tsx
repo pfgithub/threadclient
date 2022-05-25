@@ -16,6 +16,7 @@ import { CollapseButton } from "./CollapseButton";
 import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import Hactive from "./Hactive";
+import { InternalIconRaw } from "./Icon";
 import { A } from "./links";
 import { ClientContentAny } from "./page2";
 import proxyURL from "./proxy_url";
@@ -100,6 +101,16 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
         // should not be used to make gaps.
         wrapper_start: () => <div class="mt-4" />,
         wrapper_end: () => <div class="mb-4" />,
+        repivot_list_fullscreen_button: fsb => <A
+            class="bg-slate-100 dark:bg-zinc-800 p-2 rounded-md"
+            mode="replace"
+            client_id={fsb.client_id}
+            page={fsb.page}
+            href={fsb.href}
+        >
+            <InternalIconRaw class="fa-solid fa-up-right-and-down-left-from-center" label={null} />
+            {" "}Fullscreen
+        </A>,
         post: loader_or_post => <PageFlatPost
             collapse_data={props.collapse_data}
             loader_or_post={loader_or_post}
