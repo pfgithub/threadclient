@@ -1,6 +1,6 @@
 import * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { createSignal, JSX } from "solid-js";
+import { createEffect, createSignal, JSX } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { variables } from "virtual:_variables";
 import { availableForOfflineUse, link_styles_v, updateAvailable, updateSW } from "../app";
@@ -414,8 +414,12 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 <input
                     class="w-full bg-slate-300 dark:bg-zinc-900 p-2 placeholder-slate-500 dark:placeholder-slate-400"
                     placeholder={"http://localhost:3772/mock/"}
-                    value={settings.dev.mockRequests() ?? ""}
-                    onInput={v => {
+                    ref={el => {
+                        createEffect(() => {
+                            el.value = settings.dev.mockRequests() ?? "";
+                        });
+                    }}
+                    onChange={v => {
                         settings.dev.mockRequests.setOverride(v.currentTarget.value || undefined);
                     }}
                 />
