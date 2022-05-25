@@ -5,7 +5,8 @@ import { updateQuery } from "threadclient-client-reddit";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { Flair } from "../../components/Flair";
 import { CollapseData, FlatTreeItem, postReplies } from "../../components/flatten";
-import { InternalIconRaw } from "../../components/Icon";
+import Icon, { InternalIconRaw } from "../../components/Icon";
+import InfoBar from "../../components/InfoBar";
 import { A } from "../../components/links";
 import proxyURL from "../../components/proxy_url";
 import { getWholePageRootContext } from "../../util/utils_solid";
@@ -32,6 +33,21 @@ function DemoTitle(): JSX.Element {
         <div class="">©12d ↑1.3k ☺97%</div>
     </>;
 }
+
+function SidebarButton(props: {
+    icon: Generic.Icon,
+    label: string,
+    text: string,
+    onClick: () => void,
+}): JSX.Element {
+    return <button class="block w-full" onClick={() => props.onClick()}>
+        <div class="py-3 text-center">
+            <Icon class="text-[2rem]" icon={props.icon} bold={false} label={props.label} />
+            <div>{props.text}</div>
+        </div>
+    </button>;
+}
+
 function DemoObject(props: {
     children: JSX.Element,
     title: JSX.Element,
@@ -51,18 +67,24 @@ function DemoObject(props: {
                 <div class="w-14 flex flex-col drop-shadow-md">
                     <div class="flex-1" />
                     <div class="w-full pointer-events-auto bg-hex-000000 bg-opacity-50">
-                        <div class="py-3 text-center">
-                            <InternalIconRaw class="text-[2rem] fa-solid fa-arrow-up" label="Upvote" />
-                            <div>1.3k</div>
-                        </div>
-                        <div class="py-3 text-center">
-                            <InternalIconRaw class="text-[2rem] fa-solid fa-arrow-down" label="Downvote" />
-                            <div>3%</div>
-                        </div>
-                        <div class="py-3 text-center">
-                            <InternalIconRaw class="text-[2rem] fa-regular fa-comment" label="Comment" />
-                            <div>53</div>
-                        </div>
+                        <SidebarButton
+                            icon="up_arrow"
+                            label="Upvote"
+                            text="1.3k"
+                            onClick={() => alert("TODO")}
+                        />
+                        <SidebarButton
+                            icon="down_arrow"
+                            label="Downvote"
+                            text="98%"
+                            onClick={() => alert("TODO")}
+                        />
+                        <SidebarButton
+                            icon="comments"
+                            label="Comments"
+                            text="53"
+                            onClick={() => alert("TODO")}
+                        />
                     </div>
                 </div>
             </div>
@@ -164,7 +186,7 @@ function FullscreenPost(props: {
         </div>
         <FullscreenBodyInfoLine body={props.content.body} />
         <div class="">By u/author on r/subreddit</div>
-        <div class="">©12d ↑1.3k ☺97%</div>
+        <div class=""><InfoBar post={props.content} /></div>
     </>}>
         <Show if={!contentWarning()} fallback={<>
             <ContentWarningDisplay

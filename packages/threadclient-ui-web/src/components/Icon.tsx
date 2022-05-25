@@ -49,8 +49,12 @@ const tag_from_icon_kind: {[key in Generic.Icon]: [
     chevron_down: [false, "fa-chevron-down"],
 };
 
-export default function Icon(props: {icon: Generic.Icon, bold: boolean, label: null | string}): JSX.Element {
+export default function Icon(props: {
+    class?: string | undefined,
+    icon: Generic.Icon, bold: boolean, label: null | string,
+}): JSX.Element {
     return <InternalIcon
+        class={props.class}
         tag={tag_from_icon_kind[props.icon][1]}
         filled={tag_from_icon_kind[props.icon][0] ? props.bold : true}
         label={props.label}
