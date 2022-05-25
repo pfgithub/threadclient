@@ -84,18 +84,71 @@ async function projectsApp(t: Term): Promise<void> {
         </div>
     </div></div>
     */
-    type Dir = {
+    type Bys = {
+        previewDisplay?: undefined | (() => JSX.Element),
+    };
+    type Dir = Bys & {
         kind: "dir",
         files: {[key: string]: Dir | Fyl},
     };
-    type Fyl = {
+    type Fyl = Bys & {
         kind: "fyl",
     };
     const dir = (files: {[key: string]: Dir | Fyl}): Dir => ({kind: "dir", files});
+    const ipbotprvdsp = () => <div class="m-2"><div class="bg-slate-300 text-slate-900">
+        <div class="max-w-screen-lg mx-auto">
+            <div class="p-4">
+                <h2 class="font-black text-3xl my-3">Current Projects</h2>
+                <p class="mb-3">Large projects I'm working on right now</p>
+                <div class="my-2 flex flex-col sm:flex-row hover:shadow-md bg-slate-100 hover:bg-hex-fff">
+                    <div class="sm:w-40 sm:h-auto flex-none overflow-hidden" aria-hidden="true">
+                        <a rel="noopener" target="" tabindex="-1" href="/projects/interpunct_bot">
+                            <img
+                                src="https://pfg.pw/icons/interpunct_img.png"
+                                alt="" class="w-full h-full object-cover " width="960" height="600"
+                            />
+                        </a>
+                    </div>
+                    <div class="p-4 flex flex-col z-10 relative">
+                        <h3>
+                            <a
+                                rel="noopener" target="_blank" class="font-black hover:underline"
+                                href="https://pfg.pw/projects/interpunct_bot"
+                            >inter·punct bot</a>
+                        </h3>
+                        <div class="mb-2 mt-1">
+                            A bot for the chat service <a
+                                href="https://discord.com"
+                                class="hover:underline text-blue-900"
+                                target="_blank" rel="noopener"
+                            >Discord</a> that adds many features including games such as Checkers and
+                            Paper Soccer and moderator functions such as a ticketing system and a way for
+                            moderators to give people roles faster using emojis.
+                        </div>
+                        <div class="font-light text-sm">
+                            <a
+                                href="https://www.typescriptlang.org/" class="hover:underline"
+                                target="_blank" rel="noopener"
+                            >Typescript</a> • <a
+                                href="https://nodejs.org/en/" class="hover:underline"
+                                target="_blank" rel="noopener"
+                            >NodeJS</a> • <a
+                                href="https://discord.js.org/" class="hover:underline"
+                                target="_blank" rel="noopener"
+                            >discord.js</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div></div>;
     const dirstructure = dir({
         projects: dir({
             current: dir({
-                interpunct_bot: dir({}),
+                interpunct_bot: {
+                    kind: "fyl",
+                    previewDisplay: ipbotprvdsp,
+                },
                 threadreader: dir({}), // todo rename to threadclient and redirect the old url
             }),
             past: dir({}),
@@ -154,11 +207,11 @@ async function projectsApp(t: Term): Promise<void> {
             ][] = fyl == null ? [] : fyl.kind === "dir" ? Object.entries(fyl.files) : [
                 ["?", fyl],
             ];
-            t.print(<Line>
-                <For each={itms}>{itm => <div>
-                    {itm[0]}{itm[1].kind === "dir" ? "/" : ""}
-                </div>}</For>
-            </Line>);
+            for(const [name, itm] of itms) {
+                t.print(itm.previewDisplay ? itm.previewDisplay() : <Line>
+                    {name}{itm.kind === "dir" ? "/" : ""}
+                </Line>);
+            }
         }else if(v[0] === "cd") {
             const what = [...v.slice(1)].join(" ");
             const path = userpath(what);
