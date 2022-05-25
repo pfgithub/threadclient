@@ -1,13 +1,29 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
-import { createMemo, For, JSX, onCleanup } from "solid-js";
+import { createMemo, createSignal, For, JSX, onCleanup } from "solid-js";
 import { updateQuery } from "threadclient-client-reddit";
 import { Show, SwitchKind } from "tmeta-util-solid";
+import { Flair } from "../../components/Flair";
 import { CollapseData, FlatTreeItem, postReplies } from "../../components/flatten";
 import { InternalIconRaw } from "../../components/Icon";
 import { A } from "../../components/links";
 import proxyURL from "../../components/proxy_url";
 import { getWholePageRootContext } from "../../util/utils_solid";
+
+/*
+Planned gestures:
+
+swipe vertical:
+✓ scroll
+double tap:
+- like post
+tap:
+- view content (eg opens photoswipe for a photo or shows a reader view for a text post)
+- play/pause video
+swipe horizontal:
+- swipe between photos
+- seek in video
+*/
 
 function DemoTitle(): JSX.Element {
     return <>
@@ -28,13 +44,13 @@ function DemoObject(props: {
             <div class="flex h-full">
                 <div class="flex-1 flex flex-col drop-shadow-md">
                     <div class="flex-1" />
-                    <div class="p-4 pointer-events-auto bg-hex-000000 bg-opacity-40">
+                    <div class="p-4 pointer-events-auto bg-hex-000000 bg-opacity-50">
                         {props.title}
                     </div>
                 </div>
                 <div class="w-14 flex flex-col drop-shadow-md">
                     <div class="flex-1" />
-                    <div class="w-full pointer-events-auto bg-hex-000000 bg-opacity-40">
+                    <div class="w-full pointer-events-auto bg-hex-000000 bg-opacity-50">
                         <div class="py-3 text-center">
                             <InternalIconRaw class="text-[2rem] fa-solid fa-arrow-up" label="Upvote" />
                             <div>1.3k</div>
@@ -109,6 +125,58 @@ function FullscreenBody(props: {
     }}</SwitchKind>;
 }
 
+function ContentWarningDisplay(props: {
+    cws: Generic.Flair[],
+    onConfirm: () => void,
+}): JSX.Element {
+    /*
+        <OnTap ev={() => } />
+        <OnLRDrag ev={() => } />
+        we might be reimplementing drag handlers ourselves because scroll snap doesn't work all
+        that well
+    */
+    return <button class="block w-full h-full p-4" onClick={() => props.onConfirm()}>
+        <div class="text-lg">Content Warning:</div>
+        <div class="text-xl"><Flair flairs={props.cws} /></div>
+        <div class="text-base">Tap to view.</div>
+    </button>;
+}
+
+function FullscreenPost(props: {
+    content: Generic.PostContentPost,
+}): JSX.Element {
+    const [contentWarning, setContentWarning] = createSignal(
+        !!(props.content.flair ?? []).find(flair => flair.content_warning),
+    );
+    // alternatively:
+    // - [acceptedContentWarnings, setAcceptedContentWarnings]
+    // - const allAccepted = () => flair.filter(content_warning).filter(not in accepted).length === 0
+    // (requires stable ids for the flairs, which we can do pretty easily)
+    //
+    // that would mean that if a new cw is added to a post, it will reprompt
+
+    return <DemoObject title={<>
+        <Show when={props.content.title}>{title => <div class="font-bold">
+            {title.text}
+        </div>}</Show>
+        <div>
+            <Flair flairs={props.content.flair ?? []} />
+        </div>
+        <FullscreenBodyInfoLine body={props.content.body} />
+        <div class="">By u/author on r/subreddit</div>
+        <div class="">©12d ↑1.3k ☺97%</div>
+    </>}>
+        <Show if={!contentWarning()} fallback={<>
+            <ContentWarningDisplay
+                onConfirm={() => setContentWarning(false)}
+                cws={(props.content.flair ?? []).filter(f => f.content_warning)}
+            />
+        </>}>
+            <FullscreenBody body={props.content.body}  />
+        </Show>
+    </DemoObject>;
+}
+
 export default function FullscreenSnapView(props: {
     pivot: Generic.Link<Generic.Post>,
 }): JSX.Element {
@@ -157,16 +225,7 @@ export default function FullscreenSnapView(props: {
                 'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
                     E;TODO;{obj.kind}
                 </>}>{{
-                    'post': post => <DemoObject title={<>
-                        <Show when={post.title}>{title => <div class="font-bold">
-                            {title.text}
-                        </div>}</Show>
-                        <FullscreenBodyInfoLine body={post.body} />
-                        <div class="">By u/author on r/subreddit</div>
-                        <div class="">©12d ↑1.3k ☺97%</div>
-                    </>}>
-                        <FullscreenBody body={post.body} />
-                    </DemoObject>,
+                    'post': post => <FullscreenPost content={post} />,
                 }}</SwitchKind>,
             }}</SwitchKind>
         </>}</For>
@@ -195,7 +254,7 @@ export default function FullscreenSnapView(props: {
         </DemoObject>
 
         <A
-            class="fixed top-0 left-0 bg-hex-000000 bg-opacity-40 p-4"
+            class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
             mode="replace"
             client_id={list().pivot.client_id}
             page={(): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot})}
