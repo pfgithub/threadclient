@@ -214,7 +214,12 @@ function FullscreenBody(props: {
                 <div class="flex h-full gap-4">
                     <For each={gal.images}>{img => (
                         <div class="w-full snap-center shrink-0 h-full py-8">
-                            <FullscreenBody body={img.body} toggleUI={props.toggleUI} />
+                            <div class="relative h-full">
+                                <FullscreenBody body={img.body} toggleUI={props.toggleUI} />
+                                <div class="absolute top-0 bg-hex-000 bg-opacity-50 max-h-50% overflow-y-scroll p-2">
+                                    <FullscreenBodyInfoLine body={img.body} />
+                                </div>
+                            </div>
                         </div>
                     )}</For>
                     <div class="shrink-0 w-4" />
