@@ -26,14 +26,6 @@ swipe horizontal:
 - seek in video
 */
 
-function DemoTitle(): JSX.Element {
-    return <>
-        <div class="font-bold">Post Title</div>
-        <div class="">By u/author on r/subreddit</div>
-        <div class="">©12d ↑1.3k ☺97%</div>
-    </>;
-}
-
 function SidebarButton(props: {
     icon: Generic.Icon,
     label: string,
@@ -51,16 +43,20 @@ function SidebarButton(props: {
 function DemoObject(props: {
     children: JSX.Element,
     title: JSX.Element,
+
+    showUI: boolean,
 }): JSX.Element {
     return <div class={
         "snap-start h-screen relative"
     }>
         {props.children}
-        <div class="absolute inset-0 w-full h-full pb-12 pointer-events-none">
+        <div class="absolute inset-0 w-full h-full pb-12 pointer-events-none" style={{
+            display: props.showUI ? "" : "none",
+        }}>
             <div class="flex h-full">
                 <div class="flex-1 flex flex-col drop-shadow-md">
                     <div class="flex-1" />
-                    <div class="p-4 pointer-events-auto bg-hex-000000 bg-opacity-50">
+                    <div class="p-4 pointer-events-auto bg-hex-000000 bg-opacity-50 max-h-50vh overflow-y-scroll">
                         {props.title}
                     </div>
                 </div>
@@ -92,10 +88,6 @@ function DemoObject(props: {
     </div>;
 }
 
-function psurl(v: string): string {
-    return "https://picsum.photos/seed/"+v;
-}
-
 // add the svg filter (I tried using a filter url but it has to async load and so it doesn't work the
 // first time you render) (a filter url is url(JSON.stringify(data:image/svg+xml,encodeURIComponent(<svg>…</svg>)#sharpBlur))
 document.body.appendChild(<div>
@@ -125,6 +117,8 @@ function ImageBody(props: {
     blurhash?: string | undefined,
     color?: string | undefined,
     alt?: string | undefined,
+
+    toggleUI: () => void,
 }): JSX.Element {
     let canvasel!: HTMLCanvasElement;
 
@@ -140,6 +134,7 @@ function ImageBody(props: {
             src={url()}
             class="relative block w-full h-full object-contain"
             loading="lazy"
+            onClick={() => props.toggleUI()}
             onLoad={(e) => {
                 const ctx2d = canvasel.getContext("2d");
                 if(!ctx2d) {
@@ -179,6 +174,8 @@ function FullscreenBodyInfoLine(props: {
 
 function FullscreenBody(props: {
     body: Generic.Body,
+
+    toggleUI: () => void,
 }): JSX.Element {
     return <SwitchKind item={props.body} fallback={itm => <div>
         TODO {itm.kind}
@@ -186,6 +183,8 @@ function FullscreenBody(props: {
         captioned_image: img => <ImageBody
             url={img.url}
             alt={img.alt}
+
+            toggleUI={props.toggleUI}
         />,
     }}</SwitchKind>;
 }
@@ -220,6 +219,8 @@ function FullscreenPost(props: {
     //
     // that would mean that if a new cw is added to a post, it will reprompt
 
+    const [showUI, setShowUI] = createSignal(true);
+
     return <DemoObject title={<>
         <Show when={props.content.title}>{title => <div class="font-bold">
             {title.text}
@@ -230,14 +231,16 @@ function FullscreenPost(props: {
         <FullscreenBodyInfoLine body={props.content.body} />
         <div class="">By u/author on r/subreddit</div>
         <div class=""><InfoBar post={props.content} /></div>
-    </>}>
+    </>} showUI={showUI()}>
         <Show if={!contentWarning()} fallback={<>
             <ContentWarningDisplay
                 onConfirm={() => setContentWarning(false)}
                 cws={(props.content.flair ?? []).filter(f => f.content_warning)}
             />
         </>}>
-            <FullscreenBody body={props.content.body}  />
+            <FullscreenBody body={props.content.body} toggleUI={() => {
+                setShowUI(v => !v);
+            }}  />
         </Show>
     </DemoObject>;
 }
@@ -294,29 +297,6 @@ export default function FullscreenSnapView(props: {
                 }}</SwitchKind>,
             }}</SwitchKind>
         </>}</For>
-        <DemoObject title={<DemoTitle />}>
-            <ImageBody url={psurl("1/255/550")} color={"#886b53"} />
-        </DemoObject>
-        <DemoObject title={<DemoTitle />}>
-            <ImageBody url={psurl("2/270/550")} color={"#272e36"} />
-        </DemoObject>
-        <DemoObject title={<DemoTitle />}>
-            <ImageBody url={psurl("3/550/255")} color={"#545841"} />
-        </DemoObject>
-        <DemoObject title={<DemoTitle />}>
-            <div class="w-full h-full bg-yellow-500"></div>
-        </DemoObject>
-        <DemoObject title={<DemoTitle />}>
-            <div class="w-full h-full bg-black"></div>
-        </DemoObject>
-        <DemoObject title={<DemoTitle />}>
-            <div class="w-full h-full bg-white-500"></div>
-        </DemoObject>
-        <DemoObject title={<DemoTitle />}>
-            <div class="p-4">
-                Text body? We'll have to display a bunch and end it with a 'read more' button
-            </div>
-        </DemoObject>
 
         <A
             class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
