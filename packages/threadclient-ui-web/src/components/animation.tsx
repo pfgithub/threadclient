@@ -2,7 +2,6 @@ import {
     Accessor,
     createEffect, createSignal, JSX, on, untrack
 } from "solid-js";
-import { assertNever } from "tmeta-util";
 import { Show } from "tmeta-util-solid";
 import { navbar } from "../app";
 import { getSettings, Settings } from "../util/utils_solid";
@@ -36,11 +35,6 @@ export function animateHeight(
 ): void {
     const mode = opts?.mode ?? "height";
 
-    comment_root.addEventListener("transitionend", e => {
-        if(e.target !== e.currentTarget) return;
-        setAnimating(null);
-        setState(transitionTarget(), false, false);
-    });
     const onTransitionTargetChangedImmediate = () => {
         const initial_size = comment_root.getBoundingClientRect();
         const navbar_size = navbar.getBoundingClientRect();
@@ -78,7 +72,7 @@ export function animateHeight(
         const initial_height = Math.min(initial_size.bottom, visualBottom()) - initial_size.top - scroll_offset;
         const prev_scrolltop = document.documentElement.scrollTop;
 
-        setAnimating(null);
+        // setAnimating(null);
         setState(target, false, true);
 
         const final_size = comment_root.getBoundingClientRect();
@@ -93,42 +87,31 @@ export function animateHeight(
 
         const current_size = comment_root.getBoundingClientRect();
 
-        setAnimating({target_height: initial_height, total_height: current_size.height});
+        const anq = (target_height: number, total_height: number): Keyframe => (mode === "height" ? {
+            height: target_height + "px",
+            overflow: "hidden",
+        } : {
+            clipPath: "inset(0 0 "+(total_height - target_height)+"px "+"0px)",
+        });
+        const anim = comment_root.animate([
+            anq(initial_height, current_size.height),
+            anq(final_height, current_size.height),
+        ], {
+            duration: animationTime() * 1000,
+            easing: "ease-in-out",
+        });
+
         comment_root.scrollTop = scroll_offset;
 
         document.documentElement.scrollTop = prev_scrolltop;
         comment_root.scrollTop = scroll_offset;
 
-        setAnimating({target_height: final_height, total_height: current_size.height});
+        anim.onfinish = () => setState(transitionTarget(), false, false);
+        anim.oncancel = () => setState(transitionTarget(), false, false);
     };
     createEffect(on([transitionTarget], () => {
         setTimeout(() => onTransitionTargetChangedImmediate(), 0); // unbatch()
     }, {defer: true}));
-    
-    const setAnimating = (anim: {
-        target_height: number,
-        total_height: number,
-    } | null) => {
-        if(anim) {
-            console.log("ANIMATING", shift_pressed);
-            
-            if(mode === "height") {
-                comment_root.style.height = anim.target_height + "px";
-                comment_root.style.overflow = "hidden";
-                comment_root.style.transition = animationTime() + "s height";
-            }else if(mode === "clip") {
-                comment_root.style.clipPath = "inset(0 0 "+(anim.total_height - anim.target_height)+"px "+"0px)";
-                comment_root.style.transition = animationTime() + "s clip-path";
-            }else assertNever(mode);
-            comment_root.offsetHeight;
-        }else{
-            comment_root.style.removeProperty("height");
-            comment_root.style.removeProperty("clip-path");
-            comment_root.style.removeProperty("overflow");
-            comment_root.style.removeProperty("transition");
-            comment_root.offsetHeight;
-        }
-    };
 }
 
 // if={condition} when={condition}
