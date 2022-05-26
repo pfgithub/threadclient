@@ -34,22 +34,18 @@ export default function createExclusiveFlipSelector<T>(state: Accessor<T>): {
             const diff_w = prev_pos.width / new_pos.width;
             const diff_h = prev_pos.height / new_pos.height;
 
-            next_shape.style.transform = [
-                "translate("+diff_x+"px, "+diff_y+"px)",
-                "scale("+diff_w+", "+diff_h+")",
-            ].join(" ");
-            next_shape.style.transformOrigin = "top left";
-
-            next_shape.offsetHeight;
-            next_shape.style.transition = (animationTime() / 2) + "s transform ease-out";
-            next_shape.style.transform = "";
-
-            const ontransitionend = (e: Event) => {
-                if(e.target !== e.currentTarget) return;
-                next_shape.removeEventListener("transitionend", ontransitionend);
-                next_shape.style.transition = "";
-            };
-            next_shape.addEventListener("transitionend", ontransitionend);
+            next_shape.animate([{
+                'transform': [
+                    "translate("+diff_x+"px, "+diff_y+"px)",
+                    "scale("+diff_w+", "+diff_h+")",
+                ].join(" "),
+                'transformOrigin': "top left",
+            }, {
+                'transformOrigin': "top left",
+            }], {
+                duration: (animationTime() / 2) * 1000,
+                easing: "ease-out",
+            });
         });
 
         setPrevValue(() => current_value); // delete old element
