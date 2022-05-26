@@ -484,6 +484,7 @@ function flattenTopLevelReplies(replies: Generic.PostReplies | null, meta: Meta)
 }
 
 export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): FlatPage {
+    console.time("FLATTEN");
     const res: FlatItem[] = [];
 
     let res_sidebar: FlatItem[] | null = null;
@@ -568,12 +569,14 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
     addLastInWrapper(res);
     if(res_sidebar) addLastInWrapper(res_sidebar);
 
-    return {
+    const fnretv = {
         header: res_header ?? undefined,
         sidebar: res_sidebar != null ? autokey(res_sidebar):  undefined,
         body: autokey(res),
         title: title ?? "*ERR_NO_TITLE*",
     };
+    console.timeEnd("FLATTEN");
+    return fnretv;
 }
 
 export function autokey(items: FlatItem[]): (FlatItem & {[array_key]: unknown})[] {

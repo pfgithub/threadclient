@@ -348,7 +348,6 @@ function PageFlatPostContent(props: {
     hovering: boolean,
     whole_object_clickable: boolean,
 }): JSX.Element {
-    console.log("pageflatpostcontent called on", props);
     return <SwitchKind item={props.loader_or_post.content}>{{
         error: er => <div class="py-1">
             <div class="text-red-500">!ERROR!</div> {er.msg}

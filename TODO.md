@@ -1,5 +1,69 @@
 ## note
 
+ok we have a page2 problem
+
+here's the issue:
+
+compare:
+
+```
+http://localhost:3004/#reddit/r/pics/comments/uxg139/oc_this_sign_on_a_school_near_uvalde_tx/
+```
+
+on page1 and page2
+
+notice:
+
+- click to collapse a post
+  - on page1, this is instant
+  - on page2, this takes two seconds
+
+ok so why is this?
+
+- the actual flatten() call is 7ms
+  - that's good
+- updating all the dom nodes is 2sec
+
+ok so here's what we can change
+
+- for some reason, we made posts flat
+  - the idea was:
+    - we can do virtual scrolling
+    - we can retain dom nodes when you click to focus a post
+    - we can handle threaded better
+  - but we really don't care about retaining dom nodes on refocus. it's basically only a bad idea.
+  - and we don't need virtual scrolling. page2 is only 1.08× heavier in terms of dom node count
+    - I'm actually surprised by that, wow. It felt like page2 was going to be like 5x page1 because
+      of all the new nodes everywhere but that's actually pretty good
+  - and I'm pretty sure we can handle threaded perfectly fine with some minor changes to structure
+    so that we can keep threaded things as part of a post's replies object
+
+ok goal: delete flatten.tsx
+
+oh wait** another thing flat posts does is:
+
+- supports swipe gestures on posts
+
+we can't replicate that and swipe gestures are important
+
+I think we can still delete flatten.tsx though - posts will be nested in jsx but flat in dom
+
+an alternative option:
+
+- fix the merge memo
+
+the real reason updates are taking so long is because we put them into a merge memo and then it
+has to recreate a bunch of things but we can fix that
+
+an alternative option 2:
+
+- switch to a usetypesafechildren flatten.tsx
+  - I tried this a bit ago and it didn't quite work but I can try again
+
+let's try it
+
+## note
+
 woah we have parent selectors now
 
 ```css
