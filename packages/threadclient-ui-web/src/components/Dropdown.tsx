@@ -159,15 +159,12 @@ export default function Dropdown(props: {
 
                     createEffect(() => {
                         const value = target();
-                        requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                                if(value) {
-                                    setVisible();
-                                }else{
-                                    setHidden();
-                                }
-                            });
-                        });
+                        n.offsetHeight;
+                        if(value) {
+                            setVisible();
+                        }else{
+                            setHidden();
+                        }
                     });
 
                     createEffect(() => {
