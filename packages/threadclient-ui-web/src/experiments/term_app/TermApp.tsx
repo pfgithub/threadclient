@@ -19,8 +19,90 @@ function ChatLink(props: {t: Term, to: string, children: JSX.Element}): JSX.Elem
     }}>{props.children}</A>;
 }
 
+/*
+
+You're walking through a forest. Not really paying attention. Suddenly, you step on something metal.
+
+$> look
+You're standing in a forest. There is a trapdoor under your foot, camoflauged by rust and leaves.
+
+$> look trapdoor
+It's a metal trapdoor. It is covered in rust, making it blend in with the leaves on the forest floor.
+
+$> open trapdoor
+{firsttime ? You clear off the leafcover and : You} open the trapdoor.
+[exec `look trapdoor`]
+
+$> look trapdoor
+You peer through the trapdoor. There is a small square passageway made of concrete with a rusty
+metal ladder built into one wall. It is too dark to see where it leads.
+
+$> close trapdoor
+You close the trapdoor.
+
+$> go trapdoor
+[if !open: exec `open trapdoor`]
+You make your way onto the ladder. It is a tight space, you're lucky you aren't claustrophobic. Climbing
+down the ladder, you frequently scrape your back against the other wall.
+
+As you get further down, it becomes harder to see. With how the sound is reacting, as you go down
+the ladder, you suddenly feel like the shaft has expanded. It feels huge.
+
+When you reach the bottom, you cannot see but you feel like you're standing on a metal catwalk. There
+are hand railings on the side. It leads south.
+
+You can go: Up, South.
+
+$> look
+You are standing on a metal catwalk with hand railings on the side. It feels rusty. The catwalk leads
+South, and the ladder you came down is North.
+
+*/
+
+const adventure: {[key: string]: {id: typeof key,
+    look?: undefined | ((t: Term) => void),
+    go?: undefined | (() => string),
+    objects?: undefined | (() => {[key: string]: string}),
+}} = {
+    'forest': {id: "forest",
+        look: t => t.print(<Line>
+            You are standing in a forest.{"\n"}
+            There are quite a few trees.{"\n"}
+            You see a <ChatLink t={t} to={"open trapdoor"}>Trapdoor</ChatLink>.
+        </Line>),
+        objects: () => ({
+            trapdoor: "$forest$trapdoor",
+        }),
+    },
+    '$forest$trapdoor': {id: "$forest$trapdoor",
+        look: t => t.print(<Line>
+            It's a trapdoor. Rusted. Looks like it's been here a while.
+        </Line>),
+        go: () => "passage",
+    },
+    'passage': {id: "passage",
+        look: t => t.print(<Line>
+            It's a passage.
+        </Line>),
+    },
+};
+
 async function adventureGame(t: Term): Promise<void> {
-    t.print(<Line>You are standing in a forest.</Line>);
+    let location_name = "forest";
+
+    const devObj = (id: string) => {
+        const res = adventure[id];
+        if(res == null) throw new Error("not exists: "+res);
+        return res;
+    };
+    const userObj = (name: string) => {
+        const loc = devObj(location_name);
+        if(name === "") return loc;
+        const obj = loc.objects?.()[name];
+        if(obj != null) return devObj(obj);
+        return null;
+    };
+
     while(true) {
         const [printcmd, setPrintcmd] = createSignal<string>("");
         t.print(<Line class="bg-zinc-900">[What to do?] {printcmd()}</Line>);
@@ -28,12 +110,33 @@ async function adventureGame(t: Term): Promise<void> {
             onProgress: q => void setPrintcmd(q),
         })).split(" ");
         setPrintcmd(v.join(" ")+"");
+        // (for error msgs):
+        // TODO: make that one ephemeral and when you send your next thing it should delete it
+        // eg we could update printcmd with an error and call read again
+
+        // oh actually we could do validation on the thing you input and not allow you to send until it's
+        // valid
 
         if(v[0] === "look") {
-            t.print(<Line>
-                There are quite a few trees. You see
-                a <ChatLink t={t} to={"open trapdoor"}>Trapdoor</ChatLink>.
-            </Line>);
+            const object = v.slice(1).join(" ");
+            const obj = userObj(object);
+            if(obj == null) {
+                t.print(<Line class="text-red-500">Not found?</Line>);
+            }else if(obj.look) {
+                obj.look(t);
+            }else{
+                t.print(<Line>You can't look at that.</Line>);
+            }
+        }else if(v[0] === "go") {
+            const object = v.slice(1).join(" ");
+            const obj = userObj(object);
+            if(obj == null) {
+                t.print(<Line class="text-red-500">Not found?</Line>);
+            }else if(obj.go) {
+                location_name = obj.go();
+            }else{
+                t.print(<Line>You can't go there.</Line>);
+            }
         }else if(v[0] === "help") {
             t.print(<Line>Commands: `look`, `exit`</Line>);
         }else if(v[0] === "exit") {
