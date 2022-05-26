@@ -577,7 +577,7 @@ export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): Fla
 }
 
 export function autokey(items: FlatItem[]): (FlatItem & {[array_key]: unknown})[] {
-    let i_excl_post = 0;
+    // let i_excl_post = 0;
     const autokeyItem = (itm: FlatItem): FlatItem & {[array_key]: unknown} => {
         const key: {v: unknown} = (() => {
             if(itm.kind === "post") {
@@ -585,8 +585,8 @@ export function autokey(items: FlatItem[]): (FlatItem & {[array_key]: unknown})[
                     return {v: itm.content.link};
                 }
             }
-            i_excl_post += 1;
-            return {v: i_excl_post};
+            // i_excl_post += 1;
+            return {v: Symbol()};
             // hmm. this isn't great keying. we can do better
         })();
         return {...itm, [array_key]: key.v};
