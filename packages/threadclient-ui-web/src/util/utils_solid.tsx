@@ -1,11 +1,12 @@
 import type * as Generic from "api-types-generic";
 import {
-    Accessor, createContext, createEffect, createMemo,
-    createRoot, createSignal, ErrorBoundary, JSX, onCleanup, useContext
+    Accessor, Context, createComputed, createContext, createEffect, createMemo,
+    createRoot, createSignal, ErrorBoundary, getOwner, JSX, onCleanup, untrack, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
 import { link_styles_v, MutablePage2HistoryNode } from "../app";
+import { CollapseData } from "../components/flatten";
 
 export { localStorageSignal };
 export { screenWidth };
@@ -79,6 +80,36 @@ export function getWholePageRootContext(): PageRootContext {
     if(!page_root_context) throw new Error("no page root context here.");
     return page_root_context;
 }
+
+export const collapse_data_context = createContext<CollapseData>();
+
+// this might work? maybe?
+// https://github.com/solidjs/solid/blob/main/packages/solid/src/reactive/signal.ts
+// 'createProvider'
+export function provide<T, U>(provider: Context<T>, value: T, cb: () => U): U {
+    let res: {v: U};
+    // is createComputed needed? I have no clue
+    createComputed(() => {
+        res = {v: untrack(() => {
+            getOwner()!.context = {[provider.id]: value};
+            return cb();
+        })};
+    });
+    return res!.v;
+
+    // vv this works fine but I assume the original calls createComputed for a reason
+    // I'll ask sometime
+
+    // return untrack(() => {
+    //     getOwner()!.context = {[provider.id]: value};
+    //     return cb();
+    // });
+
+    // https://github.com/solidjs/solid/discussions/490
+    // looks like you can use createMemo()? weird
+}
+
+export const allow_threading_override_ctx = createContext<boolean>();
 
 type ComputePropertyFn<T> = (() => T);
 type ComputePropertyOpts<T> = {

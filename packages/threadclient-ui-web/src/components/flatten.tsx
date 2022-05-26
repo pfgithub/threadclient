@@ -19,6 +19,12 @@ export type FlatPage = {
     })[],
     title: string,
 };
+export type FlatPage2 = {
+    header?: undefined | Generic.RedditHeader,
+    body: FlatItem[],
+    sidebar?: undefined | FlatItem[],
+    title: string,
+};
 
 export type CollapseButton = {
     // post_anvdhla
@@ -108,7 +114,7 @@ export type FlatTreeItem = {
     post: Generic.ActualPost,
 } | FlatLoader;
 
-function loaderToFlatLoader(loader: Generic.HorizontalLoader | Generic.VerticalLoader): FlatLoader {
+export function loaderToFlatLoader(loader: Generic.HorizontalLoader | Generic.VerticalLoader): FlatLoader {
     return {
         kind: "flat_loader",
         load_count: loader.load_count,
@@ -132,7 +138,7 @@ export type RenderPostOpts = {
     displayed_in: "tree" | "repivot_list",
 };
 
-function unwrapPost(post: Generic.Post): Generic.Post {
+export function unwrapPost(post: Generic.Post): Generic.Post {
     if(post.kind === "post") {
         if(post.content.kind === "special") {
             return {...post, content: post.content.fallback};

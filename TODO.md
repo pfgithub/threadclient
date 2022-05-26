@@ -62,6 +62,12 @@ an alternative option 2:
 
 let's try it
 
+oh alternative option 3:
+
+- only call flatten() once
+
+this option doesn't work because eg what if you load more on a loader. we need to update stuff
+
 ## note
 
 woah we have parent selectors now

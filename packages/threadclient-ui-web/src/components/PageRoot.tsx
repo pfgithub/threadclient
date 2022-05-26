@@ -3,15 +3,14 @@ import { readLink } from "api-types-generic";
 import {
     createMemo,
     createSignal,
-    For, JSX, untrack
+    For, JSX, untrack, useContext
 } from "solid-js";
-import { createMergeMemo, Show } from "tmeta-util-solid";
+import { Show } from "tmeta-util-solid";
 import FullscreenSnapView from "../experiments/fullscreen_snap_view/FullscreenSnapView";
-import { getWholePageRootContext, size_lt } from "../util/utils_solid";
-import { CollapseData, flatten } from "./flatten";
+import { collapse_data_context, getWholePageRootContext, provide, size_lt } from "../util/utils_solid";
+import { useFlatten } from "./flatten2";
 import LandingPage from "./LandingPage";
 import PageFlatItem from "./PageFlatItem";
-import { array_key } from "./symbols";
 import ToggleButton from "./ToggleButton";
 
 type SpecialCallback = () => PageRes;
@@ -55,9 +54,19 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
             if(scb) {
                 return scb();
             }else{
-                return ClientPageMain({
+                // collapse_data_context.Provider({
+                //     value: {
+                //         map: new Map(),
+                //     },
+                // });
+
+                // I want a provide(v => …) => v
+
+                return provide(collapse_data_context, {
+                    map: new Map(),
+                }, () => ClientPageMain({
                     get pivot() {return props.pivot},
-                });
+                }));
             }
         });
     });
@@ -70,38 +79,36 @@ function ClientPageMain(props: ClientPageProps): PageRes {
     // [!] we'll want to fix this up and make it observable and stuff
     // now that page2 is ready to be properly observable, flatten should be too.
 
-    const collapse_data: CollapseData = {
-        map: new Map(),
-    };
+    const collapse_data = useContext(collapse_data_context)!;
 
-    const hprc = getWholePageRootContext();
+    const view = {data: useFlatten(() => props.pivot)};
 
-    const view = createMergeMemo(() => {
-        console.log("Reloading data!");
-        const fres = flatten(props.pivot, {
-            collapse_data,
-            content: hprc.content(),
-        });
-        console.log("Reloaded. New data:", fres);
+    // const view = createMergeMemo(() => {
+    //     console.log("Reloading data!");
+    //     const fres = flatten(props.pivot, {
+    //         collapse_data,
+    //         content: hprc.content(),
+    //     });
+    //     console.log("Reloaded. New data:", fres);
 
-        // function findCycle(obj, path, parents) {
-        //     if(obj != null && typeof obj === "object") {
-        //         const np = new Map(parents);
-        //         np.set(obj, path);
-        //         for(const [key, value] of Object.entries(obj)) {
-        //             const subpath = [...path, key];
-        //             const prev = np.get(value);
-        //             if(prev != null) {
-        //                 console.log("ECYCLIC. value", prev, "repeated at", subpath);
-        //                 continue;
-        //             }
-        //             findCycle(value, subpath, np);
-        //         }
-        //     }
-        // }
+    //     // function findCycle(obj, path, parents) {
+    //     //     if(obj != null && typeof obj === "object") {
+    //     //         const np = new Map(parents);
+    //     //         np.set(obj, path);
+    //     //         for(const [key, value] of Object.entries(obj)) {
+    //     //             const subpath = [...path, key];
+    //     //             const prev = np.get(value);
+    //     //             if(prev != null) {
+    //     //                 console.log("ECYCLIC. value", prev, "repeated at", subpath);
+    //     //                 continue;
+    //     //             }
+    //     //             findCycle(value, subpath, np);
+    //     //         }
+    //     //     }
+    //     // }
 
-        return fres;
-    }, {key: array_key, merge: true});
+    //     return fres;
+    // }, {key: array_key, merge: true});
 
     // 320px sidebar
 
