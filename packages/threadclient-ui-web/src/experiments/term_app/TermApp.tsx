@@ -27,11 +27,12 @@ $> look
 You're standing in a forest. There is a trapdoor under your foot, camoflauged by rust and leaves.
 
 $> look trapdoor
-It's a metal trapdoor. It is covered in rust, making it blend in with the leaves on the forest floor.
+It's a metal trapdoor. {cleared ? Even with the leaves cleared off, the rust still blends it in to the forest floor. : It
+is covered in leaves and rust, making it blend in with the the forest floor.}
 
 $> open trapdoor
-{firsttime ? You clear off the leafcover and : You} open the trapdoor.
-[exec `look trapdoor`]
+{cleared ? You clear off the leafcover and : You} open the trapdoor. {opened ? It clearly hasn't seen use in quite some
+time, as you have to break bits of rusted metal. }
 
 $> look trapdoor
 You peer through the trapdoor. There is a small square passageway made of concrete with a rusty
@@ -41,7 +42,8 @@ $> close trapdoor
 You close the trapdoor.
 
 $> go trapdoor
-[if !open: exec `open trapdoor`]
+{!open ? exec `open trapdoor`}
+{!seen ? exec `look trapdoor`}
 You make your way onto the ladder. It is a tight space, you're lucky you aren't claustrophobic. Climbing
 down the ladder, you frequently scrape your back against the other wall.
 
@@ -58,6 +60,76 @@ You are standing on a metal catwalk with hand railings on the side. It feels rus
 South, and the ladder you came down is North.
 
 */
+
+
+type Entity<T> = {
+    state: T,
+    actions: {
+        open?: undefined | ((self: Entity<T>, t: Term, g: AdventureGame) => void),
+        look?: undefined | ((self: Entity<T>, t: Term, g: AdventureGame) => void),
+        go?: undefined | ((self: Entity<T>, t: Term, g: AdventureGame) => void),
+    },
+};
+function entity<T>(desc: Entity<T>): Entity<T> {
+    return desc;
+}
+
+type AdventureGame = typeof adventure_game;
+
+const player = entity({
+    state: {in: "room"},
+    actions: {},
+});
+const adventure_game = {
+    player,
+    underground: {
+        main_lights: false,
+    },
+};
+const map = {
+    forest: {
+        entities: {
+            trapdoor: entity({
+                state: {cleared: false, rust_broken: false, open: false, looked_inside: false},
+                actions: {
+                    open: (self, t) => {
+                        const s = self.state;
+                        if(s.open) {
+                            return t.print(<Line>It's already open</Line>);
+                        }
+                        // t.print(<PlaySound sound="trapdoor_open.mp3" />)
+
+                        t.print(<Line>
+                            {s.cleared ? "You clear the leafcover off and" : "You"} open the trapdoor.{s.rust_broken ? <>
+                                {" "}It clearly hasn't seen use in quite some time, as it takes a bit of force to break through
+                                the years of rust.
+                            </> : ""}
+                        </Line>);
+                        s.cleared = true;
+                        s.rust_broken = true;
+                    },
+                    look: (self, t, g) => {
+                        if(self.state.open) {
+                            return t.print(<Line>
+                                You peer through the trapdoor. There is a small square passageway made of concrete
+                                with a rusty metal ladder built into one wall.{g.underground.main_lights ? <>
+                                    {" "}It is too dark to see where it leads.
+                                </> : null}
+                            </Line>);
+                        }else{
+                            return t.print(<Line>
+                                It's a metal trapdoor. {self.state.cleared ? <>Even with the leaves cleared off, the
+                                rust still makes it blend in to the forest floor.</> : <>It is covered in leaves and
+                                rust, making it blend in with the the forest floor.</>}
+                            </Line>);
+                        }
+                    },
+                },
+            }),
+        },
+    },
+};
+() => map;
 
 const adventure: {[key: string]: {id: typeof key,
     look?: undefined | ((t: Term) => void),
