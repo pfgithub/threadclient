@@ -336,10 +336,10 @@ export default function FullscreenSnapView(props: {
                                 requestIdleCallback: (cb: () => void) => void,
                             })["requestIdleCallback"] = cb => cb();
                         }
-                        if(!('cancleIdleCallback' in window)) {
+                        if(!('cancelIdleCallback' in window)) {
                             (window as unknown as {
-                                cancleIdleCallback: () => void,
-                            })["cancleIdleCallback"] = () => void 0;
+                                cancelIdleCallback: () => void,
+                            })["cancelIdleCallback"] = () => void 0;
                         }
 
                         if(entry.isIntersecting) {
