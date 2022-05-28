@@ -64,6 +64,7 @@ app.use("/mock", (req, res, next) => {
     }
 
     const urlv = toSafeFilename(req);
+    console.log("GET", urlv);
     try {
         const file = fs.readFileSync(urlv);
         return res.send(file);

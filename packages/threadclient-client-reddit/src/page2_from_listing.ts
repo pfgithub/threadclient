@@ -346,7 +346,7 @@ export function page2FromListing(
         if(focus_comment != null) {
             const new_focus = fullnameID(`t1_${focus_comment.toLowerCase()}`);
             if(content[new_focus]) focus = new_focus;
-            else warn("focused comment not found in tree `"+new_focus.toString()+"`");
+            else warn("focused comment not found in tree `"+new_focus.toString()+"`", focus, content);
         }
 
         return focus;
@@ -582,15 +582,17 @@ function postDataFromListingMayError(
             }
             return true;
         })();
-        if(should_fill_replies) {
-            p2.fillLinkOnce(content, replies_id, (): Generic.HorizontalLoaded => {
-                //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-                if(!listing.replies) return [];
-                return listing.replies.data.children.map((reply): Generic.Link<Generic.Post> => {
-                    return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name});
-                    // TODO: support 'more' here
-                });
+        // replies should be generated regardless of if they will be filled.
+        const filled_replies = ((): Generic.HorizontalLoaded => {
+            //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+            if(!listing.replies) return [];
+            return listing.replies.data.children.map((reply): Generic.Link<Generic.Post> => {
+                return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name});
+                // TODO: support 'more' here
             });
+        })();
+        if(should_fill_replies) {
+            p2.fillLink(content, replies_id, filled_replies);
         }
 
         // const link_info = map.get(listing.link_id as ID);
@@ -688,14 +690,16 @@ function postDataFromListingMayError(
             },
         };
 
-        if(entry.data.missing_replies !== true && entry.data.replies !== "not_loaded") {
+        const filled_replies = ((): Generic.HorizontalLoaded => {
+            if(entry.data.replies === "not_loaded") return [];
             const postreplies = entry.data.replies.data.children;
-            p2.fillLinkOnce(content, replies_data, (): Generic.HorizontalLoaded => {
-                return postreplies.map((reply): Generic.Link<Generic.Post> => {
-                    return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name});
-                    // TODO: support 'more' here
-                });
+            return postreplies.map((reply): Generic.Link<Generic.Post> => {
+                return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name});
+                // TODO: support 'more' here
             });
+        })();
+        if(entry.data.missing_replies !== true && entry.data.replies !== "not_loaded") {
+            p2.fillLink(content, replies_data, filled_replies);
         }
 
         const our_id = fullnameID(listing.name);
