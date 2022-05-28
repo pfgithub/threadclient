@@ -1,6 +1,6 @@
 import * as Generic from "api-types-generic";
 import {
-    batch, createEffect, createMemo, createSignal,
+    batch, createMemo, createSignal,
     For,
     JSX,
     untrack
@@ -411,23 +411,29 @@ function PageFlatPostContent(props: {
                 onClick={doLoad}
                 ref={btn => {
                     // ok autoload is not a good way to handle this but we're using it for now
-                    if(loader.autoload) {
-                        const observer = new IntersectionObserver((e) => {
-                            e.forEach(entry => {
-                                if(entry.isIntersecting) {
-                                    doLoad();
-                                }
-                            });
-                        }, {
-                            root: document.body,
-                            rootMargin: "0px",
-                            threshold: 1.0,
-                        });
-                        observer.observe(btn);
-                        createEffect(() => {
-                            if(loading()) observer.unobserve(btn);
-                        });
-                    }
+
+                    // TODO:
+                    // autoload is disabled for now. we need to have something similar to collapse states
+                    // that is for loaders so if there are two loaders to the same key, only one loads.
+
+                    // if(loader.autoload) {
+                    //     alert("AUTOLOADING");
+                    //     const observer = new IntersectionObserver((e) => {
+                    //         e.forEach(entry => {
+                    //             if(entry.isIntersecting) {
+                    //                 doLoad();
+                    //             }
+                    //         });
+                    //     }, {
+                    //         root: document.body,
+                    //         rootMargin: "0px",
+                    //         threshold: 1.0,
+                    //     });
+                    //     observer.observe(btn);
+                    //     createEffect(() => {
+                    //         if(loading()) observer.unobserve(btn);
+                    //     });
+                    // }
                 }}
             >{
                 loading()
