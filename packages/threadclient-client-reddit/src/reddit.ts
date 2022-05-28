@@ -262,7 +262,7 @@ function richtextFormattedText(
     const resitems: Generic.Richtext.Span[] = [];
     let previdx = 0;
     const commit = (endv: number) => {
-        const nofmt = text.substring(previdx, endv);
+        const nofmt = textsplit.splice(previdx, previdx + endv).join("");
         if(nofmt.length > 0) resitems.push(rt.txt(nofmt));
     };
     const textsplit = [...text];
@@ -284,7 +284,7 @@ function richtextFormattedText(
             }));
         }
     });
-    commit(text.length);
+    commit(textsplit.length);
     return resitems;
 }
 function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
