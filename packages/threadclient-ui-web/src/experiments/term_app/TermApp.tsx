@@ -230,8 +230,11 @@ function VCursor(): JSX.Element {
     </div>;
 }
 async function editor(t: Term): Promise<void> {
-    let file = "";
-    let crs = 0;
+    type TES = {
+        file: string,
+        crs: number,
+        prev_lyn_slash: boolean,
+    };
 
     function readUntil(nextChar: () => string | undefined, until: string | undefined): string {
         const res: string[] = [];
@@ -243,45 +246,43 @@ async function editor(t: Term): Promise<void> {
         }
         return res.join("");
     }
-    const commands: {[key: string]: (arg: string) => void} = {
-        'insert': (arg) => {
+    const commands: {[key: string]: (g: TES, arg: string) => undefined | JSX.Element} = {
+        'insert': (g, arg) => {
             const ins_txt = arg;
-            file = file.substring(0, crs) + ins_txt + file.substring(crs);
-            crs += ins_txt.length;
+            g.file = g.file.substring(0, g.crs) + ins_txt + g.file.substring(g.crs);
+            g.crs += ins_txt.length;
+            return undefined;
         },
-        'print': () => {
-            t.print(<Line>
-                {file.substring(0, crs)}
-                <VCursor />
-                {file.substring(crs)}
-            </Line>);
+        'start': g => {
+            g.crs = 0;
+            return undefined;
         },
-        'start': () => {
-            crs = 0;
+        'end': g => {
+            g.crs = g.file.length;
+            return undefined;
         },
-        'end': () => {
-            crs = file.length;
-        },
-        'line-above': () => {
-            let nl = file.lastIndexOf("\n", crs);
+        'line-above': g => {
+            let nl = g.file.lastIndexOf("\n", g.crs - 1);
             if(nl === -1) nl = 0;
-            file = file.substring(0, nl) + "\n" + file.substring(nl);
-            crs = nl === 0 ? nl : nl + 1;
+            g.file = g.file.substring(0, nl) + "\n" + g.file.substring(nl);
+            g.crs = nl === 0 ? nl : nl + 1;
+            return undefined;
         },
-        'line-below': () => {
+        'line-below': g => {
             throw new Error("TODO");
+        },
+
+        'cursor-left': g => {
+            g.crs = Math.max(g.crs - 1, 0);
+            return undefined;
+        },
+        'cursor-right': g => {
+            g.crs = Math.max(g.crs + 1, 0);
+            return undefined;
         },
     };
 
-    let prev_lyn_slash = false;
-    wlp: while(true) {
-        const [printcmd, setPrintcmd] = createSignal<string>("");
-        t.print(<Line class="bg-zinc-900">$ {printcmd()}</Line>);
-        const v = (await t.read({
-            onProgress: q => void setPrintcmd(q),
-        }));
-        setPrintcmd(v);
-
+    function exec(v: string, g: TES): JSX.Element | undefined {
         const nextChar = (() => {
             let i = 0;
             const chars = [...v];
@@ -289,10 +290,10 @@ async function editor(t: Term): Promise<void> {
                 return chars[i++];
             };
         })();
-
+    
         while(true) {
             const nc = nextChar();
-            if(nc == null) break;
+            if(nc == null) return;
             let next_line_slash = false;
             const exec_cmd = (() => {
                 if(nc === "[") {
@@ -301,7 +302,7 @@ async function editor(t: Term): Promise<void> {
                 }
                 if(nc === "/") {
                     next_line_slash = true;
-                    return "insert: " + (prev_lyn_slash ? "\n" : "") + readUntil(nextChar, undefined);
+                    return "insert: " + (g.prev_lyn_slash ? "\n" : "") + readUntil(nextChar, undefined);
                 }
                 if(nc === "g") {
                     const sc = nextChar();
@@ -311,21 +312,66 @@ async function editor(t: Term): Promise<void> {
                 if(nc === "G") return "end";
                 if(nc === "O") return "line-above";
                 if(nc === "o") return "line-below";
+                if(nc === "w") return "cursor-right: word";
+                if(nc === "b") return "cursor-left: word";
+                if(nc === "h") return "cursor-left: grapheme-cluster";
+                if(nc === "j") return "cursor-down";
+                if(nc === "k") return "cursor-up";
+                if(nc === "l") return "cursor-right: grapheme-cluster";
+                if(nc === "l") return "line-below";
                 return "error: bad-char: `"+nc+"`";
             })();
-            prev_lyn_slash = next_line_slash;
+            g.prev_lyn_slash = next_line_slash;
             if(exec_cmd === "exit") {
-                break wlp;
+                throw new Error("exit");
             }
             const [eca, ...ecrest] = exec_cmd.split(": ");
             const ecarg = ecrest.join(": ");
             const cmd = commands[eca ?? ""];
             if(cmd == null) {
-                t.print(<Line class="text-red-500">Error: Command not found: [{eca}]</Line>);
-                break;
+                return <Line class="text-red-500">Error: Command not found: [{eca}]</Line>;
             }
-            cmd(ecarg);
+            const res = cmd(g, ecarg);
+            if(res != null) return res;
         }
+    }
+
+    const gtes: TES = {
+        file: "",
+        crs: 0,
+        prev_lyn_slash: false,
+    };
+    while(true) {
+        const [gv, setGv] = createSignal<string | TES>(gtes);
+        const [ers, setErs] = createSignal<JSX.Element>(null);
+        t.print(<>
+            <Show when={(() => {
+                const g = gv();
+                if(typeof g === "string") return null;
+                return g;
+            })()} fallback={<>
+                <Line class="bg-zinc-900">
+                    {"$ "+gv()}
+                </Line>
+            </>}>{g => (
+                <Line>
+                    {g.file.substring(0, g.crs)}
+                    <VCursor />
+                    {g.file.substring(g.crs)}
+                </Line>
+            )}</Show>
+            {ers()}
+        </>);
+        const v = (await t.read({
+            onProgress: q => {
+                const ng = {...gtes};
+                setErs(exec(q, ng));
+                setGv(ng);
+            },
+        }));
+        setGv(v);
+        
+        t.print(exec(v, gtes));
     }
     return;
 }
