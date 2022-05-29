@@ -220,6 +220,116 @@ async function adventureGame(t: Term): Promise<void> {
     }
 }
 
+
+function VCursor(): JSX.Element {
+    return <div class="inline relative">
+        <div class={`
+            absolute inline-block w-[2px] text-transparent select-none transform translate-x-[-50%]
+            rounded-md bg-blue-400
+        `}>.</div>
+    </div>;
+}
+async function editor(t: Term): Promise<void> {
+    let file = "";
+    let crs = 0;
+
+    function readUntil(nextChar: () => string | undefined, until: string | undefined): string {
+        const res: string[] = [];
+        while(true) {
+            const nc = nextChar();
+            if(nc == null) break;
+            if(nc === until) break;
+            res.push(nc);
+        }
+        return res.join("");
+    }
+    const commands: {[key: string]: (arg: string) => void} = {
+        'insert': (arg) => {
+            const ins_txt = arg;
+            file = file.substring(0, crs) + ins_txt + file.substring(crs);
+            crs += ins_txt.length;
+        },
+        'print': () => {
+            t.print(<Line>
+                {file.substring(0, crs)}
+                <VCursor />
+                {file.substring(crs)}
+            </Line>);
+        },
+        'start': () => {
+            crs = 0;
+        },
+        'end': () => {
+            crs = file.length;
+        },
+        'line-above': () => {
+            let nl = file.lastIndexOf("\n", crs);
+            if(nl === -1) nl = 0;
+            file = file.substring(0, nl) + "\n" + file.substring(nl);
+            crs = nl === 0 ? nl : nl + 1;
+        },
+        'line-below': () => {
+            throw new Error("TODO");
+        },
+    };
+
+    let prev_lyn_slash = false;
+    wlp: while(true) {
+        const [printcmd, setPrintcmd] = createSignal<string>("");
+        t.print(<Line class="bg-zinc-900">$ {printcmd()}</Line>);
+        const v = (await t.read({
+            onProgress: q => void setPrintcmd(q),
+        }));
+        setPrintcmd(v);
+
+        const nextChar = (() => {
+            let i = 0;
+            const chars = [...v];
+            return () => {
+                return chars[i++];
+            };
+        })();
+
+        while(true) {
+            const nc = nextChar();
+            if(nc == null) break;
+            let next_line_slash = false;
+            const exec_cmd = (() => {
+                if(nc === "[") {
+                    const cmd = readUntil(nextChar, "]");
+                    return cmd;
+                }
+                if(nc === "/") {
+                    next_line_slash = true;
+                    return "insert: " + (prev_lyn_slash ? "\n" : "") + readUntil(nextChar, undefined);
+                }
+                if(nc === "g") {
+                    const sc = nextChar();
+                    if(sc === "g") return "start";
+                    return "error: bad-g-command: `"+sc+"`";
+                }
+                if(nc === "G") return "end";
+                if(nc === "O") return "line-above";
+                if(nc === "o") return "line-below";
+                return "error: bad-char: `"+nc+"`";
+            })();
+            prev_lyn_slash = next_line_slash;
+            if(exec_cmd === "exit") {
+                break wlp;
+            }
+            const [eca, ...ecrest] = exec_cmd.split(": ");
+            const ecarg = ecrest.join(": ");
+            const cmd = commands[eca ?? ""];
+            if(cmd == null) {
+                t.print(<Line class="text-red-500">Error: Command not found: [{eca}]</Line>);
+                break;
+            }
+            cmd(ecarg);
+        }
+    }
+    return;
+}
+
 async function app(t: Term): Promise<void> {
     /*
     <div class="m-2"><div class="bg-slate-300 text-slate-900">
@@ -420,6 +530,13 @@ async function app(t: Term): Promise<void> {
             }catch(er) {
                 const e = er as Error;
                 t.print(<Line>Adventure game errored: {e.toString() + "\n" + e.stack}</Line>);
+            }
+        }else if(v[0] === "edit") {
+            try {
+                await editor(t);
+            }catch(er) {
+                const e = er as Error;
+                t.print(<Line>Text editor errored: {e.toString() + "\n" + e.stack}</Line>);
             }
         }else if(v[0] === "showanimtest") {
             const target_msg = "Here is some text. I'm trying out animating it in";
