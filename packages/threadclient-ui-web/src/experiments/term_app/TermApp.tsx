@@ -269,7 +269,11 @@ async function editor(t: Term): Promise<void> {
             return undefined;
         },
         'line-below': g => {
-            throw new Error("TODO");
+            let nl = g.file.indexOf("\n", g.crs + 1);
+            if(nl === -1) nl = g.file.length;
+            g.file = g.file.substring(0, nl) + "\n" + g.file.substring(nl);
+            g.crs = nl + 1;
+            return undefined;
         },
 
         'cursor-left': g => {
