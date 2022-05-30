@@ -7,10 +7,10 @@ import { timeAgoTextWatchable } from "tmeta-util-solid";
 import { classes, size_lt } from "../util/utils_solid";
 import { colorClass } from "./color";
 import DevCodeButton from "./DevCodeButton";
-import { InfoBarItem, useInfoBar } from "./flat_posts";
+import { FormattableNumber, InfoBarItem, useInfoBar } from "./flat_posts";
 import Icon from "./Icon";
 
-function scoreToString(score: number) {
+export function scoreToString(score: number) {
     // oh that weird .match(…) is for rounding down
     // because I couldn't… *10 |0 /10?
     // idk I'm sure I thought of that when I was programming this
@@ -21,7 +21,7 @@ function scoreToString(score: number) {
     if(score < 100_000_000) return (score / 1_000_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "m";
     return (score / 1_000_000 |0) + "m";
 }
-function formatItemString({value}: InfoBarItem): [short: string, long: string] {
+export function formatItemString(value: FormattableNumber): [short: string, long: string] {
     if(value[0] === "none") return ["", ""];
     if(value[0] === "percent") return [
         " "+value[1].toLocaleString(undefined, {style: "percent"}),
@@ -50,7 +50,7 @@ export function InfoBarItemNode(props: {item: InfoBarItem}): JSX.Element {
     // →
     // 12 comments, 21.8k points, 83% upvoted, 2 years ago
 
-    const fmt = createMemo(() => formatItemString(props.item));
+    const fmt = createMemo(() => formatItemString(props.item.value));
     const lblv = () => props.item.text+(props.item.value[0] === "none" ? "" : ":");
 
     return <span

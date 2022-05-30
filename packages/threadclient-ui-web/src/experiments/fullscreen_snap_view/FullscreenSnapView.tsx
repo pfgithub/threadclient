@@ -5,9 +5,11 @@ import { updateQuery } from "threadclient-client-reddit";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { Flair } from "../../components/Flair";
 import { CollapseData, FlatTreeItem, postReplies } from "../../components/flatten";
+import { FormattableNumber } from "../../components/flat_posts";
 import Icon, { InternalIconRaw } from "../../components/Icon";
-import InfoBar from "../../components/InfoBar";
+import InfoBar, { formatItemString } from "../../components/InfoBar";
 import { A } from "../../components/links";
+import { ClientPostOpts } from "../../components/Post";
 import proxyURL from "../../components/proxy_url";
 import { getWholePageRootContext } from "../../util/utils_solid";
 
@@ -50,20 +52,18 @@ disadvantages:
 function SidebarButton(props: {
     icon: Generic.Icon,
     label: string,
-    text: string,
-    onClick: () => void,
+    text: FormattableNumber,
 }): JSX.Element {
-    return <button class="block w-full" onClick={() => props.onClick()}>
-        <div class="py-3 text-center">
-            <Icon class="text-[2rem]" icon={props.icon} bold={false} label={props.label} />
-            <div>{props.text}</div>
-        </div>
-    </button>;
+    return <div class="py-3 text-center">
+        <Icon class="text-[2rem]" icon={props.icon} bold={false} label={props.label} />
+        <div>{formatItemString(props.text)[0]}</div>
+    </div>;
 }
 
 function DemoObject(props: {
     children: JSX.Element,
     title: JSX.Element,
+    sidebar: JSX.Element,
 
     showUI: boolean,
 }): JSX.Element {
@@ -84,24 +84,7 @@ function DemoObject(props: {
                 <div class="w-14 flex flex-col drop-shadow-md">
                     <div class="flex-1" />
                     <div class="w-full pointer-events-auto bg-hex-000000 bg-opacity-50 max-h-full overflow-y-scroll">
-                        <SidebarButton
-                            icon="up_arrow"
-                            label="Upvote"
-                            text="1.3k"
-                            onClick={() => alert("TODO")}
-                        />
-                        <SidebarButton
-                            icon="down_arrow"
-                            label="Downvote"
-                            text="98%"
-                            onClick={() => alert("TODO")}
-                        />
-                        <SidebarButton
-                            icon="comments"
-                            label="Comments"
-                            text="53"
-                            onClick={() => alert("TODO")}
-                        />
+                        {props.sidebar}
                     </div>
                 </div>
             </div>
@@ -248,6 +231,7 @@ function ContentWarningDisplay(props: {
 
 function FullscreenPost(props: {
     content: Generic.PostContentPost,
+    opts: ClientPostOpts,
     zoomed: boolean,
 }): JSX.Element {
     const [contentWarning, setContentWarning] = createSignal(
@@ -270,6 +254,41 @@ function FullscreenPost(props: {
         <FullscreenBodyInfoLine body={props.content.body} />
         <div class="">By u/author on r/subreddit</div>
         <div class=""><InfoBar post={props.content} /></div>
+    </>} sidebar={<>
+        <Show when={props.content.actions?.vote}>{voteact => <>
+            <A class="block w-full" onClick={() => alert("TODO")}>
+                <SidebarButton
+                    icon={voteact.increment.icon}
+                    label={voteact.increment.label}
+                    text={["number", -1]}
+                />
+            </A>
+            <A class="block w-full" onClick={() => alert("TODO")}>
+                <Show when={voteact.decrement}>{decrement => <>
+                    <SidebarButton
+                        icon={decrement.icon}
+                        label={decrement.label}
+                        text={voteact.percent == null ? ["none", 0] : ["percent", voteact.percent]}
+                    />
+                </>}</Show>
+            </A>
+        </>}</Show>
+        <Show when={props.opts.frame?.url}>{post_url => (
+            <A class="block w-full" client_id={props.opts.client_id} href={post_url}>
+                <SidebarButton
+                    icon="comments"
+                    label="Comments"
+                    text={props.content.info?.comments != null ? ["number", props.content.info?.comments] : ["none", 0]}
+                />
+            </A>
+        )}</Show>
+        <A class="block w-full" onClick={() => alert("TODO")}>
+            <SidebarButton
+                icon="ellipsis"
+                label="More"
+                text={["none", 0]}
+            />
+        </A>
     </>} showUI={!props.zoomed}>
         <Show if={!contentWarning()} fallback={<>
             <ContentWarningDisplay
@@ -407,7 +426,12 @@ export default function FullscreenSnapView(props: {
                         'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
                             E;TODO;{obj.kind}
                         </>}>{{
-                            'post': post => <FullscreenPost content={post} zoomed={zoomed() != null} />,
+                            'post': post => <FullscreenPost content={post} opts={{
+                                client_id: flat_post.post.client_id,
+                                frame: flat_post.post,
+                                flat_frame: null,
+                                id: flat_post.link,
+                            }} zoomed={zoomed() != null} />,
                         }}</SwitchKind>,
                     }}</SwitchKind>
                 </Show>

@@ -7,8 +7,9 @@ import { actAuto, getCounterState } from "./counter";
 import { getCState, postContentCollapseInfo } from "./flatten";
 import { ClientPostOpts } from "./Post";
 
+export type FormattableNumber = ["percent" | "number" | "timeago" | "hidden" | "none", number];
 export type InfoBarItem = {
-    value: ["percent" | "number" | "timeago" | "hidden" | "none", number],
+    value: FormattableNumber,
     icon: Generic.Icon,
     color: null | Generic.Color,
     text: string,
@@ -258,6 +259,27 @@ const ActionItemRaw = createTypesafeChildren<ActionItem>();
 export function useActions(post: () => Generic.PostContentPost, opts: () => ClientPostOpts): () => ActionItem[] {
     return ActionItemRaw.useChildren(() => <ActionBarItems post={post()} opts={opts()} />);
 }
+
+// type FullscreenButtonRaw = {
+//     icon: Generic.Icon,
+//     // we can probably put a '…' button at the bottom of the list
+// };
+//
+// function FullscreenButtons(props: {post: Generic.PostContentPost, opts: ClientPostOpts}): JSX.Element {
+//     return <>
+//         <Show when={props.post.actions?.vote}>{voteact => <>
+//          
+//         </>}</Show>
+//     </>;
+// }
+//
+// const FullscreenButtonRaw = createTypesafeChildren<FullscreenButtonRaw>();
+//
+// export function useFullscreen(
+//     post: () => Generic.PostContentPost, opts: () => ClientPostOpts,
+// ): () => FullscreenButtonRaw[] {
+//     return FullscreenButtonRaw.useChildren(() => <FullscreenButtons post={post()} opts={opts()} />);
+// }
 
 // TODO let's generate the thumbnail based on the body or something
 // also eg for text instead of having a big image with a small text icon in the corner,

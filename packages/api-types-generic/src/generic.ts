@@ -827,6 +827,7 @@ export type Icon =
     | "reply"
     | "chevron_up"
     | "chevron_down"
+    | "ellipsis"
 ;
 export type Color =
     | "orange"

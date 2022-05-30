@@ -47,6 +47,7 @@ const tag_from_icon_kind: {[key in Generic.Icon]: [
     reply: [false, "fa-reply"],
     chevron_up: [false, "fa-chevron-up"],
     chevron_down: [false, "fa-chevron-down"],
+    ellipsis: [false, "fa-ellipsis"],
 };
 
 export default function Icon(props: {
