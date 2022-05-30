@@ -208,7 +208,8 @@ function FullscreenBody(props: {
 
             toggleUI={props.toggleUI}
         />,
-        gallery: gal => <div class="h-full w-full overflow-x-scroll snap-x">
+        // VV todo: disable scroll on zoom
+        gallery: gal => <div class="h-full w-full overflow-x-scroll snap-x snap-mandatory">
             <div class="w-full h-full px-8">
                 <div class="flex h-full gap-4">
                     <For each={gal.images}>{img => (
