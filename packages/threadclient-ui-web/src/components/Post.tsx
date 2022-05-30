@@ -27,9 +27,16 @@ import proxyURL from "./proxy_url";
 
 const decorative_alt = "";
 
-export function AuthorPfp(props: {src_url: string}): JSX.Element {
+export function AuthorPfp(props: {src_url: string, hover_src_url: string}): JSX.Element {
+    const [srcurl, setSrcurl] = createSignal(props.src_url);
     return <img
-        src={proxyURL(props.src_url)}
+        src={proxyURL(srcurl())}
+        onMouseEnter={() => {
+            setSrcurl(props.hover_src_url);
+        }}
+        onMouseLeave={() => {
+            setSrcurl(props.src_url);
+        }}
         alt={decorative_alt}
         class="w-8 h-8 object-center inline-block rounded-full"
     />;
@@ -398,7 +405,7 @@ export function PostTopBar(props: ClientPostProps & {
                         <Show if={
                             props.visible && settings.authorPfp() === "on"
                         } when={author.pfp} fallback={"By "}>{pfp => <>
-                            <AuthorPfp src_url={pfp.url} />{" "}
+                            <AuthorPfp src_url={pfp.url} hover_src_url={pfp.hover} />{" "}
                         </>}</Show>
                         <UserLink
                             client_id={author.client_id}

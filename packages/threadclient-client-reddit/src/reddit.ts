@@ -1881,6 +1881,7 @@ export function authorFromInfo(opts: {
     is_submitter: boolean,
     author_cakeday: boolean | undefined,
     pfp: string | undefined,
+    pfp_over18: boolean,
 }): Generic.InfoAuthor {
     const system_colors: {[key in Reddit.UserDistinguished]: Generic.SystemKind} = {
         admin: "admin",
@@ -1921,7 +1922,7 @@ export function authorFromInfo(opts: {
             ...opts.additional_flairs ?? [],
         ],
         pfp: opts.pfp != null && opts.pfp !== "" ? {
-            url: opts.pfp,
+            url: opts.pfp_over18 ? "https://dummyimage.com/50x50/ff0000/fff.png&text=%3E18" : opts.pfp,
             hover: opts.pfp,
         } : undefined,
     };
@@ -1943,6 +1944,7 @@ export function authorFromPostOrComment(
         is_submitter: 'is_submitter' in listing ? (listing.is_submitter ?? false) : false,
         author_cakeday: listing.author_cakeday,
         pfp: listing.profile_img,
+        pfp_over18: listing.profile_over_18 ?? false,
     });
 }
 
@@ -1955,6 +1957,7 @@ export function authorFromT2(t2: Reddit.T2): Generic.InfoAuthor {
         is_submitter: false,
         author_cakeday: false,
         pfp: t2.data.icon_img,
+        pfp_over18: t2.data.subreddit.over18,
     });
 }
 

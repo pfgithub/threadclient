@@ -824,6 +824,7 @@ export type PostOrComment = {
     author_fullname: `t2_${string}`,
     author_cakeday?: undefined | boolean,
     profile_img?: undefined | string,
+    profile_over_18?: undefined | boolean,
 
     link_id: `t3_${string}`,
     
