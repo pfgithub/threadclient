@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
-import { createMemo, createSignal, For, JSX, onCleanup } from "solid-js";
+import { createEffect, createMemo, createSignal, For, JSX, onCleanup } from "solid-js";
 import { updateQuery } from "threadclient-client-reddit";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { Flair } from "../../components/Flair";
@@ -247,6 +247,7 @@ function ContentWarningDisplay(props: {
 
 function FullscreenPost(props: {
     content: Generic.PostContentPost,
+    zoomed: boolean,
 }): JSX.Element {
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
@@ -258,8 +259,6 @@ function FullscreenPost(props: {
     //
     // that would mean that if a new cw is added to a post, it will reprompt
 
-    const [showUI, setShowUI] = createSignal(true);
-
     return <DemoObject title={<>
         <Show when={props.content.title}>{title => <div class="font-bold">
             {title.text}
@@ -270,7 +269,7 @@ function FullscreenPost(props: {
         <FullscreenBodyInfoLine body={props.content.body} />
         <div class="">By u/author on r/subreddit</div>
         <div class=""><InfoBar post={props.content} /></div>
-    </>} showUI={showUI()}>
+    </>} showUI={!props.zoomed}>
         <Show if={!contentWarning()} fallback={<>
             <ContentWarningDisplay
                 onConfirm={() => setContentWarning(false)}
@@ -278,7 +277,7 @@ function FullscreenPost(props: {
             />
         </>}>
             <FullscreenBody body={props.content.body} toggleUI={() => {
-                setShowUI(v => !v);
+                // setShowUI(v => !v);
             }}  />
         </Show>
     </DemoObject>;
@@ -320,7 +319,30 @@ export default function FullscreenSnapView(props: {
         };
     });
 
-    return <div class="bg-hex-000 h-screen overflow-y-scroll snap-y snap-mandatory text-zinc-100">
+    const oursym = Symbol();
+    type Hasoursym = HTMLElement & {[oursym]?: undefined | true};
+    const [zoomed, setZoomed] = createSignal<Hasoursym | null>(null);
+
+    const rszel = (ev: Event) => {
+        if(visualViewport.scale > 1.0001) {
+            if(zoomed() == null) {
+                const elements = document.elementsFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+                const elem = elements.find(el => (el as Hasoursym)[oursym] === true) as Hasoursym | undefined;
+                setZoomed(elem ?? null);
+            }
+        }else{
+            setZoomed(null);
+        }
+    };
+    visualViewport.addEventListener("resize", rszel);
+    onCleanup(() => visualViewport.removeEventListener("resize", rszel));
+
+    return <div class={
+        "bg-hex-000 h-screen overflow-y-scroll snap-mandatory text-zinc-100 "
+        +(zoomed() != null ? "" : "snap-y")
+    } style={{
+        'touch-action': "auto",
+    }}>
         <For each={list().items}>{item => {
             const [showContent, setShowContent] = createSignal(false);
 
@@ -328,6 +350,15 @@ export default function FullscreenSnapView(props: {
             let req: number | undefined;
 
             return <div class="snap-center w-full h-full" ref={el => {
+                (el as Hasoursym)[oursym] = true;
+                createEffect((pv: Hasoursym | null) => {
+                    const zv = zoomed();
+                    el.style.display = zv == null || el === zv ? "" : "none";
+                    if(zv == null && pv != null && el === pv) {
+                        pv.scrollIntoView();
+                    }
+                    return zv;
+                }, null);
                 new IntersectionObserver((e) => {
                     e.forEach(entry => {
                         // ios safari:
@@ -375,7 +406,7 @@ export default function FullscreenSnapView(props: {
                         'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
                             E;TODO;{obj.kind}
                         </>}>{{
-                            'post': post => <FullscreenPost content={post} />,
+                            'post': post => <FullscreenPost content={post} zoomed={zoomed() != null} />,
                         }}</SwitchKind>,
                     }}</SwitchKind>
                 </Show>
