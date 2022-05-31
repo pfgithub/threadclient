@@ -3124,6 +3124,30 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             return hsc;
         });
     }
+    if(path0 === "@inui") {
+        // const [p1, ...p2] = path;
+
+        return fetchPromiseThen(import("./experiments/in_ui/InUI"), (term) => {
+            const res = el("div");
+            const hsc = hideshow(res);
+            const title = updateTitle(hsc, "inui");
+            title.setTitle(path0);
+
+            const [shouldReload, setReload] = createSignal(undefined, {equals: () => false});
+
+            vanillaToSolidBoundary(res, () => <>
+                <DefaultErrorBoundary data={""}>
+                    {createMemo(() => {
+                        shouldReload();
+                        return <term.default reloadSelf={() => {
+                            setReload(undefined);
+                        }} />;
+                    })}
+                </DefaultErrorBoundary>
+            </>, {color_level: 0}).defer(hsc);
+            return hsc;
+        });
+    }
 
     return fetchClientThen(path0, (client) => {
         return clientMain(client, "/"+path.join("/")+search);
