@@ -47,6 +47,8 @@ export function getIsVisible(): (() => boolean) {
 
 export type PageRootContext = {
     pgin: () => MutablePage2HistoryNode,
+    // vv @TODO@ content: Map<string, Signal<Generic.Page2Content[string]>>
+    //     and then make our own readLink fns and stuff
     content: () => Generic.Page2Content,
     addContent: (node: MutablePage2HistoryNode, content: Generic.Page2Content) => void,
 };

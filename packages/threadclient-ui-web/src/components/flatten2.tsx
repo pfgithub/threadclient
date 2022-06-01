@@ -5,6 +5,19 @@ import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { allow_threading_override_ctx, collapse_data_context, getWholePageRootContext } from "../util/utils_solid";
 import { CollapseButton, FlatItem, FlatPage2, FlatTreeItem, loaderToFlatLoader, RenderPostOpts, renderTreeItem, unwrapPost } from "./flatten";
 
+/*
+CRITICAL TODO:
+hprc.content() needs to be changed
+currently it is a signal that updates any time any content changes
+we need to change it to a map of signals so it only changes if the link you read was modified
+
+More TODO:
+- fix the last replies not being marked as last. we can fix that with a postprocess step if we need
+  - consider using the post flag when the post has no children but a kind="wrapper_end" node if it does.
+    it looks weird if you hover the last child and it also shows the bottom of the object as being highlighted
+- delete flatten.tsx (after moving over functions and stuff) and change our new homepage to use the new one
+*/
+
 const FlatReplyTsch = createTypesafeChildren<FlatTreeItem>();
 
 function FlatRepliesHL(props: {
@@ -45,11 +58,68 @@ function FlatReplies(props: {
         {props.replies != null ? <FlatRepliesHL replies={props.replies.loader} /> : null}
     </>;
 }
+// ok here's a question
+// why does highestarray include the pivot?
+// we should just make it not include the pivot
+// would solve a lot of problems
+function HighestArray(props: {
+    post: Generic.Link<Generic.Post> | null,
+}): JSX.Element {
+    const hprc = getWholePageRootContext();
+    return createMemo(() => {
+        const highest = props.post;
+        if(highest == null) return [];
+
+        const postloaded = Generic.readLink(hprc.content(), highest);
+        if(postloaded == null) {
+            return <FlatReplyTsch kind="error" msg={"[flat]link not found: "+highest.toString()} />;
+        }
+        if(postloaded.error != null) {
+            return <FlatReplyTsch kind="error" msg={postloaded.error} />;
+        }
+        if(postloaded.value.kind === "tabbed") throw new Error("TODO support tabbed");
+        return <>
+            {createMemo((): JSX.Element => {
+                if(postloaded.value.kind === "tabbed") throw new Error("TODO support tabbed");
+
+                const parent = postloaded.value.parent;
+                if(!parent) {
+                    return [];
+                }
+
+                const {loader} = parent;
+                const loaded = Generic.readLink(hprc.content(), loader.key);
+                if(!loaded) {
+                    // insert a loader and the temp_parent and then continue with temp_parent.parent
+                    return <>
+                        <HighestArray post={loader.temp_parent} />
+                        {FlatReplyTsch(loaderToFlatLoader(loader))}
+                    </>;
+                }
+                if(loaded.error != null) {
+                    //^ loader.key resolves to an error
+                    //v display both the error and the temp_parent
+                    return <>
+                        <HighestArray post={loader.temp_parent} />
+                        <FlatReplyTsch kind="error" msg={loaded.error} />
+                    </>;
+                }
+                return <>
+                    <HighestArray post={loaded.value == null ? null : loader.key} />
+                </>;
+            })}
+            <FlatReplyTsch kind="flat_post" link={highest} post={postloaded.value} />
+        </>;
+    });
+}
 
 const FlatItemTsch = createTypesafeChildren<FlatItem>();
 
 function usePostReplies(replies: () => Generic.PostReplies | null): () => FlatTreeItem[] {
     return FlatReplyTsch.useChildren(() => <FlatReplies replies={replies()} />);
+}
+function useHighestArray(post: () => Generic.Link<Generic.Post>): () => FlatTreeItem[] {
+    return FlatReplyTsch.useChildren(() => <HighestArray post={post()} />);
 }
 
 function FITodo(props: {msg: string, obj: unknown}): JSX.Element {
@@ -182,7 +252,12 @@ function FlattenTopLevelReplies(props: {
 }
 
 export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPage2 {
+    // why don't we return a createMemo on the pivot?
+    // should save some logic maybe
+    // and we have to regenerate everything if the pivot changes anyway
+
     const hprc = getWholePageRootContext();
+    const cpsd = useContext(collapse_data_context)!;
     const pivot = createMemo(() => {
         const pivot_read = Generic.readLink(hprc.content(), pivotLink());
         if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
@@ -190,14 +265,25 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         return pivot_read.value;
     });
 
+    const parentsArr = useHighestArray(() => pivotLink());
+
     const bodyCh = FlatItemTsch.useChildren(() => {
         const p = pivot(); // if pivot changes, we rerender everything
         return <>
-            {FlatItemTsch({
-                kind: "error",
-                note: "TODO parents",
-                data: 0,
-            })}
+            <For each={parentsArr()}>{(item): JSX.Element => <>
+                <FlatItemTsch kind="wrapper_start" />
+                {FlatItemTsch(renderTreeItem(item, [],
+                {content: hprc.content(), collapse_data: cpsd}, {
+                    first_in_wrapper: true,
+                    at_or_above_pivot: true,
+                    is_pivot: item.kind === "flat_post" && item.link === pivotLink(),
+                    threaded: false,
+                    depth: 0,
+                    displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
+                    // note: the pivot is never clickable
+                }))}
+                <FlatItemTsch kind="wrapper_end" />
+            </>}</For>
             {p.replies ? <>
                 {FlatItemTsch({
                     kind: "horizontal_line",
@@ -214,16 +300,38 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
             </> : null}
         </>;
     });
+    const sidebarCh = FlatItemTsch.useChildren(() => {
+        for(const itm of [...parentsArr()].reverse()) {
+            if(itm.kind !== "flat_post") continue;
+            const post = unwrapPost(itm.post);
+            if(post.kind === "post" && post.content.kind === "page") {
+                const content = post.content;
+                return <FlattenTopLevelReplies replies={content.wrap_page.sidebar} />;
+            }
+        }
+        return [];
+    });
+
     return {
+        // TODO don't do headers, just put them in the body like normal nodes
         header: undefined,
         get title() {
-            return "TODO";
+            for(const itm of [...parentsArr()].reverse()) {
+                if(itm.kind !== "flat_post") continue;
+                const post = unwrapPost(itm.post);
+                if(post.kind === "post" && post.content.kind === "post") {
+                    if(post.content.title != null) {
+                        return post.content.title.text;
+                    }
+                }
+            }
+            return "*ERROR_NO_TITLE*";
         },
         get body() {
             return bodyCh();
         },
         get sidebar() {
-            return [];
+            return sidebarCh();
         },
     };
 }
