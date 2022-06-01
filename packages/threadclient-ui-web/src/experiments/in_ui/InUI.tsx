@@ -175,6 +175,48 @@ function Encryptor(): JSX.Element {
     </div>;
 }
 
+function E2EFlow(): JSX.Element {
+    // to enable e2e you have to save a backup code
+    // you will need this backup code any time you want to set up a new device or if you lose your device
+    //     (or you can scan a qr code to securely transfer it over the internet or something)
+    // flow:
+    // - page 1: write this code down. if you lose this code, you lose your data
+    //   - we'll do one of those word codes and generate it from the encryption key
+    //   - there are about 16 bits in each word = 2 bytes and we need 32 bytes = 16 words
+    //   > require("./a.json").filter(w => w.match(/^[a-z]+$/)).length
+    //   => 338834
+    //   - 18 bits per word
+    //   > ((a=require("./a.json").filter(w => w.match(/^[a-z]+$/)))=>[...base64decode(
+    //     "BBX4oRV3L0rnTlAO/irbkm/37eBzfT3h/7ke/nyGo/Y=")]
+    //     .reduce((total, current, index, array) => {if(index % 2 === 0) return [...total, [array[index],
+    //     // !WARNING! this code is not quite right. it cannot distinguish between [0] and [0, 0]. TODO: fix that.
+    //     array[index + 1]]]; return total}, []).map(c => a[(c[0] << 8) | (c[1] ?? 0)]).join(" "))()
+    //   => 'abubble craylet agglutinated anonychia contemporised autacoid crizzled communed beware
+    //         corymbiferous bilimbis appled crouperbush allosterically blokes caryatidic'
+    //   > ((a=Object.fromEntries(require("./a.json").filter(w => w.match(/^[a-z]+$/))
+    //     .map((itm, i) => [itm, i])))=> base64encode(new Uint8Array('abubble craylet agglutinated
+    //     anonychia contemporised autacoid crizzled communed beware corymbiferous bilimbis appled
+    //     crouperbush allosterically blokes caryatidic'.split(" ").map(c => a[c])
+    //     // !WARNING! this code is not quite right. it cannot distinguish between [0] and [0, 0]. TODO: fix that.
+    //     .flatMap(l => [l >> 8, l & 0xFF]))) )()
+    //   => 'BBX4oRV3L0rnTlAO/irbkm/37eBzfT3h/7ke/nyGo/Y='
+    //
+    //   ok here's a better word list:
+    //   > require("fs").writeFileSync("./finalwords.txt", shuffle(require("./a.json").filter(w => w
+    //     .match(/^[a-z]+$/)).filter(w => w.length >= 5).filter(w => !w.match(/(.)\1+/))
+    //     .filter(w => w.length <= 8)).filter((_, i) => i <= 0b1111111111111111).sort().join("\n"), "utf-8");
+    //   => 508K / 178K gzipped / 139K brotli / 324K with each char reduced to 5 bits
+    //
+    //   - oh we might want to consider using a filtered version of this wordlist:
+    //     https://norvig.com/ngrams/count_1w.txt (300k words)
+    //     it looks like it might have better quality words
+    // - page 2: enter the code
+    // - page 3: ✓ e2e enabled
+    //   - also we'll probably have to slowly migrate data in the background for an hour or so
+    return <div></div>;
+}
+() => E2EFlow;
+
 function InUI(props: {
     reloadSelf: () => void,
     content: string,
