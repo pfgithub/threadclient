@@ -39,10 +39,6 @@ export default function Debugtool(props: {
             const h = ((time / 10) % 360) |0;
             const anim_time = 1000;
             const new_node = <div
-                ontransitionend={e => {
-                    if(e.target !== e.currentTarget) return;
-                    dispose();
-                }}
                 style={{
                     'position': "fixed",
                     'top': top + "px",
@@ -50,15 +46,17 @@ export default function Debugtool(props: {
                     'width': width + "px",
                     'height': height + "px",
                     'z-index': 2147483647,
-                    'opacity': 100,
-    
-                    'transition': anim_time+"ms opacity",
                 }}
                 ref={el => {
                     onMount(() => {
-                        // https://stackoverflow.com/questions/24148403/trigger-css-transition-on-appended-element
-                        el.offsetWidth;
-                        el.style.opacity = "0";
+                        void el.animate([
+                            {'opacity': 100},
+                            {'opacity': 0},
+                        ], {
+                            duration: anim_time,
+                        }).finished.then(() => {
+                            dispose();
+                        });
                     });
                 }}
             >
