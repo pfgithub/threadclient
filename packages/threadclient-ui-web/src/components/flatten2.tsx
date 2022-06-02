@@ -17,6 +17,40 @@ we need to change it to a map of signals so it only changes if the link you read
 - either method should work fine. the proxy method doesn't require any refactoring but might be a bit
   more complicated to program.
 
+type MutableContentBackingValue<T> = undefined | {data: T} | {error: string};
+type MutableContentBackingSym<T> = Signal<MutableContentBackingValue<T>>;
+// wait there's no reason to do this i can literally make a proxy
+export class MutableContent {
+    backing: Map<
+        Generic.Link<unknown>,
+        MutableContentBackingSym<unknown>
+        // note: this never gets gc'd. ideally it would gc when no watchers remain.
+    >;
+    constructor() {
+        this.backing = new Map();
+    }
+
+    getSignal<T>(link: Generic.Link<T>): MutableContentBackingSym<T> {
+        const value = this.backing.get(link);
+        if(value != null) return value as MutableContentBackingSym<T>;
+        const nv = createSignal<MutableContentBackingValue<unknown>>(undefined);
+        this.backing.set(link, nv);
+        return nv as MutableContentBackingSym<T>;
+    }
+
+    readLink<T>(link: Generic.Link<T>): null | Generic.ReadLinkResult<T> {
+        const signal = this.getSignal(link);
+        const value = signal[0]();
+        if(value == null) return null;
+        if('error' in value) return {error: value.error, value: null};
+        return {value: value.data, error: null};
+    }
+
+    toGenericContent(): Generic.Page2Content {
+        return Object.fromEntries([...this.backing.entries()].map(([k, v]) => [k, v()]));
+    }
+}
+
 More TODO:
 - fix the last replies not being marked as last. we can fix that with a postprocess step if we need
   - consider using the post flag when the post has no children but a kind="wrapper_end" node if it does.
