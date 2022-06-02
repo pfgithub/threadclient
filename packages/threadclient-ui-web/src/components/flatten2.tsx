@@ -11,6 +11,12 @@ hprc.content() needs to be changed
 currently it is a signal that updates any time any content changes
 we need to change it to a map of signals so it only changes if the link you read was modified
 
+- ok I went to do this by making a class and that would have worked fine and taken a few minutes of
+  refactoring after
+- I can also do this by changing hprc.content() to return a proxy holding the object it normally holds
+- either method should work fine. the proxy method doesn't require any refactoring but might be a bit
+  more complicated to program.
+
 More TODO:
 - fix the last replies not being marked as last. we can fix that with a postprocess step if we need
   - consider using the post flag when the post has no children but a kind="wrapper_end" node if it does.
