@@ -1,0 +1,19 @@
+{
+    "extends": "tsconfig-tmeta",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "lib": [
+            "dom",
+            "DOM.Iterable",
+            "es2021",
+        ],
+        "types": [
+            "vite-plugin-pwa/client",
+            "vite/client"
+        ],
+    },
+    "include": [
+        "src/**/*",
+        "vite.config.ts"
+    ],
+  }
