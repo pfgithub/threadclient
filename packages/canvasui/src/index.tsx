@@ -279,6 +279,13 @@ class BodyView extends Component<{text: string}> implements Renderable {
     }
 }
 
+// https://github.com/WICG/canvas-formatted-text
+// hmm. it's a really bad idea to try and do text in canvas
+// we don't have any proper text metric stuff
+// we don't have access to any unicode functions besides normalization
+// it would be much nicer to use skia but I still can't get it to build
+// I can also use cairo/pango but it's not super nice to work with
+
 const view = new PanView({child: new HLayout({children: [
     new LabelView({text: "Hi"}),
     // the zoom view should let us two finger zoom and it should move the stuff above and below up/down the
