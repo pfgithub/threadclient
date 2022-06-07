@@ -93,6 +93,10 @@ window.addEventListener("wheel", e => {
     if(disable_ev_lsn) return;
     e.preventDefault();
 
+    // there is no reason to ever do this, but here is skew
+    //    // transform = new DOMMatrixReadOnly().translate(e.clientX, e.clientY).skewY(-e.deltaY / 10).multiply(
+    //    //     new DOMMatrixReadOnly().translate(-e.clientX, -e.clientY).multiply(transform),
+    //    // );
     if(e.ctrlKey) {
         // scale
         const wheel = -e.deltaY / 60;
