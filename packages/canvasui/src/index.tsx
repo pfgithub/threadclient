@@ -112,10 +112,12 @@ window.addEventListener("wheel", e => {
         const fpos = screenToWorldPos(fsetx, fsety);
 
         transform = transform.translate(fpos.x - cpos.x, fpos.y - cpos.y);
+        rerender();
     }else if(e.shiftKey) {
         transform = new DOMMatrixReadOnly().translate(e.clientX, e.clientY).rotate(-e.deltaY / 10).multiply(
             new DOMMatrixReadOnly().translate(-e.clientX, -e.clientY).multiply(transform),
         );
+        rerender();
     }else{
         // pan
         transform = new DOMMatrixReadOnly().translate(-e.deltaX, -e.deltaY).multiply(transform);
@@ -199,6 +201,7 @@ class Component<T> {
     clean(prop: keyof T, cb: () => void) {
         const cleans = this.cleans ??= new Set();
         if(cleans.has(prop)) return;
+        cleans.add(prop);
         cb();
     }
     setDirty() {
@@ -242,6 +245,7 @@ class ImageView extends Component<{alt: string, url: string, w: number, h: numbe
         if(this.img == null) {
             this.img = document.createElement("img");
             this.img.onload = () => {
+                console.log("IMAGE LOADED!!");
                 this.setDirty();
             };
         }
@@ -257,6 +261,23 @@ class ImageView extends Component<{alt: string, url: string, w: number, h: numbe
         ctx.restore();
     }
 }
+// vv TODO this can just be a flex view with
+// - flex-wrap, center to baseline
+// oh and also there's something about how line height is supposed to be calculated based on a
+// baseline-to-baseline metric
+class BodyView extends Component<{text: string}> implements Renderable {
+    text_metrics: undefined | TextMetrics;
+    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+        ctx.save();
+        ctx.fillStyle = "white";
+        ctx.font = "18px Inter var, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji";
+        this.clean("text", () => {
+            this.text_metrics = ctx.measureText(this.props.text);
+        });
+        ctx.fillText(this.props.text, x, y);
+        ctx.restore();
+    }
+}
 
 const view = new PanView({child: new HLayout({children: [
     new LabelView({text: "Hi"}),
@@ -265,6 +286,9 @@ const view = new PanView({child: new HLayout({children: [
     // new ZoomView({child: })
     new ImageView({alt: "alt text", w: 688, h: 1031, url: "https://images.unsplash.com/photo-1525824236856-8c0a31dfe3be?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=688&q=80"}),
     new LabelView({text: "Text below"}),
+    new BodyView({
+        text: "The quick brown fox jumps over the lazy dog. Qwerty uiop asdf ghjkl zxcv bnm",
+    }),
 ]})});
 
 canvas.style.width = "100%";

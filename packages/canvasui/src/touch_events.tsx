@@ -25,9 +25,9 @@ type Gesture = {
 
 type GestureEvent = {
     kind: "pan-x" | "pan-y" | "zoom" | "rotate",
-    translate: [number, number],
-    zoom: number,
-    rotate: number,
+    // start: [[number, number], [number, number]],
+    // end: [[number, number], [number, number]],
+    // transform: DOMMatrixReadOnly(),
 } | {
     kind: "tap" | "hold",
     pos: [number, number],
@@ -39,6 +39,14 @@ type GestureCfg = {
     // TODO: consider putting stuff like:
     // - restrict to only look at touches within a certain node
     // - other things
+
+    // eg:
+    // - should one finger pan or drag?
+    // - should one finger be allowed to tap or should it drag immediately and dragcancel if failed
+    // - should inertia be simulated on pan events
+
+    // also TODO: trackpad gesture events. browsers don't generate very good trackpad events
+    // so this won't be great.
 };
 
 /*
