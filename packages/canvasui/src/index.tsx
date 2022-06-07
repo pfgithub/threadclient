@@ -1,3 +1,5 @@
+import startGestureWatcher from "./touch_events";
+
 const cleanup_fns: (() => void)[] = [];
 
 if(import.meta.hot) {
@@ -112,6 +114,18 @@ window.addEventListener("wheel", e => {
         rerender();
     }
 }, {passive: false});
+window.addEventListener("pointerdown", e => {
+    if(disable_ev_lsn) return;
+    e.preventDefault();
+
+    startGestureWatcher(e, {}, (gesture) => {
+        console.log(gesture);
+    }).then(r => {
+        console.log("gesture finished");
+    }).catch(er => {
+        console.error(er);
+    });
+});
 // const cleanupGesRec = recognizeGestures((ptr, ges) => {
 //     if(disable_ev_lsn) return;
 //     if(ptr === "mouse") return;
