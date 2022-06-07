@@ -108,6 +108,10 @@ window.addEventListener("wheel", e => {
         const fpos = screenToWorldPos(fsetx, fsety);
 
         transform = transform.translate(fpos.x - cpos.x, fpos.y - cpos.y);
+    }else if(e.shiftKey) {
+        transform = new DOMMatrixReadOnly().translate(e.clientX, e.clientY).rotate(-e.deltaY / 10).multiply(
+            new DOMMatrixReadOnly().translate(-e.clientX, -e.clientY).multiply(transform),
+        );
     }else{
         // pan
         transform = new DOMMatrixReadOnly().translate(-e.deltaX, -e.deltaY).multiply(transform);
