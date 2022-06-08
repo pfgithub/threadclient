@@ -1,6 +1,7 @@
 import { createEffect, createSignal, For, JSX, onCleanup, onMount, Setter, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { A } from "../../components/links";
+import { seededRandom } from "../../darken_color";
 
 type ReadOpts = {
     onProgress?: undefined | ((progress: string) => void),
@@ -229,13 +230,14 @@ async function adventureGame(t: Term): Promise<void> {
 //
 // ok there needs to be a reason you can't just macro everything at all times
 // - there has to be some kind of resource you need for every step the world advances by
+// - what if we just make it so if you execute a macro you have to press next through every step or smth
 //
 // also once you have multiple robots it could be cool if two robots weren't allowed to stand in the
 // same tile
 type TileEarthLayer = {
     kind: "stone_deposit",
-    resource: "stone",
-    count_remaining: number,
+    ore_remaining: number,
+    stones_remaining: number,
 } | {
     kind: "grass",
 } | {
@@ -245,12 +247,7 @@ type TileEarthLayer = {
     kind: "rebar_tree",
     branches_remaining: number,
 };
-type WorldItem = {
-    count: number,
-    object: {
-        kind: "stone" | "rebar_rod",
-    },
-};
+type WorldItem = "stone" | "rebar_rod" | "stone_rebar_pickaxe" | "stone_rebar_axe";
 type WorldTile = {
     pos: [number, number],
     earth: TileEarthLayer,
@@ -272,12 +269,20 @@ async function worldGame(t: Term): Promise<void> {
 
     function mapGet([x, y]: Vec2): WorldTile {
         const v = `${x},${y}` as const;
+        const rng = seededRandom(v);
         const value = map_internal.get(v);
         if(value != null) return value;
         const tile: WorldTile = {
             pos: [x, y],
-            earth: {
+            earth: rng() > 0.2 || (x === 0 && y === 0) ? {
                 kind: "grass",
+            } : rng() > 0.5 ? {
+                kind: "rebar_tree",
+                branches_remaining: ((rng() * 3) + 5) |0,
+            } : {
+                kind: "stone_deposit",
+                stones_remaining: ((rng() * 4) + 2) |0,
+                ore_remaining: ((rng() * 100) + 100) |0,
             },
         };
         map_internal.set(v, tile);
@@ -301,25 +306,176 @@ async function worldGame(t: Term): Promise<void> {
         },
     };
 
+    function holding(v: WorldItem): boolean {
+        return player.inventory.left_hand === v || player.inventory.right_hand === v;
+    }
+    function hasspace(): boolean {
+        return player.inventory.left_hand == null || player.inventory.right_hand == null;
+    }
+    function pickup(item: WorldItem) {
+        if(player.inventory.left_hand == null) {
+            player.inventory.left_hand = item;
+            t.print(<Line>Picked up {printitem(item)} in your left hand</Line>);
+        }else if(player.inventory.right_hand == null) {
+            player.inventory.right_hand = item;
+            t.print(<Line>Picked up {printitem(item)} in your right hand</Line>);
+        }else{
+            throw new Error("no space to insert");
+        }
+    }
+
+    function godir(dir: Vec2): void {
+        const target = vec2add(player.pos, dir);
+        const tile = mapGet(target);
+        if(tile.earth.kind === "battery_acid_lake") {
+            return t.print(<Line class="text-red-500">You can't stand on battery_acid_lake</Line>);
+        }
+        if(tile.earth.kind === "stone_deposit") {
+            return t.print(<Line class="text-red-500">You can't stand on stone_deposit</Line>);
+        }
+        if(tile.earth.kind === "rebar_tree") {
+            return t.print(<Line class="text-red-500">You can't stand on rebar_tree</Line>);
+        }
+        player.pos = target;
+    }
+
+    const dirs: {[key in "w" | "a" | "s" | "d"]: Vec2} = {
+        w: [0, -1],
+        a: [-1, 0],
+        s: [0, 1],
+        d: [1, 0],
+    };
+    function isdir(a: string): a is "w" | "a" | "s" | "d" {
+        return a === "w" || a === "s" || a === "a" || a === "d";
+    }
+
+    function printtile(tile: WorldTile): string {
+        if(tile.earth.kind === "stone_deposit") return (
+            "stone deposit ("+tile.earth.stones_remaining+" stones, "+tile.earth.ore_remaining+" ore remain)"
+        );
+        if(tile.earth.kind === "battery_acid_lake") return (
+            "battery acid lake ("+tile.earth.count_remaining+" drops remain)"
+        );
+        if(tile.earth.kind === "grass") return (
+            "grass"
+        );
+        if(tile.earth.kind === "rebar_tree") return (
+            "rebar tree ("+tile.earth.branches_remaining+" branches remain)"
+        );
+        return "EBADTILE";
+    }
+    function printitem(item: WorldItem | null): string {
+        if(item == null) return "nothing";
+        return item;
+    }
+
     while(true) {
-        const [printcmd, setPrintcmd] = createSignal<string>("");
-        t.print(<Line class="bg-zinc-900">[What to do?] {printcmd()}</Line>);
+        const [printcmd, setPrintcmd] = createSignal("");
+        const [printdone, setPrintDone] = createSignal(false);
+        t.print(<>
+            <Line class="bg-zinc-900">[What to do?] {printcmd()}</Line>
+            {!printdone() ? <Line class="text-zinc-400">
+                You are standing in {mapGet(player.pos).earth.kind}.{"\n"}
+                You are holding {printitem(player.inventory.left_hand)} / {printitem(player.inventory.right_hand)}{"\n"}
+                {"\n"}
+                {"  "}w:{"  "} {printtile(mapGet(vec2add(player.pos, [0, -1])))}{"\n"}
+                a:{"  "}{"  "} {printtile(mapGet(vec2add(player.pos, [-1, 0])))}{"\n"}
+                {"  "}{"  "}d: {printtile(mapGet(vec2add(player.pos, [1, 0])))}{"\n"}
+                {"  "}s:{"  "} {printtile(mapGet(vec2add(player.pos, [0, 1])))}{"\n"}
+            </Line> : null}
+        </>);
         const v = (await t.read({
             onProgress: q => void setPrintcmd(q),
         })).split(" ");
         setPrintcmd(v.join(" ")+"");
+        setPrintDone(true);
 
-        if(v[0] === "look") {
-            t.print(<Line>
-                You are standing in {mapGet(player.pos).earth.kind}.{"\n"}
-                {"\n"}
-                forWards there is {mapGet(vec2add(player.pos, [0, -1])).earth.kind}{"\n"}
-                righD there is {mapGet(vec2add(player.pos, [1, 0])).earth.kind}{"\n"}
-                South there is {mapGet(vec2add(player.pos, [0, 1])).earth.kind}{"\n"}
-                lAft there is {mapGet(vec2add(player.pos, [-1, 0])).earth.kind}{"\n"}
-            </Line>);
-        }else if(v[0] === "go") {
-            t.print(<Line>TODO go</Line>);
+        if(v[0] != null && isdir(v[0])) {
+            godir(dirs[v[0]]);
+        }else if(v[0] === "e") {
+            if(v[1] != null && isdir(v[1])) {
+                // 1. check if either hand contains a pickaxe (you need a pickaxe to mine)
+                const minetarget = vec2add(player.pos, dirs[v[1]]);
+                const minetile = mapGet(minetarget);
+                if(minetile.earth.kind === "stone_deposit") {
+                    if(hasspace()) {
+                        if(minetile.earth.stones_remaining > 0) {
+                            minetile.earth.stones_remaining -= 1;
+                            pickup("stone");
+                        }else{
+                            t.print(<Line>No stones left to pick up</Line>);
+                        }
+                    }else{
+                        t.print(<Line>You're holding things in both hands</Line>);
+                    }
+                }else if(minetile.earth.kind === "rebar_tree") {
+                    if(hasspace()) {
+                        if(minetile.earth.branches_remaining > 0) {
+                            minetile.earth.branches_remaining -= 1;
+                            pickup("rebar_rod");
+                        }else{
+                            t.print(<Line>No rods left to take</Line>);
+                        }
+                    }else{
+                        t.print(<Line>You're holding things in both hands</Line>);
+                    }
+                }else{
+                    t.print(<Line>Cannot harvest that</Line>);
+                }
+            }else{
+                t.print(<Line>Usage: e [w|a|s|d]</Line>);
+            }
+        }else if(v[0] === "mine") {
+            if(v[1] != null && isdir(v[1])) {
+                // 1. check if either hand contains a pickaxe (you need a pickaxe to mine)
+                const minetarget = vec2add(player.pos, dirs[v[1]]);
+                const minetile = mapGet(minetarget);
+                if(minetile.earth.kind === "stone_deposit") {
+                    if(holding("stone_rebar_pickaxe")) {
+                        if(hasspace()) {
+                            if(minetile.earth.ore_remaining > 0) {
+                                minetile.earth.ore_remaining -= 1;
+                                pickup("stone");
+                            }else{
+                                t.print(<Line>No stones left to mine</Line>);
+                            }
+                        }else{
+                            t.print(<Line>You're holding things in both hands</Line>);
+                        }
+                    }else{
+                        t.print(<Line>You need a pickaxe to mine</Line>);
+                    }
+                }else{
+                    t.print(<Line>Cannot mine that</Line>);
+                }
+            }else{
+                t.print(<Line>Usage: mine [w|a|s|d]</Line>);
+            }
+        }else if(v[0] === "craft") {
+            const torecipestr = (a: WorldItem | null, b: WorldItem | null): string => {
+                return [player.inventory.left_hand ?? "" as const, player.inventory.right_hand ?? "" as const].sort().join(",");
+            };
+            const recipes: {[key: string]: WorldItem[]} = {
+                [torecipestr("stone", "rebar_rod")]: [
+                    "stone_rebar_pickaxe",
+                    "stone_rebar_axe",
+                ],
+            };
+            const this_recipe = torecipestr(player.inventory.left_hand, player.inventory.right_hand);
+            const target = recipes[this_recipe];
+            if(!Object.hasOwn(recipes, this_recipe) || target == null) {
+                t.print(<Line>You can't craft anything with that</Line>);
+            }else{
+                const targetitm = v[1];
+                const q = target.find(m => m === targetitm);
+                if(q == null) {
+                    t.print(<Line>Usage: craft [{target.join("|")}]</Line>);
+                }else{
+                    player.inventory.left_hand = null;
+                    player.inventory.right_hand = null;
+                    pickup(q);
+                }
+            }
         }else if(v[0] === "help") {
             t.print(<Line>TODO help</Line>);
         }else if(v[0] === "exit") {
@@ -837,14 +993,17 @@ export default function TermApp(props: {
     });
     document.body.appendChild(sel);
 
+    const history: string[] = [];
+
     const [lines, setLines] = createSignal<{itm: JSX.Element}[]>([]);
 
-    const waiting_reads: string[] = [...hmrview()];
+    const waiting_reads: string[] = [];
     const waiting_cbs: ({
         complete: (v: string) => void,
         progress: (v: string) => void,
     })[] = [];
     const emitRead = (msg: string) => {
+        if(history[history.length - 1] !== msg) history.push(msg);
         hmrview().push(msg);
 
         const wcb = waiting_cbs.shift();
@@ -855,6 +1014,9 @@ export default function TermApp(props: {
         waiting_reads.push(msg);
         return;
     };
+    for(const item of hmrview().splice(0, hmrview().length)) {
+        emitRead(item);
+    }
     const awaitRead = async (opts?: undefined | ReadOpts): Promise<string> => {
         const wr = waiting_reads.shift();
         if(wr != null) return wr;
@@ -928,6 +1090,12 @@ export default function TermApp(props: {
                     emitRead(e.currentTarget.value);
                     e.currentTarget.value = "";
                 }
+                if(e.code === "ArrowUp") {
+                    // TODO if there's a value already, we can do the fish thing and search it
+                    // TODO we should have some temp history entry that lets you something or other
+                    // TODO todo
+                    e.currentTarget.value = history[history.length - 1] ?? "";
+                }
             }} onInput={e => {
                 const wcb0 = waiting_cbs[0];
                 wcb0?.progress(e.currentTarget.value);
@@ -939,6 +1107,13 @@ export default function TermApp(props: {
                 props.reloadSelf();
             }}>
                 dbg:undo
+            </button>
+            <button class="border border-hex-fff rounded-md px-1" onClick={() => {
+                if(!confirm("really clear?")) return;
+                hmrview().splice(0, hmrview().length);
+                props.reloadSelf();
+            }}>
+                dbg:clr
             </button>
         </div>
     </div></div>;

@@ -80,13 +80,6 @@ onCleanup(() => {
     // cleanupGesRec();
 });
 
-let transform = new DOMMatrixReadOnly();
-
-function screenToWorldPos(spx: number, spy: number): {x: number, y: number} {
-    const res = transform.inverse().transformPoint({x: spx, y: spy});
-    return {x: res.x, y: res.y};
-}
-
 // window.udm = (cb) => {transform = cb(transform)};
 
 window.addEventListener("wheel", e => {
@@ -178,27 +171,14 @@ function n<T>(v: T): NodeView<T> {
     return {value: v};
 }
 
-function PanView(props: {child: NodeView<Component>}): NodeView<Component> {
-    return n<Component>({
-        render(ctx, x, y, w, h) {
-            ctx.save();
-            ctx.transform(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f);
-            viewNode(props.child).render(ctx, x, y, w, h);
+export function PanView(props: {child: NodeView<Component>}): NodeView<Component> {
+    let transform = new DOMMatrixReadOnly();
     
-            // ctx.fillStyle = "white";
-            // const pos = screenToWorldPos(10, 10);
-            // ctx.fillRect(pos.x, pos.y, 10, 10);
-            
-            ctx.restore();
-        },
-        captureEvent(ev) {
-            if(viewNode(props.child).captureEvent(ev)) return true;
-            return true;
-        },
-    });
-}
+    function screenToWorldPos(spx: number, spy: number): {x: number, y: number} {
+        const res = transform.inverse().transformPoint({x: spx, y: spy});
+        return {x: res.x, y: res.y};
+    }
 
-function VLayout(props: {children: NodeView<NodeView<Component>[]>}): NodeView<Component> {
     let last_scroll_ev_recvd = 0;
     const recvScrollEvent = (ev: WheelEvent): true => {
         last_scroll_ev_recvd = Date.now();
@@ -227,16 +207,22 @@ function VLayout(props: {children: NodeView<NodeView<Component>[]>}): NodeView<C
         }else{
             // pan
             transform = new DOMMatrixReadOnly().translate(-ev.deltaX, -ev.deltaY).multiply(transform);
-            rerender();
+            rerender(); // no need to call rerender(), just call setTransform(…) and it will auto rerender
         }
         
         return true;
     };
     return n<Component>({
         render(ctx, x, y, w, h) {
-            for(const child of viewNode(props.children)) {
-                viewNode(child).render(ctx, x, y, w, h);
-            }
+            ctx.save();
+            ctx.transform(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f);
+            viewNode(props.child).render(ctx, x, y, w, h);
+    
+            // ctx.fillStyle = "white";
+            // const pos = screenToWorldPos(10, 10);
+            // ctx.fillRect(pos.x, pos.y, 10, 10);
+            
+            ctx.restore();
         },
         captureEvent(ev) {
             // locks in all scrolls for one second to go to this layout
@@ -246,16 +232,30 @@ function VLayout(props: {children: NodeView<NodeView<Component>[]>}): NodeView<C
             //   it will switch to the sidebar scrolling
             if(Date.now() - last_scroll_ev_recvd < 1000) return recvScrollEvent(ev);
 
-            for(const child of viewNode(props.children)) {
-                if(viewNode(child).captureEvent(ev)) return true;
-            }
+            if(viewNode(props.child).captureEvent(ev)) return true;
 
             return recvScrollEvent(ev);
         },
     });
 }
 
-function ImageView(props: {alt: string, url: string, w: number, h: number}): NodeView<Component> {
+export function VLayout(props: {children: NodeView<NodeView<Component>[]>}): NodeView<Component> {
+    return n<Component>({
+        render(ctx, x, y, w, h) {
+            for(const child of viewNode(props.children)) {
+                viewNode(child).render(ctx, x, y, w, h);
+            }
+        },
+        captureEvent(ev) {
+            for(const child of viewNode(props.children)) {
+                if(viewNode(child).captureEvent(ev)) return true;
+            }
+            return false;
+        },
+    });
+}
+
+export function ImageView(props: {alt: string, url: string, w: number, h: number}): NodeView<Component> {
     let img: null | HTMLImageElement = null;
     return n<Component>({
         render(ctx, x, y, w, h) {
@@ -286,11 +286,23 @@ function ImageView(props: {alt: string, url: string, w: number, h: number}): Nod
     });
 }
 
+export function Pad(props: {px: number, child: NodeView<Component>}) {
+    return n<Component>({
+        render(ctx, x, y, w, h) {
+            viewNode(props.child).render(ctx, x + props.px, y + props.px, w - props.px * 2, h - props.px * 2);
+        },
+        captureEvent(ev) {
+            if(viewNode(props.child).captureEvent(ev)) return true;
+            return false;
+        },
+    });
+}
+
 // vv TODO this can just be a flex view with
 // - flex-wrap, center to baseline
 // oh and also there's something about how line height is supposed to be calculated based on a
 // baseline-to-baseline metric
-function BodyView(props: {text: string}): NodeView<Component> {
+export function BodyView(props: {text: string}): NodeView<Component> {
     let text_metrics: null | TextMetrics = null;
     return n<Component>({
         render(ctx, x, y, w, h) {
@@ -309,14 +321,24 @@ function BodyView(props: {text: string}): NodeView<Component> {
     });
 }
 
-const view = PanView({get child() {
-    return VLayout({get children() {return n([
-        // <LabelView text="hi" />
-        ImageView({alt: "alt text", w: 688, h: 1031, url: "https://images.unsplash.com/photo-1525824236856-8c0a31dfe3be?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=688&q=80"}),
-        // <LabelView text="Text below" />
-        BodyView({text: "The quick brown fox jumps over the lazy dog. Qwerty uiop asdf ghjkl zxcv bnm"}),
-    ]);}});
-}});
+// const view = PanView({get child() {
+//     return VLayout({get children() {return n([
+//         // <LabelView text="hi" />
+//         ImageView({alt: "alt text", w: 688, h: 1031, url: "https://images.unsplash.com/photo-1525824236856-8c0a31dfe3be?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=688&q=80"}),
+//         // <LabelView text="Text below" />
+//         BodyView({text: "The quick brown fox jumps over the lazy dog. Qwerty uiop asdf ghjkl zxcv bnm"}),
+//     ]);}});
+// }});
+
+// would be nice have a babel plugin for:
+// $Pad({children: …}) → $Pad({get children() {return …}})
+// would be nicer if typescrpit supported custom component return types. then we could do
+// <Pad children={…} />
+const view = Pad({px: 4, get child() {return VLayout({
+    get children() {return n([
+        BodyView({text: "Test"}),
+    ]);},
+});}});
 
 canvas.style.width = "100%";
 canvas.style.height = "100%";
