@@ -29,7 +29,8 @@ You're standing in a forest. There is a trapdoor under your foot, camoflauged by
 
 $> look trapdoor
 It's a metal trapdoor. {cleared ? Even with the leaves cleared off, the rust still blends it in to the forest floor. : It
-is covered in leaves and rust, making it blend in with the the forest floor.}
+is covered in leaves and rust, making it blend in with the the forest floor.} You're not sure if you would have
+seen it had you not stepped on it.
 
 $> open trapdoor
 {cleared ? You clear off the leafcover and : You} open the trapdoor. {opened ? It clearly hasn't seen use in quite some
@@ -241,6 +242,44 @@ async function adventureGame(t: Term): Promise<void> {
 // - the axe will let you chop down the rebar tree and get its branch
 
 // what's something you have to do | something you have to work towards?
+
+// what if we could somehow build like in yourworldoftext?
+// - that could be fun. needs a map though
+// - might be better for a prebuilt world of some kind
+
+// tile: "|" "_"*11 "|" "\n" ("|" x*11 "|") * 5
+const art = {
+    // design key: "L25qbG5kamFrbGNkYWNkc2Fjbg=="
+    battery_acid_lake: [
+        "  ~        ",
+        "     ~   ~ ",
+        " ~     ~   ",
+        "    ~      ",
+        "  ~     ~  ",
+    ],
+    tree: [
+        "     ] ][  ",
+        "   ] ][/   ",
+        "    \\][    ",
+        "     ][    ",
+        "     ][    ",
+    ],
+    stone_deposit: [
+        "           ",
+        " o      O  ",
+        "   o Oo    ",
+        "    o      ",
+        "       oO  ",
+    ],
+    grass: [
+        "           ",
+        "           ",
+        "      \\|/  ",
+        "           ",
+        " \\|/       ",
+    ],
+};
+() => art;
 
 type TileEarthLayer = {
     kind: "stone_deposit",
