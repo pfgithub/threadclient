@@ -246,6 +246,12 @@ function ImageView(props: {alt: string, url: string, w: number, h: number}): Nod
             }
             
             ctx.save();
+            // vv this is kind of fun
+            // const region = new Path2D();
+            // region.rect(x, y, props.w, props.h);
+            // ctx.clip(region);
+            // const tinv = transform.inverse();
+            // ctx.transform(tinv.a, tinv.b, tinv.c, tinv.d, tinv.e, tinv.f);
             ctx.fillStyle = "white";
             ctx.fillRect(x, y, props.w, props.h);
             ctx.drawImage(img, x, y, props.w, props.h);
