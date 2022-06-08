@@ -324,17 +324,25 @@ async function worldGame(t: Term): Promise<void> {
         }
     }
 
+    // TODO: maybe you can put some things in eg a battery acid lake but not others
+    // so we can return what classes of thing the tile has space for
+    function tilehasspace(tile: WorldTile): boolean {
+        if(tile.item != null) return false;
+        if(tile.earth.kind === "battery_acid_lake") return false;
+        if(tile.earth.kind === "stone_deposit") return false;
+        if(tile.earth.kind === "rebar_tree") return false;
+        return true;
+    }
+    function tiledrop(tile: WorldTile, item: WorldItem) {
+        if(tile.item != null) throw new Error("bad drop point");
+        tile.item = item;
+    }
+
     function godir(dir: Vec2): void {
         const target = vec2add(player.pos, dir);
         const tile = mapGet(target);
-        if(tile.earth.kind === "battery_acid_lake") {
-            return t.print(<Line class="text-red-500">You can't stand on battery_acid_lake</Line>);
-        }
-        if(tile.earth.kind === "stone_deposit") {
-            return t.print(<Line class="text-red-500">You can't stand on stone_deposit</Line>);
-        }
-        if(tile.earth.kind === "rebar_tree") {
-            return t.print(<Line class="text-red-500">You can't stand on rebar_tree</Line>);
+        if(!tilehasspace(tile)) {
+            return t.print(<Line class="text-red-500">You can't stand there</Line>);
         }
         player.pos = target;
     }
@@ -350,6 +358,9 @@ async function worldGame(t: Term): Promise<void> {
     }
 
     function printtile(tile: WorldTile): string {
+        if(tile.item != null) {
+            return "item: " + printitem(tile.item);
+        }
         if(tile.earth.kind === "stone_deposit") return (
             "stone deposit ("+tile.earth.stones_remaining+" stones, "+tile.earth.ore_remaining+" ore remain)"
         );
@@ -364,6 +375,14 @@ async function worldGame(t: Term): Promise<void> {
         );
         return "EBADTILE";
     }
+    function printmini(tile: WorldTile): string {
+        if(tile.item != null) return "#";
+        if(tile.earth.kind === "stone_deposit") return "o";
+        if(tile.earth.kind === "battery_acid_lake") return "~";
+        if(tile.earth.kind === "grass") return ",";
+        if(tile.earth.kind === "rebar_tree") return "]";
+        return "?";
+    }
     function printitem(item: WorldItem | null): string {
         if(item == null) return "nothing";
         return item;
@@ -375,13 +394,26 @@ async function worldGame(t: Term): Promise<void> {
         t.print(<>
             <Line class="bg-zinc-900">[What to do?] {printcmd()}</Line>
             {!printdone() ? <Line class="text-zinc-400">
+                You are holding:{"\n"}
+                l:{"  "} {printitem(player.inventory.left_hand)}{"\n"}
+                {"  "}r: {printitem(player.inventory.right_hand)}{"\n"}
+                {"\n"}
                 You are standing in {mapGet(player.pos).earth.kind}.{"\n"}
-                You are holding {printitem(player.inventory.left_hand)} / {printitem(player.inventory.right_hand)}{"\n"}
                 {"\n"}
                 {"  "}w:{"  "} {printtile(mapGet(vec2add(player.pos, [0, -1])))}{"\n"}
                 a:{"  "}{"  "} {printtile(mapGet(vec2add(player.pos, [-1, 0])))}{"\n"}
                 {"  "}{"  "}d: {printtile(mapGet(vec2add(player.pos, [1, 0])))}{"\n"}
                 {"  "}s:{"  "} {printtile(mapGet(vec2add(player.pos, [0, 1])))}{"\n"}
+                {false as true ? <>
+                    {"\n"}
+                    {new Array(9).fill([]).map(([,], y) => {y -= 4;
+                        return new Array(9).fill([]).map(([,], x) => {x -= 4;
+                            // TODO: raytrace to the player pos to see if you can actually see the tile or not
+                            if(x === 0 && y === 0) return "Y";
+                            return printmini(mapGet(vec2add(player.pos, [x, y])));
+                        }).join(" ");
+                    }).join("\n")}
+                </> : null}
             </Line> : null}
         </>);
         const v = (await t.read({
@@ -475,6 +507,25 @@ async function worldGame(t: Term): Promise<void> {
                     player.inventory.right_hand = null;
                     pickup(q);
                 }
+            }
+        }else if(v[0] === "drop") {
+            const hand = v[1] === "l" ? v[1] : v[1] === "r" ? v[1] : null;
+            if(hand != null && v[2] != null && isdir(v[2])) {
+                const dropto = mapGet(vec2add(player.pos, dirs[v[2]]));
+                const handv = hand === "l" ? "left_hand" : "right_hand";
+                if(player.inventory[handv] != null) {
+                    if(tilehasspace(dropto)) {
+                        const object = player.inventory[handv];
+                        player.inventory[handv] = null;
+                        tiledrop(dropto, object!);
+                    }else{
+                        t.print(<Line class="text-red-500">There's something in the way</Line>);
+                    }
+                }else{
+                    t.print(<Line class="text-red-500">You're not holding anything in {handv}</Line>);
+                }
+            }else{
+                t.print(<Line class="text-red-500">Usage: `drop [l|r] [w|a|s|d]`</Line>);
             }
         }else if(v[0] === "help") {
             t.print(<Line>TODO help</Line>);
@@ -984,7 +1035,6 @@ export default function TermApp(props: {
     const sel = document.createElement("style");
     sel.textContent = `
         html, body {
-            margin-bottom: 0 !important;
             background-color: #000 !important;
         }
     `;
