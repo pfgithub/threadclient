@@ -284,10 +284,10 @@ export async function gfyLike2(
                 color_hash: user.username,
                 link: user.url,
                 client_id,
-                pfp: {
+                pfp: user.profileImageUrl != null ? {
                     url: user.profileImageUrl,
                     hover: user.profileImageUrl,
-                },
+                } : undefined,
             } : undefined,
             body,
             collapsible: {default_collapsed: false},

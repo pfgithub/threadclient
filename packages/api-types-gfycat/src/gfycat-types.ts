@@ -89,7 +89,7 @@ export declare namespace V2 {
             following: number,
             gifs: number,
             name: string,
-            profileImageUrl: string,
+            profileImageUrl: null | string,
             profileUrl: string, // display in-ui with an external link to /users/Username
             publishedGifs: number,
             subscription: 0,
