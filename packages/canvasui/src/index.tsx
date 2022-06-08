@@ -93,36 +93,7 @@ window.addEventListener("wheel", e => {
     if(disable_ev_lsn) return;
     e.preventDefault();
 
-    // there is no reason to ever do this, but here is skew
-    //    // transform = new DOMMatrixReadOnly().translate(e.clientX, e.clientY).skewY(-e.deltaY / 10).multiply(
-    //    //     new DOMMatrixReadOnly().translate(-e.clientX, -e.clientY).multiply(transform),
-    //    // );
-    if(e.ctrlKey) {
-        // scale
-        const wheel = -e.deltaY / 60;
-        const zoom = Math.pow(1 + Math.abs(wheel)/2 , wheel > 0 ? 1 : -1);
-
-        const fsetx = e.clientX;
-        const fsety = e.clientY;
-        
-        const cpos = screenToWorldPos(fsetx, fsety);
-
-        transform = transform.scale(zoom);
-
-        const fpos = screenToWorldPos(fsetx, fsety);
-
-        transform = transform.translate(fpos.x - cpos.x, fpos.y - cpos.y);
-        rerender();
-    }else if(e.shiftKey) {
-        transform = new DOMMatrixReadOnly().translate(e.clientX, e.clientY).rotate(-e.deltaY / 10).multiply(
-            new DOMMatrixReadOnly().translate(-e.clientX, -e.clientY).multiply(transform),
-        );
-        rerender();
-    }else{
-        // pan
-        transform = new DOMMatrixReadOnly().translate(-e.deltaX, -e.deltaY).multiply(transform);
-        rerender();
-    }
+    viewNode(view).captureEvent(e);
 }, {passive: false});
 window.addEventListener("pointerdown", e => {
     if(disable_ev_lsn) return;
@@ -185,8 +156,9 @@ function rerender() {
     // view.render(ctx);
 }
 
-interface Renderable {
+interface Component {
     render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void;
+    captureEvent(event: WheelEvent): boolean;
 }
 
 // https://github.com/WICG/canvas-formatted-text
@@ -206,8 +178,8 @@ function n<T>(v: T): NodeView<T> {
     return {value: v};
 }
 
-function PanView(props: {child: NodeView<Renderable>}): NodeView<Renderable> {
-    return n({
+function PanView(props: {child: NodeView<Component>}): NodeView<Component> {
+    return n<Component>({
         render(ctx, x, y, w, h) {
             ctx.save();
             ctx.transform(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f);
@@ -218,30 +190,81 @@ function PanView(props: {child: NodeView<Renderable>}): NodeView<Renderable> {
             // ctx.fillRect(pos.x, pos.y, 10, 10);
             
             ctx.restore();
-        }
+        },
+        captureEvent(ev) {
+            if(viewNode(props.child).captureEvent(ev)) return true;
+            return true;
+        },
     });
 }
 
-function VLayout(props: {children: NodeView<NodeView<Renderable>[]>}): NodeView<Renderable> {
-    return n({
+function VLayout(props: {children: NodeView<NodeView<Component>[]>}): NodeView<Component> {
+    let last_scroll_ev_recvd = 0;
+    const recvScrollEvent = (ev: WheelEvent): true => {
+        last_scroll_ev_recvd = Date.now();
+
+        if(ev.ctrlKey) {
+            // scale
+            const wheel = -ev.deltaY / 60;
+            const zoom = Math.pow(1 + Math.abs(wheel)/2 , wheel > 0 ? 1 : -1);
+    
+            const fsetx = ev.clientX;
+            const fsety = ev.clientY;
+            
+            const cpos = screenToWorldPos(fsetx, fsety);
+    
+            transform = transform.scale(zoom);
+    
+            const fpos = screenToWorldPos(fsetx, fsety);
+    
+            transform = transform.translate(fpos.x - cpos.x, fpos.y - cpos.y);
+            rerender();
+        }else if(ev.shiftKey) {
+            transform = new DOMMatrixReadOnly().translate(ev.clientX, ev.clientY).rotate(-ev.deltaY / 10).multiply(
+                new DOMMatrixReadOnly().translate(-ev.clientX, -ev.clientY).multiply(transform),
+            );
+            rerender();
+        }else{
+            // pan
+            transform = new DOMMatrixReadOnly().translate(-ev.deltaX, -ev.deltaY).multiply(transform);
+            rerender();
+        }
+        
+        return true;
+    };
+    return n<Component>({
         render(ctx, x, y, w, h) {
             for(const child of viewNode(props.children)) {
                 viewNode(child).render(ctx, x, y, w, h);
             }
-        }
+        },
+        captureEvent(ev) {
+            // locks in all scrolls for one second to go to this layout
+            // - if you scroll on the this element and there is a scroller inside, this will continue to scroll
+            //   this element unless you pause scrolling for 1 sec
+            // - if you scroll on this element and move your mouse over to a sidebar (not inside this element),
+            //   it will switch to the sidebar scrolling
+            if(Date.now() - last_scroll_ev_recvd < 1000) return recvScrollEvent(ev);
+
+            for(const child of viewNode(props.children)) {
+                if(viewNode(child).captureEvent(ev)) return true;
+            }
+
+            return recvScrollEvent(ev);
+        },
     });
 }
 
-function ImageView(props: {alt: string, url: string, w: number, h: number}): NodeView<Renderable> {
+function ImageView(props: {alt: string, url: string, w: number, h: number}): NodeView<Component> {
     let img: null | HTMLImageElement = null;
-    return n({
+    return n<Component>({
         render(ctx, x, y, w, h) {
             if(img == null) {
                 img = document.createElement("img");
                 img.src = props.url;
                 img.onload = () => {
                     console.log("IMAGE LOADED!!");
-                    // TODO update automatically
+                    rerender();
                 };
             }
             
@@ -257,6 +280,9 @@ function ImageView(props: {alt: string, url: string, w: number, h: number}): Nod
             ctx.drawImage(img, x, y, props.w, props.h);
             ctx.restore();
         },
+        captureEvent(ev) {
+            return false;
+        },
     });
 }
 
@@ -264,9 +290,9 @@ function ImageView(props: {alt: string, url: string, w: number, h: number}): Nod
 // - flex-wrap, center to baseline
 // oh and also there's something about how line height is supposed to be calculated based on a
 // baseline-to-baseline metric
-function BodyView(props: {text: string}): NodeView<Renderable> {
+function BodyView(props: {text: string}): NodeView<Component> {
     let text_metrics: null | TextMetrics = null;
-    return n({
+    return n<Component>({
         render(ctx, x, y, w, h) {
             ctx.save();
             ctx.fillStyle = "white";
@@ -276,6 +302,9 @@ function BodyView(props: {text: string}): NodeView<Renderable> {
             }
             ctx.fillText(props.text, x, y);
             ctx.restore();
+        },
+        captureEvent(ev) {
+            return false;
         },
     });
 }
