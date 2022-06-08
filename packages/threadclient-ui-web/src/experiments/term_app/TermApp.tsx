@@ -1,4 +1,4 @@
-import { createSignal, For, JSX, onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, For, JSX, onCleanup, onMount, Setter, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { A } from "../../components/links";
 
@@ -650,12 +650,17 @@ async function app(t: Term): Promise<void> {
 
     // TODO: set the URL of the page we're on to match the cwd
 
+    let setSectionInteractive: null | Setter<false> = null;
+
     while(true) {
         const [printcmd, setPrintcmd] = createSignal<string>("");
         t.print(<Line class="bg-zinc-900">https://pfg.pw/{cwd.join("/")}$ {printcmd()}</Line>);
         const v = (await t.read({
             onProgress: q => void setPrintcmd(q),
         })).split(" ");
+        setSectionInteractive?.(false);
+        const [sectionInteractive, nsi] = createSignal(true);
+        setSectionInteractive = nsi;
         setPrintcmd(v.join(" ")+"");
 
         if(v[0] === "ls") {
@@ -667,9 +672,32 @@ async function app(t: Term): Promise<void> {
                 ["?", fyl],
             ];
             for(const [name, itm] of itms) {
-                t.print(itm.previewDisplay ? itm.previewDisplay() : <Line>
-                    {name}{itm.kind === "dir" ? "/" : ""}
+                // alternatively: `inert="true" filter:grayscale(100%)`
+                const filename = name + (itm.kind === "dir" ? "/" : "");
+                t.print(itm.previewDisplay ? <div
+                    ref={el => {
+                        // note: only works in chrome right now but it's nightly on firefox so it should
+                        // come out soon: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/inert
+                        // oh and it's in an unreleased safari so it should come out soon there too
+                        createEffect(() => {
+                            if(sectionInteractive()) {
+                                el.removeAttribute("inert");
+                                el.style.filter = "";
+                            }else{
+                                el.setAttribute("inert", "true");
+                                el.style.filter = "grayscale(100%)";
+                            }
+                        });
+                    }}
+                >{untrack(() => itm.previewDisplay!())}</div> : <Line>
+                    <A onClick={() => {
+                        if(!sectionInteractive()) return;
+                        t.suggest("cd /"+ pathjoin(userpath(what), [filename]).join("/"));
+                    }} class={sectionInteractive() ? "underline" : "cursor-arrow"}>
+                        {filename}
+                    </A>
                 </Line>);
+                // ^ TODO: that link should be to a file and should always have interactivity while in this screen
             }
         }else if(v[0] === "cd") {
             const what = [...v.slice(1)].join(" ");
@@ -771,6 +799,8 @@ async function app(t: Term): Promise<void> {
             t.print(<Line>I'm not sure what you mean. `help` for help.</Line>);
         }
     }
+    setSectionInteractive?.(false);
+    setSectionInteractive = null;
 }
 
 type HMRData = {
