@@ -234,6 +234,14 @@ async function adventureGame(t: Term): Promise<void> {
 //
 // also once you have multiple robots it could be cool if two robots weren't allowed to stand in the
 // same tile
+
+// ok gameplay:
+// - right now you can craft a pickaxe and an axe
+// - the pickaxe will let you mine stone
+// - the axe will let you chop down the rebar tree and get its branch
+
+// what's something you have to do | something you have to work towards?
+
 type TileEarthLayer = {
     kind: "stone_deposit",
     ore_remaining: number,
@@ -315,10 +323,8 @@ async function worldGame(t: Term): Promise<void> {
     function pickup(item: WorldItem) {
         if(player.inventory.left_hand == null) {
             player.inventory.left_hand = item;
-            t.print(<Line>Picked up {printitem(item)} in your left hand</Line>);
         }else if(player.inventory.right_hand == null) {
             player.inventory.right_hand = item;
-            t.print(<Line>Picked up {printitem(item)} in your right hand</Line>);
         }else{
             throw new Error("no space to insert");
         }
@@ -429,7 +435,14 @@ async function worldGame(t: Term): Promise<void> {
                 // 1. check if either hand contains a pickaxe (you need a pickaxe to mine)
                 const minetarget = vec2add(player.pos, dirs[v[1]]);
                 const minetile = mapGet(minetarget);
-                if(minetile.earth.kind === "stone_deposit") {
+                if(minetile.item != null) {
+                    if(hasspace()) {
+                        pickup(minetile.item);
+                        minetile.item = undefined;
+                    }else{
+                        t.print(<Line>You are holding stuff in both hands</Line>);
+                    }
+                }else if(minetile.earth.kind === "stone_deposit") {
                     if(hasspace()) {
                         if(minetile.earth.stones_remaining > 0) {
                             minetile.earth.stones_remaining -= 1;
