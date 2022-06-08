@@ -76,12 +76,12 @@ function entity<T>(desc: Entity<T>): Entity<T> {
 
 type AdventureGame = typeof adventure_game;
 
-const player = entity({
+const adventure_player = entity({
     state: {in: "room"},
     actions: {},
 });
 const adventure_game = {
-    player,
+    player: adventure_player,
     underground: {
         main_lights: false,
     },
@@ -211,6 +211,117 @@ async function adventureGame(t: Term): Promise<void> {
             }
         }else if(v[0] === "help") {
             t.print(<Line>Commands: `look`, `exit`</Line>);
+        }else if(v[0] === "exit") {
+            t.print(<Line>Goodbye.</Line>);
+            break;
+        }else{
+            t.print(<Line>I'm not sure what you mean. `help` for help.</Line>);
+        }
+    }
+}
+
+// ok here's a fun concept
+// - you are a robot
+// - the commands you type are the same commands you can use in other robots
+// so at first you only have one robot
+// - but you can program macro functions basically that will help you get set up
+// and then you can start making basic robots to eg sit on a resource and mine for example
+//
+// ok there needs to be a reason you can't just macro everything at all times
+// - there has to be some kind of resource you need for every step the world advances by
+//
+// also once you have multiple robots it could be cool if two robots weren't allowed to stand in the
+// same tile
+type TileEarthLayer = {
+    kind: "stone_deposit",
+    resource: "stone",
+    count_remaining: number,
+} | {
+    kind: "grass",
+} | {
+    kind: "battery_acid_lake",
+    count_remaining: number,
+} | {
+    kind: "rebar_tree",
+    branches_remaining: number,
+};
+type WorldItem = {
+    count: number,
+    object: {
+        kind: "stone" | "rebar_rod",
+    },
+};
+type WorldTile = {
+    pos: [number, number],
+    earth: TileEarthLayer,
+    item?: undefined | WorldItem,
+};
+type WorldEntity = {
+    pos: [number, number],
+    features: {
+        eyes: boolean,
+        wheels: boolean,
+    },
+    inventory: {
+        left_hand: null | WorldItem,
+        right_hand: null | WorldItem,
+    },
+};
+async function worldGame(t: Term): Promise<void> {
+    const map_internal = new Map<`${number},${number}`, WorldTile>();
+
+    function mapGet([x, y]: Vec2): WorldTile {
+        const v = `${x},${y}` as const;
+        const value = map_internal.get(v);
+        if(value != null) return value;
+        const tile: WorldTile = {
+            pos: [x, y],
+            earth: {
+                kind: "grass",
+            },
+        };
+        map_internal.set(v, tile);
+        return tile;
+    }
+
+    type Vec2 = [x: number, y: number];
+    function vec2add(a: Vec2, b: Vec2): Vec2 {
+        return [a[0] + b[0], a[1] + b[1]];
+    }
+
+    const player: WorldEntity = {
+        pos: [0, 0],
+        features: {
+            eyes: true,
+            wheels: true,
+        },
+        inventory: {
+            left_hand: null,
+            right_hand: null,
+        },
+    };
+
+    while(true) {
+        const [printcmd, setPrintcmd] = createSignal<string>("");
+        t.print(<Line class="bg-zinc-900">[What to do?] {printcmd()}</Line>);
+        const v = (await t.read({
+            onProgress: q => void setPrintcmd(q),
+        })).split(" ");
+        setPrintcmd(v.join(" ")+"");
+
+        if(v[0] === "look") {
+            t.print(<Line>
+                You are standing in {mapGet(player.pos).earth.kind}.{"\n"}
+                {"\n"}
+                forWards there is {mapGet(vec2add(player.pos, [0, -1])).earth.kind}{"\n"}
+                righD there is {mapGet(vec2add(player.pos, [1, 0])).earth.kind}{"\n"}
+                South there is {mapGet(vec2add(player.pos, [0, 1])).earth.kind}{"\n"}
+                lAft there is {mapGet(vec2add(player.pos, [-1, 0])).earth.kind}{"\n"}
+            </Line>);
+        }else if(v[0] === "go") {
+            t.print(<Line>TODO go</Line>);
+        }else if(v[0] === "help") {
+            t.print(<Line>TODO help</Line>);
         }else if(v[0] === "exit") {
             t.print(<Line>Goodbye.</Line>);
             break;
@@ -577,6 +688,13 @@ async function app(t: Term): Promise<void> {
         }else if(v[0] === "adventure") {
             try {
                 await adventureGame(t);
+            }catch(er) {
+                const e = er as Error;
+                t.print(<Line>Adventure game errored: {e.toString() + "\n" + e.stack}</Line>);
+            }
+        }else if(v[0] === "world") {
+            try {
+                await worldGame(t);
             }catch(er) {
                 const e = er as Error;
                 t.print(<Line>Adventure game errored: {e.toString() + "\n" + e.stack}</Line>);
