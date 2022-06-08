@@ -181,102 +181,12 @@ function rerender() {
     root_ctx.fillStyle = "black";
     root_ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    view.render(root_ctx, 0, 0, canvas.width, canvas.height);
+    viewNode(view).render(root_ctx, 0, 0, canvas.width, canvas.height);
     // view.render(ctx);
 }
 
-class Component<T> {
-    props: T;
-    cleans?: undefined | Set<keyof T>;
-    constructor(props: T) {
-        this.props = props;
-    }
-    setProps(props: T) {
-        this.props = {...props};
-    }
-    getProps() {
-        return {...this.props};
-    }
-
-    clean(prop: keyof T, cb: () => void) {
-        const cleans = this.cleans ??= new Set();
-        if(cleans.has(prop)) return;
-        cleans.add(prop);
-        cb();
-    }
-    setDirty() {
-        // TODO ??
-        rerender();
-    }
-
-}
 interface Renderable {
     render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void;
-}
-
-class PanView extends Component<{child: Renderable}> implements Renderable {
-    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-        ctx.save();
-        ctx.transform(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f);
-        this.props.child.render(ctx, x, y, w, h);
-
-        // ctx.fillStyle = "white";
-        // const pos = screenToWorldPos(10, 10);
-        // ctx.fillRect(pos.x, pos.y, 10, 10);
-        
-        ctx.restore();
-    }
-}
-class HLayout extends Component<{children: Renderable[]}> implements Renderable {
-    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-        for(const child of this.props.children) {
-            child.render(ctx, x, y, w, h);
-        }
-    }
-}
-class LabelView extends Component<{text: string}> implements Renderable {
-    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-        // TODO
-    }
-}
-class ImageView extends Component<{alt: string, url: string, w: number, h: number}> implements Renderable {
-    img: undefined | HTMLImageElement;
-    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-        if(this.img == null) {
-            this.img = document.createElement("img");
-            this.img.onload = () => {
-                console.log("IMAGE LOADED!!");
-                this.setDirty();
-            };
-        }
-        this.clean("url", () => {
-            // this.img.src = mockURL(this.props.url);
-            this.img!.src = this.props.url;
-        });
-        
-        ctx.save();
-        ctx.fillStyle = "white";
-        ctx.fillRect(x, y, this.props.w, this.props.h);
-        ctx.drawImage(this.img, x, y, this.props.w, this.props.h);
-        ctx.restore();
-    }
-}
-// vv TODO this can just be a flex view with
-// - flex-wrap, center to baseline
-// oh and also there's something about how line height is supposed to be calculated based on a
-// baseline-to-baseline metric
-class BodyView extends Component<{text: string}> implements Renderable {
-    text_metrics: undefined | TextMetrics;
-    render(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-        ctx.save();
-        ctx.fillStyle = "white";
-        ctx.font = "18px Inter var, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji";
-        this.clean("text", () => {
-            this.text_metrics = ctx.measureText(this.props.text);
-        });
-        ctx.fillText(this.props.text, x, y);
-        ctx.restore();
-    }
 }
 
 // https://github.com/WICG/canvas-formatted-text
@@ -286,17 +196,92 @@ class BodyView extends Component<{text: string}> implements Renderable {
 // it would be much nicer to use skia but I still can't get it to build
 // I can also use cairo/pango but it's not super nice to work with
 
-const view = new PanView({child: new HLayout({children: [
-    new LabelView({text: "Hi"}),
-    // the zoom view should let us two finger zoom and it should move the stuff above and below up/down the
-    // screen. it should keep the scroll such that the image appears centered.
-    // new ZoomView({child: })
-    new ImageView({alt: "alt text", w: 688, h: 1031, url: "https://images.unsplash.com/photo-1525824236856-8c0a31dfe3be?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=688&q=80"}),
-    new LabelView({text: "Text below"}),
-    new BodyView({
-        text: "The quick brown fox jumps over the lazy dog. Qwerty uiop asdf ghjkl zxcv bnm",
-    }),
-]})});
+type NodeView<T> = {
+    value: T,
+} | (() => NodeView<T>);
+function viewNode<T>(v: NodeView<T>): T {
+    return typeof v === "function" ? viewNode(v()) : v.value;
+}
+function n<T>(v: T): NodeView<T> {
+    return {value: v};
+}
+
+function PanView(props: {child: NodeView<Renderable>}): NodeView<Renderable> {
+    return n({
+        render(ctx, x, y, w, h) {
+            ctx.save();
+            ctx.transform(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f);
+            viewNode(props.child).render(ctx, x, y, w, h);
+    
+            // ctx.fillStyle = "white";
+            // const pos = screenToWorldPos(10, 10);
+            // ctx.fillRect(pos.x, pos.y, 10, 10);
+            
+            ctx.restore();
+        }
+    });
+}
+
+function VLayout(props: {children: NodeView<NodeView<Renderable>[]>}): NodeView<Renderable> {
+    return n({
+        render(ctx, x, y, w, h) {
+            for(const child of viewNode(props.children)) {
+                viewNode(child).render(ctx, x, y, w, h);
+            }
+        }
+    });
+}
+
+function ImageView(props: {alt: string, url: string, w: number, h: number}): NodeView<Renderable> {
+    let img: null | HTMLImageElement = null;
+    return n({
+        render(ctx, x, y, w, h) {
+            if(img == null) {
+                img = document.createElement("img");
+                img.src = props.url;
+                img.onload = () => {
+                    console.log("IMAGE LOADED!!");
+                    // TODO update automatically
+                };
+            }
+            
+            ctx.save();
+            ctx.fillStyle = "white";
+            ctx.fillRect(x, y, props.w, props.h);
+            ctx.drawImage(img, x, y, props.w, props.h);
+            ctx.restore();
+        },
+    });
+}
+
+// vv TODO this can just be a flex view with
+// - flex-wrap, center to baseline
+// oh and also there's something about how line height is supposed to be calculated based on a
+// baseline-to-baseline metric
+function BodyView(props: {text: string}): NodeView<Renderable> {
+    let text_metrics: null | TextMetrics = null;
+    return n({
+        render(ctx, x, y, w, h) {
+            ctx.save();
+            ctx.fillStyle = "white";
+            ctx.font = "18px Inter var, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji";
+            if(text_metrics == null) {
+                text_metrics = ctx.measureText(props.text);
+            }
+            ctx.fillText(props.text, x, y);
+            ctx.restore();
+        },
+    });
+}
+
+const view = PanView({get child() {
+    return VLayout({get children() {return n([
+        // <LabelView text="hi" />
+        ImageView({alt: "alt text", w: 688, h: 1031, url: "https://images.unsplash.com/photo-1525824236856-8c0a31dfe3be?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=688&q=80"}),
+        // <LabelView text="Text below" />
+        BodyView({text: "The quick brown fox jumps over the lazy dog. Qwerty uiop asdf ghjkl zxcv bnm"}),
+    ]);}});
+}});
 
 canvas.style.width = "100%";
 canvas.style.height = "100%";

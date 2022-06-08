@@ -25,7 +25,7 @@ module.exports = {
 
         // style rules:
         // "indent": ["warn", 4, {'SwitchCase': 1, 'offsetTernaryExpressions': true, 'ignoredNodes': ["ConditionalExpression"]}],
-        "@typescript-eslint/brace-style": ["warn", "1tbs", {allowSingleLine: true}],
+        // "@typescript-eslint/brace-style": ["warn", "1tbs", {allowSingleLine: true}],
         "@typescript-eslint/semi": ["warn", "always", {omitLastInOneLineBlock: true}],
         "@typescript-eslint/member-delimiter-style": [1, {
             multiline: {delimiter: "comma", requireLast: true},
