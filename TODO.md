@@ -5,7 +5,7 @@
 - replace any color from ToggleColor with just `bg_colors[0]` or `bg_colors[1]` depending on
   expected use
 
-## note
+## \[FIXED] note
 
 ok we have a page2 problem
 
