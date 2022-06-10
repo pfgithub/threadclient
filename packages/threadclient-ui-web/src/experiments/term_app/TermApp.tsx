@@ -11,12 +11,12 @@ type Term = {
     // update: (line: TermLine, msg: string) => void,
     print: (line: JSX.Element) => void,
     read: (opts?: undefined | ReadOpts) => Promise<string>,
-    suggest: (msg: string) => void,
+    execute: (msg: string) => void,
 };
 
 function ChatLink(props: {t: Term, to: string, children: JSX.Element}): JSX.Element {
     return <A class="underline" onClick={() => {
-        props.t.suggest(props.to);
+        props.t.execute(props.to);
     }}>{props.children}</A>;
 }
 
@@ -479,7 +479,7 @@ async function worldGame(t: Term): Promise<void> {
                 title={props.cmd}
                 class={sectionInteractive() ? "underline" : "!opacity-100 cursor-default"}
                 disabled={!sectionInteractive()}
-                onClick={() => sectionInteractive() && t.suggest(props.cmd)}
+                onClick={() => sectionInteractive() && t.execute(props.cmd)}
             >
                 {props.children}
             </button>
@@ -975,7 +975,7 @@ async function app(t: Term): Promise<void> {
                 >{untrack(() => itm.previewDisplay!())}</div> : <Line>
                     <A onClick={() => {
                         if(!sectionInteractive()) return;
-                        t.suggest("cd /"+ pathjoin(userpath(what), [filename]).join("/"));
+                        t.execute("cd /"+ pathjoin(userpath(what), [filename]).join("/"));
                     }} class={sectionInteractive() ? "underline" : "cursor-arrow"}>
                         {filename}
                     </A>
@@ -1165,8 +1165,8 @@ export default function TermApp(props: {
         read: async (opts) => {
             return awaitRead(opts);
         },
-        suggest: (msg) => {
-            inputref.value = msg;
+        execute: (msg) => {
+            emitRead(msg);
             inputref.focus();
         },
     };
