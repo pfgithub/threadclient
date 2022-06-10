@@ -100,7 +100,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
         // TODO: improve how gaps are made. make gaps automatically between posts for example. margin
         // should not be used to make gaps.
         wrapper_start: () => <div class="mt-4" />,
-        wrapper_end: () => <div class="mb-4" />,
+        wrapper_end: () => <ToggleColor>{color => <div class={"pb-2 sm:rounded-b-lg "+color} />}</ToggleColor>,
         repivot_list_fullscreen_button: fsb => <A
             class="bg-slate-100 dark:bg-zinc-800 p-2 rounded-md"
             mode="replace"

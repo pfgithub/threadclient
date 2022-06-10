@@ -35,6 +35,7 @@ function DisplayPost(props: {
                 depth: 0,
                 displayed_in: "tree",
             }}
+            last={true}
         />);
     
         return <For each={view()}>{item => (

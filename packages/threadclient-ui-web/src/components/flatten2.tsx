@@ -3,7 +3,7 @@ import { createMemo, For, JSX, useContext } from "solid-js";
 import { updateQuery } from "threadclient-client-reddit";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { allow_threading_override_ctx, collapse_data_context, getWholePageRootContext } from "../util/utils_solid";
-import { CollapseButton, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";
+import { CollapseButton, CollapseData, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";
 
 /*
 CRITICAL TODO:
@@ -51,11 +51,6 @@ export class MutableContent {
     }
 }
 
-More TODO:
-- fix the last replies not being marked as last. we can fix that with a postprocess step if we need
-  - consider using the post flag when the post has no children but a kind="wrapper_end" node if it does.
-    it looks weird if you hover the last child and it also shows the bottom of the object as being highlighted
-- delete flatten.tsx (after moving over functions and stuff) and change our new homepage to use the new one
 */
 
 const FlatReplyTsch = createTypesafeChildren<FlatTreeItem>();
@@ -176,13 +171,14 @@ type TII = {
 };
 
 function getTreeItemIndent(
+    csc: CollapseData,
     tree_item: FlatTreeItem,
     parent_indent: CollapseButton[],
     opts: RenderPostOpts,
 ): TII {
     const ci = postCollapseInfo(tree_item, opts);
     const self_collapsed = ci.user_controllable ? getCState(
-        useContext(collapse_data_context)!,
+        csc,
         ci.collapse_link,
         {default: ci.default_collapsed},
     ).collapsed() : ci.default_collapsed;
@@ -208,6 +204,7 @@ function RenderTreeItem(props: {
     tree_item: FlatTreeItem,
     opts: RenderPostOpts,
     tii: TII,
+    last: boolean,
 }): JSX.Element {
     return <FlatItemTsch
         kind="post"
@@ -215,7 +212,7 @@ function RenderTreeItem(props: {
         indent={props.tii.indent}
         collapse={props.tii.collapse}
         first_in_wrapper={props.opts.first_in_wrapper}
-        last_in_wrapper={false} // TODO fix
+        last_in_wrapper={props.last} // TODO fix
 
         is_pivot={props.opts.is_pivot}
         at_or_above_pivot={props.opts.at_or_above_pivot}
@@ -229,11 +226,14 @@ function RenderTreeItemAuto(props: {
     tree_item: FlatTreeItem,
     parent_indent: CollapseButton[],
     opts: RenderPostOpts,
+    last: boolean,
 }): JSX.Element {
+    const csc = useContext(collapse_data_context)!;
     return <RenderTreeItem
         tree_item={props.tree_item}
         opts={props.opts}
-        tii={getTreeItemIndent(props.tree_item, props.parent_indent, props.opts)}
+        tii={getTreeItemIndent(csc, props.tree_item, props.parent_indent, props.opts)}
+        last={props.last}
     />;
 }
 
@@ -241,9 +241,11 @@ export function FlattenTreeItem(props: {
     tree_item: FlatTreeItem,
     parent_indent: CollapseButton[],
     rpo: RenderPostOpts,
+    last: boolean,
 }): JSX.Element {
     const allowThreading = useContext(allow_threading_override_ctx) ?? (() => true);
-    const tii = createMemo(() => getTreeItemIndent(props.tree_item, props.parent_indent, props.rpo));
+    const csc = useContext(collapse_data_context)!;
+    const tii = createMemo(() => getTreeItemIndent(csc, props.tree_item, props.parent_indent, props.rpo));
     return createMemo(() => {
         // [!] TODO: this will needlessly rerender when the parent indent changes
         // or when any renderpostopts change
@@ -255,6 +257,7 @@ export function FlattenTreeItem(props: {
                 tree_item={props.tree_item}
                 opts={props.rpo}
                 tii={tii()}
+                last={props.last}
             />;
         }
 
@@ -267,6 +270,7 @@ export function FlattenTreeItem(props: {
                 tree_item={props.tree_item}
                 opts={props.rpo}
                 tii={tii()}
+                last={props.last}
             />;
         }
     
@@ -319,21 +323,22 @@ export function FlattenTreeItem(props: {
                 tree_item={props.tree_item}
                 opts={props.rpo}
                 tii={tii()}
+                last={showReplies() && replies().length > 0 ? false : props.last}
             />
             <Show if={showReplies()}>
-                <For each={replies()}>{reply => (
+                <For each={replies()}>{(reply, i) => (
                     <FlattenTreeItem
-                    tree_item={reply}
-                    parent_indent={((): CollapseButton[] => {
-                        const ti = tii();
-                        const indent_excl_self = ti.indent.map(v => v.threaded ? {...v, threaded: false} : v);
-                        if(props.rpo.threaded && repliesThreaded()) {
-                            return indent_excl_self;
-                        }
-                        return [
-                            ...indent_excl_self, ...ti.collapse ? [ti.collapse] : [],
-                        ];
-                    })()}
+                        tree_item={reply}
+                        parent_indent={((): CollapseButton[] => {
+                            const ti = tii();
+                            const indent_excl_self = ti.indent.map(v => v.threaded ? {...v, threaded: false} : v);
+                            if(props.rpo.threaded && repliesThreaded()) {
+                                return indent_excl_self;
+                            }
+                            return [
+                                ...indent_excl_self, ...ti.collapse ? [ti.collapse] : [],
+                            ];
+                        })()}
                         rpo={{
                             is_pivot: false,
                             at_or_above_pivot: false,
@@ -342,9 +347,13 @@ export function FlattenTreeItem(props: {
                             get depth() {return props.rpo.depth + 1},
                             displayed_in: post.replies!.display,
                         }}
+                        last={false}
                     />
                 )}</For>
 
+            </Show>
+            <Show if={props.last && showReplies() && replies().length > 0}>
+                <FlatItemTsch kind="wrapper_end" />
             </Show>
         </>;
     });
@@ -371,8 +380,8 @@ function FlattenTopLevelReplies(props: {
                     depth: 0,
                     displayed_in: props.replies!.display,
                 }}
+                last={true}
             />
-            <FlatItemTsch kind="wrapper_end" />
         </>}</For>
     </>;
 }
@@ -409,8 +418,8 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                         displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
                         // note: the pivot is never clickable
                     }}
+                    last={true}
                 />
-                <FlatItemTsch kind="wrapper_end" />
             </>}</For>
             {p.replies ? <>
                 {FlatItemTsch({
