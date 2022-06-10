@@ -23,6 +23,7 @@ export type FlatPage2 = {
     body: FlatItem[],
     sidebar?: undefined | FlatItem[],
     title: string,
+    url: string | null,
 };
 
 export type CollapseButton = {

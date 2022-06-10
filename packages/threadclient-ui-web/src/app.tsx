@@ -2654,6 +2654,8 @@ let hidePage2!: () => void;
                     createEffect(() => {
                         document.title = res.title + " | " + "ThreadClient";
                     });
+                    // TODO: createEffect(() => history.replaceState(res.url));
+
                     return () => res.children;
                 })}
             </PageRootProvider>

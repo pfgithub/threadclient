@@ -455,6 +455,10 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
             }
             return "*ERROR_NO_TITLE*";
         },
+        get url() {
+            const focus = pivot();
+            return focus.url;
+        },
         get body() {
             return bodyCh();
         },

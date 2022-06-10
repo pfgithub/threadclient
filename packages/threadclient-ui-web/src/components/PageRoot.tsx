@@ -16,14 +16,14 @@ import ToggleButton from "./ToggleButton";
 type SpecialCallback = () => PageRes;
 const full_page_special_callbacks: Record<string, SpecialCallback> = {
     'LandingPage@-N-ry9qt3N1VTG0iKMHy': (): PageRes => {
-        return {title: "ThreadClient", children: <LandingPage />};
+        return {url: null, title: "ThreadClient", children: <LandingPage />};
     },
 };
 
 export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
 };
-type PageRes = {children: JSX.Element, title: string};
+type PageRes = {children: JSX.Element, url: string | null, title: string};
 export default function ClientPage(props: ClientPageProps & {query: string}): PageRes {
     const hprc = getWholePageRootContext();
 
@@ -42,6 +42,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
         const use_fullscreen_view = (new URLSearchParams(props.query)).get("--tc-fullscreen") === "true";
         if(use_fullscreen_view) {
             return untrack((): PageRes => ({
+                url: null, // TODO
                 title: "TODO fullscreen title",
                 children: FullscreenSnapView({
                     pivot: props.pivot,
@@ -73,6 +74,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
         });
     });
     return {
+        get url() {return res().url},
         get title() {return res().title},
         get children() {return res().children},
     };
@@ -121,7 +123,9 @@ function ClientPageMain(props: ClientPageProps): PageRes {
     // browser back button and stuff.
     const [tab, setTab] = createSignal<"content" | "sidebar">("content");
 
-    return {get title() {
+    return {get url() {
+        return view.data.url;
+    }, get title() {
         return view.data.title;
     }, children: <div class="flex flex-col gap-4 max-w-6xl mx-auto p-4 <sm:px-0">
         <Show if={view.data.header != null}>
