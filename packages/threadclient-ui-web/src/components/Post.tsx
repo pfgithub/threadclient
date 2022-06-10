@@ -159,7 +159,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     >
         <ShowAnimate
             mode={props.opts.collapse_data ? "clip" : "height"}
-            when={visible()}
+            if={visible()}
         fallback={<div class="flex flex-row">
             <Show if={collapseInfo().user_controllable && (
                 props.content.thumbnail != null ? false : true
@@ -241,7 +241,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     <section class={isPivot() ? "py-4" : ""}>
                         <Show if={true}>
                             <Show if={true}><div class="mt-2"></div></Show>
-                            <ShowAnimate when={!contentWarning()} fallback={
+                            <ShowAnimate if={!contentWarning()} fallback={
                                 <>
                                     Content Warning:{" "}
                                     <Flair flairs={(props.content.flair ?? []).filter(f => f.content_warning)} />{" "}

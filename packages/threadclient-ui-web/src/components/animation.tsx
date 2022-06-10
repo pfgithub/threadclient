@@ -121,14 +121,14 @@ export function animateHeight(
 // TODO: when reduce motion is on, use opacity instead of animateHeight()
 export function ShowAnimate(props: {
     mode?: undefined | "clip" | "height", // = "height" //[!] not reactive
-    when: boolean, // ← f2 rename to 'if'. also, consider removing 'when' in normal <Show> things as it's bad for reactivity
+    if: boolean, // ← f2 rename to 'if'. also, consider removing 'when' in normal <Show> things as it's bad for reactivity
     fallback?: undefined | JSX.Element,
     children: JSX.Element,
 }): JSX.Element {
     const settings = getSettings();
-    const [show, setShow] = createSignal({main: props.when, animating: false});
+    const [show, setShow] = createSignal({main: props.if, animating: false});
     return <tc:show-animate ref={v => {
-        animateHeight(v, settings, () => props.when, (state, rising, temporary) => {
+        animateHeight(v, settings, () => props.if, (state, rising, temporary) => {
             setShow({main: state || rising, animating: temporary});
         }, {
             mode: props.mode,
@@ -140,7 +140,7 @@ export function ShowAnimate(props: {
         <Show if={show().main || show().animating}>
             <tc:children ref={el => {
                 createEffect(() => {
-                    if(props.when === true) {
+                    if(props.if === true) {
                         el.removeAttribute("inert");
                     }else{
                         el.setAttribute("inert", "true");
@@ -155,7 +155,7 @@ export function ShowAnimate(props: {
         <Show if={!show().main || show().animating}>
             <tc:fallback ref={el => {
                 createEffect(() => {
-                    if(props.when === true) {
+                    if(props.if === true) {
                         el.setAttribute("inert", "true");
                     }else{
                         el.removeAttribute("inert");

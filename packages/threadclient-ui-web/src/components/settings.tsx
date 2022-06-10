@@ -286,7 +286,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "System Default",
                 } as const)[v ?? "default"]}
             />
-            <ShowAnimate when={settings.motion() === "full"}>
+            <ShowAnimate if={settings.motion() === "full"}>
                 <div class="my-2"><div class="inline-block"><ToggleButton
                     value={settings.animationTime.override()}
                     setValue={nv => settings.animationTime.setOverride(nv)}
@@ -370,7 +370,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 Leave all these default. Changing these will break things.{" "}
             </p>
             <ShowAnimate
-                when={showDevSettings()}
+                if={showDevSettings()}
                 fallback={<button
                     class={link_styles_v["outlined-button"]}
                     onclick={() => setShowDevSettings(true)}

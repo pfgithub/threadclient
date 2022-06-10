@@ -45,7 +45,7 @@ export function PreviewableLink(props: {
             </>}</Show>
         </LinkButton>
         <Show when={linkPreview()}>{preview_opts => (
-            <ShowAnimate when={preview_opts.visible()}>
+            <ShowAnimate if={preview_opts.visible()}>
                 <Body autoplay={true} body={preview_opts.body} />
             </ShowAnimate>
         )}</Show>
