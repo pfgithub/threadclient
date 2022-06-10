@@ -121,7 +121,7 @@ export function animateHeight(
 // TODO: when reduce motion is on, use opacity instead of animateHeight()
 export function ShowAnimate(props: {
     mode?: undefined | "clip" | "height", // = "height" //[!] not reactive
-    if: boolean, // ← f2 rename to 'if'. also, consider removing 'when' in normal <Show> things as it's bad for reactivity
+    if: boolean,
     fallback?: undefined | JSX.Element,
     children: JSX.Element,
 }): JSX.Element {
