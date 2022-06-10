@@ -1,5 +1,45 @@
 # note
 
+sorting
+
+sorting
+
+so obviously, tabbed posts are the best solution
+
+maybe that's not obvious because they don't seem like a great solution imo
+
+the main thing we need is:
+
+- you need to be able to set the sort on an object
+  - in ui, you can only sort the focused node
+  - all linked sorters should update
+- we need to update the url when you change the sort
+
+wait a minute what are 'tabbed posts'
+
+isn't that literally just changing the focus based on a buton press?
+
+there's no reason to need to sort a reply to a post so we don't have to swap out arbitrary things with
+different sorts
+
+the reason for tabbed posts is if eg you want to display a subreddit and show post comments on the same
+page and want to allow changing the sort of the post comments. but we don't do that and aren't planning
+on doing it in any client. so we can make it so you can only change the sort on focused posts.
+
+like - it would be fun to support that, but we don't need to support it. we just need to support sorting in
+general.
+
+ok so the solution:
+
+- create a different post per sort method
+  - not ideal because there's no reason to do this when the only things that are changing are the url
+     and the replies loader
+- add a field to posts for sortable_replies and define the sort menus there with links to focus loaders holding
+  the posts
+- addContent() and change the focus
+
+# note
+
 - remove ToggleColor
 - the only thing it's used for is rendering crossposts, but they don't even look very good
 - replace any color from ToggleColor with just `bg_colors[0]` or `bg_colors[1]` depending on

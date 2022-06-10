@@ -100,7 +100,7 @@ export type FlatTreeItem = {
 } | {
     kind: "flat_post",
     link: Generic.Link<Generic.Post>,
-    post: Generic.ActualPost,
+    post: Generic.Post,
 } | FlatLoader;
 
 export function loaderToFlatLoader(loader: Generic.HorizontalLoader | Generic.VerticalLoader): FlatLoader {
@@ -190,7 +190,6 @@ export function postReplies(listing: Generic.PostReplies | null, meta: Meta): Fl
                 res.push({kind: "error", msg: readlink.error});
             }else{
                 const rpli = readlink.value;
-                if(rpli.kind === "tabbed") throw new Error("TODO support tabbed");
                 res.push({
                     kind: "flat_post",
                     post: rpli,

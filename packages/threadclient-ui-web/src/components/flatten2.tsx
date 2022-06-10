@@ -76,7 +76,6 @@ function FlatRepliesHL(props: {
                 return <FlatReplyTsch kind="error" msg={readlink.error} />;
             }else{
                 const rpli = readlink.value;
-                if(rpli.kind === "tabbed") throw new Error("TODO support tabbed");
                 return <FlatReplyTsch
                     kind="flat_post"
                     post={rpli}
@@ -112,11 +111,8 @@ function HighestArray(props: {
         if(postloaded.error != null) {
             return <FlatReplyTsch kind="error" msg={postloaded.error} />;
         }
-        if(postloaded.value.kind === "tabbed") throw new Error("TODO support tabbed");
         return <>
             {createMemo((): JSX.Element => {
-                if(postloaded.value.kind === "tabbed") throw new Error("TODO support tabbed");
-
                 const parent = postloaded.value.parent;
                 if(!parent) {
                     return [];
@@ -262,7 +258,6 @@ export function FlattenTreeItem(props: {
         }
 
         const post = unwrapPost(props.tree_item.post);
-        if(post.kind === "tabbed") throw new Error("TODO support tabbed");
         
         const maybe_show_replies = props.rpo.displayed_in === "tree";
         if(!maybe_show_replies) {
@@ -395,7 +390,6 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
     const pivot = createMemo(() => {
         const pivot_read = Generic.readLink(hprc.content(), pivotLink());
         if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
-        if(pivot_read.value.kind === "tabbed") throw new Error("TODO tabbed");
         return pivot_read.value;
     });
 

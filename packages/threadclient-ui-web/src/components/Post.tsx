@@ -89,7 +89,7 @@ function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
 export type ClientPostOpts = {
     // TODO: get rid of all of this except for flat_frame and maybe client_id. delete it. gone. gotten rid of.
     client_id: string,
-    frame: Generic.ActualPost | null, // oh and this too :(
+    frame: Generic.Post | null, // oh and this too :(
     id: Generic.Link<Generic.Post> | null,
     flat_frame: null | FlatPost,
     collapse_data?: undefined | CollapseData, // oh we need this too unfortunately

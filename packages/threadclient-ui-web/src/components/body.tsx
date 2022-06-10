@@ -354,7 +354,7 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
         kind: "loading",
     } | {
         kind: "loaded",
-        frame: Generic.ActualPost,
+        frame: Generic.Post,
     } | {
         kind: "error",
         message: string,

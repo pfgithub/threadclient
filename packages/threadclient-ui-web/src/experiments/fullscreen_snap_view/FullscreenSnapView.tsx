@@ -320,7 +320,7 @@ export default function FullscreenSnapView(props: {
     const hprc = getWholePageRootContext();
     const list = createMemo((): {
         items: FlatTreeItem[],
-        pivot: Generic.ActualPost,
+        pivot: Generic.Post,
     } => {
         const res = readLink(hprc.content(), props.pivot);
         if(res == null || res.error != null) throw new Error("rve");

@@ -22,7 +22,7 @@ function DisplayPost(props: {
         const view = FlatItemTsch.useChildren(() => <FlattenTreeItem
             tree_item={(() => {
                 const readlink = Generic.readLink(hprc.content(), props.post);
-                if(readlink == null || readlink.error != null || readlink.value.kind === "tabbed") throw new Error("e;bad;;"+readlink);
+                if(readlink == null || readlink.error != null) throw new Error("e;bad;;"+readlink);
                 const flat_tree_item: FlatTreeItem = {kind: "flat_post", link: props.post, post: readlink.value};
                 return flat_tree_item;
             })()}
