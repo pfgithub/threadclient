@@ -153,7 +153,7 @@ function HighestArray(props: {
     });
 }
 
-const FlatItemTsch = createTypesafeChildren<FlatItem>();
+export const FlatItemTsch = createTypesafeChildren<FlatItem>();
 
 function usePostReplies(replies: () => Generic.PostReplies | null): () => FlatTreeItem[] {
     return FlatReplyTsch.useChildren(() => <FlatReplies replies={replies()} />);

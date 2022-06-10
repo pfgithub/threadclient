@@ -4,7 +4,6 @@
 // it's a trivial change just change the entrypoint and export.
 import * as Generic from "api-types-generic";
 import { Accessor, createSignal, Setter, untrack } from "solid-js";
-import { updateQuery } from "threadclient-client-reddit";
 import { array_key } from "./symbols";
 
 // indent: post id[]
@@ -123,11 +122,6 @@ export function loaderToFlatLoader(loader: Generic.HorizontalLoader | Generic.Ve
         autoload: loader.autoload,
     };
 }
-
-const fi = {
-    todo: (note: string, data: unknown): FlatItem => ({kind: "todo", note, data}),
-    err: (note: string, data: unknown): FlatItem => ({kind: "error", note, data}),
-};
 
 export type RenderPostOpts = {
     first_in_wrapper: boolean,
@@ -261,84 +255,6 @@ export function postReplies(listing: Generic.PostReplies | null, meta: Meta): Fl
     return res;
 }
 
-export function flattenTreeItem(
-    tree_item: FlatTreeItem,
-    parent_indent: CollapseButton[],
-    meta: Meta,
-    rpo: RenderPostOpts,
-): FlatItem[] {
-    const res: FlatItem[] = [];
-
-    const rres = renderTreeItem(tree_item, parent_indent, meta, rpo);
-    res.push(rres);
-
-    if(tree_item.kind !== "flat_post") {
-        return res;
-    }
-
-    const post = unwrapPost(tree_item.post);
-    if(post.kind === "tabbed") throw new Error("TODO support tabbed");
-
-    const indent_excl_self = rres.indent.map(v => v.threaded ? {...v, threaded: false} : v);
-    const indent_incl_self: CollapseButton[] = [...indent_excl_self, ...rres.collapse ? [rres.collapse] : []];
-
-    const maybe_show_replies = rpo.displayed_in === "tree";
-    if(maybe_show_replies) {
-        const replies = postReplies(post.replies, meta);
-        const replies_threaded = ((): boolean => {
-            if(meta.settings?.allow_threading === false) return false;
-            if(replies.length !== 1) return false;
-
-            // v here we wish we could return true. there's one reply, so we should thread right?
-            //    unfortunately, we also need to check if that reply has one reply too so we don't
-            //    mark something as threaded that immediately unthreads next comment.
-            //
-            // | comment one
-            // ⤷ comment two
-            // | | comment three
-            // | | comment four
-            // that's what we don't want happening.
-            //
-            // this could maybe be improved by doing threading in a second pass.
-
-            // ok wait a second i'm missing something still
-            // can't we tell comment two that the parent 'allows threading' and then only thread it if
-            // it has one reply?
-            // - no, because if something is threaded it needs to know in the 'renderTreeItem' call but we
-            //   won't be able to tell it until this if statement down here
-
-            if(rpo.threaded) return true;
-            const rply0 = replies[0]!;
-            if(rply0.kind !== "flat_post") return false;
-            const rply0rplies = postReplies(rply0.post.replies, meta);
-            if(rply0rplies.length !== 1) return false;
-            return true;
-        })();
-        const show_replies = ((): boolean => {
-            if(replies_threaded && rpo.threaded) return true;
-            if(!(rres.collapse?.collapsed ?? false)) return true;
-            return false;
-        })();
-        if(show_replies) for(const reply of replies) {
-            res.push(...flattenTreeItem(
-                reply,
-                rpo.threaded && replies_threaded ? indent_excl_self : indent_incl_self,
-                meta,
-                {
-                    is_pivot: false,
-                    at_or_above_pivot: false,
-                    first_in_wrapper: false,
-                    threaded: replies_threaded,
-                    depth: rpo.depth + 1,
-                    displayed_in: post.replies!.display,
-                },
-            ));
-        }
-    }
-        
-    return res;
-}
-
 export type CollapseData = {
     // map from a Link<Post> to an array of watchers and a current value
     map: Map<Generic.Link<Generic.Post>, CollapseEntry>,
@@ -389,70 +305,6 @@ function readLink<T>(meta: Meta, link: Generic.Link<T>): null | Generic.ReadLink
     return Generic.readLink(root_context, link);
 }
 
-function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): (FlatTreeItem & {
-    pivot?: undefined | boolean,
-})[] {
-    const res: (FlatTreeItem & {
-        pivot?: undefined | boolean,
-    })[] = [];
-
-    // working around a typescript bug. we should probably check if this is fixed in the latest release
-    let highest = ((): Generic.Link<Generic.Post> | null => post)();
-    const setHighest = (nh: Generic.Link<Generic.Post> | null): void => void (highest = nh);
-
-    while(highest) {
-        const postloaded = readLink(meta, highest);
-        if(postloaded == null) {
-            res.push({kind: "error", msg: "[flat]link not found: "+highest.toString()});
-            highest = null;
-            break;
-        }
-        if(postloaded.error != null) {
-            res.push({kind: "error", msg: postloaded.error});
-            setHighest(null);
-            break;
-        }
-        if(postloaded.value.kind === "tabbed") throw new Error("TODO support tabbed");
-        res.push({
-            kind: "flat_post",
-            link: highest,
-            post: postloaded.value,
-        });
-
-        const parent = postloaded.value.parent;
-        if(!parent) {
-            setHighest(null);
-            continue;
-        }
-
-        const {loader} = parent;
-        const loaded = readLink(meta, loader.key);
-        if(!loaded) {
-            // insert a loader and the temp_parent and then continue with temp_parent.parent
-            res.push(loaderToFlatLoader(loader));
-            setHighest(loader.temp_parent);
-            continue;
-        }
-        if(loaded.error != null) {
-            //^ loader.key resolves to an error
-            //v display both the error and the temp_parent
-            res.push({kind: "error", msg: loaded.error});
-            setHighest(loader.temp_parent);
-            continue;
-        }
-        // vv this is weird, isn't it?
-        // there are a bunch of conditions we'll check at the top of the next loop that we don't need to
-        // because the link is known good
-        setHighest(loaded.value == null ? null : loader.key);
-        continue;
-    }
-
-    const rrlm0 = res[0];
-    if(rrlm0) rrlm0.pivot = true;
-
-    return [...res].reverse();
-}
-
 // comments:
 // we could easily move this to createTypesafeChildren
 // do we want to though?
@@ -465,140 +317,3 @@ function highestArray(post: Generic.Link<Generic.Post>, meta: Meta): (FlatTreeIt
 
 // ok I have to think about what my goal with repivoting is and how to keep the data
 // structured well for repivoting with minimal perf impact
-
-function flattenTopLevelReplies(replies: Generic.PostReplies | null, meta: Meta): FlatItem[] {
-    const res: FlatItem[] = [];
-
-    if(replies?.reply) res.push(fi.todo("(add reply)", replies));
-    const post_replies = postReplies(replies, meta);
-    for(const reply of post_replies) {
-        res.push({kind: "wrapper_start"});
-        res.push(...flattenTreeItem(reply, [], meta, {
-            first_in_wrapper: true,
-            is_pivot: false,
-            at_or_above_pivot: false,
-            threaded: false,
-            depth: 0,
-            displayed_in: replies!.display,
-        }));
-        res.push({kind: "wrapper_end"});
-    } if(replies != null && post_replies.length === 0) {
-        res.push(fi.todo("*There are no replies*", replies));
-    }
-
-    return res;
-}
-
-export function flatten(pivot_link: Generic.Link<Generic.Post>, meta: Meta): FlatPage {
-    console.time("FLATTEN");
-    const res: FlatItem[] = [];
-
-    let res_sidebar: FlatItem[] | null = null;
-    let res_header: Generic.RedditHeader | null = null;
-
-    const pivot_read = readLink(meta, pivot_link);
-    if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
-    const {value: pivot} = pivot_read;
-
-    if(pivot.kind === "tabbed") throw new Error("TODO support tabbed");
-
-    let title: string | null = null;
-
-    const highest_arr = highestArray(pivot_link, meta);
-    for(const item of highest_arr) {
-        if(item.kind === "flat_post") {
-            const post = unwrapPost(item.post);
-            if(post.kind === "post" && post.content.kind === "page") {
-                const content = post.content;
-                if(res_sidebar == null) {
-                    res_sidebar = flattenTopLevelReplies(content.wrap_page.sidebar, meta);
-                }
-                if(res_header == null && (item.pivot ?? false)) {
-                    res_header = content.wrap_page.header;
-                    // oh TODO figure out what to do if there are items higher than this - like where do they
-                    // go?
-                    // I guess instead of being a special thing, header could just be a flatitem[]
-                    // not really sure
-                    // I was thinking users would want headers in their sidebar but actually we can make users
-                    // just like subreddits and have their headers at the top. no reason to put them on the side.
-                    //
-                    // I guess subreddits will want a header on the sidebar when you're viewing a comment thread
-
-                    // ok I'm just not going to worry about this for now
-                    continue; // don't insert in the list
-                }
-            }
-            if(post.kind === "post" && post.content.kind === "post") {
-                if(title == null && post.content.title != null) {
-                    title = post.content.title.text;
-                }
-            }
-        }
-
-        res.push({kind: "wrapper_start"});
-        res.push(renderTreeItem(item, [], meta, {
-            first_in_wrapper: true,
-            at_or_above_pivot: true,
-            is_pivot: item.pivot ?? false,
-            threaded: false,
-            depth: 0,
-            displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
-            // note: the pivot is never clickable
-        }));
-        res.push({kind: "wrapper_end"});
-    }
-
-    // note scroll should probably center at the pivot post and things above should require scrolling
-    // up like twitter does
-    if(pivot.replies) {
-        res.push({kind: "horizontal_line"});
-        if(pivot.replies.display === "repivot_list") {
-            res.push({
-                kind: "repivot_list_fullscreen_button",
-                client_id: pivot.client_id,
-                page: () => ({pivot: pivot_link, content: meta.content}),
-                href: updateQuery(pivot.url ?? "@ENO", {'--tc-fullscreen': "true"}),
-            });
-        }
-        res.push(...flattenTopLevelReplies(pivot.replies, meta));
-    }
-
-    // add last_in_wrapper to posts
-    const addLastInWrapper = (ar: FlatItem[]) => ar.forEach((post, i, a) => {
-        const next = a[i + 1];
-        if(next?.kind === "wrapper_end")  {
-            if(post.kind === "post") {
-                post.last_in_wrapper = true;
-            }
-        }
-    });
-    addLastInWrapper(res);
-    if(res_sidebar) addLastInWrapper(res_sidebar);
-
-    const fnretv = {
-        header: res_header ?? undefined,
-        sidebar: res_sidebar != null ? autokey(res_sidebar):  undefined,
-        body: autokey(res),
-        title: title ?? "*ERR_NO_TITLE*",
-    };
-    console.timeEnd("FLATTEN");
-    return fnretv;
-}
-
-export function autokey(items: FlatItem[]): (FlatItem & {[array_key]: unknown})[] {
-    // let i_excl_post = 0;
-    const autokeyItem = (itm: FlatItem): FlatItem & {[array_key]: unknown} => {
-        const key: {v: unknown} = (() => {
-            if(itm.kind === "post") {
-                if(itm.content.kind === "flat_post") {
-                    return {v: itm.content.link};
-                }
-            }
-            // i_excl_post += 1;
-            return {v: Symbol()};
-            // hmm. this isn't great keying. we can do better
-        })();
-        return {...itm, [array_key]: key.v};
-    };
-    return items.map(autokeyItem);
-}

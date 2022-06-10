@@ -51,23 +51,25 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
 
         const scb = specialCB();
         return untrack((): PageRes => {
-            if(scb) {
-                return scb();
-            }else{
-                // collapse_data_context.Provider({
-                //     value: {
-                //         map: new Map(),
-                //     },
-                // });
+            return provide(collapse_data_context, {
+                map: new Map(),
+            }, () => {
+                if(scb) {
+                    return scb();
+                }else{
+                    // collapse_data_context.Provider({
+                    //     value: {
+                    //         map: new Map(),
+                    //     },
+                    // });
 
-                // I want a provide(v => …) => v
+                    // I want a provide(v => …) => v
 
-                return provide(collapse_data_context, {
-                    map: new Map(),
-                }, () => ClientPageMain({
-                    get pivot() {return props.pivot},
-                }));
-            }
+                    return ClientPageMain({
+                        get pivot() {return props.pivot},
+                    });
+                }
+            });
         });
     });
     return {

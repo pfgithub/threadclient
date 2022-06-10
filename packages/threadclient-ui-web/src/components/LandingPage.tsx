@@ -1,50 +1,42 @@
 import * as Generic from "api-types-generic";
 import { Listbox } from "solid-headless";
-import { createSignal, For, JSX, untrack } from "solid-js";
-import { createMergeMemo } from "tmeta-util-solid";
-import { getSettings, getWholePageRootContext } from "../util/utils_solid";
-import { autokey, CollapseData, flattenTreeItem, FlatTreeItem } from "./flatten";
+import { createSignal, For, JSX, untrack, useContext } from "solid-js";
+import { collapse_data_context, getSettings, getWholePageRootContext } from "../util/utils_solid";
+import { CollapseData, FlatTreeItem } from "./flatten";
+import { FlatItemTsch, FlattenTreeItem } from "./flatten2";
 import { InternalIcon, InternalIconRaw } from "./Icon";
 import { A } from "./links";
 import PageFlatItem from "./PageFlatItem";
 import ReplyEditor from "./reply";
-import { array_key } from "./symbols";
 import ToggleButton from "./ToggleButton";
 
 function DisplayPost(props: {
     post: Generic.Link<Generic.Post>,
     options?: undefined | {allow_threading?: undefined | boolean},
 }): JSX.Element {
-    const collapse_data: CollapseData = {
-        map: new Map(),
-    };
+    const collapse_data: CollapseData = useContext(collapse_data_context)!;
 
     const hprc = getWholePageRootContext();
 
-    const view = createMergeMemo(() => {
-        const readlink = Generic.readLink(hprc.content(), props.post);
-        if(readlink == null || readlink.error != null) throw new Error("e;b;a;d;;"+readlink);
-        const flat_tree_item: FlatTreeItem = {kind: "flat_post", link: props.post, post: readlink.value};
-        const res = autokey(flattenTreeItem(flat_tree_item, [], {
-            collapse_data,
-            content: hprc.content(),
-            settings: {
-                allow_threading: props.options?.allow_threading,
-            },
-        }, {
+    const view = FlatItemTsch.useChildren(() => <FlattenTreeItem
+        tree_item={(() => {
+            const readlink = Generic.readLink(hprc.content(), props.post);
+            if(readlink == null || readlink.error != null || readlink.value.kind === "tabbed") throw new Error("e;bad;;"+readlink);
+            const flat_tree_item: FlatTreeItem = {kind: "flat_post", link: props.post, post: readlink.value};
+            return flat_tree_item;
+        })()}
+        parent_indent={[]}
+        rpo={{
             first_in_wrapper: true,
             is_pivot: false,
             at_or_above_pivot: false,
             threaded: false,
             depth: 0,
             displayed_in: "tree",
-        }));
-        const lastitm = res[res.length - 1];
-        if(lastitm?.kind === "post") lastitm.last_in_wrapper = true;
-        return res;
-    }, {key: array_key, merge: true});
+        }}
+    />);
 
-    return <For each={view.data}>{item => (
+    return <For each={view()}>{item => (
         <PageFlatItem
             item={item}
             collapse_data={collapse_data}
