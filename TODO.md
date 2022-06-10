@@ -1,3 +1,10 @@
+# note
+
+- remove ToggleColor
+- the only thing it's used for is rendering crossposts, but they don't even look very good
+- replace any color from ToggleColor with just `bg_colors[0]` or `bg_colors[1]` depending on
+  expected use
+
 ## note
 
 ok we have a page2 problem
