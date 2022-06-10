@@ -444,11 +444,10 @@ async function worldGame(t: Term): Promise<void> {
                 {"  "}r: {printitem(player.inventory.right_hand)}{"\n"}
                 {"\n"}
                 You are standing in {mapGet(player.pos).earth.kind}.{"\n"}
-                {"\n"}
-                {"  "}w:{"  "} {printtile(mapGet(vec2add(player.pos, [0, -1])))}{"\n"}
-                a:{"  "}{"  "} {printtile(mapGet(vec2add(player.pos, [-1, 0])))}{"\n"}
-                {"  "}{"  "}d: {printtile(mapGet(vec2add(player.pos, [1, 0])))}{"\n"}
-                {"  "}s:{"  "} {printtile(mapGet(vec2add(player.pos, [0, 1])))}{"\n"}
+                {"   "}↑w:{"   "} {printtile(mapGet(vec2add(player.pos, [0, -1])))}{"\n"}
+                ←a:{"   "}{"   "} {printtile(mapGet(vec2add(player.pos, [-1, 0])))}{"\n"}
+                {"   "}{"   "}→d: {printtile(mapGet(vec2add(player.pos, [1, 0])))}{"\n"}
+                {"   "}↓s:{"   "} {printtile(mapGet(vec2add(player.pos, [0, 1])))}{"\n"}
                 {false as true ? <>
                     {"\n"}
                     {new Array(9).fill([]).map(([,], y) => {y -= 4;
@@ -537,7 +536,7 @@ async function worldGame(t: Term): Promise<void> {
             }
         }else if(v[0] === "craft") {
             const torecipestr = (a: WorldItem | null, b: WorldItem | null): string => {
-                return [player.inventory.left_hand ?? "" as const, player.inventory.right_hand ?? "" as const].sort().join(",");
+                return [a ?? "" as const, b ?? "" as const].sort().join(",");
             };
             const recipes: {[key: string]: WorldItem[]} = {
                 [torecipestr("stone", "rebar_rod")]: [
@@ -548,7 +547,7 @@ async function worldGame(t: Term): Promise<void> {
             const this_recipe = torecipestr(player.inventory.left_hand, player.inventory.right_hand);
             const target = recipes[this_recipe];
             if(!Object.hasOwn(recipes, this_recipe) || target == null) {
-                t.print(<Line>You can't craft anything with that</Line>);
+                t.print(<Line>You can't craft anything with what you're holding</Line>);
             }else{
                 const targetitm = v[1];
                 const q = target.find(m => m === targetitm);
