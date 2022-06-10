@@ -121,7 +121,7 @@ export function animateHeight(
 // TODO: when reduce motion is on, use opacity instead of animateHeight()
 export function ShowAnimate(props: {
     mode?: undefined | "clip" | "height", // = "height" //[!] not reactive
-    when: boolean,
+    when: boolean, // ← f2 rename to 'if'. also, consider removing 'when' in normal <Show> things as it's bad for reactivity
     fallback?: undefined | JSX.Element,
     children: JSX.Element,
 }): JSX.Element {
@@ -138,14 +138,30 @@ export function ShowAnimate(props: {
         });
     }}>
         <Show if={show().main || show().animating}>
-            <tc:children class={show().animating && !show().main ? "hidden" : "flex-col"}>
+            <tc:children ref={el => {
+                createEffect(() => {
+                    if(props.when === true) {
+                        el.removeAttribute("inert");
+                    }else{
+                        el.setAttribute("inert", "true");
+                    }
+                });
+            }} class={show().animating && !show().main ? "hidden" : "flex-col"}>
                 <div>
                     {props.children}
                 </div>
             </tc:children>
         </Show>
         <Show if={!show().main || show().animating}>
-            <tc:fallback class={show().animating && show().main ? "hidden" : "flex-col"}>
+            <tc:fallback ref={el => {
+                createEffect(() => {
+                    if(props.when === true) {
+                        el.setAttribute("inert", "true");
+                    }else{
+                        el.removeAttribute("inert");
+                    }
+                });
+            }} class={show().animating && show().main ? "hidden" : "flex-col"}>
                 <div>
                     {props.fallback}
                 </div>
