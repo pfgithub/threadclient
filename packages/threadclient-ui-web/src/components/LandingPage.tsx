@@ -1,7 +1,7 @@
 import * as Generic from "api-types-generic";
 import { Listbox } from "solid-headless";
 import { createSignal, For, JSX, untrack, useContext } from "solid-js";
-import { collapse_data_context, getSettings, getWholePageRootContext } from "../util/utils_solid";
+import { allow_threading_override_ctx, collapse_data_context, getSettings, getWholePageRootContext, provide } from "../util/utils_solid";
 import { CollapseData, FlatTreeItem } from "./flatten";
 import { FlatItemTsch, FlattenTreeItem } from "./flatten2";
 import { InternalIcon, InternalIconRaw } from "./Icon";
@@ -14,34 +14,36 @@ function DisplayPost(props: {
     post: Generic.Link<Generic.Post>,
     options?: undefined | {allow_threading?: undefined | boolean},
 }): JSX.Element {
-    const collapse_data: CollapseData = useContext(collapse_data_context)!;
-
-    const hprc = getWholePageRootContext();
-
-    const view = FlatItemTsch.useChildren(() => <FlattenTreeItem
-        tree_item={(() => {
-            const readlink = Generic.readLink(hprc.content(), props.post);
-            if(readlink == null || readlink.error != null || readlink.value.kind === "tabbed") throw new Error("e;bad;;"+readlink);
-            const flat_tree_item: FlatTreeItem = {kind: "flat_post", link: props.post, post: readlink.value};
-            return flat_tree_item;
-        })()}
-        parent_indent={[]}
-        rpo={{
-            first_in_wrapper: true,
-            is_pivot: false,
-            at_or_above_pivot: false,
-            threaded: false,
-            depth: 0,
-            displayed_in: "tree",
-        }}
-    />);
-
-    return <For each={view()}>{item => (
-        <PageFlatItem
-            item={item}
-            collapse_data={collapse_data}
-        />
-    )}</For>;
+    return provide(allow_threading_override_ctx, () => props.options?.allow_threading ?? true, () => {
+        const collapse_data: CollapseData = useContext(collapse_data_context)!;
+    
+        const hprc = getWholePageRootContext();
+    
+        const view = FlatItemTsch.useChildren(() => <FlattenTreeItem
+            tree_item={(() => {
+                const readlink = Generic.readLink(hprc.content(), props.post);
+                if(readlink == null || readlink.error != null || readlink.value.kind === "tabbed") throw new Error("e;bad;;"+readlink);
+                const flat_tree_item: FlatTreeItem = {kind: "flat_post", link: props.post, post: readlink.value};
+                return flat_tree_item;
+            })()}
+            parent_indent={[]}
+            rpo={{
+                first_in_wrapper: true,
+                is_pivot: false,
+                at_or_above_pivot: false,
+                threaded: false,
+                depth: 0,
+                displayed_in: "tree",
+            }}
+        />);
+    
+        return <For each={view()}>{item => (
+            <PageFlatItem
+                item={item}
+                collapse_data={collapse_data}
+            />
+        )}</For>;
+    });
 }
 
 function FeaturePreviewCard(props: {

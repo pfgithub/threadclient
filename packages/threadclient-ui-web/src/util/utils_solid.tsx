@@ -111,7 +111,7 @@ export function provide<T, U>(provider: Context<T>, value: T, cb: () => U): U {
     // looks like you can use createMemo()? weird
 }
 
-export const allow_threading_override_ctx = createContext<boolean>();
+export const allow_threading_override_ctx = createContext<() => boolean>();
 
 type ComputePropertyFn<T> = (() => T);
 type ComputePropertyOpts<T> = {

@@ -177,7 +177,7 @@ export function FlattenTreeItem(props: {
 }): JSX.Element {
     const hprc = getWholePageRootContext();
     const cpsd = useContext(collapse_data_context)!;
-    const allow_threading = useContext(allow_threading_override_ctx) ?? true;
+    const allowThreading = useContext(allow_threading_override_ctx) ?? (() => true);
     return createMemo(() => {
         // [!] TODO: this will needlessly rerender when the parent indent changes
         // or when any renderpostopts change
@@ -205,9 +205,10 @@ export function FlattenTreeItem(props: {
     
         const replies0 = usePostReplies(() => post.replies);
         const replies = createMemo(() => replies0());
-        const replies_threaded = ((): boolean => {
-            if(!allow_threading) return false;
-            if(replies.length !== 1) return false;
+        const repliesThreaded = createMemo((): boolean => {
+            if(!allowThreading()) return false;
+            const rplys = replies();
+            if(rplys.length !== 1) return false;
 
             const rpo = props.rpo;
 
@@ -228,38 +229,41 @@ export function FlattenTreeItem(props: {
             // it has one reply?
             // - no, because if something is threaded it needs to know in the 'renderTreeItem' call but we
             //   won't be able to tell it until this if statement down here
+            //   - why does it need to know there? can't we add the indent after rendering the object?
 
             if(rpo.threaded) return true;
-            const rply0 = replies()[0]!;
+            const rply0 = rplys[0]!;
             if(rply0.kind !== "flat_post") return false;
             // oh my… this is uuh
             // not ideal
             const rply0rplies = usePostReplies(() => rply0.post.replies)();
             if(rply0rplies.length !== 1) return false;
             return true;
-        })();
-        const show_replies = ((): boolean => {
-            if(replies_threaded && props.rpo.threaded) return true;
+        });
+        const showReplies = ((): boolean => {
+            if(repliesThreaded() && props.rpo.threaded) return true;
             if(!(rres.collapse?.collapsed ?? false)) return true;
             return false;
-        })();
-        if(!show_replies) return FlatItemTsch(rres);
+        });
         return <>
             {FlatItemTsch(rres)}
-            <For each={replies()}>{reply => (
-                <FlattenTreeItem
-                    tree_item={reply}
-                    parent_indent={props.rpo.threaded && replies_threaded ? indent_excl_self : indent_incl_self}
-                    rpo={{
-                        is_pivot: false,
-                        at_or_above_pivot: false,
-                        first_in_wrapper: false,
-                        threaded: replies_threaded,
-                        get depth() {return props.rpo.depth + 1},
-                        displayed_in: post.replies!.display,
-                    }}
-                />
-            )}</For>
+            <Show if={showReplies()}>
+                <For each={replies()}>{reply => (
+                    <FlattenTreeItem
+                        tree_item={reply}
+                        parent_indent={props.rpo.threaded && repliesThreaded() ? indent_excl_self : indent_incl_self}
+                        rpo={{
+                            is_pivot: false,
+                            at_or_above_pivot: false,
+                            first_in_wrapper: false,
+                            threaded: repliesThreaded(),
+                            get depth() {return props.rpo.depth + 1},
+                            displayed_in: post.replies!.display,
+                        }}
+                    />
+                )}</For>
+
+            </Show>
         </>;
     });
 }

@@ -1,5 +1,5 @@
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from "solid-headless";
-import { createEffect, createMemo, For, JSX } from "solid-js";
+import { createMemo, For, JSX } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { uuid } from "../router";
 import createExclusiveFlipSelector from "./createExclusiveFlipSelector";
@@ -27,10 +27,6 @@ export default function ToggleButton<T>(props: {
 
     const itmkey = (itm: T) => choiceMap().fwd.get(itm);
     const mainvalue = createMemo(() => itmkey(props.value));
-
-    createEffect(() => {
-        console.log("[!]MAINVALUE IS", mainvalue(), "CHOICES:", choiceMap());
-    });
 
     const ef = createExclusiveFlipSelector(() => mainvalue());
 
