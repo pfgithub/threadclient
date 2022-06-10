@@ -3,7 +3,7 @@ import { createMemo, For, JSX, useContext } from "solid-js";
 import { updateQuery } from "threadclient-client-reddit";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { allow_threading_override_ctx, collapse_data_context, getWholePageRootContext } from "../util/utils_solid";
-import { CollapseButton, FlatItem, FlatPage2, FlatTreeItem, loaderToFlatLoader, RenderPostOpts, renderTreeItem, unwrapPost } from "./flatten";
+import { CollapseButton, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";
 
 /*
 CRITICAL TODO:
@@ -170,38 +170,105 @@ function FITodo(props: {msg: string, obj: unknown}): JSX.Element {
     />;
 }
 
+type TII = {
+    indent: CollapseButton[],
+    collapse: CollapseButton | null,
+};
+
+function getTreeItemIndent(
+    tree_item: FlatTreeItem,
+    parent_indent: CollapseButton[],
+    opts: RenderPostOpts,
+): TII {
+    const ci = postCollapseInfo(tree_item, opts);
+    const self_collapsed = ci.user_controllable ? getCState(
+        useContext(collapse_data_context)!,
+        ci.collapse_link,
+        {default: ci.default_collapsed},
+    ).collapsed() : ci.default_collapsed;
+
+    const final_indent: CollapseButton | null = ci.user_controllable ? {
+        id: ci.collapse_link,
+        threaded: false,
+        collapsed: self_collapsed,
+    } : null;
+
+    return {
+        indent: opts.threaded ? parent_indent.map((idnt, i, a) => {
+            if(i === a.length - 1) {
+                return {...idnt, threaded: true};
+            }
+            return idnt;
+        }) : parent_indent,
+        collapse: final_indent,
+    };
+}
+
+function RenderTreeItem(props: {
+    tree_item: FlatTreeItem,
+    opts: RenderPostOpts,
+    tii: TII,
+}): JSX.Element {
+    return <FlatItemTsch
+        kind="post"
+        content={props.tree_item}
+        indent={props.tii.indent}
+        collapse={props.tii.collapse}
+        first_in_wrapper={props.opts.first_in_wrapper}
+        last_in_wrapper={false} // TODO fix
+
+        is_pivot={props.opts.is_pivot}
+        at_or_above_pivot={props.opts.at_or_above_pivot}
+        threaded={props.opts.threaded}
+        depth={props.opts.depth}
+
+        displayed_in={props.opts.displayed_in}
+    />;
+}
+function RenderTreeItemAuto(props: {
+    tree_item: FlatTreeItem,
+    parent_indent: CollapseButton[],
+    opts: RenderPostOpts,
+}): JSX.Element {
+    return <RenderTreeItem
+        tree_item={props.tree_item}
+        opts={props.opts}
+        tii={getTreeItemIndent(props.tree_item, props.parent_indent, props.opts)}
+    />;
+}
+
 export function FlattenTreeItem(props: {
     tree_item: FlatTreeItem,
     parent_indent: CollapseButton[],
     rpo: RenderPostOpts,
 }): JSX.Element {
-    const hprc = getWholePageRootContext();
-    const cpsd = useContext(collapse_data_context)!;
     const allowThreading = useContext(allow_threading_override_ctx) ?? (() => true);
+    const tii = createMemo(() => getTreeItemIndent(props.tree_item, props.parent_indent, props.rpo));
     return createMemo(() => {
         // [!] TODO: this will needlessly rerender when the parent indent changes
         // or when any renderpostopts change
         // - should be a pretty simple fix by reimplementing renderTreeItem to have
         // some values be getters
-        const rres = renderTreeItem(
-            props.tree_item,
-            props.parent_indent,
-            {content: hprc.content(), collapse_data: cpsd},
-            props.rpo,
-        );
 
         if(props.tree_item.kind !== "flat_post") {
-            return FlatItemTsch(rres);
+            return <RenderTreeItem
+                tree_item={props.tree_item}
+                opts={props.rpo}
+                tii={tii()}
+            />;
         }
 
         const post = unwrapPost(props.tree_item.post);
         if(post.kind === "tabbed") throw new Error("TODO support tabbed");
-
-        const indent_excl_self = rres.indent.map(v => v.threaded ? {...v, threaded: false} : v);
-        const indent_incl_self: CollapseButton[] = [...indent_excl_self, ...rres.collapse ? [rres.collapse] : []];
         
         const maybe_show_replies = props.rpo.displayed_in === "tree";
-        if(!maybe_show_replies) return FlatItemTsch(rres);
+        if(!maybe_show_replies) {
+            return <RenderTreeItem
+                tree_item={props.tree_item}
+                opts={props.rpo}
+                tii={tii()}
+            />;
+        }
     
         const replies0 = usePostReplies(() => post.replies);
         const replies = createMemo(() => replies0());
@@ -230,6 +297,8 @@ export function FlattenTreeItem(props: {
             // - no, because if something is threaded it needs to know in the 'renderTreeItem' call but we
             //   won't be able to tell it until this if statement down here
             //   - why does it need to know there? can't we add the indent after rendering the object?
+            //     - we can literally do that. `renderTreeItem` does nothing interesting and there's zero reason
+            //       we need to call it before counting the replies
 
             if(rpo.threaded) return true;
             const rply0 = rplys[0]!;
@@ -242,16 +311,29 @@ export function FlattenTreeItem(props: {
         });
         const showReplies = ((): boolean => {
             if(repliesThreaded() && props.rpo.threaded) return true;
-            if(!(rres.collapse?.collapsed ?? false)) return true;
+            if(!(tii().collapse?.collapsed ?? false)) return true;
             return false;
         });
         return <>
-            {FlatItemTsch(rres)}
+            <RenderTreeItem
+                tree_item={props.tree_item}
+                opts={props.rpo}
+                tii={tii()}
+            />
             <Show if={showReplies()}>
                 <For each={replies()}>{reply => (
                     <FlattenTreeItem
-                        tree_item={reply}
-                        parent_indent={props.rpo.threaded && repliesThreaded() ? indent_excl_self : indent_incl_self}
+                    tree_item={reply}
+                    parent_indent={((): CollapseButton[] => {
+                        const ti = tii();
+                        const indent_excl_self = ti.indent.map(v => v.threaded ? {...v, threaded: false} : v);
+                        if(props.rpo.threaded && repliesThreaded()) {
+                            return indent_excl_self;
+                        }
+                        return [
+                            ...indent_excl_self, ...ti.collapse ? [ti.collapse] : [],
+                        ];
+                    })()}
                         rpo={{
                             is_pivot: false,
                             at_or_above_pivot: false,
@@ -301,7 +383,6 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
     // and we have to regenerate everything if the pivot changes anyway
 
     const hprc = getWholePageRootContext();
-    const cpsd = useContext(collapse_data_context)!;
     const pivot = createMemo(() => {
         const pivot_read = Generic.readLink(hprc.content(), pivotLink());
         if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
@@ -316,16 +397,19 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         return <>
             <For each={parentsArr()}>{(item): JSX.Element => <>
                 <FlatItemTsch kind="wrapper_start" />
-                {FlatItemTsch(renderTreeItem(item, [],
-                {content: hprc.content(), collapse_data: cpsd}, {
-                    first_in_wrapper: true,
-                    at_or_above_pivot: true,
-                    is_pivot: item.kind === "flat_post" && item.link === pivotLink(),
-                    threaded: false,
-                    depth: 0,
-                    displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
-                    // note: the pivot is never clickable
-                }))}
+                <RenderTreeItemAuto
+                    tree_item={item}
+                    parent_indent={[]}
+                    opts={{
+                        first_in_wrapper: true,
+                        at_or_above_pivot: true,
+                        is_pivot: item.kind === "flat_post" && item.link === pivotLink(),
+                        threaded: false,
+                        depth: 0,
+                        displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
+                        // note: the pivot is never clickable
+                    }}
+                />
                 <FlatItemTsch kind="wrapper_end" />
             </>}</For>
             {p.replies ? <>

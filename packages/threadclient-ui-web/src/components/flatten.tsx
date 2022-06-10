@@ -176,47 +176,6 @@ export function postCollapseInfo(post: FlatTreeItem, opts: PostContentCollapseIn
     }else return {default_collapsed: false, user_controllable: false};
 }
 
-export function renderTreeItem(
-    tree_item: FlatTreeItem,
-    parent_indent: CollapseButton[],
-    meta: Meta,
-    opts: RenderPostOpts,
-): FlatPost {
-    const ci = postCollapseInfo(tree_item, opts);
-    const self_collapsed = ci.user_controllable ? getCState(
-        meta.collapse_data,
-        ci.collapse_link,
-        {default: ci.default_collapsed},
-    ).collapsed() : ci.default_collapsed;
-
-    const final_indent: CollapseButton | null = ci.user_controllable ? {
-        id: ci.collapse_link,
-        threaded: false,
-        collapsed: self_collapsed,
-    } : null;
-
-    return {
-        kind: "post",
-        content: tree_item,
-        indent: opts.threaded ? parent_indent.map((idnt, i, a) => {
-            if(i === a.length - 1) {
-                return {...idnt, threaded: true};
-            }
-            return idnt;
-        }) : parent_indent,
-        collapse: final_indent,
-        first_in_wrapper: opts.first_in_wrapper,
-        last_in_wrapper: false,
-
-        is_pivot: opts.is_pivot,
-        at_or_above_pivot: opts.at_or_above_pivot,
-        threaded: opts.threaded,
-        depth: opts.depth,
-
-        displayed_in: opts.displayed_in,
-    };
-}
-
 export function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeItem[] {
     const res: FlatTreeItem[] = [];
     
