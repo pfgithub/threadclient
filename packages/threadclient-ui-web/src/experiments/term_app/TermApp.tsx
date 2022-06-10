@@ -433,9 +433,12 @@ async function worldGame(t: Term): Promise<void> {
         return item;
     }
 
+    let setSectionInteractive: null | Setter<false> = null;
+
     while(true) {
         const [printcmd, setPrintcmd] = createSignal("");
         const [printdone, setPrintDone] = createSignal(false);
+        const [sectionInteractive, nsi] = createSignal(true);
         t.print(<>
             <Line class="bg-zinc-900">[What to do?] {printcmd()}</Line>
             {!printdone() ? <Line class="text-zinc-400">
@@ -463,8 +466,24 @@ async function worldGame(t: Term): Promise<void> {
         const v = (await t.read({
             onProgress: q => void setPrintcmd(q),
         })).split(" ");
+        setSectionInteractive?.(false);
+        setSectionInteractive = nsi;
         setPrintcmd(v.join(" ")+"");
         setPrintDone(true);
+        
+        // TODO: if you click a link from an error, we should rewrite the previous command even
+        // = delete the previous lines and write again
+        // that should happen any time you try again after an error probably
+        const LinkCmd = (props: {cmd: string, children: JSX.Element}) => (
+            <button
+                title={props.cmd}
+                class={sectionInteractive() ? "underline" : "!opacity-100 cursor-default"}
+                disabled={!sectionInteractive()}
+                onClick={() => sectionInteractive() && t.suggest(props.cmd)}
+            >
+                {props.children}
+            </button>
+        );
 
         if(v[0] != null && isdir(v[0])) {
             godir(dirs[v[0]]);
@@ -508,6 +527,7 @@ async function worldGame(t: Term): Promise<void> {
             }else{
                 t.print(<Line>Usage: e [w|a|s|d]</Line>);
             }
+        // vv instead of 'mine a' maybe 'l a' saying 'use «left hand» on «a» direction'
         }else if(v[0] === "mine") {
             if(v[1] != null && isdir(v[1])) {
                 // 1. check if either hand contains a pickaxe (you need a pickaxe to mine)
@@ -552,7 +572,12 @@ async function worldGame(t: Term): Promise<void> {
                 const targetitm = v[1];
                 const q = target.find(m => m === targetitm);
                 if(q == null) {
-                    t.print(<Line>Usage: craft [{target.join("|")}]</Line>);
+                    t.print(<Line>Usage: craft [
+                        <For each={target}>{(itm, i) => <>
+                            {i() !== 0 ? "|" : ""}
+                            <LinkCmd cmd={"craft "+itm}>{itm}</LinkCmd>
+                        </>}</For>    
+                    ]</Line>);
                 }else{
                     player.inventory.left_hand = null;
                     player.inventory.right_hand = null;
