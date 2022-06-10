@@ -1,31 +1,6 @@
-function assertNever(v: never): never {console.log(v); throw new Error("not never")}
-
-
 export type RGBA = {r: number, g: number, b: number, a: number};
 export type HSLA = {h: number, s: number, l: number, a: number};
 
-function scale(x: number, in_low: number, in_high: number, out_low: number, out_high: number) {
-    return (x - in_low) * (out_high - out_low) / (in_high - in_low) + out_low;
-}
-
-function clamp(x: number, min: number, max: number) {
-    return Math.min(max, Math.max(min, x));
-}
-
-function multiplyMatrices(m1: number[][], m2: number[][]) {
-    const result: number[][] = [];
-    for (let i = 0, len = m1.length; i < len; i++) {
-        result[i] = [];
-        for (let j = 0, len2 = m2[0]!.length; j < len2; j++) {
-            let sum = 0;
-            for (let k = 0, len3 = m1[0]!.length; k < len3; k++) {
-                sum += m1[i]![k]! * m2[k]![j]!;
-            }
-            result[i]![j] = sum;
-        }
-    }
-    return result;
-}
 export function rgbToHSL({r: r255, g: g255, b: b255, a = 1}: RGBA): HSLA {
     const r = r255 / 255;
     const g = g255 / 255;
@@ -81,87 +56,6 @@ export function hslToRGB({h, s, l, a = 1}: HSLA): RGBA {
 
     return {r: r!, g: g!, b: b!, a};
 }
-function modifyBlueFgHue(hue: number) {
-    return scale(hue, 205, 245, 205, 220);
-}
-const min_fg_lightness = 0.55;
-const max_bg_lightness = 0.4;
-function modifyFgHSL({h, s, l, a}: HSLA, pole: HSLA) {
-    const is_light = l > 0.5;
-    const is_neutral = l < 0.2 || s < 0.24;
-    const is_blue = !is_neutral && h > 205 && h < 245;
-    if (is_light) {
-        const lx = scale(l, 0.5, 1, min_fg_lightness, pole.l);
-        if (is_neutral) {
-            const hx = pole.h;
-            const sx = pole.s;
-            return {h: hx, s: sx, l: lx, a};
-        }
-        let hx = h;
-        if (is_blue) {
-            hx = modifyBlueFgHue(h);
-        }
-        return {h: hx, s, l: lx, a};
-    }
-
-    if (is_neutral) {
-        const hx = pole.h;
-        const sx = pole.s;
-        const lx = scale(l, 0, 0.5, pole.l, min_fg_lightness);
-        return {h: hx, s: sx, l: lx, a};
-    }
-
-    let hx = h;
-    let lx: number;
-    if (is_blue) {
-        hx = modifyBlueFgHue(h);
-        lx = scale(l, 0, 0.5, pole.l, Math.min(1, min_fg_lightness + 0.05));
-    } else {
-        lx = scale(l, 0, 0.5, pole.l, min_fg_lightness);
-    }
-
-    return {h: hx, s, l: lx, a};
-}
-function modifyBgHSL({h, s, l, a}: HSLA, pole: HSLA) {
-    const is_dark = l < 0.5;
-    const is_blue = h > 200 && h < 280;
-    const is_neutral = s < 0.12 || (l > 0.8 && is_blue);
-    if (is_dark) {
-        const lx = scale(l, 0, 0.5, 0, max_bg_lightness);
-        if (is_neutral) {
-            const hx = pole.h;
-            const sx = pole.s;
-            return {h: hx, s: sx, l: lx, a};
-        }
-        return {h, s, l: lx, a};
-    }
-
-    const lx = scale(l, 0.5, 1, max_bg_lightness, pole.l);
-
-    if (is_neutral) {
-        const hx = pole.h;
-        const sx = pole.s;
-        return {h: hx, s: sx, l: lx, a};
-    }
-
-    let hx = h;
-    const is_yellow = h > 60 && h < 180;
-    if (is_yellow) {
-        const is_closer_to_green = h > 120;
-        if (is_closer_to_green) {
-            hx = scale(h, 120, 180, 135, 180);
-        } else {
-            hx = scale(h, 60, 120, 60, 105);
-        }
-    }
-
-    return {h: hx, s, l: lx, a};
-}
-function applyColorMatrix([r, g, b]: [number, number, number], matrix: number[][]): [number, number, number] {
-    const rgb = [[r / 255], [g / 255], [b / 255], [1], [1]];
-    const result = multiplyMatrices(matrix, rgb);
-    return [0, 1, 2].map((i) => clamp(Math.round(result[i]![0]! * 255), 0, 255)) as [number, number, number];
-}
 export function rgbToString(rgb: RGBA): string {
     const {r, g, b, a} = rgb;
     if (a != null && a < 1) {
@@ -185,34 +79,6 @@ function toFixed(n: number, digits = 0) {
         }
     }
     return fixed;
-}
-export function rgbToHexString({r, g, b, a}: RGBA): string {
-    return `#${(a != null && a < 1 ? [r, g, b, Math.round(a * 255)] : [r, g, b]).map((x) => {
-        return `${x < 16 ? "0" : ""}${x.toString(16)}`;
-    }).join("")}`;
-}
-export function darkenColor(mode: "foreground" | "background", rgb: RGBA): RGBA {
-    const hsl = rgbToHSL(rgb);
-    const pole = mode === "foreground" ? (
-        {h: 36, s: 0.09803921568627463, l: 0.9, a: 1}
-    ) : mode === "background" ? (
-        {h: 200, s: 0.05882352941176472, l: 0.1, a: 1}
-    ) : assertNever(mode);
-    const modified = mode === "foreground" ? (
-        modifyFgHSL(hsl, pole)
-    ) : mode === "background" ? (
-        modifyBgHSL(hsl, pole)
-    ) : assertNever(mode);
-    const {r, g, b, a} = hslToRGB(modified);
-    const matrix = [
-        [1, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0],
-        [0, 0, 1, 0, 0],
-        [0, 0, 0, 1, 0],
-        [0, 0, 0, 0, 1],
-    ];
-    const [rf, gf, bf] = applyColorMatrix([r, g, b], matrix);
-    return {r: rf, g: gf, b: bf, a};
 }
 
 

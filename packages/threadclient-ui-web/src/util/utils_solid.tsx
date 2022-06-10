@@ -69,11 +69,6 @@ export function PageRootProvider(props: {
     }}>{props.children}</PageRootContext.Provider>;
 }
 
-export function getPageRootContext(): () => Generic.Page2Content {
-    const page_root_context = useContext(PageRootContext);
-    if(!page_root_context) throw new Error("no page root context here.");
-    return page_root_context.content;
-}
 export function getWholePageRootContextOpt(): undefined | PageRootContext {
     return useContext(PageRootContext);
 }
@@ -126,7 +121,6 @@ export type UpdateNotifications = "on" | "off";
 export type CustomVideoControls = "browser" | "custom";
 export type PageVersion = "1" | "2";
 export type LinkHelpers = "show" | "hide";
-export type DeveloperMode = "on" | "off";
 export type GalleryDisplay = "fullscreen" | "inline";
 export type Motion = "full" | "reduce";
 export type AnimationDevMode = "none" | "shift_slow";

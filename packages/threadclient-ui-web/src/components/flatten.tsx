@@ -4,20 +4,9 @@
 // it's a trivial change just change the entrypoint and export.
 import * as Generic from "api-types-generic";
 import { Accessor, createSignal, Setter, untrack } from "solid-js";
-import { array_key } from "./symbols";
 
 // indent: post id[]
 
-export type FlatPage = {
-    header?: undefined | Generic.RedditHeader,
-    body: (FlatItem & {
-        [array_key]: unknown,
-    })[],
-    sidebar?: undefined | (FlatItem & {
-        [array_key]: unknown,
-    })[],
-    title: string,
-};
 export type FlatPage2 = {
     header?: undefined | Generic.RedditHeader,
     body: FlatItem[],

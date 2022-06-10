@@ -1393,16 +1393,6 @@ export function watchable<T>(initial: T): Watchable<T> {
 // →
 // const x = watchable(25);
 // const y = watchWith([x], () => x / 5).defer(hsc);
-export function watchWith<T>(dependencies: Watchable<unknown>[], value: () => T): HideShowCleanup<Watchable<T>> {
-    const nwable = watchable(value());
-    const hsc = hideshow(nwable);
-
-    for(const dependnc of dependencies) {
-        dependnc.watch(() => nwable.value = value()).defer(hsc);
-    }
-
-    return hsc;
-}
 export function watchNode<Node>(
     dependencies: Watchable<unknown>[],
     node: Node,
