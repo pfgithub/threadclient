@@ -20,9 +20,8 @@ import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
 import {
-    alertarea, client_cache, current_nav_history_key, global_counter_info,
-    navbar,
-    navigate_event_handlers, nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid
+    alertarea, client_cache, current_nav_history_key, global_counter_info, navigate_event_handlers,
+    nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid,
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { bg_colors, DefaultErrorBoundary, getSettings, PageRootProvider } from "./util/utils_solid";
@@ -1882,6 +1881,7 @@ export function clientListing(
     if(listing.layout === "reddit-comment" || listing.layout === "mastodon-post") {
         const [collapsed, setCollapsed] = createSignal(listing.default_collapsed);
         createEffect(() => {
+            console.log("@ORDER-EFFECT");
             const v = collapsed();
             frame.classList.toggle("comment-collapsed", v);
             hsc.setVisible(!v);
@@ -1890,28 +1890,13 @@ export function clientListing(
         frame.insertBefore(loc, frame.childNodes[0] ?? null);
         const vsc = vanillaToSolidBoundary(loc, (): JSX.Element => {
             return <CollapseButton
-            class="h-full"
-                collapsed_raw={collapsed()}
-                collapsed_anim={collapsed()}
+                class="h-full"
+                mode={collapsed() ? "reveal_only" : "collapse_only"}
                 onClick={() => {
-                    const initial_size = frame.getBoundingClientRect();
-                    const navbar_size = navbar.getBoundingClientRect();
-                    const visualTop = () => 5 + Math.max(
-                        0, 
-                        navbar_size.bottom,
-                        window.visualViewport.offsetTop,
-                    );
-                    const visual_bottom =
-                        window.visualViewport.offsetTop + window.visualViewport.height
-                    ;
-                    console.log(visualTop(), visual_bottom, initial_size.top);
-                    if(initial_size.top < visualTop() && initial_size.bottom > visualTop()) {
-                        frame.scrollIntoView();
-                        document.documentElement.scrollTop -= visualTop();
-                    }
+                    console.log("@ORDER-ONCLICK-1");
                     setCollapsed(v => !v);
+                    console.log("@ORDER-ONCLICK-2");
                 }}
-                real={true}
             />;
         }, {color_level: 1});
         hsc.addChild(vsc);

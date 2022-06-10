@@ -152,13 +152,11 @@ function PostIndent(props: {
     )}>
         <For each={props.loader_or_post.indent}>{indent => <>
             <CollapseButton
-                collapsed_raw={false}
-                collapsed_anim={false}
+                mode="fake"
                 onClick={() => {
                     const cs = getCState(props.collapse_data, indent.id);
                     cs.setCollapsed(v => !v);
                 }}
-                real={false}
                 cstates={props.collapse_data}
                 threaded={indent.threaded}
                 id={indent.id}

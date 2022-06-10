@@ -1,6 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { JSX, onCleanup } from "solid-js";
 import { Show } from "tmeta-util-solid";
+import { navbar } from "../router";
 import {
     classes, ToggleColor
 } from "../util/utils_solid";
@@ -27,12 +28,24 @@ import { InternalIcon } from "./Icon";
 // - if this were native, we could probably render the thing to a canvas and do it
 //   pretty easily. unfortunately, this is web.
 
+function symbolToString(v: Generic.Link<unknown>): string {
+    const wv = window as unknown as {__tc_object_map: Map<Generic.Link<unknown>, number>};
+    wv.__tc_object_map ??= new Map();
+    let pv = wv.__tc_object_map.get(v);
+    if(pv == null) {
+        pv = wv.__tc_object_map.size;
+        wv.__tc_object_map.set(v, pv);
+    }
+    return "#"+pv+"#"+v.toString();
+}
+
+function idFor(id: Generic.Link<unknown>, state: boolean) {
+    return "tc-collapse-button@" + state + ":" + symbolToString(id);
+}
 export function CollapseButton(props: {
     class?: undefined | string,
-    collapsed_raw: boolean,
-    collapsed_anim: boolean,
     onClick: () => void,
-    real: boolean,
+    mode: "fake" | "collapse_only" | "reveal_only",
     cstates?: undefined | CollapseData,
     threaded?: undefined | boolean,
     id?: undefined | Generic.Link<Generic.Post>,
@@ -45,7 +58,14 @@ export function CollapseButton(props: {
         if(in_hovers) cst.setHovering(v => v - 1);
         in_hovers = false;
     });
+    const collapsed = () => props.mode === "reveal_only";
+    const real = () => props.mode !== "fake";
     return <button
+        // hmm. there will be a bug with displaying multiple posts from different clients
+        // TODO: require that all post ids start with the client id
+        // TODO: get rid of symbol ids
+        // TODO: get rid of client_id fields in generic
+        id={real() && props.id != null ? idFor(props.id, collapsed()) : undefined}
         class={classes(
             "w-15px box-border cursor-pointer min-h-13px",
             "z-1 static outline-default group",
@@ -53,11 +73,52 @@ export function CollapseButton(props: {
             props.threaded ?? false ? "threaded-new" : "",
         )}
         draggable={true}
-        onClick={() => props.onClick()}
+        onClick={e => {
+            // 0. check if in view
+            let orig_button: HTMLElement | null;
+            if(props.id == null) {
+                if(real()) {
+                    orig_button = e.currentTarget;
+                }else orig_button = null;
+            }else{
+                orig_button = document.getElementById(idFor(props.id, collapsed()));
+            }
+            let should_scroll = false;
+            const navbar_size = navbar.getBoundingClientRect();
+            const visualTop = () => 5 + Math.max(
+                0, 
+                navbar_size.bottom,
+                window.visualViewport.offsetTop,
+            );
+            if(orig_button) {
+                const orig_size = orig_button.getBoundingClientRect();
+                should_scroll = orig_size.top < visualTop();
+            }
+
+            // 1. click
+            props.onClick();
+            
+            // 2. scrollIntoView()
+            let new_button: HTMLElement | null;
+            if(props.id == null) {
+                if(real()) {
+                    new_button = e.currentTarget;
+                }else new_button = null;
+            }else{
+                new_button = document.getElementById(idFor(props.id, !collapsed()));
+            }
+            if(new_button && should_scroll) {
+                new_button.scrollIntoView();
+                document.documentElement.scrollTop -= visualTop();
+            }
+
+            // 3. focus();
+            new_button?.focus();
+        }}
         aria-label="Collapse"
-        aria-pressed={props.collapsed_raw}
-        tabindex={props.real ? undefined : "-1"}
-        aria-hidden={props.real ? undefined : true}
+        aria-pressed={collapsed()}
+        tabindex={real() ? undefined : "-1"}
+        aria-hidden={real() ? undefined : true}
         onmouseover={() => {
             if(!props.id || !props.cstates) return;
             const cst = getCState(props.cstates, props.id);
@@ -73,7 +134,7 @@ export function CollapseButton(props: {
             in_hovers = false;
         }}
     >
-        <Show if={!props.collapsed_anim} fallback={
+        <Show if={!collapsed()} fallback={
             <InternalIcon
                 class="mx-auto text-xs text-gray-600 dark:text-blue-400"
                 tag={"fa-circle-plus"} filled label={null}

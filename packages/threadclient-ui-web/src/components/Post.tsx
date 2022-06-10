@@ -167,12 +167,10 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                 <div class={"flex flex-col items-center mr-1 gap-2 sm:pr-1"}>
                     <CollapseButton
                         class="flex-1"
-                        collapsed_raw={true}
-                        collapsed_anim={true}
+                        mode="reveal_only"
                         onClick={() => {
                             setVisible(t => !t);
                         }}
-                        real={true}
                         cstates={props.opts.collapse_data}
                         id={props.opts.flat_frame?.collapse?.id ?? undefined}
                     />
@@ -212,12 +210,10 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     </div>
                     <CollapseButton
                         class="flex-1"
-                        collapsed_raw={false}
-                        collapsed_anim={false}
+                        mode="collapse_only"
                         onClick={() => {
                             setVisible(t => !t);
                         }}
-                        real={true}
                         cstates={props.opts.collapse_data}
                         id={props.opts.flat_frame?.collapse?.id ?? undefined}
                     />
