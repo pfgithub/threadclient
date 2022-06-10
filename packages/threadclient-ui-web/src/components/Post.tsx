@@ -29,8 +29,23 @@ const decorative_alt = "";
 
 export function AuthorPfp(props: {src_url: string, hover_src_url: string}): JSX.Element {
     const [srcurl, setSrcurl] = createSignal(props.src_url);
+    const [visible, setVisible] = createSignal(false);
     return <img
-        src={proxyURL(srcurl())}
+        src={visible() ? proxyURL(srcurl()) : ""}
+        loading="lazy" // ← not working? I had to implement it myself ↓
+        ref={el => {
+            new IntersectionObserver(itms => {
+                itms.forEach(itm => {
+                    if(itm.target !== el) return;
+                    if(itm.isIntersecting) {
+                        setVisible(true);
+                    }
+                });
+            }, {
+                rootMargin: "100%",
+                threshold: 0,
+            }).observe(el);
+        }}
         onMouseEnter={() => {
             setSrcurl(props.hover_src_url);
         }}
