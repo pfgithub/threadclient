@@ -53,9 +53,9 @@ export class MutableContent {
 
 */
 
-const FlatReplyTsch = createTypesafeChildren<FlatTreeItem>();
+export const FlatReplyTsch = createTypesafeChildren<FlatTreeItem>();
 
-function FlatRepliesHL(props: {
+export function FlatRepliesHL(props: {
     replies: Generic.HorizontalLoader,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
@@ -85,11 +85,25 @@ function FlatRepliesHL(props: {
         })}</For>;
     });
 }
-function FlatReplies(props: {
+export function FlatReplies(props: {
     replies: Generic.PostReplies | null,
 }): JSX.Element {
+    const hprc = getWholePageRootContext();
+    const repliesv = createMemo((): Generic.HorizontalLoader | null => {
+        if(props.replies == null) return null;
+        if(props.replies.backwards_compat == null) return props.replies.loader;
+        const sortvalue = Generic.readLink(hprc.content(), props.replies?.sort_value);
+        if(sortvalue != null) {
+            if(sortvalue.error != null) throw new Error("sort mode error: "+sortvalue.error);
+            const v = props.replies.sort_modes[sortvalue.value];
+            if(v != null) return v;
+        }
+        return props.replies.sort_modes[props.replies.sort_value_default] ?? ((): never => {
+            throw new Error("default sort mode not in sort_modes");
+        })();
+    });
     return <>
-        {props.replies != null ? <FlatRepliesHL replies={props.replies.loader} /> : null}
+        <Show when={repliesv()}>{rplysv => <FlatRepliesHL replies={rplysv} />}</Show>
     </>;
 }
 // ok here's a question

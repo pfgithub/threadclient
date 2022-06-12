@@ -38,6 +38,22 @@ ok so the solution:
   the posts
 - addContent() and change the focus
 
+ok so
+
+that will work fine
+
+but
+
+literally the only thing preventing me from just making sort a property of the replies thing is that I have to
+change the url of the post
+
+…I can put a post url override in the replies if that's it
+
+or I can skip changing the url for now
+
+or I can add some client code you have to call to get the url from a post (not ideal because this wouldn't
+work as a server-only protocol in that case but that's okay)
+
 # note
 
 - remove ToggleColor

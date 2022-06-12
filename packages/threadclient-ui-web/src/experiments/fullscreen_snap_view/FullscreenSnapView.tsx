@@ -4,14 +4,14 @@ import { createEffect, createMemo, createSignal, For, JSX, onCleanup } from "sol
 import { updateQuery } from "threadclient-client-reddit";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { Flair } from "../../components/Flair";
-import { CollapseData, FlatTreeItem, postReplies } from "../../components/flatten";
+import { FlatReplies, FlatReplyTsch } from "../../components/flatten2";
 import { FormattableNumber } from "../../components/flat_posts";
 import Icon, { InternalIconRaw } from "../../components/Icon";
 import InfoBar, { formatItemString } from "../../components/InfoBar";
 import { A } from "../../components/links";
 import { ClientPostOpts } from "../../components/Post";
 import proxyURL from "../../components/proxy_url";
-import { getWholePageRootContext } from "../../util/utils_solid";
+import { collapse_data_context, getWholePageRootContext } from "../../util/utils_solid";
 
 /*
 Planned gestures:
@@ -318,8 +318,9 @@ export default function FullscreenSnapView(props: {
     document.body.appendChild(sel);
 
     const hprc = getWholePageRootContext();
-    const list = createMemo((): {
-        items: FlatTreeItem[],
+
+    const m = createMemo((): {
+        replies: Generic.PostReplies,
         pivot: Generic.Post,
     } => {
         const res = readLink(hprc.content(), props.pivot);
@@ -329,15 +330,18 @@ export default function FullscreenSnapView(props: {
         if(v.replies == null) throw new Error("rve3");
         // if(v.replies.display !== "repivot_list") throw new Error("rve4");
         const rpls = v.replies;
-        const rps = postReplies(rpls, {
-            collapse_data: undefined as unknown as CollapseData,
-            content: hprc.content(),
-        });
+
         return {
-            items: rps,
+            replies: rpls,
             pivot: v,
         };
     });
+
+    const replies = FlatReplyTsch.useChildren(() => (
+        <collapse_data_context.Provider value={{map: new Map()}}>
+            <FlatReplies replies={m().replies} />
+        </collapse_data_context.Provider>
+    ));
 
     const oursym = Symbol();
     type Hasoursym = HTMLElement & {[oursym]?: undefined | true};
@@ -363,7 +367,7 @@ export default function FullscreenSnapView(props: {
     } style={{
         'touch-action': "auto",
     }}>
-        <For each={list().items}>{item => {
+        <For each={replies()}>{item => {
             const [showContent, setShowContent] = createSignal(false);
 
             let visible_now = false;
@@ -441,9 +445,9 @@ export default function FullscreenSnapView(props: {
         <A
             class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
             mode="replace"
-            client_id={list().pivot.client_id}
+            client_id={m().pivot.client_id}
             page={(): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot})}
-            href={updateQuery(list().pivot.url ?? "ENO", {'--tc-fullscreen': undefined})}
+            href={updateQuery(m().pivot.url ?? "ENO", {'--tc-fullscreen': undefined})}
         >
             <InternalIconRaw
                 class="fa-solid fa-down-left-and-up-right-to-center text-base"

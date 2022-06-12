@@ -166,43 +166,6 @@ export function postCollapseInfo(post: FlatTreeItem, opts: PostContentCollapseIn
     }else return {default_collapsed: false, user_controllable: false};
 }
 
-export function postReplies(listing: Generic.PostReplies | null, meta: Meta): FlatTreeItem[] {
-    const res: FlatTreeItem[] = [];
-    
-    function addReplies(replies: Generic.HorizontalLoader) {
-        const val = readLink(meta, replies.key);
-        if(val == null) {
-            res.push(loaderToFlatLoader(replies));
-            return;
-        }
-        if(val.error != null) {
-            res.push({kind: "error", msg: val.error});
-        }
-        for(const reply of val.value ?? []) {
-            if(typeof reply === "object") {
-                addReplies(reply);
-                continue;
-            }
-            const readlink = readLink(meta, reply);
-            if(readlink == null) {
-                res.push({kind: "error", msg: "e-link-bad: "+reply.toString()});
-            } else if(readlink.error != null) {
-                res.push({kind: "error", msg: readlink.error});
-            }else{
-                const rpli = readlink.value;
-                res.push({
-                    kind: "flat_post",
-                    post: rpli,
-                    link: reply,
-                });
-            }
-        }
-    }
-    if(listing) addReplies(listing.loader);
-
-    return res;
-}
-
 export type CollapseData = {
     // map from a Link<Post> to an array of watchers and a current value
     map: Map<Generic.Link<Generic.Post>, CollapseEntry>,
@@ -237,20 +200,6 @@ export function getCState(cst: CollapseData, id: Generic.Link<Generic.Post>, opt
         // huh we should probably gc this once there are no watchers left
         // not going to worry about that for now
     });
-}
-
-type Meta = {
-    collapse_data: CollapseData,
-    content: Generic.Page2Content,
-
-    settings?: undefined | {
-        allow_threading?: undefined | boolean,
-    },
-};
-
-function readLink<T>(meta: Meta, link: Generic.Link<T>): null | Generic.ReadLinkResult<T> {
-    const root_context = meta.content;
-    return Generic.readLink(root_context, link);
 }
 
 // comments:

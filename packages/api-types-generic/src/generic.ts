@@ -111,8 +111,16 @@ export type PostReplies = {
     // but it really doesn't belong here.
 
     display: "tree" | "repivot_list",
+} & ({
+    backwards_compat: "1",
+    sort_modes: {[key: string]: HorizontalLoader},
+    sort_value: Link<string>,
+    sort_value_default: string,
+    sort_display: {name: string, id: string}[], // TODO nested dropdown thing
+} | {
+    backwards_compat?: undefined,
     loader: HorizontalLoader,
-};
+});
 
 // ok two options:
 // - tabbed replies
@@ -219,9 +227,13 @@ export type PostContentPost = {
 
         moderator?: RedditModState | undefined,
     },
+
+    sidebar?: PostReplies | undefined,
 };
 
 export type PostContent = ClientPost | {
+    // TODO: delete this and use the sidebar property on post instead
+
     /// the thing containing the header and sidebar. when rendered below
     /// the pivot, uses an alternate render.
     kind: "page",
