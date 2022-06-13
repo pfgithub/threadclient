@@ -445,6 +445,9 @@ function subredditPostsID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoade
 function subredditLoadPostsID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
     return p2.stringLink("SUBREDDIT-LOAD-POSTS_"+getSrId(sr_id));
 }
+function subredditSortValueID(sr_id: SubrInfo): Generic.Link<string> {
+    return p2.stringLink("SUBREDDIT-LOAD-POSTS_"+getSrId(sr_id));
+}
 function subredditNextPageContentID(sr_id: SubrInfo, after: string): Generic.Link<Generic.HorizontalLoaded> {
     return p2.stringLink("SUBREDDIT-NEXTPAGE-CONTENT_["+getSrId(sr_id)+"]_"+after);
 }
@@ -767,14 +770,36 @@ function postDataFromListingMayError(
 
         const replies: Generic.PostReplies = {
             display: "repivot_list",
-            loader: {
-                kind: "horizontal_loader",
-                key: sub_content,
-                load_count: null,
-                request: sub_content_request,
-                client_id: client.id,
-                autoload: true,
+
+            backwards_compat: "1",
+            sort_modes: {
+                'hot': {
+                    kind: "horizontal_loader",
+                    key: sub_content,
+                    load_count: null,
+                    request: sub_content_request,
+                    client_id: client.id,
+                    autoload: true,
+                },
+                // "best": {},
+                // "new": {},
+                // "rising": {},
+                // "top?t=hour": {},
+                // "top?t=day": {},
+                // "top?t=week": {},
+                // "top?t=month": {},
+                // "top?t=year": {},
+                // "top?t=all": {},
+                // "controversial?t=hour": {},
+                // "controversial?t=day": {},
+                // "controversial?t=week": {},
+                // "controversial?t=month": {},
+                // "controversial?t=year": {},
+                // "controversial?t=all": {},
             },
+            sort_value: subredditSortValueID(entry.data.details),
+            sort_value_default: "hot",
+            sort_display: [],
         };
 
         if(!entry.data.missing_replies && (listing.data.children.length > 0 || listing.data.after != null)) {
