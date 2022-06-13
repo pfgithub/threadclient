@@ -1423,13 +1423,15 @@ export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[
     ];
 }
 
+export type SubSort = {v: Reddit.SortMode, t: Reddit.SortTime};
+
 export type ParsedPath = {
     kind: "subreddit_sidebar",
     sub: SubrInfo,
 } | {
     kind: "subreddit",
     sub: SubrInfo,
-    current_sort: {v: Reddit.SortMode, t: Reddit.SortTime},
+    current_sort: SubSort,
     is_user_page: boolean, // /u/…/hot. user subreddit pages must have /hot /new /random otherwise they will display the normal user page
 
     before: string | null, // fullname

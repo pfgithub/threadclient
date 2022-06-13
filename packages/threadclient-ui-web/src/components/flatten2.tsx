@@ -419,12 +419,26 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                 {FlatItemTsch({
                     kind: "horizontal_line",
                 })}
+                {p.replies.sort_options != null ? <>
+                    <FlatItemTsch
+                        kind="sort_buttons"
+                        sort_buttons={p.replies.sort_options}
+                        client_id={p.client_id}
+                    />
+                </> : null}
                 {p.replies.display === "repivot_list" ? <>
                     <FlatItemTsch
                         kind="repivot_list_fullscreen_button"
                         client_id={p.client_id}
                         page={() => ({pivot: pivotLink(), content: hprc.content()})}
                         href={updateQuery(p.url ?? "@ENO", {'--tc-fullscreen': "true"})}
+                    />
+                </> : null}
+                {p.replies.reply != null ? <>
+                    <FlatItemTsch
+                        kind="todo"
+                        note="TODO reply button"
+                        data={p.replies}
                     />
                 </> : null}
                 <FlattenTopLevelReplies replies={p.replies} />

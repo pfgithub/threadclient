@@ -860,7 +860,7 @@ export type PostOrComment = {
 
     subreddit: string,
     subreddit_name_prefixed: string, // post subreddit (u/ or r/)
-    subreddit_id: string, // fullname
+    subreddit_id: `t5_${string}`, // fullname
     subreddit_type: SubredditType,
 
     locked: boolean,
@@ -1430,7 +1430,7 @@ export type EmptyResult = {_?: undefined};
 export type DuplicatesSort = "num_comments" | "new" | "unsupported";
 
 
-export type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded";
+export type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded" | "unsupported";
 export type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
 
 export type ApiMe = {

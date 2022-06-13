@@ -113,7 +113,19 @@ export type PostReplies = {
     display: "tree" | "repivot_list",
 
     loader: HorizontalLoader,
+
+    sort_options?: undefined | SortOption[],
+    // ^ should this go in the post?
 };
+export type SortOption = ({
+    kind: "url",
+    name: string,
+    url: string,
+} | {
+    kind: "post",
+    name: string,
+    post: Link<Post>,
+});
 
 // ok two options:
 // - tabbed replies

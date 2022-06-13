@@ -111,6 +111,13 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
             <InternalIconRaw class="fa-solid fa-up-right-and-down-left-from-center" label={null} />
             {" "}Fullscreen
         </A>,
+        sort_buttons: sortbtns => <ToggleColor>{color => <div class={"mt-4 mb-4 rounded-lg "+color}>
+            <div class="p-2 flex flex-row flex-wrap gap-2">
+                <For each={sortbtns.sort_buttons}>{sortbtn => {
+                    return <A href={sortbtn.kind === "url" ? sortbtn.url : "ETODO://"} client_id={sortbtns.client_id} class="hover:underline">{sortbtn.name}</A>;
+                }}</For>
+            </div>
+        </div>}</ToggleColor>,
         post: loader_or_post => <PageFlatPost
             collapse_data={props.collapse_data}
             loader_or_post={loader_or_post}

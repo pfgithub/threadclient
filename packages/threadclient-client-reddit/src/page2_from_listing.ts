@@ -7,7 +7,7 @@ import {
     authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, editButton,
     expectUnsupported, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, redditRequest,
-    replyButton, reportButton, saveButton, SubrInfo, updateQuery, urlNotSupportedYet
+    replyButton, reportButton, saveButton, SubrInfo, SubSort, updateQuery, urlNotSupportedYet
 } from "./reddit";
 import { getSidebar } from "./sidebars";
 
@@ -155,9 +155,9 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             duplicates: val => "/duplicates/"+val.post_id_unprefixed+"?"+encodeQuery({
                 after: val.after, before: val.before, sort: val.sort, crossposts_only: "" + val.crossposts_only,
             }),
-            subreddit: val => (
-                "/"+[...val.sub.base, val.current_sort.v].join("/")
-                +"?"+encodeQuery({t: val.current_sort.t, before: val.before, after: val.after})
+            subreddit: val => updateQuery(
+                subUrl(val.sub, val.current_sort),
+                {before: val.before ?? undefined, after: val.after ?? undefined},
             ),
             wiki: val => "/"+[...val.sub.base, "wiki", ...val.path].join("/") + "?" + encodeQuery(val.query),
             user: () => pathraw,
@@ -258,9 +258,12 @@ type IDMapData = {
     // just use the id directly and getPostData will(todo) handle it.
     kind: "subreddit_unloaded",
     listing: Reddit.Listing,
-    // pathraw: string, // not sure if this is good to have. i'm using it to copy the path and put ?after=… on it but
-    // // maybe we should use /...details.base?after=… ← yeah we should use details to get the url
     details: SubrInfo,
+
+    // always use 'hot' if not provided
+    // TODO: consider overriding defaults for some subreddits which are intended to be viewed on /new
+    sort: SubSort,
+
     missing_replies?: undefined | true,
 } | {
     kind: "depth_more",
@@ -275,6 +278,23 @@ type IDMapData = {
     listing: Reddit.WikiPage,
     pathraw: string,
 };
+
+function subUrl(details: SubrInfo, sort: SubSort): string {
+    // note that on user pages, [...details.base] does not link to `/hot`, instead it links to some other thing
+    return "/"+[...details.base, sort.v === "unsupported" ? "hot" : sort.v].join("/") + (sort.v === "controversial" || sort.v === "top" ? (
+        "?t="+encodeURIComponent(sort.t)
+    ) : "");
+}
+
+function subDefaultSort(sub: `t5_${string}`): SubSort {
+    // overrides for some subs which should default to /new
+    // TODO: consider creating one location in this or another file where all overrides like this are stored
+    // eg: user overrides to auto collapse comments from some users, sub overrides to auto sort, …
+    // apollo does some name capitalization overrides and we could do the same too
+    // also TODO: switch users to be identified by fullname rather than username
+    if(sub === "t5_hcxiu" || sub === "t5_q7cbs") return {v: "new", t: "all"};
+    return {v: "hot", t: "all"};
+}
 
 export function page2FromListing(
     content: Generic.Page2Content,
@@ -319,8 +339,13 @@ export function page2FromListing(
                     after: null,
                 },
             },
-            details: path.kind === "comments" ? path.sub : {kind: "error", base: [pathraw], pathraw},
+            details: {
+                kind: "subreddit",
+                base: ["r", parent_post.data.subreddit],
+                subreddit: parent_post.data.subreddit,
+            },
             missing_replies: true,
+            sort: subDefaultSort(parent_post.data.subreddit_id),
             // the reason there are two seperate calls are because that way we can
             // easily get the id of the focused post
             //
@@ -355,6 +380,7 @@ export function page2FromListing(
             kind: "subreddit_unloaded",
             listing: page,
             details: path.kind === "subreddit" ? path.sub : {kind: "error", pathraw, base: [pathraw]},
+            sort: path.kind === "subreddit" ? path.current_sort : {v: "unsupported", t: "all"},
         };
         return postDataFromListingMayError(content, sr_entry);
     }else if(page.kind === "wikipage") {
@@ -377,20 +403,22 @@ export function page2FromListing(
 }
 
 // ! string is for pathraw
-function getSrId(sub: SubrInfo): ID {
-    if(sub.kind === "homepage") {
-        return "SR_home" as ID;
-    }else if(sub.kind === "mod") {
-        return "SR_mod" as ID;
-    }else if(sub.kind === "multireddit") {
-        return "SR_multi/u:"+sub.user.toLowerCase()+"/m:"+sub.multireddit.toLowerCase() as ID;
-    }else if(sub.kind === "userpage") {
-        return "SR_user/"+sub.user.toLowerCase() as ID;
-    }else if(sub.kind === "subreddit") {
-        return "SR_sub/"+sub.subreddit.toLowerCase() as ID;
-    }else if(sub.kind === "error") {
-        return "SR_eunsupported/"+sub.pathraw as ID;
-    }else assertNever(sub);
+function getSrId(sub: SubrInfo, sr_sort: SubSort | null): ID {
+    return (() => {
+        if(sub.kind === "homepage") {
+            return "SR_home";
+        }else if(sub.kind === "mod") {
+            return "SR_mod";
+        }else if(sub.kind === "multireddit") {
+            return "SR_multi/u:"+sub.user.toLowerCase()+"/m:"+sub.multireddit.toLowerCase();
+        }else if(sub.kind === "userpage") {
+            return "SR_user/"+sub.user.toLowerCase();
+        }else if(sub.kind === "subreddit") {
+            return "SR_sub/"+sub.subreddit.toLowerCase();
+        }else if(sub.kind === "error") {
+            return "SR_eunsupported/"+sub.pathraw;
+        }else assertNever(sub);
+    })() + "[/"+sr_sort?.v+"?t="+sr_sort?.t+"]" as ID;
 }
 
 function unsupportedPage(
@@ -436,20 +464,22 @@ function fullnameDepthLoaderID(parent_fullname: Reddit.Fullname): Generic.Link<G
 function fullnameContextLoaderID(center_fullname: Reddit.Fullname): Generic.Link<Generic.Opaque<"loader">> {
     return p2.stringLink("OBJECT-CONTEXT-LOADER_"+center_fullname);
 }
-function subredditUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.Post> {
-    return p2.stringLink("SUBREDDIT_"+getSrId(sr_id));
+function subredditUnloadedID(sr_id: SubrInfo, sr_sort: SubSort | null): Generic.Link<Generic.Post> {
+    return p2.stringLink("SUBREDDIT_"+getSrId(sr_id, sr_sort));
 }
-function subredditPostsID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoaded> {
-    return p2.stringLink("SUBREDDIT-POSTS_"+getSrId(sr_id));
+function subredditPostsID(sr_id: SubrInfo, sr_sort: SubSort | null): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("SUBREDDIT-POSTS_"+getSrId(sr_id, sr_sort));
 }
-function subredditLoadPostsID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
-    return p2.stringLink("SUBREDDIT-LOAD-POSTS_"+getSrId(sr_id));
+function subredditLoadPostsID(sr_id: SubrInfo, sr_sort: SubSort | null): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("SUBREDDIT-LOAD-POSTS_"+getSrId(sr_id, sr_sort));
 }
-function subredditNextPageContentID(sr_id: SubrInfo, after: string): Generic.Link<Generic.HorizontalLoaded> {
-    return p2.stringLink("SUBREDDIT-NEXTPAGE-CONTENT_["+getSrId(sr_id)+"]_"+after);
+function subredditNextPageContentID(
+    sr_id: SubrInfo, sr_sort: SubSort | null, after: string,
+): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("SUBREDDIT-NEXTPAGE-CONTENT_["+getSrId(sr_id, sr_sort)+"]_"+after);
 }
-function subredditNextPageRequestID(sr_id: SubrInfo, after: string): Generic.Link<Generic.Opaque<"loader">> {
-    return p2.stringLink("SUBREDDIT-NEXTPAGE-REQUEST["+getSrId(sr_id)+"]_"+after);
+function subredditNextPageRequestID(sr_id: SubrInfo, sr_sort: SubSort | null, after: string): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("SUBREDDIT-NEXTPAGE-REQUEST["+getSrId(sr_id, sr_sort)+"]_"+after);
 }
 // [!] depth mores do not have an id; instead, the parent should report not knowing if it has comments
 //  -   interestingly, it doesn't really matter if we display it as a loader as long as the comments for the post
@@ -461,10 +491,10 @@ function wikipageID(pathraw: string): Generic.Link<Generic.Post> {
     return p2.stringLink("WIKIPAGE_"+pathraw);
 }
 function subredditSidebarUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoaded> {
-    return p2.stringLink("SIDEBAR_"+getSrId(sr_id));
+    return p2.stringLink("SIDEBAR_"+getSrId(sr_id, null));
 }
 function subredditSidebarLoaderID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
-    return p2.stringLink("SIDEBAR-LOADER_"+getSrId(sr_id));
+    return p2.stringLink("SIDEBAR-LOADER_"+getSrId(sr_id, null));
 }
 
 function commentOrUnmountedData(item: Reddit.Post, opts: {parent_fullname: Reddit.Fullname}): IDMapData | undefined {
@@ -717,6 +747,7 @@ function postDataFromListingMayError(
                     subreddit: listing.subreddit,
                     base: ["r", listing.subreddit],
                 },
+                sort: subDefaultSort(listing.subreddit_id),
             }), undefined)},
             replies,
 
@@ -756,11 +787,11 @@ function postDataFromListingMayError(
         const data = entry.data;
         const listing = data.listing;
 
-        const sub_content = subredditPostsID(entry.data.details);
-        const sub_content_request = subredditLoadPostsID(entry.data.details);
+        const sub_content = subredditPostsID(entry.data.details, entry.data.sort);
+        const sub_content_request = subredditLoadPostsID(entry.data.details, entry.data.sort);
         p2.fillLinkOnce(content, sub_content_request, () => loader_enc.encode({
             kind: "link_replies",
-            url: updateQuery("/"+data.details.base.join("/"), {before: undefined, after: undefined}),
+            url: updateQuery(subUrl(data.details, data.sort), {before: undefined, after: undefined}),
         }));
 
         // url: updateQuery("/"+data.details.base.join("/"), {before: undefined, after: listing.data.after!}),
@@ -776,6 +807,25 @@ function postDataFromListingMayError(
                 client_id: client.id,
                 autoload: true,
             },
+
+            sort_options: [
+                {kind: "url", name: "Hot", url: subUrl(data.details, {v: "hot", t: "all"})},
+                {kind: "url", name: "Best", url: "/"+data.details.base.join("/")+"/best"},
+                {kind: "url", name: "New", url: "/"+data.details.base.join("/")+"/new"},
+                {kind: "url", name: "Rising", url: "/"+data.details.base.join("/")+"/rising"},
+                {kind: "url", name: "Top?t=hour", url: "/"+data.details.base.join("/")+"/top?t=hour"},
+                {kind: "url", name: "Top?t=day", url: "/"+data.details.base.join("/")+"/top?t=day"},
+                {kind: "url", name: "Top?t=week", url: "/"+data.details.base.join("/")+"/top?t=week"},
+                {kind: "url", name: "Top?t=month", url: "/"+data.details.base.join("/")+"/top?t=month"},
+                {kind: "url", name: "Top?t=year", url: "/"+data.details.base.join("/")+"/top?t=year"},
+                {kind: "url", name: "Top?t=all", url: "/"+data.details.base.join("/")+"/top?t=all"},
+                {kind: "url", name: "Controversial?t=hour", url: "/"+data.details.base.join("/")+"/controversial?t=hour"},
+                {kind: "url", name: "Controversial?t=day", url: "/"+data.details.base.join("/")+"/controversial?t=day"},
+                {kind: "url", name: "Controversial?t=week", url: "/"+data.details.base.join("/")+"/controversial?t=week"},
+                {kind: "url", name: "Controversial?t=month", url: "/"+data.details.base.join("/")+"/controversial?t=month"},
+                {kind: "url", name: "Controversial?t=year", url: "/"+data.details.base.join("/")+"/controversial?t=year"},
+                {kind: "url", name: "Controversial?t=all", url: "/"+data.details.base.join("/")+"/controversial?t=all"},
+            ],
         };
 
         if(!entry.data.missing_replies && (listing.data.children.length > 0 || listing.data.after != null)) {
@@ -785,8 +835,8 @@ function postDataFromListingMayError(
                 posts.push(renderCommentOrUnmounted(content, child, {parent_fullname: "@E_SUBREDDIT"}));
             }
             if(listing.data.after != null) {
-                const nextid = subredditNextPageContentID(entry.data.details, listing.data.after);
-                const nextrequest = subredditNextPageRequestID(entry.data.details, listing.data.after);
+                const nextid = subredditNextPageContentID(entry.data.details, entry.data.sort, listing.data.after);
+                const nextrequest = subredditNextPageRequestID(entry.data.details, entry.data.sort, listing.data.after);
 
                 // whoops, we can't quite do this
                 // this loader will rewrite all the replies when it should really just be filling the 'nextid' item
@@ -808,7 +858,7 @@ function postDataFromListingMayError(
             p2.fillLink(content, sub_content, posts);
         }
 
-        const self_id = subredditUnloadedID(entry.data.details);
+        const self_id = subredditUnloadedID(entry.data.details, entry.data.sort);
         p2.fillLinkOnce(content, self_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
