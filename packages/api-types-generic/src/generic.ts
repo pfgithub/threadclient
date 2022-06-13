@@ -111,16 +111,9 @@ export type PostReplies = {
     // but it really doesn't belong here.
 
     display: "tree" | "repivot_list",
-} & ({
-    backwards_compat: "1",
-    sort_modes: {[key: string]: HorizontalLoader},
-    sort_value: Link<string>,
-    sort_value_default: string,
-    sort_display: {name: string, id: string}[], // TODO nested dropdown thing
-} | {
-    backwards_compat?: undefined,
+
     loader: HorizontalLoader,
-});
+};
 
 // ok two options:
 // - tabbed replies
