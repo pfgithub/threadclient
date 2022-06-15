@@ -2,6 +2,22 @@
 
 sorting
 
+so
+
+viewing the comments page and the duplicates page give objects with different IDs
+
+it still seems like an issue that the same object can have a different id depending on how it should
+display its replies
+
+like `t3_djnaclkd` and `t3_djnaclkd?sort=…` are identical, the only differences are their urls, their parents, and
+their replies. but eg if you press the reply button, it should know that that's the same post
+
+I'm not going to worry about it for now
+
+# note
+
+sorting
+
 sorting
 
 so obviously, tabbed posts are the best solution
