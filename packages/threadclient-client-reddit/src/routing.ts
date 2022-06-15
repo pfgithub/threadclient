@@ -198,7 +198,6 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {
             post_id_unprefixed: opts.post_id_unprefixed,
             focus_comment: opts.partial_comment_id,
             sort_override: opts.query["sort"] ?? null,
-            sort_override_time: opts.query["t"] ?? null,
             context: opts.query["context"] ?? null,
         }));
     }

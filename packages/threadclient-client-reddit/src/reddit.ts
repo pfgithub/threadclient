@@ -1424,7 +1424,7 @@ export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[
 }
 
 export type SubSort = {v: Reddit.SortMode, t: Reddit.SortTime};
-export type PostSort = {v: Reddit.Sort, t: Reddit.SortTime};
+export type PostSort = {v: Reddit.Sort};
 
 export type ParsedPath = {
     kind: "subreddit_sidebar",
@@ -1507,7 +1507,6 @@ export type ParsedPath = {
     focus_comment: string | null, // unprefixed id | null
     // /comments/:post_id_unprefixed.json?comment=:focus_comment
     sort_override: Reddit.Sort | null,
-    sort_override_time: Reddit.SortTime | null,
     context: string | null,
 } | {
     kind: "wiki",

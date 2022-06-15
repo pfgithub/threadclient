@@ -361,11 +361,10 @@ export function page2FromListing(
 
         const query = splitURL(pathraw);
         const query_sort = query[1].get("sort") as "unsupported" | null;
-        const query_t = query[1].get("t") as "unsupported" | null;
 
         const sort: FullnameSort  = {
             kind: "post",
-            sort: query_sort != null ? {v: query_sort, t: query_t ?? "all"} : "default",
+            sort: query_sort != null ? {v: query_sort} : "default",
             suggested_sort: parent_post.data.suggested_sort ?? "confidence",
         };
 
@@ -471,11 +470,22 @@ function unsupportedPage(
 
 type FullnameSort = {kind: "post", suggested_sort: Reddit.Sort, sort: PostSort | "default"} | null;
 
+function updateSort(fn_sort: FullnameSort, sort: Reddit.Sort): FullnameSort {
+    return {kind: "post", sort: {v: sort}, suggested_sort: fn_sort?.suggested_sort ?? "confidence"};
+}
+
+function getPostSort(fn_sort:  FullnameSort): PostSort | "default" {
+    if(fn_sort == null || fn_sort.sort === "default" || fn_sort.suggested_sort === fn_sort.sort.v) {
+        return "default";
+    }
+    return fn_sort.sort;
+}
+
 function getFnSort(sort: FullnameSort): string {
     if(sort == null || sort.sort === "default" || sort.suggested_sort === sort.sort.v) {
-        return "[sort:default?t="+((sort?.sort === "default" ? null : sort?.sort)?.t ?? "all")+"]";
+        return "[sort:default]";
     }
-    return "[sort:"+sort.sort.v+"?t="+sort.sort.t+"]";
+    return "[sort:"+sort.sort.v+"]";
 }
 
 function fullnameID(fullname: Reddit.Fullname, sort: FullnameSort): Generic.Link<Generic.Post> {
@@ -569,6 +579,14 @@ function renderCommentOrUnmounted(
     const data = commentOrUnmountedData(item, {parent_fullname: opts.parent_fullname, sort: opts.sort});
     if(data == null) return p2.createSymbolLinkToError(content, "eunsupported", item);
     return postDataFromListingMayError(content, data);
+}
+
+function objectURL(listing: Reddit.T3, fn_sort: FullnameSort): string {
+    const sort = getPostSort(fn_sort);
+    if(sort === "default") return listing.data.permalink;
+    return updateQuery(listing.data.permalink, {
+        sort: sort.v,
+    });
 }
 
 function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
@@ -753,22 +771,17 @@ function postDataFromListingMayError(
             },
 
             sort_options: [
-                // {kind: "url", name: "Hot", url: subUrl(data.details, {v: "hot", t: "all"})},
-                // {kind: "url", name: "Best", url: "/"+data.details.base.join("/")+"/best"},
-                // {kind: "url", name: "New", url: "/"+data.details.base.join("/")+"/new"},
-                // {kind: "url", name: "Rising", url: "/"+data.details.base.join("/")+"/rising"},
-                // {kind: "url", name: "Top?t=hour", url: "/"+data.details.base.join("/")+"/top?t=hour"},
-                // {kind: "url", name: "Top?t=day", url: "/"+data.details.base.join("/")+"/top?t=day"},
-                // {kind: "url", name: "Top?t=week", url: "/"+data.details.base.join("/")+"/top?t=week"},
-                // {kind: "url", name: "Top?t=month", url: "/"+data.details.base.join("/")+"/top?t=month"},
-                // {kind: "url", name: "Top?t=year", url: "/"+data.details.base.join("/")+"/top?t=year"},
-                // {kind: "url", name: "Top?t=all", url: "/"+data.details.base.join("/")+"/top?t=all"},
-                // {kind: "url", name: "Controversial?t=hour", url: "/"+data.details.base.join("/")+"/controversial?t=hour"},
-                // {kind: "url", name: "Controversial?t=day", url: "/"+data.details.base.join("/")+"/controversial?t=day"},
-                // {kind: "url", name: "Controversial?t=week", url: "/"+data.details.base.join("/")+"/controversial?t=week"},
-                // {kind: "url", name: "Controversial?t=month", url: "/"+data.details.base.join("/")+"/controversial?t=month"},
-                // {kind: "url", name: "Controversial?t=year", url: "/"+data.details.base.join("/")+"/controversial?t=year"},
-                // {kind: "url", name: "Controversial?t=all", url: "/"+data.details.base.join("/")+"/controversial?t=all"},
+                // ["duplicates num_comments", "Comments"], ["duplicates new", "New"]
+                // [["confidence", "Best"], ["top", "Top"], ["new", "New"], ["controversial", "Controversial"],
+                // ["old", "Old"], ["random", "Random"], ["qa", "Q&A"], ["live", "Live"]]
+                {kind: "url", name: "Best",  url: objectURL(listing_raw, updateSort(sort, "confidence"))},
+                {kind: "url", name: "Top",  url: objectURL(listing_raw, updateSort(sort, "top"))},
+                {kind: "url", name: "New",  url: objectURL(listing_raw, updateSort(sort, "new"))},
+                {kind: "url", name: "Controversial",  url: objectURL(listing_raw, updateSort(sort, "controversial"))},
+                {kind: "url", name: "Old",  url: objectURL(listing_raw, updateSort(sort, "old"))},
+                {kind: "url", name: "Random",  url: objectURL(listing_raw, updateSort(sort, "random"))},
+                {kind: "url", name: "Q&A",  url: objectURL(listing_raw, updateSort(sort, "qa"))},
+                {kind: "url", name: "Live",  url: objectURL(listing_raw, updateSort(sort, "live"))},
             ],
         };
 
@@ -788,7 +801,7 @@ function postDataFromListingMayError(
         p2.fillLinkOnce(content, our_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
-            url: listing.permalink,
+            url: objectURL(listing_raw, sort),
 
             parent: {loader: p2.prefilledVerticalLoader(content, postDataFromListingMayError(content, {
                 kind: "subreddit_unloaded",
