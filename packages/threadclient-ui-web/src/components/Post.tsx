@@ -267,7 +267,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                         </Show>
                     </section>
                     <Show if={isPivot()}><div class="text-sm">
-                        <InfoBar post={props.content} />
+                        <InfoBar post={props.content} opts={props.opts} />
                         <div class="mt-2" />
                         <div class="flex flex-wrap gap-2">
                             <For each={getActions()}>{action => <>
@@ -443,7 +443,7 @@ export function PostTopBar(props: ClientPostProps & {
                 </div>
                 <Show if={!isPivot() || !props.visible}>
                     <div>
-                        <InfoBar post={props.content} />
+                        <InfoBar post={props.content} opts={props.opts} />
                     </div>
                 </Show>
                 <HSplit.Child fullwidth>

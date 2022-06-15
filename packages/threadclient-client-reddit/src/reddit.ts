@@ -526,7 +526,7 @@ async function getAuthorization() {
     return "Bearer "+access_token;
 }
 
-function splitURL(path: string): [string, URLSearchParams, string] {
+export function splitURL(path: string): [string, URLSearchParams, string] {
     const [pathname, ...query] = path.split("?");
     const queryjoined = query.join("?");
     const [justquery, ...hash] = queryjoined.split("#");
@@ -1424,6 +1424,7 @@ export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[
 }
 
 export type SubSort = {v: Reddit.SortMode, t: Reddit.SortTime};
+export type PostSort = {v: Reddit.Sort, t: Reddit.SortTime};
 
 export type ParsedPath = {
     kind: "subreddit_sidebar",
@@ -1506,6 +1507,7 @@ export type ParsedPath = {
     focus_comment: string | null, // unprefixed id | null
     // /comments/:post_id_unprefixed.json?comment=:focus_comment
     sort_override: Reddit.Sort | null,
+    sort_override_time: Reddit.SortTime | null,
     context: string | null,
 } | {
     kind: "wiki",

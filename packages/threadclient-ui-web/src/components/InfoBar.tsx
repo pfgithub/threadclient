@@ -3,12 +3,13 @@ import {
     createMemo, For, JSX
 } from "solid-js";
 import { assertNever } from "tmeta-util";
-import { timeAgoTextWatchable } from "tmeta-util-solid";
-import { classes, size_lt } from "../util/utils_solid";
+import { Show, timeAgoTextWatchable } from "tmeta-util-solid";
+import { classes, getSettings, size_lt } from "../util/utils_solid";
 import { colorClass } from "./color";
 import DevCodeButton from "./DevCodeButton";
 import { FormattableNumber, InfoBarItem, useInfoBar } from "./flat_posts";
 import Icon from "./Icon";
+import { ClientPostOpts } from "./Post";
 
 export function scoreToString(score: number) {
     // oh that weird .match(…) is for rounding down
@@ -68,12 +69,21 @@ export function InfoBarItemNode(props: {item: InfoBarItem}): JSX.Element {
     </span>;
 }
 
-export default function InfoBar(props: {post: Generic.PostContentPost}): JSX.Element {
+export default function InfoBar(props: {
+    post: Generic.PostContentPost,
+    opts: ClientPostOpts,
+}): JSX.Element {
     const getInfoBar = useInfoBar(() => props.post);
+    const settings = getSettings();
     return <div class="text-gray-500 flex flex-wrap gap-2 <sm:text-xs">
         <For each={getInfoBar()}>{item => (
             <InfoBarItemNode item={item} />
         )}</For>
         <DevCodeButton data={props} />
+        <Show if={settings.dev.showLogButtons() === "on"}>
+            <div>
+                [{(props.opts.id ?? "null").toString()}]
+            </div>
+        </Show>
     </div>;
 }

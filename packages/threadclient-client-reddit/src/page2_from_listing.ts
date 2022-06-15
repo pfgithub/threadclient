@@ -6,8 +6,8 @@ import { assertNever, encodeQuery, switchKind } from "tmeta-util";
 import {
     authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, editButton,
     expectUnsupported, getCodeButton, getCommentBody,
-    getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, redditRequest,
-    replyButton, reportButton, saveButton, SubrInfo, SubSort, updateQuery, urlNotSupportedYet
+    getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, PostSort, redditRequest,
+    replyButton, reportButton, saveButton, splitURL, SubrInfo, SubSort, updateQuery, urlNotSupportedYet
 } from "./reddit";
 import { getSidebar } from "./sidebars";
 
@@ -247,11 +247,15 @@ type IDMapData = {
     // - morechildren just needs the link id which is not the parent_fullname
     // - checking if we're missing a parent is no longer something we have to handle in the post
     parent_fullname: Reddit.Fullname,
+
+    sort: FullnameSort,
 } | {
     kind: "post",
     post: Reddit.T3,
     replies: "not_loaded" | Reddit.Listing,
     missing_replies?: undefined | true,
+
+    sort: FullnameSort, // note: "default" will be used for the post id if the sort == the post default_sort
 } | {
     // when a subreddit is needed but only the replies are known,
     // nothing else about the subreddit. if nothing at all is known,
@@ -355,6 +359,16 @@ export function page2FromListing(
         };
         postDataFromListingMayError(content, sr_entry);
 
+        const query = splitURL(pathraw);
+        const query_sort = query[1].get("sort") as "unsupported" | null;
+        const query_t = query[1].get("t") as "unsupported" | null;
+
+        const sort: FullnameSort  = {
+            kind: "post",
+            sort: query_sort != null ? {v: query_sort, t: query_t ?? "all"} : "default",
+            suggested_sort: parent_post.data.suggested_sort ?? "confidence",
+        };
+
         let focus = postDataFromListingMayError(content, {
             kind: "post",
             post: parent_post,
@@ -366,10 +380,12 @@ export function page2FromListing(
             // - the issue with that is if the focused comment isn't found in the tree, it messes up
             // - but that's probably acceptable
             missing_replies: focus_comment != null ? true : undefined,
+
+            sort,
         });
 
         if(focus_comment != null) {
-            const new_focus = fullnameID(`t1_${focus_comment.toLowerCase()}`);
+            const new_focus = fullnameID(`t1_${focus_comment.toLowerCase()}`, sort);
             if(content[new_focus]) focus = new_focus;
             else warn("focused comment not found in tree `"+new_focus.toString()+"`", focus, content);
         }
@@ -452,17 +468,27 @@ function unsupportedPage(
 //     if(!value) return p2.stringLink("__ERROR_FULLNAME__");
 //     return getEntryFullname(value);
 // }
-function fullnameID(fullname: Reddit.Fullname): Generic.Link<Generic.Post> {
-    return p2.stringLink("OBJECT_"+fullname);
+
+type FullnameSort = {kind: "post", suggested_sort: Reddit.Sort, sort: PostSort | "default"} | null;
+
+function getFnSort(sort: FullnameSort): string {
+    if(sort == null || sort.sort === "default" || sort.suggested_sort === sort.sort.v) {
+        return "[sort:default?t="+((sort?.sort === "default" ? null : sort?.sort)?.t ?? "all")+"]";
+    }
+    return "[sort:"+sort.sort.v+"?t="+sort.sort.t+"]";
 }
-function fullnameRepliesID(fullname: Reddit.Fullname): Generic.Link<Generic.HorizontalLoaded> {
-    return p2.stringLink("OBJECT-REPLIES_"+fullname);
+
+function fullnameID(fullname: Reddit.Fullname, sort: FullnameSort): Generic.Link<Generic.Post> {
+    return p2.stringLink("OBJECT_"+fullname + getFnSort(sort));
 }
-function fullnameDepthLoaderID(parent_fullname: Reddit.Fullname): Generic.Link<Generic.Opaque<"loader">> {
-    return p2.stringLink("OBJECT-DEPTH-LOADER_"+parent_fullname);
+function fullnameRepliesID(fullname: Reddit.Fullname, sort: FullnameSort): Generic.Link<Generic.HorizontalLoaded> {
+    return p2.stringLink("OBJECT-REPLIES_"+fullname + getFnSort(sort));
 }
-function fullnameContextLoaderID(center_fullname: Reddit.Fullname): Generic.Link<Generic.Opaque<"loader">> {
-    return p2.stringLink("OBJECT-CONTEXT-LOADER_"+center_fullname);
+function fullnameDepthLoaderID(parent_fullname: Reddit.Fullname, sort: FullnameSort): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("OBJECT-DEPTH-LOADER_"+parent_fullname + getFnSort(sort));
+}
+function fullnameContextLoaderID(center_fullname: Reddit.Fullname, sort: FullnameSort): Generic.Link<Generic.Opaque<"loader">> {
+    return p2.stringLink("OBJECT-CONTEXT-LOADER_"+center_fullname + getFnSort(sort));
 }
 function subredditUnloadedID(sr_id: SubrInfo, sr_sort: SubSort | null): Generic.Link<Generic.Post> {
     return p2.stringLink("SUBREDDIT_"+getSrId(sr_id, sr_sort));
@@ -497,18 +523,23 @@ function subredditSidebarLoaderID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<
     return p2.stringLink("SIDEBAR-LOADER_"+getSrId(sr_id, null));
 }
 
-function commentOrUnmountedData(item: Reddit.Post, opts: {parent_fullname: Reddit.Fullname}): IDMapData | undefined {
+function commentOrUnmountedData(
+    item: Reddit.Post,
+    opts: {parent_fullname: Reddit.Fullname, sort: FullnameSort},
+): IDMapData | undefined {
     if(item.kind === "t1") {
         return {
             kind: "comment",
             comment: item,
             parent_fullname: opts.parent_fullname,
+            sort: opts.sort,
         };
     }else if(item.kind === "t3") {
         return {
             kind: "post",
             post: item,
             replies: "not_loaded",
+            sort: opts.sort,
         };
     }else if(item.kind === "more") {
         if(item.data.children.length === 0) {
@@ -533,9 +564,9 @@ function commentOrUnmountedData(item: Reddit.Post, opts: {parent_fullname: Reddi
 function renderCommentOrUnmounted(
     content: Generic.Page2Content,
     item: Reddit.Post,
-    opts: {parent_fullname: Reddit.Fullname},
+    opts: {parent_fullname: Reddit.Fullname, sort: FullnameSort},
 ): Generic.Link<Generic.Post> {
-    const data = commentOrUnmountedData(item, {parent_fullname: opts.parent_fullname});
+    const data = commentOrUnmountedData(item, {parent_fullname: opts.parent_fullname, sort: opts.sort});
     if(data == null) return p2.createSymbolLinkToError(content, "eunsupported", item);
     return postDataFromListingMayError(content, data);
 }
@@ -567,9 +598,10 @@ function postDataFromListingMayError(
     if(entry.data.kind === "comment") {
         const listing_raw = entry.data.comment;
         const listing = listing_raw.data;
+        const sort = entry.data.sort;
 
-        const replies_id = fullnameRepliesID(listing.name);
-        const load_request_id = fullnameDepthLoaderID(listing.name);
+        const replies_id = fullnameRepliesID(listing.name, sort);
+        const load_request_id = fullnameDepthLoaderID(listing.name, sort);
         p2.fillLinkOnce(content, load_request_id, () => loader_enc.encode({
             kind: "parent_permalink",
             post_id: listing.link_id.replace("t3_", ""),
@@ -617,7 +649,7 @@ function postDataFromListingMayError(
             //eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
             if(!listing.replies) return [];
             return listing.replies.data.children.map((reply): Generic.Link<Generic.Post> => {
-                return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name});
+                return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name, sort});
                 // TODO: support 'more' here
             });
         })();
@@ -637,7 +669,7 @@ function postDataFromListingMayError(
             listing.author === "FatFingerHelperBot"
         );
 
-        const load_parent_id = fullnameContextLoaderID(listing.name);
+        const load_parent_id = fullnameContextLoaderID(listing.name, sort);
         p2.fillLinkOnce(content, load_parent_id, () => loader_enc.encode({
             kind: "vertical",
             bottom_post: listing.name,
@@ -646,8 +678,8 @@ function postDataFromListingMayError(
         const parent: Generic.PostParent = {
             loader: {
                 kind: "vertical_loader",
-                key: fullnameID(listing.parent_id),
-                temp_parent: fullnameID(listing.link_id),
+                key: fullnameID(listing.parent_id, sort),
+                temp_parent: fullnameID(listing.link_id, sort),
                 request: load_parent_id,
                 load_count: listing.depth, // this might be off by one or smth
                 client_id: client.id,
@@ -655,7 +687,7 @@ function postDataFromListingMayError(
             },
         };
 
-        const our_id = fullnameID(listing.name);
+        const our_id = fullnameID(listing.name, sort);
         p2.fillLinkOnce(content, our_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
@@ -693,9 +725,10 @@ function postDataFromListingMayError(
     }else if(entry.data.kind === "post") {
         const listing_raw = entry.data.post;
         const listing = listing_raw.data;
+        const sort = entry.data.sort;
 
-        const replies_data = fullnameRepliesID(listing.name);
-        const replies_loader_data = fullnameDepthLoaderID(listing.name);
+        const replies_data = fullnameRepliesID(listing.name, sort);
+        const replies_loader_data = fullnameDepthLoaderID(listing.name, sort);
         p2.fillLinkOnce(content, replies_loader_data, (): Generic.Opaque<"loader"> => {
             return loader_enc.encode({
                 kind:"parent_permalink",
@@ -718,13 +751,32 @@ function postDataFromListingMayError(
                 request: replies_loader_data,
                 autoload: true,
             },
+
+            sort_options: [
+                // {kind: "url", name: "Hot", url: subUrl(data.details, {v: "hot", t: "all"})},
+                // {kind: "url", name: "Best", url: "/"+data.details.base.join("/")+"/best"},
+                // {kind: "url", name: "New", url: "/"+data.details.base.join("/")+"/new"},
+                // {kind: "url", name: "Rising", url: "/"+data.details.base.join("/")+"/rising"},
+                // {kind: "url", name: "Top?t=hour", url: "/"+data.details.base.join("/")+"/top?t=hour"},
+                // {kind: "url", name: "Top?t=day", url: "/"+data.details.base.join("/")+"/top?t=day"},
+                // {kind: "url", name: "Top?t=week", url: "/"+data.details.base.join("/")+"/top?t=week"},
+                // {kind: "url", name: "Top?t=month", url: "/"+data.details.base.join("/")+"/top?t=month"},
+                // {kind: "url", name: "Top?t=year", url: "/"+data.details.base.join("/")+"/top?t=year"},
+                // {kind: "url", name: "Top?t=all", url: "/"+data.details.base.join("/")+"/top?t=all"},
+                // {kind: "url", name: "Controversial?t=hour", url: "/"+data.details.base.join("/")+"/controversial?t=hour"},
+                // {kind: "url", name: "Controversial?t=day", url: "/"+data.details.base.join("/")+"/controversial?t=day"},
+                // {kind: "url", name: "Controversial?t=week", url: "/"+data.details.base.join("/")+"/controversial?t=week"},
+                // {kind: "url", name: "Controversial?t=month", url: "/"+data.details.base.join("/")+"/controversial?t=month"},
+                // {kind: "url", name: "Controversial?t=year", url: "/"+data.details.base.join("/")+"/controversial?t=year"},
+                // {kind: "url", name: "Controversial?t=all", url: "/"+data.details.base.join("/")+"/controversial?t=all"},
+            ],
         };
 
         const filled_replies = ((): Generic.HorizontalLoaded => {
             if(entry.data.replies === "not_loaded") return [];
             const postreplies = entry.data.replies.data.children;
             return postreplies.map((reply): Generic.Link<Generic.Post> => {
-                return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name});
+                return renderCommentOrUnmounted(content, reply, {parent_fullname: listing.name, sort});
                 // TODO: support 'more' here
             });
         })();
@@ -732,7 +784,7 @@ function postDataFromListingMayError(
             p2.fillLink(content, replies_data, filled_replies);
         }
 
-        const our_id = fullnameID(listing.name);
+        const our_id = fullnameID(listing.name, sort);
         p2.fillLinkOnce(content, our_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
@@ -832,7 +884,7 @@ function postDataFromListingMayError(
             const posts: Generic.HorizontalLoaded = [];
 
             for(const child of listing.data.children) {
-                posts.push(renderCommentOrUnmounted(content, child, {parent_fullname: "@E_SUBREDDIT"}));
+                posts.push(renderCommentOrUnmounted(content, child, {parent_fullname: "@E_SUBREDDIT", sort: null}));
             }
             if(listing.data.after != null) {
                 const nextid = subredditNextPageContentID(entry.data.details, entry.data.sort, listing.data.after);
