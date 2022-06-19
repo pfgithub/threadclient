@@ -58,7 +58,12 @@ export default function ReaderView(props: {
                     client_id={in_sr.client_id}
                 >{in_sr.name}</LinkButton>{" "}
             </>}</Show>
-            <InfoBar post={pivotedPost().content} />
+            <InfoBar post={pivotedPost().content} opts={{
+                client_id: pivotedPost().v.client_id,
+                frame: pivotedPost().v,
+                id: props.pivot,
+                flat_frame: null,
+            }} />
             <Body body={pivotedPost().content.body} autoplay={true} />
         </div>
     </div>;
