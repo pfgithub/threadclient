@@ -1,16 +1,17 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
 import { createMemo, JSX } from "solid-js";
+import { updateQuery } from "threadclient-client-reddit";
 import { Show } from "tmeta-util-solid";
 import { Body } from "../../components/body";
 import { Flair } from "../../components/Flair";
+import { InternalIconRaw } from "../../components/Icon";
 import InfoBar from "../../components/InfoBar";
-import { LinkButton, UserLink } from "../../components/links";
+import { A, LinkButton, UserLink } from "../../components/links";
 import { AuthorPfp } from "../../components/Post";
 import { getSettings, getWholePageRootContext } from "../../util/utils_solid";
 
 export default function ReaderView(props: {
-    url: string,
     pivot: Generic.Link<Generic.Post>,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
@@ -27,6 +28,20 @@ export default function ReaderView(props: {
 
     return <div class="w-full min-h-screen bg-white">
         <div class="max-w-2xl mx-auto h-full p-4 text-base">
+            <A
+                class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
+                mode="replace"
+                client_id={pivotedPost().v.client_id}
+                page={(): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot})}
+                href={updateQuery(pivotedPost().v.url ?? "ENO", {'--tc-view': undefined})}
+                // ^^^ ?? excuse me why is this imported from threadclient-client-reddit?
+            >
+                <InternalIconRaw
+                    class="fa-solid fa-down-left-and-up-right-to-center text-base"
+                    label={"Exit Reader"}
+                />
+            </A>
+            <div class="pt-4" />
             <Show when={pivotedPost().content.title}>{pt => <>
                 <span role="heading" class="block text-4xl font-black">
                     {pt.text}

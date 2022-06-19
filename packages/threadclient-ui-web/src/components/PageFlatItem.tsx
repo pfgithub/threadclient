@@ -109,7 +109,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
             href={fsb.href}
         >
             <InternalIconRaw class="fa-solid fa-up-right-and-down-left-from-center" label={null} />
-            {" "}Fullscreen
+            {" "}{fsb.name}
         </A>,
         sort_buttons: sortbtns => <ToggleColor>{color => <div class={"mt-4 mb-4 rounded-lg "+color}>
             <div class="p-2 flex flex-row flex-wrap gap-2">

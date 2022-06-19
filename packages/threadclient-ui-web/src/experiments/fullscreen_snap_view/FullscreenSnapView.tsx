@@ -253,7 +253,7 @@ function FullscreenPost(props: {
         </div>
         <FullscreenBodyInfoLine body={props.content.body} />
         <div class="">By u/author on r/subreddit</div>
-        <div class=""><InfoBar post={props.content} /></div>
+        <div class=""><InfoBar post={props.content} opts={props.opts} /></div>
     </>} sidebar={<>
         <Show when={props.content.actions?.vote}>{voteact => <>
             <A class="block w-full" onClick={() => alert("TODO")}>
@@ -447,7 +447,7 @@ export default function FullscreenSnapView(props: {
             mode="replace"
             client_id={m().pivot.client_id}
             page={(): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot})}
-            href={updateQuery(m().pivot.url ?? "ENO", {'--tc-fullscreen': undefined})}
+            href={updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined})}
         >
             <InternalIconRaw
                 class="fa-solid fa-down-left-and-up-right-to-center text-base"

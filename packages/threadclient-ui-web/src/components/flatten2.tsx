@@ -415,6 +415,15 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     last={true}
                 />
             </>}</For>
+            {p.content.kind === "post" ? <>
+                <FlatItemTsch
+                    kind="repivot_list_fullscreen_button"
+                    client_id={p.client_id}
+                    page={() => ({pivot: pivotLink(), content: hprc.content()})}
+                    href={updateQuery(p.url ?? "@ENO", {'--tc-view': "reader"})}
+                    name="Reader"
+                />
+            </> : null}
             {p.replies ? <>
                 {FlatItemTsch({
                     kind: "horizontal_line",
@@ -431,7 +440,8 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                         kind="repivot_list_fullscreen_button"
                         client_id={p.client_id}
                         page={() => ({pivot: pivotLink(), content: hprc.content()})}
-                        href={updateQuery(p.url ?? "@ENO", {'--tc-fullscreen': "true"})}
+                        href={updateQuery(p.url ?? "@ENO", {'--tc-view': "fullscreen"})}
+                        name="Fullscreen"
                     />
                 </> : null}
                 {p.replies.reply != null ? <>

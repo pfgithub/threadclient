@@ -61,6 +61,7 @@ export type FlatItem = ({
     client_id: string,
     page: () => Generic.Page2,
     href: string,
+    name: string,
 } | FlatPost | {
     kind: "sort_buttons",
     sort_buttons: Generic.SortOption[],

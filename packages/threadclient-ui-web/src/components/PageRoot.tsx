@@ -7,6 +7,7 @@ import {
 } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import FullscreenSnapView from "../experiments/fullscreen_snap_view/FullscreenSnapView";
+import ReaderView from "../experiments/reader_view/ReaderView";
 import { collapse_data_context, getWholePageRootContext, provide, size_lt } from "../util/utils_solid";
 import { useFlatten } from "./flatten2";
 import LandingPage from "./LandingPage";
@@ -39,13 +40,22 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
     });
     
     const res = createMemo((): PageRes => {
-        const use_fullscreen_view = (new URLSearchParams(props.query)).get("--tc-fullscreen") === "true";
-        if(use_fullscreen_view) {
+        const tc_view = (new URLSearchParams(props.query)).get("--tc-view");
+        if(tc_view === "fullscreen") {
             return untrack((): PageRes => ({
                 url: null, // TODO
                 title: "TODO fullscreen title",
                 children: FullscreenSnapView({
-                    pivot: props.pivot,
+                    get pivot() {return props.pivot},
+                }),
+            }));
+        }
+        if(tc_view === "reader") {
+            return untrack((): PageRes => ({
+                url: null, // TODO
+                title: "TODO reader title",
+                children: ReaderView({
+                    get pivot() {return props.pivot},
                 }),
             }));
         }

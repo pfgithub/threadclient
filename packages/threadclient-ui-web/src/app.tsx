@@ -3048,35 +3048,6 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         });
     }
 
-    if(path0 === "@reader") {
-        const [p1, ...p2] = path;
-
-        return fetchPromiseThen((async () => {
-            const reader_promise = import("./experiments/reader_view/ReaderView");
-
-            const client = await fetchClient(p1 ?? "E");
-            if(!client) throw new Error("bad client: "+p1);
-            const page = await client.getPage!("/"+p2.join("/")+search);
-            return {
-                reader: await reader_promise,
-                client,
-                page,
-            };
-        })(), ({reader, client, page}) => {
-            const res = el("div");
-            const hsc = hideshow(res);
-            const title = updateTitle(hsc, client.id);
-            title.setTitle(path0);
-            vanillaToSolidBoundary(res, () => <>
-                <PageRootProvider pgin={{page, query: ""}} addContent={() => {
-                    throw new Error("TODO add content");
-                }}>
-                    <reader.default url={"/"+path.join("/")} pivot={page.pivot} />
-                </PageRootProvider>
-            </>, {color_level: 0}).defer(hsc);
-            return hsc;
-        });
-    }
     if(path0 === "@term") {
         // const [p1, ...p2] = path;
 
