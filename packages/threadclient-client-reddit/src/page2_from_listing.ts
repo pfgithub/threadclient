@@ -284,6 +284,9 @@ type IDMapData = {
 };
 
 function subUrl(details: SubrInfo, sort: SubSort): string {
+    // [!] on user pages like overview and submitted, `?sort={{sort.v}}&t={{sprt.t}} should be used instead
+    //      of `/submitted/hot` eg
+
     // note that on user pages, [...details.base] does not link to `/hot`, instead it links to some other thing
     return "/"+[...details.base, sort.v === "unsupported" ? "hot" : sort.v].join("/") + (sort.v === "controversial" || sort.v === "top" ? (
         "?t="+encodeURIComponent(sort.t)
