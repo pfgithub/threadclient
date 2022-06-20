@@ -322,6 +322,18 @@ export function changelog2() {return autoPost({
             "b2845134936cb88f259812b0c9aefbc51dd16973",
             "892607ed9f547ea35fa98d7bdeae0b8e983f8742",
             "2fd9028941b0f781e7366cda923e0227ec0ba1a1",
+            "3e13de4fa8258e6bfbcefc02b430c18055a6de2b",
+            "d9c53813409f4ccf671ef75210ecb72119ac8afa",
+            "fc5c7c709ca40ea19a675ada645186984c131224",
+            "18177ce161cfdf18e93118d8cc5c3415b553bb5d",
+            "7719e122487d0216343fc4f749d4f43d36e5f9cb",
+            "ee68fe9635e44182cdfdc0739e1154005eccf38a",
+            "cb83be91d49d37b865c216b59739b84f6f69e41a",
+            "918daf3b3baa9f106f920990ed173e10e8acf020",
+            "d1b7b292fa2b815f548fa7643ff94d52556fca28",
+            "36eb6fa11adc8805fdd92d9af9a62d499f212be2",
+            "ccefd21a39012a71c30a67bca982a03789da02e0",
+            "35f5030ea2ce602a198cb5897f54f0ff49032287",
         ].join(",")]: {
             // termapp/canvasui changes, no changelog needed.
         },
@@ -342,6 +354,11 @@ export function changelog2() {return autoPost({
             "18c7a4183f00c540ed04baad98fd7530c161186c",
             "4a7aa0bfd0e3b86f83f1dc8f7e875d5ed8c93aa7",
             "13edda915c8e66472d967d2b7e4c5f78cc291d4c",
+            "151d16e1d582a894c35eede23eac1e293ceae5cd",
+            "2d4a002e6696e9572887486ce2256b1cbd6c914f",
+            "d3656d416353dfe52555df49eafa62b05eb22f9b",
+            "6055f4c63d282e206153a83aa78e908f3c4b8be3",
+            "8a46bfd7cf5ad9d5470e9992534ce4ac8c497f71",
         ].join(",")]: {
             // planning, no user-facing changes.
         },
@@ -369,6 +386,8 @@ export function changelog2() {return autoPost({
             "3d0b88be9d8d7fe004f4111747df0138ef339a01",
             "4b0f5b8421b5de2b06ad17a2e5ebb34ea486fb55",
             "d7400f4380d7b6d13d73648eaec3fdacdc1f5d94",
+            "aa33bcc1142e62165ca36c85d6dede1d2dc7cb06",
+            "b19057526f0e1f70c0fa0d35611bcb078cb49e39",
         ].join(",")]: {
             internal: [
                 rt.ili(rt.txt("Creates a new tool that allows developing ThreadClient while offline")),
@@ -376,6 +395,9 @@ export function changelog2() {return autoPost({
         },
         [[
             "6b86778e48ea06be73dcf9013f19fc3f37f1ac06",
+            "9b4f8c422f9036a880676e915af54654dd11111d",
+            "17b1186099a28f5e3f4bcc09229f2b33549e4357",
+            "b2130e5823ecc062651bfd0f703bdbd5dcfb624a",
         ].join(",")]: {
             internal: [
                 rt.ili(rt.txt("Write the changelog")),
@@ -384,6 +406,16 @@ export function changelog2() {return autoPost({
         [[
             "3cb4a31bab1fb8d6a3a8b7efba2fb0b478ef58f6",
             "0f356db31e7dfa51cad216b8800895aa5b9974ac",
+            "587b8400cf9a9f76f0ea7b8629c40b77d2ea81ad",
+            "9db00f9dda3f61fc04761ba412c60237d03df81f",
+            "49d1f3f6cda97b970e759d10354dbcb65e230cb6",
+            "e4334d31cfabdaa999d6de539c1598802d8031a4",
+            "a6c9a0ed1f838a5697d9d32d0d58404ad494d5c2",
+            "e2706280b42dd68e4454b6a1d2aea4872395fa36",
+            "0d6137e99cd6c5c2b9bda31ded67e61058bd70c5",
+            "217756971ea51fabbe3e532f653c972951d93d35",
+            "659a37b913fda9a95b06153d3e6d5ef385252bc7",
+            "4c3be8d3e66f0896d8a93dcc7d61907645e7f989",
         ].join(",")]: {
             internal: [
                 rt.ili(rt.txt("Start to support sorting in page2")),
@@ -427,12 +459,15 @@ export function changelog2() {return autoPost({
                     rt.txt("Started work on a new way of displaying feeds in ThreadClient inspired by the tik tok ui: "),
                     rt.link({id: "reddit"}, "/r/pics?--tc-view=fullscreen", {}, rt.txt("Try it on r/pics")),
                     rt.txt(" (note: to try, you have to enable something or other in settings. @TBD@)"),
+                    // ^ consider prefering page2 if `--tc-view` is present in urlsearchparams
                 ),
             ],
         },
         [[
             "b2d27de7f61ec75150d77c9be9cbb44fd3c65ed9",
             "02cda597e31e04c0b424069ad0682b31d4b8c974",
+            "75be07051fe0b90e77b879fc0bf23760172ffe98",
+            "7f19b20421927bb28ae8bd24d0907badaa783871",
         ].join(",")]: {
             previews: [
                 rt.ili(
@@ -448,6 +483,12 @@ export function changelog2() {return autoPost({
             "1d46b62fc1cf6a9c7b85677ec7602b0d153e37e0",
             "6953935b0cd73dc0d35498e805dc1e71df1e669a",
             "162281d915d63ca85f9884bb6a4062bddda3bcc3",
+            "cbab1c3e1c77feff741da8af79c71a9a08d742e4",
+            "8fe7342ad59a2caef3561569071a7c631d7e3583",
+            "9eac4d145de1fcfa8be0d95ec9a8cd3d9c8334f5",
+            "6d92857baa65363d44a049dd1cd331eb986a8b33",
+            "1f4d25e307b856b1b500a2d5f11df30a32a1dde5",
+            "5ad133e070394fedd4040359c41c3c3781eab6b3",
         ].join(",")]: {
             internal: [
                 rt.ili(rt.txt("Improves page2 performance")),
@@ -484,12 +525,75 @@ export function changelog2() {return autoPost({
                 rt.ili(rt.txt("Hide reddit profile images on profiles marked as over18")),
             ],
         },
+        [[
+            "6d203a302965aeb18f5c8fed0761cd39026eae3c",
+        ].join(",")]: {
+            changes: [
+                rt.ili(rt.txt("Fixes a bug where some gfycat videos refuse to play")),
+            ],
+        },
+        [[
+            "4484b296d9fb72a813904727b03ca2e80230a9e7",
+        ].join(",")]: {
+            changes: [
+                rt.ili(
+                    rt.txt("On desktop, you can now hover over a post award to see an enlarged version. Example: "),
+                    {
+                        kind: "emoji",
+                        name: "All-Seeing Upvote",
+                        url: "https://preview.redd.it/award_images/t5_q0gj4/am40b8b08l581_All-SeeingUpvote2.png?width=16&height=16&auto=webp&s=978c93744e53b8c9305467a7be792e5c401eac6c",
+                        hover: {
+                            description: "A glowing commendation for all to see",
+                            url: "https://www.redditstatic.com/gold/awards/icon/Illuminati_128.png",
+                            w: 128,
+                            h: 128,
+                        },
+                    },
+                ),
+            ],
+        },
+        [[
+            "d26f23f3ba9afe9ead8afdac18a1dca03cdf3d4b",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Fixes a bug where page2 collapse buttons mess with the page scroll")),
+            ],
+        },
+        [[
+            "f070202bab45259a1a1206d450a14f81c37f2e0e",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Fixes a bug where page2 flairs don't have a space in front")),
+            ],
+        },
+        [[
+            "44edf923a5132a70a64f742e54201ad74cfad654",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Lazy load profile pictures in page2 rather than loading them all at once")),
+            ],
+        },
         // 68708a920baf4988ff6d5cb9e8e0a0ee78570724 // I don't have the slightest clue. some info bar fix?
         // 9b0256b462bfd07cd0357e599aa283be81c49206 // some link helper color fix
         // b2704dd83d6fa4c37f5b3aaac411e9d55ce57579 something about codespaces (that was **20 days ago**?!?!? I thought that was recent)
+        // 570c7b0a510cfeba742890e0af0dd09f8b71f88b // fixes a bug where it's possible to select items being animated out of view
+        [[
+            "59567302da47674d0456cbc9d55aa02eefe2712d", // internal improvements to animations
+            "666e19957317039b68a42098a9f387b0a71cf368", // ^
+            "9e3ee3cdec12aab8acea611176bf47a18562e26a", // code cleanup
+            "eb77e71f7e6ef8ea4607efa8380ddf2d1310c6d1", // internal improvements
+            "3ae16be1842e546d237ee09f4c25de8d35da990a", // code cleanup
+            "03a22a0d769b9fd7f714c9c6e88de0b8e45aa111", // refactor
+            "26693d4321ccc267f9b12d5d3d48dd61e1d3b62d", // internal improvements
+            "ca07ac07c8da6a802f279f439445beab76b62935", // internal improvements
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Clear some technical debt")),
+            ],
+        },
 
-        // NEXT COMMIT TO DO: 6d203a302965aeb18f5c8fed0761cd39026eae3c
         // in command: git log --stat "bd54c07697d47be3c68f14162c37f54ea1fbe752..HEAD"
+        // MOST RECENT COMMIT ADDED: b2130e5823ecc062651bfd0f703bdbd5dcfb624a
     },
 }));}
 
