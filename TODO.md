@@ -1,3 +1,52 @@
+# PARITY LIST
+
+once all items on this list are complete, page2 can be released:
+
+- performance:
+  - [ ] fix perf when uncollapsing lots of comments
+    - issue is caused because many nodes have to be deleted
+    - one way to fix this is to keep hidden comment nodes in DOM like page1 hideshow
+  - [ ] fix perf when navigating forwards/back a page
+    - issue caused because in DOM, the entire page is replaced with a new page
+    - one way to do this is by using the page1 method where we keep all history items in DOM
+  - [ ] fix perf when a loader completes (this one should be pretty simple - just change the )
+    - issue is caused because all DOM nodes are rerendered
+    - easy fix - just update the pagerootcontext thing to hold a map of signals instead of a signal to a map
+- reddit client:
+  - [ ] subreddit bio
+  - [ ] subreddit sidebar id card subscribe button
+  - post actions:
+    - [ ] permalink
+    - [ ] delete
+    - [ ] save
+    - [ ] duplicates
+    - [ ] report
+    - [ ] reply
+    - [ ] code (and show the post markdown, either inline like page1 or fullscreen as a link)
+  - notifications
+  - modmail
+  - TODO: enumerate more stuff. basically everything in reddit.ts needs to be implemented in page2_from_listing.ts
+- mastodon client:
+  - not sure if anyone uses this. I'm not aiming for parity right now.
+- ui:
+  - [ ] feature request / report issue links
+
+these are not necessary for parity, but would be nice to have:
+
+- [ ] comment collapse animations
+  - 1: all comments relevant to the animation set to position:absolute
+  - 2: element added who's height will animate
+  - 3: top comment animated with clip-path for height
+  - 4: other comments animated with opacity
+  - 5: clear everything up
+- [ ] hot module reload support fixed
+  - likely by rewriting all the entrypoint code and deleting page1 or by embedding page1 as a
+    VanillaToSolidBoundary from a createRoot
+  - alternatively, try pulling all helper functions out of app.tsx and make sure nothing imports app.tsx or
+    router.ts when it shouldn't
+- [ ] post share button
+- [ ] reddit chat notifications (requires extension)
+
 # note
 
 sorting
@@ -13,132 +62,6 @@ like `t3_djnaclkd` and `t3_djnaclkd?sort=…` are identical, the only difference
 their replies. but eg if you press the reply button, it should know that that's the same post
 
 I'm not going to worry about it for now
-
-# note
-
-sorting
-
-sorting
-
-so obviously, tabbed posts are the best solution
-
-maybe that's not obvious because they don't seem like a great solution imo
-
-the main thing we need is:
-
-- you need to be able to set the sort on an object
-  - in ui, you can only sort the focused node
-  - all linked sorters should update
-- we need to update the url when you change the sort
-
-wait a minute what are 'tabbed posts'
-
-isn't that literally just changing the focus based on a buton press?
-
-there's no reason to need to sort a reply to a post so we don't have to swap out arbitrary things with
-different sorts
-
-the reason for tabbed posts is if eg you want to display a subreddit and show post comments on the same
-page and want to allow changing the sort of the post comments. but we don't do that and aren't planning
-on doing it in any client. so we can make it so you can only change the sort on focused posts.
-
-like - it would be fun to support that, but we don't need to support it. we just need to support sorting in
-general.
-
-ok so the solution:
-
-- create a different post per sort method
-  - not ideal because there's no reason to do this when the only things that are changing are the url
-     and the replies loader
-- add a field to posts for sortable_replies and define the sort menus there with links to focus loaders holding
-  the posts
-- addContent() and change the focus
-
-ok so
-
-that will work fine
-
-but
-
-literally the only thing preventing me from just making sort a property of the replies thing is that I have to
-change the url of the post
-
-…I can put a post url override in the replies if that's it
-
-or I can skip changing the url for now
-
-or I can add some client code you have to call to get the url from a post (not ideal because this wouldn't
-work as a server-only protocol in that case but that's okay)
-
-## \[FIXED] note
-
-ok we have a page2 problem
-
-here's the issue:
-
-compare:
-
-```
-http://localhost:3004/#reddit/r/pics/comments/uxg139/oc_this_sign_on_a_school_near_uvalde_tx/
-```
-
-on page1 and page2
-
-notice:
-
-- click to collapse a post
-  - on page1, this is instant
-  - on page2, this takes two seconds
-
-ok so why is this?
-
-- the actual flatten() call is 7ms
-  - that's good
-- updating all the dom nodes is 2sec
-
-ok so here's what we can change
-
-- for some reason, we made posts flat
-  - the idea was:
-    - we can do virtual scrolling
-    - we can retain dom nodes when you click to focus a post
-    - we can handle threaded better
-  - but we really don't care about retaining dom nodes on refocus. it's basically only a bad idea.
-  - and we don't need virtual scrolling. page2 is only 1.08× heavier in terms of dom node count
-    - I'm actually surprised by that, wow. It felt like page2 was going to be like 5x page1 because
-      of all the new nodes everywhere but that's actually pretty good
-  - and I'm pretty sure we can handle threaded perfectly fine with some minor changes to structure
-    so that we can keep threaded things as part of a post's replies object
-
-ok goal: delete flatten.tsx
-
-oh wait** another thing flat posts does is:
-
-- supports swipe gestures on posts
-
-we can't replicate that and swipe gestures are important
-
-I think we can still delete flatten.tsx though - posts will be nested in jsx but flat in dom
-
-an alternative option:
-
-- fix the merge memo
-
-the real reason updates are taking so long is because we put them into a merge memo and then it
-has to recreate a bunch of things but we can fix that
-
-an alternative option 2:
-
-- switch to a usetypesafechildren flatten.tsx
-  - I tried this a bit ago and it didn't quite work but I can try again
-
-let's try it
-
-oh alternative option 3:
-
-- only call flatten() once
-
-this option doesn't work because eg what if you load more on a loader. we need to update stuff
 
 ## note
 
