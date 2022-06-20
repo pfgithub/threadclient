@@ -2,12 +2,12 @@ import * as Generic from "api-types-generic";
 import { p2, rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
-import { assertNever, encodeQuery, switchKind } from "tmeta-util";
+import { assertNever, encodeQuery, splitURL, switchKind, updateQuery } from "tmeta-util";
 import {
     authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, editButton,
     expectUnsupported, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, PostSort, redditRequest,
-    replyButton, reportButton, saveButton, splitURL, SubrInfo, SubSort, updateQuery, urlNotSupportedYet
+    replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
 import { getSidebar } from "./sidebars";
 

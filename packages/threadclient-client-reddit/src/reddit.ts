@@ -4,7 +4,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
-import { encodeQuery, encodeURL } from "tmeta-util";
+import { encodeQuery, encodeURL, splitURL, updateQuery } from "tmeta-util";
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { getPage, loadPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
@@ -524,21 +524,6 @@ async function getAuthorization() {
     const access_token = await getAccessToken();
     if(access_token == null) return "";
     return "Bearer "+access_token;
-}
-
-export function splitURL(path: string): [string, URLSearchParams, string] {
-    const [pathname, ...query] = path.split("?");
-    const queryjoined = query.join("?");
-    const [justquery, ...hash] = queryjoined.split("#");
-    return [pathname ?? "", new URLSearchParams(justquery), hash.join("#")];
-}
-export function updateQuery(path: string, update: {[key: string]: string | undefined}): string {
-    const [pathname, query, hash] = splitURL(path);
-    for(const [k, v] of Object.entries(update)) {
-        if(v != null) query.set(k, v);
-        else query.delete(k);
-    }
-    return pathname + "?" + query.toString() + (hash !== "" ? "#"+hash : "");
 }
 
 export function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.CounterAction {

@@ -244,3 +244,20 @@ export function switchKind<T extends {kind: string}, U>(
 }
 
 export * from "./uuid";
+
+export function splitURL(path: string): [string, URLSearchParams, string] {
+    const [pathname, ...query] = path.split("?");
+    const queryjoined = query.join("?");
+    const [justquery, ...hash] = queryjoined.split("#");
+    return [pathname ?? "", new URLSearchParams(justquery), hash.join("#")];
+}
+
+// vv consider: new URL(path, "https://example.com")).search = …
+export function updateQuery(path: string, update: {[key: string]: string | undefined}): string {
+    const [pathname, query, hash] = splitURL(path);
+    for(const [k, v] of Object.entries(update)) {
+        if(v != null) query.set(k, v);
+        else query.delete(k);
+    }
+    return pathname + "?" + query.toString() + (hash !== "" ? "#"+hash : "");
+}

@@ -4,7 +4,7 @@ import * as Generic from "api-types-generic";
 import { mnu, p2, rt } from "api-types-generic";
 import * as Mastodon from "api-types-mastodon";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
-import { assertNever, encodeQuery } from "tmeta-util";
+import { assertNever, encodeQuery, updateQuery } from "tmeta-util";
 import { parseContentHTML } from "./mastodon_html_to_rt";
 import { Timeline, timelineApiUrl, timelineAppUrl, url_parser } from "./mastodon_url_parser";
 
@@ -302,18 +302,6 @@ function postToGenericCanError(
         },
     };
     return res;
-}
-function splitURL(path: string): [string, URLSearchParams] {
-    const [pathname, ...query] = path.split("?");
-    return [pathname ?? "", new URLSearchParams(query.join("?"))];
-}
-function updateQuery(path: string, update: {[key: string]: string | undefined}) {
-    const [pathname, query] = splitURL(path);
-    for(const [k, v] of Object.entries(update)) {
-        if(v != null) query.set(k, v);
-        else query.delete(k);
-    }
-    return pathname + "?" + query.toString();
 }
 type ApplicationResult = {
     client_id: string,

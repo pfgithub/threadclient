@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, onCleanup } from "solid-js";
-import { updateQuery } from "threadclient-client-reddit";
+import { updateQuery } from "tmeta-util";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import Clickable from "../../components/Clickable";
 import { Flair } from "../../components/Flair";

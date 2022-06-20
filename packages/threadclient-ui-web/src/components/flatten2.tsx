@@ -1,6 +1,6 @@
 import * as Generic from "api-types-generic";
 import { createMemo, For, JSX, useContext } from "solid-js";
-import { updateQuery } from "threadclient-client-reddit";
+import { updateQuery } from "tmeta-util";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { allow_threading_override_ctx, collapse_data_context, getWholePageRootContext } from "../util/utils_solid";
 import { CollapseButton, CollapseData, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";

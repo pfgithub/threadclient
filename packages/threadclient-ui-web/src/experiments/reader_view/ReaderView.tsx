@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
 import { createMemo, JSX } from "solid-js";
-import { updateQuery } from "threadclient-client-reddit";
+import { updateQuery } from "tmeta-util";
 import { Show } from "tmeta-util-solid";
 import { Body } from "../../components/body";
 import Clickable from "../../components/Clickable";
@@ -36,7 +36,6 @@ export default function ReaderView(props: {
                     client_id: pivotedPost().v.client_id,
                     page: (): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot}),
                     url: updateQuery(pivotedPost().v.url ?? "ENO", {'--tc-view': undefined}),
-                    // ^^^ ?? excuse me why is this imported from threadclient-client-reddit?
                 }}
             >
                 <InternalIconRaw
