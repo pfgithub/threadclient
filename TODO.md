@@ -108,6 +108,7 @@ so replies are usually:
 
 - add a node into the children tree (using something similar to the collapse states object) where you can
   type your reply and post it
+  - note: base this on the post reply key rather than the post id
 
 consider:
 
