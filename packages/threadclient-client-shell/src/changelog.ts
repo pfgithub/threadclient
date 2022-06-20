@@ -3,7 +3,7 @@
 import { rt } from "api-types-generic";
 import { autoPost, changelogEntry } from "./shell_client";
 
-export const changelog2 = () => autoPost({
+export function changelog2() {return autoPost({
     parent: "/changelog",
     replies: [],
 }, changelogEntry({
@@ -251,9 +251,9 @@ export const changelog2 = () => autoPost({
             // jsoneditor changes. no changelog needed.
         },
     },
-}));
+}));}
 
-export const changelog1 = () => autoPost({
+export function changelog1() {return autoPost({
     parent: "/changelog",
     replies: [],
     // vv we could implement these as replies instead of just a richtext list
@@ -286,4 +286,4 @@ export const changelog1 = () => autoPost({
         ),
         rt.ili(rt.txt("Set titles of some page2 pages now")),
     ],
-}));
+}));}
