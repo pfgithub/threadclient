@@ -3,6 +3,10 @@
 import { rt } from "api-types-generic";
 import { autoPost, changelogEntry } from "./shell_client";
 
+// const ntxt = git rev-list `${COMMIT-HASH}..HEAD`;
+// const mtxt = (this file)
+// copy(ntxt.split("\n").map(l => mtxt.includes(l) ? "[✓] " + l : "[✗] " + l).join("\n"))
+
 export function changelog2() {return autoPost({
     parent: "/changelog",
     replies: [],
@@ -82,7 +86,7 @@ export function changelog2() {return autoPost({
             "0c377b4f6f6962e4c58a4fb475a7f6f3d1302211",
         ].join(",")]: {
             internal: [
-                rt.ili(rt.txt("Introduces a bug where the showanimate in settings doesn't work quite right"))
+                rt.ili(rt.txt("Introduces a bug where when clicking 'show anyway' in settings, the animation is wrong"))
             ],
         },
         "0f865a160237f281086e4368f278c2818c8fa980": {},
@@ -137,6 +141,7 @@ export function changelog2() {return autoPost({
             "683c6f92c4fb6a992e7ba3b6bf5735c2b5109a5e",
             "24f383c149816e9969ed2a65dbe2707f397a5deb",
             "ece7eaf75cf7a94dfb1a1ba739cf400c7ef881ef",
+            "1cde2e6dd2f3c1d7a1ea6ded04d46e08e2b53f0b",
         ].join(",")]: {
             internal: [
                 rt.ili(rt.txt("Feature parity and improvements over page2 sidebars")),
@@ -157,14 +162,6 @@ export function changelog2() {return autoPost({
         ].join(",")]: {
             bugfixes: [
                 rt.ili(rt.txt("Fixes a bug where the 'new update' banner is shown to first-time users")),
-            ],
-        },
-        [[
-            "5753b6c013df6297ec786354f60cb247dbc7595e",
-            "fe527e9cc15610ee73916c50ba46fd8513e89835",
-        ].join(",")]: {
-            internal: [
-                rt.ili(rt.txt("Initial support for offline ThreadClient development (*: no images yet)")),
             ],
         },
         [[
@@ -219,6 +216,30 @@ export function changelog2() {return autoPost({
             "c823295b05bc5512b9a338775613b66e106378c3",
             "f77d50b58cb02c379f62ffa4d24398c2699524f9",
             "3684496fddb015695c6cf7c5b206143b1aa49ff8",
+            "36cce8aa00db36dfd97152170b5d5dc3a6c5d0ac",
+            "6c1079407341ef24b98fd6c05d778f2405960be2",
+            "26eb599656683fdb8e5c3057547d7cb9d601f9be",
+            "d27beabf3889442fcfd2fd171296c9926a0a0e22",
+            "caf459cf337f5967ec125331e2b09240fdbfc5d6",
+            "1bdd6c0fe78716ecca195fb7a91f475a5381eb65",
+            "793d30122f440c0bef87599fe41bf457730aea6f",
+            "62749bfb013b11aa882c597e6a099b6f56357d07",
+            "a669ec16e1982870401f715a039ec8483914d122",
+            "e9962f9f2674341600034c75a4ae967af7ac85a2",
+            "be2d9f846a42990fc3bc5650064b648f58c59b4e",
+            "438265fa2215dc0203497c51791898ed16521436",
+            "0e1e3249cdc427201b5e7bcfe9a604c61d91e3d2",
+            "c128d336a6c9f23f46d56926c8409bd9bc826532",
+            "3180e6b1f9c0902a892da3c8d86ad5287147773d",
+            "ad8bb44f2e3a6594d86c1137911606030f38d114",
+            "121f45fabeea57dc004e50f988ca6d19940f50a4",
+            "6ce3f1cf47afdcb135a6fb3394870b5ea2b4ff45",
+            "6b72d37718cb9a8e24d23043776ace4a46beefe4",
+            "37c72f4869e878bf38e296e514423a60b6266c8b",
+            "2dafc24587f740c72a1d1f38902b652fe6f0bafb",
+            "23eb6ab416b98fa32016ddc6cc2432415a117855",
+            "5f52bcf2b48afc58286ae6b08edffe4be6a479a4",
+            "eb0ba2893550f04459c46adf7391e5c9b987a7dc",
         ].join(",")]: {
             changes: [
                 rt.ili(rt.txt("Completely breaks the Mastodon client. I hope no one was using this. @TBD@ "
@@ -247,9 +268,228 @@ export function changelog2() {return autoPost({
             "f92f1f4725a87ae871dec5dbf093c79b43215da3",
             "c6b5c073fe8179f4a482668d79d4cd3009455532",
             "bd54c07697d47be3c68f14162c37f54ea1fbe752",
+            "49d931f82db359b653b87f85262f8614b7f07f2b",
+            "d4c8c6e711b4ae5add117573ce820a97c0b5a8fe",
+            "1be9ffa1cefae16c9248f32ac1c9d3485dc22cf1",
+            "46d1735759101865059be90f665c7d14c68f69f5",
+            "5a8ac286e1a5b2199b7d8eb0f5714591fd68f3c0",
+            "e79d991ee539a2c0b2f4a3e022357f0a2100a7e6",
+            "3d9ea9ce88a1db0ddb1206154a136e0e1fa1c9b5",
+            "24444e5321123f861df7a4cc34fb853ad67eab99",
+            "d562bdd75e3986a13677d221f830bee8fd1dd204",
+            "c1b95bf777864af2fa351f62ab6261551539ea60",
+            "d3672f0f037c134313440acf70259cb6313b52be",
+            "d5459f45d987e5385e784a11e795e5e468606148",
+            "6b1a19c0fd0d4dbbcc3f3a133902d6468bc573db",
+            "1253235ad5cb30bf9f72fbbc744c408756e486e7",
+            "09308ef2cc4b3f72d6b21c7d9ab385996bf1c898",
+            "633ab0d09fe5f0799ad4768e5144b6ac6de3a2ba",
+            "693362e8bac6a27fb42225ff34b55cef81a3fc50",
+            "5b49710098b72e273d71d3a6dde19bddef0e88d4",
+            "33bd3eccf98499c3443ba9d8fb18e299737e0ea2",
+            "5ebc599ed80c64a8a20a0cfc8bccc5c149b60283",
+            "6123b4efa291f30787d3da38e90ad90930669e47",
+            "5c83663a2fbfd612937332dad63b61a7187e3c53",
+            "1ce8271d5ec710feb78ec9d36bfb0f444109140d",
+            "8be4727e60ca26d3c3604cb7699a337c0211032f",
+            "3fff908be30b03c71295355fc707934a27122438",
+            "52207480ddeaaced4e22a64ca09a4e43d7c6e61d",
         ].join(",")]: {
             // jsoneditor changes. no changelog needed.
         },
+        [[
+            "55aa5b2be5f82d7f970db243e6ecd1558c6db9b3",
+            "94d539de68ae11d70bc298856cc842ed69c524b0",
+            "8babb8c9eda7c85b16088f139436886939a1ee6e",
+            "b3de0b4f7eb4acf488b421ff9fd5544d27d7348d",
+            "db408e6a3aac2649e0f41951141d19c9191f1ea7",
+            "07863b9d4dce73c038ceb5cbbc5f3920671d2d51",
+            "62e0d89aaa87fc5430d4b1ef2b6239cac9fbf463",
+            "71a160d2b01c750993cbeb202995cdbc6aa673c8",
+            "0bf457d8bdc2d0f7829a40eeae2e9abf9ed77ff9",
+            "926ee23025e23eb3c40049ee803373077e8c97d7",
+            "783b47a3ce6312298b62b516baa4dd8563bc498a",
+            "db0ca10eadff8a8e89c0b04608d621e092d7cc3f",
+            "b8de729846623371cd49797b3a0cc685e86af7d5",
+            "37f7d855f43c1a2b8981beac51ee07629414c77f",
+            "94fddebea2f33ba967472931ca8ba1c5e925786d",
+            "be8bef39cddb4dc3d35d6743bf301db5cb1bf1f4",
+            "21349a04ef34bbf67c6a78e9c97bab2658b56936",
+            "6ad56f99439ca67336068c3e3cf603ca379820e3",
+            "28acf55c38874a944c851870cdc8a272a8a287f3",
+            "36ccab955a3926bfe1481595ef259364d748c844",
+            "12113a65a5cf430bed8e32561b35ca8131c07b41",
+            "b2845134936cb88f259812b0c9aefbc51dd16973",
+            "892607ed9f547ea35fa98d7bdeae0b8e983f8742",
+            "2fd9028941b0f781e7366cda923e0227ec0ba1a1",
+        ].join(",")]: {
+            // termapp/canvasui changes, no changelog needed.
+        },
+        [[
+            "40e3a37cc2e0e9caeb7c8a11d37f3752a54ad044",
+            "46ad15bd1ca731527db158c5d220b0fadc7fe182",
+            "d734e6e0782935c4e4181a51093b5e336005d72d",
+        ].join(",")]: {
+            // refactoring or lint fixing, no user-facing changes
+        },
+        [[
+            "a05a2de246f42e49d4f1c4ed35504c47865cd20e",
+            "c2b76252b8ce441167c442efa37298253f45f141",
+            "7de69742b078be48ff9fb3798be37fdf991ba260",
+            "3274abda6d0cfae49650e06aaae7861154cd5690",
+            "58de34e6a59da6d9aa4260f6b8c8bdf6e4943e74",
+            "7b1e38fb8b4710e52972956a8205e4b9407bfb80",
+            "18c7a4183f00c540ed04baad98fd7530c161186c",
+            "4a7aa0bfd0e3b86f83f1dc8f7e875d5ed8c93aa7",
+            "13edda915c8e66472d967d2b7e4c5f78cc291d4c",
+        ].join(",")]: {
+            // planning, no user-facing changes.
+        },
+        [[
+            "1791fb4edfb932ad1459330d52f278865246afd7",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Improvements to the page2 data structure")),
+            ],
+        },
+        "49c0b5d6604bd99b2d2f4379a89208942ca37cac": {},
+        [[
+            "5753b6c013df6297ec786354f60cb247dbc7595e",
+            "fe527e9cc15610ee73916c50ba46fd8513e89835",
+            "9c635d56891e7941f7be2b8a39f20adb53bf1d14",
+            "d94c59ae311664350fd2f267d8e1df8e5e172696",
+            "df3078534117d7b231005960d7a3260246c24f9b",
+            "3257b2b79f278412fee3f9cbce29fc5425e524e0",
+            "949eb3a340a685653438a109cd1d73d0dc586f34",
+            "edc0fe7784fb0535173569d3fc977b55fe603044",
+            "df603ee2d77d6e09ffe2e2ec588fbd0de45e4515",
+            "dcf5ac36b807bc94e5575205032659dc7ae6ac6a",
+            "259d4bbee4ce6b7fe1b7f5989538cd9e8336f8d7",
+            "b62ae1028e0e8927dc439882aef2c2cbeb4cbc95",
+            "3d0b88be9d8d7fe004f4111747df0138ef339a01",
+            "4b0f5b8421b5de2b06ad17a2e5ebb34ea486fb55",
+            "d7400f4380d7b6d13d73648eaec3fdacdc1f5d94",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Creates a new tool that allows developing ThreadClient while offline")),
+            ],
+        },
+        [[
+            "6b86778e48ea06be73dcf9013f19fc3f37f1ac06",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Write the changelog")),
+            ],
+        },
+        [[
+            "3cb4a31bab1fb8d6a3a8b7efba2fb0b478ef58f6",
+            "0f356db31e7dfa51cad216b8800895aa5b9974ac",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Start to support sorting in page2")),
+            ],
+        },
+        [[
+            "9d1affe82d1691dac09686eb31b6cd00c454f2bf",
+            "b92e5f6e4407c35d594809aa952d42c228330306",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Add post hover effects in page2"))
+            ],
+        },
+        [[
+            "b9c368c2c143a34a209ec16ff6b61be390137965",
+            "e97dd8a4e0abc7653f239588cc342f6137804589",
+            "0ec9ef619ac2672f26a002a841071e4442d1a657",
+            "43893b75e46787e79b6e0068b84644290ee29d30",
+            "9ee5a52cc96866f10542915fa414f31ae82aa801",
+            "1cbaf847cb33d6f1fb40a854cfab54bd2879cf80",
+            "68d92889bb6fb0d6528b0f6b123d7ff2e8127229",
+            "fc840eb4d509af314474898b829158754cbec745",
+            "28756749c9ecb27410a04970b1fdc851494c7eb5",
+            "c37f383e7ca3771664f19dc664c8fb15b552f555",
+            "4e7b23b781e97d21b6d8d04924dcd8db573238fa",
+            "9426ed3aaf67a764a13d90a3a390ceeab66f0616",
+            "c724ead7012efe20b3406b9fbcb8a09906399519",
+            "1f3997ea5b244cf04fed0751a6184ebacee93763",
+            "ca97dac8e7192d6254dc6097f0b4272ac7c4f0e2",
+            "3ed23dd330e8d91e9ac38f5b7b984ba4c2c80d70",
+            "a58462f4df19eb67a338ee919516d658c87d0a5c",
+            "e2b88c6a578cc3c8d3c3f1539aaed0496d5b2daf",
+            "17bf7b829ad2a4d41e502d81a59e4ddac67dcdbd",
+            "c23d235a7152070e0c384d7c92ad0bbea2b477ab",
+            "afc27a9077a342d2de77d1e88e7562591553fd71",
+            "f95952503ff4a7af0329e3352005f269c636763e",
+            "a36ff0f5cb1939b524e8d9e3d2e956bc954c6148",
+        ].join(",")]: {
+            previews: [
+                rt.ili(
+                    rt.txt("Started work on a new way of displaying feeds in ThreadClient inspired by the tik tok ui: "),
+                    rt.link({id: "reddit"}, "/r/pics?--tc-view=fullscreen", {}, rt.txt("Try it on r/pics")),
+                    rt.txt(" (note: to try, you have to enable something or other in settings. @TBD@)"),
+                ),
+            ],
+        },
+        [[
+            "b2d27de7f61ec75150d77c9be9cbb44fd3c65ed9",
+            "02cda597e31e04c0b424069ad0682b31d4b8c974",
+        ].join(",")]: {
+            previews: [
+                rt.ili(
+                    rt.txt("Started work on a new reader view for posts. Try it by clicking the 'Reader' button below this post"),
+                ),
+            ],
+        },
+        [[
+            "223ebe87d567ed3c280b7c225ed25d39df0f3fee",
+            "0407c71842ebed996ea7477a43d4e87ba66c6442",
+            "863bcbec800fe856bd8ca45bae5f112251d9c3b5",
+            "9efeb755884ffe9ef21d1db3d6d0105d6b3cec5e",
+            "1d46b62fc1cf6a9c7b85677ec7602b0d153e37e0",
+            "6953935b0cd73dc0d35498e805dc1e71df1e669a",
+            "162281d915d63ca85f9884bb6a4062bddda3bcc3",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Improves page2 performance")),
+            ],
+        },
+        [[
+            "caec3f08c72e1dabf96511b94437efb8be5fcf43",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("Gets page2 reddit closer to feature parity")),
+            ],
+        },
+        [[
+            "bfcb9cb7e3cfa85d23ec0c7bff6fe64a6c0f8183",
+            "4f27f5fc752a4ed3dc16e2bf0923a5903c5c6c94",
+            "a5fee0220d9d6a457d89f9ab21abd9b1cbec26a6",
+            "7a9a64084e5331b0c774e2b78b6e4b38a5ab8e48",
+        ].join(",")]: {
+            internal: [
+                rt.ili(rt.txt("I can't believe I didn't know about HTMLElement.animate()")),
+            ]
+        },
+        [[
+            "06fb4bbb2b0f5f4260a15651b2c3c8cf5012fafd",
+        ].join(",")]: {
+            bugfixes: [
+                rt.ili(rt.txt("Fixes a bug where formatting on Reddit posts is sometimes slightly misaligned. I can't believe I didn't notice this for over 3 years.")),
+            ],
+        },
+        [[
+            "e3ed875cdc1ee2168ee3c16eca1ba5955889efd1",
+        ].join(",")]: {
+            changes: [
+                rt.ili(rt.txt("Hide reddit profile images on profiles marked as over18")),
+            ],
+        },
+        // 68708a920baf4988ff6d5cb9e8e0a0ee78570724 // I don't have the slightest clue. some info bar fix?
+        // 9b0256b462bfd07cd0357e599aa283be81c49206 // some link helper color fix
+        // b2704dd83d6fa4c37f5b3aaac411e9d55ce57579 something about codespaces (that was **20 days ago**?!?!? I thought that was recent)
+
+        // NEXT COMMIT TO DO: 6d203a302965aeb18f5c8fed0761cd39026eae3c
+        // in command: git log --stat "bd54c07697d47be3c68f14162c37f54ea1fbe752..HEAD"
     },
 }));}
 
