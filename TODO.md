@@ -1,6 +1,6 @@
 # PARITY LIST
 
-once all items on this list are complete, page2 can be released:
+## once all items on this list are complete, page2 can be released:
 
 - performance:
   - [ ] fix perf when uncollapsing lots of comments
@@ -31,7 +31,7 @@ once all items on this list are complete, page2 can be released:
 - ui:
   - [ ] feature request / report issue links
 
-these are not necessary for parity, but would be nice to have:
+## these are not necessary for parity, but would be nice to have:
 
 - [ ] comment collapse animations
   - 1: all comments relevant to the animation set to position:absolute
@@ -45,7 +45,62 @@ these are not necessary for parity, but would be nice to have:
   - alternatively, try pulling all helper functions out of app.tsx and make sure nothing imports app.tsx or
     router.ts when it shouldn't
 - [ ] post share button
-- [ ] reddit chat notifications (requires extension)
+- [ ] https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/progress_event xhr progress when loading in
+      bad internet
+- reddit client:
+  - [ ] reddit chat notifications (requires extension)
+  - [ ] improve display of error `USERNAME_OUTBOUND_LINKING_DISALLOWED: Linking to users is not allowed.`
+  - [ ] on subreddits you moderate, display "post insights". gql api:
+
+    ```json
+    {
+      "id":"b73048dbf918",
+      "variables":{
+        "postId":"t3_…",
+        "subredditId":"t5_…",
+      }
+    }
+    ```
+
+    note that while the result json will never change for gql requests, the id may expire eventually as this is
+    an internal api.
+  - [ ] sidebar iframes with relative links have the wrong base url. fix with `<base href="https://…>` in the srcdoc
+  - [ ] support https://thread.pfg.pw/reddit/api/v1/me/karma
+    - link to it from a profile dropdown or something
+- preview clients:
+  - support `youtube.com/shorts`. also check if youtube has oembed support.
+- update github actions to only append and replace files when deploying, do not delete old ones
+  - currently, if you decide not to update, stuff will break because it can't fetch a bunch of things anymore
+  - this will fix that as the only file that changes is `index.html` and `404.html`
+  - changing this would even make it possible to include a version selector to revert to old threadclient
+    versions
+
+### f2 renaming:
+
+- rename folders: `threadclient-client-{{x}}` to `threadclient-for-{{x}}` (or maybe `threadclient-backend-{{x}}`)
+
+- consider using github subtrees? like you can merge another repo into this one and keep
+  the history and stuff. and that would be nice because it makes projects more
+  discoverable while keeping the monorepo structure.
+
+### future clients:
+
+- zendesk
+  - https://reddit.zendesk.com/hc/en-us/articles/205926439-Reddiquette
+  - https://reddit.zendesk.com/api/v2/help_center/en-us/articles/205926439-Reddiquette.json
+  - has a cors api
+- twitter:
+  - consider cheating and using twitter's internal apis cors proxied through the threadclient extension
+- pushshift
+  - we should support https://api.pushshift.io/reddit/search/submission
+  - have a ui for setting all the filter parameters and stuff
+  - https://github.com/pushshift/api
+  - mostly I just want a nice results display
+
+### migrating from windi to tailwind css (or another one like unocss):
+
+- use windi css analyzer to find all classes (eg `mt-5px` and especially arbitrary `mt-34` eg)
+- use tailwind css analyzer to confirm all migrated correctly
 
 # note
 
@@ -75,333 +130,6 @@ woah we have parent selectors now
 
 will do the thing where only one item can be hovered at once. we had to implement this in javascript.
 
-## twitter client notes
-
-do something similar to this: https://github.com/zedeus/nitter
-
-although it will likely be all clientside for now w/ the threadclient extension exposing twitter's internal
-apis to the app
-
-## notes on page2
-
-ok so we generally have a pretty clear path forwards. some things that still need working out are
-
-- how will sorting work. like when you sort, if you repivot it should keep the sort. maybe that means sort
-  should be a property that's on the top level, the highest possible place you can sort, and then the ones
-  below it all have a sorter with the same key. so when you update the sort it updates the value for that key
-  ok yeah that's an easy answer
-- linked loaders. i think this means just giving loaders a key and having them load their content into that
-  key and limiting it so a loader will not start if someone else already started it. seems easy enough.
-
-the one thing i noticed though was:
-
-- when we load more comments, all the new ones need parents
-- we can fully regenerate the parents ig but imagine this:
-  - a: null, [b] | b: a, [c] | c: horizontal loader
-  - you load the horizzontal loader and now you get this:
-  - a: null, [b] | b: d, [c] | c: b, [e] | d: vertical loader | e: c, []
-  - we just lost information in the load. when you repivot to b now, it shows a vertical loader whereas
-    before it would have showed 'a'
-- so something is wrong with how loaders work
-  - using symbol keys kinda improves this but now we get lots of duplicate comments in our trees
-- what do we do about this?
-
-so 1: i keep thinking "oh [x solution] is a bad idea because i eventually want to make an api websites can
-expose to support threadclient" but i need to stop doing that. we have a client component to extensions right
-now, we shouldn't skip out on working solutions because we'll have to rework them in the future if we want
-to go clientless.
-
-ok so an obvious solution is to assume the parent exists when evaluating a horizontal loader
-
-wait that's what i'm doing in mastodon
-
-ok what's the problem with that?
-
-right i was thinking about cases: eg you're on r/all. posts have their subreddit as their parent. we're going
-to end up replacing some subreddits
-
-ok so here's the worst case:
-
-- you load a subreddit page. you repivot to r/all. r/all's content loads. it replaces the subreddit page you
-  were just on with one that has an empty loader
-
-wait a second we solve this by keying loaders. because the loader is identical.
-
-- right, what if there isn't a loader and it's just raw posts
-
-ok issue again
-
-so obviously we can solve that by making it a loader every time, but we can't do that. oh right, easy
-example:
-
-- you load a post. you repivot to the subreddit, and the post's children get replaced with a loader
-
-so: you can't implement the post as having a loader children because the post needs to be a loader too
-
-- \* we can use linked loaders here and it would work fine
-- would it work if somehow all replies were loader keys into a linked loader?
-
-ok we need to solve this problem
-
-so the easy way is keeping around the IDMap
-
-- can we do that? can IDMaps be part of the Generic.Page2 api?
-- when a load completes, we mutate the IDMap for the page
-- when we repivot, we copy the IDMap
-  - is this even necessary? this is for eg seeing deleted posts if you load something and the content is
-    different than it was before
-  - oh right, it's also so the page doesn't only go up in memory. bc if we don't copy the id map, you can
-    load a bunch of posts and then go back a bunch of times and all those others are still in memory
-
-ok but actually can we do that though? i'm pretty sure that was part of the original dream of page2 if not
-the original dream of threadclient
-
-huh
-
-ok so the thing we're solving is:
-
-- after loading, we don't want to add any bad info. eg we don't want to put a loader where we already
-  know the content from the first load. we do want to update with new info
-
-the trivial solution is:
-
-- keep around IDMaps. seperate load into an `async fetchstuff` and a synchronous convert. the sync convert
-  can be pure and passed in the current idmap and return a new idmap with the changes applied (this is
-  to prevent race conditions if two loads are running at the same time. one will complete and update and
-  then the other will complete and remove some info from the first one)
-
-ok that sounds resonable. we'll have to figure out how to do it tomorrow
-
-also sounds way better than any of the other solutions
-
-wait no this is bad
-
-consider:
-
-- loading comments also provides more information about the post and the comment that the replies of
-  were loaded on
-- we'll get warnings about double idmap entries
-- no this is bad
-
-ok the idmap thing isn't quite a solution
-
-ig the main idea is figuring out what is up-to-date info and what is outdated or fake info and only replacing
-outdated/fake with up-to-date stuff, never the other way around
-
-eg if you load depth replies to a comment it should:
-
-- update the parent comment and its replies
-- update the parent link but not its replies
-
-and how do we describe that
-
-ok so an option noted above is making every reply section a loader
-
-so it has a key and if the key is unfilled, a loader is displayed
-
-oh and that could make some stuff easier in the clients too
-
-ok so plan:
-
-```ts
-type Post = {
-  parent: ParentLoader
-  replies: ReplyLoader
-};
-
-…
-
-type ParentLoader = {
-  key: Generic.Link<Generic.Post>,
-  temp_parent: Generic.Link<Generic.Post>, // this parent will be used until 'key' links to a post, and then
-  // the loader will be replaced with the post in 'key'
-  load_count: null | number, // I think reddit comments might have a 'depth' property maybe? if so, use that
-}
-type RepliesLoader = {
-  key: Generic.Link<Generic.Post[]>,
-  load_count: null,// | {total: number} | {top_level: number},
-};
-```
-
-ok. does this solve all the problems listed above?
-
-now we can eg: update the post at the top of the page while keeping the replies. because we replace its
-comments with a loader but the loader has the same key as before so the replies stay.
-
-i think this works
-
-ok now we need to account for a case:
-
-- what if part of the replies load and then there is a loader for more at the bottom?
-  - feels like we handle this the same way as before. the loader is a normal node. so basically repliesloader
-    should contain `(Generic.Post | Generic.RepliesLoader)[]`
-
-and also the bad case for vertical loadrs:
-
-- how do we update the temp_parent? can we lose information on a loader that isn't loaded if we replace
-  it with a worse temp_parent
-  - yes but i don't think this case matters, and if it does, we can solve it in the future
-
-ok i think i like this solution. it makes depth loaders better, it makes vertical loaders better, it probably
-reduces complexity in the client implementation, it still allows for a server api for threadclient, …
-
-let's try it
-
-## TODO
-
-Currently, the reason posts don't show comments when looking at a subreddit is because there is a flag
-on the post to not show replies. Instead, make this part of the subreddit. "don't show replies on replies"
-
-Why?
-
-- mastodon feeds will have this same thing. the listing should show all the items but you should have to
-  repivot onto the item to see its replies
-- this way we can have consistent "click = repivot" on listings and "click = toggle collapse" on focused
-  posts.
-
-another thing we can consider trying is see if we can show replies inside a listing by indenting the
-entire wrapper instead of having them be part of the wrapper. that might work but it will probably be
-weird and not ideal.
-
-## TODO
-
-!NEW ROUTING LOGIC:
-
-this will fix so you can navigate to new hashes
-
-this will fix so you can navigate back to previous loaded things
-
-this will make sure things can be deleted:
-
-[!]
-
-rather than history indexes, we will have an array of reachable ids
-
-when navigating to a page:
-
-- if it has an id and it's not in our array, prepend it to the beginning
-- if it has an id and is in our array, we know what to do
-- if it does not an id: give it an id and .splice(next_insert_index, Infinity, new_id)
-
-even better: just use uuids with times and sort by them. we're doing that. will only
-mess up if the device's time changes, but since these ids are temporary it's fixed on reload
-
-ok actually there is an issue if you go back to history entries that were created in a previous
-browser session. they lose their state so we can't know what time it was loaded
-
-let's just do this for now, it's better than what we had even if it's not optimal and optimal
-can't exist.
-
-## TODO
-
-rename `threadclient-client-x` to `threadclient-for-x` or `threadclient-backend-x`
-
-so eg "threadclient-for-reddit" or "threadclient-backend-reddit"
-
-"threadclient-for-test" or "threadclient-backend-test"
-
-probably backend makes more sense because what is "test"
-
-## todo
-
-set `inert=true` when something is disappearing
-
-since this isn't supported anywhere, we need to use the polyfill
-
-## TODO
-
-woah look at this
-
-https://reddit.zendesk.com/hc/en-us/articles/205926439-Reddiquette
-
-https://reddit.zendesk.com/api/v2/help_center/en-us/articles/205926439-Reddiquette.json
-
-we can put the reddit help center in threadclient
-
-it even has access-control-allow-origin: *
-
-fancy
-
-also don't even have to fix any white-space:pre-wrap bugs
-
-- note: consider using an html minifier rather than trying to handle whitespace ourselves. these know how
-  to handle whitespace for default nodes
-- that's actually a good idea we should do that for reddit wiki pages
-
-## TODO
-
-https://github.com/poudels14/slate-solid
-
-woah a solid js slate wrapper
-
-I'm pretty sure there was some reason I couldn't use slate but I should at least
-try it
-
-- nope, doesn't look like it will work
-
-## TODO
-
-Virtual scrolling with IntersectionObserver
-
-https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API
-
-looks like this will make it relatively simpleish
-
-just have one element for all the things that are not loaded in the virtual scroll
-and when it comes into view, add elements until it is no longer in view
-
-also we can set a percentage or something so it loads stuff that isn't quite
-in view
-
-## todo
-
-support pushshift
-
-you should be able to go to `https://api.pushshift.io/reddit/search/submission`
-
-and maybe even configure all the parameters and stuff
-
-https://github.com/pushshift/api
-
-I just want to display the results nicely
-
-## todo
-
-consider using a WeakMap to store post data linked to navigation entries?
-
-so when the nav entries get deleted the post data does too
-
-## todo
-
-how to upgrade:
-
-- use windi css analyzer to find all classes (eg `mt-5px` and especially arbitrary `mt-34` eg)
-- use tailwind css analyzer to confirm all migrated correctly
-
-\[!] fancy features we get if we upgrade
-
-- https://tailwindcss.com/docs/typography-plugin
-- it now supports `.no-prose` to embed content inside and it's also a lot more
-  customizable now so we may be able to use this for richtext
-- (this is assuming that more prose can be embedded inside a .no-prose tag)
-- (ok it does. relies on some real sketchy 'where' tags)
-- (anyway the reason for this is because it will handle our text sizes better)
-- (`prose-xl` `prose-base` `prose-sm`)
-- (rather than us having to go and code that)
-
-original notes:
-
-- tailwind css 3 is basically the same as windicss, I can probably switch to it
-- \[!] I have to change eg `w-10px` to `w-[10px]`
-- and stuff like `text-[color:var(--my-var)]` instead of `text-$my-var`
-- https://www.kirillvasiltsov.com/writing/type-check-tailwind-css/ oh wow I could do this
-  but this is the sketchiest thing I've seen in my life
-- https://github.com/thien-do/typed.tw hmm
-- could do something like that. `tw.bg('red').text('white')`
-- huh that could be nice
-- need conditionals. `tw.add(condition ? tw.bg('red') : tw.bg('blue'))`
-- that will work fine
-
 ## todo
 
 figure out how to patch solidjs to apply this change to createComponent in dev builds
@@ -419,46 +147,6 @@ createElement = (...a) => {
 
 just will make it easier to find components
 
-## nothing to do
-
-```
-Error: USERNAME_OUTBOUND_LINKING_DISALLOWED: Linking to users is not allowed.
-```
-
-huh that's a fancy error. there's probably somewhere in the data it will show so we
-can detect it and disable it
-
-## todo
-
-"post insights"
-
-not sure if there's a public api for this yet, but it's available in the gql api
-which the extension will proxy
-
-```
-{
-  "id":"b73048dbf918",
-  "variables":{
-    "postId":"t3_…",
-    "subredditId":"t5_…",
-  }
-}
-```
-
-(note that while this api request will never return a different data structure, the
-query hash may be removed causing the api to no longer function)
-
-## todo
-
-- along with getting chat messages working,
-- switch unread message count to `/api/v1/me` `.inbox_count`. also this will let us get our username. also we should save.
-
-## bug!
-
-sidebar iframes with relative links have the wrong base url
-
-oh I can hack it I think: `<base href="http://pathtooriginalpage" />`
-
 ## todo
 
 - support https://thread.pfg.pw/reddit/api/v1/me/karma
@@ -466,71 +154,11 @@ oh I can hack it I think: `<base href="http://pathtooriginalpage" />`
 
 ## todo
 
-- consider using github subtrees? like you can merge another repo into this one and keep
-  the history and stuff. and that would be nice because it makes projects more
-  discoverable while keeping the monorepo structure.
-
-## todo
-
-- [ ] add a "load above" when you're sorting on new (?before=`[first post id]`)
-- [ ] I think it's critical that I make a seperate codepath for page2.
-- [ ] like from entry.ts, completely different, only sharing the
-      serviceworker stuff
-- [ ] that way I can get page2 working with hot reload and significantly
-      improve development experience
-- [ ] be careful with what I'm doing in flatten.ts - I'm kinda accidentally
-      recreating virtual dom and that will have terrible performance implications.
-      when you collapse something, it should not have to regenerate the entire array.
-  - huh... that's not ideal is it
-  - like if I add a reply I don't want to regenerate the whole array, just anything
-    relevant
-  - also I should be keeping around hidden items in dom so navigation works and stuff
-  - ok I'm not going to worry about that for now - I'll be able to do memoization and
-    stuff if I need
-
-## note
-
-```
-db data (eg reddit api results)
-→
-semantic data (page2, not frontend specific)
-→
-display data (translates easily to an actual rendered thing)
-→
-rendered on your screen/display
-```
-
-## todo
-
-- [ ] ok I know I lose the fun animations on collapsing posts and stuff but I
-      think I have to do this:
-  - rather than rendering posts in a hierarchy, render them from a single
-    array using a single <\For>
-  - handle indentation in the post renderer
-  - why:
-    - this seems like a far more useful structure
-    - allows for unthreading to occur without losing state
-    - allows for virtual scrolling
-    - allows for loading more to occur without losing state
-
-## todo
-
-- [ ] make it so you can go to thread.pfg.pw/https://... and it does the thing
+- [x] make it so you can go to thread.pfg.pw/https://... and it does the thing
 - [ ] consider rather than having inline link previews, make it so when you click
       a link it navigates to thread.pfg.pw/the link that could be neat maybe
 - [x] rather than the "delete draft" prompt have the ui save draft replies
       by post id so when you click reply again it lets you type or whatever
-
-## todo
-
-- here's a fun idea that might be kind of difficult working within vite
-- what if every time a version of threadclient was made it made a new folder
-  with the version name (git hash / semver if I get fancy) and then:
-- old versions of threadclient would continue to function correctly before
-  they are updated
-- you could go into settings and get like a version selector to revert to
-  previous versions (make sure to add some kind of override to get back to
-  the latest if the version selector thing breaks)
 
 ## todo
 
@@ -539,6 +167,7 @@ rendered on your screen/display
 - [x] maybe even use a default video player
 - [x] just have to merge the audio and video in js
 - [x] TODO: https://github.com/windicss/plugins/tree/main/packages/icons
+  - this was a bad idea
 - [ ] also check out https://github.com/bradlc/tailwindcss-fluid
 - consider:
 - [x] vite + https://github.com/antfu/vite-plugin-pwa
@@ -547,41 +176,9 @@ rendered on your screen/display
 - [ ] switch to https://github.com/antfu/unplugin-icons (it supports solid js and is built for vite)
 - [ ] check out rush for incremental monorepo stuff https://rushjs.io/pages/intro/welcome/
 
-todo:
-
-- [ ] apply thiss tyle to url previews:
-
-  ```css
-  .clickerthing:hover,
-  .clickerthing:focus {
-    background-color: var(--cool-gray-200);
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
-  }
-  .clickerthing {
-    transition: all 0.1s;
-  }
-  ```
-
 fun stuff:
 
-- [ ] display all comments from a single list. use props to specify how indented, if threaded, ...
-  - this allows for:
-    - fun pivoting animations
-    - pivoting without losing dom state
-      - the new pivot is selected
-      - old comments which are unused are display:none'd
-      - new comments are inserted where it makes sense
-    - a mobile depth limit with an automatic pivot button or something
-    - mobile should probably have a completely different comment appearence more like apollo anyway. the collapse
-      button is hard to press on mobile
-    - mobile gestures, so eg you can swipe to collapse a comment
-    - more fun stuff
-  - this has some downsides:
-    - the hover effect on the comment collapse buttons might not be as good as it could be
-    - I can't do collapse transitions anymore (like I could collapse transition all the comments in view but I'm not
-      sure how much css would like that, having 20 elements doing height transitions at the same time)
-    - I guess I could use a single fake element taking up all the space and then transform transitions - no, transform
-      transitions still require everything to be in the same parent node
+- [x] display all comments from a single list. use props to specify how indented, if threaded, ...
 - [ ] check out https://www.tiptap.dev/ for the richtext editor
   - I haven't looked into it at all, if it does good typescript support then I should try it
   - https://github.com/andi23rosca/tiptap-solid there is a solid js port thing
@@ -595,32 +192,26 @@ fun stuff:
 - [ ] what if braille images were inserted as an actual 'braille image' component in richtext? that could be fun
       couldn't it. also would improve summaries and screenreader support. not sure if it's worth it though, it would
       be useful to parse out the text and stuff
-- [ ] https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/progress_event xhr progress when loading in
-      bad internet
 - [ ] doing richtext things: visualviewport finally allows us to position an element above the ios keyboard! and combine that with position device-fixed or a polyfill and it'll be a pretty nice bar thing
 - mock the reddit api and use things eg https://github.com/marak/Faker.js/ and maybe have some sample pages and stuff
 
 page2 todo:
 
-- [ ] load more
-- [ ] possibly allow the post to specify the format of its info bar?
 - [ ] mobile fixes:
-  - [ ] the transition thing is based on the position of the navbar but on mobile the position
-        of that changes because of translateY. TODO max(viewport top, translateY) or just go
-        back to the previous top of screen + height or delete --mobile-transform for now because
-        it's not very good
   - [x] top level objects should go edge to edge on the screen
-  - [ ] thumbnails take up wayy too much space, consider:
+  - [x] thumbnails take up wayy too much space, consider:
     - use text-sm font size for titles
     - use smaller thumbnails
     - compress info bar and actions
-- [ ] implement sort in a way that it doesn't require all comments to store their own sorts. ideally
-      when you click a comment to focus it, the sort from the pivot could be used.
-- [ ] for TimeAgo instead of "2y ago" write like "2019" or "Mar"
-- [ ] for TimeAgo, provide an option for an even more compact version that's just "5d" instead of "5 days ago"
-- [ ] mobile: compress the info bar. eg "\[by] · \[in] · ↑3k · 2d · ✎6h". maybe even hide the \[by] if there is
+- [x] ~~implement sort in a way that it doesn't require all comments to store their own sorts. ideally
+      when you click a comment to focus it, the sort from the pivot could be used.~~
+  - nope sorry, we're copying sorts in every object. maybe we could upgrade to having the sort list be a
+    loader or something so it doesn't have to be in every single object
+- [x] for TimeAgo instead of "2y ago" write like "2019" or "Mar"
+- [x] for TimeAgo, provide an option for an even more compact version that's just "5d" instead of "5 days ago"
+- [x] mobile: compress the info bar. eg "\[by] · \[in] · ↑3k · 2d · ✎6h". maybe even hide the \[by] if there is
       an \[in] and the post is above the pivot, then put a longer info bar at the bottom of the post like apollo.
-- [ ] this still looks very bad, but here is an example of some things that could be done:
+- [x] this still looks very bad, but here is an example of some things that could be done:
   - https://i.imgur.com/ji1G657.png
   - it might help to use an actual interface design program to make mockups and then try to replicate those
 
@@ -633,59 +224,6 @@ tmeta todo:
 - [ ] add an action that runs every time:
   - check if there were any changes in .yarn or node_modules
     - if there were, run `yarn check`
-
-reddit post page2:
-
-- [ ] vote count, vote buttons, % upvoted
-- [x] time ago
-- [x] code button should give code of the selected post
-- [x] author flair should not inherit post award flair
-- [x] post body should display below action bar. (possibly: two action bars? one for above and one for below body)
-- [x] posted in subreddit
-- [x] actions: comment count, domain, delete, save, duplicates, report
-  - [ ] rewrite the report action in solid and make it appear in the right place
-- [x] reply action, when at pivot (because show replies when below pivot is false)
-- [ ] reply action should add the posted comment to the tree
-- [x] click to focus
-- [ ] when a post has no body, it shouldn't collapse/uncollapse. eg r/askreddit.
-- [x] choose between displaying a top level wrapper or an inner wrapper of toggling colors using a resource. have
-      just one component used to draw the wrapper
-
-reddit comment todo:
-
-- [x] a single reply should not be shown as threaded
-- [x] post voting
-- [x] post time ago
-- [ ] post reply button
-- [ ] when you click reply and then close it, make sure clicking the reply button again
-      will give you the same text you just typed. and also future: TODO make it so you
-      get a prompt before navigating away from a page you started typing a reply in
-
-todo:
-
-- switch to a monorepo structure
-- packages/
-  - [x] api-types-generic/
-  - [x] api-types-reddit/
-  - [x] api-types-mastodon/
-  - [ ] api-types-hackernews/
-  - [x] threadclient-web-ui/
-  - [ ] threadclient-client-common/
-  - [ ] threadclient-client-reddit/
-  - [ ] threadclient-client-mastodon/
-  - [ ] threadclient-client-test/
-  - [ ] threadclient-client-hackernews/
-  - [ ] threadclient-webextension/
-  - [x] eslint-plugin-custom-rules/
-  - a config helper thing so you don't have to make a `lint` script in every package and add a `tsconfig.json` and
-    `.eslintrc.js` / or it does it automatically
-
-unrelated:
-
-- upgrade timeAgo to support weeks/months. "last month", "two months ago", …
-- do this using the local timezone? not like https://github.com/hustcc/timeago.js/blob/master/src/utils/date.ts
-- a post on reddit with 0 points actually has ≤0 points, so upvoting or downvoting it should not change
-  the point count
 
 all todo:
 
@@ -714,7 +252,7 @@ all todo:
 - [x] instead of a ".prose" class, use shadow dom so bodies can be embedded within prose without prose styles leaking (.prose class is gone,
       replaced with normal richtext)
 - [ ] show the description of privated subreddits: https://www.reddit.com/subreddits/search.json?q=SharksAreSmooth&limit=1&raw_json=1
-  - [ ] support `/reddit/subreddits/search?q=SharksAreSmooth&limit=1&raw_json=1`. this is a listing with t5 children
+  - [x] support `/reddit/subreddits/search?q=SharksAreSmooth&limit=1&raw_json=1`. this is a listing with t5 children
 - [ ] probably move the styles that used to be in prose back into typography.css but as `.prose-ul` rather than `.prose ul`
 - [ ] support wikipedia file urls eg `https://en.wikipedia.org/wiki/File:Pixel_geometry_01_Pengo.jpg`
 - [ ] make it possible for sorting menus to not reload the entire page on click (eg add an option to menu actions no_reload: true that tells
@@ -866,7 +404,7 @@ twitter/tumblr todo:
 
 hackernews todo:
 
-https://github.com/cheeaun/node-hnapi node-hnapi.herokuapp.com
+- [ ] give up. there is no api that has enough features to make it possible to have a client with feature parity.
 
 mail todo:
 
@@ -877,8 +415,3 @@ mail todo:
 github todo:
 
 https://github.com/octokit/octokit.js/ it has issues support
-
-hackernews todo:
-
-- use the official api for everything, only use the unofficial one for getting lists of things in eg /newest
-- https://github.com/minimaxir/hacker-news-undocumented/blob/master/README.md
