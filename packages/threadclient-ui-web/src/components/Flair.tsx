@@ -63,12 +63,12 @@ function getFlairColors(col_hex: string | undefined): {
         '--flair-text-light': light.text,
     };
 }
-export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
+export function Flair(props: {flairs: Generic.Flair[], pre_space?: undefined | boolean}): JSX.Element {
     // TODO renderFlair
     return <span><For each={props.flairs}>{(flair, i) => {
         const flairCol = createMemo(() => getFlairColors(flair.color));
         return <>
-        {i() !== 0 ? " " : ""}
+        {(props.pre_space ?? false) || i() !== 0 ? " " : ""}
         <span
             class={flair.system != null ? {
                 // note: reconsider this. eg: these things should be options in the

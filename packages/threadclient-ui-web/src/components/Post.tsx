@@ -407,7 +407,7 @@ export function PostTopBar(props: ClientPostProps & {
                                 >{title.text}</Clickable>
                             )}</Show>
                         )}</Show>
-                    <Flair flairs={props.content.flair ?? []} />
+                    <Flair pre_space flairs={props.content.flair ?? []} />
                     </div>
                 </Show>
                 <div>
