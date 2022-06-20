@@ -3,8 +3,7 @@ import {
     createMemo,
     For, JSX
 } from "solid-js";
-import { SwitchKind } from "tmeta-util-solid";
-import proxyURL from "./proxy_url";
+import { RichtextSpans } from "./richtext";
 
 function luminance([r, g, b]: [number, number, number]) {
     const a = [r, g, b].map((itm) => {
@@ -86,15 +85,7 @@ export function Flair(props: {flairs: Generic.Flair[]}): JSX.Element {
             )}
             style={flairCol()}
         >
-            <For each={flair.elems}>{elem => <SwitchKind item={elem}>{{
-                text: (txt) => <>{txt.text}</>,
-                emoji: (emoji) => <img
-                    title={emoji.name}
-                    src={proxyURL(emoji.url)}
-                    width={emoji.w} height={emoji.h}
-                    class="inline-block w-4 h-4 align-middle object-contain"
-                />,
-            }}</SwitchKind>}</For>
+            <RichtextSpans spans={flair.elems} />
         </span></>;
     }}</For></span>;
 }

@@ -382,6 +382,12 @@ export declare namespace Richtext {
         kind: "emoji",
         url: string,
         name: string,
+        // w: number, h: number, // assumed 1:1 aspect ratio
+        hover?: undefined | {
+            url: string,
+            w: number, h: number,
+            description: string,
+        },
     } | {
         kind: "flair",
         flair: Flair,
@@ -726,20 +732,10 @@ export type Widget = {
 
 export type ContentNode = Thread | Profile | RedditHeader | Widget;
 export type Node = Thread | LoadMore;
-export type RichTextItem = {
-    kind: "text",
-    text: string,
-} | {
-    kind: "emoji",
-    url: string,
-    name: string,
-    w: number,
-    h: number,
-};
 export type SystemKind = "none" | "op" | "cake" | "admin" | "moderator" | "approved" | "error";
 export type Flair = {
     color?: string | undefined,
-    elems: RichTextItem[], // TODO → Richtext.Span[]
+    elems: Richtext.Span[],
     content_warning: boolean,
     system?: undefined | SystemKind,
     // note: this should be moved to being a property of the user or post in page2

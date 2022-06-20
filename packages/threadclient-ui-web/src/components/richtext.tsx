@@ -88,10 +88,77 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                 </span>
             </span>;
         },
-        emoji: (emoji) => <img
-            class="w-4 h-4 object-contain inline-block"
-            src={proxyURL(emoji.url)} title={emoji.name}
-        />,
+        emoji: (emoji) => {
+            // VV todo: improve this panel
+            // instead of what it is right now, it should be a panel that animates in and you can move your
+            // hover over to it and it will stay up
+            // this might exist as part of headlessui already
+            let imgel!: HTMLImageElement | undefined;
+            const [hovering, setHovering] = createSignal(0);
+            let cleanfn: (() => void) | null = null;
+            const showHoverEl = (): (() => void) | null => {
+                if(imgel == null) return () => void 0;
+                if(emoji.hover == null) return () => void 0;
+                const bcr = imgel.getBoundingClientRect();
+                const elem = el("div").styl({
+                    'position': "fixed",
+                    'top': (bcr.top + bcr.height) + "px",
+                    'left': (bcr.left - emoji.hover.w / 2) + "px",
+                    'width': emoji.hover.w + "px",
+                    'z-index': "100000000",
+                }).adch(
+                    el("img").attr({
+                        src: proxyURL(emoji.hover.url),
+                        width: `${emoji.hover.w}`,
+                        height: `${emoji.hover.h}`,
+                    }),
+                ).adch(
+                    el("div").atxt(emoji.hover.description).clss("mt-2 bg-slate-100 dark:bg-zinc-800 border border-b-0 border-r-0 border-slate-500 shadow-md dark:border-zinc-500 rounded-md p-2")
+                );
+                document.body.appendChild(elem);
+                elem.animate([
+                    {transform: "scale(0.5)", transformOrigin: "top center", opacity: "0.0"},
+                    {transform: "scale(1.0)", transformOrigin: "top center", opacity: "1.0"},
+                ], {
+                    duration: 100,
+                    iterations: 1,
+                    easing: "ease-out",
+                });
+                return () => {
+                    elem.animate([
+                        {transform: "scale(1.0)", transformOrigin: "top center", opacity: "1.0"},
+                        {transform: "scale(0.5)", transformOrigin: "top center", opacity: "0.0"},
+                    ], {
+                        duration: 100,
+                        iterations: 1,
+                        easing: "ease-in",
+                    }).finished.then(() => {
+                        elem.remove();
+                    }).catch(() => {
+                        elem.remove();
+                    });
+                };
+            };
+            createEffect(() => {
+                if(hovering() === 2) {
+                    if(cleanfn == null) cleanfn = showHoverEl();
+                }else{
+                    cleanfn?.();
+                    cleanfn = null;
+                }
+            });
+            return <img
+                ref={imgel}
+                class="w-4 h-4 object-contain inline-block"
+                src={proxyURL(emoji.url)}
+                title={emoji.name}
+                onMouseEnter={() => {
+                    setHovering(1);
+                    setTimeout(() => hovering() === 1 && setHovering(2), 500);
+                }}
+                onMouseLeave={() => setHovering(0)}
+            />;
+        },
         flair: (flair) => <Flair flairs={[flair.flair]} />,
         time_ago: (time) => <TimeAgo start={time.start} />,
         error: (err) => <SolidToVanillaBoundary getValue={hsc => {

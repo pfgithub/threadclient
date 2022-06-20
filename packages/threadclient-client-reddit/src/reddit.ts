@@ -24,15 +24,19 @@ export function flairToGenericFlair(
 ): Generic.Flair[] {
     if(opts.type == null) return []; // deleted comments
     if(opts.type === "text" && (opts.text == null || opts.text === "")) return [];
-    const elems: Generic.RichTextItem[] = opts.type === "richtext" ? (opts.richtext ?? []).map(v => {
+    const elems: Generic.Richtext.Span[] = opts.type === "richtext" ? (opts.richtext ?? []).flatMap((v): Generic.Richtext.Span[] => {
         if(v.e === "text") {
-            return {kind: "text", text: v.t};
+            return [{kind: "text", text: v.t, styles: {}}];
         }else if(v.e === "emoji") {
-            return {kind: "emoji", url: v.u, name: v.a, w: 16, h: 16}; // only aspect is known uuh
+            return [{kind: "emoji", url: v.u, name: v.a}]; // only aspect is known uuh
         }
         expectUnsupported(v.e);
-        return {kind: "text", text: "#TODO("+v.e+")"};
-    }) : opts.type === "text" ? [{kind: "text", text: opts.text!}] : [{kind: "text", text: "TODO: "+opts.type}];
+        return [{kind: "error", text: "#TODO("+v.e+")", value: v}];
+    }) : opts.type === "text" ? [
+        {kind: "text", text: opts.text!, styles: {}},
+    ] : [
+        {kind: "error", text: "TODO: "+opts.type, value: opts},
+    ];
     const flair_text = elems.map(v => v.kind === "text" ? v.text : "").join("");
     return [{
         color: opts.background_color ?? undefined,
@@ -42,12 +46,24 @@ export function flairToGenericFlair(
 }
 
 export function awardingsToFlair(awardings: Reddit.Award[]): Generic.Flair[] {
-    const resitems: Generic.RichTextItem[] = [];
+    const resitems: Generic.Richtext.Span[] = [];
     for(const awarding of awardings.sort((a1, a2) => a2.count - a1.count)) {
-        if(resitems.length > 0) resitems.push({kind: "text", text: " "});
+        if(resitems.length > 0) resitems.push({kind: "text", text: " ", styles: {}});
         const icon = awarding.resized_static_icons[0]!;
-        resitems.push({kind: "emoji", url: icon.url, w: icon.width, h: icon.height, name: awarding.name});
-        if(awarding.count > 1) resitems.push({kind: "text", text: "×" + awarding.count});
+        // const hover_icon = awarding.icon_url; // … this is like 2048x2048. nice and high res but that's bigger than most people's screens.
+        const hover_icon = awarding.resized_icons[awarding.resized_icons.length - 1]!;
+        resitems.push({
+            kind: "emoji",
+            url: icon.url,
+            // w: icon.width, h: icon.height, // 1:1 assumed
+            name: awarding.name,
+            hover: {
+                url: hover_icon.url,
+                w: hover_icon.width, h: hover_icon.height,
+                description: awarding.description + " (price: "+ awarding.coin_price+")",
+            },
+        });
+        if(awarding.count > 1) resitems.push({kind: "text", text: "×" + awarding.count, styles: {}});
     }
     if(resitems.length === 0) return [];
     return [{elems: resitems, content_warning: false, system: "none"}];
@@ -1887,6 +1903,7 @@ export function authorFromInfo(opts: {
                 elems: [{
                     kind: "text",
                     text: "«OP»",
+                    styles: {},
                 }],
                 content_warning: false,
                 system: "op",
@@ -1895,6 +1912,7 @@ export function authorFromInfo(opts: {
                 elems: [{
                     kind: "text",
                     text: "«🍰»",
+                    styles: {},
                 }],
                 content_warning: false,
                 system: "cake",
@@ -1903,6 +1921,7 @@ export function authorFromInfo(opts: {
                 elems: [{
                     kind: "text",
                     text: "«"+opts.distinguished+"»",
+                    styles: {},
                 }],
                 content_warning: false,
                 system: system_colors[opts.distinguished] ?? system_colors.unsupported,
@@ -2173,14 +2192,14 @@ export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
             richtext: listing.link_flair_richtext,
         })
     );
-    if(listing.spoiler) flairs.push({elems: [{kind: "text", text: "Spoiler"}], content_warning: true});
-    if(listing.over_18) flairs.push({elems: [{kind: "text", text: "NSFW"}], content_warning: true});
-    if(listing.is_original_content) flairs.push({elems: [{kind: "text", text: "OC"}], content_warning: false});
+    if(listing.spoiler) flairs.push({elems: [{kind: "text", text: "Spoiler", styles: {}}], content_warning: true});
+    if(listing.over_18) flairs.push({elems: [{kind: "text", text: "NSFW", styles: {}}], content_warning: true});
+    if(listing.is_original_content) flairs.push({elems: [{kind: "text", text: "OC", styles: {}}], content_warning: false});
     flairs.push(...awardingsToFlair(listing.all_awardings ?? []));
 
     if(listing.approved === true) {
         flairs.push({
-            elems: [{kind: "text", text: "✓ Approved"}],
+            elems: [{kind: "text", text: "✓ Approved", styles: {}}],
             content_warning: false,
             system: "approved",
         });
