@@ -13,21 +13,19 @@ export function Homepage(props: {_?: undefined}): JSX.Element {
                 </header>
                 <div class="mt-10"></div>
                 <main>
-                    <p>Try for <LinkButton client_id={""} href="/reddit" style="normal">Reddit</LinkButton></p>
-                    <p>Try for <LinkButton client_id={""} href="/mastodon" style="normal">Mastodon</LinkButton></p>
+                    <p>Try for <LinkButton action={{client_id: "reddit", url: "/"}} style="normal">Reddit</LinkButton></p>
+                    <p>Try for <LinkButton action={{client_id: "mastodon", url: "/"}} style="normal">Mastodon</LinkButton></p>
                 </main>
                 <div class="mt-10"></div>
                 <footer>
                     <p class="text-gray-800 dark:text-gray-400">
-                        <LinkButton client_id={""} href="/settings" style="action-button">Settings</LinkButton> ·{" "}
+                        <LinkButton action={{client_id: "", url: "/settings"}} style="action-button">Settings</LinkButton> ·{" "}
                         <LinkButton
-                            client_id={""}
-                            href="https://github.com/pfgithub/threadclient"
+                            action={{client_id: "", url: "https://github.com/pfgithub/threadclient"}}
                             style="action-button"
                         >Github</LinkButton> ·{" "}
                         <LinkButton
-                            client_id={""}
-                            href="https://github.com/pfgithub/threadclient/blob/main/privacy.md"
+                            action={{client_id: "", url: "https://github.com/pfgithub/threadclient/blob/main/privacy.md"}}
                             style="action-button"
                         >Privacy</LinkButton>
                     </p>

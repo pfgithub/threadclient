@@ -19,7 +19,6 @@ import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import Hactive from "./Hactive";
 import { InternalIconRaw } from "./Icon";
-import { A } from "./links";
 import { ClientContentAny } from "./page2";
 import proxyURL from "./proxy_url";
 import SwipeActions from "./SwipeActions";
@@ -71,9 +70,8 @@ type SpecialCallback = (props: SCProps<any>) => JSX.Element;
 const replace_post_special_callbacks: Record<string, SpecialCallback> = {
     'FullscreenImage@-N0D1IW1oTVxv8LLf7Ed': (props: SCProps<FullscreenImageProps>) => {
         return <FullscreenObject loader_or_post={props.loader_or_post}>
-            <A
-                href={props.data.link_url ?? undefined}
-                client_id={props.post.client_id}
+            <Clickable
+                action={{url: props.data.link_url ?? "E:", client_id: props.post.client_id}}
                 class={"block w-full"}
             >
                 <img
@@ -81,7 +79,7 @@ const replace_post_special_callbacks: Record<string, SpecialCallback> = {
                     src={proxyURL(props.data.url)}
                     width={props.data.w} height={props.data.h}
                 />
-            </A>
+            </Clickable>
         </FullscreenObject>;
     },
     'FullscreenEmbed@-N0D96jIL-HGWHWbWKn1': (props: SCProps<Generic.Body>) => {
@@ -103,16 +101,13 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
         // should not be used to make gaps.
         wrapper_start: () => <div class="mt-4" />,
         wrapper_end: () => <ToggleColor>{color => <div class={"pb-2 sm:rounded-b-lg "+color} />}</ToggleColor>,
-        repivot_list_fullscreen_button: fsb => <A
+        repivot_list_fullscreen_button: fsb => <Clickable
             class="bg-slate-100 dark:bg-zinc-800 p-2 rounded-md"
-            mode="replace"
-            client_id={fsb.client_id}
-            page={fsb.page}
-            href={fsb.href}
+            action={{url: fsb.href, client_id: fsb.client_id, page: fsb.page, mode: "replace"}}
         >
             <InternalIconRaw class="fa-solid fa-up-right-and-down-left-from-center" label={null} />
             {" "}{fsb.name}
-        </A>,
+        </Clickable>,
         sort_buttons: sortbtns => <ToggleColor>{color => <div class={"mt-4 mb-4 rounded-lg "+color}>
             <menu class="p-2 flex flex-row flex-wrap gap-2 dark:text-zinc-400">
                 <For each={sortbtns.sort_buttons}>{sortbtn => <li style={{display: "contents"}}>

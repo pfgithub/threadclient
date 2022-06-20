@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
-import { createMemo, JSX } from "solid-js";
-import { SwitchKind } from "tmeta-util-solid";
+import { JSX } from "solid-js";
+import { createMergeMemo, SwitchKind } from "tmeta-util-solid";
 import {
     isModifiedEvent, navigate, unsafeLinkToSafeLink
 } from "../app";
@@ -11,6 +11,7 @@ export type ClickAction = {
     client_id: string, // TODO get rid of this. it should be the client's responsability to include client_id in its links.
     mode?: undefined | "navigate" | "replace",
     page?: undefined | (() => Generic.Page2 | undefined),
+    onClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
 } | JSX.EventHandler<HTMLElement, MouseEvent> | "TODO";
 export default function Clickable(props: {
     class: string, // would be nice if the clickable could be display:contents. unfortunately, that's not supported yet.
@@ -24,14 +25,15 @@ export default function Clickable(props: {
 
     btnref?: undefined | ((el: HTMLElement) => void),
 }): JSX.Element {
-    const linkValue = createMemo(() => {
+    const link_value = createMergeMemo(() => {
         if(typeof props.action !== "object") return ({kind: "button"} as const);
         return unsafeLinkToSafeLink(props.action.client_id, props.action.url);
-    });
+    }, {key: null, merge: true});
+    const linkValue = () => link_value.data;
     const settings = getSettings();
     const onclick: JSX.EventHandler<HTMLElement, MouseEvent> = event => {
         const link = linkValue();
-        if(link.kind === "link" && link.external && !props.beforeClick) {
+        if(link.kind === "link" && link.external && !props.beforeClick && typeof props.action === "object" && !props.action.onClick) {
             return;
         }
 
@@ -46,6 +48,9 @@ export default function Clickable(props: {
             if(typeof props.action !== "object") {
                 if(props.action === "TODO") return alert("TODO");
                 return props.action(event);
+            }
+            if(props.action.onClick) {
+                return props.action.onClick(event);
             }
             const l_link = link.kind === "link" ? link : null;
             if(l_link == null) return alert("E_LINK_HREF_EXPECT_NAVIGATE");

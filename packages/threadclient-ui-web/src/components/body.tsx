@@ -76,9 +76,8 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
 
             return <div>
                 <div><LinkButton
-                    client_id={link.client_id}
-                    href={link.url}
-                    style={"normal"}
+                    action={{client_id: link.client_id, url: link.url}}
+                    style="normal"
                 >{link.url}</LinkButton></div>
                 <Show when={previewBody()}>{preview_opts => (
                     <Body body={preview_opts.body} autoplay={props.autoplay} />
@@ -282,9 +281,8 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 <p class="py-2">
                     Not on mastodon? Join at{" "}
                     <LinkButton
-                        client_id={""}
+                        action={{client_id: "", url: "https://joinmastodon.org"}}
                         style="normal"
-                        href="https://joinmastodon.org"
                     >joinmastodon.org</LinkButton>
                 </p>
                 <p class="py-2">

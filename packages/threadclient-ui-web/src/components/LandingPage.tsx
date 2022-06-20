@@ -2,10 +2,10 @@ import * as Generic from "api-types-generic";
 import { Listbox } from "solid-headless";
 import { createSignal, For, JSX, untrack, useContext } from "solid-js";
 import { allow_threading_override_ctx, collapse_data_context, getSettings, getWholePageRootContext, provide } from "../util/utils_solid";
+import Clickable from "./Clickable";
 import { CollapseData, FlatTreeItem } from "./flatten";
 import { FlatItemTsch, FlattenTreeItem } from "./flatten2";
 import { InternalIcon, InternalIconRaw } from "./Icon";
-import { A } from "./links";
 import PageFlatItem from "./PageFlatItem";
 import ReplyEditor from "./reply";
 import ToggleButton from "./ToggleButton";
@@ -54,19 +54,19 @@ function FeaturePreviewCard(props: {
     link: string,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
-    return <A href={props.link} client_id={"shell"} class={`
-        dark:border-t-1 dark:border-zinc-500
-        block rounded-xl
-        bg-slate-200 dark:bg-zinc-700
-        p-4 text-left
-        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
-    `} page={(): Generic.Page2 | undefined => {
+    return <Clickable action={{url: props.link, client_id: "shell", page: (): Generic.Page2 | undefined => {
         if(!hprc.content()[props.link]) return undefined;
         return {
             content: hprc.content(),
             pivot: props.link as Generic.Link<Generic.Post>,
         };
-    }}>
+    }}} class={`
+        dark:border-t-1 dark:border-zinc-500
+        block rounded-xl
+        bg-slate-200 dark:bg-zinc-700
+        p-4 text-left
+        hover:bg-slate-100 hover:dark:bg-zinc-600 hover:shadow-md
+    `}>
         <div class="h-full">
             <div class="text-sm font-bold uppercase text-slate-900 dark:text-zinc-100" role="heading">
                 {props.title}
@@ -75,7 +75,7 @@ function FeaturePreviewCard(props: {
                 {props.description}
             </p>
         </div>
-    </A>;
+    </Clickable>;
 }
 
 export default function LandingPage(): JSX.Element {
@@ -104,10 +104,10 @@ export default function LandingPage(): JSX.Element {
             <div class="mx-auto max-w-3xl p-4 pb-0">
                 <div class="flex flex-wrap justify-end items-center">
                     <div>
-                        <A class="hover:underline" href="https://github.com/pfgithub/threadclient" client_id="">
+                        <Clickable class="hover:underline" action={{url: "https://github.com/pfgithub/threadclient", client_id: ""}}>
                             <InternalIconRaw class="fa-brands fa-github" label={null} />
                             {" "}Github
-                        </A>
+                        </Clickable>
                     </div>
                     <div class="flex-1" />
                     <ToggleButton value={settings.colorScheme()} setValue={nv => {
@@ -125,7 +125,7 @@ export default function LandingPage(): JSX.Element {
                 <div class="text-2xl font-light text-slate-500 dark:text-zinc-400">
                     A new client for{" "}
                     <div class="inline-block relative"><Listbox value={homeFor()} onSelectChange={v => setHomeFor(v)}>
-                        <A class={`
+                        <Clickable class={`
                             border-slate-500 dark:border-zinc-400
                             border-b-2 border-dashed
                             hover:border-solid
@@ -134,7 +134,7 @@ export default function LandingPage(): JSX.Element {
                             transition duration-100
                             inline-block
                             outline-default
-                        `} href="/client-picker" client_id="shell">
+                        `} action={{url: "/client-picker", client_id: "shell"}}>
                             <span class="text-slate-900 dark:text-zinc-100">
                                 {homeFor() === "reddit" ? "Reddit" : "Mastodon"}
                             </span>
@@ -144,12 +144,12 @@ export default function LandingPage(): JSX.Element {
                                 tag={"fa-angle-down"}
                                 filled={true} label={null}
                             />
-                        </A>
+                        </Clickable>
                     </Listbox></div>
                 </div>
             </div>
             <div class="mx-auto max-w-3xl pt-0 p-8 flex flex-wrap gap-4">
-                <A href="/" client_id="reddit" class={`
+                <Clickable action={{url: "/", client_id: "reddit"}} class={`
                     inline-block
                     relative group overflow-hidden
                     bg-gradient-to-br from-blue-500 to-blue-600
@@ -168,8 +168,8 @@ export default function LandingPage(): JSX.Element {
                     <div class="relative p-4">
                         Open ThreadClient
                     </div>
-                </A>
-                <A href="/settings" client_id="" class={`
+                </Clickable>
+                <Clickable action={{url: "/settings", client_id: ""}} class={`
                     inline-block
                     relative group overflow-hidden
                     text-slate-900 dark:text-zinc-100
@@ -185,7 +185,7 @@ export default function LandingPage(): JSX.Element {
                     <div class="relative p-4">
                         <InternalIcon tag="fa-gear" filled={true} label="Settings" />
                     </div>
-                </A>
+                </Clickable>
             </div>
         </div>
     
@@ -336,13 +336,15 @@ export default function LandingPage(): JSX.Element {
                     <p>
                         ThreadClient supports viewing most content on Reddit and creating some. If there's a Reddit
                         feature that's missing that you use, ask for it{" "}
-                        <A
+                        <Clickable
                             class="text-blue-500 hover:underline"
-                            href="https://github.com/pfgithub/threadclient/issues/new/choose"
-                            client_id={"NA"}
+                            action={{
+                                url: "https://github.com/pfgithub/threadclient/issues/new/choose",
+                                client_id: "NA",
+                            }}
                         >
                                 here
-                        </A>.
+                        </Clickable>.
                     </p>
                 </div>
             </div>

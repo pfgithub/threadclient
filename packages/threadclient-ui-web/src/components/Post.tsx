@@ -12,6 +12,7 @@ import { DropdownActionButton } from "./ActionButtonDropdown";
 import { HorizontalActionButton } from "./ActionButtonHorizontal";
 import { ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
+import Clickable from "./Clickable";
 import { CollapseButton } from "./CollapseButton";
 import { VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
@@ -21,7 +22,7 @@ import { ActionItem, getThumbnailPreview, useActions } from "./flat_posts";
 import { HSplit } from "./HSplit";
 import { InternalIcon, InternalIconRaw } from "./Icon";
 import InfoBar from "./InfoBar";
-import { A, LinkButton, UserLink } from "./links";
+import { LinkButton, UserLink } from "./links";
 import { postGetPage } from "./PageFlatItem";
 import proxyURL from "./proxy_url";
 
@@ -315,19 +316,21 @@ export function PostTopBar(props: ClientPostProps & {
         <Show if={!props.visible} when={props.content.thumbnail}>{thumb_any => (
             <ToggleColor>{color => (
                 <HSplit.Child>
-                    <A
-                        href={props.opts.frame?.url ?? "ENOHREF"}
-                        client_id={props.opts.frame?.client_id ?? "ENOCLIENTID"}
+                    <Clickable
+                        action={{
+                            url: props.opts.frame?.url ?? "ENOHREF",
+                            client_id: props.opts.frame?.client_id ?? "ENOCLIENTID",
+                            page: props.getPage,
+                            onClick: props.collapseInfo.user_controllable ? () => {
+                                props.setVisible(t => !t);
+                            } : undefined,
+                        }}
                         class={classes(
                             "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
                             props.contentWarning && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
                             "block",
                             "relative",
                         )}
-                        onClick={props.collapseInfo.user_controllable ? () => {
-                            props.setVisible(t => !t);
-                        } : undefined}
-                        page={props.getPage}
                     >
                         <SwitchKind item={thumb_any}>{{
                             image: img => <img
@@ -342,7 +345,7 @@ export function PostTopBar(props: ClientPostProps & {
                             default: def => <>TODO {def.kind}</>,
                         }}</SwitchKind>
                         <PreviewThumbnailIcon body={props.content.body} />
-                    </A>
+                    </Clickable>
                 </HSplit.Child>
             )}</ToggleColor>
         )}</Show>
@@ -400,12 +403,10 @@ export function PostTopBar(props: ClientPostProps & {
                             <Show if={!isPivot()} when={props.opts.frame?.url} fallback={(
                                 title.text
                             )}>{url => (
-                                <A
-                                    client_id={props.opts.client_id}
-                                    href={url}
+                                <Clickable
+                                    action={{url, client_id: props.opts.client_id, page: props.getPage}}
                                     class="hover:underline"
-                                    page={props.getPage}
-                                >{title.text}</A>
+                                >{title.text}</Clickable>
                             )}</Show>
                         )}</Show>
                     <Flair flairs={props.content.flair ?? []} />
@@ -435,9 +436,8 @@ export function PostTopBar(props: ClientPostProps & {
                     </Show>
                     <Show when={props.content.info?.in}>{in_sr => <>
                         {" in "}<LinkButton
-                            href={in_sr.link}
+                            action={{url: in_sr.link, client_id: in_sr.client_id}}
                             style="previewable"
-                            client_id={in_sr.client_id}
                         >{in_sr.name}</LinkButton>{" "}
                     </>}</Show>
                 </div>

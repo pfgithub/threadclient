@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, JSX, onCleanup, onMount, Setter, untrack } from "solid-js";
 import { Show } from "tmeta-util-solid";
-import { A } from "../../components/links";
+import Clickable from "../../components/Clickable";
 import { seededRandom } from "../../darken_color";
 
 type ReadOpts = {
@@ -15,9 +15,9 @@ type Term = {
 };
 
 function ChatLink(props: {t: Term, to: string, children: JSX.Element}): JSX.Element {
-    return <A class="underline" onClick={() => {
+    return <Clickable class="underline" action={() => {
         props.t.execute(props.to);
-    }}>{props.children}</A>;
+    }}>{props.children}</Clickable>;
 }
 
 /*
@@ -973,12 +973,12 @@ async function app(t: Term): Promise<void> {
                         });
                     }}
                 >{untrack(() => itm.previewDisplay!())}</div> : <Line>
-                    <A onClick={() => {
+                    <Clickable action={() => {
                         if(!sectionInteractive()) return;
                         t.execute("cd /"+ pathjoin(userpath(what), [filename]).join("/"));
                     }} class={sectionInteractive() ? "underline" : "cursor-arrow"}>
                         {filename}
-                    </A>
+                    </Clickable>
                 </Line>);
                 // ^ TODO: that link should be to a file and should always have interactivity while in this screen
             }

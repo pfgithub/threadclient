@@ -2,8 +2,8 @@ import { untrack, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
 import { getSettings } from "../util/utils_solid";
+import Clickable from "./Clickable";
 import { InternalIconRaw } from "./Icon";
-import { A } from "./links";
 
 const current_version = "-N02c8ctxITU-BqvlytL";
 
@@ -57,20 +57,20 @@ function Banner(): JSX.Element {
             </p>
           </div>
           <div class="order-3 mt-2 w-full flex-shrink-0 sm:order-2 sm:mt-0 sm:w-auto">
-            <A client_id="shell" href="/changelog" class={`
+            <Clickable action={{url: "/changelog", client_id: "shell"}} class={`
                 flex items-center justify-center
                 rounded-md border border-transparent
                 bg-rwhite px-4 py-2 text-sm font-medium text-indigo-600 shadow-sm
                 hover:bg-indigo-50
-            `} onClickNoPreventDefault={() => hideChangelog()}>Show Changelog</A>
+            `} beforeClick={() => hideChangelog()}>Show Changelog</Clickable>
           </div>
           <div class="order-2 flex-shrink-0 sm:order-3 sm:ml-3">
-            <A class={`
+            <Clickable class={`
                 -mr-1 flex rounded-md p-2 hover:bg-indigo-500
                 focus:outline-none focus:ring-2 focus:ring-rwhite sm:-mr-2
-            `} onClick={() => hideChangelog()}>
+            `} action={() => hideChangelog()}>
               <InternalIconRaw class="fa-solid fa-x" label="Close" />
-            </A>
+            </Clickable>
           </div>
         </div>
       </div>

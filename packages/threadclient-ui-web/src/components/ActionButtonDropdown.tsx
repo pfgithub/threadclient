@@ -1,6 +1,6 @@
 import { JSX } from "solid-js";
 import { classes } from "../util/utils_solid";
-import { getActionDisabled, getActionOnclick, getActionURL } from "./act";
+import { getActionDisabled, getActionClickAct } from "./act";
 import { colorClass } from "./color";
 import DropdownButton from "./DropdownButton";
 import { ActionItem } from "./flat_posts";
@@ -17,8 +17,7 @@ export function DropdownActionButton(props: {action: ActionItem}): JSX.Element {
             props.action.color == null ? "" : "font-bold",
             colorClass(props.action.color)
         )}
-        url={getActionURL(props.action)}
-        onClick={getActionOnclick(props.action)}
+        action={getActionClickAct(props.action)}
         disabled={getActionDisabled(props.action)}
     >
         {props.action.text}

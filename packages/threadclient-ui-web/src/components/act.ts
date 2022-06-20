@@ -1,16 +1,11 @@
-import { JSX } from "solid-js";
+import { ClickAction } from "./Clickable";
 import { ActionItem } from "./flat_posts";
 
-export function getActionURL(action: ActionItem): undefined | {href: string, client_id: string} {
-    if(typeof action.onClick === "string") return undefined;
-    if('url' in action.onClick) return {href: action.onClick.url, client_id: action.client_id};
-    return undefined;
-}
-
-export function getActionOnclick(action: ActionItem): undefined | JSX.EventHandler<HTMLElement, MouseEvent> {
-    if(typeof action.onClick === "string") return undefined;
+export function getActionClickAct(action: ActionItem): ClickAction {
+    if(typeof action.onClick === "string") return {url: action.onClick, client_id: action.client_id};
+    if('url' in action.onClick) return {url: action.onClick.url, client_id: action.client_id};
     if(typeof action.onClick === "function") return action.onClick;
-    return undefined;
+    return "TODO";
 }
 
 export function getActionDisabled(action: ActionItem): boolean {

@@ -3,12 +3,12 @@ import { readLink } from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, onCleanup } from "solid-js";
 import { updateQuery } from "threadclient-client-reddit";
 import { Show, SwitchKind } from "tmeta-util-solid";
+import Clickable from "../../components/Clickable";
 import { Flair } from "../../components/Flair";
 import { FlatReplies, FlatReplyTsch } from "../../components/flatten2";
 import { FormattableNumber } from "../../components/flat_posts";
 import Icon, { InternalIconRaw } from "../../components/Icon";
 import InfoBar, { formatItemString } from "../../components/InfoBar";
-import { A } from "../../components/links";
 import { ClientPostOpts } from "../../components/Post";
 import proxyURL from "../../components/proxy_url";
 import { collapse_data_context, getWholePageRootContext } from "../../util/utils_solid";
@@ -256,14 +256,14 @@ function FullscreenPost(props: {
         <div class=""><InfoBar post={props.content} opts={props.opts} /></div>
     </>} sidebar={<>
         <Show when={props.content.actions?.vote}>{voteact => <>
-            <A class="block w-full" onClick={() => alert("TODO")}>
+            <Clickable class="block w-full" action="TODO">
                 <SidebarButton
                     icon={voteact.increment.icon}
                     label={voteact.increment.label}
                     text={["number", -1]}
                 />
-            </A>
-            <A class="block w-full" onClick={() => alert("TODO")}>
+            </Clickable>
+            <Clickable class="block w-full" action="TODO">
                 <Show when={voteact.decrement}>{decrement => <>
                     <SidebarButton
                         icon={decrement.icon}
@@ -271,24 +271,24 @@ function FullscreenPost(props: {
                         text={voteact.percent == null ? ["none", 0] : ["percent", voteact.percent]}
                     />
                 </>}</Show>
-            </A>
+            </Clickable>
         </>}</Show>
         <Show when={props.opts.frame?.url}>{post_url => (
-            <A class="block w-full" client_id={props.opts.client_id} href={post_url}>
+            <Clickable class="block w-full" action={{url: post_url, client_id: props.opts.client_id}}>
                 <SidebarButton
                     icon="comments"
                     label="Comments"
                     text={props.content.info?.comments != null ? ["number", props.content.info?.comments] : ["none", 0]}
                 />
-            </A>
+            </Clickable>
         )}</Show>
-        <A class="block w-full" onClick={() => alert("TODO")}>
+        <Clickable class="block w-full" action="TODO">
             <SidebarButton
                 icon="ellipsis"
                 label="More"
                 text={["none", 0]}
             />
-        </A>
+        </Clickable>
     </>} showUI={!props.zoomed}>
         <Show if={!contentWarning()} fallback={<>
             <ContentWarningDisplay
@@ -442,17 +442,19 @@ export default function FullscreenSnapView(props: {
             </div>;
         }}</For>
 
-        <A
+        <Clickable
             class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
-            mode="replace"
-            client_id={m().pivot.client_id}
-            page={(): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot})}
-            href={updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined})}
+            action={{
+                url: updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined}),
+                client_id: m().pivot.client_id,
+                mode: "replace",
+                page: (): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot}),
+            }}
         >
             <InternalIconRaw
                 class="fa-solid fa-down-left-and-up-right-to-center text-base"
                 label={"Exit Fullscreen"}
             />
-        </A>
+        </Clickable>
     </div>;
 }

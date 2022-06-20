@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, JSX, onCleanup, onMount } from "solid-js";
 import { localStorageSignal } from "tmeta-util-solid";
-import { A } from "../../components/links";
+import Clickable from "../../components/Clickable";
 
 // note: I should probably compress all data before encrypting and decompress after. it's basically
 // a binary blob already, I might as well
@@ -90,9 +90,9 @@ export default function TermAppMain(props: {
         sel() === "term" ? <InUI reloadSelf={props.reloadSelf} content={inui_content!} /> :
         sel() === "encr" ? <Encryptor /> :
         <div>
-            <A class="underline" onClick={() => selTerm()}>term</A>
+            <Clickable class="underline" action={() => selTerm()}>term</Clickable>
             {" "}
-            <A class="underline" onClick={() => setSel("encr")}>encr</A>
+            <Clickable class="underline" action={() => setSel("encr")}>encr</Clickable>
         </div>
     }</>;
 }

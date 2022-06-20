@@ -1,5 +1,5 @@
 import { JSX } from "solid-js";
-import { getActionDisabled, getActionOnclick, getActionURL } from "./act";
+import { getActionDisabled, getActionClickAct } from "./act";
 import Button from "./Button";
 import { colorClass } from "./color";
 import { ActionItem } from "./flat_posts";
@@ -7,8 +7,7 @@ import Icon from "./Icon";
 
 export function HorizontalActionButton(props: {action: ActionItem}): JSX.Element {
     return <Button
-        url={getActionURL(props.action)}
-        onClick={getActionOnclick(props.action)}
+        action={getActionClickAct(props.action)}
         disabled={getActionDisabled(props.action)}
     >
         <span class={

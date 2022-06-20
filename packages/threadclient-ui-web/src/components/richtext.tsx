@@ -40,8 +40,7 @@ function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
         </Match>
         <Match when={props.rts.is_user_link == null && !styleIsLink()}>
             <LinkButton
-                client_id={props.rts.client_id}
-                href={props.rts.url}
+                action={{client_id: props.rts.client_id, url: props.rts.url}}
                 style={generic_linkstyle_mappings[props.rts.style ?? "link"]}
             ><RichtextSpans spans={props.rts.children} /></LinkButton>
         </Match>

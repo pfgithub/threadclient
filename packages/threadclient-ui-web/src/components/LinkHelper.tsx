@@ -7,9 +7,9 @@ import {
 } from "../util/utils_solid";
 import { animateHeight } from "./animation";
 import { Body } from "./body";
+import Clickable from "./Clickable";
 import Hactive from "./Hactive";
 import { InternalIconRaw } from "./Icon";
-import { A } from "./links";
 import proxyURL from "./proxy_url";
 export * from "../util/interop_solid";
 
@@ -54,8 +54,14 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
     return <Show if={human().link !== "error"}><Hactive
         clickable={true}
     >{(__, divRef, divAddClass) => <div ref={divRef} class={divAddClass()}>
-        <ToggleColor>{color => <A
-            client_id={props.link.client_id}
+        <ToggleColor>{color => <Clickable
+            action={{
+                url: props.link.url,
+                client_id: props.link.client_id,
+                onClick: linkPreview() ? () => {
+                    linkPreview()!.toggleVisible();
+                } : undefined,
+            }}
             class={classes(
                 "p-2 px-4",
                 "flex flex-row flex-wrap items-center",
@@ -63,10 +69,6 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
                 "hover:bg-slate-200 hover:dark:bg-zinc-700 hover:shadow transition",
                 previewOpen().open ? "rounded-b-none" : "",
             )}
-            href={props.link.url}
-            onClick={linkPreview() ? () => {
-                linkPreview()!.toggleVisible();
-            } : undefined}
         >
             <Show when={props.link.thumbnail}>{thumb => <ToggleColor>{objcolr => <>
                 <div class={"w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md " + objcolr + " block"}>
@@ -89,7 +91,7 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
                     </div>
                 </Show>
             </div>
-        </A>}</ToggleColor>
+        </Clickable>}</ToggleColor>
         <Show when={linkPreview()}>{preview => <><div ref={v => animateHeight(
             // TODO: we should use showanimate & we shouldn't show until all suspenses inside have loaded
             // or the content is guarenteed to be known height or x ms have passed
@@ -104,18 +106,20 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
             </Show>
         </div><Show if={previewOpen().open || previewOpen().temporary}>
             <div style={{display: previewOpen().open ? "block" : "none"}}>
-                <ToggleColor>{color => <A
-                    client_id={props.link.client_id}
+                <ToggleColor>{color => <Clickable
+                    action={{
+                        client_id: props.link.client_id,
+                        url: props.link.url,
+                    }}
                     class={classes(
                         "p-2 px-4",
                         "block",
                         color, "rounded-xl rounded-t-none",
                         "hactive:dark:bg-zinc-700 dark:hactive:shadow transition",
                     )}
-                    href={props.link.url}
                 >
                     <LinkLocationSection url={human().link} external={human().external} />
-                </A>}</ToggleColor>
+                </Clickable>}</ToggleColor>
             </div>
         </Show></>}</Show>
     </div>}</Hactive></Show>;

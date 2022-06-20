@@ -6,7 +6,8 @@ import { variables } from "virtual:_variables";
 import { availableForOfflineUse, link_styles_v, updateAvailable, updateSW } from "../app";
 import { ComputeProperty, getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
-import { A, LinkButton } from "./links";
+import Clickable from "./Clickable";
+import { LinkButton } from "./links";
 import { ClientContent, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
 import ToggleButton from "./ToggleButton";
@@ -159,7 +160,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
             />
             <p class="my-4">
                 Show a banner at the top of the page when a changelog is available.{" "}
-                <A class="text-blue-500 hover:underline" href="/changelog" client_id="shell">Past changelogs</A>
+                <Clickable class="text-blue-500 hover:underline" action={{url: "/changelog", client_id: "shell"}}>Past changelogs</Clickable>
             </p>
         </SettingsSection>
         <SettingsSection title="Link Helpers">
@@ -360,7 +361,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
             <p class="my-4">
                 Chooses if external links should be opened in a new tab or in the same
                 tab as ThreadClient.{" "}
-                <LinkButton client_id="n/a" style="normal" href="https://www.google.com/">
+                <LinkButton action={{url: "https://www.google.com/", client_id: "n/a"}} style="normal">
                     Example Link
                 </LinkButton>
             </p>
