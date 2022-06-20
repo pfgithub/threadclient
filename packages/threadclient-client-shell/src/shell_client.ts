@@ -1,6 +1,7 @@
 import * as Generic from "api-types-generic";
 import { p2, rt } from "api-types-generic";
 import { ThreadClient } from "threadclient-client-base";
+import { splitURL } from "tmeta-util";
 import { changelog1, changelog2 } from "./changelog";
 
 export const client: ThreadClient = {
@@ -12,7 +13,8 @@ export const client: ThreadClient = {
         // we can just return all the content i guess
         // might be nice if we structured it so it can be dynamically imported in the future but this
         // is okay for now
-        const link = "/"+path.split("/").filter(v => v && !v.startsWith("~")).join("/") as Generic.Link<Generic.Post>;
+        const [pathurl] = splitURL(path);
+        const link = "/"+pathurl.split("/").filter(v => v && !v.startsWith("~")).join("/") as Generic.Link<Generic.Post>;
         if(all_content[link] == null) return {
             pivot: link,
             content: {[link]: {data: autoPost({
