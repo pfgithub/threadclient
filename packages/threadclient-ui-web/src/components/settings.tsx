@@ -8,7 +8,7 @@ import { ComputeProperty, getSettings } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
 import Clickable from "./Clickable";
 import { LinkButton } from "./links";
-import { ClientContent, TopLevelWrapper } from "./page2";
+import { ClientContent, CrosspostWrapper, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
 import ToggleButton from "./ToggleButton";
 export * from "../util/interop_solid";
@@ -101,7 +101,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "Default",
                 } as const)[v ?? "default"]}
             />
-            <TopLevelWrapper restrict_w>
+            <CrosspostWrapper>
                 <ClientContent listing={{
                     kind: "post",
 
@@ -129,7 +129,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     flat_frame: null,
                     id: null,
                 }} />
-            </TopLevelWrapper>
+            </CrosspostWrapper>
         </SettingsSection>
         <SettingsSection title="Update Notices">
             <SettingPicker
@@ -205,7 +205,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 Custom video controls are currently work in progress. Once
                 they are complete, they will be enabled by default.
             </p>
-            <TopLevelWrapper restrict_w>
+            <CrosspostWrapper>
                 <ClientContent listing={{
                     kind: "post",
 
@@ -234,7 +234,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     flat_frame: null,
                     id: null,
                 }} />
-            </TopLevelWrapper>
+            </CrosspostWrapper>
         </SettingsSection>
         <SettingsSection title="Image Galleries">
             <SettingPicker
@@ -250,7 +250,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 Chooses if image galleries should display in fullscreen or inline. Note
                 that not all galleries are supported for fullscreen display.
             </p>
-            <TopLevelWrapper restrict_w>
+            <CrosspostWrapper>
                 <ClientContent listing={{
                     kind: "post",
 
@@ -275,7 +275,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     flat_frame: null,
                     id: null,
                 }} />
-            </TopLevelWrapper>
+            </CrosspostWrapper>
         </SettingsSection>
         <SettingsSection title="Animations">
             <SettingPicker
@@ -309,7 +309,8 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     } as const)[v ?? "default"]}
                 />
             </ShowAnimate>
-            <TopLevelWrapper restrict_w>
+            <div class="my-2" />
+            <CrosspostWrapper>
                 <ClientContent listing={{
                     kind: "post",
 
@@ -327,7 +328,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     flat_frame: null,
                     id: null,
                 }} />
-            </TopLevelWrapper>
+            </CrosspostWrapper>
         </SettingsSection>
         <SettingsSection title="Signature">
             <textarea

@@ -3,7 +3,7 @@ import { JSX } from "solid-js";
 import { SwitchKind } from "tmeta-util-solid";
 import { clientContent, clientListing, getClientCached } from "../app";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { DefaultErrorBoundary, ToggleColor } from "../util/utils_solid";
+import { DefaultErrorBoundary } from "../util/utils_solid";
 import ClientPost, { ClientPostOpts } from "./Post";
 
 export function ClientContentAny(props: {
@@ -74,11 +74,20 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
 
 export function TopLevelWrapper(props: {
     children: JSX.Element,
-    restrict_w?: undefined | boolean,
 }): JSX.Element {
-    return <ToggleColor>{(color, i) => <div class={
-        (i === 0 ? "m-3 p-3 shadow-md sm:rounded-xl <sm:mx-0" : "p-10px mt-10px rounded-xl")
-        + " " + color
-        + " " + (props.restrict_w ?? false ? "max-w-xl" : "")
-    }>{props.children}</div>}</ToggleColor>;
+    return <div class={
+        "m-3 p-3 shadow-md sm:rounded-xl <sm:mx-0"
+        + " " + "bg-slate-100 dark:bg-zinc-800"
+    }>{props.children}</div>;
+}
+
+export function CrosspostWrapper(props: {
+    children: JSX.Element,
+    // max-w-xl?
+}): JSX.Element {
+    return <div class="bg-slate-300 dark:bg-zinc-900 p-2 rounded-xl">
+        <div class="rounded-md bg-slate-100 dark:bg-zinc-800 p-3">
+            {props.children}
+        </div>
+    </div>;
 }

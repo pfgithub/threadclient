@@ -18,11 +18,11 @@ import {
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getIsVisible,
-    getSettings, ToggleColor
+    getSettings,
 } from "../util/utils_solid";
 import LinkHelper from "./LinkHelper";
 import { LinkButton } from "./links";
-import { ClientContent, TopLevelWrapper } from "./page2";
+import { ClientContent, CrosspostWrapper } from "./page2";
 import proxyURL from "./proxy_url";
 import { RichtextDocument, summarizeParagraphs } from "./richtext";
 
@@ -149,7 +149,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 }}</SwitchKind>
             </div>;
         },
-        crosspost: xpost => <TopLevelWrapper restrict_w>
+        crosspost: xpost => <CrosspostWrapper>
             <ClientContent listing={{
                 kind: "legacy",
                 thread: xpost.source,
@@ -160,7 +160,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 flat_frame: null,
                 id: null,
             }} />
-        </TopLevelWrapper>,
+        </CrosspostWrapper>,
         richtext: richtext => <div>
             <RichtextDocument content={richtext.content} />
         </div>,
@@ -376,7 +376,7 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
         });
     });
 
-    return <TopLevelWrapper restrict_w>
+    return <CrosspostWrapper>
         <SwitchKind item={state()}>{{
             loading: () => <>loading...</>,
             loaded: ({frame}) => <ClientContent listing={frame.content} opts={{
@@ -393,7 +393,7 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
                 <span class="text-red-500">{e.message}</span>
             </div>,
         }}</SwitchKind>
-    </TopLevelWrapper>;
+    </CrosspostWrapper>;
 }
 
 // TODO ↑that but for getting the thumbnail. An optional hint
@@ -471,12 +471,11 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
     });
 
     return <div ref={div}><SwitchKind item={state}>{{
-        overview: overview => <ToggleColor>{color => (
+        overview: () => (
             <For each={props.images}>{(image, i) => (
                 <button 
                     class={classes(
-                        "m-1 inline-block rounded-md",
-                        color,
+                        "m-1 inline-block rounded-md bg-slate-300 dark:bg-zinc-900",
                     )}
                     onclick={() => {
                         if(usesFullscreen()) {
@@ -533,7 +532,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
                     />
                 </button>
             )}</For>
-        )}</ToggleColor>,
+        ),
         image: sel => <>
             <button
                 class={link_styles_v["outlined-button"]}

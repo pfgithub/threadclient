@@ -70,13 +70,6 @@ or I can skip changing the url for now
 or I can add some client code you have to call to get the url from a post (not ideal because this wouldn't
 work as a server-only protocol in that case but that's okay)
 
-# note
-
-- remove ToggleColor
-- the only thing it's used for is rendering crossposts, but they don't even look very good
-- replace any color from ToggleColor with just `bg_colors[0]` or `bg_colors[1]` depending on
-  expected use
-
 ## \[FIXED] note
 
 ok we have a page2 problem

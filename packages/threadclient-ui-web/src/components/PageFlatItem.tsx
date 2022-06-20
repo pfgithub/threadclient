@@ -9,7 +9,7 @@ import { switchKind } from "tmeta-util";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { fetchClient, navigate } from "../app";
 import {
-    classes, DefaultErrorBoundary, getWholePageRootContext, PageRootContext, size_lt, ToggleColor
+    classes, DefaultErrorBoundary, getWholePageRootContext, PageRootContext, size_lt,
 } from "../util/utils_solid";
 import { addAction } from "./action_tracker";
 import { Body } from "./body";
@@ -100,7 +100,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
         // TODO: improve how gaps are made. make gaps automatically between posts for example. margin
         // should not be used to make gaps.
         wrapper_start: () => <div class="mt-4" />,
-        wrapper_end: () => <ToggleColor>{color => <div class={"pb-2 sm:rounded-b-lg "+color} />}</ToggleColor>,
+        wrapper_end: () => <div class={"pb-2 sm:rounded-b-lg bg-slate-100 dark:bg-zinc-800"} />,
         repivot_list_fullscreen_button: fsb => <Clickable
             class="bg-slate-100 dark:bg-zinc-800 p-2 rounded-md"
             action={{url: fsb.href, client_id: fsb.client_id, page: fsb.page, mode: "replace"}}
@@ -108,7 +108,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
             <InternalIconRaw class="fa-solid fa-up-right-and-down-left-from-center" label={null} />
             {" "}{fsb.name}
         </Clickable>,
-        sort_buttons: sortbtns => <ToggleColor>{color => <div class={"mt-4 mb-4 rounded-lg "+color}>
+        sort_buttons: sortbtns => <div class={"mt-4 mb-4 rounded-lg bg-slate-100 dark:bg-zinc-800"}>
             <menu class="p-2 flex flex-row flex-wrap gap-2 dark:text-zinc-400">
                 <For each={sortbtns.sort_buttons}>{sortbtn => <li style={{display: "contents"}}>
                     {// inline-block mx-1 px-1 text-base border-b-2 transition-colors border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900
@@ -127,7 +127,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                     />
                 </li>}</For>
             </menu>
-        </div>}</ToggleColor>,
+        </div>,
         post: loader_or_post => <PageFlatPost
             collapse_data={props.collapse_data}
             loader_or_post={loader_or_post}
@@ -293,14 +293,14 @@ function PageFlatPostNotSpecial(props: {
             });
         })()}
     >
-        <ToggleColor>{color => <Hactive clickable={wholeObjectClickable()}>{(hactive, divRef, divAddClass) => <div
+        <Hactive clickable={wholeObjectClickable()}>{(hactive, divRef, divAddClass) => <div
             ref={divRef}
             class={
                 divAddClass() + " px-2 "+(
                     hactive() ? `
                     bg-slate-200 dark:bg-zinc-700
                         shadow-md z-1
-                    ` : color
+                    ` : "bg-slate-100 dark:bg-zinc-800"
                 )+" "+(props.loader_or_post.is_pivot ? "@@IS_PIVOT@@ " : "")+
                 (wholeObjectClickable() ? `
                     cursor-pointer outline-default
@@ -352,7 +352,7 @@ function PageFlatPostNotSpecial(props: {
                     />
                 </div>
             </div>
-        </div>}</Hactive>}</ToggleColor>
+        </div>}</Hactive>
     </SwipeActions>;
 }
 

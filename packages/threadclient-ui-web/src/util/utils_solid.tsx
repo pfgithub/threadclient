@@ -11,37 +11,20 @@ import { CollapseData } from "../components/flatten";
 export { localStorageSignal };
 export { screenWidth };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const ColorDepthContext = createContext<{i: number}>();
-
-export const bg_colors = [
-    "bg-slate-100 dark:bg-zinc-800",
-    "bg-slate-300 dark:bg-zinc-900",
-] as const;
-export function ToggleColor(props: {children: (color: string, i: number) => JSX.Element}): JSX.Element {
-    const parent_color = useContext(ColorDepthContext);
-    const this_color = parent_color?.i ?? 0;
-    const next_color = this_color + 1;
-    return <ColorDepthContext.Provider value={{i: next_color}}>
-        {props.children(bg_colors[this_color % bg_colors.length]!, this_color)}
-    </ColorDepthContext.Provider>;
-}
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const HideshowContext = createContext<{visible: () => boolean}>();
+const hideshow_context = createContext<{visible: () => boolean}>();
 
 export function HideshowProvider(props: {visible: () => boolean, children: JSX.Element}): JSX.Element {
-    const parent_state = useContext(HideshowContext);
+    const parent_state = useContext(hideshow_context);
     const selfVisible = createMemo(() => {
         const parent_v = parent_state?.visible() ?? true;
         const props_v = props.visible();
         return parent_v ? props_v : false;
     });
-    return <HideshowContext.Provider value={{visible: selfVisible}}>{props.children}</HideshowContext.Provider>;
+    return <hideshow_context.Provider value={{visible: selfVisible}}>{props.children}</hideshow_context.Provider>;
 }
 
 export function getIsVisible(): (() => boolean) {
-    const visible_state = useContext(HideshowContext);
+    const visible_state = useContext(hideshow_context);
     return visible_state?.visible ?? (() => true);
 }
 
@@ -52,8 +35,8 @@ export type PageRootContext = {
     content: () => Generic.Page2Content,
     addContent: (node: MutablePage2HistoryNode, content: Generic.Page2Content) => void,
 };
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const PageRootContext = createContext<PageRootContext>();
+
+const page_root_context = createContext<PageRootContext>();
 
 export function PageRootProvider(props: {
     pgin: MutablePage2HistoryNode,
@@ -62,20 +45,20 @@ export function PageRootProvider(props: {
     // event thing
     children: JSX.Element,
 }): JSX.Element {
-    return <PageRootContext.Provider value={{
+    return <page_root_context.Provider value={{
         pgin: () => props.pgin,
         content: () => props.pgin.page.content,
         addContent: props.addContent,
-    }}>{props.children}</PageRootContext.Provider>;
+    }}>{props.children}</page_root_context.Provider>;
 }
 
 export function getWholePageRootContextOpt(): undefined | PageRootContext {
-    return useContext(PageRootContext);
+    return useContext(page_root_context);
 }
 export function getWholePageRootContext(): PageRootContext {
-    const page_root_context = getWholePageRootContextOpt();
-    if(!page_root_context) throw new Error("no page root context here.");
-    return page_root_context;
+    const prc_v = getWholePageRootContextOpt();
+    if(!prc_v) throw new Error("no page root context here.");
+    return prc_v;
 }
 
 export const collapse_data_context = createContext<CollapseData>();

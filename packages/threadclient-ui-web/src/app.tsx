@@ -24,7 +24,7 @@ import {
     nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid,
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { bg_colors, DefaultErrorBoundary, getSettings, PageRootProvider } from "./util/utils_solid";
+import { DefaultErrorBoundary, getSettings, PageRootProvider } from "./util/utils_solid";
 
 // TODO add support for navigation without any browser navigation things
 // eg within the frame of /pwa-start, display the client and have custom nav buttons
@@ -238,7 +238,6 @@ export function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
     vanillaToSolidBoundary(
         frame,
         () => <TimeAgo start={start_ms} />,
-        {color_level: 1},
     ).defer(hsc);
     return hsc;
 }
@@ -387,7 +386,6 @@ function renderBodyMayError(
         () => {
             return <Body body={body} autoplay={opts.autoplay} />;
         },
-        {color_level: 1},
     ).defer(hsc);
 
     return hsc;
@@ -868,8 +866,8 @@ function renderReplyAction(
                                     id: null,
                                 }} />
                             </ul>
-                        </>, {color_level: 1}).defer(hsc);
-                    }} />, {color_level: 1}).defer(reply_container);
+                        </>).defer(hsc);
+                    }} />).defer(reply_container);
                 }
             }
         };
@@ -1888,7 +1886,7 @@ export function clientListing(
                     console.log("@ORDER-ONCLICK-2");
                 }}
             />;
-        }, {color_level: 1});
+        });
         hsc.addChild(vsc);
     }
 
@@ -2356,7 +2354,7 @@ function renderInbox(client: ThreadClient, inbox: Generic.Inbox): HideShowCleanu
 const makeTopLevelWrapper = () => el("div").clss(
     "object-wrapper-csshack",
     "m-3 p-3 shadow-md sm:rounded-xl <sm:mx-0",
-    bg_colors[0],
+    "bg-slate-100 dark:bg-zinc-800",
 );
 
 function renderClientPage(
@@ -2649,7 +2647,7 @@ let hidePage2!: () => void;
                     return () => res.children;
                 })}
             </PageRootProvider>
-        </DefaultErrorBoundary>, {color_level: 0});
+        </DefaultErrorBoundary>);
     };
     showPage2 = (new_pgin: MutablePage2HistoryNode, first_show: boolean) => {
         console.log("showing page2", new_pgin.page);
@@ -2767,7 +2765,7 @@ function homePage(): HideShowCleanup<HTMLDivElement> {
     const res = el("div");
     const hsc = hideshow(res);
 
-    vanillaToSolidBoundary(res, () => <Homepage />, {color_level: 0}).defer(hsc);
+    vanillaToSolidBoundary(res, () => <Homepage />).defer(hsc);
 
     return hsc;
 }
@@ -2776,7 +2774,7 @@ function settingsPage(): HideShowCleanup<HTMLDivElement> {
     return fetchPromiseThen(import("./components/settings"), ({default: SettingsPage}) => {
         const res = el("div");
         const hsc = hideshow(res);
-        vanillaToSolidBoundary(res, () => <SettingsPage />, {color_level: 0}).defer(hsc);
+        vanillaToSolidBoundary(res, () => <SettingsPage />).defer(hsc);
         return hsc;
     });
 }
@@ -2785,7 +2783,7 @@ function uiTestingPage(): HideShowCleanup<HTMLDivElement> {
     return fetchPromiseThen(import("./components/ui_testing"), ({default: UITestingPage}) => {
         const res = el("div");
         const hsc = hideshow(res);
-        vanillaToSolidBoundary(res, () => <UITestingPage />, {color_level: 0}).defer(hsc);
+        vanillaToSolidBoundary(res, () => <UITestingPage />).defer(hsc);
         return hsc;
     });
 }
@@ -2965,7 +2963,6 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
             vanillaToSolidBoundary(
                 res,
                 () => <Body body={previewable_link} autoplay={false} />,
-                {color_level: 0},
             ).defer(hsc);
             return hsc;
         }
@@ -3019,7 +3016,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
         const res = el("div");
         const hsc = hideshow(res);
 
-        vanillaToSolidBoundary(res, () => <Component />, {color_level: 0}).defer(hsc);
+        vanillaToSolidBoundary(res, () => <Component />).defer(hsc);
 
         return hsc;
     }
@@ -3068,7 +3065,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
                         }} />;
                     })}
                 </DefaultErrorBoundary>
-            </>, {color_level: 0}).defer(hsc);
+            </>).defer(hsc);
             return hsc;
         });
     }
@@ -3092,7 +3089,7 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
                         }} />;
                     })}
                 </DefaultErrorBoundary>
-            </>, {color_level: 0}).defer(hsc);
+            </>).defer(hsc);
             return hsc;
         });
     }

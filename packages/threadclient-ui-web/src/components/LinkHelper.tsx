@@ -3,7 +3,7 @@ import { createMemo, createSignal, JSX } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { previewLink, unsafeLinkToSafeLink } from "../app";
 import {
-    classes, getSettings, ToggleColor
+    classes, getSettings,
 } from "../util/utils_solid";
 import { animateHeight } from "./animation";
 import { Body } from "./body";
@@ -25,6 +25,7 @@ type Link = {
 
 // previewLink should give a thumbnail back somehow
 // eg for youtube videos, it's an image `https://img.youtube.com/vi/${id}/default.jpg`
+// it could even return a promise to fetch the thumbnail
 
 export default function LinkHelper(props: {link: Link}): JSX.Element {
     const settings = getSettings();
@@ -54,7 +55,7 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
     return <Show if={human().link !== "error"}><Hactive
         clickable={true}
     >{(__, divRef, divAddClass) => <div ref={divRef} class={divAddClass()}>
-        <ToggleColor>{color => <Clickable
+        <Clickable
             action={{
                 url: props.link.url,
                 client_id: props.link.client_id,
@@ -65,16 +66,16 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
             class={classes(
                 "p-2 px-4",
                 "flex flex-row flex-wrap items-center",
-                color, "rounded-xl",
+                "bg-slate-300 dark:bg-zinc-900", "rounded-xl",
                 "hover:bg-slate-200 hover:dark:bg-zinc-700 hover:shadow transition",
                 previewOpen().open ? "rounded-b-none" : "",
             )}
         >
-            <Show when={props.link.thumbnail}>{thumb => <ToggleColor>{objcolr => <>
-                <div class={"w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md " + objcolr + " block"}>
+            <Show when={props.link.thumbnail}>{thumb => (
+                <div class={"w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md bg-slate-100 dark:bg-zinc-800 block"}>
                     <img src={proxyURL(thumb)} class="w-full h-full object-cover rounded-md" alt="" />
                 </div>
-            </>}</ToggleColor>}</Show>
+            )}</Show>
             <div class="flex-1">
                 <div class={"max-lines max-lines-1 select-none " + (props.link.summary != null ? "font-bold" : "")}>
                     <Show when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</Show>
@@ -91,7 +92,7 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
                     </div>
                 </Show>
             </div>
-        </Clickable>}</ToggleColor>
+        </Clickable>
         <Show when={linkPreview()}>{preview => <><div ref={v => animateHeight(
             // TODO: we should use showanimate & we shouldn't show until all suspenses inside have loaded
             // or the content is guarenteed to be known height or x ms have passed
@@ -106,7 +107,7 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
             </Show>
         </div><Show if={previewOpen().open || previewOpen().temporary}>
             <div style={{display: previewOpen().open ? "block" : "none"}}>
-                <ToggleColor>{color => <Clickable
+                <Clickable
                     action={{
                         client_id: props.link.client_id,
                         url: props.link.url,
@@ -114,12 +115,12 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
                     class={classes(
                         "p-2 px-4",
                         "block",
-                        color, "rounded-xl rounded-t-none",
+                        "bg-slate-300 dark:bg-zinc-900", "rounded-xl rounded-t-none",
                         "hactive:dark:bg-zinc-700 dark:hactive:shadow transition",
                     )}
                 >
                     <LinkLocationSection url={human().link} external={human().external} />
-                </Clickable>}</ToggleColor>
+                </Clickable>
             </div>
         </Show></>}</Show>
     </div>}</Hactive></Show>;

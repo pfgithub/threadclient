@@ -6,7 +6,7 @@ import {
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, navigate } from "../app";
 import {
-    classes, getSettings, getWholePageRootContextOpt, size_lt, ToggleColor
+    classes, getSettings, getWholePageRootContextOpt, size_lt,
 } from "../util/utils_solid";
 import { DropdownActionButton } from "./ActionButtonDropdown";
 import { HorizontalActionButton } from "./ActionButtonHorizontal";
@@ -314,40 +314,38 @@ export function PostTopBar(props: ClientPostProps & {
 
     return <HSplit.Container dir="right" vertical="center">
         <Show if={!props.visible} when={props.content.thumbnail}>{thumb_any => (
-            <ToggleColor>{color => (
-                <HSplit.Child>
-                    <Clickable
-                        action={{
-                            url: props.opts.frame?.url ?? "ENOHREF",
-                            client_id: props.opts.frame?.client_id ?? "ENOCLIENTID",
-                            page: props.getPage,
-                            onClick: props.collapseInfo.user_controllable ? () => {
-                                props.setVisible(t => !t);
-                            } : undefined,
-                        }}
-                        class={classes(
-                            "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md "+color,
-                            props.contentWarning && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
-                            "block",
-                            "relative",
-                        )}
-                    >
-                        <SwitchKind item={thumb_any}>{{
-                            image: img => <img
-                                // TODO based on the img content, display eg a play button or something
-                                src={proxyURL(img.url)}
-                                alt=""
-                                class={classes(
-                                    "w-full h-full object-cover rounded-md"
-                                    // object-contain is nicer but we're using object-cover for now
-                                )}
-                            />,
-                            default: def => <>TODO {def.kind}</>,
-                        }}</SwitchKind>
-                        <PreviewThumbnailIcon body={props.content.body} />
-                    </Clickable>
-                </HSplit.Child>
-            )}</ToggleColor>
+            <HSplit.Child>
+                <Clickable
+                    action={{
+                        url: props.opts.frame?.url ?? "ENOHREF",
+                        client_id: props.opts.frame?.client_id ?? "ENOCLIENTID",
+                        page: props.getPage,
+                        onClick: props.collapseInfo.user_controllable ? () => {
+                            props.setVisible(t => !t);
+                        } : undefined,
+                    }}
+                    class={classes(
+                        "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md bg-slate-100 dark:bg-zinc-800",
+                        props.contentWarning && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
+                        "block",
+                        "relative",
+                    )}
+                >
+                    <SwitchKind item={thumb_any}>{{
+                        image: img => <img
+                            // TODO based on the img content, display eg a play button or something
+                            src={proxyURL(img.url)}
+                            alt=""
+                            class={classes(
+                                "w-full h-full object-cover rounded-md"
+                                // object-contain is nicer but we're using object-cover for now
+                            )}
+                        />,
+                        default: def => <>TODO {def.kind}</>,
+                    }}</SwitchKind>
+                    <PreviewThumbnailIcon body={props.content.body} />
+                </Clickable>
+            </HSplit.Child>
         )}</Show>
         <HSplit.Child fullwidth><div
             class={(postIsClickable() ? " hover-outline" : "")}

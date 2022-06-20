@@ -4,7 +4,7 @@ import { createSignal, JSX } from "solid-js";
 import { createMergeMemo, Show } from "tmeta-util-solid";
 import { getClientCached } from "../app";
 import { getSettings, localStorageSignal } from "../util/utils_solid";
-import { ClientContent, TopLevelWrapper } from "./page2";
+import { ClientContent, CrosspostWrapper } from "./page2";
 
 // ok the dream for replies is to have a comment appear where you edit the actual body and it
 // previews below or on the right or something
@@ -131,14 +131,14 @@ export default function ReplyEditor(props: {
         </>}</Show>
         <Show if={!empty()} when={diffable.data}>{value => {
             console.log("Value changed", value);
-            return <TopLevelWrapper restrict_w>
+            return <CrosspostWrapper>
                 <ClientContent listing={value} opts={{
                     frame: null,
                     client_id: props.action.client_id,
                     flat_frame: null,
                     id: null,
                 }}/>
-            </TopLevelWrapper>;
+            </CrosspostWrapper>;
         }}</Show>
     </div>;
 }

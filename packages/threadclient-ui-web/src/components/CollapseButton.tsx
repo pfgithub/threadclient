@@ -3,7 +3,7 @@ import { JSX, onCleanup } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { navbar } from "../router";
 import {
-    classes, ToggleColor
+    classes,
 } from "../util/utils_solid";
 import { CollapseData, getCState } from "./flatten";
 import { InternalIcon } from "./Icon";
@@ -140,17 +140,15 @@ export function CollapseButton(props: {
                 tag={"fa-circle-plus"} filled label={null}
             />
         }>
-            <ToggleColor>{(__, i) => <>
-                <div class={classes(
-                    "w-3px mx-auto h-full",
-                    props.cstates && props.id && getCState(props.cstates, props.id).hovering() > 0 ? (
-                        "bg-slate-500 dark:bg-zinc-600"
-                    ) : (
-                        (i % 2 === 1 ? "bg-slate-300" : "bg-slate-400") + " dark:bg-zinc-700"
-                    ),
-                    "group-hover:bg-slate-500 dark:group-hover:bg-zinc-600",
-                )}></div>
-            </>}</ToggleColor>
+            <div class={classes(
+                "w-3px mx-auto h-full",
+                props.cstates && props.id && getCState(props.cstates, props.id).hovering() > 0 ? (
+                    "bg-slate-500 dark:bg-zinc-600"
+                ) : (
+                    "bg-slate-300" + " dark:bg-zinc-700"
+                ),
+                "group-hover:bg-slate-500 dark:group-hover:bg-zinc-600",
+            )}></div>
         </Show>
     </button>;
 }
