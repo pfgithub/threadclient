@@ -125,6 +125,10 @@ export type SortOption = ({
     kind: "post",
     name: string,
     post: Link<Post>,
+} | {
+    kind: "more",
+    name: string,
+    submenu: SortOption[],
 });
 
 // ok two options:

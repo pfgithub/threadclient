@@ -52,6 +52,8 @@ export function PreviewableLink(props: {
     </>;
 }
 
+// export function Clickable(props: {onClick: {url: string, client_id: string, mode: "navigate" | "replace"} | Callback })
+
 export function A(props: {
     class: string,
     onClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,

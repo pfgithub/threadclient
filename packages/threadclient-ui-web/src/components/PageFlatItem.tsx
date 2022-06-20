@@ -112,9 +112,14 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
             {" "}{fsb.name}
         </A>,
         sort_buttons: sortbtns => <ToggleColor>{color => <div class={"mt-4 mb-4 rounded-lg "+color}>
-            <div class="p-2 flex flex-row flex-wrap gap-2">
+            <div class="p-3 flex flex-row flex-wrap gap-2 dark:text-zinc-400">
                 <For each={sortbtns.sort_buttons}>{sortbtn => {
-                    return <A href={sortbtn.kind === "url" ? sortbtn.url : "ETODO://"} client_id={sortbtns.client_id} class="hover:underline">{sortbtn.name}</A>;
+                    // inline-block mx-1 px-1 text-base border-b-2 transition-colors border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900
+                    return <SwitchKind item={sortbtn}>{{
+                        url: s => <A href={s.url} client_id={sortbtns.client_id} class="px-1 border-b-2 border-transparent dark:hover:text-zinc-50">{sortbtn.name}</A>,
+                        post: s => <>TODO {s.name}</>,
+                        more: s => <A class="px-1 border-b-2 border-transparent dark:hover:text-zinc-50">{sortbtn.name} ▾</A>,
+                    }}</SwitchKind>;
                 }}</For>
             </div>
         </div>}</ToggleColor>,
