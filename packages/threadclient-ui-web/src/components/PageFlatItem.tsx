@@ -5,6 +5,7 @@ import {
     JSX,
     untrack
 } from "solid-js";
+import { switchKind } from "tmeta-util";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { fetchClient, navigate } from "../app";
 import {
@@ -17,7 +18,7 @@ import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import Hactive from "./Hactive";
 import { InternalIconRaw } from "./Icon";
-import { A } from "./links";
+import { A, Clickable } from "./links";
 import { ClientContentAny } from "./page2";
 import proxyURL from "./proxy_url";
 import SwipeActions from "./SwipeActions";
@@ -116,11 +117,18 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
                 <For each={sortbtns.sort_buttons}>{sortbtn => <li style={{display: "contents"}}>
                     {// inline-block mx-1 px-1 text-base border-b-2 transition-colors border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900
                     }
-                    <SwitchKind item={sortbtn}>{{
-                        url: s => <A href={s.url} client_id={sortbtns.client_id} class="px-1 border-b-2 border-transparent dark:hover:text-zinc-50">{sortbtn.name}</A>,
-                        post: s => <>TODO {s.name}</>,
-                        more: s => <A class="px-1 border-b-2 border-transparent dark:hover:text-zinc-50">{sortbtn.name} ▾</A>,
-                    }}</SwitchKind>
+                    <Clickable
+                        class="px-1 border-b-2 border-transparent dark:hover:text-zinc-50"
+                        action={switchKind(sortbtn, {
+                            url: u => ({url: u.url, client_id: sortbtns.client_id, mode: "replace"}),
+                            post: p => (() => alert("TODO post: "+p.name)),
+                            more: () => (() => alert("TODO more")),
+                        })}
+                        children={<>
+                            {sortbtn.name}
+                            {sortbtn.kind === "more" ? " ▾" : ""}
+                        </>}
+                    />
                 </li>}</For>
             </menu>
         </div>}</ToggleColor>,
