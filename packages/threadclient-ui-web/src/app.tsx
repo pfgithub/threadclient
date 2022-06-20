@@ -2571,7 +2571,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        if(!client.getThread || client.getPage && getSettings().pageVersion() === "2") {
+        if(!client.getThread || client.getPage && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
             const page2 = await client.getPage!(current_path);
             const split = splitPath(current_path);
             const page: MutablePage2HistoryNode = {page: page2, query: split.search};

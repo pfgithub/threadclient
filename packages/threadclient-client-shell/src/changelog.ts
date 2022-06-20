@@ -458,7 +458,6 @@ export function changelog2() {return autoPost({
                 rt.ili(
                     rt.txt("Started work on a new way of displaying feeds in ThreadClient inspired by the tik tok ui: "),
                     rt.link({id: "reddit"}, "/r/pics?--tc-view=fullscreen", {}, rt.txt("Try it on r/pics")),
-                    rt.txt(" (note: to try, you have to enable something or other in settings. @TBD@)"),
                     // ^ consider prefering page2 if `--tc-view` is present in urlsearchparams
                 ),
             ],
