@@ -113,7 +113,11 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                         height: `${emoji.hover.h}`,
                     }),
                 ).adch(
-                    el("div").atxt(emoji.hover.description).clss("mt-2 bg-slate-100 dark:bg-zinc-800 border border-b-0 border-r-0 border-slate-500 shadow-md dark:border-zinc-500 rounded-md p-2")
+                    el("div").adch(
+                        el("div").atxt(emoji.name).clss("font-bold"),
+                    ).adch(
+                        el("div").atxt(emoji.hover.description),
+                    ).clss("mt-2 bg-slate-100 dark:bg-zinc-800 border border-b-0 border-r-0 border-slate-500 shadow-md dark:border-zinc-500 rounded-md p-2")
                 );
                 document.body.appendChild(elem);
                 elem.animate([
