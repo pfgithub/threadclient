@@ -13,12 +13,13 @@ import {
 } from "../util/utils_solid";
 import { addAction } from "./action_tracker";
 import { Body } from "./body";
+import Clickable from "./Clickable";
 import { CollapseButton } from "./CollapseButton";
 import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import Hactive from "./Hactive";
 import { InternalIconRaw } from "./Icon";
-import { A, Clickable } from "./links";
+import { A } from "./links";
 import { ClientContentAny } from "./page2";
 import proxyURL from "./proxy_url";
 import SwipeActions from "./SwipeActions";
