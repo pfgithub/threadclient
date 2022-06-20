@@ -102,6 +102,22 @@
 - use windi css analyzer to find all classes (eg `mt-5px` and especially arbitrary `mt-34` eg)
 - use tailwind css analyzer to confirm all migrated correctly
 
+# notes on reply ui
+
+so replies are usually:
+
+- add a node into the children tree (using something similar to the collapse states object) where you can
+  type your reply and post it
+
+consider:
+
+- if the children tree is not visible, instead repivot to the new reply you're typing
+  - this thing will have a temporary symbol id
+  - once it's posted, we can repivot to the real object
+
+anyway, this should only be used when needed. I think it's nice usually to be able to draft a reply but still look
+at other posts.
+
 # note
 
 sorting
