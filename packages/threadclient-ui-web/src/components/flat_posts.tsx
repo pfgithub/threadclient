@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { For, JSX } from "solid-js";
 import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
-import { CounterState } from "../app";
+import { CounterState, previewLink } from "../app";
 import { addAction } from "./action_tracker";
 import { actAuto, getCounterState } from "./counter";
 import { getCState, postContentCollapseInfo } from "./flatten";
@@ -310,6 +310,8 @@ export function getThumbnailPreview(body: Generic.Body): ThumbnailPreview {
     } else if(body.kind === "gallery") {
         return {kind: "gallery", count: body.images.length};
     } else if(body.kind === "link") {
+        const preview_res = previewLink(body.url, {});
+        if(preview_res != null) return getThumbnailPreview(preview_res);
         return {kind: "icon", icon: "link"};
     } else return {
         kind: "icon",

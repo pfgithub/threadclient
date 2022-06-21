@@ -333,7 +333,6 @@ export function PostTopBar(props: ClientPostProps & {
                 >
                     <SwitchKind item={thumb_any}>{{
                         image: img => <img
-                            // TODO based on the img content, display eg a play button or something
                             src={proxyURL(img.url)}
                             alt=""
                             class={classes(
