@@ -1,6 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, onCleanup } from "solid-js";
+import { previewLink } from "threadclient-preview";
 import { updateQuery } from "tmeta-util";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import Clickable from "../../components/Clickable";
@@ -173,7 +174,18 @@ function FullscreenBodyInfoLine(props: {
         captioned_image: img => <Show when={img.caption}>{caption => <>
             <div>{caption}</div>
         </>}</Show>,
+        // vv consider making this part of <FullscreenBody> provided with a provider so we can
+        //     show the caption for the current image and say eg "image 1/3"
         gallery: gal => <div>{gal.images.length} images</div>,
+        link: url => <div>
+            <div><Clickable class="underline" action={{
+                url: url.url,
+                client_id: url.client_id,
+            }}>{url.url}</Clickable></div>
+            <Show when={previewLink(url.url, {suggested_embed: url.embed_html})}>{body => (
+                <FullscreenBodyInfoLine body={body} />
+            )}</Show>
+        </div>,
     }}</SwitchKind>;
 }
 
@@ -209,6 +221,11 @@ function FullscreenBody(props: {
                 </div>
             </div>
         </div>,
+        link: url => <Show when={previewLink(url.url, {suggested_embed: url.embed_html})} fallback={
+            <div>External Link. TODO click to open</div>
+        }>{body => (
+            <FullscreenBody body={body} toggleUI={props.toggleUI} />
+        )}</Show>,
     }}</SwitchKind>;
 }
 
