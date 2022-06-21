@@ -103,7 +103,7 @@ function RichtextSpan(props: {span: Generic.Richtext.Span}): JSX.Element {
                 const elem = el("div").styl({
                     'position': "fixed",
                     'top': (bcr.top + bcr.height) + "px",
-                    'left': (bcr.left - emoji.hover.w / 2) + "px",
+                    'left': (bcr.left + (bcr.width / 2) - emoji.hover.w / 2) + "px",
                     'width': emoji.hover.w + "px",
                     'z-index': "100000000",
                 }).adch(
