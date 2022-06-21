@@ -1,7 +1,8 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
-import { createEffect, createMemo, createSignal, For, JSX, onCleanup } from "solid-js";
+import { createEffect, createMemo, createSignal, For, JSX, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
+import { Dynamic } from "solid-js/web";
 import { previewLink } from "threadclient-preview";
 import { updateQuery } from "tmeta-util";
 import { Show, SwitchKind } from "tmeta-util-solid";
@@ -502,18 +503,22 @@ export default function FullscreenSnapView(props: {
             let visible_now = false;
             let req: number | undefined;
 
-            return <div class="snap-center w-full h-full relative"><div class="absolute top-0 left-0 bottom-0 right-0 transform scale-150" ref={el => {
-                (el as Hasoursym)[oursym] = true;
-                createEffect((pv: Hasoursym | null) => {
-                    const zv = zoomed();
-                    el.style.display = zv == null || el === zv ? "" : "none";
-                    if(zv == null && pv != null && el === pv) {
-                        pv.scrollIntoView();
-                    }
-                    return zv;
-                }, null);
-                new IntersectionObserver((e) => {
+            let parent_el!: HTMLDivElement;
+            let detector_el!: HTMLDivElement;
+
+            onMount(() => {
+                const ise = new IntersectionObserver((e) => {
                     e.forEach(entry => {
+                        if(entry.target === parent_el) {
+                            if(entry.isIntersecting) {
+                                visible_now = true;
+                                if(req != null) cancelIdleCallback(req);
+                                setTimeout(() => {
+                                    setShowContent(visible_now);
+                                }, 300); // so it doesn't do it if you scroll over a bunch
+                            }
+                            return;
+                        }else if(entry.target !== detector_el) return;
                         // ios safari:
                         if(!('requestIdleCallback' in window)) {
                             (window as unknown as {
@@ -532,8 +537,9 @@ export default function FullscreenSnapView(props: {
                             visible_now = true;
                             if(req != null) cancelIdleCallback(req);
                             req = requestIdleCallback(() => {
+                                req = undefined;
                                 setShowContent(visible_now);
-                            }, {timeout: 500});
+                            });
                             // ^ ideally we should just skip the idle callback the moment the first pixel is
                             // visible but that's complicated because intersectionobserver doesn't allow negative
                             // margins and you have to use rootMargin instead
@@ -541,6 +547,7 @@ export default function FullscreenSnapView(props: {
                             visible_now = false;
                             if(req != null) cancelIdleCallback(req);
                             req = requestIdleCallback(() => {
+                                req = undefined;
                                 setShowContent(visible_now);
                             });
                         }
@@ -548,8 +555,24 @@ export default function FullscreenSnapView(props: {
                 }, {
                     root: document.documentElement,
                     threshold: 0,
-                }).observe(el);
-            }}></div>
+                });
+                ise.observe(parent_el);
+                ise.observe(detector_el);
+            });
+
+            return <div class="snap-center w-full h-full relative" data-visible={"" + showContent()} ref={el => {
+                parent_el = el;
+                (el as Hasoursym)[oursym] = true;
+                createEffect((pv: Hasoursym | null) => {
+                    const zv = zoomed();
+                    el.style.display = zv == null || el === zv ? "" : "none";
+                    if(zv == null && pv != null && el === pv) {
+                        pv.scrollIntoView();
+                    }
+                    return zv;
+                }, null);
+            }}>
+                <Dynamic component="intersection-observer" class="absolute top-0 left-0 bottom-0 right-0 transform scale-150 pointer-events-none" ref={detector_el} />
                 <Show if={showContent()} fallback="… loading">
                     <SwitchKind item={item}>{{
                         'error': (emsg) => <div class="w-full h-full">
