@@ -492,7 +492,7 @@ export default function FullscreenSnapView(props: {
     onCleanup(() => visualViewport.removeEventListener("resize", rszel));
 
     return <div class={
-        "bg-hex-000 h-screen overflow-y-scroll snap-mandatory text-zinc-100 space-y-8 "
+        "bg-hex-000 h-screen overflow-y-scroll snap-mandatory text-zinc-100 space-y-8 overflow-hidden "
         +(zoomed() != null ? "" : "snap-y")
     } style={{
         'touch-action': "auto",
