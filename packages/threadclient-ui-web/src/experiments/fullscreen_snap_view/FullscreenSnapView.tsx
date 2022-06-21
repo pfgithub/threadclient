@@ -491,7 +491,7 @@ export default function FullscreenSnapView(props: {
     onCleanup(() => visualViewport.removeEventListener("resize", rszel));
 
     return <div class={
-        "bg-hex-000 h-screen overflow-y-scroll snap-mandatory text-zinc-100 "
+        "bg-hex-000 h-screen overflow-y-scroll snap-mandatory text-zinc-100 space-y-8 "
         +(zoomed() != null ? "" : "snap-y")
     } style={{
         'touch-action': "auto",
@@ -502,7 +502,7 @@ export default function FullscreenSnapView(props: {
             let visible_now = false;
             let req: number | undefined;
 
-            return <div class="snap-center w-full h-full" ref={el => {
+            return <div class="snap-center w-full h-full relative"><div class="absolute top-0 left-0 bottom-0 right-0 transform scale-150" ref={el => {
                 (el as Hasoursym)[oursym] = true;
                 createEffect((pv: Hasoursym | null) => {
                     const zv = zoomed();
@@ -526,6 +526,8 @@ export default function FullscreenSnapView(props: {
                             })["cancelIdleCallback"] = () => void 0;
                         }
 
+                        console.log("INTERSECTIONOBSERVER CB", e);
+
                         if(entry.isIntersecting) {
                             visible_now = true;
                             if(req != null) cancelIdleCallback(req);
@@ -544,10 +546,10 @@ export default function FullscreenSnapView(props: {
                         }
                     });
                 }, {
-                    rootMargin: "50%",
+                    root: document.documentElement,
                     threshold: 0,
                 }).observe(el);
-            }}>
+            }}></div>
                 <Show if={showContent()} fallback="… loading">
                     <SwitchKind item={item}>{{
                         'error': (emsg) => <div class="w-full h-full">
