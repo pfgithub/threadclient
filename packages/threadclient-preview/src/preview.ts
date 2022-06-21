@@ -273,7 +273,7 @@ export async function gfyLike2(
             flair: gif.tags.map((tag): Generic.Flair => ({
                 content_warning: false,
                 elems: [
-                    {kind: "text", text: tag},
+                    {kind: "text", text: tag, styles: {}},
                 ],
             })),
             info: {
