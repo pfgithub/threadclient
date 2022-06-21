@@ -302,7 +302,21 @@ function FullscreenVideoPlayer(props: {
                 class="w-full h-full"
             />
         </div>
-        <div class="absolute top-0 left-0 bottom-0 right-0">
+        <div class="absolute top-0 left-0 bottom-0 right-0" ref={el => {
+            new IntersectionObserver((itms => {
+                itms.forEach(itm => {
+                    if(itm.target === el) {
+                        if(itm.isIntersecting) {
+                            video_ref.play();
+                        }else{
+                            video_ref.pause();
+                        }
+                    }
+                });
+            }), {
+                threshold: 0.5,
+            }).observe(el);
+        }}>
             <NativeVideoElement
                 state={state}
                 setState={setState}
