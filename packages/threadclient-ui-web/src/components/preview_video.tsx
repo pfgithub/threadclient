@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import type shaka_types from "shaka-player";
-import { createEffect, createMemo, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
+import { Accessor, createEffect, createMemo, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v, zoomableImage } from "../app";
@@ -69,7 +69,7 @@ async function initShaka(shaka: typeof shaka_types): Promise<void> {
     shaka_initialized = true;
 }
 
-function NativeVideoElement(props: {
+export function NativeVideoElement(props: {
     state: Store<VideoState>,
     setState: SetStoreFunction<VideoState>,
     videoRef: (v: VideoRef) => void,
@@ -78,7 +78,7 @@ function NativeVideoElement(props: {
     source: Generic.VideoSourceVideo,
     sources: VideoSourceI[],
     autoplay: boolean,
-    custom_controls: boolean,
+    show_controls: boolean,
 }): JSX.Element {
     let video_el!: HTMLVideoElement;
 
@@ -122,6 +122,8 @@ function NativeVideoElement(props: {
                     shaka_player.goToLive(); // just sets currentTime to the end of the seekable range
                 }
             },
+
+            video_el,
         });
 
         createEffect(on([() => props.source], () => {
@@ -244,7 +246,7 @@ function NativeVideoElement(props: {
 
     return <video
         ref={video_el}
-        controls={!props.custom_controls}
+        controls={props.show_controls}
         class="object-contain w-full h-full"
         autoplay={props.autoplay}
         loop={props.video.gifv}
@@ -341,7 +343,7 @@ function NativeVideoElement(props: {
 //     return <div></div>
 // }
 
-type VideoState = {
+export type VideoState = {
     max_time: number, // 0 | "loading"?
     current_time: number,
     quality: {w: number, h: number} | null,
@@ -355,13 +357,15 @@ type VideoState = {
         current: number,
     } | null,
 };
-type VideoRef = {
+export type VideoRef = {
     play(): void,
     pause(): void,
     setPlaybackRate(rate: number): void,
     seek(target: number): void,
     reload(): void,
     goToLive(): void,
+
+    video_el: HTMLVideoElement,
 };
 
 type SeekState = {
@@ -383,8 +387,20 @@ function compareTime(target_time: number): () => boolean {
     return result;
 }
 
-type VideoSourceI = {i: number, url: string, quality?: undefined | string};
-type BufferNode = {start: number, end: number};
+export function getVideoSources(
+    targetQuality: Accessor<number>,
+    sources: {url: string, quality?: undefined | string}[],
+): VideoSourceI[] {
+    const target_index = targetQuality();
+    const full_sources = sources.map((s, i) => ({...s, i}));
+    return [
+        ...full_sources.filter(src => src.i >= target_index),
+        ...full_sources.filter(src => src.i < target_index).reverse(),
+    ];
+}
+
+export type VideoSourceI = {i: number, url: string, quality?: undefined | string};
+export type BufferNode = {start: number, end: number};
 function PreviewRealVideo(props: {
     video: Generic.Video,
     source: Generic.VideoSourceVideo,
@@ -437,14 +453,8 @@ function PreviewRealVideo(props: {
     // [ ] mobile support for all the controls and stuff if you tap
     // [ ] fullscreen
 
-    const sources = (): VideoSourceI[] => {
-        const target_index = targetQuality();
-        const full_sources = props.source.sources.map((s, i) => ({...s, i}));
-        return [
-            ...full_sources.filter(src => src.i >= target_index),
-            ...full_sources.filter(src => src.i < target_index).reverse(),
-        ];
-    };
+    const sources = createMemo(() => getVideoSources(targetQuality, props.source.sources));
+
     const qualities = (): {index: number, name: string}[] => {
         const res = new Map<string, {index: number}>();
         for(const [i, source] of props.source.sources.entries()) {
@@ -506,7 +516,7 @@ function PreviewRealVideo(props: {
                 source={props.source}
                 sources={sources()}
                 autoplay={props.autoplay}
-                custom_controls={customControls()}
+                show_controls={!customControls()}
             />
             <Show when={state.error_overlay}>{overlay => (
                 <div

@@ -1,6 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, onCleanup } from "solid-js";
+import { createStore } from "solid-js/store";
 import { previewLink } from "threadclient-preview";
 import { updateQuery } from "tmeta-util";
 import { Show, SwitchKind } from "tmeta-util-solid";
@@ -11,6 +12,7 @@ import { FormattableNumber } from "../../components/flat_posts";
 import Icon, { InternalIconRaw } from "../../components/Icon";
 import InfoBar, { formatItemString } from "../../components/InfoBar";
 import { ClientPostOpts } from "../../components/Post";
+import { getVideoSources, NativeVideoElement, VideoRef, VideoState } from "../../components/preview_video";
 import proxyURL from "../../components/proxy_url";
 import { collapse_data_context, getWholePageRootContext } from "../../util/utils_solid";
 
@@ -186,13 +188,14 @@ function FullscreenBodyInfoLine(props: {
                 <FullscreenBodyInfoLine body={body} />
             )}</Show>
         </div>,
+        video: vid => <div>{vid.caption}</div>,
     }}</SwitchKind>;
 }
 
 function FullscreenBody(props: {
     body: Generic.Body,
 
-    toggleUI: () => void,
+    toggleUI: () => void, // get rid of this & use injection
 }): JSX.Element {
     return <SwitchKind item={props.body} fallback={itm => <div>
         TODO {itm.kind}
@@ -226,7 +229,102 @@ function FullscreenBody(props: {
         }>{body => (
             <FullscreenBody body={body} toggleUI={props.toggleUI} />
         )}</Show>,
+        video: video => <div class="w-full h-full">
+            <SwitchKind item={video.source}>{{
+                video: source => <FullscreenVideoPlayer video={video} source={source} />,
+                img: img => <FullscreenBody body={{
+                    kind: "captioned_image",
+                    url: img.url,
+                    w: null,
+                    h: null,
+                }} toggleUI={props.toggleUI} />,
+            }}</SwitchKind>
+        </div>
     }}</SwitchKind>;
+}
+
+function FullscreenVideoPlayer(props: {
+    video: Generic.Video,
+    source: Generic.VideoSourceVideo,
+}): JSX.Element {
+    // GESTURES:
+    // - tap drag left/right: seek
+    // - single tap: play/pause
+
+    const [targetQuality, setTargetQuality] = createSignal(0);
+    () => setTargetQuality;
+    const sources = createMemo(() => getVideoSources(targetQuality, props.source.sources));
+
+    let canvasel!: HTMLCanvasElement;
+
+    let video_ref!: VideoRef; // use this to draw a canvas
+    const [state, setState] = createStore<VideoState>({
+        max_time: 0,
+        current_time: 0,
+        quality: null,
+        buffered: [],
+        playing: "loading",
+        error_overlay: null,
+        errored_sources: {},
+        playback_rate: 1,
+        live: null,
+    });
+
+    // VVVV this is fun but I don't think it's necessary
+    // let pframe = 0;
+    // const anfreq = () => requestAnimationFrame(() => {
+    //     anf = anfreq();
+    //     if(pframe === video_ref.video_el.currentTime) return;
+    //     pframe = video_ref.video_el.currentTime;
+
+    //     const ctx2d = canvasel.getContext("2d");
+    //     if(!ctx2d) {
+    //         // ?
+    //         return;
+    //     }
+
+    //     if(video_ref != null) ctx2d.drawImage(
+    //         video_ref.video_el, 0, 0,
+    //         canvasel.width, canvasel.height,
+    //     );
+    //     ctx2d.globalCompositeOperation = "copy";
+    //     // vv this filter url is working fine but it seems the js canvas doesn't like it for some reason
+    //     ctx2d.filter = "url(#sharpBlur)";
+    //     ctx2d.drawImage(canvasel, 0, 0);
+    // });
+    // let anf = anfreq();
+    // onCleanup(() => cancelAnimationFrame(anf));
+
+    return <div class="relative w-full h-full">
+        <div class="absolute top-0 left-0 bottom-0 right-0">
+            <canvas
+                ref={canvasel} width={20} height={20}
+                class="w-full h-full"
+            />
+        </div>
+        <div class="absolute top-0 left-0 bottom-0 right-0">
+            <NativeVideoElement
+                state={state}
+                setState={setState}
+                videoRef={v => {
+                    video_ref = v;
+                    
+                    video_ref.video_el.addEventListener("click", e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if(state.playing === false) video_ref.play(); else video_ref.pause();
+                        // ^ TODO: display the same play state indicators the other thing has
+                    });
+                }}
+
+                video={props.video}
+                source={props.source}
+                sources={sources()}
+                autoplay={false}
+                show_controls={false}
+            />
+        </div>
+    </div>;
 }
 
 function ContentWarningDisplay(props: {
