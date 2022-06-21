@@ -590,6 +590,11 @@ export function changelog2() {return autoPost({
                 rt.ili(rt.txt("Clear some technical debt")),
             ],
         },
+        ["@@"]: {
+            internal: [
+                rt.ili(rt.txt("Introduce some more technical debt")),
+            ],
+        },
 
         // in command: git log --stat "bd54c07697d47be3c68f14162c37f54ea1fbe752..HEAD"
         // MOST RECENT COMMIT ADDED: b2130e5823ecc062651bfd0f703bdbd5dcfb624a
