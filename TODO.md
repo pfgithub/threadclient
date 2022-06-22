@@ -30,6 +30,7 @@
   - not sure if anyone uses this. I'm not aiming for parity right now.
 - ui:
   - [ ] feature request / report issue links
+  - [ ] set page title
 
 ## these are not necessary for parity, but would be nice to have:
 
