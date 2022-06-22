@@ -5,8 +5,9 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
-import { link_styles_v, MutablePage2HistoryNode } from "../app";
 import { CollapseData } from "../components/flatten";
+import { link_styles_v } from "../page1";
+import { MutablePage2HistoryNode } from "../page1_routing";
 
 export { localStorageSignal };
 export { screenWidth };

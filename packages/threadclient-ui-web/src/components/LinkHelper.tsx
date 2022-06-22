@@ -1,7 +1,8 @@
 import type * as Generic from "api-types-generic";
 import { createMemo, createSignal, JSX } from "solid-js";
+import { previewLink } from "threadclient-preview";
 import { Show } from "tmeta-util-solid";
-import { previewLink, unsafeLinkToSafeLink } from "../app";
+import { unsafeLinkToSafeLink } from "../tc_helpers";
 import {
     classes, getSettings,
 } from "../util/utils_solid";

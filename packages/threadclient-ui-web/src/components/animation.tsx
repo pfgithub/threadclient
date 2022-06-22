@@ -3,7 +3,7 @@ import {
     createEffect, createSignal, JSX, on, untrack
 } from "solid-js";
 import { Show } from "tmeta-util-solid";
-import { navbar } from "../app";
+import { navbar } from "../router";
 import { getSettings, Settings } from "../util/utils_solid";
 
 export let shift_pressed = false;

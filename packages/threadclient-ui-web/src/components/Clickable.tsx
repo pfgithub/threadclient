@@ -1,9 +1,8 @@
 import type * as Generic from "api-types-generic";
 import { JSX } from "solid-js";
 import { createMergeMemo, SwitchKind } from "tmeta-util-solid";
-import {
-    isModifiedEvent, navigate, unsafeLinkToSafeLink
-} from "../app";
+import { navigate } from "../page1_routing";
+import { isModifiedEvent, unsafeLinkToSafeLink } from "../tc_helpers";
 import { getSettings } from "../util/utils_solid";
 
 export type ClickAction = {

@@ -3,7 +3,7 @@ import type shaka_types from "shaka-player";
 import { Accessor, createEffect, createMemo, createSignal, For, Index, JSX, on, onCleanup, onMount } from "solid-js";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { link_styles_v, zoomableImage } from "../app";
+import { link_styles_v, zoomableImage } from "../page1";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { classes, getIsVisible, getSettings, Icon } from "../util/utils_solid";
 

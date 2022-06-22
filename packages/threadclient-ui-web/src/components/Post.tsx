@@ -4,7 +4,8 @@ import {
     For, JSX, Setter, untrack
 } from "solid-js";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
-import { link_styles_v, navigate } from "../app";
+import { link_styles_v } from "../page1";
+import { navigate } from "../page1_routing";
 import {
     classes, getSettings, getWholePageRootContextOpt, size_lt,
 } from "../util/utils_solid";

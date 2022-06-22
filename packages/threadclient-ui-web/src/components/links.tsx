@@ -1,8 +1,9 @@
 import type * as Generic from "api-types-generic";
 import { createMemo, createSignal, JSX } from "solid-js";
+import { previewLink } from "threadclient-preview";
 import { Show } from "tmeta-util-solid";
-import { LinkStyle, link_styles_v, previewLink } from "../app";
 import { getRandomColor, rgbToString, seededRandom } from "../darken_color";
+import { LinkStyle, link_styles_v } from "../page1";
 import { ShowAnimate } from "./animation";
 import { Body } from "./body";
 import Clickable, { ClickAction } from "./Clickable";

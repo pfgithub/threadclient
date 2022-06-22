@@ -7,7 +7,8 @@ import {
 } from "solid-js";
 import { switchKind } from "tmeta-util";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
-import { fetchClient, navigate } from "../app";
+import { fetchClient } from "../clients";
+import { navigate } from "../page1_routing";
 import {
     classes, DefaultErrorBoundary, getWholePageRootContext, PageRootContext, size_lt,
 } from "../util/utils_solid";

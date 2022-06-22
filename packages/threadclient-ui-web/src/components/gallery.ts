@@ -1,5 +1,6 @@
-import { hideshow, HideShowCleanup } from "../app";
 import type * as Generic from "api-types-generic";
+import { rootel } from "../router";
+import { hideshow, HideShowCleanup } from "../page1";
 
 import PhotoSwipe from "photoswipe";
 import PhotoSwipeUI_Default from "photoswipe/dist/photoswipe-ui-default";
@@ -8,7 +9,6 @@ import "photoswipe/dist/photoswipe.css";
 import "photoswipe/dist/default-skin/default-skin.css";
 
 import "./gallery.scss";
-import { rootel } from "../router";
 
 export function showGallery(
     images: Generic.GalleryItem[],

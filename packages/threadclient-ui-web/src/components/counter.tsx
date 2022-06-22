@@ -2,9 +2,8 @@ import type * as Generic from "api-types-generic";
 import { Accessor, createMemo, createSignal, JSX, onCleanup } from "solid-js";
 import type { ThreadClient } from "threadclient-client-base";
 import { Show } from "tmeta-util-solid";
-import {
-    CounterState, fetchClient, watchCounterState
-} from "../app";
+import { fetchClient } from "../clients";
+import { CounterState, watchCounterState } from "../tc_helpers";
 import { colorClass } from "./color";
 import Icon from "./Icon";
 

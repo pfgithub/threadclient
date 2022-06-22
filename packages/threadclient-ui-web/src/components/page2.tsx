@@ -1,7 +1,8 @@
 import type * as Generic from "api-types-generic";
 import { JSX } from "solid-js";
 import { SwitchKind } from "tmeta-util-solid";
-import { clientContent, clientListing, getClientCached } from "../app";
+import { getClientCached } from "../clients";
+import { clientContent, clientListing } from "../page1";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { DefaultErrorBoundary } from "../util/utils_solid";
 import ClientPost, { ClientPostOpts } from "./Post";

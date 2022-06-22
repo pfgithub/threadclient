@@ -1,7 +1,8 @@
 import type * as Generic from "api-types-generic";
 import { For, JSX } from "solid-js";
+import { previewLink } from "threadclient-preview";
 import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
-import { CounterState, previewLink } from "../app";
+import { CounterState } from "../tc_helpers";
 import { addAction } from "./action_tracker";
 import { actAuto, getCounterState } from "./counter";
 import { getCState, postContentCollapseInfo } from "./flatten";

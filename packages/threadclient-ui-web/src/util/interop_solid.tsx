@@ -1,6 +1,6 @@
 import { createEffect, createSignal, JSX, onCleanup, untrack } from "solid-js";
 import { render } from "solid-js/web";
-import { hideshow, HideShowCleanup } from "../app";
+import { hideshow, HideShowCleanup } from "../page1";
 import { getIsVisible, HideshowProvider } from "./utils_solid";
 
 export function vanillaToSolidBoundary(

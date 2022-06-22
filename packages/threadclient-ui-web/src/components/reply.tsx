@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import { createSignal, JSX } from "solid-js";
 import { createMergeMemo, Show } from "tmeta-util-solid";
-import { getClientCached } from "../app";
+import { getClientCached } from "../clients";
 import { getSettings, localStorageSignal } from "../util/utils_solid";
 import { ClientContent, CrosspostWrapper } from "./page2";
 

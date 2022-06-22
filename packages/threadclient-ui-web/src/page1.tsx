@@ -2,87 +2,28 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
-import { createEffect, createMemo, createSignal, JSX, untrack } from "solid-js";
+import { createEffect, createMemo, createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
-import { gfyLike2, previewLink } from "threadclient-preview";
-import { escapeHTML, UUID } from "tmeta-util";
-import { allowedToAcceptClick, Debugtool, Show, TimeAgo } from "tmeta-util-solid";
+import { previewLink } from "threadclient-preview";
+import { assertNever } from "tmeta-util";
+import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
+import { fetchClient, getClientCached } from "./clients";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
 import { CollapseButton } from "./components/CollapseButton";
 import { Flair } from "./components/Flair";
 import { Homepage } from "./components/homepage";
 import { ClientContentAny } from "./components/page2";
-import ClientPage from "./components/PageRoot";
 import proxyURL from "./components/proxy_url";
 import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
-import {
-    alertarea, client_cache, current_nav_history_key, global_counter_info, navigate_event_handlers,
-    nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid,
-} from "./router";
+import { hidePage2, MutablePage2HistoryNode, navigate, showPage2 } from "./page1_routing";
+import { rootel } from "./router";
+import { getPointsText, isModifiedEvent, unsafeLinkToSafeLink, watchCounterState } from "./tc_helpers";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import { DefaultErrorBoundary, getSettings, PageRootProvider } from "./util/utils_solid";
-
-// TODO add support for navigation without any browser navigation things
-// eg within the frame of /pwa-start, display the client and have custom nav buttons
-// on the top that don't use history or whatever
-export { alertarea, availableForOfflineUse, bodytop, navbar, updateAvailable, updateSW } from "./router";
-export { previewLink, gfyLike2 };
-
-function assertNever(content: never): never {
-    console.log("not never:", content);
-    throw new Error("is not never");
-}
-
-export function isModifiedEvent(event: MouseEvent): boolean {
-    return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
-}
-
-export type SafelinkLink = {kind: "link", url: string, external: boolean};
-export function unsafeLinkToSafeLink(client_id: string, href: string): (
-    | {kind: "error", title: string}
-    | {kind: "mailto", title: string}
-    | SafelinkLink
-) {
-    // TODO get this to support links like https://….reddit.com/… and turn them into SPA links
-    if(href.startsWith("/") && client_id) {
-        href = "/"+client_id+href;
-    }
-    if(href.startsWith("mailto:")) {
-        return {kind: "mailto", title: href.replace("mailto:", "")};
-    }
-    let is_raw = false;
-    if(href.startsWith("raw!")) {
-        href = href.replace("raw!", "");
-        is_raw = true;
-    }
-    if(!href.startsWith("http") && !href.startsWith("/")) {
-        return {kind: "error", title: href};
-    }
-    // consider just returning "#https://www.reddit.com/" instead of having this url replacement logic
-    let urlparsed: URL | undefined;
-    try {
-        urlparsed = new URL(href);
-    }catch(e) {
-        urlparsed = undefined;
-    }
-    if(urlparsed && !is_raw && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
-        if(urlparsed.host === "mod.reddit.com") {
-            href = "/reddit/mod"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
-        }else{
-            href = "/reddit"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
-        }
-    }
-    if(urlparsed && !is_raw && (urlparsed.host === "redd.it")) {
-        href = "/reddit/comments"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
-    }
-
-    if(href.startsWith("/")) return {kind: "link", url: href.replace("/", "#"), external: false};
-    return {kind: "link", url: href, external: true};
-}
+import { DefaultErrorBoundary, getSettings } from "./util/utils_solid";
 
 function linkButton(
     client_id: string,
@@ -119,6 +60,7 @@ function linkButton(
         return res;
     }else assertNever(link_type);
 }
+
 
 function embedYoutubeVideo(
     youtube_video_id: string,
@@ -242,11 +184,7 @@ export function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
     return hsc;
 }
 
-type RedditMarkdownRenderer = {
-    renderMd(text: string): string & {_is_safe: true},
-};
-
-function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
+export function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
     let load_state: undefined | (() => void)[] | {loaded: T};
     return async (): Promise<T> => {       
         if(!load_state) {
@@ -272,91 +210,6 @@ function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
     };
 }
 
-export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdownRenderer> => {
-    const enc = new TextEncoder();
-    const dec = new TextDecoder();
-    const exports = await (await import("./snudown.wasm")).default<{
-        memory: WebAssembly.Memory,
-
-        // (len: usize) => [*]u8
-        //   creates a u8 array of specified length
-        allocString: (len: number) => number,
-
-        // (ptr: [*]u8, len: usize)
-        //   frees a u8 array of specified length
-        freeText: (ptr: number, len: number) => void,
-
-        // (strptr: [*]u8, len: usize) => [*:0]u8 (caller must free!)
-        //   converts markdown to html. panics on oom. returns
-        //   a null-terminated utf-8 string the caller must free.
-        markdownToHTML: (strptr: number, len: number) => number,
-
-        // (strptr: [*:0]u8) => usize
-        //   gets the byte length of a null-terminated string.
-        strlen: (strptr: number) => number,
-    }>({
-        env: {
-            __assert_fail: (assertion: number, file: number, line: number, fn: number) => {
-                console.log(assertion, file, line, fn);
-                throw new Error("assert failed");
-            },
-            __stack_chk_fail: () => {
-                throw new Error("stack overflow");
-            },
-            debugprints: (text: number, len: number) => {
-                console.log("print text:",dec.decode(new Uint8Array(exports.memory.buffer, text, len)));
-            },
-            debugprinti: (intv: number) => {
-                console.log("print int:", intv);
-            },
-            debugprintc: (intv: number) => {
-                console.log("print char:", String.fromCodePoint(intv));
-            },
-            debugpanic: (text: number, len: number) => {
-                throw new Error("Panic: "+ dec.decode(new Uint8Array(exports.memory.buffer, text, len)));
-            }
-        },
-    });
-    return {renderMd(md: string) {
-        try{
-            const utf8 = enc.encode(md);
-            const strptr = exports.allocString(utf8.byteLength);
-            const inmem = new Uint8Array(exports.memory.buffer, strptr, utf8.byteLength);
-            inmem.set(utf8);
-            const res = exports.markdownToHTML(strptr, utf8.byteLength);
-            const outlen = exports.strlen(res);
-            const outarr = new Uint8Array(exports.memory.buffer, res, outlen);
-            const decoded = dec.decode(outarr);
-            exports.freeText(strptr, utf8.byteLength);
-            exports.freeText(res, outlen);
-            return decoded as string & {_is_safe: true};
-        }catch(er){
-            const e = er as Error;
-            // note that chrome sometimes crashes on wasm errors and this
-            // handler might not run.
-            console.log(e.toString() + "\n" + e.stack);
-            return escapeHTML("Error "+e.toString()+"\n"+e.stack) as string & {_is_safe: true};
-        }
-    }};
-});
-
-export async function textToBody(body: Generic.BodyText): Promise<Generic.Body> {
-    const content = body.content;
-    if(body.markdown_format === "reddit") {
-        const [mdr, htr] = await Promise.all([
-            getRedditMarkdownRenderer(),
-            import("threadclient-client-reddit/src/html_to_richtext"),
-        ]);
-        const safe_html = mdr.renderMd(content);
-        return {kind: "richtext", content: htr.parseContentHTML(safe_html, body.client_id)};
-    }else if(body.markdown_format === "none") {
-        return {kind: "richtext", content: [rt.p(rt.txt(content))]};
-    }else if(body.markdown_format === "reddit_html") {
-        const htr = await import("threadclient-client-reddit/src/html_to_richtext");
-        console.log(content);
-        return {kind: "richtext", content: htr.parseContentHTML(content, body.client_id)};
-    }else assertNever(body.markdown_format);
-}
 
 export function renderBody(
     body: Generic.Body,
@@ -412,6 +265,7 @@ export function renderOembed(body: Generic.OEmbedBody): HideShowCleanup<HTMLDivE
     return hsc;
 }
 
+
 export function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<Node> {
     // TODO?: render a body with markdown type unsafe-html that supports iframes
     try {
@@ -448,143 +302,6 @@ export function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<N
     }
 }
 
-// what if eventually stuff like this returned a Generic.Thread or something
-// and it was displayed like a crosspost
-// that could be interesting maybe
-export async function getTwitchClip(
-    clipid: string,
-): Promise<Generic.Body> {
-    function gqlRequest(operation: string, hash: string, gql_vars: unknown) {
-        return {
-            extensions: {persistedQuery: {sha256Hash: hash, version: 1}},
-            operationName: operation,
-            variables: gql_vars,
-        };
-    }
-
-    const res_untyped: unknown = await fetch("https://gql.twitch.tv/gql", {
-        method: "POST",
-        headers: {
-            'Content-Type': "application/json",
-            'Accept': "application/json",
-            'Client-Id': "kimne78kx3ncx6brgo4mv6wki5h1ko",
-        },
-        body: JSON.stringify([
-            gqlRequest("VideoAccessToken_Clip",
-                "36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11",
-                {slug: clipid}
-            ),
-            gqlRequest("ClipsChatCard",
-                "94c1c7d97d860722a5b7ef3c3b3de3783b37fc32d69bcccc8ea0cda372cf1f01",
-                {slug: clipid}
-            ),
-            gqlRequest("ClipsBroadcasterInfo", // 9
-                "ce258d9536360736605b42db697b3636e750fdb14ff0a7da8c7225bdc2c07e8a",
-                {slug: clipid}
-            ),
-            gqlRequest("ClipsTitle", // 12
-                "f6cca7f2fdfbfc2cecea0c88452500dae569191e58a265f97711f8f2a838f5b4",
-                {slug: clipid}
-            ),
-            gqlRequest("ClipsCurator", // 13
-                "769e99d9ac3f68e53c63dd902807cc9fbea63dace36c81643d776bcb120902e2",
-                {slug: clipid}
-            ),
-            gqlRequest("ClipsFullVideoButton", // 14
-                "d519a5a70419d97a3523be18fe6be81eeb93429e0a41c3baa9441fc3b1dffebf",
-                {slug: clipid}
-            ),
-        ]),
-    }).then(r => r.json());
-    console.log(res_untyped);
-    const [video, chat_card, broadcaster_info, title, curator, full_video_btn] = res_untyped as [
-        video: {data: {clip: null | {
-            id: string,
-            playbackAccessToken: {
-                signature: string,
-                value: string,
-            },
-            videoQualities: {
-                frameRate: number,
-                quality: "360" | "480" | "720" | "unsupported",
-                sourceURL: string,
-            }[],
-        }}},
-        chat_card: {data: {clip: {
-            id: string,
-            videoOffsetSeconds: number,
-            createdAt: string,
-            curator: {id: string, login: string},
-            video: {id: string, login: string},
-        }}},
-        broadcaster_info: {data: {clip: {
-            id: string,
-            game: {name: string, displayName: string},
-            broadcaster: {
-                id: string,
-                profileImageURL: string,
-                displayName: string,
-                login: string,
-                stream: null,
-            },
-        }}},
-        title: {data: {clip: {
-            id: string,
-            title: string,
-        }}},
-        curator: {data: {clip: {
-            id: string,
-            curator: {id: string, displayName: string, login: string},
-        }}},
-        full_video_btn: {data: {clip: {
-            id: string,
-            videoOffsetSeconds: number,
-            durationSeconds: number,
-            title: string,
-            broadcaster: {id: string, login: string},
-            video: {id: string, broadcastType: "ARCHIVE" | "unsupported"},
-            game: {id: string, displayName: string},
-        }}},
-    ];
-    if(!video.data.clip) {
-        return {
-            kind: "richtext",
-            content: [
-                rt.p(rt.txt("The clip could not be found."))
-            ],
-        };
-    }
-
-    () => [chat_card, broadcaster_info, curator, full_video_btn];
-
-    return {
-        kind: "video",
-        source: {
-            kind: "video",
-            sources: video.data.clip.videoQualities.map(quality => {
-                return {url: quality.sourceURL
-                    + "?sig="+encodeURIComponent(video.data.clip!.playbackAccessToken.signature)
-                    + "&token="+encodeURIComponent(video.data.clip!.playbackAccessToken.value),
-                    quality: quality.quality+"p",
-                };
-            }),
-        },
-        caption: title.data.clip.title,
-        gifv: false,
-    };
-
-    // TODO ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
-    // variables:
-    // - slug,
-    // - videoOffsetSeconds,
-    // → something that gives a cursor
-    // then
-    // ClipsChatReplay 05bb2716e4760d4c5fc03111a5afe9b0ab69fc875e9b65ea8a63bbc34d5af21d
-    // variables:
-    // - slug,
-    // - cursor,
-    // → the chat messages
-}
 
 export function youtubeVideo(
     youtube_video_id: string,
@@ -700,6 +417,7 @@ export function imgurImage(isv: "gallery" | "album", galleryid: string): HideSho
     return hsc;
 }
 
+
 function zoomableFrame(img: HTMLImageElement): HTMLElement {
     const frame = el("button").clss("block").adch(img);
 
@@ -798,13 +516,6 @@ function userProfileListing(
     return hsc;
 }
 
-function scoreToString(score: number) {
-    if(score < 10_000) return "" + score;
-    if(score < 100_000) return (score / 1_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
-    if(score < 1_000_000) return (score / 1_000 |0) + "k";
-    if(score < 100_000_000) return (score / 1_000_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "m";
-    return (score / 1_000_000 |0) + "m";
-}
 
 type RenderActionOpts = {
     value_for_code_btn: unknown,
@@ -882,6 +593,7 @@ function renderReplyAction(
         return hsc;
     }
 }
+
 export function renderAction(
     action: Generic.Action,
     content_buttons_line: Node,
@@ -1162,79 +874,6 @@ function renderReportScreen(
     return hsc;
 }
 
-export type CounterState = {
-    loading: boolean,
-    pt_count: number | "hidden" | "none",
-    your_vote: "increment" | "decrement" | undefined,
-};
-export type GlobalCounter = {
-    state: CounterState,
-    handlers: Set<() => void>,
-    users: number,
-    update_time: number,
-};
-export type WatchableCounterState = {
-    state: CounterState,
-    emit: () => void,
-    onupdate: (cb: () => void) => void,
-};
-
-export function watchCounterState(
-    counter_id_raw: string | null,
-    updates: {count: number | "hidden" | "none", you: "increment" | "decrement" | undefined, time: number},
-): HideShowCleanup<WatchableCounterState> {
-    const counter_id = counter_id_raw ?? `${Math.random()}`;
-    const global_state: GlobalCounter = global_counter_info.get(counter_id) ?? {
-        state: {
-            loading: false,
-            pt_count: updates.count,
-            your_vote: updates.you, 
-        },
-        handlers: new Set(),
-        users: 0,
-        update_time: updates.time,
-    };
-    if(!global_counter_info.has(counter_id)) global_counter_info.set(counter_id, global_state);
-    if(global_state.update_time < updates.time) {
-        global_state.state.pt_count = updates.count;
-        global_state.state.your_vote = updates.you;
-    }
-    const res: WatchableCounterState = {
-        state: global_state.state,
-        emit() {
-            // [...] is used because Set forEach will loop forever if you
-            // add a new item to the set during the loop.
-            [...global_state.handlers].forEach(handler => {
-                handler();
-            });
-        },
-        onupdate(cb) {
-            const uniqueCallback = () => {
-                cb();
-                // consider only firing cb when hsc is visible? and if it's hidden, batch it for when it becomes visible again?
-                // probably not an issue currently
-            };
-            global_state.handlers.add(uniqueCallback);
-            hsc.on("cleanup", () => {
-                global_state.handlers.delete(uniqueCallback);
-            });
-        },
-    };
-    const hsc = hideshow(res);
-    global_state.users++;
-    hsc.on("cleanup", () => {
-        global_state.users--;
-    });
-    return hsc;
-}
-
-export function getPointsText(state: CounterState): {text: string, raw: string} {
-    if(state.pt_count === "hidden" || state.pt_count === "none") return {text: "—", raw: "[score hidden]"};
-    const score_mut = state.pt_count + (
-        state.your_vote === "increment" ? 1 : state.your_vote === "decrement" ? -1 : 0
-    );
-    return {text: scoreToString(score_mut), raw: score_mut.toLocaleString()};
-}
 
 // I rewrote this already can't I delete this and switch to new?
 function renderCounterAction(
@@ -2542,7 +2181,8 @@ function renderClientPage(
 // const top_level_wrapper: string[] = [];
 // const object_wrapper = ["shadow-md m-5 p-3 dark:bg-gray-800 rounded-xl m-5 p-3"];
 
-function splitPath(inpath: string): {path: string, search: string, hash: string} {
+
+function splitPathPage1Ver(inpath: string): {path: string, search: string, hash: string} {
     // const res = new URL(path, "https://www.example.com")
     // return {path: res.pathname, search: res.search, hash: res.hash};
     const [path1, ...rest] = inpath.split("?");
@@ -2573,7 +2213,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         // await new Promise(r => 0);
         if(!client.getThread || client.getPage && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
             const page2 = await client.getPage!(current_path);
-            const split = splitPath(current_path);
+            const split = splitPathPage1Ver(current_path);
             const page: MutablePage2HistoryNode = {page: page2, query: split.search};
 
             // const {default: ClientPage} = await import("./components/page2");
@@ -2596,77 +2236,6 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
     return hsc;
 }
 
-
-export type MutablePage2HistoryNode = {
-    page: Generic.Page2,
-    query: string,
-};
-function addLayer(node: Generic.Page2, new_layer: Generic.Page2Content): Generic.Page2 {
-    console.log("!ADDDING LAYER", node, new_layer);
-    return {...node, content: {...node.content, ...new_layer}};
-}
-
-let showPage2!: (page: MutablePage2HistoryNode, first_show: boolean) => void;
-let hidePage2!: () => void;
-
-{
-    const [pgin, setPgin] = createSignal<MutablePage2HistoryNode>(null as unknown as MutablePage2HistoryNode, {
-        equals: (a, b) => false, // so if you click two loaders at once, both update the same pgin
-    });
-    let page2_viewer_initialized = false;
-
-    const initializePage2Viewer = () => {
-        if(page2_viewer_initialized) return;
-        page2_viewer_initialized = true;
-
-        // TODO: set page title in here
-        vanillaToSolidBoundary(page2mainel, () => <DefaultErrorBoundary data={pgin}>
-            <PageRootProvider
-                pgin={pgin()}
-                addContent={(upd_pgin, content) => {
-                    upd_pgin.page = addLayer(upd_pgin.page, content);
-                    if(pgin() === upd_pgin) {
-                        setPgin(pgin()); // the pgin that was updated is currently being viewed; refresh
-                    }
-                }}
-            >
-                {untrack(() => {
-                    const  res = ClientPage({
-                        get pivot() {
-                            return pgin().page.pivot;
-                        },
-                        get query() {
-                            return pgin().query;
-                        },
-                    });
-                    createEffect(() => {
-                        document.title = res.title + " | " + "ThreadClient";
-                    });
-                    // TODO: createEffect(() => history.replaceState(res.url));
-
-                    return () => res.children;
-                })}
-            </PageRootProvider>
-        </DefaultErrorBoundary>);
-    };
-    showPage2 = (new_pgin: MutablePage2HistoryNode, first_show: boolean) => {
-        console.log("showing page2", new_pgin.page);
-        page2mainel.style.display = "";
-
-        setPgin(new_pgin);
-        console.log("SHOWPAGE2 CALLED ON", new_pgin);
-
-        initializePage2Viewer();
-
-        if(first_show) {
-            const pivot = document.querySelector(".\\@\\@IS_PIVOT\\@\\@") ?? document.body;
-            pivot.scrollIntoView();
-        }
-    };
-    hidePage2 = () => {
-        page2mainel.style.display = "none";
-    };
-}
 
 function fullscreenError(message: string): HideShowCleanup<HTMLDivElement> {
     const frame = document.createElement("div");
@@ -2710,55 +2279,6 @@ function clientLoginPage(
     return hsc;
 }
 
-const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
-    reddit: () => import("threadclient-client-reddit").then(client => client.client),
-    mastodon: () =>  import("threadclient-client-mastodon").then(client => client.client),
-    hackernews: () =>  import("threadclient-client-hackernews").then(client => client.client),
-    test: () =>  import("./clients/test").then(client => client.client),
-    shell: () =>  import("threadclient-client-shell").then(client => client.client),
-};
-export async function fetchClient(name_any: string): Promise<ThreadClient | undefined> {
-    const name = name_any.toLowerCase();
-    const clientInitializer = client_initializers[name];
-    if(!clientInitializer) return undefined;
-    if(!client_cache[name]) client_cache[name] = await clientInitializer();
-    if(client_cache[name]!.id !== name) throw new Error("client has incorrect id");
-    return client_cache[name];
-}
-/**
- * @deprecated Use async fetchClient
- */
-export function getClientCached(name: string): ThreadClient | undefined {
-    return client_cache[name] ?? undefined;
-}
-
-export type NavigationEntryNode = {
-    kind: "t1",
-    removeSelf: () => void, hide: () => void, show: () => void,
-} | {
-    kind: "t2",
-    page2: MutablePage2HistoryNode,
-};
-export type NavigationEntry = {url: string, node: NavigationEntryNode};
-
-export type HistoryState = {key: UUID};
-
-export function navigate({path, page, mode}: {
-    path: string,
-    page?: undefined | Generic.Page2,
-    mode?: undefined | "navigate" | "replace",
-}): void {
-    if(path.startsWith("/")) path = path.replace("/", "#") || "#/";
-    const hstate: HistoryState = {key: uuid()};
-    console.log("Appending history state index", hstate, path);
-    if(mode === "replace") {
-        history.replaceState(hstate, "", path);
-    }else{
-        history.pushState(hstate, "", path);
-    }
-    // TODO: work differently for replacestate
-    onNavigate(hstate.key, location, page);
-}
 
 // a custom redirect can be made for "/" for SEO reasons that has html in it already
 function homePage(): HideShowCleanup<HTMLDivElement> {
@@ -2803,7 +2323,6 @@ function pwaStartPage(): HideShowCleanup<HTMLDivElement> {
     return hsc;
 }
 
-export type URLLike = {search: string, pathname: string, hash: string};
 
 export type HSEvent = "hide" | "show" | "cleanup";
 export type HideShowCleanup<T> = {
@@ -2933,7 +2452,7 @@ export function fetchPromiseThen<T>(
     return hsc;
 }
 
-function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivElement> {
+export function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivElement> {
     console.log("RENDERPATH", pathraw, search);
     const pathfull = (pathraw + search).substring(1);
     if(pathfull.toLowerCase().startsWith("http://")
@@ -3111,110 +2630,3 @@ function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivEle
 //    - keep
 //    else
 //    - gone below item
-
-export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Generic.Page2): void {
-    const url = url_in.pathname === "/" && url_in.search === "" && url_in.hash.length > 2 ? (() => {
-        try {
-            return new URL("https://thread.pfg.pw/"+url_in.hash.substring(1));
-        }catch(e) {
-            return url_in;
-        }
-    })() : url_in;
-
-    console.log("Navigating", to_key, url, to_key, page, [...nav_history_map.keys()]);
-
-    document.title = "ThreadClient";
-    navigate_event_handlers.forEach(evh => evh(url));
-    const thisurl = url.pathname + url.search;
-
-    const prev_key = current_nav_history_key;
-    setCurrentHistoryKey(to_key);
-
-    // hide all history
-    hidePage2();
-    [...nav_history_map.values()].forEach(item => {
-        if(item.node.kind === "t1") {
-            item.node.hide();
-        }
-    });
-
-    const historyitem = nav_history_map.get(to_key);
-    if(historyitem) {
-        // show the current history
-        if(historyitem.node.kind === "t1") historyitem.node.show();
-        else showPage2(historyitem.node.page2, false);
-        return; // done
-    } else {
-        // remove
-        const ordered_keys = [...nav_history_map.keys()].sort();
-        for(let i = ordered_keys.length - 1; i >= 0; i--) {
-            const key = ordered_keys[i]!;
-            if(key <= prev_key) break;
-            const value = nav_history_map.get(key)!;
-            nav_history_map.delete(key);
-            if(value.node.kind === "t1") value.node.removeSelf();
-        }
-    }
-
-    if(page) {
-        const page2 = page;
-        const pagemut: MutablePage2HistoryNode = {page: page2, query: url.search};
-
-        showPage2(pagemut, true);
-        nav_history_map.set(to_key, {node: {
-            kind: "t2",
-            page2: pagemut,
-        }, url: thisurl});
-
-        return;
-    }
-
-    const hsc = hideshow();
-    const node = renderPath(url.pathname, url.search).defer(hsc).adto(rootel);
-    hsc.on("cleanup", () => node.remove());
-    hsc.on("hide", () => node.style.display = "none");
-    hsc.on("show", () => node.style.display = "");
-
-    const naventry: NavigationEntryNode = {
-        kind: "t1",
-        removeSelf: () => hsc.cleanup(),
-        hide: () => hsc.setVisible(false),
-        show: () => hsc.setVisible(true),
-    };
-
-    nav_history_map.set(to_key, {node: naventry, url: thisurl});
-}
-
-
-export function startDebugTool(root: HTMLElement) {
-    const belowbody = document.createElement("div");
-    document.body.appendChild(belowbody);
-
-    const settings = getSettings();
-
-    render(() => <Show if={settings.dev.highlightUpdates() === "on"}>
-        <Debugtool observe_root={root} />
-    </Show>, belowbody);
-    // <Show when={enabled in settings}>
-    //     <Lazy v={import("").debugtool}>
-}
-
-
-console.log("APP.TSX WAS RELOADED.");
-if(import.meta.hot) {
-    console.log("...configuring app.tsx as an hmr boundary");
-    import.meta.hot.accept((new_mod: typeof import("./app")) => {
-        console.log("ATTEMPT TO HOT RELOAD APP.TSX", new_mod);
-        const alert = el("div").clss("alert").adto(alertarea!);
-        el("div").clss("alert-body").adto(alert).atxt("someone tried to hot update app.tsx. was it you?");
-        elButton("pill-empty").atxt("Ignore").adto(alert).onev("click", (e) => {
-            e.stopPropagation();
-            alert.remove();
-        });
-        alert.atxt(" ");
-        elButton("pill-empty").atxt("Update (Refresh)").adto(alert).onev("click", (e) => {
-            e.stopPropagation();
-            void location.reload();
-        });
-    });
-}

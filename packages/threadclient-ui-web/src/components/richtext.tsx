@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createSignal, For, JSX, Match, onCleanup, Switch, untrack } from "solid-js";
 import { assertNever, switchKind } from "tmeta-util";
 import { Show, SwitchKind, TimeAgo } from "tmeta-util-solid";
-import { elButton, LinkStyle } from "../app";
+import { elButton, LinkStyle } from "../page1";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, getSettings

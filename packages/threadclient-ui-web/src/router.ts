@@ -4,11 +4,10 @@ import { ThreadClient } from "threadclient-client-base";
 import { generateUUID, UUID } from "tmeta-util";
 import { registerSW } from "virtual:pwa-register";
 import { variables } from "virtual:_variables";
-import {
-    elButton, GlobalCounter, HistoryState, navigate, NavigationEntry,
-    onNavigate, startDebugTool, URLLike,
-} from "./app";
 import { renderChangelogBannerIfNeeded } from "./components/changelog_manager";
+import { elButton } from "./page1";
+import { HistoryState, navigate, NavigationEntry, onNavigate, startDebugTool, URLLike } from "./page1_routing";
+import { GlobalCounter } from "./tc_helpers";
 import { getSettings } from "./util/utils_solid";
 
 export let rootel!: HTMLElement;

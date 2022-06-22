@@ -1,20 +1,13 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
+import { gfyLike2, previewLink } from "threadclient-preview";
 import { createMergeMemo, Show, SwitchKind } from "tmeta-util-solid";
 import { switchKind } from "../../../tmeta-util/src/util";
-import {
-    fetchClient,
-    getTwitchClip, gfyLike2, gfyLikeV1,
-    imgurImage,
-    link_styles_v,
-    navigate,
-    previewLink,
-    redditSuggestedEmbed,
-    renderOembed,
-    textToBody, youtubeVideo,
-    zoomableImage
-} from "../app";
+import { fetchClient } from "../clients";
+import { gfyLikeV1, imgurImage, link_styles_v, redditSuggestedEmbed, renderOembed, youtubeVideo, zoomableImage } from "../page1";
+import { navigate } from "../page1_routing";
+import { getTwitchClip, textToBody } from "../tc_helpers";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import {
     classes, DefaultErrorBoundary, getIsVisible,
