@@ -1,8 +1,8 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
-import { Accessor, createContext, createMemo, createSignal, For, JSX, onCleanup, onMount, useContext } from "solid-js";
+import { Accessor, createContext, createEffect, createMemo, createSignal, For, JSX, onCleanup, onMount, Signal, untrack, useContext } from "solid-js";
 import { createStore } from "solid-js/store";
-import { Dynamic } from "solid-js/web";
+import { Dynamic, render } from "solid-js/web";
 import { previewLink } from "threadclient-preview";
 import { updateQuery } from "tmeta-util";
 import { Show, SwitchKind } from "tmeta-util-solid";
@@ -168,47 +168,102 @@ function ImageBody(props: {
     </div>;
 }
 
-function FullscreenBodyInfoLine(props: {
-    body: Generic.Body,
-}): JSX.Element {
-    return <SwitchKind item={props.body} fallback={itm => <div>
-        TODO {itm.kind}
-    </div>}>{{
-        captioned_image: img => <Show when={img.caption}>{caption => <>
-            <div>{caption}</div>
-        </>}</Show>,
-        // vv consider making this part of <FullscreenBody> provided with a provider so we can
-        //     show the caption for the current image and say eg "image 1/3"
-        gallery: gal => <div>{gal.images.length} images</div>,
-        link: url => <div>
-            <div><Clickable class="underline" action={{
-                url: url.url,
-                client_id: url.client_id,
-            }}>{url.url}</Clickable></div>
-            <Show when={previewLink(url.url, {suggested_embed: url.embed_html})}>{body => (
-                <FullscreenBodyInfoLine body={body} />
-            )}</Show>
-        </div>,
-        video: vid => <div>{vid.caption}</div>,
-    }}</SwitchKind>;
+function ratelimit(limit_ms: number, cb: () => void): {now: () => void} {
+    let prevt = 0;
+    let prepared = false;
+    return {
+        now: () => {
+            if(prepared) return;
+            const now = Date.now();
+            const oldprevt = prevt;
+            prevt = now;
+            if(now > oldprevt + limit_ms) {
+                return cb();
+            }
+
+            prepared = true;
+            setTimeout(() => {
+                prepared = false;
+                cb();
+            }, Math.max(0, (oldprevt + limit_ms) - now));
+        },
+    };
 }
 
+// TODO: virtual scrolling
 function FullscreenGallery(props: {
     gallery: Generic.BodyGallery,
 }): JSX.Element {
     const zoomed = useContext(zoomed_provider)!;
 
-    return <div class={"h-full w-full overflow-hidden "+(zoomed() ? "" : "overflow-x-scroll snap-x snap-mandatory")}>
+    const [currentIndex, setCurrentIndex] = createSignal(0);
+
+    const object_descriptions: Signal<JSX.Element[]>[] = [];
+
+    const thisdescs = createMemo(() => {
+        const i = currentIndex();
+        const c_desc = object_descriptions[i] ??= createSignal([]);
+
+        const itms = c_desc[0]();
+        return itms;
+    });
+
+    useAddDescription(<>
+        <div>Image {currentIndex() + 1} / {props.gallery.images.length}</div>
+        <For each={thisdescs()}>{itm => <div>{itm}</div>}</For>
+    </>);
+
+    return <div class={"h-full w-full overflow-hidden "+(zoomed() ? "" : "overflow-x-scroll snap-x snap-mandatory")} ref={el => {
+        const rl = ratelimit(250, () => {    
+            const current_scroll = el.scrollLeft + (el.offsetWidth / 2);
+            const max_scroll = el.scrollWidth;
+            const num_items = props.gallery.images.length;
+
+            const scroll_percent = current_scroll / max_scroll;
+            const scroll_idx = scroll_percent * num_items;
+
+            setCurrentIndex(Math.max(0, Math.min(num_items - 1, scroll_idx |0)));
+    
+            // todo: estimate it by taking:
+            // - the total length
+            // - divide by the number of items
+            // - estimate the current index
+    
+            // el.scrollLeft;
+    
+            // const elements = document.elementsFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+            // const elem = elements.find(el => (el as Hasoursym)[oursym] === true) as Hasoursym | undefined;
+            // setZoomed(elem ?? null);
+        });
+    
+        el.addEventListener("scroll", e => {
+            if(e.target !== e.currentTarget) return;
+            rl.now();
+        }, {passive: true});
+        onMount(() => {
+            rl.now();
+        });
+    }}>
         <div class="w-full h-full px-8">
             <div class="flex h-full gap-4">
-                <For each={props.gallery.images}>{img => (
+                <For each={props.gallery.images}>{(img, i) => (
                     <div class="w-full snap-center shrink-0 h-full py-8">
-                        <div class="relative h-full">
+                        <description_provider.Provider value={description => {
+                            const dc = [description];
+                            createEffect(() => {
+                                const iv = i();
+                                const objdsc = object_descriptions[iv] ??= createSignal([]);
+                                const itms = untrack(() => objdsc[0]());
+                                itms.push(dc);
+                                onCleanup(() => {
+                                    const idx = itms.indexOf(dc);
+                                    if(idx === -1) return;
+                                    itms.splice(idx, 1);
+                                });
+                            });
+                        }}>
                             <FullscreenBody body={img.body} toggleUI={() => {alert("TODO rewrite toggleUI")}} />
-                            <div class="absolute left-0 top-0 w-full bg-hex-000 bg-opacity-50 max-h-50% overflow-y-scroll p-2">
-                                <FullscreenBodyInfoLine body={img.body} />
-                            </div>
-                        </div>
+                        </description_provider.Provider>
                     </div>
                 )}</For>
                 <div class="shrink-0 w-4" />
@@ -225,29 +280,41 @@ function FullscreenBody(props: {
     return <SwitchKind item={props.body} fallback={itm => <div>
         TODO {itm.kind}
     </div>}>{{
-        captioned_image: img => <ImageBody
-            url={img.url}
-            alt={img.alt}
+        captioned_image: img => {
+            useAddDescription(<>{img.caption}</>);
+            return <ImageBody
+                url={img.url}
+                alt={img.alt}
 
-            toggleUI={props.toggleUI}
-        />,
+                toggleUI={props.toggleUI}
+            />;
+        },
         gallery: gal => <FullscreenGallery gallery={gal} />,
-        link: url => <Show when={previewLink(url.url, {suggested_embed: url.embed_html})} fallback={
-            <div>External Link. TODO click to open</div>
-        }>{body => (
-            <FullscreenBody body={body} toggleUI={props.toggleUI} />
-        )}</Show>,
-        video: video => <div class="w-full h-full">
-            <SwitchKind item={video.source}>{{
-                video: source => <FullscreenVideoPlayer video={video} source={source} />,
-                img: img => <FullscreenBody body={{
-                    kind: "captioned_image",
-                    url: img.url,
-                    w: null,
-                    h: null,
-                }} toggleUI={props.toggleUI} />,
-            }}</SwitchKind>
-        </div>
+        link: url => {
+            useAddDescription(<Clickable class="underline" action={{
+                url: url.url,
+                client_id: url.client_id,
+            }}>{url.url}</Clickable>);
+            return <Show when={previewLink(url.url, {suggested_embed: url.embed_html})} fallback={
+                <div>External Link. TODO click to open</div>
+            }>{body => (
+                <FullscreenBody body={body} toggleUI={props.toggleUI} />
+            )}</Show>;
+        },
+        video: video => {
+            useAddDescription(<>{video.caption}</>);
+            return <div class="w-full h-full">
+                <SwitchKind item={video.source}>{{
+                    video: source => <FullscreenVideoPlayer video={video} source={source} />,
+                    img: img => <FullscreenBody body={{
+                        kind: "captioned_image",
+                        url: img.url,
+                        w: null,
+                        h: null,
+                    }} toggleUI={props.toggleUI} />,
+                }}</SwitchKind>
+            </div>;
+        },
     }}</SwitchKind>;
 }
 
@@ -366,6 +433,11 @@ function ContentWarningDisplay(props: {
     </button>;
 }
 
+// alternatively: <AddDescription desc={<></>}> … </AddDescription> so we can put a provider inside
+function useAddDescription(description: JSX.Element) {
+    useContext(description_provider)!(description);
+}
+
 function FullscreenPost(props: {
     content: Generic.PostContentPost,
     opts: ClientPostOpts,
@@ -381,6 +453,8 @@ function FullscreenPost(props: {
     //
     // that would mean that if a new cw is added to a post, it will reprompt
 
+    const desc_el = document.createElement("div");
+
     return <DemoObject title={<>
         <Show when={props.content.title}>{title => <div class="font-bold">
             {title.text}
@@ -388,7 +462,7 @@ function FullscreenPost(props: {
         <div>
             <Flair flairs={props.content.flair ?? []} />
         </div>
-        <FullscreenBodyInfoLine body={props.content.body} />
+        {desc_el}
         <div class="">By u/author on r/subreddit</div>
         <div class=""><InfoBar post={props.content} opts={props.opts} /></div>
     </>} sidebar={<>
@@ -433,14 +507,24 @@ function FullscreenPost(props: {
                 cws={(props.content.flair ?? []).filter(f => f.content_warning)}
             />
         </>}>
-            <FullscreenBody body={props.content.body} toggleUI={() => {
-                // setShowUI(v => !v);
-            }}  />
+            <description_provider.Provider value={(description) => {
+                const descbox = desc_el;
+                const mydescel = document.createElement("div");
+                descbox.appendChild(mydescel);
+                onCleanup(() => mydescel.remove());
+
+                render(() => description, mydescel);
+            }}>
+                <FullscreenBody body={props.content.body} toggleUI={() => {
+                    // setShowUI(v => !v);
+                }}  />
+            </description_provider.Provider>
         </Show>
     </DemoObject>;
 }
 
 const zoomed_provider = createContext<null | Accessor<boolean>>(null);
+const description_provider = createContext<(description: JSX.Element) => void>();
 
 export default function FullscreenSnapView(props: {
     pivot: Generic.Link<Generic.Post>,
@@ -592,20 +676,18 @@ export default function FullscreenSnapView(props: {
                 </Show>
             </div>;
         }}</For>
-
-        <Clickable
-            class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
-            action={{
-                url: updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined}),
-                client_id: m().pivot.client_id,
-                mode: "replace",
-                page: (): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot}),
-            }}
-        >
-            <InternalIconRaw
-                class="fa-solid fa-down-left-and-up-right-to-center text-base"
-                label={"Exit Fullscreen"}
-            />
-        </Clickable>
-    </div></zoomed_provider.Provider>;
+    </div><Clickable
+        class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
+        action={{
+            url: updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined}),
+            client_id: m().pivot.client_id,
+            mode: "replace",
+            page: (): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot}),
+        }}
+    >
+        <InternalIconRaw
+            class="fa-solid fa-down-left-and-up-right-to-center text-base"
+            label={"Exit Fullscreen"}
+        />
+    </Clickable></zoomed_provider.Provider>;
 }
