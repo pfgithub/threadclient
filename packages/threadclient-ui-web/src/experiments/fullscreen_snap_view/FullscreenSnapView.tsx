@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
-import { createEffect, createMemo, createSignal, For, JSX, onCleanup, onMount } from "solid-js";
+import { createMemo, createSignal, For, JSX, onCleanup, onMount } from "solid-js";
 import { createStore } from "solid-js/store";
 import { Dynamic } from "solid-js/web";
 import { previewLink } from "threadclient-preview";
@@ -475,17 +475,13 @@ export default function FullscreenSnapView(props: {
 
     const oursym = Symbol();
     type Hasoursym = HTMLElement & {[oursym]?: undefined | true};
-    const [zoomed, setZoomed] = createSignal<Hasoursym | null>(null);
+    const [zoomed, setZoomed] = createSignal<boolean>(false);
 
     const rszel = (ev: Event) => {
         if(visualViewport.scale > 1.0001) {
-            if(zoomed() == null) {
-                const elements = document.elementsFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-                const elem = elements.find(el => (el as Hasoursym)[oursym] === true) as Hasoursym | undefined;
-                setZoomed(elem ?? null);
-            }
+            setZoomed(true);
         }else{
-            setZoomed(null);
+            setZoomed(false);
         }
     };
     visualViewport.addEventListener("resize", rszel);
@@ -493,7 +489,7 @@ export default function FullscreenSnapView(props: {
 
     return <div class={
         "bg-hex-000 h-screen overflow-hidden snap-mandatory text-zinc-100 space-y-8 "
-        +(zoomed() != null ? "" : "snap-y overflow-y-scroll")
+        +(zoomed() ? "" : "snap-y overflow-y-scroll")
     } style={{
         'touch-action': "auto",
     }}>
@@ -563,14 +559,6 @@ export default function FullscreenSnapView(props: {
             return <div class="snap-center w-full h-full relative" data-visible={"" + showContent()} ref={el => {
                 parent_el = el;
                 (el as Hasoursym)[oursym] = true;
-                createEffect((pv: Hasoursym | null) => {
-                    const zv = zoomed();
-                    el.style.display = zv == null || el === zv ? "" : "none";
-                    if(zv == null && pv != null && el === pv) {
-                        pv.scrollIntoView();
-                    }
-                    return zv;
-                }, null);
             }}>
                 <Dynamic component="intersection-observer" class="absolute top-0 left-0 bottom-0 right-0 transform scale-150 pointer-events-none" ref={detector_el} />
                 <Show if={showContent()} fallback="… loading">
@@ -589,7 +577,7 @@ export default function FullscreenSnapView(props: {
                                 frame: flat_post.post,
                                 flat_frame: null,
                                 id: flat_post.link,
-                            }} zoomed={zoomed() != null} />,
+                            }} zoomed={zoomed()} />,
                         }}</SwitchKind>,
                     }}</SwitchKind>
                 </Show>
