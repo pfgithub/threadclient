@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { readLink } from "api-types-generic";
-import { createMemo, createSignal, For, JSX, onCleanup, onMount } from "solid-js";
+import { Accessor, createContext, createMemo, createSignal, For, JSX, onCleanup, onMount, useContext } from "solid-js";
 import { createStore } from "solid-js/store";
 import { Dynamic } from "solid-js/web";
 import { previewLink } from "threadclient-preview";
@@ -193,6 +193,30 @@ function FullscreenBodyInfoLine(props: {
     }}</SwitchKind>;
 }
 
+function FullscreenGallery(props: {
+    gallery: Generic.BodyGallery,
+}): JSX.Element {
+    const zoomed = useContext(zoomed_provider)!;
+
+    return <div class={"h-full w-full overflow-hidden "+(zoomed() ? "" : "overflow-x-scroll snap-x snap-mandatory")}>
+        <div class="w-full h-full px-8">
+            <div class="flex h-full gap-4">
+                <For each={props.gallery.images}>{img => (
+                    <div class="w-full snap-center shrink-0 h-full py-8">
+                        <div class="relative h-full">
+                            <FullscreenBody body={img.body} toggleUI={() => {alert("TODO rewrite toggleUI")}} />
+                            <div class="absolute left-0 top-0 w-full bg-hex-000 bg-opacity-50 max-h-50% overflow-y-scroll p-2">
+                                <FullscreenBodyInfoLine body={img.body} />
+                            </div>
+                        </div>
+                    </div>
+                )}</For>
+                <div class="shrink-0 w-4" />
+            </div>
+        </div>
+    </div>;
+}
+
 function FullscreenBody(props: {
     body: Generic.Body,
 
@@ -207,24 +231,7 @@ function FullscreenBody(props: {
 
             toggleUI={props.toggleUI}
         />,
-        // VV todo: disable scroll on zoom
-        gallery: gal => <div class="h-full w-full overflow-x-scroll snap-x snap-mandatory">
-            <div class="w-full h-full px-8">
-                <div class="flex h-full gap-4">
-                    <For each={gal.images}>{img => (
-                        <div class="w-full snap-center shrink-0 h-full py-8">
-                            <div class="relative h-full">
-                                <FullscreenBody body={img.body} toggleUI={props.toggleUI} />
-                                <div class="absolute left-0 top-0 w-full bg-hex-000 bg-opacity-50 max-h-50% overflow-y-scroll p-2">
-                                    <FullscreenBodyInfoLine body={img.body} />
-                                </div>
-                            </div>
-                        </div>
-                    )}</For>
-                    <div class="shrink-0 w-4" />
-                </div>
-            </div>
-        </div>,
+        gallery: gal => <FullscreenGallery gallery={gal} />,
         link: url => <Show when={previewLink(url.url, {suggested_embed: url.embed_html})} fallback={
             <div>External Link. TODO click to open</div>
         }>{body => (
@@ -362,11 +369,11 @@ function ContentWarningDisplay(props: {
 function FullscreenPost(props: {
     content: Generic.PostContentPost,
     opts: ClientPostOpts,
-    zoomed: boolean,
 }): JSX.Element {
     const [contentWarning, setContentWarning] = createSignal(
         !!(props.content.flair ?? []).find(flair => flair.content_warning),
     );
+    const zoomed = useContext(zoomed_provider)!;
     // alternatively:
     // - [acceptedContentWarnings, setAcceptedContentWarnings]
     // - const allAccepted = () => flair.filter(content_warning).filter(not in accepted).length === 0
@@ -419,7 +426,7 @@ function FullscreenPost(props: {
                 text={["none", 0]}
             />
         </Clickable>
-    </>} showUI={!props.zoomed}>
+    </>} showUI={!zoomed()}>
         <Show if={!contentWarning()} fallback={<>
             <ContentWarningDisplay
                 onConfirm={() => setContentWarning(false)}
@@ -432,6 +439,8 @@ function FullscreenPost(props: {
         </Show>
     </DemoObject>;
 }
+
+const zoomed_provider = createContext<null | Accessor<boolean>>(null);
 
 export default function FullscreenSnapView(props: {
     pivot: Generic.Link<Generic.Post>,
@@ -487,7 +496,7 @@ export default function FullscreenSnapView(props: {
     visualViewport.addEventListener("resize", rszel);
     onCleanup(() => visualViewport.removeEventListener("resize", rszel));
 
-    return <div class={
+    return <zoomed_provider.Provider value={zoomed}><div class={
         "bg-hex-000 h-screen overflow-hidden snap-mandatory text-zinc-100 space-y-8 "
         +(zoomed() ? "" : "snap-y overflow-y-scroll")
     } style={{
@@ -577,7 +586,7 @@ export default function FullscreenSnapView(props: {
                                 frame: flat_post.post,
                                 flat_frame: null,
                                 id: flat_post.link,
-                            }} zoomed={zoomed()} />,
+                            }} />,
                         }}</SwitchKind>,
                     }}</SwitchKind>
                 </Show>
@@ -598,5 +607,5 @@ export default function FullscreenSnapView(props: {
                 label={"Exit Fullscreen"}
             />
         </Clickable>
-    </div>;
+    </div></zoomed_provider.Provider>;
 }

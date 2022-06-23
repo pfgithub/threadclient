@@ -429,6 +429,11 @@ export type Video = {
     caption?: string | undefined,
     alt?: string | undefined,
 };
+export type BodyGallery = {
+    kind: "gallery",
+    images: GalleryItem[],
+};
+// TODO declare namespace Body {}
 export type Body = BodyText | RichText | {
     kind: "link",
     url: string,
@@ -468,10 +473,7 @@ export type Body = BodyText | RichText | {
     url: string,
     caption?: string | undefined,
     alt?: string | undefined,
-} | {
-    kind: "gallery",
-    images: GalleryItem[],
-} | {
+} | BodyGallery | {
     kind: "poll",
     votable: true | string,
     total_votes: number,
