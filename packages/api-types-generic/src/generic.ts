@@ -770,6 +770,7 @@ export type Action = {
     url: string,
     client_id: string,
     text: ActionLabel,
+    icon?: undefined | Icon,
 } | ReplyAction | CounterAction | {
     kind: "delete",
     data: Opaque<"act">,
@@ -836,6 +837,7 @@ export type Icon =
     | "chevron_up"
     | "chevron_down"
     | "ellipsis"
+    | "external"
 ;
 export type Color =
     | "orange"

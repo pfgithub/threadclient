@@ -183,6 +183,13 @@ function GetActionsFromAction(props: {action: Generic.Action, opts: ClientPostOp
                 </Show>
             </>;
         },
+        link: link => <ActionItemRaw
+            icon={link.icon ?? "link"}
+            color={null}
+            text={link.text}
+            onClick={{url: link.url}}
+            client_id={link.client_id}
+        />,
     }}</SwitchKind>;
 }
 

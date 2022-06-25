@@ -16,10 +16,10 @@
   - [ ] subreddit bio
   - [ ] subreddit sidebar id card subscribe button
   - post actions:
-    - [ ] permalink
+    - [x] post type
     - [ ] delete
     - [ ] save
-    - [ ] duplicates
+    - [x] duplicates
     - [ ] report
     - [ ] reply
     - [ ] code (and show the post markdown, either inline like page1 or fullscreen as a link)
