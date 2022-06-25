@@ -740,7 +740,7 @@ function VirtualElement(props: {children: JSX.Element, class: string}): JSX.Elem
         ise.observe(detector_el);
     });
 
-    return <div class={"overflow-hidden snap-center w-full h-full relative " + props.class} data-visible={"" + showContent()} ref={el => {
+    return <div class={"snap-center w-full h-full relative " + props.class} data-visible={"" + showContent()} ref={el => {
         parent_el = el;
     }}>
         <Dynamic component="intersection-observer" class="absolute top-0 left-0 bottom-0 right-0 transform scale-150 pointer-events-none" ref={detector_el} />
