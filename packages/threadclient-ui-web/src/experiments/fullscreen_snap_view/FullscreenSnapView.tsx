@@ -200,7 +200,7 @@ function FullscreenGallery(props: {
 
     const object_descriptions: Signal<JSX.Element[]>[] = [];
 
-    const thisdescs = createMemo(() => {
+    const currentDescs = createMemo(() => {
         const i = currentIndex();
         const c_desc = object_descriptions[i] ??= createSignal([]);
 
@@ -210,7 +210,7 @@ function FullscreenGallery(props: {
 
     useAddDescription(<>
         <div>Image {currentIndex() + 1} / {props.gallery.images.length}</div>
-        <For each={thisdescs()}>{itm => <div>{itm}</div>}</For>
+        <For each={currentDescs()}>{itm => <div>{itm}</div>}</For>
     </>);
 
     return <div class={"h-full w-full overflow-hidden "+(zoomed() ? "" : "overflow-x-scroll snap-x snap-mandatory")} ref={el => {
@@ -247,7 +247,7 @@ function FullscreenGallery(props: {
         <div class="w-full h-full px-8">
             <div class="flex h-full gap-4">
                 <For each={props.gallery.images}>{(img, i) => (
-                    <div class="w-full snap-center shrink-0 h-full py-8">
+                    <VirtualElement class="w-full snap-center shrink-0 h-full py-8">
                         <description_provider.Provider value={description => {
                             const dc = [description];
                             createEffect(() => {
@@ -264,7 +264,7 @@ function FullscreenGallery(props: {
                         }}>
                             <FullscreenBody body={img.body} toggleUI={() => {alert("TODO rewrite toggleUI")}} />
                         </description_provider.Provider>
-                    </div>
+                    </VirtualElement>
                 )}</For>
                 <div class="shrink-0 w-4" />
             </div>
@@ -566,8 +566,6 @@ export default function FullscreenSnapView(props: {
         </collapse_data_context.Provider>
     ));
 
-    const oursym = Symbol();
-    type Hasoursym = HTMLElement & {[oursym]?: undefined | true};
     const [zoomed, setZoomed] = createSignal<boolean>(false);
 
     const rszel = (ev: Event) => {
@@ -587,94 +585,26 @@ export default function FullscreenSnapView(props: {
         'touch-action': "auto",
     }}>
         <For each={replies()}>{item => {
-            const [showContent, setShowContent] = createSignal(false);
-
-            let visible_now = false;
-            let req: number | undefined;
-
-            let parent_el!: HTMLDivElement;
-            let detector_el!: HTMLDivElement;
-
-            onMount(() => {
-                const ise = new IntersectionObserver((e) => {
-                    e.forEach(entry => {
-                        if(entry.target === parent_el) {
-                            if(entry.isIntersecting) {
-                                visible_now = true;
-                                if(req != null) cancelIdleCallback(req);
-                                setTimeout(() => {
-                                    setShowContent(visible_now);
-                                }, 300); // so it doesn't do it if you scroll over a bunch
-                            }
-                            return;
-                        }else if(entry.target !== detector_el) return;
-                        // ios safari:
-                        if(!('requestIdleCallback' in window)) {
-                            (window as unknown as {
-                                requestIdleCallback: (cb: () => void) => void,
-                            })["requestIdleCallback"] = cb => cb();
-                        }
-                        if(!('cancelIdleCallback' in window)) {
-                            (window as unknown as {
-                                cancelIdleCallback: () => void,
-                            })["cancelIdleCallback"] = () => void 0;
-                        }
-
-                        console.log("INTERSECTIONOBSERVER CB", e);
-
-                        if(entry.isIntersecting) {
-                            visible_now = true;
-                            if(req != null) cancelIdleCallback(req);
-                            req = requestIdleCallback(() => {
-                                req = undefined;
-                                setShowContent(visible_now);
-                            });
-                            // ^ ideally we should just skip the idle callback the moment the first pixel is
-                            // visible but that's complicated because intersectionobserver doesn't allow negative
-                            // margins and you have to use rootMargin instead
-                        }else{
-                            visible_now = false;
-                            if(req != null) cancelIdleCallback(req);
-                            req = requestIdleCallback(() => {
-                                req = undefined;
-                                setShowContent(visible_now);
-                            });
-                        }
-                    });
-                }, {
-                    root: document.documentElement,
-                    threshold: 0,
-                });
-                ise.observe(parent_el);
-                ise.observe(detector_el);
-            });
-
-            return <div class="snap-center w-full h-full relative" data-visible={"" + showContent()} ref={el => {
-                parent_el = el;
-                (el as Hasoursym)[oursym] = true;
-            }}>
-                <Dynamic component="intersection-observer" class="absolute top-0 left-0 bottom-0 right-0 transform scale-150 pointer-events-none" ref={detector_el} />
-                <Show if={showContent()} fallback="… loading">
-                    <SwitchKind item={item}>{{
-                        'error': (emsg) => <div class="w-full h-full">
-                            E;ERROR;{emsg.msg}
-                        </div>,
-                        'flat_loader': fl => <div class="w-full h-full">
-                            TODO loader
-                        </div>,
-                        'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
-                            E;TODO;{obj.kind}
-                        </>}>{{
-                            'post': post => <FullscreenPost content={post} opts={{
-                                client_id: flat_post.post.client_id,
-                                frame: flat_post.post,
-                                flat_frame: null,
-                                id: flat_post.link,
-                            }} />,
-                        }}</SwitchKind>,
-                    }}</SwitchKind>
-                </Show>
-            </div>;
+            return <VirtualElement class="snap-center w-full h-full">
+                <SwitchKind item={item}>{{
+                    'error': (emsg) => <div class="w-full h-full">
+                        E;ERROR;{emsg.msg}
+                    </div>,
+                    'flat_loader': fl => <div class="w-full h-full">
+                        TODO loader
+                    </div>,
+                    'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
+                        E;TODO;{obj.kind}
+                    </>}>{{
+                        'post': post => <FullscreenPost content={post} opts={{
+                            client_id: flat_post.post.client_id,
+                            frame: flat_post.post,
+                            flat_frame: null,
+                            id: flat_post.link,
+                        }} />,
+                    }}</SwitchKind>,
+                }}</SwitchKind>
+            </VirtualElement>;
         }}</For>
     </div><Clickable
         class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
@@ -690,4 +620,77 @@ export default function FullscreenSnapView(props: {
             label={"Exit Fullscreen"}
         />
     </Clickable></zoomed_provider.Provider>;
+}
+
+function VirtualElement(props: {children: JSX.Element, class: string}): JSX.Element {
+    const [showContent, setShowContent] = createSignal(false);
+
+    let visible_now = false;
+    let req: number | undefined;
+
+    let parent_el!: HTMLDivElement;
+    let detector_el!: HTMLDivElement;
+
+    onMount(() => {
+        const ise = new IntersectionObserver((e) => {
+            e.forEach(entry => {
+                if(entry.target === parent_el) {
+                    if(entry.isIntersecting) {
+                        visible_now = true;
+                        if(req != null) cancelIdleCallback(req);
+                        setTimeout(() => {
+                            setShowContent(visible_now);
+                        }, 300); // so it doesn't do it if you scroll over a bunch
+                    }
+                    return;
+                }else if(entry.target !== detector_el) return;
+                // ios safari:
+                if(!('requestIdleCallback' in window)) {
+                    (window as unknown as {
+                        requestIdleCallback: (cb: () => void) => void,
+                    })["requestIdleCallback"] = cb => cb();
+                }
+                if(!('cancelIdleCallback' in window)) {
+                    (window as unknown as {
+                        cancelIdleCallback: () => void,
+                    })["cancelIdleCallback"] = () => void 0;
+                }
+
+                console.log("INTERSECTIONOBSERVER CB", e);
+
+                if(entry.isIntersecting) {
+                    visible_now = true;
+                    if(req != null) cancelIdleCallback(req);
+                    req = requestIdleCallback(() => {
+                        req = undefined;
+                        setShowContent(visible_now);
+                    });
+                    // ^ ideally we should just skip the idle callback the moment the first pixel is
+                    // visible but that's complicated because intersectionobserver doesn't allow negative
+                    // margins and you have to use rootMargin instead
+                }else{
+                    visible_now = false;
+                    if(req != null) cancelIdleCallback(req);
+                    req = requestIdleCallback(() => {
+                        req = undefined;
+                        setShowContent(visible_now);
+                    });
+                }
+            });
+        }, {
+            root: document.documentElement,
+            threshold: 0,
+        });
+        ise.observe(parent_el);
+        ise.observe(detector_el);
+    });
+
+    return <div class={"overflow-hidden snap-center w-full h-full relative " + props.class} data-visible={"" + showContent()} ref={el => {
+        parent_el = el;
+    }}>
+        <Dynamic component="intersection-observer" class="absolute top-0 left-0 bottom-0 right-0 transform scale-150 pointer-events-none" ref={detector_el} />
+        <Show if={showContent()} fallback="… loading">
+            {props.children}
+        </Show>
+    </div>;
 }
