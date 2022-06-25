@@ -326,6 +326,20 @@ function FullscreenVideoPlayer(props: {
     // - tap drag left/right: seek
     // - single tap: play/pause
 
+    // tap and drag left or right:
+    // - pause the video
+    // - show an overlay with:
+    //   - a fullscreen version of the preview track
+    //   - a timestamp
+    //   - a bar showing the percentage
+    // - the time the drag left goes by should be either:
+    //   - percent video
+    //     - for long videos, this makes it hard to go short distances
+    //   - number of seconds based on (px from left of screen / 100vw)
+    //     - for long videos, this makes it hard to go from back to front
+    //     - maybe if the bar stays visible for a sec or it's visible when paused
+    //       you could drag that when you want to go long distances
+
     const [targetQuality, setTargetQuality] = createSignal(0);
     () => setTargetQuality;
     const sources = createMemo(() => getVideoSources(targetQuality, props.source.sources));
