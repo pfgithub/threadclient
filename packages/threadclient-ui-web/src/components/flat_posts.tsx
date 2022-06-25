@@ -190,6 +190,9 @@ function GetActionsFromAction(props: {action: Generic.Action, opts: ClientPostOp
             onClick={{url: link.url}}
             client_id={link.client_id}
         />,
+        // report: reportact => (
+        //     // we could maybe have the client provide a url for the report and then navigate to it
+        // ),
     }}</SwitchKind>;
 }
 
