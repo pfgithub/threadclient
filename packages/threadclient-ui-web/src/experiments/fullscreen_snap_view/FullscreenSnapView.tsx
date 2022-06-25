@@ -318,6 +318,31 @@ function FullscreenBody(props: {
     }}</SwitchKind>;
 }
 
+function createAnimationFrameLoop(playing: Accessor<boolean>, cb: () => void): {update: () => void} {
+    let run_loop = false;
+    let active_loop: number | null = null;
+
+    createEffect(() => {
+        run_loop = playing();
+        untrack(() => go());
+    });
+
+    function go() {
+        if(active_loop != null) return;
+        active_loop = requestAnimationFrame(() => {
+            active_loop = null;
+            cb();
+            if(run_loop) go();
+        });
+    }
+
+    onCleanup(() => {
+        run_loop = false;
+        if(active_loop != null) cancelAnimationFrame(active_loop);
+    });
+    return {update: () => go()};
+}
+
 function FullscreenVideoPlayer(props: {
     video: Generic.Video,
     source: Generic.VideoSourceVideo,
@@ -359,18 +384,10 @@ function FullscreenVideoPlayer(props: {
         live: null,
     });
 
-    // VVVV we might want to rewrite this to be solid js-ey
-    // const afloop = createAnimationFrameLoop(running: Accessor<boolean>, () => {});
-    // I have an example of that code somewhere but I don't think it's on github
-    // 
-    // also TODO: consider scaling the rendered object to match the width or height of the video rather than
+    // TODO: consider scaling the rendered object to match the width or height of the video rather than
     // stretching (note that the canvas is square, we can't just use object-cover)
-    let pframe = 0;
-    const anfreq = () => requestAnimationFrame(() => {
-        anf = anfreq();
-        if(pframe === video_ref.video_el.currentTime) return;
-        pframe = video_ref.video_el.currentTime;
 
+    const afl = createAnimationFrameLoop(() => state.playing === true, () => {
         const ctx2d = canvasel.getContext("2d");
         if(!ctx2d) {
             // ?
@@ -385,9 +402,28 @@ function FullscreenVideoPlayer(props: {
         // vv this filter url is working fine but it seems the js canvas doesn't like it for some reason
         ctx2d.filter = "url(#sharpBlur)";
         ctx2d.drawImage(canvasel, 0, 0);
+
+        if(false as true) {
+            ctx2d.save();
+            ctx2d.globalCompositeOperation = "source-over";
+            ctx2d.fillStyle = "white";
+            ctx2d.textBaseline = "top";
+            ctx2d.fillText("" + Math.random(), 2, 2);
+            ctx2d.restore();
+        }
     });
-    let anf = anfreq();
-    onCleanup(() => cancelAnimationFrame(anf));
+    createEffect(() => {
+        state.max_time;
+        state.current_time;
+        state.quality;
+        state.buffered;
+        state.playing;
+        state.error_overlay;
+        state.errored_sources;
+        state.playback_rate;
+        state.live;
+        afl.update();
+    });
 
     return <div class="relative w-full h-full">
         <div class="absolute top-0 left-0 bottom-0 right-0">
