@@ -359,35 +359,40 @@ function FullscreenVideoPlayer(props: {
         live: null,
     });
 
-    // VVVV this is fun but I don't think it's necessary
-    // let pframe = 0;
-    // const anfreq = () => requestAnimationFrame(() => {
-    //     anf = anfreq();
-    //     if(pframe === video_ref.video_el.currentTime) return;
-    //     pframe = video_ref.video_el.currentTime;
+    // VVVV we might want to rewrite this to be solid js-ey
+    // const afloop = createAnimationFrameLoop(running: Accessor<boolean>, () => {});
+    // I have an example of that code somewhere but I don't think it's on github
+    // 
+    // also TODO: consider scaling the rendered object to match the width or height of the video rather than
+    // stretching (note that the canvas is square, we can't just use object-cover)
+    let pframe = 0;
+    const anfreq = () => requestAnimationFrame(() => {
+        anf = anfreq();
+        if(pframe === video_ref.video_el.currentTime) return;
+        pframe = video_ref.video_el.currentTime;
 
-    //     const ctx2d = canvasel.getContext("2d");
-    //     if(!ctx2d) {
-    //         // ?
-    //         return;
-    //     }
+        const ctx2d = canvasel.getContext("2d");
+        if(!ctx2d) {
+            // ?
+            return;
+        }
 
-    //     if(video_ref != null) ctx2d.drawImage(
-    //         video_ref.video_el, 0, 0,
-    //         canvasel.width, canvasel.height,
-    //     );
-    //     ctx2d.globalCompositeOperation = "copy";
-    //     // vv this filter url is working fine but it seems the js canvas doesn't like it for some reason
-    //     ctx2d.filter = "url(#sharpBlur)";
-    //     ctx2d.drawImage(canvasel, 0, 0);
-    // });
-    // let anf = anfreq();
-    // onCleanup(() => cancelAnimationFrame(anf));
+        if(video_ref != null) ctx2d.drawImage(
+            video_ref.video_el, 0, 0,
+            canvasel.width, canvasel.height,
+        );
+        ctx2d.globalCompositeOperation = "copy";
+        // vv this filter url is working fine but it seems the js canvas doesn't like it for some reason
+        ctx2d.filter = "url(#sharpBlur)";
+        ctx2d.drawImage(canvasel, 0, 0);
+    });
+    let anf = anfreq();
+    onCleanup(() => cancelAnimationFrame(anf));
 
     return <div class="relative w-full h-full">
         <div class="absolute top-0 left-0 bottom-0 right-0">
             <canvas
-                ref={canvasel} width={20} height={20}
+                ref={canvasel} width={100} height={100}
                 class="w-full h-full"
             />
         </div>
