@@ -98,6 +98,19 @@
   - https://github.com/pushshift/api
   - mostly I just want a nice results display
 
+### offline features:
+
+- when trying to take a network POST action, eg upvote/reply/edit/…, implement an "outbox" containing
+  things that have yet to succeed submitting
+  - have it:
+    - automatically send upvote/downvotes in the future when connected to internet
+    - ask the user if they would like to retry replying comments
+      - this fixes the thing where that reply box doesn't go away because we can dump it in the outbox and
+        a loading icon will show up in the bottom right corner of the screen. then the reply thing can
+        disappear immediately when you click "reply"
+      - do not autoretry replies because reddit does not use idempotency tokens and it will post multiple times
+        on occasion
+
 ### migrating from windi to tailwind css (or another one like unocss):
 
 - use windi css analyzer to find all classes (eg `mt-5px` and especially arbitrary `mt-34` eg)
