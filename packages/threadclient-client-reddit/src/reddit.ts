@@ -1641,12 +1641,12 @@ function threadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Node {
             info: {
                 time: msg.created_utc * 1000,
                 edited: false,
-                author: {
+                author: msg.author != null ? {
                     name: "u/"+msg.author,
                     link: "/u/"+msg.author,
                     color_hash: msg.author,
                     client_id: client.id,
-                },
+                } : undefined,
                 pinned: false,
             },
             body: {kind: "text", client_id: client.id, content: msg.body_html, markdown_format: "reddit_html"},

@@ -102,15 +102,15 @@ export type InboxMsg = {
         first_message_name: null,
         subreddit: string | null,
         likes: true | false | null,
-        author_fullname: string,
+        author_fullname: null | string,
         id: string,
         subject: string,
         associated_awarding_id: null | string, // for "your comment has been given the … award" messages
         score: number,
-        author: string,
+        author: null | string,
         num_comments: number | null,
         parent_id: string | null,
-        subreddit_name_prefixd: string | null,
+        subreddit_name_prefixed: string | null,
         new: boolean,
         body: Markdown,
         dest: string, // your username unprefixed | probably a subreddit name idk
@@ -120,7 +120,7 @@ export type InboxMsg = {
         // created: unusable
         created_utc: Date.Sec,
         context: string | "", // link to context | empty string
-        distinguished: null | "gold-auto" | "unsupported",
+        distinguished: null | "gold-auto" | "moderator" | "unsupported",
         replies: "" | {
             kind: "Listing",
             data: {
@@ -129,6 +129,7 @@ export type InboxMsg = {
                 children: InboxMsg[],
             },
         },
+        type: null | "unknown",
     },
 } | {
     kind: "unsupported",
