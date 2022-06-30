@@ -160,6 +160,7 @@ interface Component {
 // we don't have access to any unicode functions besides normalization
 // it would be much nicer to use skia but I still can't get it to build
 // I can also use cairo/pango but it's not super nice to work with
+// firefox webrender could be nice but it would require a lot of work to be usable standalone
 
 type NodeView<T> = {
     value: T,
