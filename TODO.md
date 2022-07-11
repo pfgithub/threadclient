@@ -1,5 +1,17 @@
 # PARITY LIST
 
+## important large components
+
+- [ ] action tracking
+  - when any async action is performed, we should be able to dump it into an action tracker
+  - it will show a little loading icon in the bottom right corner and when it's done, the thing can go away
+    - \*: only show the loading icon if the action is not completed after 300ms
+  - if it errors, we can display the error there. "failed to upvote because …"
+    - "retry" / "cancel"
+  - in the future, we may wish to modify the action thing to be an "outbox" for while you're offline, but this
+    is not necessary to consider for the initial implementation. for the initial implementaition, we can
+    assume that we can't serialize/store actions.
+
 ## once all items on this list are complete, page2 can be released:
 
 - performance:

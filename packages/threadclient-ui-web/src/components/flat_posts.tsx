@@ -190,6 +190,29 @@ function GetActionsFromAction(props: {action: Generic.Action, opts: ClientPostOp
             onClick={{url: link.url}}
             client_id={link.client_id}
         />,
+        act: act => <ActionItemRaw
+            icon={act.icon ?? "ellipsis"}
+            color={null}
+            text={act.text}
+            onClick={() => {
+                alert("TODO act");
+            }}
+            client_id={act.client_id}
+        />,
+        delete: del => <ActionItemRaw
+            icon={"trash"}
+            color={null}
+            text={"Delete"}
+            onClick={() => {
+                alert("TODO make the thing that tracks requests so we can use it here");
+                // we have to:
+                // 1. show a confirmation prompt
+                // 2. push an action
+                // 3. when the action is completed, either hide the post or display an error
+                //     using that little loader thing
+            }}
+            client_id={del.client_id}
+        />,
         // report: reportact => (
         //     // we could maybe have the client provide a url for the report and then navigate to it
         // ),

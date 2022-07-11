@@ -788,6 +788,7 @@ export type Action = {
     action: Opaque<"act">,
     client_id: string,
     text: string,
+    icon?: undefined | Icon,
 } | {
     kind: "flair",
     flair_list: Opaque<"flair_list">, // → FlairList
@@ -838,6 +839,7 @@ export type Icon =
     | "chevron_down"
     | "ellipsis"
     | "external"
+    | "trash"
 ;
 export type Color =
     | "orange"
