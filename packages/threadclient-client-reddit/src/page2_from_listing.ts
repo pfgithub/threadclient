@@ -6,7 +6,7 @@ import { assertNever, encodeQuery, splitURL, switchKind, updateQuery } from "tme
 import {
     authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, editButton,
     expectUnsupported, getCodeButton, getCommentBody,
-    getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, PostSort, redditRequest,
+    getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
 import { getSidebar } from "./sidebars";
@@ -611,6 +611,10 @@ function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
     };
 }
 
+function rawlinkButton(url: string): Generic.Action {
+    return {kind: "link", text: "View on reddit.com", url: rawlink(url), client_id: "reddit"};
+}
+
 function postDataFromListingMayError(
     content: Generic.Page2Content,
     id_map_data: IDMapData,
@@ -709,10 +713,11 @@ function postDataFromListingMayError(
         };
 
         const our_id = fullnameID(listing.name, sort);
+        const our_link = updateQuery(listing.permalink, {context: "3"});
         p2.fillLinkOnce(content, our_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
-            url: updateQuery(listing.permalink, {context: "3"}),
+            url: our_link,
 
             parent,
             replies,
@@ -737,6 +742,7 @@ function postDataFromListingMayError(
                         deleteButton(listing.name),
                         saveButton(listing.name, listing.saved),
                         reportButton(listing.name, listing.subreddit),
+                        rawlinkButton(our_link),
                     ],
                 },
             },
@@ -801,10 +807,11 @@ function postDataFromListingMayError(
         }
 
         const our_id = fullnameID(listing.name, sort);
+        const our_link = objectURL(listing_raw, sort);
         p2.fillLinkOnce(content, our_id, (): Generic.Post => ({
             kind: "post",
             client_id: client.id,
-            url: objectURL(listing_raw, sort),
+            url: our_link,
 
             parent: {loader: p2.prefilledVerticalLoader(content, postDataFromListingMayError(content, {
                 kind: "subreddit_unloaded",
@@ -845,6 +852,7 @@ function postDataFromListingMayError(
                             text: "Duplicates"
                         }, reportButton(listing.name, listing.subreddit),
                         editButton(listing.name),
+                        rawlinkButton(our_link),
                     ],
                 },
             },

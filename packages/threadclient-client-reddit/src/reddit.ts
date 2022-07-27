@@ -930,9 +930,16 @@ export type SubInfo = {
     widgets: Reddit.ApiWidgets | null,
     sub_t5: Reddit.T5 | null,
 };
-function getNavbar(): Generic.Navbar {
+export function rawlink(path: string): string {
+    if(path.startsWith("/mod/")) return "raw!https://mod.reddit.com"+path.replace("/mod/", "");
+    return "raw!https://www.reddit.com"+path;
+}
+function getNavbar(page_url: string): Generic.Navbar {
+    const always_actions: Generic.Action[] = [
+        {kind: "link", text: "View on reddit.com", url: rawlink(page_url), client_id: "reddit"},
+    ];
     if(isLoggedIn()) return {
-        actions: [{kind: "act", client_id: client.id, action: act_encoder.encode({kind: "log_out"}), text: "Log Out"}],
+        actions: [{kind: "act", client_id: client.id, action: act_encoder.encode({kind: "log_out"}), text: "Log Out"}, ...always_actions],
         inboxes: [
             {
                 id: "/messages",
@@ -952,8 +959,9 @@ function getNavbar(): Generic.Navbar {
     };
     return {
         actions: [
-            {kind: "link", client_id: client.id, url: getLoginURL(), text: "Log In"},
+            {kind: "link", client_id: client.id, url: getLoginURL(), text: "Log In", ...always_actions},
             {kind: "link", client_id: client.id, url: "raw!https://www.reddit.com/register", text: "Sign Up"},
+            ...always_actions,
         ],
         inboxes: [],
     };
@@ -970,7 +978,7 @@ function pathFromListingRaw(
     if(opts.warning) rtitems.push(...opts.warning);
     return {
         title: "Error View",
-        navbar: getNavbar(),
+        navbar: getNavbar(path),
         body: {
             kind: "one",
             item: {
@@ -1120,7 +1128,7 @@ export function pageFromListing(
 
         return {
             title: firstchild.kind === "t3" ? firstchild.data.title : "ERR top not t3",
-            navbar: getNavbar(),
+            navbar: getNavbar(pathraw),
             body: {
                 kind: "one",
                 item: {
@@ -1176,7 +1184,7 @@ export function pageFromListing(
     if(listing.kind === "wikipage") {
         return {
             title: pathraw + " | Wiki",
-            navbar: getNavbar(),
+            navbar: getNavbar(pathraw),
             body: {
                 kind: "one",
                 item: {
@@ -1200,7 +1208,7 @@ export function pageFromListing(
     if(listing.kind === "t5") {
         return {
             title: pathraw + " | Sidebar",
-            navbar: getNavbar(),
+            navbar: getNavbar(pathraw),
             body: {
                 kind: "one",
                 item: {parents: [{
@@ -1222,7 +1230,7 @@ export function pageFromListing(
     if(listing.kind === "UserList") {
         return {
             title: pathraw,
-            navbar: getNavbar(),
+            navbar: getNavbar(pathraw),
             body: {
                 kind: "one",
                 item: {
@@ -1280,7 +1288,7 @@ export function pageFromListing(
 
         return {
             title: pathraw,
-            navbar: getNavbar(),
+            navbar: getNavbar(pathraw),
             body: {
                 kind: "listing",
                 menu: page.kind === "subreddit" ? [{
@@ -2791,7 +2799,7 @@ export const client: ThreadClient = {
             }else if(parsed.kind === "link_out") {
                 return {
                     title: "LinkOut",
-                    navbar: getNavbar(),
+                    navbar: getNavbar(pathraw),
                     body: {kind: "one", item: {parents: [{kind: "thread",
                         body: {kind: "richtext", content: [
                             rt.h1(rt.link(client, "raw!"+parsed.out, {}, rt.txt("View on reddit.com"))),
@@ -2840,7 +2848,7 @@ export const client: ThreadClient = {
             }else if(parsed.kind === "redirect") {
                 return {
                     title: "LinkOut",
-                    navbar: getNavbar(),
+                    navbar: getNavbar(pathraw),
                     body: {kind: "one", item: {parents: [{kind: "thread",
                         body: {kind: "richtext", content: [
                             rt.h1(rt.txt("Error! Redirect Loop")),
@@ -2878,7 +2886,7 @@ export const client: ThreadClient = {
             
             return {
                 title: "Error",
-                navbar: getNavbar(),
+                navbar: getNavbar(pathraw_in),
                 body: {kind: "one", item: {parents: [{
                     kind: "thread",
                     title: {text: "Error"},

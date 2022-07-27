@@ -32,11 +32,12 @@ export default function Clickable(props: {
     const settings = getSettings();
     const onclick: JSX.EventHandler<HTMLElement, MouseEvent> = event => {
         const link = linkValue();
-        if(link.kind === "link" && link.external && !props.beforeClick && typeof props.action === "object" && !props.action.onClick) {
+        props.beforeClick?.(event);
+    
+        if(link.kind === "link" && link.external && typeof props.action === "object" && !props.action.onClick) {
             return;
         }
 
-        props.beforeClick?.(event);
         event.stopPropagation();
         if (
             !event.defaultPrevented && // beforeClick prevented default
