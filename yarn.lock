@@ -3791,7 +3791,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"api-types-hackernews@^1.0.0, api-types-hackernews@workspace:packages/api-types-hackernews":
+"api-types-hackernews@workspace:packages/api-types-hackernews":
   version: 0.0.0-use.local
   resolution: "api-types-hackernews@workspace:packages/api-types-hackernews"
   dependencies:
@@ -14551,18 +14551,6 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
-"threadclient-client-hackernews@^1.0.0, threadclient-client-hackernews@workspace:packages/threadclient-client-hackernews":
-  version: 0.0.0-use.local
-  resolution: "threadclient-client-hackernews@workspace:packages/threadclient-client-hackernews"
-  dependencies:
-    api-types-hackernews: ^1.0.0
-    eslint: ^8.13.0
-    eslint-config-tmeta: ^1.0.0
-    tsconfig-tmeta: ^1.0.0
-    typescript: ^4.6.3
-  languageName: unknown
-  linkType: soft
-
 "threadclient-client-mastodon@^1.0.0, threadclient-client-mastodon@workspace:packages/threadclient-client-mastodon":
   version: 0.0.0-use.local
   resolution: "threadclient-client-mastodon@workspace:packages/threadclient-client-mastodon"
@@ -14705,7 +14693,6 @@ fsevents@~2.3.2:
     solid-headless: ^0.10.12
     solid-js: ^1.3.14
     threadclient-client-base: ^1.0.0
-    threadclient-client-hackernews: ^1.0.0
     threadclient-client-mastodon: ^1.0.0
     threadclient-client-reddit: ^1.0.0
     threadclient-client-shell: ^1.0.0
