@@ -80,7 +80,6 @@ ThreadClient:
 
 - `reddit`: packages/threadclient-client-reddit
 - `mastodon`: packages/threadclient-client-mastodon
-- `hackernews`: packages/threadclient-client-hackernews
 - `semantic`\*: packages/api-types-generic
 - `flat`: packages/threadclient-render-flatten
 - `web`: packages/threadclient-ui-web

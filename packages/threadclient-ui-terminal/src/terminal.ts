@@ -22,29 +22,30 @@ const cachedir = path.join(os.homedir(), ".cache", "threadclient-term");
 const imgcachedir = path.join(cachedir, "images");
 
 function unlink(content: Generic.Page2Content, link: Generic.Link<Generic.Post>): Generic.Post {
-    const value = Generic.readLink(content, link);
-    if(value.error != null) return {
-        parent: null,
-        replies: null,
-        client_id: "n/a",
-        url: null,
+    throw new Error("todo update `fn unlink` for page2 changes");
+    // const value = Generic.readLink(content, link);
+    // if(value.error != null) return {
+    //     parent: null,
+    //     replies: null,
+    //     client_id: "n/a",
+    //     url: null,
 
-        kind: "post",
+    //     kind: "post",
 
-        content: {
-            kind: "post",
-            body: {
-                kind: "richtext",
-                content: [{kind: "paragraph", children: [{
-                    kind: "error", text: value.error, value: value.error,
-                }]}],
-            },
-            title: null,
-            collapsible: false,
-        },
-        internal_data: link,
-    };
-    return value.value;
+    //     content: {
+    //         kind: "post",
+    //         body: {
+    //             kind: "richtext",
+    //             content: [{kind: "paragraph", children: [{
+    //                 kind: "error", text: value.error, value: value.error,
+    //             }]}],
+    //         },
+    //         title: null,
+    //         collapsible: false,
+    //     },
+    //     internal_data: link,
+    // };
+    // return value.value;
 }
 
 // TODO: at top level, return VisualNode[]
@@ -56,27 +57,28 @@ function generateVisualParentsAroundPost(
     replies?: undefined | VisualNode[],
     depth = 0,
 ): VisualNode {
-    const res: VisualNode = {
-        post,
-        visual_parent: undefined,
-        visual_replies: undefined,
-        visual_reply_index: 0,
-        depth,
-        content,
-    };
-    res.visual_parent = parent ?? (post.parent ?
-        generateVisualParentsAroundPost(content, unlink(content, post.parent), undefined, [res], depth - 1)
-    : undefined);
-    res.visual_replies = replies ?? (() => {
-        const actual_replies = post.replies;
-        if(!actual_replies) return undefined;
-        const rplres: VisualNode[] = [];
-        for(const item of actual_replies.items) {
-            rplres.push(generateVisualParentsAroundPost(content, unlink(content, item), res, undefined, depth + 1));
-        }
-        return rplres;
-    })();
-    return res;
+    throw new Error("todo update `fn generateVisualParentsAroundPost` for page2 changes");
+    // const res: VisualNode = {
+    //     post,
+    //     visual_parent: undefined,
+    //     visual_replies: undefined,
+    //     visual_reply_index: 0,
+    //     depth,
+    //     content,
+    // };
+    // res.visual_parent = parent ?? (post.parent ?
+    //     generateVisualParentsAroundPost(content, unlink(content, post.parent), undefined, [res], depth - 1)
+    // : undefined);
+    // res.visual_replies = replies ?? (() => {
+    //     const actual_replies = post.replies;
+    //     if(!actual_replies) return undefined;
+    //     const rplres: VisualNode[] = [];
+    //     for(const item of actual_replies.items) {
+    //         rplres.push(generateVisualParentsAroundPost(content, unlink(content, item), res, undefined, depth + 1));
+    //     }
+    //     return rplres;
+    // })();
+    // return res;
 }
 
 enum TermColor {
@@ -698,8 +700,6 @@ function renderInfoBarItem(item: InfoBarItem): TermText {
 // maybe we can make TermText not contain TermText[] and then use a helper fn
 // I can't do this right now because I don't have a typescript language server
 function renderPost(post: Generic.Post): TermText[] {
-    if(post.kind === "loader") return [["enotpost"]];
-    if(post.kind === "loaded") return [["enotpost"]];
     const {content} = post;
     if(content.kind !== "post") return [["enotpost"]];
 

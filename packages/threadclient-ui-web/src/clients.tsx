@@ -4,8 +4,6 @@ import { client_cache } from "./router";
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     reddit: () => import("threadclient-client-reddit").then(client => client.client),
     mastodon: () =>  import("threadclient-client-mastodon").then(client => client.client),
-    hackernews: () =>  import("threadclient-client-hackernews").then(client => client.client),
-    test: () =>  import("./clients/test").then(client => client.client),
     shell: () =>  import("threadclient-client-shell").then(client => client.client),
 };
 export async function fetchClient(name_any: string): Promise<ThreadClient | undefined> {
