@@ -415,12 +415,12 @@ export function changelogEntry(props: {
                 "release here"))),
                 rt.ul(...props.previews),
             ] : []),
-            ...(props.internal != null ? [
-                rt.h2(rt.txt("WIP Internal Changes")),
-                rt.blockquote(rt.p(rt.txt("These changes are internal to ThreadClient and will not affect "
-                +"your experience."))),
-                rt.ul(...props.internal),
-            ] : []),
+            // ...(props.internal != null ? [
+            //     rt.h2(rt.txt("WIP Internal Changes")),
+            //     rt.blockquote(rt.p(rt.txt("These changes are internal to ThreadClient and will not affect "
+            //     +"your experience."))),
+            //     rt.ul(...props.internal),
+            // ] : []),
         ]},
         // collapsible: {default_collapsed: true},
         collapsible: false, // TODO make this {default_collapsed: true} unless it's the most recent one

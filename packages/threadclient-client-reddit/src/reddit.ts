@@ -623,7 +623,7 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
             kind: "list",
             items: data.data.map((sub): Generic.WidgetListItem => {
                 if(sub.type === "subreddit") return {
-                    icon: sub.communityIcon || undefined,
+                    icon: sub.communityIcon || sub.iconUrl || undefined,
                     name: {kind: "text", text: "r/"+sub.name},
                     click: {kind: "link", url: "/r/"+sub.name},
                     action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),

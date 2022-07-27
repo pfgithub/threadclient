@@ -3,41 +3,31 @@
 import { rt } from "api-types-generic";
 import { autoPost, changelogEntry } from "./shell_client";
 
-// const ntxt = git rev-list `${COMMIT-HASH}..HEAD`;
-// const mtxt = (this file)
-// copy(ntxt.split("\n").map(l => mtxt.includes(l) ? "[✓] " + l : "[✗] " + l).join("\n"))
+// MOST RECENT COMMIT ADDED: 75a44cd4007cf21c90516b8d8386f13455263ae8
+// in command: git log --stat "bd54c07697d47be3c68f14162c37f54ea1fbe752..HEAD"
 
 export function changelog2() {return autoPost({
     parent: "/changelog",
     replies: [],
 }, changelogEntry({
-    title: "@TBD@ (search this to fix all)",
+    title: "Jul 27, 2022 ThreadClient Update",
 
     notes: [
-        rt.p(rt.txt("This update took place over @TBD@(generate) days and contains @TBD@(generate) "
-        +"commits, @TBD@(generate) of which make user-facing changes.")),
-        // ^ it would be cool to do time tracking so I could say how many hours went into updates
-        // just make a vscode extension that marks every session (eg if you have typed in the last n minutes)
-        // - this isn't perfectly accurate as it might exclude some time looking stuff up but it should be
-        // pretty good. something like at least two edits in 5 min and then it tracks until you haven't
-        // made an edit for 10min or something. couldn't find an extension to do this automatically
-
         rt.p(rt.txt("The bulk of the work in this update has gone towards getting the new page2 version "
         +"of ThreadClient ready to use, meaning that there are not very many new features or "
-        +"improvements. Page2 is not ready yet, but you can try out the current progress "
-        +"@TBD@(explain how).")),
+        +"improvements.")),
     ],
 
     merge: {
         "55f1de809e992101e64ad1098094e2993367644d": {},
         "2f00a83097e84960399ff0587babab15292954ec": {},
         "51761eb0049c85837253141d6770d1dc74cd7e03": {
-            previews: [
+            internal: [
                 rt.ili(rt.txt("Fixes a bug on the WIP new landing page with the feature cards")),
             ],
         },
         "714d227094e8760c0dece3e74cb931d7b8fc76a5": {
-            previews: [
+            internal: [
                 rt.ili(rt.txt("In page2, adds collapse buttons to posts that don't have a voting action")),
             ],
         },
@@ -117,8 +107,8 @@ export function changelog2() {return autoPost({
             "89fe04525083c3125440078894ec72317d477dea",
 
         ].join(",")]: {
-            previews: [
-                rt.ili(rt.txt("Improves how clickable page2 posts look. It looks fancy. @TBD@ link demo")),
+            internal: [
+                rt.ili(rt.txt("Improves how clickable page2 posts look")),
             ],
         },
         [[
@@ -154,7 +144,7 @@ export function changelog2() {return autoPost({
             "dfcf31ace052ebf54504a03807bbd0ac523ba21f",
         ].join(",")]: {
             changes: [
-                rt.ili(rt.txt("Improves the look of the post reply editor. @TBD@ see about improving preview too")),
+                rt.ili(rt.txt("Improves the look of the post reply editor.")),
             ],
         },
         [[
@@ -176,9 +166,7 @@ export function changelog2() {return autoPost({
             "7335aaa6b283ff1b77758b9011ee7314486e39b5",
         ].join(",")]: {
             internal: [
-                rt.ili(rt.txt("Fixes a bug where some subreddits are missing sidebar icons. Although the same "
-                +"bug also exists in page1 and fixing it would take less time than writing out this message, "
-                +"it is not fixed in page1. @TBD@")),
+                rt.ili(rt.txt("Fixes a bug where some subreddits are missing sidebar icons.")),
             ],
         },
         [[
@@ -186,7 +174,7 @@ export function changelog2() {return autoPost({
         ].join(",")]: {
             changes: [
                 rt.ili(rt.txt("Link helpers are now disabled by default, unless you are on a touchscreen. "
-                +"Turn them back on in "+rt.link({id: ""}, "/settings", {}, rt.txt("Settings")))),
+                +"Turn them back on in "), rt.link({id: ""}, "/settings", {}, rt.txt("Settings"))),
             ],
         },
         "2a562bb720b2e33dd1269b8fb5ece6dcf794b7a6": {},
@@ -242,8 +230,7 @@ export function changelog2() {return autoPost({
             "eb0ba2893550f04459c46adf7391e5c9b987a7dc",
         ].join(",")]: {
             changes: [
-                rt.ili(rt.txt("Completely breaks the Mastodon client. I hope no one was using this. @TBD@ "
-                +"make sure at least the link on the homepage works before release")),
+                rt.ili(rt.txt("Completely breaks the Mastodon client.")),
             ],
             internal: [
                 rt.ili(rt.txt("Internally change how page2 loaders work. This adds support for loading parent "
@@ -468,9 +455,9 @@ export function changelog2() {return autoPost({
             "75be07051fe0b90e77b879fc0bf23760172ffe98",
             "7f19b20421927bb28ae8bd24d0907badaa783871",
         ].join(",")]: {
-            previews: [
+            internal: [
                 rt.ili(
-                    rt.txt("Started work on a new reader view for posts. Try it by clicking the 'Reader' button below this post"),
+                    rt.txt("Started work on a new reader view for posts."),
                 ),
             ],
         },
@@ -533,10 +520,11 @@ export function changelog2() {return autoPost({
         },
         [[
             "4484b296d9fb72a813904727b03ca2e80230a9e7",
+            "b8a08d21f688f552bf3024c29098be0a4552593b",
         ].join(",")]: {
             changes: [
                 rt.ili(
-                    rt.txt("On desktop, you can now hover over a post award to see an enlarged version. Example: "),
+                    rt.txt("On desktop, you can now hover over a post award to see an enlarged and animated version. Example: "),
                     {
                         kind: "emoji",
                         name: "All-Seeing Upvote",
@@ -595,9 +583,27 @@ export function changelog2() {return autoPost({
                 rt.ili(rt.txt("Introduce some more technical debt")),
             ],
         },
-
-        // in command: git log --stat "bd54c07697d47be3c68f14162c37f54ea1fbe752..HEAD"
-        // MOST RECENT COMMIT ADDED: b2130e5823ecc062651bfd0f703bdbd5dcfb624a
+        [[
+            "5d2388f11b4a396ed0f829f67024cde7ad0354f6"
+        ].join(",")]: {
+            bugfixes: [
+                rt.ili(rt.txt("Fixes a bug where sometimes the wrong icon is used for vreddit links")),
+            ],
+        },
+        [[
+            "0fe55368851279c52fa84d3a24f85c3d54370e68"
+        ].join(",")]: {
+            bugfixes: [
+                rt.ili(rt.txt("Fixes a bug where approved user notifications show an error")),
+            ],
+        },
+        [[
+            "39b1fb2930452cfb70095e3b5927d49699e46394"
+        ].join(",")]: {
+            changes: [
+                rt.ili(rt.txt("Adds 'view on reddit.com' links to posts (next to 'log in / sign up' at the top of the page)")),
+            ],
+        },
     },
 }));}
 
