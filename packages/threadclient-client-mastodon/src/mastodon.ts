@@ -263,14 +263,14 @@ function postToGenericCanError(
             client_id: client.id,
             color_hash: post.account.username,
             link: "/"+host+"/accounts/"+post.account.id,
-            flair: post.account.bot ?? false ? [{elems: [{kind: "text", text: "bot"}], content_warning: false}] : [],
+            flair: post.account.bot ?? false ? [{elems: [{kind: "text", text: "bot", styles: {}}], content_warning: false}] : [],
             pfp: {
                 url: post.account.avatar_static,
                 hover: post.account.avatar,
             },
         },
         flair: post.sensitive || post.spoiler_text ? [
-            {content_warning: post.sensitive, elems: [{kind: "text", text: post.spoiler_text || "Sensitive"}]},
+            {content_warning: post.sensitive, elems: [{kind: "text", text: post.spoiler_text || "Sensitive", styles: {}}]},
         ] : undefined,
         actions: {
             vote: {kind: "counter",
@@ -681,7 +681,31 @@ export const client: ThreadClient = {
         });
 
         if(parsed.kind === "instance-home") {
+            return {content, pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
+                kind: "post",
+                content: {
+                    kind: "post",
+                    title: {text: host},
+                    body: {
+                        kind: "richtext",
+                        content: [
+                            rt.ul(...([
+                                ["/"+host+"/timelines/public", "Federated Timeline"],
+                                ["/"+host+"/timelines/local", "Local Timeline"],
+                            ] as const).map(([url, text]) => rt.li(rt.p(rt.link(client, url, {}, rt.txt(text)))))),
+                        ],
+                    },
+                    collapsible: {default_collapsed: false},
+                },
+                internal_data: 0,
+                parent: null,
+                replies: null,
+                url: null,
+                client_id: "mastodon",
+            })};
+
             throw new Error("TODO INSTANCE HOME; CONSIDER MAKING THIS A TAB AND PUT SOME ABOUT HERE");
+
             // return bodyPage(host, "Links | "+host, {
             //     kind: "richtext",
             //     content: [
