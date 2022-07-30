@@ -2567,7 +2567,7 @@ function generateUserSidebar(
         body: {
             kind: "text",
             client_id: client.id,
-            content: user.data.subreddit.public_description_html,
+            content: user.data.subreddit.public_description,
             markdown_format: "reddit_html",
         },
         subscribe: {

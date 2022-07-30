@@ -592,7 +592,7 @@ export type T5Data = { // T5_Data? pascal_underscore case?
     title: string,
 
     public_description: Markdown,
-    public_description_html: HTML,
+    // public_description_html: HTML, // doesn't exist on user profile pages
 
     description: Markdown,
     description_html: HTML, // old.reddit sidebar text

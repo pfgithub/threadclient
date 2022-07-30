@@ -604,6 +604,11 @@ export function changelog2() {return autoPost({
                 rt.ili(rt.txt("Adds 'view on reddit.com' links to posts (next to 'log in / sign up' at the top of the page)")),
             ],
         },
+        "__": {
+            changes: [
+                rt.ili(rt.txt("Fixes a bug where user bios say 'undefined'")),
+            ],
+        },
     },
 }));}
 
