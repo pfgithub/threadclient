@@ -2568,7 +2568,7 @@ function generateUserSidebar(
             kind: "text",
             client_id: client.id,
             content: user.data.subreddit.public_description,
-            markdown_format: "reddit_html",
+            markdown_format: "none",
         },
         subscribe: {
             kind: "counter",

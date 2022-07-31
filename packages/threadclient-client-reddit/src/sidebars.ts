@@ -388,8 +388,8 @@ function customIDCardWidget(
         title: {text: t5.data.title},
         body: {
             kind: "text",
-            content: t5.data.public_description_html,
-            markdown_format: "reddit_html",
+            content: t5.data.public_description,
+            markdown_format: "none",
             client_id: client.id,
         },
         actions: {
