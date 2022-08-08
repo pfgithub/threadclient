@@ -111,13 +111,26 @@ function CopyButton(props: {getValue: () => Promise<string>, children: JSX.Eleme
         setTimeout(() => {
             if(state() === 0) setState(1);
         }, 100);
-        props.getValue().then(value => {
-            navigator.clipboard.writeText(value).then(() => {
-                setState(2);
-            }).catch(e => {
-                setState(0);
-                alert("copy error: "+e);
-            });
+        // [!] ios safari does not allow any awaits between the user event and the navigator.clipboard.write call
+        // but firefox doesn't support the ClipboardItem api without a flag set
+        // and chrome doesn't support the ClipboardItem constructor with a Promise<string> data value
+        const val = () => {
+            // can't use feature detection because how do you detect if the ClipboardItem constructor supports
+            // PromiseLike<string>?
+            const ffOrChromeVer = () => (async () => {
+                const value = await props.getValue();
+                return navigator.clipboard.writeText(value);
+            })();
+            try {
+                return navigator.clipboard.write([new ClipboardItem({"text/plain": (async () => {
+                    return await props.getValue();
+                })()})]).catch(e => ffOrChromeVer());
+            }catch(e) {
+                return ffOrChromeVer();
+            }
+        };
+        val().then(() => {
+            setState(2);
         }).catch(e => {
             setState(0);
             alert("copy error: "+e);
@@ -146,7 +159,7 @@ function Encryptor(): JSX.Element {
         </label>
         <label class="block">
             <div>Value</div>
-            <textarea ref={value} class="block w-full border border-hex-fff" />
+            <textarea ref={value} class="block w-full border border-hex-fff" rows={10} />
         </label>
         <div class="space-x-2">
             <CopyButton
