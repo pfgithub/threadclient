@@ -114,7 +114,6 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         link: "/u/pfg___",
                         pfp: {
                             url: "https://www.redditstatic.com/avatars/avatar_default_02_FF8717.png",
-                            hover: "https://www.redditstatic.com/avatars/avatar_default_02_FF8717.png",
                         },
                     },
                     collapsible: {default_collapsed: false},

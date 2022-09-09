@@ -9,6 +9,7 @@ import "photoswipe/dist/photoswipe.css";
 import "photoswipe/dist/default-skin/default-skin.css";
 
 import "./gallery.scss";
+import proxyURL from "./proxy_url";
 
 export function showGallery(
     images: Generic.GalleryItem[],
@@ -94,10 +95,10 @@ It's a separate element, as animating opacity is faster than rgba(). -->
     const items: PhotoSwipe.Item[] = images.map(img => {
         if(img.body.kind !== "captioned_image") throw new Error("bad");
         return {
-            src: img.body.url,
-            w: img.body.w ?? undefined,
-            h: img.body.h ?? undefined,
-            msrc: img.thumb ?? "error",
+            src: proxyURL(img.body.url),
+            w: img.body.w ?? 300, // pswp requires a size. this size will be wrong but might be good enough.
+            h: img.body.h ?? 300,
+            msrc: proxyURL(img.thumb ?? "error"),
             title: img.body.caption,
             alt: img.body.alt,
         };

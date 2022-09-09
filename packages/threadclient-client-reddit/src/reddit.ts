@@ -1938,8 +1938,12 @@ export function authorFromInfo(opts: {
             ...opts.additional_flairs ?? [],
         ],
         pfp: opts.pfp != null && opts.pfp !== "" ? {
-            url: opts.pfp_over18 ? "https://dummyimage.com/50x50/ff0000/fff.png&text=%3E18" : opts.pfp,
-            hover: opts.pfp,
+            // "profileIcon_snoo" :: reddit avatar creator pfp
+            // "profileIcon_snoo-nftv2" :: reddit nft pfp
+            // I'm sure this data is somewhere else, but I can't find it even in new.reddit's desktopapi or gql
+            cw_masked: opts.pfp_over18 && !opts.pfp.includes("profileIcon_snoo") ? true : false,
+            url: opts.pfp,
+            view: opts.pfp.includes("profileIcon_snoo-nftv2") ? "reddit-nft" : null,
         } : undefined,
     };
 }

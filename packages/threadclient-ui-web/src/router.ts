@@ -32,6 +32,7 @@ export function uuid(): UUID {
         readBytes: (u8a) => crypto.getRandomValues(u8a),
     });
 }
+console.log("here's a uuid:", uuid());
 
 export function setCurrentHistoryKey(new_key: UUID): void {
     current_nav_history_key = new_key;

@@ -1,7 +1,7 @@
 import type * as Generic from "api-types-generic";
 import {
     Accessor, createMemo, createSignal,
-    For, JSX, Setter, untrack
+    For, JSX, onCleanup, Setter, untrack
 } from "solid-js";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
 import { link_styles_v } from "../page1";
@@ -29,13 +29,64 @@ import proxyURL from "./proxy_url";
 
 const decorative_alt = "";
 
-export function AuthorPfp(props: {src_url: string, hover_src_url: string}): JSX.Element {
-    const [srcurl, setSrcurl] = createSignal(props.src_url);
+export function AuthorPfp(props: {pfp: Generic.InfoPfp}): JSX.Element {
     const [visible, setVisible] = createSignal(false);
-    return <img
-        src={visible() ? proxyURL(srcurl()) : ""}
+    const [masked, setMasked] = createSignal(props.pfp.cw_masked ?? false);
+    const [pswpOpen, setPswpOpen] = createSignal(false);
+    let imgel!: HTMLImageElement;
+    let destroyGallery: null | (() => void) = null;
+    onCleanup(() => {
+        destroyGallery?.();
+        destroyGallery = null;
+    });
+    return <button class="w-8 h-8 inline-block"
+        style={props.pfp.view === "reddit-nft" ? {
+            'background-image': "url(/images/pfp_view/reddit-nft.png)",
+            'background-position': "center",
+            'background-size': "cover",
+        } : {}}
+        onclick={() => {
+            if(masked()) {
+                setMasked(false);
+                return;
+            }
+            destroyGallery?.();
+            destroyGallery = null;
+            import("./gallery").then(gallery => {
+                setPswpOpen(true);
+                const visible_gallery = gallery.showGallery([{
+                    body: {
+                        kind: "captioned_image",
+                        url: props.pfp.full_size_animated ?? props.pfp.url,
+                        w: null,
+                        h: null,
+                    },
+                    thumb: props.pfp.url,
+                    aspect: 1,
+                }], 0, __ => {
+                    const bcr = imgel.getBoundingClientRect();
+                    return {
+                        x: bcr.x,
+                        y: bcr.y + (window.pageYOffset ?? document.documentElement.scrollTop),
+                        w: bcr.width,
+                        h: bcr.height,
+                    };
+                }, {
+                    onclose: () => {setPswpOpen(false); destroyGallery = null},
+                    setIndex: () => void 0,
+                });
+                destroyGallery = () => {
+                    visible_gallery.cleanup();
+                };
+            }).catch(e => {
+                alert("error loading gallery component");
+            });
+        }}
+    ><img
+        src={visible() ? proxyURL(props.pfp.url) : ""}
         loading="lazy" // ← not working? I had to implement it myself ↓
         ref={el => {
+            imgel = el;
             new IntersectionObserver(itms => {
                 itms.forEach(itm => {
                     if(itm.target !== el) return;
@@ -48,15 +99,9 @@ export function AuthorPfp(props: {src_url: string, hover_src_url: string}): JSX.
                 threshold: 0,
             }).observe(el);
         }}
-        onMouseEnter={() => {
-            setSrcurl(props.hover_src_url);
-        }}
-        onMouseLeave={() => {
-            setSrcurl(props.src_url);
-        }}
         alt={decorative_alt}
-        class="w-8 h-8 object-center inline-block rounded-full"
-    />;
+        class={"w-full h-full block rounded-md " + (pswpOpen() ? " opacity-0" : "") + (masked() ? " filter blur-sm" : "")}
+    /></button>;
 }
 
 function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
@@ -415,7 +460,7 @@ export function PostTopBar(props: ClientPostProps & {
                         <Show if={
                             props.visible && settings.authorPfp() === "on"
                         } when={author.pfp} fallback={"By "}>{pfp => <>
-                            <AuthorPfp src_url={pfp.url} hover_src_url={pfp.hover} />{" "}
+                            <AuthorPfp pfp={pfp} />{" "}
                         </>}</Show>
                         <UserLink
                             client_id={author.client_id}

@@ -605,16 +605,19 @@ type RedditModState = {
     approved: boolean, // TODO counter index
 };
 
+export type InfoPfp = {
+    cw_masked?: undefined | boolean,
+    url: string,
+    full_size_animated?: undefined | string,
+    view?: undefined | null | "reddit-nft",
+};
 export type InfoAuthor = {
     name: string,
     color_hash: string,
     link: string,
     client_id: string,
     flair?: Flair[] | undefined,
-    pfp?: undefined | {
-        url: string,
-        hover: string,
-    },
+    pfp?: undefined | InfoPfp,
     // system_perms?: {moderator?: …, admin?: …} | undefined, or something idk
 };
 export type Info = {

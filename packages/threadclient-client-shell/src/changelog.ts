@@ -6,6 +6,19 @@ import { autoPost, changelogEntry } from "./shell_client";
 // MOST RECENT COMMIT ADDED: 75a44cd4007cf21c90516b8d8386f13455263ae8
 // in command: git log --stat "bd54c07697d47be3c68f14162c37f54ea1fbe752..HEAD"
 
+export function changelog3() {return autoPost({
+    parent: "/changelog",
+    replies: [],
+}, changelogEntry({
+    title: "Sep 8, 2019 ThreadClient Update",
+    changes: [
+        rt.ili(rt.txt("Clicking on a pfp will now make it fullscreen so you can look at it")),
+        rt.ili(rt.txt("Now indicates if a pfp is a reddit nft with that hexagon background thing")),
+        rt.ili(rt.txt("Pfps are now rounded squares instead of circular")),
+        rt.ili(rt.txt("Pfps of nsfw profiles are now blurred, and can be revealed by clicking. Avatar builder pfps are never blurred.")),
+    ],
+}));}
+
 export function changelog2() {return autoPost({
     parent: "/changelog",
     replies: [],

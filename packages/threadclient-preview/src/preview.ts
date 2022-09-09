@@ -286,7 +286,6 @@ export async function gfyLike2(
                 client_id,
                 pfp: user.profileImageUrl != null ? {
                     url: user.profileImageUrl,
-                    hover: user.profileImageUrl,
                 } : undefined,
             } : undefined,
             body,

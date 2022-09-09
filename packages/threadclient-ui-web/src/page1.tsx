@@ -7,7 +7,7 @@ import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { previewLink } from "threadclient-preview";
 import { assertNever } from "tmeta-util";
-import { allowedToAcceptClick, TimeAgo } from "tmeta-util-solid";
+import { allowedToAcceptClick, Show, TimeAgo } from "tmeta-util-solid";
 import { fetchClient, getClientCached } from "./clients";
 import { oembed } from "./clients/oembed";
 import { Body } from "./components/body";
@@ -15,6 +15,7 @@ import { CollapseButton } from "./components/CollapseButton";
 import { Flair } from "./components/Flair";
 import { Homepage } from "./components/homepage";
 import { ClientContentAny } from "./components/page2";
+import { AuthorPfp } from "./components/Post";
 import proxyURL from "./components/proxy_url";
 import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
@@ -1584,25 +1585,24 @@ export function clientListing(
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
         if(listing.layout === "reddit-comment" && listing.info.author?.pfp) {
-            const pfpimg = el("img").attr({src: proxyURL(listing.info.author.pfp.url)}).adto(content_subminfo_line)
-                .clss("w-8 h-8 object-center inline-block rounded-full cfg-reddit-pfp")
-            ;
-            pfpimg.title = "Disable in settings (thread.pfg.pw/settings)";
-            content_subminfo_line.atxt(" ");
+            const pfpborder = el("div").clss("inline-block align-middle");
+            const pfp = listing.info.author.pfp;
+            vanillaToSolidBoundary(pfpborder, () => {
+                const settings = getSettings();
+                return <Show if={
+                    settings.authorPfp() === "on"
+                }>
+                    <AuthorPfp pfp={pfp} />{" "}
+                </Show>;
+                return <AuthorPfp pfp={listing.info!.author!.pfp!} />;
+            }).defer(hsc);
+            pfpborder.adto(content_subminfo_line);
+            content_subminfo_line.adch(txt(" "));
         }
         if(listing.info.author) content_subminfo_line.adch(
             userLink(client.id, listing.info.author.link, listing.info.author.color_hash).atxt(listing.info.author.name)
         );
         if(listing.info.author?.flair) content_subminfo_line.adch(renderFlair(listing.info.author.flair));
-        if(listing.layout === "mastodon-post" && listing.info.author?.pfp) {
-            frame.clss("spacefiller-pfp");
-
-            const pfpimg = el("div").clss("pfp").styl({
-                "--url": "url("+JSON.stringify(listing.info.author.pfp.url)+")",
-                "--url-hover": "url("+JSON.stringify(listing.info.author.pfp.hover)+")"
-            });
-            pfpimg.adto(content_voting_area);
-        }
         reserved_points_area = document.createComment("").adto(content_subminfo_line);
         if(listing.info.time !== false) {
             const submission_time = el("span").adch(timeAgo(listing.info.time).defer(hsc));
@@ -1625,14 +1625,6 @@ export function clientListing(
             ;
             if(listing.info.reblogged_by.time !== false) {
                 content_subminfo_line.atxt(" at ").adch(timeAgo(listing.info.reblogged_by.time).defer(hsc));
-            }
-            if(listing.layout === "mastodon-post" && listing.info.reblogged_by.author?.pfp) {
-                frame.clss("spacefiller-pfp");
-                const pfpimg = el("div").clss("pfp", "pfp-reblog").styl({
-                    "--url": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.url)+")",
-                    "--url-hover": "url("+JSON.stringify(listing.info.reblogged_by.author.pfp.hover)+")"
-                });
-                pfpimg.adto(content_voting_area);
             }
         }
     }
