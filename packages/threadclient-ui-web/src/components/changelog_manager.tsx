@@ -5,7 +5,7 @@ import { getSettings } from "../util/utils_solid";
 import Clickable from "./Clickable";
 import { InternalIconRaw } from "./Icon";
 
-const current_version = "-N0l8jcINFK5F9MkDcyT";
+const current_version = "-NBV3onJ3vJScBQJuFSK";
 
 function isPreChangelogUser(): boolean {
     // if the user has used threadclient before changelogs were introduced

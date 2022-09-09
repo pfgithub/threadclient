@@ -53,7 +53,7 @@ export default function ReaderView(props: {
                 <Show if={
                     settings.authorPfp() === "on"
                 } when={author.pfp} fallback={"By "}>{pfp => <>
-                    <AuthorPfp src_url={pfp.url} hover_src_url={pfp.hover} />{" "}
+                    <AuthorPfp pfp={pfp} />{" "}
                 </>}</Show>
                 <UserLink
                     client_id={author.client_id}

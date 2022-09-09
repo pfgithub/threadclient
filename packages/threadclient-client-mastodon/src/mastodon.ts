@@ -266,7 +266,7 @@ function postToGenericCanError(
             flair: post.account.bot ?? false ? [{elems: [{kind: "text", text: "bot", styles: {}}], content_warning: false}] : [],
             pfp: {
                 url: post.account.avatar_static,
-                hover: post.account.avatar,
+                full_size_animated: post.account.avatar,
             },
         },
         flair: post.sensitive || post.spoiler_text ? [
