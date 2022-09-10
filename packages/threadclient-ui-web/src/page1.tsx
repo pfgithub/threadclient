@@ -1585,7 +1585,7 @@ export function clientListing(
         }
     }else if((listing.layout === "reddit-comment" || listing.layout === "mastodon-post") && listing.info) {
         if(listing.layout === "reddit-comment" && listing.info.author?.pfp) {
-            const pfpborder = el("div").clss("inline-block align-middle");
+            const pfpborder = el("div").clss("inline-block align-middle cfg-reddit-pfp");
             const pfp = listing.info.author.pfp;
             vanillaToSolidBoundary(pfpborder, () => {
                 const settings = getSettings();
@@ -1594,7 +1594,6 @@ export function clientListing(
                 }>
                     <AuthorPfp pfp={pfp} />{" "}
                 </Show>;
-                return <AuthorPfp pfp={listing.info!.author!.pfp!} />;
             }).defer(hsc);
             pfpborder.adto(content_subminfo_line);
             content_subminfo_line.adch(txt(" "));
