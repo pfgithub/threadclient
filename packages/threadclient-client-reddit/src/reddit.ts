@@ -276,18 +276,18 @@ function richtextFormattedText(
         return [rt.txt(text)];
     }
     const resitems: Generic.Richtext.Span[] = [];
-    let previdx = 0;
-    const commit = (endv: number) => {
-        const nofmt = textsplit.slice(previdx, previdx + endv).join("");
+    let filled_idx = 0;
+    const fillUnstyledTo = (endv: number) => {
+        const nofmt = textsplit.slice(filled_idx, endv).join("");
         if(nofmt.length > 0) resitems.push(rt.txt(nofmt));
     };
     const textsplit = [...text];
-    format.forEach(([fmtid, start, length]) => {
-        commit(start);
-        previdx = start + length;
+    format.forEach(([format_mode, start, length]) => {
+        fillUnstyledTo(start);
+        filled_idx = start + length;
         const fmt = textsplit.slice(start, start + length).join(""); // .substr cannot be used because start refers to codepoint index and not utf-16 index
 
-        const resstyl = richtextStyle(fmtid);
+        const resstyl = richtextStyle(format_mode);
         if(resstyl.error != null) {
             resitems.push(rt.error(fmt, resstyl.error));
         }else if(resstyl.code) {
@@ -301,7 +301,7 @@ function richtextFormattedText(
             }));
         }
     });
-    commit(textsplit.length);
+    fillUnstyledTo(textsplit.length);
     return resitems;
 }
 function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions): Generic.Richtext.Span[] {
