@@ -10,12 +10,26 @@ export function changelog3() {return autoPost({
     parent: "/changelog",
     replies: [],
 }, changelogEntry({
-    title: "Sep 8, 2019 ThreadClient Update",
+    title: "Sep 12, 2019 ThreadClient Update",
     changes: [
         rt.ili(rt.txt("Clicking on a pfp will now make it fullscreen so you can look at it")),
         rt.ili(rt.txt("Now indicates if a pfp is a reddit nft with that hexagon background thing")),
         rt.ili(rt.txt("Pfps are now rounded squares instead of circular")),
         rt.ili(rt.txt("Pfps of nsfw profiles are now blurred, and can be revealed by clicking. Avatar builder pfps are never blurred.")),
+    ],
+    bugfixes: [
+        rt.ili(
+            rt.txt("Fixes issue "),
+            rt.link({id: "na"}, "https://github.com/pfgithub/threadclient/issues/6", {},
+                rt.txt("#6"),
+            ),
+            rt.txt(" where reddit formatted text would sometimes duplicate words."),
+            rt.txt(" (commit "),
+            rt.link({id: "na"}, "https://github.com/pfgithub/threadclient/commit/a683f837e58cd3d5b412363f9d0dc8b58af39edb", {},
+                rt.txt("a683f83"),
+            ),
+            rt.txt(")"),
+        ),
     ],
 }));}
 
