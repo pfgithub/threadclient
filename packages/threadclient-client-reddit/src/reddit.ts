@@ -90,7 +90,7 @@ const act_encoder = encoderGenerator<Action, "act">("act");
 type RichtextFormattingOptions = {
     media_metadata: Reddit.MediaMetadata,
 };
-function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
+export function richtextDocument(rtd: Reddit.Richtext.Document, opt: RichtextFormattingOptions): Generic.Richtext.Paragraph[] {
     try {
         return richtextParagraphArray(rtd.document, opt);
     }catch(e) {
