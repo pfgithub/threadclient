@@ -263,6 +263,7 @@ export type PostContent = ClientPost | {
     fallback: PostContentPost,
 } | {
     kind: "submit",
+    submit_key: Opaque<"submit">,
     submission_data: Submit.SubmitPost,
 };
 
@@ -897,7 +898,7 @@ export declare namespace SubmitResult {
 export type DataEncodings = 
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
     | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
-    | "loader" | "edit"
+    | "loader" | "edit" | "submit"
 ;
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 

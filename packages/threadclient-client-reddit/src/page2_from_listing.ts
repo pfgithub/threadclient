@@ -350,6 +350,11 @@ function subDefaultSort(sub: `t5_${string}`): SubSort {
     return {v: "hot", t: "all"};
 }
 
+type SubmitData = {
+    a: "b",
+};
+const submit_encoder = encoderGenerator<SubmitData, "submit">("submit");
+
 function createSubmitPage(
     content: Generic.Page2Content,
     sub: SubrInfo,
@@ -362,6 +367,7 @@ function createSubmitPage(
         kind: "post",
         content: {
             kind: "submit",
+            submit_key: submit_encoder.encode({a: "b"}),
             submission_data: {
                 fields: [
                     {kind: "title", id: "_title"},
