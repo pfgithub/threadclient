@@ -819,23 +819,6 @@ api samples:
 https://oauth.reddit.com/api/validate_submission_field?raw_json=1&gilding_detail=1
 req: sr=threadclient&field=body&kind=self&title=&url&text=%E2%80%A6&flair_id&show_error_list=true
 → {errors: []}
-https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&redditWebClient=desktop2x&app=desktop2x-client-production&rtj=only&raw_json=1&gilding_detail=1
-{
-    "sr":"threadclient",
-    "submit_type":"subreddit",
-    "api_type":"json",
-    "show_error_list":true,
-    "title":"test poll",
-    "spoiler":false,
-    "nsfw":false,
-    "post_to_twitter":false,
-    "sendreplies":true,
-    "duration":3,
-    "options":["1","2"],
-    "text":"…",
-    "raw_rtjson":null,
-    "validate_on_submit":true,
-}
 deleting a post: /api/del?id=…
 
 // SubmitPost is a content type for a page2 object
@@ -856,18 +839,26 @@ export declare namespace Submit {
         content_types: ContentType[],
     } | {
         kind: "flair",
-        flairs: Flair[],
+        flairs: FlairChoice[],
         mode: "radio" | "toggle",
     };
-    export type ContentType = {
+    export type ContentType = ({
         kind: "text",
         mode: "reddit",
     } | {
         kind: "link",
     } | {
         kind: "todo",
+        title: string,
         reason: string,
         linkout: string,
+    }) & {
+        disabled?: undefined | null | string,
+    };
+    export type FlairChoice = {
+        id: string,
+        flairs: Flair[],
+        disabled?: undefined | null | string,
     };
 }
 

@@ -138,18 +138,18 @@ export type InboxMsg = {
 // /r/…/api/user_flair_v2
 // /r/…/api/link_flair_v2
 export type FlairTemplate = {
-    allowable_content: "all",
-    text: FlairBits.Text,
-    text_color: FlairBits.TextColor,
-    mod_only: boolean, // true are not shown to non-mods
-    background_color: "#dadada",
-    id: string,
-    css_class: string,
-    max_emojis: number,
-    richtext: FlairBits.Richtext,
-    text_editable: boolean, // when text_editable is true, you are allowed to put up to max_emojis emojis also
-    override_css: false,
     type: FlairBits.Type,
+    text_editable: boolean, // when text_editable is true, you are allowed to put up to max_emojis emojis also
+    max_emojis: number,
+    allowable_content: "all" | "unsupported",
+    text: FlairBits.Text, // when is this null? it should be filled for both text and richtext emojis
+    text_color: FlairBits.TextColor,
+    mod_only: boolean, // you don't have to filter these out, reddit will only return valid items
+    background_color: `#${string}`,
+    richtext: FlairBits.Richtext,
+    id: string, // uuid
+    css_class: string,
+    override_css?: undefined | boolean,
 };
 // /api/v1/:sub/emojis/all
 export type SREmojis = {
@@ -627,6 +627,9 @@ export type T5Data = { // T5_Data? pascal_underscore case?
     allow_videogifs: boolean,
     allow_videos: boolean,
     allow_images: boolean,
+    allow_talks: boolean,
+
+    submission_type: "any" | "self" | "unsupported",
 
     can_assign_link_flair: boolean,
 
@@ -713,7 +716,6 @@ export type T5Data = { // T5_Data? pascal_underscore case?
     wls: number,
 
     show_media_preview: boolean,
-    submission_type: "any" | "unsupported",
     
     quarrentine: boolean,
     hide_ads: boolean,
@@ -1260,6 +1262,7 @@ export type VoteBody = {
     dir: "-1" | "0" | "1",
 };
 
+export type ApiLinkFlair = FlairTemplate[];
 
 // i want to be able to type the types
 // like export type Requests: {[key: string]: RequestInfo} = {};
@@ -1316,6 +1319,9 @@ export type Requests = {
     },
     [key: `/r/${PathBit}/about/rules`]: {
         response: Rules,
+    },
+    [key: `/r/${PathBit}/api/link_flair_v2`]: {
+        response: ApiLinkFlair,
     },
     "/api/multi/__unknown_base": {
         response: LabeledMulti,

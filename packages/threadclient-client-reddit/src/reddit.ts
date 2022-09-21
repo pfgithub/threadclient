@@ -1540,6 +1540,9 @@ export type ParsedPath = {
     } | {
         tab: "popular",
     },
+} | {
+    kind: "submit",
+    sub: SubrInfo,
 };
 
 export type SubrInfo = {
@@ -2202,6 +2205,10 @@ export function getPostThumbnail(
     return {kind: "default", thumb: "default"};
 }
 
+export const flair_spoiler: Generic.Flair = {elems: [{kind: "text", text: "Spoiler", styles: {}}], content_warning: true};
+export const flair_over18: Generic.Flair = {elems: [{kind: "text", text: "NSFW", styles: {}}], content_warning: true};
+export const flair_oc: Generic.Flair = {elems: [{kind: "text", text: "OC", styles: {}}], content_warning: false};
+
 export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
     const flairs: Generic.Flair[] = [];
     flairs.push(
@@ -2212,9 +2219,9 @@ export function getPostFlair(listing: Reddit.PostSubmission): Generic.Flair[] {
             richtext: listing.link_flair_richtext,
         })
     );
-    if(listing.spoiler) flairs.push({elems: [{kind: "text", text: "Spoiler", styles: {}}], content_warning: true});
-    if(listing.over_18) flairs.push({elems: [{kind: "text", text: "NSFW", styles: {}}], content_warning: true});
-    if(listing.is_original_content) flairs.push({elems: [{kind: "text", text: "OC", styles: {}}], content_warning: false});
+    if(listing.spoiler) flairs.push(flair_spoiler);
+    if(listing.over_18) flairs.push(flair_over18);
+    if(listing.is_original_content) flairs.push(flair_oc);
     flairs.push(...awardingsToFlair(listing.all_awardings ?? []));
 
     if(listing.approved === true) {
@@ -2878,6 +2885,28 @@ export const client: ThreadClient = {
                 };
             }else if(parsed.kind === "subreddit_sidebar") {
                 throw new Error("ENOTSUPPORTED;SUBREDDIT-SIDEBAR;PAGE1");
+            }else if(parsed.kind === "submit") {
+                return {
+                    title: "Submit",
+                    navbar: getNavbar(pathraw),
+                    body: {kind: "one", item: {parents: [{kind: "thread",
+                        title: {text: "Submit"},
+                        body: {kind: "richtext", content: [
+                            rt.p(
+                                rt.link(client, updateQuery(pathraw, {"--tc-view": "page2"}), {},
+                                    rt.txt("submit a post to "+parsed.sub.base.join("/")),
+                                ),
+                            ),
+                        ]},
+                        display_mode: {comments: "visible", body: "visible"},
+                        link: pathraw,
+                        raw_value: parsed,
+                        layout: "reddit-post",
+                        actions: [],
+                        default_collapsed: false,
+                    }], replies: []}},
+                    display_style: "comments-view",
+                };
             }else assertNever(parsed);
 
             return pathFromListingRaw(pathraw, parsed, {sidebar: [{

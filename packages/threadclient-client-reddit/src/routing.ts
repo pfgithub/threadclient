@@ -115,7 +115,10 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {
         if(kind === "home") marked_routes.push("/submit");
         if(kind === "subreddit") marked_routes.push("/r/:subredditName/submit");
         if(kind === "user") marked_routes.push("/user/:profileName/submit");
-        urlr.route(["submit"] as const, todo("submit post"));
+        urlr.route(["submit"] as const, opts => ({
+            kind: "submit",
+            sub: getSub(opts),
+        }));
     }
 
     const base_sort_methods = ["best", "hot", "new", "rising", "controversial", "top", "gilded", "awarded"] as const;

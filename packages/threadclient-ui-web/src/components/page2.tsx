@@ -6,6 +6,22 @@ import { clientContent, clientListing } from "../page1";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { DefaultErrorBoundary } from "../util/utils_solid";
 import ClientPost, { ClientPostOpts } from "./Post";
+import Submit from "./Submit";
+
+// ?!?!?!?! why are there two almost identical functions what is the difference
+// ClientContentAny is used in:
+// - PageFlatItem Content rendering
+// - page1 Displaying reply after submit
+// ClientContent is used in:
+// - Reply rendering
+// - Settings previews
+// - Body crosspost rendering
+// ?!?!?!?!??!!!!?
+// resolution:
+// 1. delete ClientContent:
+//     - update uses to use ClientContent
+//     - change 'listing={}' to 'content={}'
+// 2. rename ClientContentAny to ClientContent
 
 export function ClientContentAny(props: {
     content: Generic.PostContent,
@@ -24,6 +40,9 @@ export function ClientContentAny(props: {
             />
         ),
         page: () => <>TODO page</>,
+        submit: submit => <>
+            <Submit submit={submit.submission_data} opts={props.opts} />
+        </>,
         legacy: legacy => <>
             <SolidToVanillaBoundary getValue={hsc => {
                 const outer = el("div").clss("-mt-10px -ml-10px");
@@ -57,6 +76,9 @@ export function ClientContent(props: ClientContentProps): JSX.Element {
                 client: thing => todosupport(thing),
                 post: post => <>
                     <ClientPost content={post} opts={props.opts} />
+                </>,
+                submit: submit => <>
+                    <Submit submit={submit.submission_data} opts={props.opts} />
                 </>,
                 special: special => <>
                     <ClientPost content={special.fallback} opts={props.opts} />

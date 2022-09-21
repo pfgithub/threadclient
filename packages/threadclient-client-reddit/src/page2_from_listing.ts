@@ -4,12 +4,22 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { assertNever, encodeQuery, splitURL, switchKind, updateQuery } from "tmeta-util";
 import {
-    authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, editButton,
-    expectUnsupported, getCodeButton, getCommentBody,
+    authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, ec, editButton,
+    expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody,
     getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
 import { getSidebar } from "./sidebars";
+
+/*
+REORGANIZATION TODO:
+- match mastodon client:
+  - functions to get the id of an object should also create it if it does not exist
+    - many just create loader links
+  - this way, if you want to append a subreddit above the thing you just call
+    subredditLink(sub, optional_content) and it returns a loader. and if you have
+    optional_content, it fills the loader in with the value.
+*/
 
 function warn(...message: unknown[]) {
     console.log(...message);
@@ -146,6 +156,43 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     internal_data: parsed,
                 }),
             };
+        }else if(parsed.kind === "submit") {
+            if(parsed.sub.kind === "subreddit") {
+                const [about] = await Promise.all([
+                    redditRequest(`/r/${ec(parsed.sub.subreddit)}/about`, {method: "GET", cache: true}),
+                ]);
+                const linkflair: Reddit.ApiLinkFlair = about.data.link_flair_enabled ? await (
+                    redditRequest(`/r/${ec(parsed.sub.subreddit)}/api/link_flair_v2`, {method: "GET", cache: true})
+                ) : [];
+                const sp_id = createSubmitPage(content, parsed.sub, about, linkflair);
+                return {
+                    content,
+                    pivot: sp_id,
+                };
+            }else{
+                return {
+                    content,
+                    pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
+                        kind: "post",
+                        client_id: client.id,
+                        content: {
+                            kind: "post",
+                            title: {text: "Not Supported"},
+                            body: {kind: "richtext", content: [
+                                rt.h1(rt.link(client, "raw!https://www.reddit.com"+pathraw, {},
+                                    rt.txt("Submit on reddit.com"),
+                                )),
+                                rt.p(rt.txt("TODO: support submitting to "+parsed.sub.kind)),
+                            ]},
+                            collapsible: false,
+                        },
+                        parent: null,
+                        replies: null,
+                        url: null,
+                        internal_data: parsed,
+                    }),
+                };
+            }
         }
 
         const link: string = switchKind(parsed, {
@@ -301,6 +348,80 @@ function subDefaultSort(sub: `t5_${string}`): SubSort {
     // also TODO: switch users to be identified by fullname rather than username
     if(sub === "t5_hcxiu" || sub === "t5_q7cbs") return {v: "new", t: "all"};
     return {v: "hot", t: "all"};
+}
+
+function createSubmitPage(
+    content: Generic.Page2Content,
+    sub: SubrInfo,
+    about: Reddit.T5,
+    flairinfo: Reddit.ApiLinkFlair,
+): Generic.Link<Generic.Post> {
+    const id = subredditSubmitPostID(sub);
+    const linkout = "raw!https://www.reddit.com/" + [...sub.base, "submit"].join("/");
+    p2.fillLink(content, id, {
+        kind: "post",
+        content: {
+            kind: "submit",
+            submission_data: {
+                fields: [
+                    {kind: "title"},
+                    {kind: "content", content_types: [
+                        {kind: "text", mode: "reddit",
+                            disabled: null,
+                        },
+                        {kind: "todo", title: "Images & Video", linkout,
+                            reason: "Uploading images with threadclient is not supported yet",
+                            disabled: about.data.submission_type !== "self" && about.data.allow_images ? null : "Image posts are not allowed on this subreddit",
+                        },
+                        {kind: "link",
+                            disabled: about.data.submission_type !== "self" ? null : "Talk posts are not allowed on this subreddit",
+                        },
+                        {kind: "todo", title: "Poll", linkout,
+                            reason: "Creating polls with threadclient is not supported yet",
+                            /*
+                            https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&rtj=both&raw_json=1&gilding_detail=1
+                            {
+                                "sr":"threadclient", "submit_type":"subreddit",
+                                "api_type":"json", "show_error_list":true,
+                                "title":"test poll", "spoiler":false,
+                                "nsfw":false, "post_to_twitter":false,
+                                "sendreplies":true, "duration":3, // num days (1-7)
+                                "options":["poll option 1","poll option 2"], "text":"markdown body text", // supports richtext, likely with "richtext_json"=… instead of "text"=…
+                                "raw_rtjson":null, "validate_on_submit":true,
+                            }
+                            */
+                           disabled: about.data.submission_type !== "self" && about.data.allow_polls ? null : "Polls are not allowed on this subredit",
+                        },
+                        {kind: "todo", title: "Talk", linkout,
+                            reason: "Creating talk posts with threadclient is not supported.",
+                            disabled: about.data.submission_type !== "self" && about.data.allow_talks ? null : "Talk posts are not allowed on this subreddit",
+                        },
+                    ]},
+                    {kind: "flair", flairs: flairinfo.map((flair): Generic.Submit.FlairChoice => ({
+                        id: flair.id,
+                        flairs: flairToGenericFlair(flair),
+                    })), mode: "radio"},
+                    {kind: "flair", flairs: [
+                        {id: "_OC", flairs: [flair_oc], disabled: about.data.original_content_tag_enabled ? null : "OC tag not allowed on this sub"},
+                        {id: "_OVER18", flairs: [flair_over18]},
+                        {id: "_SPOILER", flairs: [flair_spoiler]},
+                        {id: "_LIVECHAT", flairs: [{elems: [{kind: "text", text: "Live Chat", styles: {}}], content_warning: false}],
+                            disabled: about.data.is_chat_post_feature_enabled && about.data.allow_chat_post_creation ? null : "Live chat posts are not allowed on this sub",
+                        },
+                        {id: "_EVENT", flairs: [{elems: [{kind: "text", text: "Event", styles: {}}], content_warning: false}],
+                            disabled: "ThreadClient does not yet support creating event posts",
+                        },
+                    ], mode: "toggle"},
+                ],
+            },
+        },
+        internal_data: {about, flairinfo},
+        parent: null, // todo createOrFillSubreddit(sub) → Link<Post>
+        replies: null,
+        url: "/" + [...sub.base, "submit"].join("/"),
+        client_id: client.id,
+    });
+    return id;
 }
 
 export function page2FromListing(
@@ -535,6 +656,12 @@ function subredditSidebarUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.Horiz
 function subredditSidebarLoaderID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
     return p2.stringLink("SIDEBAR-LOADER_"+getSrId(sr_id, null));
 }
+function subredditSubmitPostID(sr_id: SubrInfo): Generic.Link<Generic.Post> {
+    return p2.stringLink("SUBMIT-POST_"+getSrId(sr_id, null));
+}
+// function subredditSubmitPostLoaderID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
+//     return p2.stringLink("SUBMIT-POST-LOADER_"+getSrId(sr_id, null));
+// }
 
 function commentOrUnmountedData(
     item: Reddit.Post,
