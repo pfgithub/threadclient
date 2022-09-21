@@ -14,7 +14,7 @@ import { Body } from "./components/body";
 import { CollapseButton } from "./components/CollapseButton";
 import { Flair } from "./components/Flair";
 import { Homepage } from "./components/homepage";
-import { ClientContentAny } from "./components/page2";
+import { ClientContent } from "./components/page2";
 import { AuthorPfp } from "./components/Post";
 import proxyURL from "./components/proxy_url";
 import ReplyEditor from "./components/reply";
@@ -571,7 +571,7 @@ function renderReplyAction(
                         const vsbdiv = el("div").adto(content_buttons_line);
                         vanillaToSolidBoundary(vsbdiv, () => <>
                             <ul class="ml-10">
-                                <ClientContentAny content={r.content} opts={{
+                                <ClientContent content={r.content} opts={{
                                     frame: r,
                                     client_id: r.client_id,
                                     flat_frame: null,

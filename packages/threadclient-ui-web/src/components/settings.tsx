@@ -103,7 +103,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 } as const)[v ?? "default"]}
             />
             <CrosspostWrapper>
-                <ClientContent listing={{
+                <ClientContent content={{
                     kind: "post",
 
                     title: null,
@@ -206,7 +206,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 they are complete, they will be enabled by default.
             </p>
             <CrosspostWrapper>
-                <ClientContent listing={{
+                <ClientContent content={{
                     kind: "post",
 
                     title: {text: "Video Example"},
@@ -251,7 +251,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 that not all galleries are supported for fullscreen display.
             </p>
             <CrosspostWrapper>
-                <ClientContent listing={{
+                <ClientContent content={{
                     kind: "post",
 
                     title: {text: "Gallery Example"},
@@ -311,7 +311,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
             </ShowAnimate>
             <div class="my-2" />
             <CrosspostWrapper>
-                <ClientContent listing={{
+                <ClientContent content={{
                     kind: "post",
 
                     title: {text: "Motion Example"},

@@ -132,7 +132,7 @@ export default function ReplyEditor(props: {
         <Show if={!empty()} when={diffable.data}>{value => {
             console.log("Value changed", value);
             return <CrosspostWrapper>
-                <ClientContent listing={value} opts={{
+                <ClientContent content={value} opts={{
                     frame: null,
                     client_id: props.action.client_id,
                     flat_frame: null,

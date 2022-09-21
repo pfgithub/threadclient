@@ -143,7 +143,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             </div>;
         },
         crosspost: xpost => <CrosspostWrapper>
-            <ClientContent listing={{
+            <ClientContent content={{
                 kind: "legacy",
                 thread: xpost.source,
                 client_id: xpost.client_id,
@@ -372,7 +372,7 @@ export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
     return <CrosspostWrapper>
         <SwitchKind item={state()}>{{
             loading: () => <>loading...</>,
-            loaded: ({frame}) => <ClientContent listing={frame.content} opts={{
+            loaded: ({frame}) => <ClientContent content={frame.content} opts={{
                 client_id: frame.client_id,
                 frame: frame,
                 flat_frame: null,

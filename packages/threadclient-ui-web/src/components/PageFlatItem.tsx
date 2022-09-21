@@ -20,7 +20,7 @@ import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import Hactive from "./Hactive";
 import { InternalIconRaw } from "./Icon";
-import { ClientContentAny } from "./page2";
+import { ClientContent } from "./page2";
 import proxyURL from "./proxy_url";
 import SwipeActions from "./SwipeActions";
 import swipeActionSet from "./SwipeActionSet";
@@ -369,7 +369,7 @@ function PageFlatPostContent(props: {
             <div class="text-red-500">!ERROR!</div> {er.msg}
         </div>,
         flat_post: fp => <>
-            <ClientContentAny
+            <ClientContent
                 content={fp.post.content}
                 opts={{
                     frame: fp.post,
