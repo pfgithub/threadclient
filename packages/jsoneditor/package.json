@@ -1,6 +1,7 @@
 {
   "name": "jsoneditor",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "main": "src/module.ts",
   "description": "",
   "scripts": {
     "dev": "vite",

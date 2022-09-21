@@ -364,20 +364,25 @@ function createSubmitPage(
             kind: "submit",
             submission_data: {
                 fields: [
-                    {kind: "title"},
-                    {kind: "content", content_types: [
-                        {kind: "text", mode: "reddit",
-                            disabled: null,
+                    {kind: "title", id: "_title"},
+                    {kind: "content", id: "_content", default_id: "_textpost", content_types: [
+                        {kind: "none", id: "_nothing", disabled: null},
+                        {kind: "text", mode: "reddit", id: "_textpost",
+                            disabled: null, client_id: client.id,
                         },
-                        {kind: "todo", title: "Images & Video", linkout,
+                        {kind: "todo", title: "Images & Video", linkout, id: "_imagepost",
                             reason: "Uploading images with threadclient is not supported yet",
+                            linkout_label: "Submit on reddit.com",
+                            client_id: client.id,
                             disabled: about.data.submission_type !== "self" && about.data.allow_images ? null : "Image posts are not allowed on this subreddit",
                         },
-                        {kind: "link",
+                        {kind: "link", id: "_linkpost",
                             disabled: about.data.submission_type !== "self" ? null : "Talk posts are not allowed on this subreddit",
                         },
-                        {kind: "todo", title: "Poll", linkout,
+                        {kind: "todo", title: "Poll", linkout, id: "_pollpost",
                             reason: "Creating polls with threadclient is not supported yet",
+                            linkout_label: "Submit on reddit.com",
+                            client_id: client.id,
                             /*
                             https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&rtj=both&raw_json=1&gilding_detail=1
                             {
@@ -392,16 +397,18 @@ function createSubmitPage(
                             */
                            disabled: about.data.submission_type !== "self" && about.data.allow_polls ? null : "Polls are not allowed on this subredit",
                         },
-                        {kind: "todo", title: "Talk", linkout,
+                        {kind: "todo", title: "Talk", linkout, id: "_talkpost",
                             reason: "Creating talk posts with threadclient is not supported.",
+                            linkout_label: "Submit on reddit.com",
+                            client_id: client.id,
                             disabled: about.data.submission_type !== "self" && about.data.allow_talks ? null : "Talk posts are not allowed on this subreddit",
                         },
                     ]},
-                    {kind: "flair", flairs: flairinfo.map((flair): Generic.Submit.FlairChoice => ({
+                    {kind: "flair_one", id: "_postflair", flairs: flairinfo.map((flair): Generic.Submit.FlairChoice => ({
                         id: flair.id,
                         flairs: flairToGenericFlair(flair),
-                    })), mode: "radio"},
-                    {kind: "flair", flairs: [
+                    }))},
+                    {kind: "flair_many", id: "_postopts", flairs: [
                         {id: "_OC", flairs: [flair_oc], disabled: about.data.original_content_tag_enabled ? null : "OC tag not allowed on this sub"},
                         {id: "_OVER18", flairs: [flair_over18]},
                         {id: "_SPOILER", flairs: [flair_spoiler]},
@@ -411,7 +418,7 @@ function createSubmitPage(
                         {id: "_EVENT", flairs: [{elems: [{kind: "text", text: "Event", styles: {}}], content_warning: false}],
                             disabled: "ThreadClient does not yet support creating event posts",
                         },
-                    ], mode: "toggle"},
+                    ]},
                 ],
             },
         },

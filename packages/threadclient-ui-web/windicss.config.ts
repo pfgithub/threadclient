@@ -180,6 +180,14 @@ export default defineConfig({
                     return `html.atmedia-hover-hover .${class_name}:hover, .${class_name}:active`;
                 });
             });
+        }),
+        plugin(({addVariant, e}) => {
+            // tailwind css has this
+            addVariant("placeholder", ({ modifySelectors }) => {
+                return modifySelectors(({ className: class_name }) => {
+                    return `.${class_name}::placeholder`;
+                });
+            });
         })
     ],
 });

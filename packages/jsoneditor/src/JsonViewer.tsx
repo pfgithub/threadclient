@@ -1,7 +1,7 @@
 import { createMemo, For, untrack } from "solid-js";
 import { JSX } from "solid-js";
 import { Show } from "tmeta-util-solid";
-import { anGet, anKeys, AnNode } from "./app_data";
+import { anGet, anJson, anKeys, AnNode } from "./app_data";
 import { Button, Buttons } from "./components";
 import { getState } from "./editor_data";
 import { isObject } from "./guards";
@@ -48,6 +48,7 @@ const colors = [
 export function StoreViewerElement(props: {
   node: AnNode<unknown>,
   level: number,
+  autoexpand?: undefined | boolean,
 }): JSX.Element {
   const color = () => colors[props.level % colors.length |0]!;
 
@@ -59,7 +60,7 @@ export function StoreViewerElement(props: {
         <UIState
           key={"-MzLXv8icgKEIkDlKFTU"}
           node={props.node}
-          defaultValue={() => false}
+          defaultValue={() => props.autoexpand ?? false}
         >{([open, setOpen]) => <Show if={anKeys(props.node).length !== 0}>
           <button
             class="bg-gray-700 rounded-md"
@@ -72,6 +73,7 @@ export function StoreViewerElement(props: {
                 <StoreViewerElement
                   node={(props.node as unknown as AnNode<{[key: string]: unknown}>)[key]!}
                   level={props.level + 1}
+                  autoexpand={props.autoexpand}
                 />
               </span>;
             }}</For>
@@ -87,11 +89,12 @@ export function StoreViewerElement(props: {
 }
 export function StoreViewer(props: {
   node: AnNode<unknown>,
+  autoexpand?: undefined | boolean,
 }): JSX.Element {
   return <pre class="font-mono whitespace-pre-wrap">
-    <StoreViewerElement node={props.node} level={0} />
+    <StoreViewerElement node={props.node} level={0} autoexpand={props.autoexpand} />
     {"\n\n\n---\n\n"}
-    {/*JSON.stringify(props.state, null, " ")*/"todo"}
+    {props.autoexpand ?? false ? JSON.stringify(anJson(props.node), null, " ") : "(hidden))"}
     {"\n\n---\n\n"}
     <Buttons><Button onClick={() => console.log({value: props.node})}>log</Button></Buttons>
   </pre>;

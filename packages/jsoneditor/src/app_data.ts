@@ -53,7 +53,19 @@ function anConstructor<T>(root: AnRoot, path: string[]): AnNode<T> {
     return new Proxy(data, an_proxy_handler) as AnNode<T>;
 }
 
+export type JSONV = {[key: string]: JSONV} | JSONV[] | string | number | boolean | undefined | null;
+
 // maybe it was better having get() return a keys() fn if it's an object
+export function anJson(node: AnNodeData<any>): JSONV {
+    const value = anGet(node);
+    if(typeof value === "object") {
+        const res: {[key: string]: JSONV} = {};
+        for(const key of anKeys(node)) {
+            res[key] = anJson((node as unknown as AnNode<{[key: string]: any}>)[key]!);
+        }
+        return res;
+    }else return value;
+}
 export function anKeys(node: AnNodeData<any>): string[] {
     const value = readValue(node[symbol_root], node[symbol_path]);
     getNodeSignal(node[symbol_root], [...node[symbol_path], {v: "keys"}]).view();

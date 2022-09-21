@@ -1,12 +1,13 @@
 import type * as Generic from "api-types-generic";
-import { JSX } from "solid-js";
+import { JSX, lazy } from "solid-js";
 import { SwitchKind } from "tmeta-util-solid";
 import { getClientCached } from "../clients";
 import { clientListing } from "../page1";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { DefaultErrorBoundary } from "../util/utils_solid";
 import ClientPost, { ClientPostOpts } from "./Post";
-import Submit from "./Submit";
+
+const Submit = lazy(() => import("./Submit"));
 
 export function ClientContent(props: {
     content: Generic.PostContent,

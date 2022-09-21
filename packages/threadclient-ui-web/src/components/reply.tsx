@@ -93,7 +93,7 @@ export default function ReplyEditor(props: {
     return <div>
         <textarea
             class="
-                block w-full rounded-t-lg resize-y
+                block w-full rounded-none rounded-t-lg resize-y
                 bg-transparent border-2 border-b-0 border-slate-200 dark:border-zinc-700 p-2
             "
             rows={4}

@@ -314,8 +314,9 @@ export type BodyText = {
     kind: "text",
     content: string,
     client_id: string,
-    markdown_format: "reddit" | "reddit_html" | "none",
+    markdown_format: TextMarkdownFormat,
 };
+export type TextMarkdownFormat = "reddit" | "reddit_html" | "none";
 export declare namespace Richtext {
 
     export type Style = {
@@ -832,33 +833,64 @@ export declare namespace Submit {
         // ValidateField(field)
         // ⇒ /api/validate_submission_field
     };
-    export type Field = {
+    export type Field = ({
         kind: "title",
     } | {
         kind: "content",
+        default_id: string,
         content_types: ContentType[],
     } | {
-        kind: "flair",
+        kind: "flair_one",
         flairs: FlairChoice[],
-        mode: "radio" | "toggle",
+    } | {
+        kind: "flair_many",
+        flairs: FlairChoice[],
+    }) & {id: string};
+    export type TextContentType = {
+        kind: "text",
+        mode: TextMarkdownFormat,
+        client_id: string,
     };
     export type ContentType = ({
-        kind: "text",
-        mode: "reddit",
-    } | {
+        kind: "none",
+    } | TextContentType | {
         kind: "link",
     } | {
         kind: "todo",
         title: string,
         reason: string,
         linkout: string,
+        linkout_label: string,
+        client_id: string,
     }) & {
         disabled?: undefined | null | string,
+        id: string,
     };
     export type FlairChoice = {
         id: string,
         flairs: Flair[],
         disabled?: undefined | null | string,
+    };
+}
+export declare namespace SubmitResult {
+    export type OneContent = {
+        text?: undefined | string,
+        link?: undefined | string,
+    };
+    export type Content = {
+        tab?: undefined | string,
+        choices?: undefined | {
+            [key: string]: OneContent,
+        },
+    };
+    export type Field = {
+        title?: undefined | string,
+        content?: undefined | Content,
+        flair_one?: undefined | null | string,
+        flair_many?: undefined | {[key: string]: undefined | boolean},
+    };
+    export type SubmitPost = {
+        fields: {[key: string]: undefined | Field},
     };
 }
 
