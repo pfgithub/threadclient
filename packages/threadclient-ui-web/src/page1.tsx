@@ -601,7 +601,7 @@ export function renderAction(
     opts: RenderActionOpts
 ): HideShowCleanup<undefined> {
     if(action.kind === "link") {
-        linkButton(action.client_id, action.url, "action-button").atxt(action.text).adto(content_buttons_line);
+        linkButton(action.client_id, action.url, action.page1_style ?? "action-button").atxt(action.text).adto(content_buttons_line);
         return hideshow();
     }else if(action.kind === "reply") {
         const hsc = hideshow();

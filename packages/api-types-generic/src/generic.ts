@@ -261,6 +261,9 @@ export type PostContent = ClientPost | {
     tag_uuid: `${string}@-${string}`,
     not_typesafe_data?: undefined | unknown,
     fallback: PostContentPost,
+} | {
+    kind: "submit",
+    submission_data: Submit.SubmitPost,
 };
 
 // /---------------\
@@ -774,6 +777,7 @@ export type Action = {
     client_id: string,
     text: ActionLabel,
     icon?: undefined | Icon,
+    page1_style?: undefined | ButtonStyle,
 } | ReplyAction | CounterAction | {
     kind: "delete",
     data: Opaque<"act">,
@@ -802,6 +806,70 @@ export type CodeAction = {
     kind: "code",
     body: Body,
 };
+
+/*
+reddit posts:
+- richtext
+- images & video gallery (this will require a proxy. we'll have to get the threadclient extension to a usable state and release it.)
+- link
+- poll
+- talk (not sure what this is)
+
+api samples:
+https://oauth.reddit.com/api/validate_submission_field?raw_json=1&gilding_detail=1
+req: sr=threadclient&field=body&kind=self&title=&url&text=%E2%80%A6&flair_id&show_error_list=true
+→ {errors: []}
+https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&redditWebClient=desktop2x&app=desktop2x-client-production&rtj=only&raw_json=1&gilding_detail=1
+{
+    "sr":"threadclient",
+    "submit_type":"subreddit",
+    "api_type":"json",
+    "show_error_list":true,
+    "title":"test poll",
+    "spoiler":false,
+    "nsfw":false,
+    "post_to_twitter":false,
+    "sendreplies":true,
+    "duration":3,
+    "options":["1","2"],
+    "text":"…",
+    "raw_rtjson":null,
+    "validate_on_submit":true,
+}
+deleting a post: /api/del?id=…
+
+// SubmitPost is a content type for a page2 object
+// so it has a url and parent and all that
+// it's toggled when you click 'reply'
+// or you can get it by navigating to /submit
+*/
+export declare namespace Submit {
+    export type SubmitPost = {
+        fields: Field[],
+        // ValidateField(field)
+        // ⇒ /api/validate_submission_field
+    };
+    export type Field = {
+        kind: "title",
+    } | {
+        kind: "content",
+        content_types: ContentType[],
+    } | {
+        kind: "flair",
+        flairs: Flair[],
+        mode: "radio" | "toggle",
+    };
+    export type ContentType = {
+        kind: "text",
+        mode: "reddit",
+    } | {
+        kind: "link",
+    } | {
+        kind: "todo",
+        reason: string,
+        linkout: string,
+    };
+}
 
 export type DataEncodings = 
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"

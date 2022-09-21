@@ -784,6 +784,13 @@ function customIDCardWidget(t5: Reddit.T5, subreddit: string): Generic.ContentNo
         },
         actions_bottom: [
             createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false),
+            {
+                kind: "link",
+                url: "/r/"+subreddit+"/submit?--tc-view=page2",
+                client_id: client.id,
+                text: "Create Post",
+                page1_style: "pill-empty",
+            },
         ],
     };
 }

@@ -10,7 +10,7 @@ export function templateGenerator<InType>(helper: (str: InType) => string) {
         strings.forEach((string, i) => {
             result.push({raw: string});
             if(i < values.length) {
-                const val = values[i];
+                const val = values[i]!;
                 if(typeof val === "object" && rawsym in val) {
                     result.push({raw: (val as {[rawsym]: string})[rawsym]});
                 }else{
@@ -253,7 +253,7 @@ export function splitURL(path: string): [string, URLSearchParams, string] {
 }
 
 // vv consider: new URL(path, "https://example.com")).search = …
-export function updateQuery(path: string, update: {[key: string]: string | undefined}): string {
+export function updateQuery(path: string, update: {[key: string]: string | undefined | null}): string {
     const [pathname, query, hash] = splitURL(path);
     for(const [k, v] of Object.entries(update)) {
         if(v != null) query.set(k, v);

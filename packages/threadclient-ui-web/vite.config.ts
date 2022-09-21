@@ -41,7 +41,7 @@ export default defineConfig({
     server: {
         host: "0.0.0.0",
         port: 3004,
-        hmr: true, // to turn this on I have to clean out app.tsx :/
+        hmr: false, // need more effort to get this working
         fs: {
             strict: true,
         },
