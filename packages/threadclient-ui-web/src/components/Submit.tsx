@@ -1,14 +1,15 @@
 import * as Generic from "api-types-generic";
-import { StoreViewer } from "jsoneditor/src/JsonViewer";
-import { anBool, AnNode, anSetReconcile, anString, createAppData } from "jsoneditor";
+import { anBool, anJson, AnNode, anSetReconcile, anString, createAppData } from "jsoneditor";
 import { createMemo, createSignal, For, JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
+import { fetchClient } from "../clients";
+import { getSettings } from "../util/utils_solid";
+import { Body } from "./body";
+import Clickable from "./Clickable";
 import { Flair } from "./Flair";
+import { InternalIconRaw } from "./Icon";
 import { ClientPostOpts } from "./Post";
 import ToggleButton from "./ToggleButton";
-import Clickable from "./Clickable";
-import { Body } from "./body";
-import { getSettings } from "../util/utils_solid";
 
 /*
 !BEFORE RELEASE:
@@ -24,6 +25,7 @@ import { getSettings } from "../util/utils_solid";
 export default function Submit(props: {
     submit: Generic.Submit.SubmitPost,
     opts: ClientPostOpts,
+    cancel_enabled?: undefined | (() => void),
 }): JSX.Element {
     // the alternative is storing data in links in content itself
     // that's probably not a good idea
@@ -35,20 +37,85 @@ export default function Submit(props: {
 
     const settings = getSettings();
 
+    const [validated, setValidated] = createSignal(true); // TODO clientside validation
+    () => setValidated; // and even we can mix in serverside validation onchange for fields
+
+    const [sendState, setSendState] = createSignal<{
+        kind: "none",
+        error: null | string,
+    } | {
+        kind: "sending",
+    } | {
+        kind: "sent",
+    }>({kind: "none", error: null});
+
+    const sendReplyAsync = async () => {
+        const client = await fetchClient(props.submit.client_id);
+        if(!client) throw new Error("no client");
+        if(!client.submit) throw new Error("client does not support submitting posts");
+        // vv instead of using anJson, maybe use a serialization fn
+        const res = await client.submit(
+            props.submit.submit_key, anJson(node) as unknown as Generic.SubmitResult.SubmitPost
+        );
+        alert("TODO view the submitted post: "+res);
+        // // - add the new content
+        // // - if the submit node is the pivot, navigate to the new node
+        // // - otherwise, TODO figure out what to do
+        // setLoading(false);
+        // setError(null);
+        // console.log("adding content", r.content, props.loader_or_post);
+        // hprc.addContent(pgin, r.content);
+    };
+    const sendReply = () => {
+        setSendState({kind: "sending"});
+        sendReplyAsync().then(() => {
+            // ✓ OK
+            setSendState({kind: "sent"});
+        }).catch(e => {
+            setTimeout(() => {
+                setSendState({kind: "none", error: (e as Error).toString()});
+            }, 200);
+        });
+    };
+
     return <div>
-        <For each={props.submit.fields}>{(field, i) => <>
-            <div>
-                <Show if={i() !== 0}>
-                    <div class="mt-4" />
-                </Show>
-                <SubmitField node={node.fields[field.id]!} field={field} />
-            </div>
-        </>}</For>
-        <Show if={settings.dev.showLogButtons() === "on"}>
-            dev info:
-            <StoreViewer node={node as unknown as AnNode<unknown>} autoexpand />
-        </Show>
+        <SwitchKind item={sendState()} children={{
+            none: none => <>
+                <Show when={none.error}>{emsg => <>
+                    <p class="text-red-500 mb-4">{emsg}</p>
+                </>}</Show>
+                <For each={props.submit.fields}>{(field, i) => <>
+                    <div>
+                        <SubmitField node={node.fields[field.id]!} field={field} />
+                        <div class="mb-4" />
+                    </div>
+                </>}</For>
+                <div class="flex flex-wrap gap-4">
+                    <button
+                        class={(!validated() ? "bg-slate-400 dark:bg-zinc-100" : "bg-blue-400")
+                        + " rounded-md text-slate-900 py-1 px-3"}
+                        disabled={!validated()}
+                        onClick={sendReply}
+                    >{props.submit.send_name}</button>
+                    {props.cancel_enabled ? <button
+                        onClick={props.cancel_enabled}
+                    >Cancel</button> : null}
+                    {settings.dev.showLogButtons() === "on" ? <button
+                        onClick={() => console.log(anJson(node))}
+                        disabled={false}
+                    >Code</button> : null}
+                </div>
+            </>,
+            sending: () => <>
+                Submitting…
+                {" "}<InternalIconRaw class="fa-solid fa-spinner animate-spin" label="spinner" />
+            </>,
+            sent: () => <>Submitted! This should never be visible.</>,
+        }} />
     </div>;
+    /*
+            <StoreViewer node={node as unknown as AnNode<unknown>} autoexpand />
+    */
 }
 
 function contentTypeName(content_type: Generic.Submit.ContentType): string {

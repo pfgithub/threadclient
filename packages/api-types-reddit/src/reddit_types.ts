@@ -1305,6 +1305,53 @@ export type Requests = {
         },
         response: PostComment,
     },
+    "/api/submit": {
+        body: {
+            api_type: "json",
+            collection_id?: undefined | string, // a uuid of the collection it belongs to
+            event_start?: undefined | string, // ie 2018-09-11T12:00:00 :: Date.toISOString()
+            event_end?: undefined | string, // ie 2018-09-11T12:00:00 :: Date.toISOString()
+            event_tz?: undefined | string, // pytz timezone ie 'America/Los_Angeles'
+            extension?: undefined | string, // no clue what this is. "extension used for redirects" = ?
+            flair_id?: undefined | string, // uuid
+            flair_text?: undefined | string, // string
+            'g-recaptcha-response'?: undefined | string, // n/a
+            kind: "link" | "self" | "image" | "video" | "videogif",
+            nsfw: boolean,
+            post_set_default_post_id?: undefined | string, // not sure what this is
+            post_set_id?: undefined | string, // not sure what this is
+            resubmit: true, // otherwise it'll error sometimes. maybe we should make a 'confirm resubmit' checkbox?
+            // new.reddit seems to set resubmit=true all the time so maybe not
+            richtext_json?: undefined | object, // TODO figure out which thing this is. RichText.[what?]
+            // ^ note that if richtext_json is specified, text must not be specified
+            sendreplies: boolean, // TODO add a checkbox for this in UI
+            spoiler: boolean,
+            sr: string, // sub name
+            text?: undefined | Markdown, // mutually incompatable with richtext_json
+            title: string, // max 300 chars
+            url?: undefined | string,
+            video_poster_url?: undefined | string, // likely used in video submit process. I'll have to try it and see.
+        },
+        response: "TODO",
+        /*
+        */
+    },
+    "/api/submit_poll_post": {
+        body: "TODO",
+        response: "TODO",
+    },
+    /*
+    https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&rtj=both&raw_json=1&gilding_detail=1
+    {
+        "sr":"threadclient", "submit_type":"subreddit",
+        "api_type":"json", "show_error_list":true,
+        "title":"test poll", "spoiler":false,
+        "nsfw":false, "post_to_twitter":false,
+        "sendreplies":true, "duration":3, // num days (1-7)
+        "options":["poll option 1","poll option 2"], "text":"markdown body text", // supports richtext, likely with "richtext_json"=… instead of "text"=…
+        "raw_rtjson":null, "validate_on_submit":true,
+    }
+    */
     "/api/test/0": {
         query: {
             a: "b",

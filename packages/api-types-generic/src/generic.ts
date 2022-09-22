@@ -263,7 +263,6 @@ export type PostContent = ClientPost | {
     fallback: PostContentPost,
 } | {
     kind: "submit",
-    submit_key: Opaque<"submit">,
     submission_data: Submit.SubmitPost,
 };
 
@@ -830,6 +829,9 @@ deleting a post: /api/del?id=…
 */
 export declare namespace Submit {
     export type SubmitPost = {
+        send_name: string,
+        client_id: string,
+        submit_key: Opaque<"submit">,
         fields: Field[],
         // ValidateField(field)
         // ⇒ /api/validate_submission_field

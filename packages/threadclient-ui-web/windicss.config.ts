@@ -181,13 +181,27 @@ export default defineConfig({
                 });
             });
         }),
-        plugin(({addVariant, e}) => {
+        plugin(({addVariant, addUtilities, e}) => {
             // tailwind css has this
             addVariant("placeholder", ({ modifySelectors }) => {
                 return modifySelectors(({ className: class_name }) => {
                     return `.${class_name}::placeholder`;
                 });
             });
-        })
+            addUtilities({
+                '.spin': {
+                    'animation': "spin 1s linear infinite",
+                },
+
+                '@keyframes spin': {
+                    'from': {
+                        'transform': "rotate(0deg)",
+                    },
+                    'to': {
+                        transform: "rotate(360deg)",
+                    },
+                },
+            });
+        }),
     ],
 });

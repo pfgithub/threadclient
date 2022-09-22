@@ -6,7 +6,7 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { encodeQuery, encodeURL, splitURL, updateQuery } from "tmeta-util";
 import { getVredditSources } from "threadclient-preview-vreddit";
-import { getPage, loadPage2 } from "./page2_from_listing";
+import { getPage, loadPage2, submitPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
 
 const client_id = "biw1k0YZmDUrjg";
@@ -2736,6 +2736,7 @@ export const client: ThreadClient = {
     // loginURL: getLoginURL(),
     getPage,
     loader: loadPage2,
+    submit: submitPage2,
     async getThread(pathraw_in): Promise<Generic.Page> {
         try {
             const [parsed, pathraw] = parseLink(pathraw_in);

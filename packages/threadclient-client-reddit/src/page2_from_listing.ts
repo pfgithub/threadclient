@@ -157,14 +157,15 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 }),
             };
         }else if(parsed.kind === "submit") {
-            if(parsed.sub.kind === "subreddit") {
+            if(parsed.sub.kind === "subreddit" || parsed.sub.kind === "userpage") {
+                const subid = parsed.sub.kind === "userpage" ? "u_"+ parsed.sub.user : parsed.sub.subreddit;
                 const [about] = await Promise.all([
-                    redditRequest(`/r/${ec(parsed.sub.subreddit)}/about`, {method: "GET", cache: true}),
+                    redditRequest(`/r/${ec(subid)}/about`, {method: "GET", cache: true}),
                 ]);
                 const linkflair: Reddit.ApiLinkFlair = about.data.link_flair_enabled ? await (
-                    redditRequest(`/r/${ec(parsed.sub.subreddit)}/api/link_flair_v2`, {method: "GET", cache: true})
+                    redditRequest(`/r/${ec(subid)}/api/link_flair_v2`, {method: "GET", cache: true})
                 ) : [];
-                const sp_id = createSubmitPage(content, parsed.sub, about, linkflair);
+                const sp_id = createSubmitPage(content, parsed.sub, subid, about, linkflair);
                 return {
                     content,
                     pivot: sp_id,
@@ -351,13 +352,38 @@ function subDefaultSort(sub: `t5_${string}`): SubSort {
 }
 
 type SubmitData = {
-    a: "b",
+    kind: "newpost",
+    sub: string, // for user subreddits, probably "u_username"
 };
 const submit_encoder = encoderGenerator<SubmitData, "submit">("submit");
+
+export async function submitPage2(
+    key: Generic.Opaque<"submit">,
+    value: Generic.SubmitResult.SubmitPost,
+): Promise<Generic.LoaderResult> {
+    const submit_data = submit_encoder.decode(key);
+
+    /*
+    Implemented for text and link posts.
+    - Poll posts are possible but not implemented yet
+    - Image/video/gallery posts should be possible but are not implemented yet.
+    - I don't know what talk posts are and they are likely not possible to implement.
+    - Submitting posts to your user profile is not implemented yet.
+    - Flairs with editable text are not implemented yet.
+    - You cannot yet choose if you want to receive notifications for replies, it defaults on.
+
+    ![image](https://user-images.githubusercontent.com/6010774/191774245-cff8ba53-64dc-4e7b-8b86-faa5522d76db.png)
+
+    ![image](https://user-images.githubusercontent.com/6010774/191774282-9a6abbad-1dce-42f0-8f7d-a72eb82d387e.png)
+    */
+
+    throw new Error("TODO submit to sub: "+submit_data.sub);
+}
 
 function createSubmitPage(
     content: Generic.Page2Content,
     sub: SubrInfo,
+    subid: string,
     about: Reddit.T5,
     flairinfo: Reddit.ApiLinkFlair,
 ): Generic.Link<Generic.Post> {
@@ -367,8 +393,13 @@ function createSubmitPage(
         kind: "post",
         content: {
             kind: "submit",
-            submit_key: submit_encoder.encode({a: "b"}),
             submission_data: {
+                send_name: "Post",
+                client_id: client.id,
+                submit_key: submit_encoder.encode({
+                    kind: "newpost",
+                    sub: subid,
+                }),
                 fields: [
                     {kind: "title", id: "_title"},
                     {kind: "content", id: "_content", default_id: "_textpost", content_types: [
@@ -391,15 +422,6 @@ function createSubmitPage(
                             client_id: client.id,
                             /*
                             https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&rtj=both&raw_json=1&gilding_detail=1
-                            {
-                                "sr":"threadclient", "submit_type":"subreddit",
-                                "api_type":"json", "show_error_list":true,
-                                "title":"test poll", "spoiler":false,
-                                "nsfw":false, "post_to_twitter":false,
-                                "sendreplies":true, "duration":3, // num days (1-7)
-                                "options":["poll option 1","poll option 2"], "text":"markdown body text", // supports richtext, likely with "richtext_json"=… instead of "text"=…
-                                "raw_rtjson":null, "validate_on_submit":true,
-                            }
                             */
                            disabled: about.data.submission_type !== "self" && about.data.allow_polls ? null : "Polls are not allowed on this subredit",
                         },
