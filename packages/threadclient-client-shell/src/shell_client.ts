@@ -2,7 +2,7 @@ import * as Generic from "api-types-generic";
 import { p2, rt } from "api-types-generic";
 import { ThreadClient } from "threadclient-client-base";
 import { splitURL } from "tmeta-util";
-import { changelog1, changelog2, changelog3 } from "./changelog";
+import { changelog1, changelog2, changelog3, changelog4 } from "./changelog";
 
 export const client: ThreadClient = {
     id: "shell",
@@ -350,6 +350,7 @@ const all_content_raw_dontuse = {
         parent: "/",
         replies: [
             // oh we could have sorting options on this. right now it's newest to oldest
+            "/changelog/-NCaXsguXmNc8qPj9etM",
             "/changelog/-NBV3onJ3vJScBQJuFSK",
             "/changelog/-N0l8jcINFK5F9MkDcyT",
             "/changelog/-N02c8ctxITU-BqvlytL",
@@ -357,6 +358,7 @@ const all_content_raw_dontuse = {
     }, {
         content: [rt.p(rt.txt("Changelog"))],
     }),
+    "/changelog/-NCaXsguXmNc8qPj9etM": changelog4,
     "/changelog/-NBV3onJ3vJScBQJuFSK": changelog3,
     "/changelog/-N0l8jcINFK5F9MkDcyT": changelog2,
     // v we could make changelog entries loaders so they don't have to be loaded in order to load the homepagee

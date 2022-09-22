@@ -6,11 +6,31 @@ import { autoPost, changelogEntry } from "./shell_client";
 // MOST RECENT COMMIT ADDED: 75a44cd4007cf21c90516b8d8386f13455263ae8
 // in command: git log --stat "bd54c07697d47be3c68f14162c37f54ea1fbe752..HEAD"
 
+// [try it out on r/threadclient]
+
+export function changelog4() {return autoPost({
+    parent: "/changelog",
+    replies: [],
+}, changelogEntry({
+    title: "Sep 22, 2022 ThreadClient Update",
+    features: [
+        rt.p(
+            rt.link({id: ""}, "https://github.com/pfgithub/threadclient/issues/7", {}, rt.txt("#7")),
+            rt.txt(": You can now submit text and link posts with ThreadClient! Try it out on "),
+            rt.link({id: "reddit"}, "/r/threadclient", {}, rt.txt("r/threadclient")),
+            rt.txt(" by clicking the 'Create Post' button in the sidebar"),
+        ),
+    ],
+    changes: [
+        rt.ili(rt.txt("The 'Feature Request' button now links to a reddit thread rather than github. The reddit thread has a link to the github page on it."),)
+    ],
+}));}
+
 export function changelog3() {return autoPost({
     parent: "/changelog",
     replies: [],
 }, changelogEntry({
-    title: "Sep 12, 2019 ThreadClient Update",
+    title: "Sep 12, 2022 ThreadClient Update",
     changes: [
         rt.ili(rt.txt("Clicking on a pfp will now make it fullscreen so you can look at it")),
         rt.ili(rt.txt("Now indicates if a pfp is a reddit nft with that hexagon background thing")),

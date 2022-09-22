@@ -3580,6 +3580,7 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
     path: Path,
     opts: RequestOpts<Reddit.Requests[Path], Extra>,
 ): Promise<Reddit.Requests[Path]["response"] | Extra> {
+    const optsmode = (opts as unknown as {mode: undefined | "urlencoded" | "json"}).mode;
     // TODO if error because token needs refreshing, refresh the token and try again
     try {
         const authorization = await getAuthorization();
@@ -3593,14 +3594,14 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
                     'Content-Type': {
                         json: "application/json",
                         urlencoded: "application/x-www-form-urlencoded",
-                    }[opts.mode as "urlencoded" | "json"],
+                    }[optsmode!],
                 } : {},
             },
             ...opts.method === "POST" ? {
-                body: (opts.mode as "urlencoded" | "json") === "json" ? (
+                body: (optsmode) === "json" ? (
                     JSON.stringify(opts.body)
-                ) : opts.mode === "urlencoded" ? (
-                    Object.entries(opts.body).flatMap(([a, b]) => (
+                ) : optsmode === "urlencoded" ? (
+                    Object.entries(opts.body ?? (() => {throw new Error("post with undefined body")})()).flatMap(([a, b]) => (
                         b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]
                     )).join("&")
                 ) : assertUnreachable(opts as never),
