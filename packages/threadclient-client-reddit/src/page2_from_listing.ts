@@ -6,7 +6,8 @@ import { assertNever, encodeQuery, splitURL, switchKind, updateQuery } from "tme
 import {
     authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, ec, editButton,
     expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody,
-    getPointsOn, getPostBody, getPostFlair, getPostThumbnail, ParsedPath, parseLink, PostSort, rawlink, redditRequest,
+    getPointsOn, getPostBody, getPostFlair, getPostThumbnail, jstrOf,
+    ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
 import { getSidebar } from "./sidebars";
@@ -360,24 +361,94 @@ const submit_encoder = encoderGenerator<SubmitData, "submit">("submit");
 export async function submitPage2(
     key: Generic.Opaque<"submit">,
     value: Generic.SubmitResult.SubmitPost,
-): Promise<Generic.LoaderResult> {
+): Promise<string> {
     const submit_data = submit_encoder.decode(key);
 
+    // !TODO make this typesafe and improve the 
+    // Generic.SubmitResult.SubmitPost type
+    // we could make this typesafe by:
+    // - describing the result type we want
+    // - in the submission_data, use a function that knows the wanted result type
+    const title_field = value.fields?.['_title']?.title;
+    if(title_field == null || title_field.length === 0) throw new Error("a title is requierd");
+    const content_field = value.fields?.['_content']?.content;
+    if(content_field == null) throw new Error("post content is required");
+    const flair_field = value.fields?.['_postflair']?.flair_one;
+    const flags_field = value.fields?.['_postopts']?.flair_many;
+
+    const content_kind = content_field?.tab ?? "_textpost";
+
+    const getflag = (v: string) => {
+        return flags_field?.[v] ?? false;
+    };
+
+    if(getflag("_EVENT")) throw new Error("Making Event Posts is not yet supported in ThreadClient");
+
+    const body: Reddit.ApiSubmitBody = {
+        api_type: "json",
+        validate_on_submit: "true",
+        show_error_list: "true",
+
+        title: title_field,
+
+        flair_id: flair_field ?? undefined,
+        // flair_text: …,
+
+        kind: 0 as any as "self",
+
+        sendreplies: jstrOf(true),
+
+        nsfw: jstrOf(getflag("_OVER18")),
+        spoiler: jstrOf(getflag("_SPOILER")),
+        original_content: jstrOf(getflag("_OC")),
+        discussion_type: getflag("_LIVECHAT") ? "CHAT" : undefined,
+
+        sr: submit_data.sub,
+    };
+    if(content_kind === "_nothing") {
+        body.kind = "self";
+        body.text = "";
+    }else if(content_kind === "_textpost") {
+        body.kind = "self";
+        body.text = content_field.choices?.['_textpost']?.text ?? "";
+    }else if(content_kind === "_linkpost") {
+        body.kind = "link";
+        body.url = content_field.choices?.['_linkpost']?.link ?? "";
+    }else{
+        throw new Error("TODO support content kind: " + content_kind);
+    }
+
+    console.log("sendbody", body);
+
+    const res = await redditRequest("/api/submit", {
+        method: "POST",
+        query: {
+            resubmit: "true",
+        },
+        body,
+        mode: "urlencoded",
+    });
+
+    console.log("%+%", res);
+
     /*
-    Implemented for text and link posts.
-    - Poll posts are possible but not implemented yet
-    - Image/video/gallery posts should be possible but are not implemented yet.
-    - I don't know what talk posts are and they are likely not possible to implement.
-    - Submitting posts to your user profile is not implemented yet.
-    - Flairs with editable text are not implemented yet.
-    - You cannot yet choose if you want to receive notifications for replies, it defaults on.
+Implemented for text and link posts.
+- Poll posts are possible but not implemented yet
+- Image/video/gallery posts should be possible but are not implemented yet.
+- You cannot yet write text posts with embedded media.
+- I don't know what talk posts are and they are likely not possible to implement.
+- Submitting posts to your user profile is not implemented yet.
+- Flairs with editable text cannot be edited yet.
+- You cannot yet choose if you want to receive notifications for replies, it defaults on.
+- Validation currently only happens after clicking 'post'
+- Editing posts is not yet implemented
 
-    ![image](https://user-images.githubusercontent.com/6010774/191774245-cff8ba53-64dc-4e7b-8b86-faa5522d76db.png)
+![image](https://user-images.githubusercontent.com/6010774/191774245-cff8ba53-64dc-4e7b-8b86-faa5522d76db.png)
 
-    ![image](https://user-images.githubusercontent.com/6010774/191774282-9a6abbad-1dce-42f0-8f7d-a72eb82d387e.png)
+![image](https://user-images.githubusercontent.com/6010774/191802971-a4336590-c1e4-4bc9-87a0-31adabe6675f.png)
     */
 
-    throw new Error("TODO submit to sub: "+submit_data.sub);
+    return res.json.data.url;
 }
 
 function createSubmitPage(

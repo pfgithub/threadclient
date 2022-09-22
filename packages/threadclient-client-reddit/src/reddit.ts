@@ -2716,6 +2716,10 @@ function generateUserSidebar(
     return resitems;
 }
 
+export function jstrOf<T>(v: T): Reddit.JStr<T> {
+    return JSON.stringify(v) as unknown as Reddit.JStr<T>;
+}
+
 export function parseLink(path: string): [parsed: ParsedPath, path: string] {
     let parsed = path_router.parse(path)!;
 
@@ -3170,18 +3174,12 @@ export const client: ThreadClient = {
         const richtext_json: Reddit.Richtext.Document = {
             document: paragraphs,
         };
-        const body: {
-            api_type: "json",
-            thing_id: string,
-            return_rtjson?: undefined | "true" | "false",
-            richtext_json?: undefined | string,//Reddit.Richtext.Document,
-            text?: undefined | string,
-        } = {
+        const body: Reddit.ApiCommentOrEditComment = {
             api_type: "json",
             thing_id: reply_info.parent_id,
-            return_rtjson: "true",
+            return_rtjson: jstrOf(true),
             ...(md === "richtext_demo"
-                ? {richtext_json: JSON.stringify(richtext_json)}
+                ? {richtext_json: jstrOf(richtext_json)}
                 : {text: md}
             ),
         };
@@ -3508,11 +3506,8 @@ type ReportAction = {
 // note: sub_other should pass the text through the other_reason field when reporting
 const report_action_encoder = encoderGenerator<ReportAction, "send_report">("send_report");
 
-type RequestOpts<ThingType extends Reddit.RequestInfo, Extra> = (
-    | {method: "GET"}
-    | {method: "POST", mode: "urlencoded", body: {[key: string]: string | undefined}}
-    | {method: "POST", mode: "json", body: unknown}
-) & {
+// {method: "POST", mode: "json", body: unknown}
+type RequestOpts<ThingType extends Reddit.RequestInfo, Extra> = {
     onerror?: undefined | ((e: Error) => Extra),
     onstatus?: undefined | ((status: number, res: ThingType["response"]) => Extra),
     cache?: undefined | boolean,
@@ -3521,6 +3516,13 @@ type RequestOpts<ThingType extends Reddit.RequestInfo, Extra> = (
     query: ThingType["query"],
 } : {
     query?: undefined,
+}) & (ThingType["body"] extends {[key: string]: string | undefined} ? {
+    method: "POST",
+    mode: "urlencoded",
+    body: ThingType["body"],
+} : {
+    method: "GET",
+    body?: undefined,
 });
 // note: TODO reset caches on a few occasions
 // : if you send any requests to edit the subreddit about text or anything like that, clear all caches containing /r/:subname/ or ending with /r/:subname
@@ -3591,17 +3593,17 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
                     'Content-Type': {
                         json: "application/json",
                         urlencoded: "application/x-www-form-urlencoded",
-                    }[opts.mode],
+                    }[opts.mode as "urlencoded" | "json"],
                 } : {},
             },
             ...opts.method === "POST" ? {
-                body: opts.mode === "json" ? (
+                body: (opts.mode as "urlencoded" | "json") === "json" ? (
                     JSON.stringify(opts.body)
                 ) : opts.mode === "urlencoded" ? (
                     Object.entries(opts.body).flatMap(([a, b]) => (
                         b == null ? [] : [encodeURIComponent(a) + "=" + encodeURIComponent(b)]
                     )).join("&")
-                ) : assertUnreachable(opts),
+                ) : assertUnreachable(opts as never),
             } : {},
         };
         const cache_text = JSON.stringify([full_url, fetchopts]);

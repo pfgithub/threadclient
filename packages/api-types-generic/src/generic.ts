@@ -893,7 +893,7 @@ export declare namespace SubmitResult {
         flair_many?: undefined | {[key: string]: undefined | boolean},
     };
     export type SubmitPost = {
-        fields: {[key: string]: undefined | Field},
+        fields?: undefined | {[key: string]: undefined | Field},
     };
 }
 

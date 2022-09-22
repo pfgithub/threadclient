@@ -14,7 +14,8 @@ import ToggleButton from "./ToggleButton";
 /*
 !BEFORE RELEASE:
 - cache the node in localstorage like reply.tsx does
-  "commentv2-draft-"+props.opts.id,
+  "commentv2-draft-"+props.submit.client_id + props.opts.id,
+  // note: if props.opts.id is not a string, display a warning 'a draft will not be saved'
 - either support signatures or remove signatures
 
 !NEXT STEPS:
@@ -47,6 +48,7 @@ export default function Submit(props: {
         kind: "sending",
     } | {
         kind: "sent",
+        url: string,
     }>({kind: "none", error: null});
 
     const sendReplyAsync = async () => {
@@ -57,7 +59,7 @@ export default function Submit(props: {
         const res = await client.submit(
             props.submit.submit_key, anJson(node) as unknown as Generic.SubmitResult.SubmitPost
         );
-        alert("TODO view the submitted post: "+res);
+        return res;
         // // - add the new content
         // // - if the submit node is the pivot, navigate to the new node
         // // - otherwise, TODO figure out what to do
@@ -68,9 +70,9 @@ export default function Submit(props: {
     };
     const sendReply = () => {
         setSendState({kind: "sending"});
-        sendReplyAsync().then(() => {
+        sendReplyAsync().then((url) => {
             // ✓ OK
-            setSendState({kind: "sent"});
+            setSendState({kind: "sent", url});
         }).catch(e => {
             setTimeout(() => {
                 setSendState({kind: "none", error: (e as Error).toString()});
@@ -110,7 +112,14 @@ export default function Submit(props: {
                 Submitting…
                 {" "}<InternalIconRaw class="fa-solid fa-spinner animate-spin" label="spinner" />
             </>,
-            sent: () => <>Submitted! This should never be visible.</>,
+            sent: sent => <Body body={{kind: "richtext", content: [
+                Generic.rt.p(
+                    Generic.rt.txt("Submitted! "),
+                    Generic.rt.link({id: props.submit.client_id}, sent.url, {},
+                        Generic.rt.txt(sent.url),
+                    ),
+                ),
+            ]}} autoplay={false} />,
         }} />
     </div>;
     /*
@@ -200,10 +209,10 @@ function SubmitField(props: {
             flair_many: flair => <div>
                 <ul class="flex flex-wrap flex-row gap-4">
                     <For each={flair.flairs}>{theflair => <li>
-                        <label class="select-none">
+                        <label class="select-none" title={theflair.disabled != null ? theflair.disabled : undefined}>
                             <input type="checkbox" value={theflair.id} name={groupid} checked={anBool(props.node.flair_many[theflair.id]!) ?? false} onInput={e => {
                                 anSetReconcile(props.node.flair_many[theflair.id]!, () => e.currentTarget.checked);
-                            }} />
+                            }} disabled={theflair.disabled != null ? true : false} />
                             {" "}
                             <Flair flairs={theflair.flairs} />
                         </label>

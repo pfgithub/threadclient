@@ -1268,10 +1268,69 @@ export type ApiLinkFlair = FlairTemplate[];
 // like export type Requests: {[key: string]: RequestInfo} = {};
 // I think I can do that with like a "extends" but not sure
 
+export type JStr<T> = string & {__is_jstr_of: T};
+
+// TODO: auto convert top levels to JStr in redditRequest and define types
+// using normal json types
+export type ApiSubmitBody = {
+    api_type: "json",
+    collection_id?: undefined | string, // a uuid of the collection it belongs to
+    event_start?: undefined | string, // ie 2018-09-11T12:00:00 :: Date.toISOString()
+    event_end?: undefined | string, // ie 2018-09-11T12:00:00 :: Date.toISOString()
+    event_tz?: undefined | string, // pytz timezone ie 'America/Los_Angeles'
+    extension?: undefined | string, // no clue what this is. "extension used for redirects" = ?
+    flair_id?: undefined | string, // uuid
+    flair_text?: undefined | string, // string
+    'g-recaptcha-response'?: undefined | string, // n/a
+    kind: "link" | "self" | "image" | "video" | "videogif",
+    nsfw: JStr<boolean>,
+    post_set_default_post_id?: undefined | string, // not sure what this is
+    post_set_id?: undefined | string, // not sure what this is
+    richtext_json?: undefined | JStr<Richtext.Document>,
+    // ^ note that if richtext_json is specified, text must not be specified
+    sendreplies: JStr<boolean>, // TODO add a checkbox for this in UI
+    spoiler: JStr<boolean>,
+    sr: string, // sub name
+    text?: undefined | Markdown, // mutually incompatable with richtext_json
+    title: string, // max 300 chars
+    url?: undefined | string,
+    video_poster_url?: undefined | string, // likely used in video submit process. I'll have to try it and see.
+
+    discussion_type?: undefined | "CHAT",
+    original_content: JStr<boolean>,
+    validate_on_submit: "true",
+    show_error_list: "true",
+
+    // submit_type: "subreddit",
+    // presumably "subreddit" | "user" but I have to test
+
+    // post_to_twitter: undefined | JStr<boolean> // ??? desktopapi uses this
+};
+export type ApiSubmitResponse = {
+    // errors are handled by redditRequest(), we don't have to handle them here.
+    json: {
+        data: {
+            url: string,
+            drafts_count: number,
+            id: string,
+            name: `t3_${string}`,
+            // sample: {"json": {"errors": [], "data": {"url": "https://www.reddit.com/r/threadclient/comments/xl6dwx/test2/", "drafts_count": 0, "id": "xl6dwx", "name": "t3_xl6dwx"}}}
+        },
+    },
+};
+export type ApiCommentOrEditComment = {
+    api_type: "json",
+    return_rtjson: JStr<boolean>,
+    richtext_json?: undefined | JStr<Richtext.Document>,
+    text?: undefined | string,
+    thing_id: string,
+};
+
+export type IsRequest<T extends RequestInfo> = T;
 export type RequestInfo = {
-    query?: undefined | {[key: string]: string | null | undefined},
-    body?: undefined | unknown,
+    body?: never | {[key: string]: string | undefined},
     response: unknown,
+    query?: never | {[key: string]: string | null | undefined},
 };
 export type PathBit<T extends string = string> = `«ENCODED_${T}»`;
 export type Requests = {
@@ -1283,65 +1342,31 @@ export type Requests = {
     //
     // note: an alternative to this could be providing types for a generic url builder
     // eg like thing.api.test("somebit").post(data);
-    "/api/comment": {
-        body: {
-            api_type: "json",
-            return_rtjson: boolean,
-            richtext_json?: undefined | unknown,
-            text?: undefined | string,
-            thing_id: string,
-            // uh: string,
-        },
+    "/api/comment": IsRequest<{
+        body: ApiCommentOrEditComment,
         response: PostComment,
-    },
-    "/api/editusertext": {
-        body: {
-            api_type: "json",
-            return_rtjson: boolean,
-            richtext_json?: undefined | unknown,
-            text?: undefined | string,
-            thing_id: string,
-            // uh: string,
-        },
+    }>,
+    "/api/editusertext": IsRequest<{
+        body: ApiCommentOrEditComment,
         response: PostComment,
-    },
-    "/api/submit": {
-        body: {
-            api_type: "json",
-            collection_id?: undefined | string, // a uuid of the collection it belongs to
-            event_start?: undefined | string, // ie 2018-09-11T12:00:00 :: Date.toISOString()
-            event_end?: undefined | string, // ie 2018-09-11T12:00:00 :: Date.toISOString()
-            event_tz?: undefined | string, // pytz timezone ie 'America/Los_Angeles'
-            extension?: undefined | string, // no clue what this is. "extension used for redirects" = ?
-            flair_id?: undefined | string, // uuid
-            flair_text?: undefined | string, // string
-            'g-recaptcha-response'?: undefined | string, // n/a
-            kind: "link" | "self" | "image" | "video" | "videogif",
-            nsfw: boolean,
-            post_set_default_post_id?: undefined | string, // not sure what this is
-            post_set_id?: undefined | string, // not sure what this is
-            resubmit: true, // otherwise it'll error sometimes. maybe we should make a 'confirm resubmit' checkbox?
-            // new.reddit seems to set resubmit=true all the time so maybe not
-            richtext_json?: undefined | object, // TODO figure out which thing this is. RichText.[what?]
-            // ^ note that if richtext_json is specified, text must not be specified
-            sendreplies: boolean, // TODO add a checkbox for this in UI
-            spoiler: boolean,
-            sr: string, // sub name
-            text?: undefined | Markdown, // mutually incompatable with richtext_json
-            title: string, // max 300 chars
-            url?: undefined | string,
-            video_poster_url?: undefined | string, // likely used in video submit process. I'll have to try it and see.
+    }>,
+    "/api/submit": IsRequest<{
+        query: {
+            resubmit: "true" | "false",
         },
-        response: "TODO",
+        body: ApiSubmitBody,
+        response: ApiSubmitResponse,
         /*
         */
-    },
-    "/api/submit_poll_post": {
-        body: "TODO",
-        response: "TODO",
-    },
+    }>,
+    "/api/submit_poll_post": IsRequest<{
+        body: {'TODO': "TODO"},
+        response: {'TODO': "TODO"},
+    }>,
     /*
     https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&rtj=both&raw_json=1&gilding_detail=1
+    // !note: this might actually be a content-type json thing
+    // check it again
     {
         "sr":"threadclient", "submit_type":"subreddit",
         "api_type":"json", "show_error_list":true,
@@ -1352,36 +1377,36 @@ export type Requests = {
         "raw_rtjson":null, "validate_on_submit":true,
     }
     */
-    "/api/test/0": {
+    "/api/test/0": IsRequest<{
         query: {
             a: "b",
         },
         response: "no",
-    },
-    [key: `/r/${PathBit}/api/widgets`]: {
+    }>,
+    [key: `/r/${PathBit}/api/widgets`]: IsRequest<{
         response: ApiWidgets,
-    },
-    [key: `/r/${PathBit}/about`]: {
+    }>,
+    [key: `/r/${PathBit}/about`]: IsRequest<{
         response: T5,
-    },
-    [key: `/r/${PathBit}/about/rules`]: {
+    }>,
+    [key: `/r/${PathBit}/about/rules`]: IsRequest<{
         response: Rules,
-    },
-    [key: `/r/${PathBit}/api/link_flair_v2`]: {
+    }>,
+    [key: `/r/${PathBit}/api/link_flair_v2`]: IsRequest<{
         response: ApiLinkFlair,
-    },
-    "/api/multi/__unknown_base": {
+    }>,
+    "/api/multi/__unknown_base": IsRequest<{
         response: LabeledMulti,
-    },
-    [key: `/comments/${PathBit}`]: {
+    }>,
+    [key: `/comments/${PathBit}`]: IsRequest<{
         query: {
             sort: Sort | null,
             comment: string | null,
             context: string | null,
         },
         response: Page,
-    },
-    [key: `/duplicates/${PathBit}`]: { // could even enforce it has to be an unprefixed post fullname with distincts
+    }>,
+    [key: `/duplicates/${PathBit}`]: IsRequest<{ // could even enforce it has to be an unprefixed post fullname with distincts
         query: {
             after: string | null,
             before: string | null,
@@ -1389,57 +1414,57 @@ export type Requests = {
             crossposts_only: string,
         },
         response: Page,
-    },
+    }>,
     // if bases are updated to start with a slash and not end with a slash, i think we can support them properly
-    "/__unknown_base/__unknown_sort": {
+    "/__unknown_base/__unknown_sort": IsRequest<{
         query: {
             t: SortTime | null, before: string | null, after: string | null,
         },
         response: Listing,
-    },
-    "/__any": {
+    }>,
+    "/__any": IsRequest<{
         response: AnyResult,
-    },
-    "/__any_page": {
+    }>,
+    "/__any_page": IsRequest<{
         response: Page,
-    },
-    "/__any_listing": {
+    }>,
+    "/__any_listing": IsRequest<{
         response: Listing,
-    },
-    "/message/unread": {
+    }>,
+    "/message/unread": IsRequest<{
         response: Listing,
-    },
-    "/api/mod/conversations/unread/count": {
+    }>,
+    "/api/mod/conversations/unread/count": IsRequest<{
         response: ModmailUnreadCount,
-    },
-    "/__unknown": {
+    }>,
+    "/__unknown": IsRequest<{
         response: unknown,
-    },
-    [key: `/user/${PathBit}/about`]: {
+    }>,
+    [key: `/user/${PathBit}/about`]: IsRequest<{
         response: T2,
-    },
-    [key: `/api/v1/user/${PathBit}/trophies`]: {
+    }>,
+    [key: `/api/v1/user/${PathBit}/trophies`]: IsRequest<{
         response: TrophyList,
-    },
-    [key: `/user/${PathBit}/moderated_subreddits`]: {
+    }>,
+    [key: `/user/${PathBit}/moderated_subreddits`]: IsRequest<{
         response: ModeratedList,
-    },
-    "/api/vote": {
+    }>,
+    "/api/vote": IsRequest<{
         body: VoteBody,
         response: EmptyResult,
-    },
-    "/api/del": {
+    }>,
+    "/api/del": IsRequest<{
         body: {id: string},
         response: EmptyResult,
-    },
-    "/api/subscribe": {
+    }>,
+    "/api/subscribe": IsRequest<{
         body: {
             action: "sub" | "unsub",
             sr_name: string,
         },
         response: EmptyResult,
-    },
-    "/api/report": {
+    }>,
+    "/api/report": IsRequest<{
         body: {
             sr_name: string,
             thing_id: string,
@@ -1449,8 +1474,8 @@ export type Requests = {
             reason?: undefined | string,
         },
         response: ReportResponse,
-    },
-    "/api/morechildren": {
+    }>,
+    "/api/morechildren": IsRequest<{
         query: {
             api_type: "json",
             limit_children: "false",
@@ -1459,15 +1484,15 @@ export type Requests = {
             sort: Sort,
         },
         response: MoreChildren,
-    },
-    "/api/me": {
+    }>,
+    "/api/me": IsRequest<{
         response: ApiMe,
-    },
+    }>,
 
     // i gave up, typescript was erroring with both `[key: …]` and `[key in …]`
     // might need to do PathBit<"a_or_un"> to make it a normal template string thing instead of a union
-    "/api/save": ApiEntrySave, "/api/unsave": ApiEntrySave,
-    "/api/read_message": ApiEntryReadMessage, "/api/unread_message": ApiEntryReadMessage,
+    "/api/save": IsRequest<ApiEntrySave>, "/api/unsave": IsRequest<ApiEntrySave>,
+    "/api/read_message": IsRequest<ApiEntryReadMessage>, "/api/unread_message": IsRequest<ApiEntryReadMessage>,
 };
 
 type ApiEntrySave = {// [key in "/api/save" | "/api/unsave"]: { // `/api/${"" | "un"}save`

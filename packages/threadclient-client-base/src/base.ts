@@ -28,7 +28,7 @@ export type ThreadClient = {
 
     hydrateInbox?: undefined | ((inbox: Generic.Opaque<"deferred_inbox">) => Promise<Generic.InboxData>),
 
-    submit?: undefined | ((action: Generic.Opaque<"submit">, content: Generic.SubmitResult.SubmitPost) => Promise<Generic.LoaderResult>),
+    submit?: undefined | ((action: Generic.Opaque<"submit">, content: Generic.SubmitResult.SubmitPost) => Promise<string>),
 };
 
 //eslint-disable-next-line @typescript-eslint/ban-types
