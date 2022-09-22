@@ -832,6 +832,7 @@ export declare namespace Submit {
         send_name: string,
         client_id: string,
         submit_key: Opaque<"submit">,
+        title: string,
         fields: Field[],
         // ValidateField(field)
         // ⇒ /api/validate_submission_field

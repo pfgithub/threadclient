@@ -12,15 +12,11 @@ import { ClientPostOpts } from "./Post";
 import ToggleButton from "./ToggleButton";
 
 /*
-!BEFORE RELEASE:
+!TODO:
 - cache the node in localstorage like reply.tsx does
   "commentv2-draft-"+props.submit.client_id + props.opts.id,
   // note: if props.opts.id is not a string, display a warning 'a draft will not be saved'
 - either support signatures or remove signatures
-
-!NEXT STEPS:
-- make it possible to submit a post
-  - put a submit button on this. it calls an act function defined in the Generic.Submit.SubmitPost thing
 */
 
 export default function Submit(props: {
@@ -83,6 +79,14 @@ export default function Submit(props: {
     return <div>
         <SwitchKind item={sendState()} children={{
             none: none => <>
+                <h1 class="mb-4">
+                    {props.submit.title} | Warning: if you navigate away, you will lose any entered text |
+                    Post submission is also currently{" "}
+                    <Clickable
+                        action={{client_id: "", url: "https://github.com/pfgithub/threadclient/issues/7"}}
+                        class="text-blue-600 dark:text-blue-400 underline"
+                    >missing some features</Clickable>.
+                </h1>
                 <Show when={none.error}>{emsg => <>
                     <p class="text-red-500 mb-4">{emsg}</p>
                 </>}</Show>

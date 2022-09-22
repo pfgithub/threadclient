@@ -431,23 +431,6 @@ export async function submitPage2(
 
     console.log("%+%", res);
 
-    /*
-Implemented for text and link posts.
-- Poll posts are possible but not implemented yet
-- Image/video/gallery posts should be possible but are not implemented yet.
-- You cannot yet write text posts with embedded media.
-- I don't know what talk posts are and they are likely not possible to implement.
-- Submitting posts to your user profile is not implemented yet.
-- Flairs with editable text cannot be edited yet.
-- You cannot yet choose if you want to receive notifications for replies, it defaults on.
-- Validation currently only happens after clicking 'post'
-- Editing posts is not yet implemented
-
-![image](https://user-images.githubusercontent.com/6010774/191774245-cff8ba53-64dc-4e7b-8b86-faa5522d76db.png)
-
-![image](https://user-images.githubusercontent.com/6010774/191802971-a4336590-c1e4-4bc9-87a0-31adabe6675f.png)
-    */
-
     return res.json.data.url;
 }
 
@@ -471,6 +454,7 @@ function createSubmitPage(
                     kind: "newpost",
                     sub: subid,
                 }),
+                title: "Submitting to r/"+subid,
                 fields: [
                     {kind: "title", id: "_title"},
                     {kind: "content", id: "_content", default_id: "_textpost", content_types: [
