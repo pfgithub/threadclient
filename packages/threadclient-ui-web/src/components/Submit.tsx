@@ -192,7 +192,7 @@ function SubmitOneContent(props: {
 
     return <SwitchKind item={props.content} children={{
         text: txtv => <div class="pt-2">
-            <div class="bg-slate-200 dark:bg-zinc-700 rounded-t-lg p-1 pb-0 flex flex-row flex-wrap gap-2">
+            <div class="bg-slate-400 dark:bg-zinc-700 rounded-t-lg p-1 pb-0 flex flex-row flex-wrap gap-2">
                 <ToggleButton<"edit" | "preview">
                     value={editpreview()}
                     setValue={nv => setEditpreview(() => nv ?? "edit")}
@@ -207,7 +207,7 @@ function SubmitOneContent(props: {
                     class="
                         block w-full rounded-none rounded-bl-lg resize-y
                         placeholder-slate-600 dark:placeholder-zinc-400
-                        bg-transparent bg-slate-300 dark:bg-zinc-900 p-2
+                        bg-slate-300 dark:bg-zinc-900 p-2
                     "
                     placeholder={textplaceholder(txtv)}
                     rows={4}
