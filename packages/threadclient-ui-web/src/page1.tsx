@@ -2011,7 +2011,7 @@ function renderClientPage(
             client_id: "n/a", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Report Issue",
         },
         {kind: "link",
-            client_id: "n/a", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Feature Request",
+            client_id: "reddit", url: "/r/threadclient/comments/xl9dsh/feature_requests", text: "Feature Request",
         },
     ];
     for(const action of default_actions) {
