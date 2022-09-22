@@ -133,6 +133,8 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             };
         }else if(parsed.kind === "subreddit_sidebar") {
             const sb_content = await getSidebar(content, parsed.sub);
+            p2.fillLink(content, subredditHeaderUnloadedID(parsed.sub), sb_content.bio);
+            // subredditHeaderUnloadedID();
             return {
                 content,
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
@@ -150,7 +152,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         loader: p2.prefilledHorizontalLoader(
                             content,
                             subredditSidebarUnloadedID(parsed.sub),
-                            sb_content,
+                            sb_content.sidebar,
                         ),
                     },
                     url: "/"+[...parsed.sub.base, "@sidebar"].join("/"),
@@ -743,6 +745,9 @@ function wikipageID(pathraw: string): Generic.Link<Generic.Post> {
 function subredditSidebarUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoaded> {
     return p2.stringLink("SIDEBAR_"+getSrId(sr_id, null));
 }
+function subredditHeaderUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.RedditHeader> {
+    return p2.stringLink("HEADER-UNLOADED_"+getSrId(sr_id, null));
+}
 function subredditSidebarLoaderID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
     return p2.stringLink("SIDEBAR-LOADER_"+getSrId(sr_id, null));
 }
@@ -1155,6 +1160,13 @@ function postDataFromListingMayError(
             p2.fillLink(content, sub_content, posts);
         }
 
+        const sidebar_loader_request = p2.fillLinkOnce(content, subredditSidebarLoaderID(data.details), () => (
+            loader_enc.encode({
+                kind: "sidebar",
+                sub: data.details,
+            })
+        ));
+
         const self_id = subredditUnloadedID(entry.data.details, entry.data.sort);
         p2.fillLinkOnce(content, self_id, (): Generic.Post => ({
             kind: "post",
@@ -1176,12 +1188,7 @@ function postDataFromListingMayError(
                             kind: "horizontal_loader",
                             key: subredditSidebarUnloadedID(data.details),
                             load_count: null,
-                            request: p2.fillLinkOnce(content, subredditSidebarLoaderID(data.details), () => (
-                                loader_enc.encode({
-                                    kind: "sidebar",
-                                    sub: data.details,
-                                })
-                            )),
+                            request: sidebar_loader_request,
                             client_id: client.id,
                             autoload: true,
                         },
@@ -1191,17 +1198,12 @@ function postDataFromListingMayError(
                     // also for now we can keep using page1 bios but eventually we'll want to
                     // redo bios
                     header: {
-                        // TODO load this stuff but only when the banner needs to be displayed, not before
-                        kind: "bio",
-                        banner: null,
-                        icon: null,
-                        name: {
-                            display: JSON.stringify(id_map_data).toString(),
-                            link_name: JSON.stringify(id_map_data).toString(),
-                        },
-                        body: null,
-                        menu: null,
-                        raw_value: entry,
+                        kind: "one_loader",
+                        key: subredditHeaderUnloadedID(data.details),
+                        load_count: null,
+                        request: sidebar_loader_request,
+                        client_id: client.id,
+                        autoload: true,
                     },
                 },
             },

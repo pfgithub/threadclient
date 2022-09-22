@@ -3,7 +3,7 @@ import { p2, rt } from "api-types-generic";
 import * as Reddit from "api-types-reddit";
 import {
     client, createSubscribeAction, ec, expectUnsupported,
-    flairToGenericFlair, redditRequest, SubInfo, SubrInfo,
+    flairToGenericFlair, redditRequest, SubInfo, subredditHeaderExissts as subredditHeaderExists, SubrInfo,
 } from "./reddit";
 
 // ![!] once we're at sidebar parity, we can switch page1 to use the new page2 sidebar.
@@ -11,7 +11,14 @@ import {
 // - faster pageloads (load the sidebar after loading the page)
 // - look nicer
 
-export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): Promise<Generic.HorizontalLoaded> {
+function bioFromSubinfo(content: Generic.Page2Content, subinfo: SubInfo): Generic.RedditHeader {
+    return subredditHeaderExists(subinfo);
+}
+
+export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): Promise<{
+    sidebar: Generic.HorizontalLoaded,
+    bio: Generic.RedditHeader,
+}> {
     if(sub.kind === "subreddit") {
         const onerror = () => undefined;
         const [widgets, about] = await Promise.all([
@@ -20,7 +27,13 @@ export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): 
         ]);
         const subinfo: SubInfo = {subreddit: sub.subreddit, sub_t5: about ?? null, widgets: widgets ?? null};
 
-        return sidebarFromWidgets(content, subinfo);
+        // TODO: sidebar should not include an identity card, that should be part of bio
+        // identity cards should be shared between users and subreddits and should appear
+        // as the header if pivoted or the sidebar if not
+        return {
+            sidebar: sidebarFromWidgets(content, subinfo),
+            bio: bioFromSubinfo(content, subinfo),
+        };
     }else{
         throw new Error("TODO sidebar for "+sub.kind);
     }

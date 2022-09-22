@@ -869,7 +869,9 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     // banner image
     // subreddit icon, name, link
     // subscribe button
-
+    return subredditHeaderExissts(subinfo);
+}
+export function subredditHeaderExissts(subinfo: SubInfo): Generic.RedditHeader {
     const res_menu: Generic.MenuItem[] = [
         {text: "Posts", action: {kind: "link", client_id: client.id, url: "/r/"+subinfo.subreddit}, selected: true}
     ];

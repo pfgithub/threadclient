@@ -162,6 +162,11 @@ export type HorizontalLoader = {
     kind: "horizontal_loader",
     key: Link<HorizontalLoaded>, // unfilled = not yet loaded
 } & BaseLoader;
+export type OneLoaded<T> = T;
+export type OneLoader<T> = {
+    kind: "one_loader",
+    key: Link<OneLoaded<T>>,
+} & BaseLoader;
 
 export type BaseLoader = {
     load_count: null | number, // number of items to be loaded, or null if it is not known.
@@ -249,7 +254,7 @@ export type PostContent = ClientPost | {
     title: null | string,
     wrap_page: {
         sidebar: PostReplies,
-        header: RedditHeader, // todo this needs to be able to be a loader
+        header: OneLoader<RedditHeader>, // todo this needs to be able to be a loader
     },
     // overview: ClientPost, // I think this is supposed to be for if rendered below the pivot
 } | PostContentPost | {
