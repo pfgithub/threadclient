@@ -981,16 +981,16 @@ summary {
 .header-gradient {
     background: linear-gradient(
         to bottom,
-        rgb(255, 255, 255, 0),
-        rgba(255, 255, 255, 0.8) min(50px, 80%),
-        rgb(255, 255, 255)
+        rgb(241,245,249, 0),
+        rgba(241,245,249, 0.8) min(50px, 80%),
+        rgb(241,245,249)
     );
     .dark & {
         background: linear-gradient(
             to bottom,
-            rgb(24, 26, 27, 0),
-            rgb(24, 26, 27, 0.9) min(50px, 90%),
-            rgb(24, 26, 27)
+            rgb(32,32,35, 0),
+            rgb(32,32,35, 0.9) min(50px, 90%),
+            rgb(32,32,35)
         );
     }
     // TODO use tailwind for this because it has opacity helpers
