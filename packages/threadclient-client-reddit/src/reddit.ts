@@ -1453,7 +1453,7 @@ export type SubSort = {v: Reddit.SortMode, t: Reddit.SortTime};
 export type PostSort = {v: Reddit.Sort};
 
 export type ParsedPath = {
-    kind: "subreddit_sidebar",
+    kind: "sidebar",
     sub: SubrInfo,
 } | {
     kind: "subreddit",
@@ -2902,7 +2902,7 @@ export const client: ThreadClient = {
                     }], replies: []}},
                     display_style: "comments-view",
                 };
-            }else if(parsed.kind === "subreddit_sidebar") {
+            }else if(parsed.kind === "sidebar") {
                 throw new Error("ENOTSUPPORTED;SUBREDDIT-SIDEBAR;PAGE1");
             }else if(parsed.kind === "submit") {
                 return {

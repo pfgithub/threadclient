@@ -141,12 +141,10 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {
         after: opts.query["after"] ?? null,
     }));
 
-    if(kind === "subreddit") {
-        urlr.route(["@sidebar"] as const, opts => ({
-            kind: "subreddit_sidebar",
-            sub: getSub(opts),
-        }));
-    }
+    urlr.route(["@sidebar"] as const, opts => ({
+        kind: "sidebar",
+        sub: getSub(opts),
+    }));
 
     if(kind === "subreddit" || kind === "user") {
         // /r/:subredditName/collection/:collectionId/:partialPostId/:partialCommentId · /r/:subredditName/collection/:collectionId/:partialPostId

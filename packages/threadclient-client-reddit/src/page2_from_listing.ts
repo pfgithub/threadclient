@@ -132,7 +132,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     internal_data: parsed,
                 }),
             };
-        }else if(parsed.kind === "subreddit_sidebar") {
+        }else if(parsed.kind === "sidebar") {
             const sb_content = await getSidebar(content, parsed.sub);
             p2.fillLink(content, subredditHeaderUnloadedID(parsed.sub), sb_content.bio);
             // subredditHeaderUnloadedID();

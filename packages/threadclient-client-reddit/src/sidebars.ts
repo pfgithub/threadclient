@@ -31,9 +31,54 @@ export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): 
             sidebar: sidebarFromWidgets(content, subinfo),
             bio: subredditHeaderExists(subinfo),
         };
+    }else if(sub.kind === "homepage") {
+        // [!] we shouldn't have to load anything to display this
+        // currently, a sidebar contains a loader
+        // but if we know the content, there's no reason for a loader
+        // maybe we should rewrite how sidebars work
+        // - maybe this is exactly what we were trying to solve with psys 
+        //   - we need psys to work
+        return {
+            sidebar: homepageSidebar(content),
+            bio: homepageIdentity(),
+        };
     }else{
         throw new Error("TODO sidebar for "+sub.kind);
     }
+}
+
+function homepageIdentity(): Generic.FilledIdentityCard {
+    return {
+        names: {
+            display: "Home",
+            raw: "/",
+        },
+        pfp: null,
+        theme: {
+            banner: null,
+        },
+        description: null,
+        actions: {
+            main_counter: null,
+        },
+        menu: null, // maybe have a menu for navigating these
+        raw_value: null,
+    };
+}
+function homepageSidebar(content: Generic.Page2Content): Generic.HorizontalLoaded {
+    const home_mysubs_card: Generic.Post = {
+        kind: "post",
+        content: {},
+        internal_data: 0,
+        disallow_pivot: false,
+        parent: null,
+        replies: null,
+        // literally just put /reddit/subreddits/mine here
+    };
+    const res: Generic.HorizontalLoaded = [
+        p2.createSymbolLinkToValue(content, home_mysubs_card),
+    ];
+    return res;
 }
 
 function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Generic.HorizontalLoaded {
