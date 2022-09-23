@@ -39,6 +39,9 @@ export const p2 = {
 
     /// a vertical loader that has filled content, so there's no need to describe how to load it
     /// todo: reflect this in the data rather than requiring this mess
+    // vv wait a minute. "fill: VerticalLoaded | undefined"
+    // when it's undefined, it's not prefilled.
+    // ???
     prefilledVerticalLoader(
         content: Page2Content,
         key: Link<VerticalLoaded>,

@@ -6,11 +6,11 @@ import { assertNever, encodeQuery, splitURL, switchKind, updateQuery } from "tme
 import {
     authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, ec, editButton,
     expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody,
+    getNavbar,
     getPointsOn, getPostBody, getPostFlair, getPostThumbnail, jstrOf,
     ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
-import { Psys } from "./reddit_page2_v2";
 import { getSidebar } from "./sidebars";
 
 /*
@@ -73,7 +73,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         ]},
                         collapsible: false,
                     },
-                    parent: null,
+                    parent: parentIsClient(content),
                     replies: null,
                     url: null,
                     internal_data: parsed,
@@ -97,7 +97,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         ]},
                         collapsible: false,
                     },
-                    parent: null,
+                    parent: parentIsClient(content),
                     replies: null,
                     url: null,
                     internal_data: parsed,
@@ -126,7 +126,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         ]},
                         collapsible: false,
                     },
-                    parent: null,
+                    parent: parentIsClient(content),
                     replies: null,
                     url: null,
                     internal_data: parsed,
@@ -147,7 +147,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         body: {kind: "none"},
                         collapsible: false,
                     },
-                    parent: null,
+                    parent: parentIsClient(content),
                     replies: {
                         display: "tree",
                         loader: p2.prefilledHorizontalLoader(
@@ -191,7 +191,10 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             ]},
                             collapsible: false,
                         },
-                        parent: null,
+                        parent: parentIsSubreddit(content, {
+                            sub: parsed.sub,
+                            sort: null,
+                        }),
                         replies: null,
                         url: null,
                         internal_data: parsed,
@@ -218,16 +221,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
         });
         
         const page = await redditRequest(link as "/__any", {method: "GET"});
-
-        const psys = new Psys();
-
-        if(!Array.isArray(page) && page.kind === "Listing" && parsed.kind === "subreddit") {
-            const sub = psys.item("subreddit", {sub: parsed.sub, sort: parsed.current_sort}, {listing: page});
-            return {
-                content: psys.render(),
-                pivot: sub,
-            };
-        }
 
         return {
             content,
@@ -280,7 +273,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     ]},
                     collapsible: false,
                 },
-                parent: null,
+                parent: parentIsClient(content),
                 replies: null,
                 url: null,
                 internal_data: [
@@ -343,6 +336,7 @@ type IDMapData = {
     kind: "wikipage",
     listing: Reddit.WikiPage,
     pathraw: string,
+    sub: SubrInfo,
 };
 
 export function subUrl(details: SubrInfo, sort: SubSort): string {
@@ -355,13 +349,16 @@ export function subUrl(details: SubrInfo, sort: SubSort): string {
     ) : "");
 }
 
-function subDefaultSort(sub: `t5_${string}`): SubSort {
+function subDefaultSort(sub: SubrInfo): SubSort {
     // overrides for some subs which should default to /new
     // TODO: consider creating one location in this or another file where all overrides like this are stored
     // eg: user overrides to auto collapse comments from some users, sub overrides to auto sort, …
     // apollo does some name capitalization overrides and we could do the same too
     // also TODO: switch users to be identified by fullname rather than username
-    if(sub === "t5_hcxiu" || sub === "t5_q7cbs") return {v: "new", t: "all"};
+    if(sub.kind === "subreddit" && (
+        sub.subreddit === "teenagersnew" ||
+        sub.subreddit === "adultsnew"
+    )) return {v: "new", t: "all"};
     return {v: "hot", t: "all"};
 }
 
@@ -519,7 +516,10 @@ function createSubmitPage(
             },
         },
         internal_data: {about, flairinfo},
-        parent: null, // todo createOrFillSubreddit(sub) → Link<Post>
+        parent: parentIsSubreddit(content, {
+            sub: sub,
+            sort: null,
+        }),
         replies: null,
         url: "/" + [...sub.base, "submit"].join("/"),
         client_id: client.id,
@@ -560,6 +560,11 @@ export function page2FromListing(
 
         const focus_comment = path.kind === "comments" ? path.focus_comment : null;
 
+        const subrinfo: SubrInfo = {
+            kind: "subreddit",
+            base: ["r", parent_post.data.subreddit],
+            subreddit: parent_post.data.subreddit,
+        };
         const sr_entry: IDMapData = {
             kind: "subreddit_unloaded",
             listing: {
@@ -570,13 +575,9 @@ export function page2FromListing(
                     after: null,
                 },
             },
-            details: {
-                kind: "subreddit",
-                base: ["r", parent_post.data.subreddit],
-                subreddit: parent_post.data.subreddit,
-            },
+            details: subrinfo,
             missing_replies: true,
-            sort: subDefaultSort(parent_post.data.subreddit_id),
+            sort: subDefaultSort(subrinfo),
             // the reason there are two seperate calls are because that way we can
             // easily get the id of the focused post
             //
@@ -630,6 +631,7 @@ export function page2FromListing(
             kind: "wikipage",
             listing: page,
             pathraw,
+            sub: path.kind === "wiki" ? path.sub : {kind: "error", base: ["ERROR_UNEXPECTED_WIKIPAGE"], pathraw},
             // TODO it should have a subreddit header
         };
         return postDataFromListingMayError(content, sr_entry);
@@ -669,7 +671,7 @@ function unsupportedPage(
     return p2.createSymbolLinkToValue<Generic.Post>(content, {
         kind: "post",
         client_id: client.id,
-        parent: null,
+        parent: parentIsClient(content),
         url: null,
         replies: null,
         content: {
@@ -715,6 +717,9 @@ function getFnSort(sort: FullnameSort): string {
     return "[sort:"+sort.sort.v+"]";
 }
 
+function clientID(): Generic.Link<Generic.Post> {
+    return p2.stringLink("ROOT-CLIENT");
+}
 function fullnameID(fullname: Reddit.Fullname, sort: FullnameSort): Generic.Link<Generic.Post> {
     return p2.stringLink("OBJECT_"+fullname + getFnSort(sort));
 }
@@ -848,6 +853,39 @@ function rawlinkButton(url: string): Generic.Action {
     return {kind: "link", text: "View on reddit.com", url: rawlink(url), client_id: "reddit"};
 }
 
+function genClient(content: Generic.Page2Content): Generic.Link<Generic.Post> {
+    const link = clientID();
+    p2.fillLinkOnce(content, link, (): Generic.Post => {
+        return {
+            kind: "post",
+            parent: null,
+            replies: null, // consider putting some client links here?
+            url: "/@tc-home",
+            client_id: client.id,
+            internal_data: undefined,
+            content: {
+                kind: "client",
+                navbar: getNavbar(null),
+            },
+        };
+    });
+    return link;
+}
+function parentIsClient(content: Generic.Page2Content): Generic.PostParent {
+    return {loader: p2.prefilledVerticalLoader(content, genClient(content), undefined)};
+}
+
+function parentIsSubreddit(content: Generic.Page2Content, opts: {
+    sub: SubrInfo, sort: SubSort | null,
+}): Generic.PostParent {
+    return {loader: p2.prefilledVerticalLoader(content, postDataFromListingMayError(content, {
+        kind: "subreddit_unloaded",
+        missing_replies: true,
+        listing: {kind: "Listing", data: {before: null, after: null, children: []}},
+        details: opts.sub,
+        sort: opts.sort ?? subDefaultSort(opts.sub),
+    }), undefined)};
+}
 function postDataFromListingMayError(
     content: Generic.Page2Content,
     id_map_data: IDMapData,
@@ -1046,17 +1084,14 @@ function postDataFromListingMayError(
             client_id: client.id,
             url: our_link,
 
-            parent: {loader: p2.prefilledVerticalLoader(content, postDataFromListingMayError(content, {
-                kind: "subreddit_unloaded",
-                missing_replies: true,
-                listing: {kind: "Listing", data: {before: null, after: null, children: []}},
-                details: {
+            parent: parentIsSubreddit(content, {
+                sub: {
                     kind: "subreddit",
                     subreddit: listing.subreddit,
                     base: ["r", listing.subreddit],
                 },
-                sort: subDefaultSort(listing.subreddit_id),
-            }), undefined)},
+                sort: null,
+            }),
             replies,
 
             content: {
@@ -1183,7 +1218,7 @@ function postDataFromListingMayError(
             kind: "post",
             client_id: client.id,
             url: "/"+data.details.base.join("/"),
-            parent: null,
+            parent: parentIsClient(content),
             replies,
             content: {
                 kind: "page",
@@ -1238,7 +1273,10 @@ function postDataFromListingMayError(
             kind: "post",
             client_id: client.id,
             url: data.pathraw,
-            parent: null, // TODO subreddit (this should also add `| SubName`) in the page title
+            parent: parentIsSubreddit(content, {
+                sub: data.sub,
+                sort: null,
+            }), // TODO subreddit (this should also add `| SubName`) in the page title
             // simple; just add subrinfo into wikipage
             replies: null,
             content: {
