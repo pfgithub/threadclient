@@ -334,7 +334,7 @@ type IDMapData = {
     pathraw: string,
 };
 
-function subUrl(details: SubrInfo, sort: SubSort): string {
+export function subUrl(details: SubrInfo, sort: SubSort): string {
     // [!] on user pages like overview and submitted, `?sort={{sort.v}}&t={{sprt.t}} should be used instead
     //      of `/submitted/hot` eg
 
@@ -634,7 +634,7 @@ export function page2FromListing(
 }
 
 // ! string is for pathraw
-function getSrId(sub: SubrInfo, sr_sort: SubSort | null): ID {
+export function getSrId(sub: SubrInfo, sr_sort: SubSort | null): ID {
     return (() => {
         if(sub.kind === "homepage") {
             return "SR_home";
