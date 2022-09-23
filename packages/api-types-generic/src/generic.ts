@@ -179,6 +179,76 @@ export type BaseLoader = {
 // vv we don't know typesafely that it's unloaded but don't call something this unless it's unloaded
 export type PostOrUnloadedLoader = Post | HorizontalLoader | VerticalLoader;
 
+// identity cards are for:
+// - user account pages
+// - subreddit pages
+// - the top of a sidebar when the page is not the focused object
+// - hover cards when hovering over users or subreddits
+// consider:
+// - identity cards could also be used for all authors. instead of having Author,
+//   you would have an identity card with lots of unfilled information (basically a partial author)
+// ok I want to do that
+// - right now, that would mean each unfilled object would have a link and a loader
+// - but that's not nice
+// - ok here's the easy method. we have a PartialIdentityCard and a FilledIdentityCard
+// and then you request more when needed. nice.
+
+// [!] do not make links to identity cards. instead, generate an identity card in each use case.
+// * oh a problem. if you click a user, it should go to the user's page
+//   - the user's page is a 
+//     - oh the solution is trivial nvm, just include the parent in the filled card. obviously.
+//     - we could even include it in every card as a OneLoader. doesn't seem necessary though.
+export type IdentityCard = {
+    url: string, client_id: string,
+    limited: LimitedIdentityCard,
+    filled: OneLoader<FilledIdentityCard>,
+};
+/*
+updated InfoAuthor will be:
+    identity_card: IdentityCard,
+    flair?: undefined | Flair[],
+    color_hash: string,
+*/
+export type LimitedIdentityCard = {
+    name_raw: string,
+
+    // note: use 'undefined' for both cases:
+    // - you don't know the pfp yet
+    // - you know there is no pfp
+    pfp?: undefined | InfoPfp,
+
+    raw_value: unknown,
+};
+export type FilledIdentityCard = {
+    container: Link<Post>,
+
+    names: {
+        display: string, // ie "ThreadClient" / MyUsername
+        raw: string, // ie "r/threadclient" / @myusername@example.com
+    },
+    pfp: null | InfoPfp,
+    theme: {
+        banner: Banner, // image url
+    },
+    description: null | Richtext.Paragraph[],
+    actions: {
+        main_counter: null | CounterAction, // ie 'Subscribe' or 'Follow'
+    },
+    menu: null | Menu,
+    raw_value: unknown,
+};
+export type Banner = null | {
+    kind: "color", color: `#${string}`,
+} | {kind: "image", desktop: string, mobile?: string | undefined};
+/*
+    kind: "bio",
+    body: Body | null,
+    subscribe?: Action | undefined,
+    more_actions?: Action[] | undefined,
+    menu: Menu | null,
+    raw_value: unknown,
+*/
+
 export type Post = {
     kind: "post",
 
