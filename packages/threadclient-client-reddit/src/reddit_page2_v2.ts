@@ -22,6 +22,26 @@ type ItemDetails = {
 };
 type XI<T extends ItemDetails> = T;
 
+export type ParentLoader = {
+    "client": LI<{
+        basic: 0,
+        result: Generic.Post,
+    }>,
+    "parent:subreddit": LI<{}>,
+};
+export type RepliesLoader = {
+    "replies:subreddit": RI<{
+        basic: {
+            sub: SubrInfo,
+            sort: null | SubSort,
+        },
+        full: {
+            listing: Reddit.Listing,
+        },
+        result: Generic.HorizontalLoaded,
+    }>,
+};
+
 export type Item = {
     "client": XI<{
         basic: 0,
@@ -193,6 +213,8 @@ class Psys {
         return content;
     }
 }
+
+type LoaderDataType = {[key in keyof Loader]: {}};
 
 type ItemDataType = {[key in keyof Item]: {
     id: (basic: Item[key]["basic"]) => string,
