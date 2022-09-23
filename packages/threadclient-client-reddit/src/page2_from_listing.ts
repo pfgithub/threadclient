@@ -10,6 +10,7 @@ import {
     ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
+import { Psys } from "./reddit_page2_v2";
 import { getSidebar } from "./sidebars";
 
 /*
@@ -215,8 +216,18 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             inbox: () => pathraw,
             subreddits: () => pathraw,
         });
+        
+        const page = await redditRequest(link as "/__any", {method: "GET"});
 
-        const page = await redditRequest(link as "/__any_page", {method: "GET"});
+        const psys = new Psys();
+
+        if(!Array.isArray(page) && page.kind === "Listing" && parsed.kind === "subreddit") {
+            const sub = psys.item("subreddit", {sub: parsed.sub, sort: parsed.current_sort}, {listing: page});
+            return {
+                content: psys.render(),
+                pivot: sub,
+            };
+        }
 
         return {
             content,

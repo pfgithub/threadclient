@@ -1,17 +1,7 @@
 import * as Generic from "api-types-generic";
-import { p2, rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
-import { encoderGenerator } from "threadclient-client-base";
-import { assertNever, encodeQuery, splitURL, switchKind, updateQuery } from "tmeta-util";
 import { getSrId, subUrl } from "./page2_from_listing";
-import {
-    authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, ec, editButton,
-    expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody,
-    getPointsOn, getPostBody, getPostFlair, getPostThumbnail, jstrOf,
-    ParsedPath, parseLink, PostSort, rawlink, redditRequest,
-    replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
-} from "./reddit";
-import { getSidebar } from "./sidebars";
+import { client, SubrInfo, SubSort } from "./reddit";
 
 // attempt 3 at making a page2 version of reddit
 
@@ -22,25 +12,22 @@ type ItemDetails = {
 };
 type XI<T extends ItemDetails> = T;
 
-export type ParentLoader = {
-    "client": LI<{
-        basic: 0,
-        result: Generic.Post,
-    }>,
-    "parent:subreddit": LI<{}>,
-};
-export type RepliesLoader = {
-    "replies:subreddit": RI<{
-        basic: {
-            sub: SubrInfo,
-            sort: null | SubSort,
-        },
-        full: {
-            listing: Reddit.Listing,
-        },
-        result: Generic.HorizontalLoaded,
-    }>,
-};
+// ah:
+// see sidebar for example
+// there is still a sidebar node. sidebars just don't use it as their parent, it's a node that
+// only exists for the /sidebar path
+
+// so the goal: every node defines how to load it from the different places it may be loaded from
+// ie: load my replies | load as a parent
+
+// load_as_parent: unknown, load_replies: unknown
+// the unknown is any additional data needed when creating a loader for this thing
+// so the sidebar object itself would be what you request when you were asked for a sidebar page
+// - it would be client > sidebar object > sidebar content
+//   - not including a sub id card because then we'd have double sidebars
+// and when you click a sidebar item, its parent is
+// - what is its parent? the sub id card? now we have duplicate sidebars again
+// not sure. maybe we'll need a flag
 
 export type Item = {
     "client": XI<{
@@ -57,13 +44,18 @@ export type Item = {
         basic: {
             sub: SubrInfo,
             sort: null | SubSort,
+
             // always use 'hot' if not provided
             // TODO: consider overriding defaults for some subreddits which are intended to be viewed on /new
         },
         full: {
             listing: Reddit.Listing,
+            // before: null | string, after: null | string,
         },
         result: Generic.Post,
+
+        // replies_loader:
+        // - before: null | string, after: null | string
     }>,
     "subreddit_content": XI<{
         basic: {
@@ -156,7 +148,7 @@ type ItemV = {
 
     value: unknown,
 };
-class Psys {
+export class Psys {
     items: Map<string, ItemV>;
 
     constructor() {
@@ -170,6 +162,8 @@ class Psys {
         // TODO: we can now differentiate between Links and NullableLinks
     ): Generic.Link<Item[Kind]["result"]> {
         const data = item_data[kind];
+        if(data == null) return Generic.p2.stringLink(kind + "[E-no-content-fn]");
+
         // if(info == null) return a link to an error
         const id_str = kind + "/" + data.id(basic);
         const id_link = Generic.p2.stringLink<Item[Kind]["result"]>(id_str);
@@ -214,9 +208,7 @@ class Psys {
     }
 }
 
-type LoaderDataType = {[key in keyof Loader]: {}};
-
-type ItemDataType = {[key in keyof Item]: {
+type ItemDataType = {[key in keyof Item]?: undefined | {
     id: (basic: Item[key]["basic"]) => string,
 } & ({
     // used for everything else. these should be filled once, immediately.
