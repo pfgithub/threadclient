@@ -5,7 +5,7 @@ import { SolidToVanillaBoundary } from "./LinkHelper";
 import { ClientPostOpts } from "./Post";
 
 export default function Header(props: {
-    header: Generic.RedditHeader,
+    header: Generic.FilledIdentityCard,
     opts: ClientPostOpts,
 }): JSX.Element {
     return <div>

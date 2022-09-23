@@ -6,6 +6,22 @@ import { allow_threading_override_ctx, collapse_data_context, getWholePageRootCo
 import { CollapseButton, CollapseData, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";
 
 /*
+REMINDER:
+there is no reason we should need pageflat
+posts do not have to be flat in dom
+we can have posts be heigherarchical in dom
+we don't have to sunk cost this
+
+heigherarchical posts make it easier to collapse stuff and do animations
+
+all we do is don't make the indent part of the outermost post, instead
+the indent is in the innermost post
+
+this would mean we would no longer need flatten2.tsx for the main heigherarchical part of the page
+it's still needed for above posts and stuff though
+*/
+
+/*
 CRITICAL TODO:
 hprc.content() needs to be changed
 currently it is a signal that updates any time any content changes
@@ -16,6 +32,7 @@ we need to change it to a map of signals so it only changes if the link you read
 - I can also do this by changing hprc.content() to return a proxy holding the object it normally holds
 - either method should work fine. the proxy method doesn't require any refactoring but might be a bit
   more complicated to program.
+- or we hprc.content.readLink([link]) is the signal
 
 type MutableContentBackingValue<T> = undefined | {data: T} | {error: string};
 type MutableContentBackingSym<T> = Signal<MutableContentBackingValue<T>>;
@@ -399,21 +416,28 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         const p = pivot(); // if pivot changes, we rerender everything
         return <>
             <For each={parentsArr()}>{(item): JSX.Element => <>
-                <FlatItemTsch kind="wrapper_start" />
-                <RenderTreeItemAuto
-                    tree_item={item}
-                    parent_indent={[]}
-                    opts={{
-                        first_in_wrapper: true,
-                        at_or_above_pivot: true,
-                        is_pivot: item.kind === "flat_post" && item.link === pivotLink(),
-                        threaded: false,
-                        depth: 0,
-                        displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
-                        // note: the pivot is never clickable
-                    }}
-                    last={true}
-                />
+                <Show if={(() => {
+                    if(item.kind !== "flat_post") return true;
+                    if(item.post.content.kind !== "page") return true;
+                    if(item.link === pivotLink()) return true; // is pivot
+                    return false;
+                })()}>
+                    <FlatItemTsch kind="wrapper_start" />
+                    <RenderTreeItemAuto
+                        tree_item={item}
+                        parent_indent={[]}
+                        opts={{
+                            first_in_wrapper: true,
+                            at_or_above_pivot: true,
+                            is_pivot: item.kind === "flat_post" && item.link === pivotLink(),
+                            threaded: false,
+                            depth: 0,
+                            displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
+                            // note: the pivot is never clickable
+                        }}
+                        last={true}
+                    />
+                </Show>
             </>}</For>
             {p.content.kind === "post" ? <>
                 <FlatItemTsch
@@ -461,7 +485,27 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
             const post = unwrapPost(itm.post);
             if(post.kind === "post" && post.content.kind === "page") {
                 const content = post.content;
-                return <FlattenTopLevelReplies replies={content.wrap_page.sidebar} />;
+                // id cards should get rendered above the sidebar
+                // don't render an id card in the sidebar if the id card is the pivoted post
+                return <>
+                    <Show if={itm.link !== pivotLink()}>
+                        <FlatItemTsch kind="wrapper_start" />
+                        <RenderTreeItemAuto
+                            tree_item={itm}
+                            parent_indent={[]}
+                            opts={{
+                                first_in_wrapper: true,
+                                at_or_above_pivot: false,
+                                is_pivot: false,
+                                threaded: false,
+                                depth: 0,
+                                displayed_in: "repivot_list",
+                            }}
+                            last={true}
+                        />
+                    </Show>
+                    <FlattenTopLevelReplies replies={content.wrap_page.sidebar} />
+                </>;
             }
         }
         return [];

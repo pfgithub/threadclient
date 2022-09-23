@@ -190,19 +190,8 @@ export type PostOrUnloadedLoader = Post | HorizontalLoader | VerticalLoader;
 // consider:
 // - identity cards could also be used for all authors. instead of having Author,
 //   you would have an identity card with lots of unfilled information (basically a partial author)
-// ok I want to do that
-// - right now, that would mean each unfilled object would have a link and a loader
-// - but that's not nice
-// - ok here's the easy method. we have a PartialIdentityCard and a FilledIdentityCard
-// and then you request more when needed. nice.
-
-// [!] do not make links to identity cards. instead, generate an identity card in each use case.
-// * oh a problem. if you click a user, it should go to the user's page
-//   - the user's page is a 
-//     - oh the solution is trivial nvm, just include the parent in the filled card. obviously.
-//     - we could even include it in every card as a OneLoader. doesn't seem necessary though.
 export type IdentityCard = {
-    url: string, client_id: string,
+    container: Link<Post>,
     limited: LimitedIdentityCard,
     filled: OneLoader<FilledIdentityCard>,
 };
@@ -223,17 +212,15 @@ export type LimitedIdentityCard = {
     raw_value: unknown,
 };
 export type FilledIdentityCard = {
-    container: Link<Post>,
-
     names: {
-        display: string, // ie "ThreadClient" / MyUsername
+        display: string | null, // ie "ThreadClient" / MyUsername
         raw: string, // ie "r/threadclient" / @myusername@example.com
     },
     pfp: null | InfoPfp,
     theme: {
         banner: Banner, // image url
     },
-    description: null | Richtext.Paragraph[],
+    description: null | Body,
     actions: {
         main_counter: null | CounterAction, // ie 'Subscribe' or 'Follow'
     },
@@ -327,7 +314,7 @@ export type PostContent = ClientPost | {
     title: null | string,
     wrap_page: {
         sidebar: PostReplies,
-        header: OneLoader<RedditHeader>, // todo this needs to be able to be a loader
+        header: IdentityCard, // todo this needs to be able to be a loader
     },
     // overview: ClientPost, // I think this is supposed to be for if rendered below the pivot
 } | PostContentPost | {
@@ -735,29 +722,6 @@ export type Profile = {
     raw_value: unknown,
     actions: Action[],
 };
-export type RedditHeader = {
-    kind: "bio",
-    banner: {
-        kind: "image",
-        desktop: string,
-        mobile?: string | undefined,
-    } | {
-        kind: "color",
-        color: `#${string}`,
-    } | null,
-    icon: {
-        url: string,
-    } | null,
-    name: {
-        display?: string | undefined,
-        link_name: string,
-    },
-    body: Body | null,
-    subscribe?: Action | undefined,
-    more_actions?: Action[] | undefined,
-    menu: Menu | null,
-    raw_value: unknown,
-};
 
 export type Menu = MenuItem[];
 export type MenuItem = {
@@ -817,7 +781,12 @@ export type Widget = {
     raw_value: unknown,
 };
 
-export type ContentNode = Thread | Profile | RedditHeader | Widget;
+export type Page2IdentityCard = {
+    kind: "page2_identity_card",
+    data: FilledIdentityCard,
+};
+
+export type ContentNode = Thread | Profile | Page2IdentityCard | Widget;
 export type Node = Thread | LoadMore;
 export type SystemKind = "none" | "op" | "cake" | "admin" | "moderator" | "approved" | "error";
 export type Flair = {

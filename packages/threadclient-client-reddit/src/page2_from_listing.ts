@@ -761,7 +761,7 @@ function wikipageID(pathraw: string): Generic.Link<Generic.Post> {
 function subredditSidebarUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.HorizontalLoaded> {
     return p2.stringLink("SIDEBAR_"+getSrId(sr_id, null));
 }
-function subredditHeaderUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.RedditHeader> {
+function subredditHeaderUnloadedID(sr_id: SubrInfo): Generic.Link<Generic.FilledIdentityCard> {
     return p2.stringLink("HEADER-UNLOADED_"+getSrId(sr_id, null));
 }
 function subredditSidebarLoaderID(sr_id: SubrInfo): Generic.Link<Generic.Opaque<"loader">> {
@@ -1244,12 +1244,19 @@ function postDataFromListingMayError(
                     // also for now we can keep using page1 bios but eventually we'll want to
                     // redo bios
                     header: {
-                        kind: "one_loader",
-                        key: subredditHeaderUnloadedID(data.details),
-                        load_count: null,
-                        request: sidebar_loader_request,
-                        client_id: client.id,
-                        autoload: true,
+                        container: self_id,
+                        limited: {
+                            name_raw: data.details.base.join("/"),
+                            raw_value: data.details,
+                        },
+                        filled: {
+                            kind: "one_loader",
+                            key: subredditHeaderUnloadedID(data.details),
+                            load_count: null,
+                            request: sidebar_loader_request,
+                            client_id: client.id,
+                            autoload: true,
+                        }
                     },
                 },
             },

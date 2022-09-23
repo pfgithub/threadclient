@@ -869,9 +869,9 @@ function subredditHeader(subinfo: SubInfo | undefined): Generic.ContentNode {
     // banner image
     // subreddit icon, name, link
     // subscribe button
-    return subredditHeaderExissts(subinfo);
+    return {kind: "page2_identity_card", data: subredditHeaderExists(subinfo)};
 }
-export function subredditHeaderExissts(subinfo: SubInfo): Generic.RedditHeader {
+export function subredditHeaderExists(subinfo: SubInfo): Generic.FilledIdentityCard {
     const res_menu: Generic.MenuItem[] = [
         {text: "Posts", action: {kind: "link", client_id: client.id, url: "/r/"+subinfo.subreddit}, selected: true}
     ];
@@ -913,16 +913,23 @@ export function subredditHeaderExissts(subinfo: SubInfo): Generic.RedditHeader {
     }
 
     return {
-        kind: "bio",
-        // huh, r/askreddit does not have banner_background_image but it does have a banner positionedimage in structuredstyles
-        // I can't get structuredstyles so I can't use that image
-        ...subinfo.sub_t5 ? bannerAndIcon(subinfo.sub_t5.data) : {banner: null, icon: null},
-        name: {
-            display: subinfo.sub_t5?.data.title,
-            link_name: subinfo.sub_t5 ? subinfo.sub_t5.data.display_name_prefixed : "r/"+subinfo.subreddit,
+        names: {
+            display: subinfo.sub_t5?.data.title ?? null,
+            raw: subinfo.sub_t5 ? subinfo.sub_t5.data.display_name_prefixed : "r/"+subinfo.subreddit,
         },
-        body: null,
-        subscribe: subinfo.sub_t5 ? createSubscribeAction(subinfo.subreddit, subinfo.sub_t5.data.subscribers, subinfo.sub_t5.data.user_is_subscriber ?? false) : undefined,
+        pfp: subinfo.sub_t5 != null ? subPfp(subinfo.sub_t5.data) : null,
+        theme: {
+            banner: subinfo.sub_t5 != null ? subBanner(subinfo.sub_t5.data) : null,
+        },
+        description: {
+            kind: "text",
+            markdown_format: "none",
+            content: subinfo.sub_t5?.data.public_description ?? "[not loaded?]",
+            client_id: client.id,
+        },
+        actions: {
+            main_counter: subinfo.sub_t5 ? createSubscribeAction(subinfo.subreddit, subinfo.sub_t5.data.subscribers, subinfo.sub_t5.data.user_is_subscriber ?? false) : null,
+        },
         menu: res_menu.length === 1 ? null : res_menu,
         raw_value: subinfo,
     };
@@ -2548,24 +2555,70 @@ function sidebarFromMulti(multi_raw: Reddit.LabeledMulti): Generic.ContentNode[]
     ];
 }
 
-function bannerAndIcon(sub: Reddit.T5Data): {
-    banner: Generic.RedditHeader["banner"],
-    icon: Generic.RedditHeader["icon"],
-} {
-    const banner = sub.banner_background_image || sub.banner_img || "";
-    const color = sub.primary_color || "";
+function subPfp(sub: Reddit.T5Data): null | Generic.InfoPfp {
     const icon = sub.community_icon || sub.icon_img || "";
     return {
-        banner: banner ? {
-            kind: "image",
-            desktop: banner,
-        } : color ? {
-            kind: "color",
-            color,
-        } : null,
-        icon: icon ? {
-            url: icon,
-        } : null,
+        url: icon,
+    };
+}
+function subBanner(sub: Reddit.T5Data): Generic.Banner {
+    const banner = sub.banner_background_image || sub.banner_img || "";
+    const color = sub.primary_color || "";
+    return banner ? {
+        kind: "image",
+        desktop: banner,
+    } : color ? {
+        kind: "color",
+        color,
+    } : null;
+}
+
+export function userIdentityCard(user: Reddit.T2Data): Generic.FilledIdentityCard {
+    return {
+        names: {
+            display: user.name,
+            raw: "u/"+user.name,
+        },
+        pfp: subPfp(user.subreddit),
+        theme: {
+            banner: subBanner(user.subreddit),
+        },
+        description: {
+            kind: "text",
+            client_id: client.id,
+            content: user.subreddit.public_description,
+            markdown_format: "none",
+        },
+        actions: {
+            main_counter: {
+                kind: "counter",
+                client_id: client.id,
+    
+                increment: {
+                    icon: "join",
+                    color: "white",
+                    label: "Follow",
+                    undo_label: "Unfollow",
+                    // _label: "Following"
+                },
+                decrement: null,
+    
+                unique_id: "/follow/"+user.name+"/",
+                time: Date.now(),
+    
+                style: "pill-filled",
+                incremented_style: "pill-empty",
+    
+                count_excl_you: user.is_friend ? user.subreddit.subscribers - 1 : user.subreddit.subscribers,
+                you: user.is_friend ? "increment" : undefined,
+    
+                actions: {
+                    error: "TODO implement add friend",
+                },
+            },
+        },
+        menu: null,
+        raw_value: user,
     };
 }
 
@@ -2575,48 +2628,7 @@ function generateUserSidebar(
     modded_subs: Reddit.ModeratedList | {data: undefined} | undefined,
 ): Generic.ContentNode[] {
     const resitems: Generic.ContentNode[] = [];
-    if(user?.data) resitems.push({
-        kind: "bio",
-        ...bannerAndIcon(user.data.subreddit),
-        name: {
-            display: user.data.name,
-            link_name: "u/"+user.data.name,
-        },
-        menu: null,
-        raw_value: user,
-        body: {
-            kind: "text",
-            client_id: client.id,
-            content: user.data.subreddit.public_description,
-            markdown_format: "none",
-        },
-        subscribe: {
-            kind: "counter",
-            client_id: client.id,
-
-            increment: {
-                icon: "join",
-                color: "white",
-                label: "Follow",
-                undo_label: "Unfollow",
-                // _label: "Following"
-            },
-            decrement: null,
-
-            unique_id: "/follow/"+user.data.name+"/",
-            time: Date.now(),
-
-            style: "pill-filled",
-            incremented_style: "pill-empty",
-
-            count_excl_you: user.data.is_friend ? user.data.subreddit.subscribers - 1 : user.data.subreddit.subscribers,
-            you: user.data.is_friend ? "increment" : undefined,
-
-            actions: {
-                error: "TODO implement add friend",
-            },
-        },
-    }, {
+    if(user?.data) resitems.push({kind: "page2_identity_card", data: userIdentityCard(user.data)}, {
         kind: "widget",
         title: "About",
         widget_content: {kind: "body", body: {kind: "richtext", content: [

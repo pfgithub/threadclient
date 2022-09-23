@@ -3,21 +3,18 @@ import { p2, rt } from "api-types-generic";
 import * as Reddit from "api-types-reddit";
 import {
     client, createSubscribeAction, ec, expectUnsupported,
-    flairToGenericFlair, redditRequest, SubInfo, subredditHeaderExissts as subredditHeaderExists, SubrInfo,
+    flairToGenericFlair, redditRequest, SubInfo, subredditHeaderExists as subredditHeaderExists, SubrInfo,
 } from "./reddit";
 
 // ![!] once we're at sidebar parity, we can switch page1 to use the new page2 sidebar.
 // will
 // - faster pageloads (load the sidebar after loading the page)
 // - look nicer
-
-function bioFromSubinfo(content: Generic.Page2Content, subinfo: SubInfo): Generic.RedditHeader {
-    return subredditHeaderExists(subinfo);
-}
+//   ^ we're not there yet. fixing id cards is a step but stil it looks bad
 
 export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): Promise<{
     sidebar: Generic.HorizontalLoaded,
-    bio: Generic.RedditHeader,
+    bio: Generic.FilledIdentityCard,
 }> {
     if(sub.kind === "subreddit") {
         const onerror = () => undefined;
@@ -32,7 +29,7 @@ export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): 
         // as the header if pivoted or the sidebar if not
         return {
             sidebar: sidebarFromWidgets(content, subinfo),
-            bio: bioFromSubinfo(content, subinfo),
+            bio: subredditHeaderExists(subinfo),
         };
     }else{
         throw new Error("TODO sidebar for "+sub.kind);
@@ -56,7 +53,6 @@ function sidebarFromWidgets(content: Generic.Page2Content, subinfo: SubInfo): Ge
     const res: Generic.HorizontalLoaded = [
         // ...widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
         // ...widgets ? [wrap(getItem(widgets.layout.idCardWidget))] : [],
-        ...subinfo.sub_t5 ? [customIDCardWidget(content, subinfo.sub_t5, subinfo.subreddit)] : [],
         ...subinfo.sub_t5 ? [
             oldSidebarWidget(content, subinfo.sub_t5, subinfo.subreddit, {collapsed: widgets ? true : false}),
         ] : [],
@@ -391,29 +387,6 @@ function sidebarWidgetToGenericWidgetTry(
     }
 }
 
-function customIDCardWidget(
-    content: Generic.Page2Content,
-    t5: Reddit.T5,
-    subreddit: string,
-): Generic.Link<Generic.Post> {
-    return unpivotablePostBelowPivot(content, {
-        kind: "post",
-        title: {text: t5.data.title},
-        body: {
-            kind: "text",
-            content: t5.data.public_description,
-            markdown_format: "none",
-            client_id: client.id,
-        },
-        actions: {
-            vote: createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false),
-        },
-        collapsible: false,
-
-    }, {
-        internal_data: {content, t5, subreddit},
-    });
-}
 function oldSidebarWidget(
     content: Generic.Page2Content,
     t5: Reddit.T5,

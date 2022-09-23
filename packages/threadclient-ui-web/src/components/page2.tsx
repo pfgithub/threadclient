@@ -10,7 +10,7 @@ import ClientPost, { ClientPostOpts } from "./Post";
 
 const Submit = lazy(() => import("./Submit"));
 
-function ReadLink<T>(props: {
+export function ReadLink<T>(props: {
     link: Generic.Link<T>,
     children: (value: T) => JSX.Element,
     whenError?: undefined | ((emsg: string) => JSX.Element),
@@ -45,6 +45,22 @@ function ReadLink<T>(props: {
     }} />;
 }
 
+function RenderIDCard(props: {
+    id_card: Generic.IdentityCard,
+    when_partial: JSX.Element,
+    when_full: (filled: Generic.FilledIdentityCard) => JSX.Element,
+}): JSX.Element {
+    const hprc = getWholePageRootContextOpt();
+    const filled = createMemo((): Generic.FilledIdentityCard | null => {
+        if(hprc == null) return null;
+        const linkres = Generic.readLink(hprc.content(), props.id_card.filled.key);
+        if(linkres == null) return null;
+        if(linkres.error != null) return null; // we should just delete error links
+        return linkres.value;
+    });
+    return <Show when={filled()} fallback={props.when_partial} children={props.when_full} />;
+}
+
 export function ClientContent(props: {
     content: Generic.PostContent,
     opts: ClientPostOpts,
@@ -62,17 +78,12 @@ export function ClientContent(props: {
             />
         ),
         page: page => <>
-            <Show if={props.opts.flat_frame?.is_pivot ?? false} fallback={<>
-                TODO small page :: {/* the concept should be: render the header in the sidebar if it's not the pivot.
-                so this would be for rendering a sidebar node. that way we don't have that duplicated information problem.*/
-                }
-            </>}>
-                <ReadLink link={page.wrap_page.header.key} fallback={<>
-                    TODO display a loader bceause the kacnd (click the sidebar loader to load this)
-                </>}>{bio => (
-                    <Header header={bio} opts={props.opts} />
-                )}</ReadLink>
-            </Show>
+            <RenderIDCard id_card={page.wrap_page.header} when_partial={<>
+                TODO display loader
+            </>} when_full={filled => <>
+                <Header header={filled} opts={props.opts} />
+                {/*if(props.opts.flat_frame?.is_pivot ?? false) {small identity card} else {large identity card}*/}
+            </>}/>
         </>,
         submit: submit => <>
             <Submit submit={submit.submission_data} opts={props.opts} />
