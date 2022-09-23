@@ -944,10 +944,10 @@ export function rawlink(path: string): string {
     if(path.startsWith("/mod/")) return "raw!https://mod.reddit.com"+path.replace("/mod/", "");
     return "raw!https://www.reddit.com"+path;
 }
-function getNavbar(page_url: string): Generic.Navbar {
-    const always_actions: Generic.Action[] = [
+export function getNavbar(page_url: string | null): Generic.Navbar {
+    const always_actions: Generic.Action[] = page_url != null ? [
         {kind: "link", text: "View on reddit.com", url: rawlink(page_url), client_id: "reddit"},
-    ];
+    ] : [];
     if(isLoggedIn()) return {
         actions: [{kind: "act", client_id: client.id, action: act_encoder.encode({kind: "log_out"}), text: "Log Out"}, ...always_actions],
         inboxes: [

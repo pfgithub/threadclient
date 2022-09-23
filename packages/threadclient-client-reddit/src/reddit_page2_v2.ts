@@ -1,7 +1,7 @@
 import * as Generic from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { getSrId, subUrl } from "./page2_from_listing";
-import { client, SubrInfo, SubSort } from "./reddit";
+import { client, getNavbar, SubrInfo, SubSort } from "./reddit";
 
 // attempt 3 at making a page2 version of reddit
 
@@ -9,6 +9,10 @@ type ItemDetails = {
     basic: unknown, // TODO: basic should be a stringifiable type. an object id should be a stringified version of its basic.
     full: unknown,
     result: object, // cannot be null
+
+    load_as_parent?: undefined | unknown,
+    load_replies?: undefined | unknown,
+    load_as_one?: undefined | unknown,
 };
 type XI<T extends ItemDetails> = T;
 
@@ -33,12 +37,11 @@ export type Item = {
     "client": XI<{
         basic: 0,
         full: never, // if we want the client to have eg your username, maybe it should actually have some full data
-        result: Generic.Post,
-    }>,
-    "load_client": XI<{
-        basic: 0,
-        full: never,
-        result: Generic.Opaque<"loader">,
+        result: Generic.ClientPost,
+
+        load_as_parent: 0,
+        load_replies: 0,
+        load_as_one: 0,
     }>,
     "subreddit": XI<{
         basic: {
@@ -153,6 +156,29 @@ export class Psys {
 
     constructor() {
         this.items = new Map();
+    }
+
+    // maybe we use functions instead of this Kind thing
+
+    loadAsParent<Kind extends keyof Item>(
+        kind: Kind,
+        basic: Item[Kind]["basic"],
+        data: (Item[Kind] extends {load_as_parent: infer T} ? T : never),
+        full?: undefined | Item[Kind]["full"],
+        // result extends Generic.VerticalLoaded
+    ): Generic.PostParent {
+        const key = this.item(kind, basic, full);
+        return {
+            loader: {
+                kind: "vertical_loader",
+                key,
+                temp_parent: null,
+                load_count: 1,
+                request: psys.item("load_client", 0),
+                client_id: client.id,
+                autoload: true,
+            }
+        };
     }
 
     item<Kind extends keyof Item>(
@@ -277,21 +303,7 @@ const item_data: ItemDataType = {
             kind: "post",
             client_id: client.id,
             url: "/"+basic.sub.base.join("/"),
-            parent: {
-                loader: {
-                    // look at this mess. we need to be able to call
-                    // psys.loader("client", 0, 0) and have it generate this for us.
-                    // (arg 1 is , arg 2 is data used for generating the loader. ie a load_count could be)
-                    // (extracted from it or a temp_parent could be used)
-                    kind: "vertical_loader",
-                    key: psys.item("client", 0),
-                    temp_parent: null,
-                    load_count: 1,
-                    request: psys.item("load_client", 0),
-                    client_id: client.id,
-                    autoload: true,
-                },
-            },
+            parent: psys.loadAsParent("client", 0, 0),
             replies,
             content: {
                 kind: "page",
@@ -328,5 +340,186 @@ const item_data: ItemDataType = {
             },
             internal_data: basic,
         };
-    }}
+    }},
+
+    client: {id(basic) {return "client"}, basic(psys, basic, onfill) {
+        return {
+            kind: "client",
+            navbar: getNavbar(null),
+        };
+    }},
 };
+
+interface VItem<Basic> {
+    id(basic: Basic): string;
+}
+interface VBasicItem<Basic, Full, Result> extends VItem<Basic> {
+    onfill(psys: Psys, basic: Basic, full: Full): void;
+    basic(psys: Psys, basic: Basic): Result;
+}
+interface VFullItem<Basic, Full, Result> extends VItem<Basic> {
+    full(psys: Psys, basic: Basic, full: Full): Result;
+}
+interface VHasReplies<Basic, Full, Result> extends VItem<Basic> {
+
+}
+// so we could make a class where each instance = one basic
+const obj_subreddit: VBasicItem<
+    {
+        sub: SubrInfo,
+        sort: null | SubSort,
+    },
+    {
+        listing: Reddit.Listing,
+    },
+    Generic.Post
+> = {
+    id(basic) {
+        return "SUB_"+getSrId(basic.sub, basic.sort);
+    },
+    onfill(psys, basic, full): void {
+        psys.replies(obj_subreddit, basic, 0, full);
+    },
+    basic(psys, basic): Generic.Post {
+        // alternative onfill option:
+        // item.subreddit_content.from(content, basic)
+        // onfill(full => item.subreddit_content.fill(content, basic, full));
+
+        const replies: Generic.PostReplies = {
+            display: "repivot_list",
+
+            loader: psys.replies(obj_subreddit, basic, 0, full),
+
+            sort_options: [
+                {kind: "url", name: "Hot", url: subUrl(basic.sub, {v: "hot", t: "all"})},
+                {kind: "url", name: "Best", url: subUrl(basic.sub, {v: "best", t: "all"})},
+                {kind: "url", name: "New", url: subUrl(basic.sub, {v: "new", t: "all"})},
+                {kind: "url", name: "Rising", url: subUrl(basic.sub, {v: "rising", t: "all"})},
+                {kind: "more", name: "Top", submenu: [
+                    {kind: "url", name: "Hour", url: subUrl(basic.sub, {v: "top", t: "hour"})},
+                    {kind: "url", name: "Day", url: subUrl(basic.sub, {v: "top", t: "day"})},
+                    {kind: "url", name: "Week", url: subUrl(basic.sub, {v: "top", t: "week"})},
+                    {kind: "url", name: "Month", url: subUrl(basic.sub, {v: "top", t: "month"})},
+                    {kind: "url", name: "Year", url: subUrl(basic.sub, {v: "top", t: "year"})},
+                    {kind: "url", name: "All", url: subUrl(basic.sub, {v: "top", t: "all"})},
+                ]},
+                {kind: "more", name: "Controversial", submenu: [
+                    {kind: "url", name: "Hour", url: subUrl(basic.sub, {v: "controversial", t: "hour"})},
+                    {kind: "url", name: "Day", url: subUrl(basic.sub, {v: "controversial", t: "day"})},
+                    {kind: "url", name: "Week", url: subUrl(basic.sub, {v: "controversial", t: "week"})},
+                    {kind: "url", name: "Month", url: subUrl(basic.sub, {v: "controversial", t: "month"})},
+                    {kind: "url", name: "Year", url: subUrl(basic.sub, {v: "controversial", t: "year"})},
+                    {kind: "url", name: "All", url: subUrl(basic.sub, {v: "controversial", t: "all"})},
+                ]},
+            ],
+        };
+
+        return {
+            kind: "post",
+            client_id: client.id,
+            url: "/"+basic.sub.base.join("/"),
+            parent: psys.loadAsParent("client", 0, 0),
+            replies,
+            content: {
+                kind: "page",
+                title: basic.sub.base.join("/"),
+                wrap_page: {
+                    sidebar: {
+                        display: "tree",
+                        // return a loader with load_on_view: true
+                        // also use load_on_view for any loader that should not be seen by default but
+                        // might be seen on a repivot
+
+                        loader: {
+                            kind: "horizontal_loader",
+                            key: psys.item("subreddit_sidebar_content", basic),
+                            load_count: null,
+                            request: psys.item("subreddit_sidebarbio_loader", basic),
+                            client_id: client.id,
+                            autoload: true,
+                        },
+                    },
+                    // v TODO: this should be a loader but [!] it is linked to the loader above.
+                    //   only one at a time should load and loading one should fill in both.
+                    // also for now we can keep using page1 bios but eventually we'll want to
+                    // redo bios
+                    header: {
+                        kind: "one_loader",
+                        key: psys.item("subreddit_bio", basic),
+                        load_count: null,
+                        request: psys.item("subreddit_sidebarbio_loader", basic),
+                        client_id: client.id,
+                        autoload: true,
+                    },
+                },
+            },
+            internal_data: basic,
+        };
+    }
+};
+() => obj_subreddit;
+
+/*
+concept
+
+
+subreddit (basic, onfill) {
+    return Post {
+        id_card: subreddit_id_card(basic)
+        replies: subreddit_content (basic, onfill(full => full))
+    }
+}
+
+subreddit_id_card(basic, onfill)
+
+subreddit_content (basic, full) {
+    return for(const item of full) {
+        item
+    }
+}
+
+ok concept v2:
+
+we seperate data and objects
+
+submitData(subreddit_about) → generates the id card contents
+getObject(subreddit_id_card) → returns the id card itself
+
+submitData()
+getObject(subreddit)​ → returns the subreddit itself
+
+ok wait a minute
+
+is this where the problems are coming from?
+
+you need to know:
+- the url
+to generate a subreddit object
+
+but to generate a comment object, you need:
+- the url & the data
+
+?? that's not right is it. why can you generate a subreddit object with just the url? OR why can't you
+    generate a comment object with just the url?
+
+so let's make it so every object has two versions:
+- the initial, url-only version
+- the final, with data version
+
+now, if you:
+- parent: object.parent_url
+it will generate an object
+
+do we want that? not really
+
+there's something weird about loaders isn't there
+
+they're still not right
+
+so if you ask for a comment but have just the url, what should happen?
+- comment object:
+  - parent: loader(), next_known: post_object()
+ah, here's the broken thing about that:
+- the comment will have a loader to get its content, but its loader also provides the post's content
+- the post will have its own loader but it's duplicated effort
+*/
