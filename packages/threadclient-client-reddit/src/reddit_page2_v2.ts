@@ -23,6 +23,16 @@ type ItemDetails = {
 type XI<T extends ItemDetails> = T;
 
 export type Item = {
+    "client": XI<{
+        basic: 0,
+        full: never, // if we want the client to have eg your username, maybe it should actually have some full data
+        result: Generic.Post,
+    }>,
+    "load_client": XI<{
+        basic: 0,
+        full: never,
+        result: Generic.Opaque<"loader">,
+    }>,
     "subreddit": XI<{
         basic: {
             sub: SubrInfo,
@@ -137,6 +147,7 @@ class Psys {
         kind: Kind,
         basic: Item[Kind]["basic"],
         full?: undefined | Item[Kind]["full"],
+        // TODO: we can now differentiate between Links and NullableLinks
     ): Generic.Link<Item[Kind]["result"]> {
         const data = item_data[kind];
         // if(info == null) return a link to an error
@@ -203,7 +214,7 @@ type ItemDataType = {[key in keyof Item]: {
 const item_data: ItemDataType = {
     subreddit: {id(basic) {
         return "SUB_"+getSrId(basic.sub, basic.sort);
-    }, basic(psys, basic, onfill) {
+    }, basic(psys, basic, onfill): Generic.Post {
         // alternative onfill option:
         // item.subreddit_content.from(content, basic)
         // onfill(full => item.subreddit_content.fill(content, basic, full));
@@ -252,7 +263,21 @@ const item_data: ItemDataType = {
             kind: "post",
             client_id: client.id,
             url: "/"+basic.sub.base.join("/"),
-            parent: null,
+            parent: {
+                loader: {
+                    // look at this mess. we need to be able to call
+                    // psys.loader("client", 0, 0) and have it generate this for us.
+                    // (arg 1 is , arg 2 is data used for generating the loader. ie a load_count could be)
+                    // (extracted from it or a temp_parent could be used)
+                    kind: "vertical_loader",
+                    key: psys.item("client", 0),
+                    temp_parent: null,
+                    load_count: 1,
+                    request: psys.item("load_client", 0),
+                    client_id: client.id,
+                    autoload: true,
+                },
+            },
             replies,
             content: {
                 kind: "page",
