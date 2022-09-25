@@ -1024,6 +1024,17 @@ associated_text: [1, ["subscriber", "subscribers"]]
 // export type CounterActionV2 = {
 //    your_vote: Link<"increment" | "decrement" | undefined>, // note: this includes room for an "unsure" = the link is unfilled
 // };
+// wait a minute this isn't quite the same as a link
+// if you upvote something and navigate back a page, it should keep the upvote
+// we'll ignore that for now
+
+export declare namespace Action2 {
+    // Link<Counter>
+    export type CounterVote = 0 | 1 | -1;
+    export type Counter = {
+        your_vote: Link<CounterVote>,
+    };
+}
 
 // a counter or a button with 2-3 states
 export type CounterAction = {
