@@ -1003,6 +1003,28 @@ type CounterButton = {
     undo_label: string,
 };
 
+/*
+handles:
+- save/unsave
+- subscribe/unsubscribe, x subsibers
+- upvote/downvote/unvote, 25 points
+appearence:
+[save_icon Save]
+[subscribe_icon Subscribe (25)]
+[upvote_icon Upvote (25)] [downvote_icon]
+
+// representation:
+icon: "up arrow"
+active_color: "reddit-orange"
+active: false
+label: "Upvote" / Upvoted
+adjacent: {icon: "down arrow", hover_label: "Downvote" / Downvoted, active_color: "reddit-blue", active: false}
+associated_text: [1, ["subscriber", "subscribers"]]
+*/
+// export type CounterActionV2 = {
+//    your_vote: Link<"increment" | "decrement" | undefined>, // note: this includes room for an "unsure" = the link is unfilled
+// };
+
 // a counter or a button with 2-3 states
 export type CounterAction = {
     kind: "counter",
