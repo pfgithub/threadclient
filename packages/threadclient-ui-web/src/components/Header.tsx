@@ -1,8 +1,6 @@
 import * as Generic from "api-types-generic";
 import { JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { bioRender } from "../page1";
-import { SolidToVanillaBoundary } from "../util/interop_solid";
 import ActionButtonCTA from "./ActionButtonCTA";
 import { Body } from "./body";
 import Pfp from "./Pfp";
@@ -20,20 +18,6 @@ import proxyURL from "./proxy_url";
 */
 
 export default function Header(props: {
-    header: Generic.FilledIdentityCard,
-    opts: ClientPostOpts,
-}): JSX.Element {
-    return <div>
-        <SolidToVanillaBoundary getValue={(hsc) => {
-            const resdiv = document.createElement("div");
-            const res = bioRender(props.header, resdiv);
-            res.defer(hsc);
-            return resdiv;
-        }} />
-    </div>;
-}
-
-export function Header2(props: {
     header: Generic.FilledIdentityCard,
     opts: ClientPostOpts,
 }): JSX.Element {
