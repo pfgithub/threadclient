@@ -222,7 +222,7 @@ function apiGenBanner(seed: object): Generic.Banner {
     if(random_val < 500) {
         return {kind: "image", desktop:
             // https://github.com/faker-js/faker/pull/1396
-            faker(seed, "url").image.image(600, 200)
+            faker(seed, "url").image.nature(600, 200)
             + "?lock=" + faker(seed, "url_lock").datatype.number({min: 1, max: 1000000}),
         };
     }else if(random_val < 900) {
@@ -231,19 +231,35 @@ function apiGenBanner(seed: object): Generic.Banner {
         return null;
     }
 }
+function apiGenSubPfp(seed: object): null | Generic.InfoPfp {
+    const random_val = faker(seed, "use_pfp").datatype.number({min: 0, max: 999});
+    if(random_val < 900) {
+        return {
+            url: faker(seed, "url").image.abstract(200, 200)
+            + "?lock=" + faker(seed, "url_lock").datatype.number({min: 1, max: 1000000}),
+        };
+    }else{
+        return null;
+    }
+}
 
 function fillIdentityCard(content: Generic.Page2Content, base: BaseIdentity): Generic.FilledIdentityCard {
     if(base.kind === "redditlike_community_identity") {
         return {
             names: {
-                display: "DISPLAY",
+                display: faker(base, "title").company.name(),
                 raw: "c/" + base.community.raw_name,
             },
-            pfp: null,
+            pfp: apiGenSubPfp([base, "pfp"]),
             theme: {
                 banner: apiGenBanner([base, "banner"]),
             },
-            description: {kind: "text", content: "TODO", markdown_format: "none", client_id: client.id},
+            description: {
+                kind: "text",
+                content: faker(base, "description").company.catchPhrase(),
+                markdown_format: "none",
+                client_id: client.id,
+            },
             actions: {
                 main_counter: null,
             },
