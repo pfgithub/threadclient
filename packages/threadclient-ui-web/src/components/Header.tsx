@@ -1,8 +1,10 @@
 import * as Generic from "api-types-generic";
 import { JSX } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
+import { renderMenu } from "../page1";
 import ActionButtonCTA from "./ActionButtonCTA";
 import { Body } from "./body";
+import { SolidToVanillaBoundary } from "./LinkHelper";
 import Pfp from "./Pfp";
 import { ClientPostOpts } from "./Post";
 import proxyURL from "./proxy_url";
@@ -50,14 +52,11 @@ export default function Header(props: {
                 )}</Show>
                 <Body body={props.header.description ?? {kind: "none"}} autoplay={false} />
             </div>
-            <div class="flex flex-row flex-wrap gap-2">
-                <a class="inline-block px-1 text-base border-b-2 transition-colors border-zinc-100">Posts</a>
-                <a class="inline-block px-1 text-base border-b-2 transition-colors border-transparent text-zinc-400">Wiki</a>
-                <a class="inline-block px-1 text-base border-b-2 transition-colors border-transparent text-zinc-400">Best of AskReddit</a>
-                <a class="inline-block px-1 text-base border-b-2 transition-colors border-transparent text-zinc-400" aria-expanded="false">Related Subreddits ▾</a>
-                <a class="inline-block px-1 text-base border-b-2 transition-colors border-transparent text-zinc-400">Gilded</a>
-                <a class="inline-block px-1 text-base border-b-2 transition-colors border-transparent text-zinc-400" aria-expanded="false">Secret ▾</a>
-            </div>
+            <Show when={props.header.menu}>{menu => <SolidToVanillaBoundary getValue={(hsc) => {
+                const obj_frame = document.createElement("div");
+                renderMenu(menu).defer(hsc).adto(el("div").clss("my-3").adto(obj_frame));
+                return obj_frame;
+            }} />}</Show>
         </div>
     </div>;
 }

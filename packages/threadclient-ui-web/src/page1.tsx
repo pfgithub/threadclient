@@ -1046,7 +1046,7 @@ export function watchNode<Node>(
     return hsc;
 }
 
-function renderMenu(menu: Generic.Menu): HideShowCleanup<HTMLElement> {
+export function renderMenu(menu: Generic.Menu): HideShowCleanup<HTMLElement> {
     const menu_area = el("div");
     const hsc = hideshow(menu_area);
     const menu_this_line = el("div").adto(menu_area);
