@@ -219,12 +219,15 @@ function oneIdentityLoader(content: Generic.Page2Content, base: BaseIdentity): v
 
 function apiGenBanner(seed: object): Generic.Banner {
     const random_val = faker(seed, "use_banner").datatype.number({min: 0, max: 999});
-    if(random_val < 500) {
-        return {kind: "image", desktop: faker(seed, "url").image.image(600, 200, true)};
+    if(random_val < 500 || (true as const)) {
+        return {kind: "image", desktop:
+            faker(seed, "url").image.image(600, 200)
+            + "?lock=" + faker(seed, "url_lock").datatype.number({min: 1, max: 1000000}),
+        };
     }else if(random_val < 900) {
         // return {kind: "image", desktop: faker(seed, "color").color
         // todo: upgrade faker to use faker().color
-        return {kind: "image", desktop: faker(seed, "url").image.image(600, 200, true)};
+        throw new Error("todo random image");
     }else {
         return null;
     }
