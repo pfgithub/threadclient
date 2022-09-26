@@ -93,7 +93,10 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
                 kind: "post",
                 title: {text: "Welcome to Faker"},
                 body: {kind: "richtext", content: [
-                    Generic.rt.p(Generic.rt.txt("Testing")),
+                    Generic.rt.p(Generic.rt.link(client, baseUrl({
+                        kind: "redditlike_community",
+                        raw_name: "asdfghjk",
+                    }), {}, Generic.rt.txt("c/asdfghjk"))),
                 ]},
                 collapsible: {default_collapsed: false},
             },
