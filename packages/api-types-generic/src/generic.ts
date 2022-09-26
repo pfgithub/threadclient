@@ -83,6 +83,16 @@ export const p2 = {
             autoload: false,
         };
     },
+    symbolPrefilledOneLoader<T>(content: Page2Content, value: T): OneLoader<T> {
+        return {
+            kind: "one_loader",
+            key: p2.createSymbolLinkToValue(content, value),
+            load_count: null,
+            autoload: false,
+            request: p2.createSymbolLinkToError(content, "one loader claimed to be prefilled", value),
+            client_id: "@E@UNNECESSARY",
+        };
+    },
 };
 
 
@@ -313,16 +323,20 @@ export type PostContentPost = {
 
 export type PostContent = ClientPost | {
     // TODO: delete this and use the sidebar property on post instead
+    // ^ don't. identity cards are not posts. not everything is a post.
+    
+    // [!] when rendered below the pivot, use a different renderer
+    // * exception: when rendered as the id card in the sidebar, use the normal renderer
+    // : logic to determine how to render this should go in flatten2.tsx
 
-    /// the thing containing the header and sidebar. when rendered below
-    /// the pivot, uses an alternate render.
     kind: "page",
     wrap_page: {
         sidebar: PostReplies,
         header: IdentityCard, // todo this needs to be able to be a loader
     },
     // overview: ClientPost, // I think this is supposed to be for if rendered below the pivot
-} | PostContentPost | {
+    // vv todo delete this one and only use the loader one
+} | OneLoader<PostContentPost> | {
     kind: "legacy",
     thread: Thread,
     client_id: string,
@@ -330,7 +344,7 @@ export type PostContent = ClientPost | {
     kind: "special",
     tag_uuid: `${string}@-${string}`,
     not_typesafe_data?: undefined | unknown,
-    fallback: PostContentPost,
+    fallback: PostContent,
 } | {
     kind: "submit",
     submission_data: Submit.SubmitPost,

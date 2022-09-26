@@ -89,7 +89,7 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
     if(base.kind === "home") {
         return {
             kind: "post",
-            content: {
+            content: Generic.p2.symbolPrefilledOneLoader<Generic.PostContentPost>(content, {
                 kind: "post",
                 title: {text: "Welcome to Faker"},
                 body: {kind: "richtext", content: [
@@ -99,7 +99,7 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
                     }), {}, Generic.rt.txt("c/asdfghjk"))),
                 ]},
                 collapsible: {default_collapsed: false},
-            },
+            }),
             internal_data: 0,
             parent: getAsParent(content, {kind: "client_root"}),
             replies: null,
@@ -125,7 +125,7 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
     }else if(base.kind === "redditlike_post") {
         return {
             kind: "post",
-            content: {
+            content: Generic.p2.symbolPrefilledOneLoader<Generic.PostContentPost>(content, {
                 // small problem:
                 // we need to load this
                 // - currently, reddit handles this by making a big giant mess and it being impossible
@@ -139,7 +139,7 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
                     Generic.rt.p(Generic.rt.txt("Testing")),
                 ]},
                 collapsible: {default_collapsed: false},
-            },
+            }),
             internal_data: 0,
             parent: getAsParent(content, base.in_community),
             replies: getReplies(content, base),

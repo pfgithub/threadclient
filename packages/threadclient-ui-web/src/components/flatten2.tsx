@@ -2,7 +2,7 @@ import * as Generic from "api-types-generic";
 import { createMemo, For, JSX, useContext } from "solid-js";
 import { updateQuery } from "tmeta-util";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
-import { allow_threading_override_ctx, collapse_data_context, getWholePageRootContext } from "../util/utils_solid";
+import { allow_threading_override_ctx, collapse_data_context, getWholePageRootContext, PageRootContext } from "../util/utils_solid";
 import { CollapseButton, CollapseData, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";
 
 /*
@@ -184,12 +184,13 @@ type TII = {
 };
 
 function getTreeItemIndent(
+    hprc: PageRootContext,
     csc: CollapseData,
     tree_item: FlatTreeItem,
     parent_indent: CollapseButton[],
     opts: RenderPostOpts,
 ): TII {
-    const ci = postCollapseInfo(tree_item, opts);
+    const ci = postCollapseInfo(hprc, tree_item, opts);
     const self_collapsed = ci.user_controllable ? getCState(
         csc,
         ci.collapse_link,
@@ -241,11 +242,12 @@ function RenderTreeItemAuto(props: {
     opts: RenderPostOpts,
     last: boolean,
 }): JSX.Element {
+    const hprc = getWholePageRootContext();
     const csc = useContext(collapse_data_context)!;
     return <RenderTreeItem
         tree_item={props.tree_item}
         opts={props.opts}
-        tii={getTreeItemIndent(csc, props.tree_item, props.parent_indent, props.opts)}
+        tii={getTreeItemIndent(hprc, csc, props.tree_item, props.parent_indent, props.opts)}
         last={props.last}
     />;
 }
@@ -256,9 +258,10 @@ export function FlattenTreeItem(props: {
     rpo: RenderPostOpts,
     last: boolean,
 }): JSX.Element {
+    const hprc = getWholePageRootContext();
     const allowThreading = useContext(allow_threading_override_ctx) ?? (() => true);
     const csc = useContext(collapse_data_context)!;
-    const tii = createMemo(() => getTreeItemIndent(csc, props.tree_item, props.parent_indent, props.rpo));
+    const tii = createMemo(() => getTreeItemIndent(hprc, csc, props.tree_item, props.parent_indent, props.rpo));
     return createMemo(() => {
         // [!] TODO: this will needlessly rerender when the parent indent changes
         // or when any renderpostopts change
@@ -439,7 +442,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     />
                 </Show>
             </>}</For>
-            {p.content.kind === "post" ? <>
+            {p.replies?.display === "repivot_list" ? <>
                 <FlatItemTsch
                     kind="repivot_list_fullscreen_button"
                     client_id={p.client_id}
@@ -512,26 +515,45 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
     });
 
     return {
-        // TODO don't do headers, just put them in the body like normal nodes
-        header: undefined,
         get title() {
             let res_post: string | null = null;
             let res_page: string | null = null;
+            let res_client: string | null = null;
             for(const itm of parentsArr()) {
                 if(itm.kind !== "flat_post") continue;
                 const post = unwrapPost(itm.post);
-                if(post.content.kind === "post") {
-                    if(post.content.title != null) {
-                        res_post = post.content.title.text;
+                if(post.content.kind === "one_loader") {
+                    const known_value = Generic.readLink(hprc.content(), post.content.key);
+                    if(known_value != null) {
+                        if(known_value.error != null) {
+                            res_post = "*Error*";
+                        }else{
+                            const titlev = known_value.value.title;
+                            if(titlev != null) res_post = titlev.text;
+                        }
+                    }else{
+                        res_post = "Loading…";
                     }
                 }else if(post.content.kind === "page") {
-                    res_page = post.content.wrap_page.header.limited.name_raw;
-                    // TODO: upgrade to the display name when available?
+                    const header = post.content.wrap_page.header;
+                    const known_value = Generic.readLink(hprc.content(), header.filled.key);
+                    if(known_value != null) {
+                        if(known_value.error != null) {
+                            res_post = "*Error* ("+header.limited.name_raw+")";
+                        }else{
+                            res_page = known_value.value.names.display ?? known_value.value.names.raw;
+                        }
+                    }else{
+                        res_page = header.limited.name_raw;
+                    }
+                }else if(post.content.kind === "client") {
+                    res_client = post.client_id;
                 }
             }
             const res: string[] = [];
             if(res_post != null) res.push(res_post);
             if(res_page != null) res.push(res_page);
+            if(res_client != null) res.push(res_client);
             return res.join(" | ") || "*ERR NO TITLE*";
         },
         get url() {

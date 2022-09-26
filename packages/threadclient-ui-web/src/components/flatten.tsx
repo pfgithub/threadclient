@@ -4,11 +4,11 @@
 // it's a trivial change just change the entrypoint and export.
 import * as Generic from "api-types-generic";
 import { Accessor, createSignal, Setter, untrack } from "solid-js";
+import { PageRootContext } from "../util/utils_solid";
 
 // indent: post id[]
 
 export type FlatPage2 = {
-    header?: undefined | Generic.RedditHeader,
     body: FlatItem[],
     sidebar?: undefined | FlatItem[],
     title: string,
@@ -147,28 +147,41 @@ export type PostContentCollapseInfoOpts = {
     is_pivot: boolean,
     displayed_in: "tree" | "repivot_list",
 };
-export function postContentCollapseInfo(content: Generic.PostContent, opts: PostContentCollapseInfoOpts): CollapseInfo {
-    if(content.kind === "post") {
-        const collapsible = content.collapsible;
-        if(collapsible === false) {
-            return {default_collapsed: false, user_controllable: false};
-        }else {
-            return {
-                default_collapsed: collapsible.default_collapsed,
-                user_controllable: opts.is_pivot || opts.displayed_in === "tree",
-            };
-        }
-    }else return {default_collapsed: false, user_controllable: false};
+export function postContentCollapseInfo(
+    content: Generic.PostContentPost,
+    opts: PostContentCollapseInfoOpts,
+): CollapseInfo {
+    const collapsible = content.collapsible;
+    if(collapsible === false) {
+        return {default_collapsed: false, user_controllable: false};
+    }else {
+        return {
+            default_collapsed: collapsible.default_collapsed,
+            user_controllable: opts.is_pivot || opts.displayed_in === "tree",
+        };
+    }
 }
-export function postCollapseInfo(post: FlatTreeItem, opts: PostContentCollapseInfoOpts): (CollapseInfo & {
+export function postCollapseInfo(
+    hprc: PageRootContext,
+    post: FlatTreeItem,
+    opts: PostContentCollapseInfoOpts,
+): (CollapseInfo & {
     collapse_link: Generic.Link<Generic.Post>,
 }) | ({
     default_collapsed: boolean,
     user_controllable: false,
 }) {
     if(post.kind === "flat_post") {
-        return {...postContentCollapseInfo(post.post.content, opts), collapse_link: post.link};
-    }else return {default_collapsed: false, user_controllable: false};
+        if(post.post.content.kind === "one_loader") {
+            const oneloader = post.post.content;
+            const ol_v = Generic.readLink(hprc.content(), oneloader.key);
+            if(ol_v != null && ol_v.error == null) { 
+
+                return {...postContentCollapseInfo(ol_v.value, opts), collapse_link: post.link};
+            }
+        }
+    }
+    return {default_collapsed: false, user_controllable: false};
 }
 
 export type CollapseData = {
