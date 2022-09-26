@@ -5,6 +5,7 @@ import { fetchClient } from "../clients";
 import { getWholePageRootContext } from "../util/utils_solid";
 import { addAction } from "./action_tracker";
 import DevCodeButton from "./DevCodeButton";
+import { ReadLink } from "./page2";
 
 export default function OneLoader<T>(props: {
     loader: Generic.OneLoader<T>,
@@ -49,17 +50,21 @@ export default function OneLoader<T>(props: {
         });
     };
 
-    return <div class="py-1"><button
-        class="text-blue-500 hover:underline"
-        disabled={loading()}
-        onClick={doLoad}
-    >{
-        loading()
-        ? "Loading…"
-        : (error() != null ? "Retry Load" : "Load Header")
-    }</button><DevCodeButton data={props} /><Show when={error()}>{err => (
-        <p class="text-red-600 dark:text-red-500">
-            Error loading; {err}
-        </p>
-    )}</Show></div>;
+    return <ReadLink link={props.loader.key} fallback={
+        <div>
+            <button
+                class="text-blue-500 hover:underline"
+                disabled={loading()}
+                onClick={doLoad}
+            >{
+                loading()
+                ? "Loading…"
+                : (error() != null ? "Retry Load" : "Load Header")
+            }</button><DevCodeButton data={props} /><Show when={error()}>{err => (
+                <p class="text-red-600 dark:text-red-500">
+                    Error loading; {err}
+                </p>
+            )}</Show>
+        </div>
+    }>{props.children}</ReadLink>;
 }
