@@ -68,11 +68,18 @@ function homepageIdentity(): Generic.FilledIdentityCard {
 function homepageSidebar(content: Generic.Page2Content): Generic.HorizontalLoaded {
     const home_mysubs_card: Generic.Post = {
         kind: "post",
-        content: {},
+        content: {
+            kind: "post",
+            title: {text: "TODO mysubs"},
+            collapsible: false,
+            body: {kind: "none"},
+        },
         internal_data: 0,
         disallow_pivot: false,
         parent: null,
         replies: null,
+        url: null,
+        client_id: client.id,
         // literally just put /reddit/subreddits/mine here
     };
     const res: Generic.HorizontalLoaded = [
