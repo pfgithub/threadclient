@@ -119,6 +119,30 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
             url: baseUrl(base),
             client_id: client.id,
         };
+    }else if(base.kind === "redditlike_post") {
+        return {
+            kind: "post",
+            content: {
+                // small problem:
+                // we need to load this
+                // - currently, reddit handles this by making a big giant mess and it being impossible
+                //   to block out any random post based on just the url info
+                // - that's not acceptable
+                // - content will likely all become loaded. it has to if we want to get any object
+                //   based on its url alone.
+                kind: "post",
+                title: {text: "redditlike_post: "+base.id},
+                body: {kind: "richtext", content: [
+                    Generic.rt.p(Generic.rt.txt("Testing")),
+                ]},
+                collapsible: {default_collapsed: false},
+            },
+            internal_data: 0,
+            parent: getAsParent(content, base.in_community),
+            replies: getReplies(content, base),
+            url: baseUrl(base),
+            client_id: client.id,
+        };
     }else if(base.kind === "client_root") {
         return {
             kind: "post",
@@ -130,8 +154,8 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
                 },
             },
             internal_data: 0,
-            parent: null, // getParent({kind: "client_root"})
-            replies: null, // getReplies(self)
+            parent: null,
+            replies: null,
             url: baseUrl(base),
             client_id: client.id,
         };
@@ -269,6 +293,34 @@ function fillIdentityCard(content: Generic.Page2Content, base: BaseIdentity): Ge
     }else throw new Error("todo support base kind "+(base as unknown as BaseIdentity).kind);
 }
 
+function horizontalLoader(content: Generic.Page2Content, parent: Base): void {
+    const hloader_id = baseRepliesLink(parent);
+    Generic.p2.fillLinkOnce(content, hloader_id, () => {
+        return fillHorizontalReplies(content, parent);
+    });
+}
+function fillHorizontalReplies(content: Generic.Page2Content, parent: Base): Generic.HorizontalLoaded {
+    if(parent.kind === "redditlike_community") {
+        const res: Generic.HorizontalLoaded = [];
+
+        // const reply_count = faker(seed, "reply-count").datatype.number({from:});
+        // we could do infinite replies on this one
+        for(let i = 0; i < 25; i += 1) {
+            const seed = [parent, "reply_"+i];
+            const post_id = faker(seed, "reply_name").random.alpha(10);
+            res.push(baseOutline(content, {
+                kind: "redditlike_post",
+                id: post_id,
+                in_community: parent,
+            }));
+        }
+
+        return res;
+    }else{
+        throw new Error("Todo fill replies for: "+parent.kind);
+    }
+}
+
 type LoaderData = {
     kind: "horizontal",
     fill_replies_of: Base,
@@ -290,7 +342,7 @@ export const client: ThreadClient = {
         const req = opaque_loader.decode(request);
         const content: Generic.Page2Content = {};
         if(req.kind === "horizontal") {
-            throw new Error("TODO horizontal load");
+            horizontalLoader(content, req.fill_replies_of);
         }else if(req.kind === "one_identity") {
             oneIdentityLoader(content, req.fill_identity_card);
         }else throw new Error("TODO loader ["+(req as LoaderData).kind+"]");
