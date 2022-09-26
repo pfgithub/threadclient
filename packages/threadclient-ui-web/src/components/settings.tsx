@@ -415,7 +415,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 {/*<ToggleButton  'None' | 'localhost:3772' | 'Custom' */}
                 <input
                     class="w-full bg-slate-300 dark:bg-zinc-900 p-2 placeholder-slate-500 dark:placeholder-slate-400"
-                    placeholder={"http://localhost:3772/mock/"}
+                    placeholder={"http://localhost:9090/mock/"}
                     ref={el => {
                         createEffect(() => {
                             el.value = settings.dev.mockRequests() ?? "";
