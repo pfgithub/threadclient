@@ -1,6 +1,6 @@
 import * as Generic from "api-types-generic";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
-import faker_dontuse from "@faker-js/faker";
+import { faker as faker_dontuse } from "@faker-js/faker";
 
 function setSeed(seed: string, property_id: string) {
     faker_dontuse.seed((seed + ":" + property_id).split("").map(v => v.codePointAt(0)!));
@@ -219,15 +219,14 @@ function oneIdentityLoader(content: Generic.Page2Content, base: BaseIdentity): v
 
 function apiGenBanner(seed: object): Generic.Banner {
     const random_val = faker(seed, "use_banner").datatype.number({min: 0, max: 999});
-    if(random_val < 500 || (true as const)) {
+    if(random_val < 500) {
         return {kind: "image", desktop:
+            // https://github.com/faker-js/faker/pull/1396
             faker(seed, "url").image.image(600, 200)
             + "?lock=" + faker(seed, "url_lock").datatype.number({min: 1, max: 1000000}),
         };
     }else if(random_val < 900) {
-        // return {kind: "image", desktop: faker(seed, "color").color
-        // todo: upgrade faker to use faker().color
-        throw new Error("todo random image");
+        return {kind: "color", color: faker(seed, "color").color.rgb({prefix: "#"}) as `#${string}`};
     }else {
         return null;
     }
