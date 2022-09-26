@@ -1919,10 +1919,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@faker-js/faker@npm:^6.1.2":
-  version: 6.1.2
-  resolution: "@faker-js/faker@npm:6.1.2"
-  checksum: 953d0301f71e264330a2aa1e04ae4ecd8c7af5276ce932f92138923d3ef2cc69354a879a7d232805066728e6c65d1021a3f20a72b9b4c49d0ee880db9fcecada
+"@faker-js/faker@npm:^7.5.0":
+  version: 7.5.0
+  resolution: "@faker-js/faker@npm:7.5.0"
+  checksum: 6f2c48a8017d486eddfe2c3e0b743b810bcc948e5dbd1395c44a38471294584636f565cb081517ce90b634f50d8678d1d38d0f7b6b48b7d402e0a2602cf4f2d9
   languageName: node
   linkType: hard
 
@@ -15540,6 +15540,7 @@ fsevents@~2.3.2:
   version: 0.0.0-use.local
   resolution: "threadclient-client-faker@workspace:packages/threadclient-client-faker"
   dependencies:
+    "@faker-js/faker": ^7.5.0
     api-types-generic: ^1.0.0
     eslint: ^7.29.0
     eslint-config-tmeta: ^1.0.0
@@ -15663,7 +15664,6 @@ fsevents@~2.3.2:
   resolution: "threadclient-ui-web@workspace:packages/threadclient-ui-web"
   dependencies:
     "@effectful/serialization": ^1.4.6
-    "@faker-js/faker": ^6.1.2
     "@fortawesome/fontawesome-free": ^6.1.1
     "@types/babel__core": ^7.1.19
     "@types/commonmark": ^0.27.5

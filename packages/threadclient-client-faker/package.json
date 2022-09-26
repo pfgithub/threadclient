@@ -5,6 +5,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
+    "@faker-js/faker": "^7.5.0",
     "api-types-generic": "^1.0.0",
     "eslint": "^7.29.0",
     "eslint-config-tmeta": "^1.0.0",
