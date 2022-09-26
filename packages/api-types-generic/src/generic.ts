@@ -33,7 +33,15 @@ export const p2 = {
         return link;
     },
     fillLinkOnce<T>(content: Page2Content, link: Link<T>, value: () => T): Link<T> {
-        if(content[link] == null) p2.fillLink(content, link, value());
+        if(!Object.hasOwn(content, link)) {
+            content[link] = {error: "filling…"};
+            try{
+                content[link] = {data: value()};
+            }catch(er) {
+                const e = er as Error;
+                content[link] = {error: e.toString() + "\n" + e.stack};
+            }
+        }
         return link;
     },
 
@@ -301,8 +309,6 @@ export type PostContentPost = {
 
         moderator?: RedditModState | undefined,
     },
-
-    sidebar?: PostReplies | undefined,
 };
 
 export type PostContent = ClientPost | {
@@ -311,7 +317,6 @@ export type PostContent = ClientPost | {
     /// the thing containing the header and sidebar. when rendered below
     /// the pivot, uses an alternate render.
     kind: "page",
-    title: null | string,
     wrap_page: {
         sidebar: PostReplies,
         header: IdentityCard, // todo this needs to be able to be a loader

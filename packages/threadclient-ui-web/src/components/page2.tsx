@@ -1,10 +1,12 @@
 import * as Generic from "api-types-generic";
-import { createMemo, JSX, lazy, untrack } from "solid-js";
+import { batch, createMemo, createSignal, JSX, lazy, untrack } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
-import { getClientCached } from "../clients";
+import { fetchClient, getClientCached } from "../clients";
 import { clientListing } from "../page1";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
-import { DefaultErrorBoundary, getWholePageRootContextOpt } from "../util/utils_solid";
+import { DefaultErrorBoundary, getWholePageRootContext, getWholePageRootContextOpt } from "../util/utils_solid";
+import { addAction } from "./action_tracker";
+import DevCodeButton from "./DevCodeButton";
 import Header from "./Header";
 import ClientPost, { ClientPostOpts } from "./Post";
 
@@ -77,14 +79,65 @@ export function ClientContent(props: {
                 whole_object_clickable={props.whole_object_clickable}
             />
         ),
-        page: page => <>
-            <RenderIDCard id_card={page.wrap_page.header} when_partial={<>
-                TODO display loader
+        page: page => {
+            const [loading, setLoading] = createSignal(false);
+            const [error, setError] = createSignal<null | string>(null);
+            const hprc = getWholePageRootContext();
+
+            const doLoad = () => {
+                if(loading()) return;
+                setLoading(true);
+
+                const loader = page.wrap_page.header.filled;
+
+                const pgin = hprc.pgin();
+
+                // TODO: make sure there are never two loaders with the same request loading at once
+                addAction(
+                    (async () => {
+                        if(error() != null) await new Promise(r => setTimeout(r, 200));
+
+                        const request = Generic.readLink(hprc.content(), loader.request);
+                        if(request == null) throw new Error("e-request-null: "+loader.request.toString());
+                        if(request.error != null) throw new Error(request.error);
+                        const client = await fetchClient(loader.client_id);
+                        return await client!.loader!(request.value);
+                    })(),
+                ).then(r => {
+                    batch(() => {
+                        setLoading(false);
+                        setError(null);
+                        console.log("adding content", r.content, page);
+                        hprc.addContent(pgin, r.content);
+                    });
+                }).catch((e: Error) => {
+                    console.log("Error loading; ", e);
+                    batch(() => {
+                        setLoading(false);
+                        setError(e.toString());
+                    });
+                });
+            };
+
+            return <RenderIDCard id_card={page.wrap_page.header} when_partial={<>
+                <div class="py-1"><button
+                    class="text-blue-500 hover:underline"
+                    disabled={loading()}
+                    onClick={doLoad}
+                >{
+                    loading()
+                    ? "Loading…"
+                    : (error() != null ? "Retry Load" : "Load Header")
+                }</button><DevCodeButton data={props} /><Show when={error()}>{err => (
+                    <p class="text-red-600 dark:text-red-500">
+                        Error loading; {err}
+                    </p>
+                )}</Show></div>
             </>} when_full={filled => <>
                 <Header header={filled} opts={props.opts} />
                 {/*if(props.opts.flat_frame?.is_pivot ?? false) {small identity card} else {large identity card}*/}
-            </>}/>
-        </>,
+            </>}/>;
+        },
         submit: submit => <>
             <Submit submit={submit.submission_data} opts={props.opts} />
         </>,

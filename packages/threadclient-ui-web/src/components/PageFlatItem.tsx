@@ -425,32 +425,6 @@ function PageFlatPostContent(props: {
                 class="text-blue-500 hover:underline"
                 disabled={loading()}
                 onClick={doLoad}
-                ref={btn => {
-                    // ok autoload is not a good way to handle this but we're using it for now
-
-                    // TODO:
-                    // autoload is disabled for now. we need to have something similar to collapse states
-                    // that is for loaders so if there are two loaders to the same key, only one loads.
-
-                    // if(loader.autoload) {
-                    //     alert("AUTOLOADING");
-                    //     const observer = new IntersectionObserver((e) => {
-                    //         e.forEach(entry => {
-                    //             if(entry.isIntersecting) {
-                    //                 doLoad();
-                    //             }
-                    //         });
-                    //     }, {
-                    //         root: document.body,
-                    //         rootMargin: "0px",
-                    //         threshold: 1.0,
-                    //     });
-                    //     observer.observe(btn);
-                    //     createEffect(() => {
-                    //         if(loading()) observer.unobserve(btn);
-                    //     });
-                    // }
-                }}
             >{
                 loading()
                 ? "Loading…"

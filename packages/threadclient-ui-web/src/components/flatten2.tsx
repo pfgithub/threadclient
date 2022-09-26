@@ -515,16 +515,24 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         // TODO don't do headers, just put them in the body like normal nodes
         header: undefined,
         get title() {
-            for(const itm of [...parentsArr()].reverse()) {
+            let res_post: string | null = null;
+            let res_page: string | null = null;
+            for(const itm of parentsArr()) {
                 if(itm.kind !== "flat_post") continue;
                 const post = unwrapPost(itm.post);
-                if(post.kind === "post" && post.content.kind === "post") {
+                if(post.content.kind === "post") {
                     if(post.content.title != null) {
-                        return post.content.title.text;
+                        res_post = post.content.title.text;
                     }
+                }else if(post.content.kind === "page") {
+                    res_page = post.content.wrap_page.header.limited.name_raw;
+                    // TODO: upgrade to the display name when available?
                 }
             }
-            return "*ERROR_NO_TITLE*";
+            const res: string[] = [];
+            if(res_post != null) res.push(res_post);
+            if(res_page != null) res.push(res_page);
+            return res.join(" | ") || "*ERR NO TITLE*";
         },
         get url() {
             const focus = pivot();

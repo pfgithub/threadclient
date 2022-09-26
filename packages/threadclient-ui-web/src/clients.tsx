@@ -2,6 +2,7 @@ import type { ThreadClient } from "threadclient-client-base";
 import { client_cache } from "./router";
 
 const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
+    faker: () => import("threadclient-client-faker").then(client => client.client),
     reddit: () => import("threadclient-client-reddit").then(client => client.client),
     mastodon: () =>  import("threadclient-client-mastodon").then(client => client.client),
     shell: () =>  import("threadclient-client-shell").then(client => client.client),
