@@ -19,6 +19,8 @@ this will be multi part:
   in one request. make this ergonomic to code.
 - part 3: rewrite the reddit client with this format. ideally, pull generic stuff out so that any
   client can use it.
+
+I think it's time to move on to part 2. maybe do some f2 renaming first.
 */
 
 // we're going to want to version generic
