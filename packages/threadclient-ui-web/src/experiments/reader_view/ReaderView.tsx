@@ -16,12 +16,14 @@ export default function ReaderView(props: {
     pivot: Generic.Link<Generic.Post>,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
-    const pivotedPost = createMemo(() => {
+    const pivotedPost = createMemo((): {v: Generic.Post, content: Generic.PostContentPost} => {
         const res = readLink(hprc.content(), props.pivot);
         if(res == null || res.error != null) throw new Error("rve");
         const v = res.value;
-        if(v.kind === "post" && v.content.kind === "post") {
-            return {v, content: v.content};
+        if(v.kind === "post" && v.content.kind === "one_loader") {
+            const rlv = readLink(hprc.content(), v.content.key);
+            if(rlv == null || rlv.error != null) throw new Error("rve");
+            return {v, content: rlv.value};
         }
         throw new Error("eunsupported");
     });

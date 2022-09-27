@@ -6,12 +6,14 @@ import { Dynamic, render } from "solid-js/web";
 import { previewLink } from "threadclient-preview";
 import { updateQuery } from "tmeta-util";
 import { Show, SwitchKind } from "tmeta-util-solid";
+import { Body } from "../../components/body";
 import Clickable from "../../components/Clickable";
 import { Flair } from "../../components/Flair";
 import { FlatReplies, FlatReplyTsch } from "../../components/flatten2";
 import { FormattableNumber } from "../../components/flat_posts";
 import Icon, { InternalIconRaw } from "../../components/Icon";
 import InfoBar, { formatItemString } from "../../components/InfoBar";
+import OneLoader, { UnfilledLoader } from "../../components/OneLoader";
 import { ClientPostOpts } from "../../components/Post";
 import { getVideoSources, NativeVideoElement, VideoRef, VideoState } from "../../components/preview_video";
 import proxyURL from "../../components/proxy_url";
@@ -277,8 +279,17 @@ function FullscreenBody(props: {
 
     toggleUI: () => void, // get rid of this & use injection
 }): JSX.Element {
-    return <SwitchKind item={props.body} fallback={itm => <div>
-        TODO {itm.kind}
+    // TODO:
+    // - on the body fallback render, you should:
+    // - tap to activate some view
+    //   - it lets you scroll
+    //   - it has an exit button
+    return <SwitchKind item={props.body} fallback={body => <div class="h-full">
+        <div class="w-full h-full bg-zinc-900">
+            <div class="bg-zinc-800 text-zinc-50 h-full p-4 max-w-2xl mx-auto text-base max-h-full overflow-y-hidden">
+                <Body body={body} autoplay={false} />
+            </div>
+        </div>,
     </div>}>{{
         captioned_image: img => {
             useAddDescription(<>{img.caption}</>);
@@ -624,14 +635,14 @@ export default function FullscreenSnapView(props: {
     const [zoomed, setZoomed] = createSignal<boolean>(false);
 
     const rszel = (ev: Event) => {
-        if(visualViewport.scale > 1.0001) {
+        if((visualViewport?.scale ?? 1) > 1.0001) {
             setZoomed(true);
         }else{
             setZoomed(false);
         }
     };
-    visualViewport.addEventListener("resize", rszel);
-    onCleanup(() => visualViewport.removeEventListener("resize", rszel));
+    visualViewport?.addEventListener("resize", rszel);
+    onCleanup(() => visualViewport?.removeEventListener("resize", rszel));
 
     return <zoomed_provider.Provider value={zoomed}><div class={
         "bg-hex-000 h-screen overflow-hidden snap-mandatory text-zinc-100 space-y-8 "
@@ -646,17 +657,19 @@ export default function FullscreenSnapView(props: {
                         E;ERROR;{emsg.msg}
                     </div>,
                     'flat_loader': fl => <div class="w-full h-full">
-                        TODO loader
+                        <UnfilledLoader label="Load More" loader={fl} />
                     </div>,
                     'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
                         E;TODO;{obj.kind}
                     </>}>{{
-                        'post': post => <FullscreenPost content={post} opts={{
-                            client_id: flat_post.post.client_id,
-                            frame: flat_post.post,
-                            flat_frame: null,
-                            id: flat_post.link,
-                        }} />,
+                        'one_loader': oneloader => <OneLoader label="Load Post" loader={oneloader} children={post => (
+                            <FullscreenPost content={post} opts={{
+                                client_id: flat_post.post.client_id,
+                                frame: flat_post.post,
+                                flat_frame: null,
+                                id: flat_post.link,
+                            }} />
+                        )} />,
                     }}</SwitchKind>,
                 }}</SwitchKind>
             </VirtualElement>;
