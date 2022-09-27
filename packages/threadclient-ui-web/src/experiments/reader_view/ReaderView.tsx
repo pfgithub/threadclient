@@ -50,6 +50,7 @@ export default function ReaderView(props: {
                 <span role="heading" class="block text-4xl font-black">
                     {pt.text}
                 </span>
+                <div class="pt-4" />
             </>}</Show>
             <Show when={pivotedPost().content.author}>{author => <>
                 <Show if={

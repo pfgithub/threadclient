@@ -32,7 +32,7 @@ export default function Header(props: {
             <div class="absolute w-full h-full">
                 <Banner banner={props.header.theme.banner} />
             </div>
-            <div class="absolute w-full h-full bg-gradient-to-b from-transparent via-transparent" style={{
+            <div class="absolute w-full h-full bg-gradient-to-b from-transparent via-transparent pointer-events-none" style={{
                 '--tw-gradient-to': "rgb(0 0 0 / 0.75)",
             }}></div>
             <div class="h-full relative flex flex-row flex-wrap gap-4 px-4 pb-4 items-end">
