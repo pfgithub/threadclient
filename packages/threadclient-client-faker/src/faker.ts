@@ -1,4 +1,5 @@
 import * as Generic from "api-types-generic";
+import {rt} from "api-types-generic";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { faker as faker_dontuse } from "@faker-js/faker";
 
@@ -26,6 +27,17 @@ this will be multi part:
 // (and then we write code to auto convert old generic to new generic)
 // (and downgrade fns. if it's missing a feature, the downgrade fn would put a notice that the
 //  client is not able to handle the feature.)
+
+/*
+post
+|- parent loader
+|- comment, but content is empty
+|- comment
+
+that's what we get. do we want that?
+idk but it's what we're getting. we'll have to hack around it. detect:
+- if we don't have content available for the parent, don't render its outline. leave it as a loader.
+*/
 
 // Base specifies:
 // - all the information you need to get an unfilled Post
@@ -75,6 +87,12 @@ function baseRepliesLoaderLink(base: Base): Generic.Link<Generic.Opaque<"loader"
 function baseLink(base: Base): Generic.Link<Generic.Post> {
     return Generic.p2.stringLink(baseUrl(base));
 }
+function baseContentLink(base: Base): Generic.Link<Generic.PostContentPost> {
+    return Generic.p2.stringLink("base_content:"+baseUrl(base));
+}
+function baseContentRequestLink(base: Base): Generic.Link<Generic.Opaque<"loader">> {
+    return Generic.p2.stringLink("base_content_request:"+baseUrl(base));
+}
 function baseUrl(base: Base): string {
     return "/?obj="+encodeURIComponent(JSON.stringify(base));
 }
@@ -85,21 +103,12 @@ function urlToBase(url: string): Base {
 }
 // heh https://fakerjs.dev/api/hacker.html
 // faker.hacker.phrase()
+
 function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
     if(base.kind === "home") {
         return {
             kind: "post",
-            content: Generic.p2.symbolPrefilledOneLoader<Generic.PostContentPost>(content, {
-                kind: "post",
-                title: {text: "Welcome to Faker"},
-                body: {kind: "richtext", content: [
-                    Generic.rt.p(Generic.rt.link(client, baseUrl({
-                        kind: "redditlike_community",
-                        raw_name: "asdfghjk",
-                    }), {}, Generic.rt.txt("c/asdfghjk"))),
-                ]},
-                collapsible: {default_collapsed: false},
-            }),
+            content: basePostContent(content, base),
             internal_data: 0,
             parent: getAsParent(content, {kind: "client_root"}),
             replies: null,
@@ -125,21 +134,7 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
     }else if(base.kind === "redditlike_post") {
         return {
             kind: "post",
-            content: Generic.p2.symbolPrefilledOneLoader<Generic.PostContentPost>(content, {
-                // small problem:
-                // we need to load this
-                // - currently, reddit handles this by making a big giant mess and it being impossible
-                //   to block out any random post based on just the url info
-                // - that's not acceptable
-                // - content will likely all become loaded. it has to if we want to get any object
-                //   based on its url alone.
-                kind: "post",
-                title: {text: "redditlike_post: "+base.id},
-                body: {kind: "richtext", content: [
-                    Generic.rt.p(Generic.rt.txt("Testing")),
-                ]},
-                collapsible: {default_collapsed: false},
-            }),
+            content: basePostContent(content, base),
             internal_data: 0,
             parent: getAsParent(content, base.in_community),
             replies: getReplies(content, base),
@@ -243,14 +238,50 @@ function oneIdentityLoader(content: Generic.Page2Content, base: BaseIdentity): v
         return fillIdentityCard(content, base);
     });
 }
+function basePostContent(content: Generic.Page2Content, base: Base): Generic.PostContent {
+    if(base.kind === "home") {
+        // somehow here we need to know that we have data for this so we can call baseAPIPostContentPost
+        // maybe we can indicate that it doesn't need data somehow?
+        return Generic.p2.prefilledOneLoader<Generic.PostContentPost>(content, baseContentLink(base), {
+            kind: "post",
+            title: {text: "Welcome to Faker"},
+            body: {kind: "richtext", content: [
+                rt.p(rt.link(client, baseUrl({
+                    kind: "redditlike_community",
+                    raw_name: "asdfghjk",
+                }), {}, rt.txt("c/asdfghjk"))),
+            ]},
+            collapsible: {default_collapsed: false},
+        });
+    }else if(base.kind === "redditlike_post") {
+        const req = Generic.p2.fillLink(content, baseContentRequestLink(base), opaque_loader.encode({
+            kind: "content",
+            for_post: base,
+        }));
+        return {
+            kind: "one_loader", key: baseContentLink(base),
+            load_count: null, request: req, client_id: client.id, autoload: false,
+        };
+    }else{
+        const gp2sl = Generic.p2.createSymbolLinkToError(content, "content not available for "+(base as Base).kind, base);
+        return {
+            kind: "one_loader", key: gp2sl,
+            load_count: null, request: gp2sl, client_id: client.id, autoload: false, 
+        };
+    }
+}
+
+function apiGenImage(seed: object, mode: "nature" | "image", w: number, h: number): string {
+    return faker(seed, "url").image[mode](w, h)
+    + "?lock=" + faker(seed, "url_lock").datatype.number({min: 1, max: 1000000});
+}
 
 function apiGenBanner(seed: object): Generic.Banner {
     const random_val = faker(seed, "use_banner").datatype.number({min: 0, max: 999});
     if(random_val < 500) {
         return {kind: "image", desktop:
             // https://github.com/faker-js/faker/pull/1396
-            faker(seed, "url").image.nature(600, 200)
-            + "?lock=" + faker(seed, "url_lock").datatype.number({min: 1, max: 1000000}),
+            apiGenImage([seed, "url"], "nature", 600, 200),
         };
     }else if(random_val < 900) {
         return {kind: "color", color: faker(seed, "color").color.rgb({prefix: "#"}) as `#${string}`};
@@ -296,6 +327,84 @@ function fillIdentityCard(content: Generic.Page2Content, base: BaseIdentity): Ge
     }else throw new Error("todo support base kind "+(base as unknown as BaseIdentity).kind);
 }
 
+function contentLoader(content: Generic.Page2Content, container: Base): void {
+    const c_id = baseContentLink(container);
+    Generic.p2.fillLinkOnce(content, c_id, () => {
+        return baseAPIPostContentPost(content, container);
+    });
+}
+
+type APTRes = {
+    body: Generic.Body,
+    thumbnail: Generic.Thumbnail | undefined,
+};
+
+function generateTextBody(seed: object): Generic.Body {
+    return {
+        kind: "richtext",
+        content: new Array(faker(seed, "par_count").datatype.number({min: 1, max: 4})).fill(0).map((__, i) => (
+            rt.p(rt.txt(faker([seed, i], "par").lorem.paragraph()))
+        )),
+    };
+}
+function generateShortTextBody(seed: object): Generic.Body {
+    return {
+        kind: "richtext",
+        content: [rt.p(rt.txt(faker(seed, "sentence").lorem.sentence()))],
+    };
+}
+function generateTinyTextBody(seed: object): Generic.Body {
+    return {
+        kind: "richtext",
+        content: [rt.p(rt.txt(faker(seed, "word").lorem.word()))],
+    };
+}
+() => [generateShortTextBody, generateTinyTextBody];
+
+function apiPostBodyThumb(seed: object): APTRes {
+    return faker(seed, "choice").helpers.arrayElement<() => APTRes>([(): APTRes => {
+        return {
+            body: generateTextBody([seed, "content"]),
+            thumbnail: {kind: "default", thumb: "self"},
+        };
+    }, (): APTRes => {
+        const genimg = (w: number, h: number): string => {
+            return apiGenImage([seed, "content"], "image", w, h);
+        };
+        const w = 640;
+        const h = 480;
+        return {body: {
+            kind: "captioned_image",
+            url: genimg(w, h),
+            w: w, h: h,
+        }, thumbnail: {
+            kind: "image",
+            url: genimg(140, 140),
+        }};
+    }] as const)();
+}
+
+function baseAPIPostContentPost(content: Generic.Page2Content, container: Base): Generic.PostContentPost {
+    if(container.kind === "redditlike_post") {
+        const post_body = apiPostBodyThumb([container, "body"]);
+        return {
+            kind: "post",
+            title: {text: faker(container, "title").lorem.sentence()},
+            // flair?
+            // thumbnail?
+            thumbnail: post_body.thumbnail,
+            // info?
+            // author?
+            // body
+            body: post_body.body,
+            // collapsible
+            collapsible: {default_collapsed: true},
+            // actions?
+        };
+    }
+    throw new Error("TODO baseApiPostContentPost");
+}
+
 function horizontalLoader(content: Generic.Page2Content, parent: Base): void {
     const hloader_id = baseRepliesLink(parent);
     Generic.p2.fillLinkOnce(content, hloader_id, () => {
@@ -330,6 +439,9 @@ type LoaderData = {
 } | {
     kind: "one_identity",
     fill_identity_card: BaseIdentity,
+} | {
+    kind: "content",
+    for_post: Base,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
@@ -348,6 +460,8 @@ export const client: ThreadClient = {
             horizontalLoader(content, req.fill_replies_of);
         }else if(req.kind === "one_identity") {
             oneIdentityLoader(content, req.fill_identity_card);
+        }else if(req.kind === "content") {
+            contentLoader(content, req.for_post);
         }else throw new Error("TODO loader ["+(req as LoaderData).kind+"]");
         return {content};
     },

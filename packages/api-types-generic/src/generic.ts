@@ -45,11 +45,28 @@ export const p2 = {
         return link;
     },
 
-    /// a vertical loader that has filled content, so there's no need to describe how to load it
-    /// todo: reflect this in the data rather than requiring this mess
+    // a vertical loader that has filled content, so there's no need to describe how to load it
+    //
+    // todo: reflect this in the data rather than requiring this mess
+    // ie:
+    // kind: "one_loader",
+    // filled: NullableLink<thing>
+    // empty: {
+    //     preview: thing2,
+    //     request: Link<request>,
+    //     client_id: string,
+    // } | null, // set to null if the link is guarenteed to be filled
+    // * for vertical loaders, preview should contain a 'temp_parent' and a 'load_count: NullableLink<number>'
+    // * for identity card loaders, preview should contain a partial identity card
+    // * for horizontal loaders, preview should contain a 'load_count: NullableLink<number>'
+    // * for content loaders, nothing special is needed
+    //
     // vv wait a minute. "fill: VerticalLoaded | undefined"
     // when it's undefined, it's not prefilled.
     // ???
+    // - these are all the same
+    // - they all contain exactly the same code except for "kind:"
+    // - what is going on here?
     prefilledVerticalLoader(
         content: Page2Content,
         key: Link<VerticalLoaded>,
@@ -83,14 +100,20 @@ export const p2 = {
             autoload: false,
         };
     },
-    symbolPrefilledOneLoader<T>(content: Page2Content, value: T): OneLoader<T> {
+    prefilledOneLoader<T>(
+        content: Page2Content,
+        key: Link<T>,
+        fill: T | undefined,
+    ): OneLoader<T> {
+        // eslint-disable-next-line eqeqeq
+        if(fill !== undefined) p2.fillLink(content, key, fill);
         return {
             kind: "one_loader",
-            key: p2.createSymbolLinkToValue(content, value),
+            key,
             load_count: null,
-            autoload: false,
-            request: p2.createSymbolLinkToError(content, "one loader claimed to be prefilled", value),
+            request: p2.createSymbolLinkToError(content, "one loader claimed to be prefilled", fill),
             client_id: "@E@UNNECESSARY",
+            autoload: false,
         };
     },
 };
@@ -535,22 +558,27 @@ export type Body = BodyText | RichText | {
     w: number | null,
     h: number | null,
 } | Video | {
+    // TODO: REMOVE, replace with a small page2 client returning a post
     kind: "gfycatv1",
     id: string,
     host: string,
 } | {
+    // TODO: REMOVE, replace with a small page2 client returning a post
     kind: "gfycatv2",
     id: string,
     host: string,
 } | {
+    // TODO: REMOVE, replace with an oembed card or something or delete entirely
     kind: "youtube",
     id: string,
     search: string,
 } | {
+    // TODO: REMOVE, replace with a small page2 client returning a post
     kind: "imgur",
     imgur_id: string,
     imgur_kind: "album" | "gallery",
 } | {
+    // TODO: REMOVE
     kind: "twitch_clip",
     slug: string,
 } | OEmbedBody | {

@@ -8,8 +8,17 @@ import DevCodeButton from "./DevCodeButton";
 import { ReadLink } from "./page2";
 
 export default function OneLoader<T>(props: {
-    loader: Generic.OneLoader<T>,
+    loader: Generic.BaseLoader & {key: Generic.Link<T>},
+    label: string,
     children: (value: T) => JSX.Element,
+}): JSX.Element {
+    return <ReadLink link={props.loader.key} fallback={
+        <UnfilledLoader loader={props.loader} label={props.label} />
+    }>{props.children}</ReadLink>;
+}
+export function UnfilledLoader(props: {
+    loader: Generic.BaseLoader,
+    label: string,
 }): JSX.Element {
     const [loading, setLoading] = createSignal(false);
     const [error, setError] = createSignal<null | string>(null);
@@ -50,21 +59,20 @@ export default function OneLoader<T>(props: {
         });
     };
 
-    return <ReadLink link={props.loader.key} fallback={
-        <div>
-            <button
-                class="text-blue-500 hover:underline"
-                disabled={loading()}
-                onClick={doLoad}
-            >{
-                loading()
-                ? "Loading…"
-                : (error() != null ? "Retry Load" : "Load Header")
-            }</button><DevCodeButton data={props} /><Show when={error()}>{err => (
-                <p class="text-red-600 dark:text-red-500">
-                    Error loading; {err}
-                </p>
-            )}</Show>
-        </div>
-    }>{props.children}</ReadLink>;
+    return <div>
+        <button
+            class="text-blue-500 hover:underline"
+            disabled={loading()}
+            onClick={doLoad}
+        >{
+            loading()
+            ? "Loading…"
+            : (error() != null ? "Retry Load" : props.label)
+            + (props.loader.load_count != null ? " ("+props.loader.load_count+")" : "")
+        }</button><DevCodeButton data={props} /><Show when={error()}>{err => (
+            <p class="text-red-600 dark:text-red-500">
+                Error loading; {err}
+            </p>
+        )}</Show>
+    </div>;
 }

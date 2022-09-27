@@ -1,25 +1,23 @@
 import * as Generic from "api-types-generic";
 import {
-    batch, createMemo, createSignal,
+    createMemo, createSignal,
     For,
     JSX,
     untrack
 } from "solid-js";
 import { switchKind } from "tmeta-util";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
-import { fetchClient } from "../clients";
 import { navigate } from "../page1_routing";
 import {
-    classes, DefaultErrorBoundary, getWholePageRootContext, PageRootContext, size_lt,
+    classes, DefaultErrorBoundary, getWholePageRootContext, PageRootContext, size_lt
 } from "../util/utils_solid";
-import { addAction } from "./action_tracker";
 import { Body } from "./body";
 import Clickable from "./Clickable";
 import { CollapseButton } from "./CollapseButton";
-import DevCodeButton from "./DevCodeButton";
 import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
 import Hactive from "./Hactive";
 import { InternalIconRaw } from "./Icon";
+import { UnfilledLoader } from "./OneLoader";
 import { ClientContent } from "./page2";
 import proxyURL from "./proxy_url";
 import SwipeActions from "./SwipeActions";
@@ -384,57 +382,7 @@ function PageFlatPostContent(props: {
             />
         </>,
         flat_loader: loader => {
-            const [loading, setLoading] = createSignal(false);
-            const [error, setError] = createSignal<null | string>(null);
-            const hprc = getWholePageRootContext();
-
-            const doLoad = () => {
-                if(loading()) return;
-                setLoading(true);
-
-                const pgin = hprc.pgin();
-
-                // TODO: make sure there are never two loaders with the same request loading at once
-                addAction(
-                    (async () => {
-                        if(error() != null) await new Promise(r => setTimeout(r, 200));
-
-                        const request = Generic.readLink(hprc.content(), loader.request);
-                        if(request == null) throw new Error("e-request-null: "+loader.request.toString());
-                        if(request.error != null) throw new Error(request.error);
-                        const client = await fetchClient(loader.client_id);
-                        return await client!.loader!(request.value);
-                    })(),
-                ).then(r => {
-                    batch(() => {
-                        setLoading(false);
-                        setError(null);
-                        console.log("adding content", r.content, props.loader_or_post);
-                        hprc.addContent(pgin, r.content);
-                    });
-                }).catch((e: Error) => {
-                    console.log("Error loading; ", e);
-                    batch(() => {
-                        setLoading(false);
-                        setError(e.toString());
-                    });
-                });
-            };
-
-            return <div class="py-1"><button
-                class="text-blue-500 hover:underline"
-                disabled={loading()}
-                onClick={doLoad}
-            >{
-                loading()
-                ? "Loading…"
-                : (error() != null ? "Retry Load" : "Load More")
-                + (loader.load_count != null ? " ("+loader.load_count+")" : "")
-            }</button><DevCodeButton data={props} /><Show when={error()}>{err => (
-                <p class="text-red-600 dark:text-red-500">
-                    Error loading; {err}
-                </p>
-            )}</Show></div>;
+            return <UnfilledLoader loader={loader} label="Load More" />;
         },
     }}</SwitchKind>;
 }

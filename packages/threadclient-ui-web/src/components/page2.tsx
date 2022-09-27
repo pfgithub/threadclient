@@ -55,7 +55,7 @@ export function ClientContent(props: {
 }): JSX.Element {
     return <DefaultErrorBoundary data={[props.content, props.opts]}><SwitchKind item={props.content}>{{
         one_loader: postv => (
-            <OneLoader loader={postv}>{content => (
+            <OneLoader label="Load Post" loader={postv}>{content => (
                 <ClientPost
                     content={content}
                     opts={props.opts}
@@ -70,7 +70,7 @@ export function ClientContent(props: {
             // - likely we should the smaller version just using the limited version of the id card
             // - and support putting a pfp on limited id cards
             //   - we'll need that for replacing InfoAuthor with identity cards too (excl. flair)
-            return <OneLoader loader={page.wrap_page.header.filled}>{filled => (
+            return <OneLoader label="Load Header" loader={page.wrap_page.header.filled}>{filled => (
                 <Header header={filled} opts={props.opts} />
             )}</OneLoader>;
         },
