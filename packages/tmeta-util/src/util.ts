@@ -259,5 +259,6 @@ export function updateQuery(path: string, update: {[key: string]: string | undef
         if(v != null) query.set(k, v);
         else query.delete(k);
     }
-    return pathname + "?" + query.toString() + (hash !== "" ? "#"+hash : "");
+    const qstr = query.toString();
+    return pathname + (qstr !== "" ? "?" + qstr : "") + (hash !== "" ? "#"+hash : "");
 }

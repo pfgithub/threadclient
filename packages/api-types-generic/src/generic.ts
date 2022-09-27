@@ -345,8 +345,8 @@ export type PostContentPost = {
 };
 
 export type PostContent = ClientPost | {
-    // TODO: delete this and use the sidebar property on post instead
-    // ^ don't. identity cards are not posts. not everything is a post.
+    // consider:
+    // - load the sidebar along with the OneLoader for the filled identity card
     
     // [!] when rendered below the pivot, use a different renderer
     // * exception: when rendered as the id card in the sidebar, use the normal renderer

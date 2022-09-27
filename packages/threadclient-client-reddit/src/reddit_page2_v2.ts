@@ -1,3 +1,157 @@
+import * as Generic from "api-types-generic";
+import type * as Reddit from "api-types-reddit";
+import { updateQuery } from "tmeta-util";
+import { client as imported_client, getNavbar, PostSort, SubSort } from "./reddit";
+const client_id = imported_client.id;
+
+// implementing this well should free us to make less things require loaders:
+// - PostReplies would directly contain the posts and put a loader if it doesn't.
+//   if the base is enough to describe the replies, we can put them in directly,
+//   otherwise we need to link.
+
+type LowercaseString = string & {__is_ascii_lowercase: true};
+function asLowercaseString(str: string): LowercaseString {
+    return str.toLowerCase() as LowercaseString;
+}
+
+// Base is the minimum content required to create a filled link to a Generic.Post
+type BaseClient = {
+    _?: undefined,
+};
+type BaseSubredditT5 = {
+    subreddit: LowercaseString, // u_ for user subreddits
+    // note: the fullname is not known here
+    sort: SubSort | "default",
+    // note: sort handling isn't quite right. posts will always set their parent to an unsorted subreddit.
+    // - this means that if we show little parent trees like we want to on mastodon, in user pages,
+    //   in inbox notifications, and on the homepage, we will accidentally show them any time the subreddit
+    //   is sorted. we will have to solve this.
+};
+type BaseSubredditSidebar = {
+    for_sub: BaseSubredditT5,
+};
+type BasePostT3 = {
+    fullname: `t3_${string}`,
+    on_subreddit: BaseSubredditT5,
+    // * we are requiring a subreddit on posts *
+    // - this means: "/comments/[id]" will require loading content in order to get the object. we
+    //   can't get the wrapper from the url alone.
+    // - the reason for this is i forgot
+    sort: PostSort | "default",
+};
+// hmm. interestingly, there's no requirement for the comment to be able to render unfilled.
+// we could make it require itself to be filled, but getting asParent or replies would not need a filled comment.
+// we would have a separate type BaseCommentT1Filled for the filled ver that you can get .post() on.
+// we could undo the change allowing content to be unfilled while the post is filled.
+// fun. good idea too.
+type BaseCommentT1 = {
+    fullname: `t1_${string}`,
+    on_post: BasePostT3,
+    sort: PostSort | "default",
+};
+type BaseUserT2 = {
+    username: LowercaseString,
+    // note: the fullname is not known here
+};
+type BasePrivateMessageT4 = {
+    fullname: `t4_${string}`,
+};
+type BaseWikipage = {
+    kind: "wikipage",
+    in_subreddit: BaseSubredditT5 | null, // there is a root wiki with no subreddit
+    aftersub_path: string,
+};
+type BaseSubmitPage = {
+    on_suberddit: BaseSubredditT5,
+};
+
+// part 1 is:
+// - converting a base to a shell and embedding what data we know.
+
+// consider using the base .id() fn instead of json.stringify [!] not url
+// - turn base into a class that BaseClient/BaseSubredditT5/… extend
+function autoLinkgen<ResTy>(cid: string, base: unknown): Generic.Link<ResTy> {
+    return Generic.p2.stringLink(cid + ":" + JSON.stringify(base));
+}
+function autoOutline<Base, ResTy>(
+    unique_consistent_id: string,
+    getContent: (content: Generic.Page2Content, base: Base) => ResTy,
+): (content: Generic.Page2Content, base: Base) => Generic.Link<ResTy> {
+    return (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
+        const link = autoLinkgen<ResTy>(unique_consistent_id, base);
+        Generic.p2.fillLinkOnce(content, link, () => {
+            return getContent(content, base);
+        });
+        return link;
+    };
+}
+
+const client = {
+    url: (base: BaseClient): string | null => null,
+    post: autoOutline("client→post", (content, base: BaseClient): Generic.Post => {
+        return {
+            kind: "post",
+            content: {
+                kind: "client",
+                navbar: getNavbar(null),
+            },
+            internal_data: 0,
+            parent: null,
+            replies: null,
+            url: client.url(base),
+            client_id,
+        };
+    }),
+    asParent: (content: Generic.Page2Content, base: BaseClient): Generic.PostParent => {
+        return {
+            loader: Generic.p2.prefilledVerticalLoader(content, client.post(content, base), undefined),
+        };
+    },
+};
+
+// class Subreddit extends Base<BaseSubredditT5> implements asPost, asIdentity
+const subreddit = {
+    url: (base: BaseSubredditT5): string | null => {
+        return updateQuery(
+            "/r/" + base.subreddit + (base.sort !== "default" ? "/" + base.sort.v : ""),
+            base.sort !== "default" ? {t: base.sort.t} : {},
+        );
+    },
+    // ie: /r/somesub | /r/u_someusersub | /r/t5:dnjakcns
+    post: autoOutline("subreddit→post", (content, base: BaseSubredditT5): Generic.Post => {
+        return {
+            kind: "post",
+            content: {
+                kind: "page",
+                wrap_page: {
+                    header: subreddit.identity(content, base),
+                    sidebar: subreddit_sidebar.replies(content, {for_sub: {subreddit: base.subreddit, sort: "default"}}),
+                },
+            },
+            internal_data: base,
+            parent: client.asParent(content, {}),
+            replies: subreddit.replies(content, base),
+            url: subreddit.url(base),
+            client_id,
+        };
+    }),
+    identity: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.IdentityCard => {
+        
+    },
+    replies: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.PostReplies => {
+
+    },
+};
+
+const subreddit_sidebar = {
+    replies: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.PostReplies => {
+
+    },
+};
+
+
+
+
 /*
 import * as Generic from "api-types-generic";
 import type * as Reddit from "api-types-reddit";

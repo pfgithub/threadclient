@@ -21,6 +21,16 @@ this will be multi part:
   client can use it.
 
 I think it's time to move on to part 2. maybe do some f2 renaming first.
+
+part 2:
+- this involves:
+  having 'partial'/'full' versions of our stuff
+  - maybe have a Base type for the content? if base represents the minimal info to generate the object
+  - how do we then fill as much content as we got from the api?
+
+some notes:
+- we might consider trying to merge base types like we did before?
+  - client_root would be the base type and then we would specify all the output types it could generate?
 */
 
 // we're going to want to version generic
