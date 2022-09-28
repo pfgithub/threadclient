@@ -2,7 +2,8 @@ import * as Generic from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
-import { client_id, getNavbar, PostSort, SubSort } from "./reddit";
+import { getPostInfo, rawlinkButton } from "./page2_from_listing";
+import { authorFromPostOrComment, client_id, deleteButton, editButton, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, PostSort, redditRequest, reportButton, saveButton, SubSort } from "./reddit";
 
 // implementing this well should free us to make less things require loaders:
 // - PostReplies would directly contain the posts and put a loader if it doesn't.
@@ -27,14 +28,14 @@ type BaseSubredditT5 = {
     //   in inbox notifications, and on the homepage, we will accidentally show them any time the subreddit
     //   is sorted. we will have to solve this.
 };
-type FillSubredditContent = {
+type FullSubredditContent = {
     subreddit: BaseSubredditT5,
     listing: Reddit.Listing,
 };
 type BaseSubredditSidebar = {
     for_sub: BaseSubredditT5,
 };
-type FillSubredditSidebar = {
+type FullSubredditSidebar = {
     on_base: BaseSubredditSidebar,
 
     widgets: Reddit.ApiWidgets,
@@ -48,6 +49,10 @@ type BasePostT3 = {
     //   can't get the wrapper from the url alone.
     // - the reason for this is i forgot
     sort: PostSort | "default",
+};
+type FullPostT3 = {
+    post: BasePostT3,
+    data: Reddit.T3,
 };
 // hmm. interestingly, there's no requirement for the comment to be able to render unfilled.
 // we could make it require itself to be filled, but getting asParent or replies would not need a filled comment.
@@ -95,6 +100,18 @@ function autoOutline<Base, ResTy>(
         return link;
     };
 }
+function autoFill<Base, ResTy>(
+    getLink: (base: Base) => Generic.Link<ResTy>,
+    getContent: (content: Generic.Page2Content, base: Base) => ResTy,
+): (content: Generic.Page2Content, base: Base) => Generic.Link<ResTy> {
+    return (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
+        const link = getLink(base);
+        Generic.p2.fillLinkOnce(content, link, () => {
+            return getContent(content, base);
+        });
+        return link;
+    };
+}
 // possibly we make a seperate fn for fillds
 
 export const base_client = {
@@ -120,13 +137,13 @@ export const base_client = {
     },
 };
 
-// class Subreddit extends Base<BaseSubredditT5> implements asPost, asIdentity
+// class Subreddit extends Base<BaseSubredditT5> implements asPost, getReplies
 export const base_subreddit = {
-    url: (base: BaseSubredditT5): string | null => {
+    url: (base: BaseSubredditT5): "/__any_listing" => {
         return updateQuery(
             "/r/" + base.subreddit + (base.sort !== "default" ? "/" + base.sort.v : ""),
             base.sort !== "default" ? {t: base.sort.t} : {},
-        );
+        ) as "/__any_listing";
     },
     // ie: /r/somesub | /r/u_someusersub | /r/t5:dnjakcns
     post: autoOutline("subreddit→post", (content, base: BaseSubredditT5): Generic.Post => {
@@ -146,14 +163,18 @@ export const base_subreddit = {
             client_id,
         };
     }),
+    idFilled: (base: BaseSubredditT5): Generic.Link<Generic.HorizontalLoaded> => {
+        return autoLinkgen<Generic.HorizontalLoaded>("subreddit→replies", base);
+    },
     replies: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.PostReplies => {
         const id_loader = autoLinkgen<Generic.Opaque<"loader">>("subreddit→replies_loader", base);
         Generic.p2.fillLinkOnce(content, id_loader, () => {
             return opaque_loader.encode({
-                kind: "todo",
+                kind: "subreddit_posts",
+                subreddit: base,
             });
         });
-        const id_filled = autoLinkgen<Generic.HorizontalLoaded>("subreddit→replies", base);
+        const id_filled = base_subreddit.idFilled(base);
         return {
             display: "repivot_list",
             loader: {
@@ -166,6 +187,35 @@ export const base_subreddit = {
                 client_id,
             },
         };
+    },
+    asParent: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.PostParent => {
+        return {loader: Generic.p2.prefilledVerticalLoader(content, base_subreddit.post(content, base), undefined)};
+    },
+};
+export const full_subreddit = {
+    fillContent: autoFill(
+        (full: FullSubredditContent) => base_subreddit.idFilled(full.subreddit),
+        (content, full): Generic.HorizontalLoaded => {
+            const res: Generic.HorizontalLoaded = [];
+            // if full listing data before
+            // TODO: - we need, in addition to sort, a before param for subs
+            // - then, we can add a loader for the ?before thing
+            for(const item of full.listing.data.children) {
+                res.push(linkToAndFillAnyPost(content, item));
+            }
+            if(full.listing.data.after != null) {
+                res.push({
+                    kind: "horizontal_loader",
+                    key: Generic.p2.symbolLink("todo"),
+                    request: Generic.p2.symbolLink("todo"),
+                    client_id,
+                });
+            }
+            return res;
+        },
+    ),
+    fill: (content: Generic.Page2Content, full: FullSubredditContent): void => {
+        full_subreddit.fillContent(content, full);
     },
 };
 
@@ -220,7 +270,93 @@ export const base_subreddit_sidebar = {
     },
 };
 
+// * you will only be able to get a link to a post by using the full_post fn
+// * you can get a base_post 'as_parent' but no other way
+export const base_post = {
+    postLink: (base: BasePostT3) => autoLinkgen<Generic.Post>("postT3→post", base),
+};
+export const full_post = {
+    // note: you need a full post to get a url to it. this is to include the title in the url.
+    url: (post: FullPostT3): string => {
+        return updateQuery(post.data.data.permalink, post.post.sort !== "default" ? {
+            sort: post.post.sort.v,
+        } : {});
+    },
+    content: autoFill((full: FullPostT3) => autoLinkgen<Generic.PostContentPost>("postT3_full→content", full), (content, full): Generic.PostContentPost => {
+        const listing = full.data.data;
+        return {
+            kind: "post",
+            title: {text: listing.title},
+            collapsible: {default_collapsed: true},
+            flair: getPostFlair(listing),
+            author: authorFromPostOrComment(listing),
+            body: getPostBody(listing),
+            thumbnail: getPostThumbnail(listing, "open"),
+            info: getPostInfo(full.data),
 
+            actions: {
+                vote: getPointsOn(listing),
+                code: getCodeButton(listing.is_self ? listing.selftext : listing.url),
+                other: [
+                    {
+                        kind: "link",
+                        client_id,
+                        url: "/domain/"+listing.domain,
+                        text: listing.domain,
+                    }, deleteButton(listing.name), saveButton(listing.name, listing.saved), {
+                        kind: "link",
+                        client_id,
+                        url: "/duplicates/"+listing.id,
+                        text: "Duplicates"
+                    }, reportButton(listing.name, listing.subreddit),
+                    editButton(listing.name),
+                    rawlinkButton(full_post.url(full)),
+                ],
+            },
+        };
+    }),
+    fill: autoFill((full: FullPostT3) => base_post.postLink(full.post), (content, full): Generic.Post => {
+        return {
+            kind: "post",
+            client_id,
+            url: full_post.url(full),
+
+            parent: base_subreddit.asParent(content, full.post.on_subreddit),
+            replies: todoReplies(content),
+
+            content: Generic.p2.prefilledOneLoader(content, full_post.content(content, full), undefined),
+            internal_data: full,
+        };
+    }),
+};
+
+// note: this fn will need to get some sort info
+function linkToAndFillAnyPost(content: Generic.Page2Content, post: Reddit.Post): Generic.Link<Generic.Post> {
+    if(post.kind === "t3") {
+        const post_base: BasePostT3 = {
+            fullname: post.data.name as "t3_string",
+            on_subreddit: {
+                subreddit: asLowercaseString(post.data.subreddit),
+                sort: "default",
+            },
+            sort: "default",
+        };
+        return full_post.fill(content, {
+            post: post_base,
+            data: post,
+        });
+    }
+    return Generic.p2.createSymbolLinkToError(content, "todo: post.kind: "+post.kind, post);
+}
+
+function todoReplies(content: Generic.Page2Content): Generic.PostReplies {
+    return {
+        display: "repivot_list",
+        loader: Generic.p2.prefilledHorizontalLoader(content,
+            Generic.p2.createSymbolLinkToError(content, "TODO replies", ""),
+        undefined),
+    };
+}
 
 
 /*
@@ -302,5 +438,22 @@ what about nullable contents?
 
 type LoaderData = {
     kind: "todo",
+} | {
+    kind: "subreddit_posts",
+    subreddit: BaseSubredditT5,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
+
+export async function loadPage2v2(
+    lreq: Generic.Opaque<"loader">,
+): Promise<Generic.LoaderResult> {
+    const data = opaque_loader.decode(lreq);
+    if(data.kind === "subreddit_posts") {
+        // fetch the subreddit listing
+        const content: Generic.Page2Content = {};
+        const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
+        full_subreddit.fill(content, {subreddit: data.subreddit, listing: sub_listing});
+        return {content};
+    }else throw new Error("todo support loader kind: ["+data.kind+"]");
+}
+

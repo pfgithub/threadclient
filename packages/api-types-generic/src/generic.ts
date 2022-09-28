@@ -213,11 +213,11 @@ export type OneLoader<T> = {
 } & BaseLoader;
 
 export type BaseLoader = {
-    load_count: null | number, // number of items to be loaded, or null if it is not known.
+    load_count?: undefined | null | number, // number of items to be loaded, or null if it is not known.
     request: Link<Opaque<"loader">>, // ← never load when another loader with the same link is loading.
     // this is how we create linked loaders, they are two loaders that have the same request key.
     client_id: string,
-    autoload: boolean,
+    autoload?: undefined | boolean,
 };
 
 // vv we don't know typesafely that it's unloaded but don't call something this unless it's unloaded

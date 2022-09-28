@@ -11,7 +11,7 @@ import {
     ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
-import { asLowercaseString, base_subreddit } from "./reddit_page2_v2";
+import { asLowercaseString, base_subreddit, loadPage2v2 } from "./reddit_page2_v2";
 import { getSidebar } from "./sidebars";
 
 /*
@@ -63,7 +63,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             if(parsed.sub.kind === "subreddit") {
                 const link = base_subreddit.post(content, {
                     subreddit: asLowercaseString(parsed.sub.subreddit),
-                    sort: parsed.current_sort,
+                    sort: parsed.current_sort, // ← this is weird. it should be "default" when not specified.
                 });
                 return {pivot: link, content};
             }
@@ -841,7 +841,7 @@ function objectURL(listing: Reddit.T3, fn_sort: FullnameSort): string {
     });
 }
 
-function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
+export function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
     const listing = listing_raw.data;
     return {
         creation_date: listing.created_utc * 1000,
@@ -860,7 +860,7 @@ function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInfo {
     };
 }
 
-function rawlinkButton(url: string): Generic.Action {
+export function rawlinkButton(url: string): Generic.Action {
     return {kind: "link", text: "View on reddit.com", url: rawlink(url), client_id: "reddit"};
 }
 
@@ -1370,7 +1370,10 @@ export async function loadPage2(
     lreq: Generic.Opaque<"loader">,
 ): Promise<Generic.LoaderResult> {
     // throw new Error("TODO load reddit page2");
-    let data = loader_enc.decode(lreq);
+    let data: LoaderData;
+    try {data = loader_enc.decode(lreq)}catch(e) {
+        return loadPage2v2(lreq);
+    }
     if(data.kind === "parent_permalink") data = {
         kind: "link_replies",
         url: `/comments/${data.post_id}/comment/${data.parent_id ?? ""}?context=0`,
