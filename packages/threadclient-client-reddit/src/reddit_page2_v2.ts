@@ -3,7 +3,7 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton } from "./page2_from_listing";
-import { authorFromPostOrComment, client_id, deleteButton, editButton, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, PostSort, redditRequest, reportButton, saveButton, SubSort } from "./reddit";
+import { authorFromPostOrComment, client_id, deleteButton, ec, editButton, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, PostSort, redditRequest, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
 
 // implementing this well should free us to make less things require loaders:
 // - PostReplies would directly contain the posts and put a loader if it doesn't.
@@ -230,18 +230,26 @@ export const full_subreddit = {
 };
 
 export const base_subreddit_sidebar = {
-    identity: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.IdentityCard => {
-        const id_loader = Generic.p2.fillLinkOnce(content, (
-            autoLinkgen<Generic.Opaque<"loader">>("subreddit_identity→loader", base)
+    identityAndSidebarLoader: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.Link<Generic.Opaque<"loader">> => {
+        return Generic.p2.fillLinkOnce(content, (
+            autoLinkgen<Generic.Opaque<"loader">>("subreddit_id_sidebar→loader", base)
         ), () => {
             return opaque_loader.encode({
-                kind: "todo",
+                kind: "subreddit_identity_and_sidebar",
+                sub: base,
             });
         });
+    },
+    filledIdentityCardLink: (base: BaseSubredditSidebar): Generic.NullableLink<Generic.FilledIdentityCard> => {
+        return autoLinkgen<Generic.FilledIdentityCard>("subreddit_identity→card", base);
+    },
+    identity: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.IdentityCard => {
+        const id_loader = base_subreddit_sidebar.identityAndSidebarLoader(content, base);
+
         // right, we'll need to figure out the proper place to put this id.
         // - the filled object will make bad ids because the ids depend on the filled content
         // - ids should not depend on filled content
-        const id_filled = autoLinkgen<Generic.FilledIdentityCard>("subreddit_identity→card", base);
+        const id_filled = base_subreddit_sidebar.filledIdentityCardLink(base);
         return {
             container: base_subreddit.post(content, base.for_sub),
             limited: {
@@ -258,15 +266,12 @@ export const base_subreddit_sidebar = {
             },
         };
     },
+    filledWidgetsLink: (base: BaseSubredditSidebar): Generic.NullableLink<Generic.HorizontalLoaded> => {
+        return autoLinkgen<Generic.HorizontalLoaded>("subreddit_sidebar→replies", base);
+    },
     replies: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.PostReplies => {
-        const id_loader = Generic.p2.fillLinkOnce(content, (
-            autoLinkgen<Generic.Opaque<"loader">>("subreddit_sidebar→replies_loader", base)
-        ), () => {
-            return opaque_loader.encode({
-                kind: "todo",
-            });
-        });
-        const id_filled = autoLinkgen<Generic.HorizontalLoaded>("subreddit_sidebar→replies", base);
+        const id_loader = base_subreddit_sidebar.identityAndSidebarLoader(content, base);
+        const id_filled = base_subreddit_sidebar.filledWidgetsLink(base);
         return {
             display: "tree",
             loader: {
@@ -279,6 +284,32 @@ export const base_subreddit_sidebar = {
                 client_id,
             },
         };
+    },
+};
+
+export const full_subreddit_sidebar = {
+    // FullSubredditSidebar
+    filledIdentity: autoFill((
+        (full: FullSubredditSidebar) => base_subreddit_sidebar.filledIdentityCardLink(full.on_base)
+    ), (content: Generic.Page2Content, full: FullSubredditSidebar): Generic.FilledIdentityCard => {
+        return subredditHeaderExists({
+            subreddit: full.on_base.for_sub.subreddit,
+            widgets: full.widgets,
+            sub_t5: full.sub_t5,
+        });
+    }),
+
+    filledWidgets: autoFill((
+        (full: FullSubredditSidebar) => base_subreddit_sidebar.filledWidgetsLink(full.on_base)
+    ), (content, full): Generic.HorizontalLoaded => {
+        return [
+            Generic.p2.createSymbolLinkToError(content, "TODO", ""),
+        ];
+    }),
+
+    fill: (content: Generic.Page2Content, full: FullSubredditSidebar): void => {
+        full_subreddit_sidebar.filledIdentity(content, full);
+        full_subreddit_sidebar.filledWidgets(content, full);
     },
 };
 
@@ -453,19 +484,33 @@ type LoaderData = {
 } | {
     kind: "subreddit_posts",
     subreddit: BaseSubredditT5,
+} | {
+    kind: "subreddit_identity_and_sidebar",
+    sub: BaseSubredditSidebar,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
 export async function loadPage2v2(
     lreq: Generic.Opaque<"loader">,
 ): Promise<Generic.LoaderResult> {
+    const content: Generic.Page2Content = {};
     const data = opaque_loader.decode(lreq);
     if(data.kind === "subreddit_posts") {
         // fetch the subreddit listing
-        const content: Generic.Page2Content = {};
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
         full_subreddit.fill(content, {subreddit: data.subreddit, listing: sub_listing});
-        return {content};
+    }else if(data.kind === "subreddit_identity_and_sidebar") {
+        const subreddit = data.sub.for_sub.subreddit;
+        const [widgets, about] = await Promise.all([
+            redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}),
+            redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}),
+        ]);
+        const full: FullSubredditSidebar = {
+            on_base: data.sub,
+            widgets,
+            sub_t5: about,
+        };
+        full_subreddit_sidebar.fill(content, full);
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
+    return {content};
 }
-
