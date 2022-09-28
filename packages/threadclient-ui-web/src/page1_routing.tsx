@@ -49,7 +49,7 @@ export let hidePage2!: () => void;
                 }}
             >
                 {untrack(() => {
-                    const  res = ClientPage({
+                    const res = ClientPage({
                         get pivot() {
                             return pgin().page.pivot;
                         },

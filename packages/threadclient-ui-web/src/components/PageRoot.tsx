@@ -37,9 +37,13 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
         if(fpsc == null) return null;
         return fpsc;
     });
+    const propsQuery = createMemo(() => props.query);
     
     const res = createMemo((): PageRes => {
-        const tc_view = (new URLSearchParams(props.query)).get("--tc-view");
+        // ? what could this possibly be tracking?
+        // everything is untrack()'d
+        // oh
+        const tc_view = (new URLSearchParams(propsQuery())).get("--tc-view");
         if(tc_view === "fullscreen") {
             return untrack((): PageRes => ({
                 url: null, // TODO
