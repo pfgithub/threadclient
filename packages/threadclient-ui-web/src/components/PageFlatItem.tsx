@@ -306,7 +306,7 @@ function PageFlatPostNotSpecial(props: {
                     ` : "bg-slate-100 dark:bg-zinc-800"
                 )+" "+(props.loader_or_post.is_pivot ? "@@IS_PIVOT@@ " : "")+
                 (wholeObjectClickable() ? `
-                    cursor-pointer outline-default
+                    cursor-pointer
                     relative
                 ` : "")+
                 (props.loader_or_post.first_in_wrapper ? `
@@ -316,14 +316,6 @@ function PageFlatPostNotSpecial(props: {
                     pb-2 sm:rounded-b-lg
                 ` : "")
             }
-            tabindex={wholeObjectClickable() ? 0 : -1}
-            onKeyPress={e => {
-                if(!wholeObjectClickable()) return;
-                if(e.code !== "Enter") return;
-                e.stopPropagation();
-
-                onClick(e);
-            }}
             onClick={e => {
                 if(!wholeObjectClickable()) return;
                 if(!allowedToAcceptClick(e.target, e.currentTarget)) return;
@@ -335,6 +327,14 @@ function PageFlatPostNotSpecial(props: {
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
         >
+            <Show if={wholeObjectClickable()}>
+                <button class="absolute pointer-events-none top-0 left-0 bottom-0 right-0 w-full h-full rounded-lg outline-default" onClick={e => {
+                    e.stopPropagation();
+                    onClick(e);
+                }}>
+                    <span class="sr-only">Repivot</span>
+                </button>
+            </Show>
             <div class="relative flex flex-row gap-1">
                 <PostIndent
                     loader_or_post={props.loader_or_post}
