@@ -14,6 +14,13 @@ import { authorFromPostOrComment, client_id, deleteButton, editButton, getCodeBu
 // - after generating any Generic.Post:
 //   - check that parsing the url creates the same base as the url was made from
 
+/*
+report screens in page2
+- the report button links to a special @report page including a link to the object being reported
+- the report page is a post that shows the object being reported and shows the report options
+  - or it shows it as a reply with the report as a pivot. doesn't matter
+*/
+
 type LowercaseString = string & {__is_ascii_lowercase: true};
 export function asLowercaseString(str: string): LowercaseString {
     return str.toLowerCase() as LowercaseString;
