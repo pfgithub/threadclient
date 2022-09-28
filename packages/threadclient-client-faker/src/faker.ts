@@ -102,9 +102,6 @@ function baseLink(base: Base): Generic.Link<Generic.Post> {
 function baseContentLink(base: Base): Generic.Link<Generic.PostContentPost> {
     return Generic.p2.stringLink("base_content:"+baseUrl(base));
 }
-function baseContentRequestLink(base: Base): Generic.Link<Generic.Opaque<"loader">> {
-    return Generic.p2.stringLink("base_content_request:"+baseUrl(base));
-}
 function baseUrl(base: Base): string {
     return "/?obj="+encodeURIComponent(JSON.stringify(base));
 }
@@ -254,7 +251,7 @@ function basePostContent(content: Generic.Page2Content, base: Base): Generic.Pos
     if(base.kind === "home") {
         // somehow here we need to know that we have data for this so we can call baseAPIPostContentPost
         // maybe we can indicate that it doesn't need data somehow?
-        return Generic.p2.prefilledOneLoader<Generic.PostContentPost>(content, baseContentLink(base), {
+        return {
             kind: "post",
             title: {text: "Welcome to Faker"},
             body: {kind: "richtext", content: [
@@ -264,22 +261,11 @@ function basePostContent(content: Generic.Page2Content, base: Base): Generic.Pos
                 }), {}, rt.txt("c/asdfghjk"))),
             ]},
             collapsible: {default_collapsed: false},
-        });
+        };
     }else if(base.kind === "redditlike_post") {
-        const req = Generic.p2.fillLink(content, baseContentRequestLink(base), opaque_loader.encode({
-            kind: "content",
-            for_post: base,
-        }));
-        return {
-            kind: "one_loader", key: baseContentLink(base),
-            load_count: null, request: req, client_id: client.id, autoload: false,
-        };
+        return {kind: "post", title: null, collapsible: false, body: {kind: "text", content: "error todo", client_id: client.id, markdown_format: "none"}};
     }else{
-        const gp2sl = Generic.p2.createSymbolLinkToError(content, "content not available for "+(base as Base).kind, base);
-        return {
-            kind: "one_loader", key: gp2sl,
-            load_count: null, request: gp2sl, client_id: client.id, autoload: false, 
-        };
+        return {kind: "post", title: null, collapsible: false, body: {kind: "text", content: "error todo", client_id: client.id, markdown_format: "none"}};
     }
 }
 

@@ -359,7 +359,7 @@ export type PostContent = ClientPost | {
     },
     // overview: ClientPost, // I think this is supposed to be for if rendered below the pivot
     // vv todo delete this one and only use the loader one
-} | OneLoader<PostContentPost> | {
+} | PostContentPost | {
     kind: "legacy",
     thread: Thread,
     client_id: string,

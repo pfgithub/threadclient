@@ -172,13 +172,8 @@ export function postCollapseInfo(
     user_controllable: false,
 }) {
     if(post.kind === "flat_post") {
-        if(post.post.content.kind === "one_loader") {
-            const oneloader = post.post.content;
-            const ol_v = Generic.readLink(hprc.content(), oneloader.key);
-            if(ol_v != null && ol_v.error == null) { 
-
-                return {...postContentCollapseInfo(ol_v.value, opts), collapse_link: post.link};
-            }
+        if(post.post.content.kind === "post") {
+            return {...postContentCollapseInfo(post.post.content, opts), collapse_link: post.link};
         }
     }
     return {default_collapsed: false, user_controllable: false};

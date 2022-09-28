@@ -20,10 +20,8 @@ export default function ReaderView(props: {
         const res = readLink(hprc.content(), props.pivot);
         if(res == null || res.error != null) throw new Error("rve");
         const v = res.value;
-        if(v.kind === "post" && v.content.kind === "one_loader") {
-            const rlv = readLink(hprc.content(), v.content.key);
-            if(rlv == null || rlv.error != null) throw new Error("rve");
-            return {v, content: rlv.value};
+        if(v.kind === "post" && v.content.kind === "post") {
+            return {v, content: v.content};
         }
         throw new Error("eunsupported");
     });

@@ -75,7 +75,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
-                    content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                    content: {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
@@ -83,7 +83,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.p(rt.txt("ThreadClient does not support this URL")),
                         ]},
                         collapsible: false,
-                    }),
+                    },
                     parent: parentIsClient(content),
                     replies: null,
                     url: null,
@@ -96,7 +96,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
-                    content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                    content: {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
@@ -107,7 +107,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.p(rt.txt(parsed.msg)),
                         ]},
                         collapsible: false,
-                    }),
+                    },
                     parent: parentIsClient(content),
                     replies: null,
                     url: null,
@@ -126,7 +126,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
-                    content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                    content: {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
@@ -136,7 +136,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.p(rt.txt("Error! Redirect Loop. ThreadClient tried to redirect more than 100 times.")),
                         ]},
                         collapsible: false,
-                    }),
+                    },
                     parent: parentIsClient(content),
                     replies: null,
                     url: null,
@@ -152,12 +152,12 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
-                    content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                    content: {
                         kind: "post",
                         title: {text: "Sidebar"},
                         body: {kind: "none"},
                         collapsible: false,
-                    }),
+                    },
                     parent: parentIsClient(content),
                     replies: {
                         display: "tree",
@@ -191,7 +191,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                         kind: "post",
                         client_id: client.id,
-                        content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                        content: {
                             kind: "post",
                             title: {text: "Not Supported"},
                             body: {kind: "richtext", content: [
@@ -201,7 +201,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                                 rt.p(rt.txt("TODO: support submitting to "+parsed.sub.kind)),
                             ]},
                             collapsible: false,
-                        }),
+                        },
                         parent: parentIsSubreddit(content, {
                             sub: parsed.sub,
                             sort: null,
@@ -249,7 +249,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                 kind: "post",
                 client_id: client.id,
-                content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                content: {
                     kind: "post",
                     title: {text: "Error Loading Page"},
                     body: {kind: "richtext", content: [
@@ -283,7 +283,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         ),
                     ]},
                     collapsible: false,
-                }),
+                },
                 parent: parentIsClient(content),
                 replies: null,
                 url: null,
@@ -685,7 +685,7 @@ function unsupportedPage(
         parent: parentIsClient(content),
         url: null,
         replies: null,
-        content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+        content: ({
             kind: "post",
             title: {text: "Error!"},
             collapsible: false,
@@ -1004,7 +1004,7 @@ function postDataFromListingMayError(
             parent,
             replies,
 
-            content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+            content: ({
                 kind: "post",
                 title: null,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
@@ -1105,7 +1105,7 @@ function postDataFromListingMayError(
             }),
             replies,
 
-            content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+            content: ({
                 kind: "post",
                 title: {text: listing.title},
                 collapsible: {default_collapsed: true},
@@ -1296,7 +1296,7 @@ function postDataFromListingMayError(
             }), // TODO subreddit (this should also add `| SubName`) in the page title
             // simple; just add subrinfo into wikipage
             replies: null,
-            content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+            content: ({
                 kind: "post",
                 title: {text: title},
                 collapsible: false,

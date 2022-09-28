@@ -54,15 +54,13 @@ export function ClientContent(props: {
     whole_object_clickable?: undefined | boolean,
 }): JSX.Element {
     return <DefaultErrorBoundary data={[props.content, props.opts]}><SwitchKind item={props.content}>{{
-        one_loader: postv => (
-            <OneLoader label="Load Post" loader={postv}>{content => (
-                <ClientPost
-                    content={content}
-                    opts={props.opts}
-                    hovering={props.hovering}
-                    whole_object_clickable={props.whole_object_clickable}
-                />
-            )}</OneLoader>
+        post: content => (
+            <ClientPost
+                content={content}
+                opts={props.opts}
+                hovering={props.hovering}
+                whole_object_clickable={props.whole_object_clickable}
+            />
         ),
         page: page => {
             // note: if the flat item indicates that this is below the pivot && not the main sidebar id card:

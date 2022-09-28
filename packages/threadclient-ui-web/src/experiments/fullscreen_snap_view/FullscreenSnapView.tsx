@@ -13,7 +13,7 @@ import { FlatReplies, FlatReplyTsch } from "../../components/flatten2";
 import { FormattableNumber } from "../../components/flat_posts";
 import Icon, { InternalIconRaw } from "../../components/Icon";
 import InfoBar, { formatItemString } from "../../components/InfoBar";
-import OneLoader, { UnfilledLoader } from "../../components/OneLoader";
+import { UnfilledLoader } from "../../components/OneLoader";
 import { ClientPostOpts } from "../../components/Post";
 import { getVideoSources, NativeVideoElement, VideoRef, VideoState } from "../../components/preview_video";
 import proxyURL from "../../components/proxy_url";
@@ -662,14 +662,12 @@ export default function FullscreenSnapView(props: {
                     'flat_post': flat_post => <SwitchKind item={flat_post.post.content} fallback={obj => <>
                         E;TODO;{obj.kind}
                     </>}>{{
-                        'one_loader': oneloader => <OneLoader label="Load Post" loader={oneloader} children={post => (
-                            <FullscreenPost content={post} opts={{
-                                client_id: flat_post.post.client_id,
-                                frame: flat_post.post,
-                                flat_frame: null,
-                                id: flat_post.link,
-                            }} />
-                        )} />,
+                        'post': post => <FullscreenPost content={post} opts={{
+                            client_id: flat_post.post.client_id,
+                            frame: flat_post.post,
+                            flat_frame: null,
+                            id: flat_post.link,
+                        }} />,
                     }}</SwitchKind>,
                 }}</SwitchKind>
             </VirtualElement>;

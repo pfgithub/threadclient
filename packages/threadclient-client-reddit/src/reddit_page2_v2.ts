@@ -293,7 +293,7 @@ export const full_post = {
             sort: post.post.sort.v,
         } : {});
     },
-    content: autoFill((full: FullPostT3) => autoLinkgen<Generic.PostContentPost>("postT3_full→content", full), (content, full): Generic.PostContentPost => {
+    content: (content: Generic.Page2Content, full: FullPostT3): Generic.PostContentPost => {
         const listing = full.data.data;
         return {
             kind: "post",
@@ -325,7 +325,7 @@ export const full_post = {
                 ],
             },
         };
-    }),
+    },
     fill: autoFill((full: FullPostT3) => base_post.postLink(full.post), (content, full): Generic.Post => {
         return {
             kind: "post",
@@ -335,7 +335,7 @@ export const full_post = {
             parent: base_subreddit.asParent(content, full.post.on_subreddit),
             replies: todoReplies(content),
 
-            content: Generic.p2.prefilledOneLoader(content, full_post.content(content, full), undefined),
+            content: full_post.content(content, full),
             internal_data: full,
         };
     }),

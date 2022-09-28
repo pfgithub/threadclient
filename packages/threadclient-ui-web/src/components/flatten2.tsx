@@ -522,18 +522,10 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
             for(const itm of parentsArr()) {
                 if(itm.kind !== "flat_post") continue;
                 const post = unwrapPost(itm.post);
-                if(post.content.kind === "one_loader") {
-                    const known_value = Generic.readLink(hprc.content(), post.content.key);
-                    if(known_value != null) {
-                        if(known_value.error != null) {
-                            res_post = "*Error*";
-                        }else{
-                            const titlev = known_value.value.title;
-                            if(titlev != null) res_post = titlev.text;
-                        }
-                    }else{
-                        res_post = "Loading…";
-                    }
+                if(post.content.kind === "post") {
+                    const known_value = post.content;
+                    const titlev = known_value.title;
+                    if(titlev != null) res_post = titlev.text;
                 }else if(post.content.kind === "page") {
                     const header = post.content.wrap_page.header;
                     const known_value = Generic.readLink(hprc.content(), header.filled.key);
