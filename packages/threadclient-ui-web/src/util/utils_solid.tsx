@@ -8,6 +8,7 @@ import { localStorageSignal, Show } from "tmeta-util-solid";
 import { CollapseData } from "../components/flatten";
 import { link_styles_v } from "../page1";
 import { MutablePage2HistoryNode } from "../page1_routing";
+import Page2ContentManager from "./Page2ContentManager";
 
 export { localStorageSignal };
 export { screenWidth };
@@ -31,9 +32,7 @@ export function getIsVisible(): (() => boolean) {
 
 export type PageRootContext = {
     pgin: () => MutablePage2HistoryNode,
-    // vv @TODO@ content: Map<string, Signal<Generic.Page2Content[string]>>
-    //     and then make our own readLink fns and stuff
-    content: () => Generic.Page2Content,
+    content: () => Page2ContentManager,
     addContent: (node: MutablePage2HistoryNode, content: Generic.Page2Content) => void,
 };
 

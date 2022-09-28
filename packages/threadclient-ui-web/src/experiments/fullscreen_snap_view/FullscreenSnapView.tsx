@@ -1,5 +1,4 @@
 import type * as Generic from "api-types-generic";
-import { readLink } from "api-types-generic";
 import { Accessor, createContext, createEffect, createMemo, createSignal, For, JSX, onCleanup, onMount, Signal, untrack, useContext } from "solid-js";
 import { createStore } from "solid-js/store";
 import { Dynamic, render } from "solid-js/web";
@@ -612,7 +611,7 @@ export default function FullscreenSnapView(props: {
         replies: Generic.PostReplies,
         pivot: Generic.Post,
     } => {
-        const res = readLink(hprc.content(), props.pivot);
+        const res = hprc.content().view(props.pivot);
         if(res == null || res.error != null) throw new Error("rve");
         const v = res.value;
         if(v.kind !== "post") throw new Error("rve2");
@@ -678,7 +677,7 @@ export default function FullscreenSnapView(props: {
             url: updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined}),
             client_id: m().pivot.client_id,
             mode: "replace",
-            page: (): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot}),
+            page: (): Generic.Page2 => ({content: hprc.content().untrackToContent(), pivot: props.pivot}),
         }}
     >
         <InternalIconRaw

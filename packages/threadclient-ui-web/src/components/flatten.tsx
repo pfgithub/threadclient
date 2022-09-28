@@ -60,7 +60,7 @@ export type FlatItem = ({
     kind: "repivot_list_fullscreen_button",
 
     client_id: string,
-    page: () => Generic.Page2,
+    pivot: () => Generic.Link<Generic.Post>,
     href: string,
     name: string,
 } | FlatPost | {

@@ -24,6 +24,7 @@ import { hidePage2, MutablePage2HistoryNode, navigate, showPage2 } from "./page1
 import { rootel } from "./router";
 import { getPointsText, isModifiedEvent, unsafeLinkToSafeLink, watchCounterState } from "./tc_helpers";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
+import Page2ContentManager from "./util/Page2ContentManager";
 import { DefaultErrorBoundary, getSettings } from "./util/utils_solid";
 
 function linkButton(
@@ -2206,7 +2207,12 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         if(!client.getThread || client.getPage && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
             const page2 = await client.getPage!(current_path);
             const split = splitPathPage1Ver(current_path);
-            const page: MutablePage2HistoryNode = {page: page2, query: split.search};
+            const p2v = new Page2ContentManager();
+            p2v.setData(page2.content);
+            const page: MutablePage2HistoryNode = {page: {
+                pivot: page2.pivot,
+                content: p2v,
+            }, query: split.search};
 
             // const {default: ClientPage} = await import("./components/page2");
             loader_area.remove();

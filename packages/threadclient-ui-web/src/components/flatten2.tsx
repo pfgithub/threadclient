@@ -77,7 +77,7 @@ export function FlatRepliesHL(props: {
 }): JSX.Element {
     const hprc = getWholePageRootContext();
     return createMemo(() => {
-        const val = Generic.readLink(hprc.content(), props.replies.key);
+        const val = hprc.content().view(props.replies.key);
         if(val == null) {
             return FlatReplyTsch(loaderToFlatLoader(props.replies));
         }
@@ -86,7 +86,7 @@ export function FlatRepliesHL(props: {
         }
         return <For each={val.value ?? []}>{reply => createMemo(() => {
             if(typeof reply === "object") return <FlatRepliesHL replies={reply} />;
-            const readlink = Generic.readLink(hprc.content(), reply);
+            const readlink = hprc.content().view(reply);
             if(readlink == null) {
                 return <FlatReplyTsch kind="error" msg={"e-link-bad: "+reply.toString()} />;
             }else if(readlink.error != null) {
@@ -121,7 +121,7 @@ function HighestArray(props: {
         const highest = props.post;
         if(highest == null) return [];
 
-        const postloaded = Generic.readLink(hprc.content(), highest);
+        const postloaded = hprc.content().view(highest);
         if(postloaded == null) {
             return <FlatReplyTsch kind="error" msg={"[flat]link not found: "+highest.toString()} />;
         }
@@ -136,7 +136,7 @@ function HighestArray(props: {
                 }
 
                 const {loader} = parent;
-                const loaded = Generic.readLink(hprc.content(), loader.key);
+                const loaded = hprc.content().view(loader.key);
                 if(!loaded) {
                     // insert a loader and the temp_parent and then continue with temp_parent.parent
                     return <>
@@ -408,7 +408,8 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
 
     const hprc = getWholePageRootContext();
     const pivot = createMemo(() => {
-        const pivot_read = Generic.readLink(hprc.content(), pivotLink());
+        const pivot_read = hprc.content().view(pivotLink());
+        console.log("%=PIVOT UPDATED=%", pivot_read);
         if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
         return pivot_read.value;
     });
@@ -441,7 +442,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
             }else if(uwv?.content.kind === "page") {
                 above_header = true;
                 const header = uwv.content.wrap_page.header;
-                const known_value = Generic.readLink(hprc.content(), header.filled.key);
+                const known_value = hprc.content().view(header.filled.key);
                 if(known_value != null) {
                     if(known_value.error != null) {
                         title.push("*Error* ("+header.limited.name_raw+")");
@@ -482,6 +483,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
 
     const bodyCh = FlatItemTsch.useChildren(() => {
         const p = pivot(); // if pivot changes, we rerender everything
+        console.log("%!PIVOT IS", p, pivotLink, hprc);
         return <>
             <For each={parentsFiltered().view_parents}>{(item): JSX.Element => <>
                 <FlatItemTsch kind="wrapper_start" />
@@ -504,7 +506,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                 <FlatItemTsch
                     kind="repivot_list_fullscreen_button"
                     client_id={p.client_id}
-                    page={() => ({pivot: pivotLink(), content: hprc.content()})}
+                    pivot={() => pivotLink()}
                     href={updateQuery(p.url ?? "@ENO", {'--tc-view': "reader"})}
                     name="Reader"
                 />
@@ -524,7 +526,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     <FlatItemTsch
                         kind="repivot_list_fullscreen_button"
                         client_id={p.client_id}
-                        page={() => ({pivot: pivotLink(), content: hprc.content()})}
+                        pivot={() => pivotLink()}
                         href={updateQuery(p.url ?? "@ENO", {'--tc-view': "fullscreen"})}
                         name="Fullscreen"
                     />

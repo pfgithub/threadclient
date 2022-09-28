@@ -37,7 +37,7 @@ export function UnfilledLoader(props: {
             (async () => {
                 if(error() != null) await new Promise(r => setTimeout(r, 200));
 
-                const request = Generic.readLink(hprc.content(), loader.request);
+                const request = hprc.content().view(loader.request);
                 if(request == null) throw new Error("e-request-null: "+loader.request.toString());
                 if(request.error != null) throw new Error(request.error);
                 const client = await fetchClient(loader.client_id);

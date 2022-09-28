@@ -1,5 +1,4 @@
 import type * as Generic from "api-types-generic";
-import { readLink } from "api-types-generic";
 import { createMemo, JSX } from "solid-js";
 import { updateQuery } from "tmeta-util";
 import { Show } from "tmeta-util-solid";
@@ -17,7 +16,7 @@ export default function ReaderView(props: {
 }): JSX.Element {
     const hprc = getWholePageRootContext();
     const pivotedPost = createMemo((): {v: Generic.Post, content: Generic.PostContentPost} => {
-        const res = readLink(hprc.content(), props.pivot);
+        const res = hprc.content().view(props.pivot);
         if(res == null || res.error != null) throw new Error("rve");
         const v = res.value;
         if(v.kind === "post" && v.content.kind === "post") {
@@ -34,7 +33,7 @@ export default function ReaderView(props: {
                 action={{
                     mode: "replace",
                     client_id: pivotedPost().v.client_id,
-                    page: (): Generic.Page2 => ({content: hprc.content(), pivot: props.pivot}),
+                    page: (): Generic.Page2 => ({content: hprc.content().untrackToContent(), pivot: props.pivot}),
                     url: updateQuery(pivotedPost().v.url ?? "ENO", {'--tc-view': undefined}),
                 }}
             >

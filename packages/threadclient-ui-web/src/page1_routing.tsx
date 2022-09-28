@@ -1,5 +1,5 @@
 import type * as Generic from "api-types-generic";
-import { createEffect, createSignal, untrack } from "solid-js";
+import { batch, createEffect, createSignal, untrack } from "solid-js";
 import { render } from "solid-js/web";
 import { UUID } from "tmeta-util";
 import { Debugtool, Show } from "tmeta-util-solid";
@@ -10,17 +10,17 @@ import {
     nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
+import Page2ContentManager from "./util/Page2ContentManager";
 import { DefaultErrorBoundary, getSettings, PageRootProvider } from "./util/utils_solid";
 
 
 export type MutablePage2HistoryNode = {
-    page: Generic.Page2,
+    page: {
+        pivot: Generic.Link<Generic.Post>,
+        content: Page2ContentManager,
+    },
     query: string,
 };
-function addLayer(node: Generic.Page2, new_layer: Generic.Page2Content): Generic.Page2 {
-    console.log("!ADDDING LAYER", node, new_layer);
-    return {...node, content: {...node.content, ...new_layer}};
-}
 
 export let showPage2!: (page: MutablePage2HistoryNode, first_show: boolean) => void;
 export let hidePage2!: () => void;
@@ -40,10 +40,12 @@ export let hidePage2!: () => void;
             <PageRootProvider
                 pgin={pgin()}
                 addContent={(upd_pgin, content) => {
-                    upd_pgin.page = addLayer(upd_pgin.page, content);
-                    if(pgin() === upd_pgin) {
-                        setPgin(pgin()); // the pgin that was updated is currently being viewed; refresh
-                    }
+                    batch(() => {
+                        upd_pgin.page.content.addData(content);
+                        if(pgin() === upd_pgin) {
+                            setPgin(pgin()); // the pgin that was updated is currently being viewed; refresh
+                        }
+                    });
                 }}
             >
                 {untrack(() => {
@@ -163,7 +165,13 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
 
     if(page) {
         const page2 = page;
-        const pagemut: MutablePage2HistoryNode = {page: page2, query: url.search};
+        const cmr = new Page2ContentManager();
+        console.log("%ON NAVIGATE%", page);
+        cmr.setData(page2.content);
+        const pagemut: MutablePage2HistoryNode = {page: {
+            pivot: page2.pivot,
+            content: cmr,
+        }, query: url.search};
 
         showPage2(pagemut, true);
         nav_history_map.set(to_key, {node: {

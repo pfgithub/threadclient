@@ -21,7 +21,7 @@ function DisplayPost(props: {
     
         const view = FlatItemTsch.useChildren(() => <FlattenTreeItem
             tree_item={(() => {
-                const readlink = Generic.readLink(hprc.content(), props.post);
+                const readlink = hprc.content().view(props.post);
                 if(readlink == null || readlink.error != null) throw new Error("e;bad;;"+readlink);
                 const flat_tree_item: FlatTreeItem = {kind: "flat_post", link: props.post, post: readlink.value};
                 return flat_tree_item;
@@ -55,9 +55,10 @@ function FeaturePreviewCard(props: {
 }): JSX.Element {
     const hprc = getWholePageRootContext();
     return <Clickable action={{url: props.link, client_id: "shell", page: (): Generic.Page2 | undefined => {
-        if(!hprc.content()[props.link]) return undefined;
+        const rlres = hprc.content().view(props.link as Generic.Link<Generic.Post>);
+        if(rlres == null) return undefined;
         return {
-            content: hprc.content(),
+            content: hprc.content().untrackToContent(),
             pivot: props.link as Generic.Link<Generic.Post>,
         };
     }}} class={`

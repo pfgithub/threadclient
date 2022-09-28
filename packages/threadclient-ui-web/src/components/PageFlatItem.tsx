@@ -94,6 +94,7 @@ export default function PageFlatItem(props: {item: FlatItem, collapse_data: Coll
     </DefaultErrorBoundary>;
 }
 function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData}): JSX.Element {
+    const hprc = getWholePageRootContext();
     return <SwitchKind item={props.item}>{{
         // TODO: remove wrapper_start and wrapper_end and instead make these properties of loader_or_post
         // TODO: improve how gaps are made. make gaps automatically between posts for example. margin
@@ -102,7 +103,10 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
         wrapper_end: () => <div class={"pb-2 sm:rounded-b-lg bg-slate-100 dark:bg-zinc-800"} />,
         repivot_list_fullscreen_button: fsb => <Clickable
             class="bg-slate-100 dark:bg-zinc-800 p-2 rounded-md"
-            action={{url: fsb.href, client_id: fsb.client_id, page: fsb.page, mode: "replace"}}
+            action={{url: fsb.href, client_id: fsb.client_id, page: () => ({
+                content: hprc.content().untrackToContent(),
+                pivot: fsb.pivot(),
+            }), mode: "replace"}}
         >
             <InternalIconRaw class="fa-solid fa-up-right-and-down-left-from-center" label={null} />
             {" "}{fsb.name}
@@ -217,7 +221,7 @@ export function postGetPage(hprc: PageRootContext, lpc: FlatTreeItem): Generic.P
     if(lpc.post.disallow_pivot ?? false) return undefined;
     return {
         pivot: lpc.link,
-        content: hprc.content(),
+        content: hprc.content().untrackToContent(),
     };
 }
 export function postOnClick(hprc: PageRootContext, frame: FlatPost, e: MouseEvent | KeyboardEvent): void {

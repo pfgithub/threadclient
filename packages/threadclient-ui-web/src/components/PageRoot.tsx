@@ -1,5 +1,4 @@
 import type * as Generic from "api-types-generic";
-import { readLink } from "api-types-generic";
 import {
     createMemo,
     createSignal,
@@ -29,7 +28,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
     const hprc = getWholePageRootContext();
 
     const specialCB = createMemo((): null | SpecialCallback => {
-        const value = readLink(hprc.content(), props.pivot);
+        const value = hprc.content().view(props.pivot);
         if(value == null) return null;
         if(value.value == null) return null;
         const v = value.value;
