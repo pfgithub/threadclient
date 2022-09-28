@@ -96,7 +96,7 @@ type BaseSubmitPage = {
 
 // consider using the base .id() fn instead of json.stringify [!] not url
 // - turn base into a class that BaseClient/BaseSubredditT5/… extend
-function autoLinkgen<ResTy>(cid: string, base: unknown): Generic.Link<ResTy> {
+function autoLinkgen<ResTy>(cid: string, base: unknown): Generic.NullableLink<ResTy> {
     return Generic.p2.stringLink(cid + ":" + JSON.stringify(base));
 }
 function autoOutline<Base, ResTy>(
@@ -105,22 +105,20 @@ function autoOutline<Base, ResTy>(
 ): (content: Generic.Page2Content, base: Base) => Generic.Link<ResTy> {
     return (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
         const link = autoLinkgen<ResTy>(unique_consistent_id, base);
-        Generic.p2.fillLinkOnce(content, link, () => {
+        return Generic.p2.fillLinkOnce(content, link, () => {
             return getContent(content, base);
         });
-        return link;
     };
 }
 function autoFill<Base, ResTy>(
-    getLink: (base: Base) => Generic.Link<ResTy>,
+    getLink: (base: Base) => Generic.NullableLink<ResTy>,
     getContent: (content: Generic.Page2Content, base: Base) => ResTy,
 ): (content: Generic.Page2Content, base: Base) => Generic.Link<ResTy> {
     return (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
         const link = getLink(base);
-        Generic.p2.fillLinkOnce(content, link, () => {
+        return Generic.p2.fillLinkOnce(content, link, () => {
             return getContent(content, base);
         });
-        return link;
     };
 }
 // possibly we make a seperate fn for fillds
@@ -174,12 +172,13 @@ export const base_subreddit = {
             client_id,
         };
     }),
-    idFilled: (base: BaseSubredditT5): Generic.Link<Generic.HorizontalLoaded> => {
+    idFilled: (base: BaseSubredditT5): Generic.NullableLink<Generic.HorizontalLoaded> => {
         return autoLinkgen<Generic.HorizontalLoaded>("subreddit→replies", base);
     },
     replies: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.PostReplies => {
-        const id_loader = autoLinkgen<Generic.Opaque<"loader">>("subreddit→replies_loader", base);
-        Generic.p2.fillLinkOnce(content, id_loader, () => {
+        const id_loader = Generic.p2.fillLinkOnce(content, (
+            autoLinkgen<Generic.Opaque<"loader">>("subreddit→replies_loader", base)
+        ), () => {
             return opaque_loader.encode({
                 kind: "subreddit_posts",
                 subreddit: base,
@@ -218,7 +217,7 @@ export const full_subreddit = {
                 res.push({
                     kind: "horizontal_loader",
                     key: Generic.p2.symbolLink("todo"),
-                    request: Generic.p2.symbolLink("todo"),
+                    request: Generic.p2.createSymbolLinkToError(content, "todo", 0),
                     client_id,
                 });
             }
@@ -232,8 +231,9 @@ export const full_subreddit = {
 
 export const base_subreddit_sidebar = {
     identity: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.IdentityCard => {
-        const id_loader = autoLinkgen<Generic.Opaque<"loader">>("subreddit_identity→loader", base);
-        Generic.p2.fillLinkOnce(content, id_loader, () => {
+        const id_loader = Generic.p2.fillLinkOnce(content, (
+            autoLinkgen<Generic.Opaque<"loader">>("subreddit_identity→loader", base)
+        ), () => {
             return opaque_loader.encode({
                 kind: "todo",
             });
@@ -259,8 +259,9 @@ export const base_subreddit_sidebar = {
         };
     },
     replies: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.PostReplies => {
-        const id_loader = autoLinkgen<Generic.Opaque<"loader">>("subreddit_sidebar→replies_loader", base);
-        Generic.p2.fillLinkOnce(content, id_loader, () => {
+        const id_loader = Generic.p2.fillLinkOnce(content, (
+            autoLinkgen<Generic.Opaque<"loader">>("subreddit_sidebar→replies_loader", base)
+        ), () => {
             return opaque_loader.encode({
                 kind: "todo",
             });

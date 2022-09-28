@@ -39,30 +39,30 @@ export type Page2Value<T> = {
 */
 
 export const p2 = {
-    symbolLink<T>(debug_msg: string): Link<T> {
-        const value = Symbol(debug_msg) as Link<T>;
+    symbolLink<T>(debug_msg: string): NullableLink<T> {
+        const value = Symbol(debug_msg) as NullableLink<T>;
         return value;
     },
     createSymbolLinkToError(content: Page2Content, emsg: string, data: unknown): Link<any> {
         // TODO provide data for additional info about the error
         const link = p2.symbolLink<any>("immediate error value");
         content[link] = {error: emsg};
-        return link;
+        return link as unknown as Link<any>;
     },
     createSymbolLinkToValue<T>(content: Page2Content, value: T): Link<T> {
         const link = p2.symbolLink<T>("immediate value");
         content[link] = {data: value};
-        return link;
+        return link as unknown as Link<T>;
     },
 
-    stringLink<T>(link: string): Link<T> {
-        return link as Link<T>;
+    stringLink<T>(link: string): NullableLink<T> {
+        return link as NullableLink<T>;
     },
-    fillLink<T>(content: Page2Content, link: Link<T>, value: T): Link<T> {
+    fillLink<T>(content: Page2Content, link: NullableLink<T>, value: T): Link<T> {
         content[link] = {data: value};
-        return link;
+        return link as unknown as Link<T>;
     },
-    fillLinkOnce<T>(content: Page2Content, link: Link<T>, value: () => T): Link<T> {
+    fillLinkOnce<T>(content: Page2Content, link: NullableLink<T>, value: () => T): Link<T> {
         if(!Object.hasOwn(content, link)) {
             content[link] = {error: "filling…"};
             try{
@@ -72,7 +72,7 @@ export const p2 = {
                 content[link] = {error: e.toString() + "\n" + e.stack};
             }
         }
-        return link;
+        return link as unknown as Link<T>;
     },
 
     // a vertical loader that has filled content, so there's no need to describe how to load it
@@ -99,7 +99,7 @@ export const p2 = {
     // - what is going on here?
     prefilledVerticalLoader(
         content: Page2Content,
-        key: Link<VerticalLoaded>,
+        key: NullableLink<VerticalLoaded>,
         fill: VerticalLoaded | undefined,
     ): VerticalLoader {
         // eslint-disable-next-line eqeqeq
@@ -116,7 +116,7 @@ export const p2 = {
     },
     prefilledHorizontalLoader(
         content: Page2Content,
-        key: Link<HorizontalLoaded>,
+        key: NullableLink<HorizontalLoaded>,
         fill: HorizontalLoaded | undefined,
     ): HorizontalLoader {
         // eslint-disable-next-line eqeqeq
@@ -132,7 +132,7 @@ export const p2 = {
     },
     prefilledOneLoader<T>(
         content: Page2Content,
-        key: Link<T>,
+        key: NullableLink<T>,
         fill: T | undefined,
     ): OneLoader<T> {
         // eslint-disable-next-line eqeqeq
@@ -159,6 +159,8 @@ export type LoaderResult = {
 
 // !NOTE: the empty string is not a valid link due to eslint limitations
 export type Link<T> = (string | symbol) & {__is_link: T};
+type NullLink<T> = (string | symbol) & {__is_null_link: T};
+export type NullableLink<T> = Link<T> | NullLink<T>;
 
 export type ReadLinkResult<T> = {value: T, error: null} | {error: string, value: null};
 export function readLink<T>(content: Page2Content, link: Link<T>): null | ReadLinkResult<T> {
@@ -226,7 +228,7 @@ export type SortOption = ({
 export type VerticalLoaded = Post;
 export type VerticalLoader = {
     kind: "vertical_loader",
-    key: Link<VerticalLoaded>, // null = no parent. unfilled = not yet loaded
+    key: NullableLink<VerticalLoaded>,
 
     temp_parent: null | Link<Post>, // temporary parent until the link is fliled. we could, after loading, assert that
     // this parent is somewhere in the loaded post's tree because if it isn't, it's likely an error.
@@ -234,12 +236,12 @@ export type VerticalLoader = {
 export type HorizontalLoaded = (Link<Post> | HorizontalLoader)[];
 export type HorizontalLoader = {
     kind: "horizontal_loader",
-    key: Link<HorizontalLoaded>, // unfilled = not yet loaded
+    key: NullableLink<HorizontalLoaded>, // unfilled = not yet loaded
 } & BaseLoader;
 export type OneLoaded<T> = T;
 export type OneLoader<T> = {
     kind: "one_loader",
-    key: Link<OneLoaded<T>>,
+    key: NullableLink<OneLoaded<T>>,
 } & BaseLoader;
 
 export type BaseLoader = {
