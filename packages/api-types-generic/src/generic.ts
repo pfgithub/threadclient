@@ -7,6 +7,36 @@ import type {OEmbed} from "api-types-oembed";
 export type Page2Content = {
     [key: string | symbol]: {data: unknown} | {error: string} | undefined,
 };
+/*
+Changes to Page2Content:
+- 1. remove 'error'. gone. remove.
+- Some objects should be updated any time new data becomes available. Some
+  objects should only be updated when repivoting. Provide a way to indicate this
+
+specifically:
+- Objects that change with time should be updated immediately. For example:
+  a reddit filled identity card
+- Objects that should basically never change should only be updated when
+   .untrackToContent() is called on the page2manager thing.
+
+Changes to link types:
+- Provide NullableLink<T>
+- Link<T> assignable to NullableLink<T> but not the inverse
+- loader keys are NullableLink<T>, everything else is Link<T>
+
+new type:
+export type Page2Content = {
+    [key: string | symbol]: Page2Value<unknown> | undefined,
+};
+export type Page2Value<T> = {
+    data: T,
+    replace_existing_immediately: boolean,
+    // note: if false, it will still replace existing eventually when the user repivots.
+};
+
+// replace_existing_immediately should be true on any data reliant on info in a Full
+// replace_existing_immediately should be false on any data that can be gotten directly from a Base
+*/
 
 export const p2 = {
     symbolLink<T>(debug_msg: string): Link<T> {
