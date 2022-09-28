@@ -9,7 +9,7 @@ import { getVredditSources } from "threadclient-preview-vreddit";
 import { getPage, loadPage2, submitPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
 
-const client_id = "biw1k0YZmDUrjg";
+const reddit_app_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
 
 type FlairBits = {
@@ -458,7 +458,7 @@ async function getAccessTokenInternal() {
         const v = await fetch("https://www.reddit.com/api/v1/access_token", {
             method: "POST", mode: "cors", credentials: "omit",
             headers: {
-                'Authorization': "Basic "+btoa(client_id+":"),
+                'Authorization': "Basic "+btoa(reddit_app_id+":"),
                 'Content-Type': "application/x-www-form-urlencoded",
             },
             body: encodeQuery({
@@ -503,7 +503,7 @@ async function getAccessTokenInternal() {
         const [status, v] = await fetch("https://www.reddit.com/api/v1/access_token", {
             method: "POST", mode: "cors", credentials: "omit",
             headers: {
-                'Authorization': "Basic "+btoa(client_id+":"),
+                'Authorization': "Basic "+btoa(reddit_app_id+":"),
                 'Content-Type': "application/x-www-form-urlencoded",
             },
             body: encodeURL`grant_type=refresh_token&refresh_token=${json.refresh_token}`,
@@ -953,7 +953,7 @@ export function rawlink(path: string): string {
 }
 export function getNavbar(page_url: string | null): Generic.Navbar {
     const always_actions: Generic.Action[] = page_url != null ? [
-        {kind: "link", text: "View on reddit.com", url: rawlink(page_url), client_id: "reddit"},
+        {kind: "link", text: "View on reddit.com", url: rawlink(page_url), client_id: client.id},
     ] : [];
     if(isLoggedIn()) return {
         actions: [{kind: "act", client_id: client.id, action: act_encoder.encode({kind: "log_out"}), text: "Log Out"}, ...always_actions],
@@ -2467,7 +2467,7 @@ function getLoginURL() {
     ].join(" ");
 
     const url = `raw!https://www.reddit.com/api/v1/authorize?` +
-        encodeQuery({client_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
+        encodeQuery({client_id: reddit_app_id, response_type: "code", state, redirect_uri, duration: "permanent", scope})
     ;
     return url;
 }
@@ -2749,8 +2749,9 @@ export function ec<T extends string>(v: T): Reddit.PathBit<T> {
     return v as Reddit.PathBit<T>;
 }
 
+export const client_id = "reddit";
 export const client: ThreadClient = {
-    id: "reddit",
+    id: client_id,
     // loginURL: getLoginURL(),
     getPage,
     loader: loadPage2,
@@ -2989,7 +2990,7 @@ export const client: ThreadClient = {
         const v = await fetch("https://www.reddit.com/api/v1/access_token", {
             method: "POST", mode: "cors", credentials: "omit",
             headers: {
-                'Authorization': "Basic "+btoa(client_id+":"),
+                'Authorization': "Basic "+btoa(reddit_app_id+":"),
                 'Content-Type': "application/x-www-form-urlencoded",
             },
             body: encodeQuery({grant_type: "authorization_code", code, redirect_uri}),

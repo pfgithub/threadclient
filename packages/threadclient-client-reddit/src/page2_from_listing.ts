@@ -11,6 +11,7 @@ import {
     ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
+import { asLowercaseString, base_subreddit } from "./reddit_page2_v2";
 import { getSidebar } from "./sidebars";
 
 /*
@@ -58,13 +59,23 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
 
         console.log("PARSED URL:", parsed);
 
+        if(parsed.kind === "subreddit") {
+            if(parsed.sub.kind === "subreddit") {
+                const link = base_subreddit.post(content, {
+                    subreddit: asLowercaseString(parsed.sub.subreddit),
+                    sort: parsed.current_sort,
+                });
+                return {pivot: link, content};
+            }
+        }
+
         if(parsed.kind === "link_out") {
             return {
                 content,
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
-                    content: {
+                    content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
@@ -72,7 +83,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.p(rt.txt("ThreadClient does not support this URL")),
                         ]},
                         collapsible: false,
-                    },
+                    }),
                     parent: parentIsClient(content),
                     replies: null,
                     url: null,
@@ -85,7 +96,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
-                    content: {
+                    content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
@@ -96,7 +107,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.p(rt.txt(parsed.msg)),
                         ]},
                         collapsible: false,
-                    },
+                    }),
                     parent: parentIsClient(content),
                     replies: null,
                     url: null,
@@ -115,7 +126,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
-                    content: {
+                    content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                         kind: "post",
                         title: {text: "Not Supported"},
                         body: {kind: "richtext", content: [
@@ -125,7 +136,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                             rt.p(rt.txt("Error! Redirect Loop. ThreadClient tried to redirect more than 100 times.")),
                         ]},
                         collapsible: false,
-                    },
+                    }),
                     parent: parentIsClient(content),
                     replies: null,
                     url: null,
@@ -141,12 +152,12 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                     kind: "post",
                     client_id: client.id,
-                    content: {
+                    content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                         kind: "post",
                         title: {text: "Sidebar"},
                         body: {kind: "none"},
                         collapsible: false,
-                    },
+                    }),
                     parent: parentIsClient(content),
                     replies: {
                         display: "tree",
@@ -180,7 +191,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                         kind: "post",
                         client_id: client.id,
-                        content: {
+                        content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                             kind: "post",
                             title: {text: "Not Supported"},
                             body: {kind: "richtext", content: [
@@ -190,7 +201,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                                 rt.p(rt.txt("TODO: support submitting to "+parsed.sub.kind)),
                             ]},
                             collapsible: false,
-                        },
+                        }),
                         parent: parentIsSubreddit(content, {
                             sub: parsed.sub,
                             sort: null,
@@ -238,7 +249,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
                 kind: "post",
                 client_id: client.id,
-                content: {
+                content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                     kind: "post",
                     title: {text: "Error Loading Page"},
                     body: {kind: "richtext", content: [
@@ -272,7 +283,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                         ),
                     ]},
                     collapsible: false,
-                },
+                }),
                 parent: parentIsClient(content),
                 replies: null,
                 url: null,
@@ -674,7 +685,7 @@ function unsupportedPage(
         parent: parentIsClient(content),
         url: null,
         replies: null,
-        content: {
+        content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
             kind: "post",
             title: {text: "Error!"},
             collapsible: false,
@@ -685,7 +696,7 @@ function unsupportedPage(
                     rt.pre(JSON.stringify(page, null, "  "), "json"),
                 ],
             },
-        },
+        }),
         internal_data: null,
     });
 }
@@ -993,7 +1004,7 @@ function postDataFromListingMayError(
             parent,
             replies,
 
-            content: {
+            content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                 kind: "post",
                 title: null,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
@@ -1016,7 +1027,7 @@ function postDataFromListingMayError(
                         rawlinkButton(our_link),
                     ],
                 },
-            },
+            }),
             internal_data: entry.data,
         }));
         return our_id;
@@ -1094,7 +1105,7 @@ function postDataFromListingMayError(
             }),
             replies,
 
-            content: {
+            content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                 kind: "post",
                 title: {text: listing.title},
                 collapsible: {default_collapsed: true},
@@ -1123,7 +1134,7 @@ function postDataFromListingMayError(
                         rawlinkButton(our_link),
                     ],
                 },
-            },
+            }),
             internal_data: entry.data,
         }));
         return our_id;
@@ -1222,7 +1233,6 @@ function postDataFromListingMayError(
             replies,
             content: {
                 kind: "page",
-                title: JSON.stringify(id_map_data),
                 wrap_page: {
                     sidebar: {
                         display: "tree",
@@ -1286,7 +1296,7 @@ function postDataFromListingMayError(
             }), // TODO subreddit (this should also add `| SubName`) in the page title
             // simple; just add subrinfo into wikipage
             replies: null,
-            content: {
+            content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
                 kind: "post",
                 title: {text: title},
                 collapsible: false,
@@ -1320,7 +1330,7 @@ function postDataFromListingMayError(
                         {kind: "link", client_id: client.id, text: "Edit", url: "TODO edit wiki page"}
                     ] : [],
                 },
-            },
+            }),
             internal_data: entry.data,
         }));
         return self_id;
@@ -1359,7 +1369,7 @@ const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
 export async function loadPage2(
     lreq: Generic.Opaque<"loader">,
 ): Promise<Generic.LoaderResult> {
-    await new Promise(r => setTimeout(r, 1000));
+    // throw new Error("TODO load reddit page2");
     let data = loader_enc.decode(lreq);
     if(data.kind === "parent_permalink") data = {
         kind: "link_replies",

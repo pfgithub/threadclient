@@ -1,8 +1,8 @@
 import * as Generic from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
+import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
-import { client as imported_client, getNavbar, PostSort, SubSort } from "./reddit";
-const client_id = imported_client.id;
+import { client_id, getNavbar, PostSort, SubSort } from "./reddit";
 
 // implementing this well should free us to make less things require loaders:
 // - PostReplies would directly contain the posts and put a loader if it doesn't.
@@ -10,7 +10,7 @@ const client_id = imported_client.id;
 //   otherwise we need to link.
 
 type LowercaseString = string & {__is_ascii_lowercase: true};
-function asLowercaseString(str: string): LowercaseString {
+export function asLowercaseString(str: string): LowercaseString {
     return str.toLowerCase() as LowercaseString;
 }
 
@@ -27,8 +27,18 @@ type BaseSubredditT5 = {
     //   in inbox notifications, and on the homepage, we will accidentally show them any time the subreddit
     //   is sorted. we will have to solve this.
 };
+type FillSubredditContent = {
+    subreddit: BaseSubredditT5,
+    listing: Reddit.Listing,
+};
 type BaseSubredditSidebar = {
     for_sub: BaseSubredditT5,
+};
+type FillSubredditSidebar = {
+    on_base: BaseSubredditSidebar,
+
+    widgets: Reddit.ApiWidgets,
+    sub_t5: Reddit.T5,
 };
 type BasePostT3 = {
     fullname: `t3_${string}`,
@@ -85,8 +95,9 @@ function autoOutline<Base, ResTy>(
         return link;
     };
 }
+// possibly we make a seperate fn for fillds
 
-const client = {
+export const base_client = {
     url: (base: BaseClient): string | null => null,
     post: autoOutline("client→post", (content, base: BaseClient): Generic.Post => {
         return {
@@ -98,19 +109,19 @@ const client = {
             internal_data: 0,
             parent: null,
             replies: null,
-            url: client.url(base),
+            url: base_client.url(base),
             client_id,
         };
     }),
     asParent: (content: Generic.Page2Content, base: BaseClient): Generic.PostParent => {
         return {
-            loader: Generic.p2.prefilledVerticalLoader(content, client.post(content, base), undefined),
+            loader: Generic.p2.prefilledVerticalLoader(content, base_client.post(content, base), undefined),
         };
     },
 };
 
 // class Subreddit extends Base<BaseSubredditT5> implements asPost, asIdentity
-const subreddit = {
+export const base_subreddit = {
     url: (base: BaseSubredditT5): string | null => {
         return updateQuery(
             "/r/" + base.subreddit + (base.sort !== "default" ? "/" + base.sort.v : ""),
@@ -124,28 +135,88 @@ const subreddit = {
             content: {
                 kind: "page",
                 wrap_page: {
-                    header: subreddit.identity(content, base),
-                    sidebar: subreddit_sidebar.replies(content, {for_sub: {subreddit: base.subreddit, sort: "default"}}),
+                    header: base_subreddit_sidebar.identity(content, {for_sub: base}),
+                    sidebar: base_subreddit_sidebar.replies(content, {for_sub: {subreddit: base.subreddit, sort: "default"}}),
                 },
             },
             internal_data: base,
-            parent: client.asParent(content, {}),
-            replies: subreddit.replies(content, base),
-            url: subreddit.url(base),
+            parent: base_client.asParent(content, {}),
+            replies: base_subreddit.replies(content, base),
+            url: base_subreddit.url(base),
             client_id,
         };
     }),
-    identity: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.IdentityCard => {
-        
-    },
     replies: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.PostReplies => {
+        const id_loader = autoLinkgen<Generic.Opaque<"loader">>("subreddit→replies_loader", base);
+        Generic.p2.fillLinkOnce(content, id_loader, () => {
+            return opaque_loader.encode({
+                kind: "todo",
+            });
+        });
+        const id_filled = autoLinkgen<Generic.HorizontalLoaded>("subreddit→replies", base);
+        return {
+            display: "repivot_list",
+            loader: {
+                kind: "horizontal_loader",
+                key: id_filled,
+                request: id_loader,
 
+                load_count: null,
+                autoload: false,
+                client_id,
+            },
+        };
     },
 };
 
-const subreddit_sidebar = {
+export const base_subreddit_sidebar = {
+    identity: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.IdentityCard => {
+        const id_loader = autoLinkgen<Generic.Opaque<"loader">>("subreddit_identity→loader", base);
+        Generic.p2.fillLinkOnce(content, id_loader, () => {
+            return opaque_loader.encode({
+                kind: "todo",
+            });
+        });
+        // right, we'll need to figure out the proper place to put this id.
+        // - the filled object will make bad ids because the ids depend on the filled content
+        // - ids should not depend on filled content
+        const id_filled = autoLinkgen<Generic.FilledIdentityCard>("subreddit_identity→card", base);
+        return {
+            container: base_subreddit.post(content, base.for_sub),
+            limited: {
+                name_raw: "r/" + base.for_sub.subreddit,
+                raw_value: base,
+            },
+            filled: {
+                kind: "one_loader",
+                key: id_filled,
+                load_count: null,
+                request: id_loader,
+                client_id,
+                autoload: false,
+            },
+        };
+    },
     replies: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.PostReplies => {
+        const id_loader = autoLinkgen<Generic.Opaque<"loader">>("subreddit_sidebar→replies_loader", base);
+        Generic.p2.fillLinkOnce(content, id_loader, () => {
+            return opaque_loader.encode({
+                kind: "todo",
+            });
+        });
+        const id_filled = autoLinkgen<Generic.HorizontalLoaded>("subreddit_sidebar→replies", base);
+        return {
+            display: "tree",
+            loader: {
+                kind: "horizontal_loader",
+                key: id_filled,
+                request: id_loader,
 
+                load_count: null,
+                autoload: false,
+                client_id,
+            },
+        };
     },
 };
 
@@ -227,3 +298,9 @@ what about nullable contents?
   - we'll have to make exceptions for any linked loaders
 
 */
+
+
+type LoaderData = {
+    kind: "todo",
+};
+const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
