@@ -10,6 +10,10 @@ import { authorFromPostOrComment, client_id, deleteButton, editButton, getCodeBu
 //   if the base is enough to describe the replies, we can put them in directly,
 //   otherwise we need to link.
 
+// a safety check we can do is:
+// - after generating any Generic.Post:
+//   - check that parsing the url creates the same base as the url was made from
+
 type LowercaseString = string & {__is_ascii_lowercase: true};
 export function asLowercaseString(str: string): LowercaseString {
     return str.toLowerCase() as LowercaseString;
