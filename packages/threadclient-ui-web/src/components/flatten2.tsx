@@ -575,7 +575,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     opts={{
                         first_in_wrapper: true,
                         at_or_above_pivot: false,
-                        is_pivot: false,
+                        is_pivot: ch.kind === "flat_post" && ch.link === pivotLink(),
                         threaded: false,
                         depth: 0,
                         displayed_in: "repivot_list",
