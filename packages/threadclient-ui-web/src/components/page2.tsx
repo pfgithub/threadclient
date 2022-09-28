@@ -2,7 +2,7 @@ import * as Generic from "api-types-generic";
 import { createMemo, JSX, lazy, untrack } from "solid-js";
 import { Show, SwitchKind } from "tmeta-util-solid";
 import { getClientCached } from "../clients";
-import { clientListing } from "../page1";
+import { clientListing, renderNavbar } from "../page1";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
 import { DefaultErrorBoundary, getWholePageRootContextOpt } from "../util/utils_solid";
 import Header from "./Header";
@@ -86,7 +86,12 @@ export function ClientContent(props: {
                 return outer;
             }} />
         </>,
-        client: () => <>TODO client</>,
+        client: client_v => <>
+            <SolidToVanillaBoundary getValue={hsc => {
+                const client = getClientCached(client_v.navbar.client_id)!;
+                return renderNavbar(client, client_v.navbar, props).defer(hsc);
+            }} />
+        </>,
         special: special => <ClientContent content={special.fallback} opts={props.opts} />,
     }}</SwitchKind></DefaultErrorBoundary>;
 }

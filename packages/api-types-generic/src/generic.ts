@@ -397,6 +397,7 @@ export type Page = {
 export type Navbar = {
     actions: Action[],
     inboxes: Inbox[],
+    client_id: string,
 };
 export type Inbox = {
     id: string,

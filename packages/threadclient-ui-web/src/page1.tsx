@@ -1989,6 +1989,40 @@ const makeTopLevelWrapper = () => el("div").clss(
     "bg-slate-100 dark:bg-zinc-800",
 );
 
+export function renderNavbar(
+    client: ThreadClient,
+    navbar: Generic.Navbar,
+    value_for_code_btn: unknown,
+): HideShowCleanup<HTMLDivElement> {
+    const navbar_area = el("div");
+    const hsc = hideshow(navbar_area);
+
+    for(const navbar_action of navbar.actions) {
+        renderAction(navbar_action, navbar_area, {value_for_code_btn}).defer(hsc);
+        txt(" ").adto(navbar_area);
+    }
+    const default_actions: Generic.Action[] = [
+        {kind: "link",
+            client_id: "n/a", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Report Issue",
+        },
+        {kind: "link",
+            client_id: "reddit", url: "/r/threadclient/comments/xl9dsh/feature_requests", text: "Feature Request",
+        },
+    ];
+    for(const action of default_actions) {
+        renderAction(action, navbar_area, {value_for_code_btn}).defer(hsc);
+        navbar_area.atxt(" ");
+    }
+    elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(value_for_code_btn));
+    txt(" ").adto(navbar_area);
+    for(const navbar_inbox of navbar.inboxes) {
+        renderInbox(client, navbar_inbox).defer(hsc).adto(navbar_area);
+        txt(" ").adto(navbar_area);
+    }
+
+    return hsc;
+}
+
 function renderClientPage(
     client: ThreadClient,
     listing: Generic.Page,
@@ -2004,28 +2038,7 @@ function renderClientPage(
     frame.classList.add("display-"+listing.display_style);
 
     const navbar_area = el("div").adto(frame).clss("navbar-area");
-    for(const navbar_action of listing.navbar.actions) {
-        renderAction(navbar_action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
-        txt(" ").adto(navbar_area);
-    }
-    const default_actions: Generic.Action[] = [
-        {kind: "link",
-            client_id: "n/a", url: "https://github.com/pfgithub/threadclient/issues/new", text: "Report Issue",
-        },
-        {kind: "link",
-            client_id: "reddit", url: "/r/threadclient/comments/xl9dsh/feature_requests", text: "Feature Request",
-        },
-    ];
-    for(const action of default_actions) {
-        renderAction(action, navbar_area, {value_for_code_btn: listing}).defer(hsc);
-        navbar_area.atxt(" ");
-    }
-    elButton("code-button").atxt("Code").adto(navbar_area).onev("click", () => console.log(listing));
-    txt(" ").adto(navbar_area);
-    for(const navbar_inbox of listing.navbar.inboxes) {
-        renderInbox(client, navbar_inbox).defer(hsc).adto(navbar_area);
-        txt(" ").adto(navbar_area);
-    }
+    renderNavbar(client, listing.navbar, listing).defer(hsc).adto(navbar_area);
     // TODO save the raw page responses. listings are not meant to be copied, they can have symbols
     // and might in the future have functions and stuff
     //

@@ -142,6 +142,7 @@ const all_content_raw_dontuse = {
             navbar: {
                 actions: [],
                 inboxes: [],
+                client_id: client.id,
             },
         },
     })),

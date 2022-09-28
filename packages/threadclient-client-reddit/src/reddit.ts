@@ -973,6 +973,7 @@ export function getNavbar(page_url: string | null): Generic.Navbar {
                 url: "/mod/mail/all",
             },
         ],
+        client_id,
     };
     return {
         actions: [
@@ -981,6 +982,7 @@ export function getNavbar(page_url: string | null): Generic.Navbar {
             ...always_actions,
         ],
         inboxes: [],
+        client_id,
     };
 }
 function pathFromListingRaw(

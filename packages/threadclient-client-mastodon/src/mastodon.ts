@@ -13,7 +13,7 @@ import { Timeline, timelineApiUrl, timelineAppUrl, url_parser } from "./mastodon
 const redirectURI = (host: string) => "https://"+location.host+"/login/mastodon/"+host; // a bit cheaty hmm
 
 function getNavbar(host: string | null): Generic.Navbar {
-    if(host == null || host === "") return {actions: [], inboxes: []};
+    if(host == null || host === "") return {actions: [], inboxes: [], client_id: client.id};
     return {actions: [
         !isLoggedIn(host) ? {
             kind: "login",
@@ -26,7 +26,7 @@ function getNavbar(host: string | null): Generic.Navbar {
             text: "Log Out",
             url: "TODO log out from mastodon",
         },
-    ], inboxes: []};
+    ], inboxes: [], client_id: client.id};
 }
 
 const error404 = (host: string | null, msg: string): Generic.Page => ({
