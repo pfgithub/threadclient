@@ -138,9 +138,14 @@ function ClientPageMain(props: ClientPageProps): PageRes {
     }, get title() {
         return view.data.title;
     }, children: <div class="flex flex-col gap-4 max-w-6xl mx-auto p-4 <sm:px-0">
-        <Show if={view.data.header != null}>
-            <div class="flex-1">
-                TODO show header
+        <Show if={view.data.client != null}>
+            <div>
+                <For each={view.data.client}>{item => (
+                    <PageFlatItem
+                        item={item}
+                        collapse_data={collapse_data}
+                    />
+                )}</For>
             </div>
         </Show>
         <Show if={tabbed()}>

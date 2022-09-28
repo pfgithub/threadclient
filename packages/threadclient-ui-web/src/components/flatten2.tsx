@@ -414,33 +414,106 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
     });
 
     const parentsArr = useHighestArray(() => pivotLink());
+    const parentsFiltered = createMemo((): {
+        view_parents: FlatTreeItem[],
+        view_header_in_sidebar: null | FlatTreeItem,
+        view_sidebar: null | Generic.PostReplies,
+        view_client: null | FlatTreeItem,
+        title: string,
+    } => {
+        const pa = parentsArr();
+        const pivotlink = pivotLink();
+        const res: FlatTreeItem[] = [];
+        let view_header_in_sidebar: null | FlatTreeItem = null;
+        let view_sidebar: null | Generic.PostReplies = null;
+        let view_client: null | FlatTreeItem = null;
+        // consider:
+        // - instead of this complicated logic:
+        //   - pull anything above the header into a different list
+        // so basically:
+        // - if the header is at the pivot, it goes in the different list.
+        // - when we encounter the header, set the sidebar
+        // - everything above the header goes in a parent list
+        const title: string[] = [];
+        for(const item of [...pa].reverse()) {
+            const uwv = item.kind === "flat_post" ? unwrapPost(item.post) : null;
+
+            if(uwv?.content.kind === "post") {
+                if(uwv.content.title != null) {
+                    title.push(uwv.content.title.text);
+                }
+            }else if(uwv?.content.kind === "page") {
+                const header = uwv.content.wrap_page.header;
+                const known_value = Generic.readLink(hprc.content(), header.filled.key);
+                if(known_value != null) {
+                    if(known_value.error != null) {
+                        title.push("*Error* ("+header.limited.name_raw+")");
+                    }else{
+                        title.push(known_value.value.names.display ?? known_value.value.names.raw);
+                    }
+                }else{
+                    title.push(header.limited.name_raw);
+                }
+            }else if(uwv?.content.kind === "client") {
+                title.push(uwv.client_id);
+            }
+
+            let item_is_sidebar = false;
+            if(view_sidebar == null && uwv?.content.kind === "page") {
+                view_sidebar = uwv.content.wrap_page.sidebar;
+                item_is_sidebar = true;
+            }
+
+            if(item.kind === "flat_post" && item.link === pivotlink) {
+                res.push(item);
+            }else if(item_is_sidebar && uwv?.content.kind === "page") {
+                view_header_in_sidebar = item;
+            }else if(view_client == null && uwv?.content.kind === "client") {
+                view_client = item;
+            }else{
+                res.push(item);
+            }
+        }
+        const res2: FlatTreeItem[] = [];
+        for(const item of [...res].reverse()) {
+            const uwv = item.kind === "flat_post" ? unwrapPost(item.post) : null;
+
+            if(item.kind === "flat_post" && item.link === pivotlink) {
+                res2.push(item);
+            }else if(view_client == null && uwv?.content.kind === "client") {
+                view_client = item;
+            }else{
+                res2.push(item);
+            }
+        }
+        return {
+            view_parents: res2,
+            view_header_in_sidebar,
+            view_sidebar,
+            view_client,
+            title: title.join(" | "),
+        };
+    });
 
     const bodyCh = FlatItemTsch.useChildren(() => {
         const p = pivot(); // if pivot changes, we rerender everything
         return <>
-            <For each={parentsArr()}>{(item): JSX.Element => <>
-                <Show if={(() => {
-                    if(item.kind !== "flat_post") return true;
-                    if(item.post.content.kind !== "page") return true;
-                    if(item.link === pivotLink()) return true; // is pivot
-                    return false;
-                })()}>
-                    <FlatItemTsch kind="wrapper_start" />
-                    <RenderTreeItemAuto
-                        tree_item={item}
-                        parent_indent={[]}
-                        opts={{
-                            first_in_wrapper: true,
-                            at_or_above_pivot: true,
-                            is_pivot: item.kind === "flat_post" && item.link === pivotLink(),
-                            threaded: false,
-                            depth: 0,
-                            displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
-                            // note: the pivot is never clickable
-                        }}
-                        last={true}
-                    />
-                </Show>
+            <For each={parentsFiltered().view_parents}>{(item): JSX.Element => <>
+                <FlatItemTsch kind="wrapper_start" />
+                <RenderTreeItemAuto
+                    tree_item={item}
+                    parent_indent={[]}
+                    opts={{
+                        first_in_wrapper: true,
+                        at_or_above_pivot: true,
+                        is_pivot: item.kind === "flat_post" && item.link === pivotLink(),
+                        threaded: false,
+                        depth: 0,
+                        displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
+                        // note: the pivot is never clickable
+                    }}
+                    last={true}
+                />
             </>}</For>
             {p.replies?.display === "repivot_list" ? <>
                 <FlatItemTsch
@@ -483,70 +556,52 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         </>;
     });
     const sidebarCh = FlatItemTsch.useChildren(() => {
-        for(const itm of [...parentsArr()].reverse()) {
-            if(itm.kind !== "flat_post") continue;
-            const post = unwrapPost(itm.post);
-            if(post.kind === "post" && post.content.kind === "page") {
-                const content = post.content;
-                // id cards should get rendered above the sidebar
-                // don't render an id card in the sidebar if the id card is the pivoted post
-                return <>
-                    <Show if={itm.link !== pivotLink()}>
-                        <FlatItemTsch kind="wrapper_start" />
-                        <RenderTreeItemAuto
-                            tree_item={itm}
-                            parent_indent={[]}
-                            opts={{
-                                first_in_wrapper: true,
-                                at_or_above_pivot: false,
-                                is_pivot: false,
-                                threaded: false,
-                                depth: 0,
-                                displayed_in: "repivot_list",
-                            }}
-                            last={true}
-                        />
-                    </Show>
-                    <FlattenTopLevelReplies replies={content.wrap_page.sidebar} />
-                </>;
-            }
-        }
-        return [];
+        return <>
+            <Show when={parentsFiltered().view_header_in_sidebar}>{headerv => <>
+                <FlatItemTsch kind="wrapper_start" />
+                <RenderTreeItemAuto
+                    tree_item={headerv}
+                    parent_indent={[]}
+                    opts={{
+                        first_in_wrapper: true,
+                        at_or_above_pivot: false,
+                        is_pivot: false,
+                        threaded: false,
+                        depth: 0,
+                        displayed_in: "repivot_list",
+                    }}
+                    last={true}
+                />
+            </>}</Show>
+            <Show when={parentsFiltered().view_sidebar}>{sidebarv => (
+                <FlattenTopLevelReplies replies={sidebarv} />
+            )}</Show>
+        </>;
+    });
+    const clientCh = FlatItemTsch.useChildren(() => {
+        return <>
+            <Show when={parentsFiltered().view_client}>{clientv => <>
+                <FlatItemTsch kind="wrapper_start" />
+                <RenderTreeItemAuto
+                    tree_item={clientv}
+                    parent_indent={[]}
+                    opts={{
+                        first_in_wrapper: true,
+                        at_or_above_pivot: false,
+                        is_pivot: false,
+                        threaded: false,
+                        depth: 0,
+                        displayed_in: "repivot_list",
+                    }}
+                    last={true}
+                />
+            </>}</Show>
+        </>;
     });
 
     return {
         get title() {
-            let res_post: string | null = null;
-            let res_page: string | null = null;
-            let res_client: string | null = null;
-            for(const itm of parentsArr()) {
-                if(itm.kind !== "flat_post") continue;
-                const post = unwrapPost(itm.post);
-                if(post.content.kind === "post") {
-                    const known_value = post.content;
-                    const titlev = known_value.title;
-                    if(titlev != null) res_post = titlev.text;
-                }else if(post.content.kind === "page") {
-                    const header = post.content.wrap_page.header;
-                    const known_value = Generic.readLink(hprc.content(), header.filled.key);
-                    if(known_value != null) {
-                        if(known_value.error != null) {
-                            res_post = "*Error* ("+header.limited.name_raw+")";
-                        }else{
-                            res_page = known_value.value.names.display ?? known_value.value.names.raw;
-                        }
-                    }else{
-                        res_page = header.limited.name_raw;
-                    }
-                }else if(post.content.kind === "client") {
-                    res_client = post.client_id;
-                }
-            }
-            const res: string[] = [];
-            if(res_post != null) res.push(res_post);
-            if(res_page != null) res.push(res_page);
-            if(res_client != null) res.push(res_client);
-            return res.join(" | ") || "*ERR NO TITLE*";
+            return parentsFiltered().title;
         },
         get url() {
             const focus = pivot();
@@ -557,6 +612,9 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         },
         get sidebar() {
             return sidebarCh();
+        },
+        get client() {
+            return clientCh();
         },
     };
 }
