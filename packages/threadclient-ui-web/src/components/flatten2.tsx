@@ -418,7 +418,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         view_parents: FlatTreeItem[],
         view_header_in_sidebar: null | FlatTreeItem,
         view_sidebar: null | Generic.PostReplies,
-        view_client: null | FlatTreeItem,
+        view_above_body: FlatTreeItem[],
         title: string,
     } => {
         const pa = parentsArr();
@@ -426,14 +426,10 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         const res: FlatTreeItem[] = [];
         let view_header_in_sidebar: null | FlatTreeItem = null;
         let view_sidebar: null | Generic.PostReplies = null;
-        let view_client: null | FlatTreeItem = null;
-        // consider:
-        // - instead of this complicated logic:
-        //   - pull anything above the header into a different list
-        // so basically:
-        // - if the header is at the pivot, it goes in the different list.
-        // - when we encounter the header, set the sidebar
-        // - everything above the header goes in a parent list
+        const view_above_body: FlatTreeItem[] = [];
+
+        let above_header = false;
+
         const title: string[] = [];
         for(const item of [...pa].reverse()) {
             const uwv = item.kind === "flat_post" ? unwrapPost(item.post) : null;
@@ -443,6 +439,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     title.push(uwv.content.title.text);
                 }
             }else if(uwv?.content.kind === "page") {
+                above_header = true;
                 const header = uwv.content.wrap_page.header;
                 const known_value = Generic.readLink(hprc.content(), header.filled.key);
                 if(known_value != null) {
@@ -464,33 +461,21 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                 item_is_sidebar = true;
             }
 
-            if(item.kind === "flat_post" && item.link === pivotlink) {
-                res.push(item);
-            }else if(item_is_sidebar && uwv?.content.kind === "page") {
-                view_header_in_sidebar = item;
-            }else if(view_client == null && uwv?.content.kind === "client") {
-                view_client = item;
-            }else{
-                res.push(item);
-            }
-        }
-        const res2: FlatTreeItem[] = [];
-        for(const item of [...res].reverse()) {
-            const uwv = item.kind === "flat_post" ? unwrapPost(item.post) : null;
+            const target = above_header ? view_above_body : res;
 
             if(item.kind === "flat_post" && item.link === pivotlink) {
-                res2.push(item);
-            }else if(view_client == null && uwv?.content.kind === "client") {
-                view_client = item;
+                target.push(item);
+            }else if(item_is_sidebar && uwv?.content.kind === "page") {
+                view_header_in_sidebar = item;
             }else{
-                res2.push(item);
+                target.push(item);
             }
         }
         return {
-            view_parents: res2,
+            view_parents: [...res].reverse(),
             view_header_in_sidebar,
             view_sidebar,
-            view_client,
+            view_above_body: [...view_above_body].reverse(),
             title: title.join(" | "),
         };
     });
@@ -578,12 +563,12 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
             )}</Show>
         </>;
     });
-    const clientCh = FlatItemTsch.useChildren(() => {
+    const aboveBodyCh = FlatItemTsch.useChildren(() => {
         return <>
-            <Show when={parentsFiltered().view_client}>{clientv => <>
+            <For each={parentsFiltered().view_above_body}>{ch => <>
                 <FlatItemTsch kind="wrapper_start" />
                 <RenderTreeItemAuto
-                    tree_item={clientv}
+                    tree_item={ch}
                     parent_indent={[]}
                     opts={{
                         first_in_wrapper: true,
@@ -595,10 +580,18 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     }}
                     last={true}
                 />
-            </>}</Show>
+            </>}</For>
         </>;
     });
 
+    // consider:
+    // get abovePivot()
+    // get pivot()
+    // get belowPivot()
+    // also consider:
+    // - instead of FlatItem[]
+    //   - do: TopLevelObject[]
+    // - then TopLevelObject would contain FlatItem[]
     return {
         get title() {
             return parentsFiltered().title;
@@ -613,8 +606,8 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         get sidebar() {
             return sidebarCh();
         },
-        get client() {
-            return clientCh();
+        get aboveBody() {
+            return aboveBodyCh();
         },
     };
 }

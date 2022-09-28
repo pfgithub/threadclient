@@ -9,7 +9,7 @@ import { PageRootContext } from "../util/utils_solid";
 // indent: post id[]
 
 export type FlatPage2 = {
-    client: FlatItem[],
+    aboveBody: FlatItem[],
     body: FlatItem[],
     sidebar?: undefined | FlatItem[],
     title: string,
