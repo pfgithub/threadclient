@@ -158,6 +158,7 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
                 navbar: {
                     actions: [],
                     inboxes: [],
+                    client_id: client.id,
                 },
             },
             internal_data: 0,

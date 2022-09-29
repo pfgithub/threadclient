@@ -114,7 +114,7 @@ export function FlatReplies(props: {
 // we should just make it not include the pivot
 // would solve a lot of problems
 function HighestArray(props: {
-    post: Generic.Link<Generic.Post> | null,
+    post: Generic.NullableLink<Generic.Post> | null,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
     return createMemo(() => {

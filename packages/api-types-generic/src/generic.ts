@@ -159,8 +159,9 @@ export type LoaderResult = {
 
 // !NOTE: the empty string is not a valid link due to eslint limitations
 export type Link<T> = (string | symbol) & {__is_link: T};
-type NullLink<T> = (string | symbol) & {__is_null_link: T};
-export type NullableLink<T> = Link<T> | NullLink<T>;
+// type NullLink<T> = (string | symbol) & {__is_null_link: T};
+// export type NullableLink<T> = Link<T> | NullLink<T>;
+export type NullableLink<T> = Link<T>;
 
 export type ReadLinkResult<T> = {value: T, error: null} | {error: string, value: null};
 export function readLink<T>(content: Page2Content, link: Link<T>): null | ReadLinkResult<T> {

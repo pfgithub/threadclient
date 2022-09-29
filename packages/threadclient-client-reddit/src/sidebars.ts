@@ -68,7 +68,7 @@ function homepageIdentity(): Generic.FilledIdentityCard {
 function homepageSidebar(content: Generic.Page2Content): Generic.HorizontalLoaded {
     const home_mysubs_card: Generic.Post = {
         kind: "post",
-        content: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+        content: ({
             kind: "post",
             title: {text: "TODO mysubs"},
             collapsible: false,
@@ -167,7 +167,7 @@ function unpivotableBelowPivotBody(
     body: Generic.Body,
     internal_data: unknown,
 ): Generic.Link<Generic.Post> {
-    return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+    return unpivotablePostBelowPivot(content, ({
         kind: "post",
 
         title: {text: title},
@@ -208,7 +208,7 @@ function sidebarWidgetToGenericWidgetTry(
             internal_data: {widget, subinfo},
         });
     }else if(widget.kind === "subreddit-rules") {
-        return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+        return unpivotablePostBelowPivot(content, ({
             kind: "post",
 
             title: {text: widget.shortName},
@@ -217,7 +217,7 @@ function sidebarWidgetToGenericWidgetTry(
         }), {
             internal_data: {widget, subinfo},
             replies: {display: "tree", loader: horizontal(content, widget.data.map((itm, i) => {
-                return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                return unpivotablePostBelowPivot(content, ({
                     kind: "post",
 
                     title: {text: (i + 1)+". " + itm.shortName},
@@ -233,7 +233,7 @@ function sidebarWidgetToGenericWidgetTry(
             }))},
         });
     }else if(widget.kind === "post-flair") {
-        return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+        return unpivotablePostBelowPivot(content, ({
             kind: "post",
             title: {text: widget.shortName},
             body: {kind: "none"},
@@ -246,7 +246,7 @@ function sidebarWidgetToGenericWidgetTry(
                     type: val.type, text: val.text, text_color: val.textColor,
                     background_color: val.backgroundColor, richtext: val.richtext,
                 });
-                return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                return unpivotablePostBelowPivot(content, ({
                     // TODO this has to be pivotable
                     // or maybe somehow define a link but no content
                     kind: "post",
@@ -262,7 +262,7 @@ function sidebarWidgetToGenericWidgetTry(
             }))},
         });
     }else if(widget.kind === "textarea") {
-        return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+        return unpivotablePostBelowPivot(content, ({
             kind: "post",
             title: {text: widget.shortName},
             body: {kind: "text", content: widget.textHtml, markdown_format: "reddit_html", client_id: client.id},
@@ -273,7 +273,7 @@ function sidebarWidgetToGenericWidgetTry(
         // image buttons are basically supposed to be pill links but with an image in the background that
         // is object-fit:cover
         // the button is usually 286x32
-        return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+        return unpivotablePostBelowPivot(content, ({
             kind: "post",
             title: {text: widget.shortName},
             body: {
@@ -286,7 +286,7 @@ function sidebarWidgetToGenericWidgetTry(
         }), {
             internal_data: widget,
             replies: {display: "repivot_list", loader: horizontal(content, widget.buttons.map(button => (
-                unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                unpivotablePostBelowPivot(content, ({
                     kind: "post",
                     title: {text: button.kind === "text" ? button.text : "TODO SUPPORT BUTTON KIND "+button.kind},
                     body: {kind: "none"},
@@ -300,7 +300,7 @@ function sidebarWidgetToGenericWidgetTry(
             )))},
         });
     }else if(widget.kind === "community-list") {
-        return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+        return unpivotablePostBelowPivot(content, ({
             kind: "post",
             title: {text: widget.shortName},
             body: {kind: "none"},
@@ -310,7 +310,7 @@ function sidebarWidgetToGenericWidgetTry(
             // TODO: if we can make real `subreddit_unloaded` objects here that would be fun
             replies: {display: "repivot_list", loader: horizontal(content, widget.data.map(community => (
                 community.type === "subreddit"
-            ) ? unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+            ) ? unpivotablePostBelowPivot(content, ({
                 kind: "post",
                 title: {text: "r/"+community.name},
                 thumbnail: {
@@ -331,7 +331,7 @@ function sidebarWidgetToGenericWidgetTry(
             )))},
         });
     }else if(widget.kind === "calendar") {
-        return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+        return unpivotablePostBelowPivot(content, ({
             kind: "post",
             title: {text: widget.shortName},
             // this could be displayed using children but I don't have a widget to test on so I don't want to
@@ -341,7 +341,7 @@ function sidebarWidgetToGenericWidgetTry(
         }), {
             internal_data: widget,
             replies: {display: "tree", loader: horizontal(content, widget.data.map((item) => {
-                return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+                return unpivotablePostBelowPivot(content, ({
                     kind: "post",
                     title: {text: item.title},
                     // info: {
@@ -388,7 +388,7 @@ function sidebarWidgetToGenericWidgetTry(
                 w: imgdata.width,
                 h: imgdata.height,
             },
-            fallback: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+            fallback: ({
                 kind: "post",
                 title: {text: widget.shortName},
                 body: {
@@ -424,7 +424,7 @@ function sidebarWidgetToGenericWidgetTry(
             kind: "special",
             tag_uuid: "FullscreenEmbed@-N0D96jIL-HGWHWbWKn1",
             not_typesafe_data: body,
-            fallback: p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+            fallback: ({
                 kind: "post",
                 title: {text: widget.shortName},
                 body,
@@ -447,7 +447,7 @@ function oldSidebarWidget(
 ): Generic.Link<Generic.Post> {
     // we can make this pivotable:
     // `/r/subreddit/about/sidebar`
-    return unpivotablePostBelowPivot(content, p2.prefilledOneLoader(content, p2.symbolLink("e"), {
+    return unpivotablePostBelowPivot(content, ({
         kind: "post",
 
         title: {text: "old.reddit sidebar"},
