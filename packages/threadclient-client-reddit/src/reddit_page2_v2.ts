@@ -4,7 +4,7 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton } from "./page2_from_listing";
-import { authorFromPostOrComment, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, PostSort, redditRequest, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
+import { authorFromPostOrComment, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, parseLink, PostSort, redditRequest, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
 
 // implementing this well should free us to make less things require loaders:
 // - PostReplies would directly contain the posts and put a loader if it doesn't.
@@ -24,6 +24,26 @@ report screens in page2
 - the report page is a post that shows the object being reported and shows the report options
   - or it shows it as a reply with the report as a pivot. doesn't matter
 */
+
+export function urlToOneLoader(pathraw_in: string): {
+    content: Generic.Page2Content,
+    pivot_loader: null | Generic.OneLoader<Generic.Post>,
+} {
+    const content: Generic.Page2Content = {};
+
+    const [parsed, pathraw] = parseLink(pathraw_in);
+
+    if(parsed.kind === "subreddit") {
+        if(parsed.sub.kind === "subreddit") {
+            const link = base_subreddit.post(content, {
+                subreddit: asLowercaseString(parsed.sub.subreddit),
+                sort: parsed.current_sort, // ← this is weird. it should be "default" when not specified.
+            });
+            return {content, pivot_loader: p2.prefilledOneLoader(content, link, undefined)};
+        }
+    }
+    return {content, pivot_loader: null};
+}
 
 type LowercaseString = string & {__is_ascii_lowercase: true};
 export function asLowercaseString(str: string): LowercaseString {

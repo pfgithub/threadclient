@@ -11,7 +11,7 @@ import {
     ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
-import { asLowercaseString, base_subreddit, loadPage2v2 } from "./reddit_page2_v2";
+import { asLowercaseString, base_subreddit, loadPage2v2, urlToOneLoader } from "./reddit_page2_v2";
 
 /*
 REORGANIZATION TODO:
@@ -32,6 +32,19 @@ function warn(...message: unknown[]) {
 export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
     // TODO: api requests should be seperate from the api result -> page2 stuff.
     // also authentication should be handled better.
+
+    const v2res = urlToOneLoader(pathraw_in);
+    if(v2res.pivot_loader != null) {
+        const rl_res = Generic.readLink(v2res.content, v2res.pivot_loader.key);
+        if(rl_res != null) return {
+            content: v2res.content,
+            pivot: v2res.pivot_loader.key,
+        };
+        const loadreq = Generic.readLink(v2res.content, v2res.pivot_loader.request);
+        if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
+        const loadres = await loadPage2v2(loadreq.value);
+        return {content: {...v2res.content, ...loadres.content}, pivot: v2res.pivot_loader.key};
+    }
 
     // unrelated:
     // the plan is a getSkeleton() that suggests what should be loaded immediately
@@ -58,15 +71,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
 
         console.log("PARSED URL:", parsed);
 
-        if(parsed.kind === "subreddit") {
-            if(parsed.sub.kind === "subreddit") {
-                const link = base_subreddit.post(content, {
-                    subreddit: asLowercaseString(parsed.sub.subreddit),
-                    sort: parsed.current_sort, // ← this is weird. it should be "default" when not specified.
-                });
-                return {pivot: link, content};
-            }
-        }
         if(parsed.kind === "sidebar") {
             throw new Error("TODO SIDEBAR");
         }
@@ -1228,11 +1232,7 @@ function postDataFromListingMayError(
                     // also for now we can keep using page1 bios but eventually we'll want to
                     // redo bios
                     header: {
-                        container: self_id,
-                        limited: {
-                            name_raw: data.details.base.join("/"),
-                            raw_value: data.details,
-                        },
+                        temp_title: data.details.base.join("/"),
                         filled: {
                             kind: "one_loader",
                             key: subredditHeaderUnloadedID(data.details),
