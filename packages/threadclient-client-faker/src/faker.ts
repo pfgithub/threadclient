@@ -170,7 +170,7 @@ function baseContent(content: Generic.Page2Content, base: Base): Generic.Post {
     }else throw new Error("TODO support object kind: "+(base as Base).kind);
 }
 
-function getIdentity(content: Generic.Page2Content, id_base: BaseIdentity): Generic.IdentityCard {
+function getIdentity(content: Generic.Page2Content, id_base: BaseIdentity): Generic.PageIdentityCard {
     const id_loader = identityLoaderLink(id_base);
     Generic.p2.fillLinkOnce(content, id_loader, () => {
         return opaque_loader.encode({
@@ -180,11 +180,7 @@ function getIdentity(content: Generic.Page2Content, id_base: BaseIdentity): Gene
     });
     const id_filled = identityFilledLink(id_base); // leave empty
     return {
-        container: baseOutline(content, id_base.community),
-        limited: {
-            name_raw: "c/" + id_base.community,
-            raw_value: id_base,
-        },
+        temp_title: "c/"+id_base.community,
         filled: {
             kind: "one_loader",
             key: id_filled,
