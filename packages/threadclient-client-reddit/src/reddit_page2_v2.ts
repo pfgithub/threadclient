@@ -30,6 +30,7 @@ export function asLowercaseString(str: string): LowercaseString {
 type BaseClient = {
     _?: undefined,
 };
+type UnsortedSubreddit = LowercaseString;
 type BaseSubredditT5 = {
     subreddit: LowercaseString, // u_ for user subreddits
     // note: the fullname is not known here
@@ -44,7 +45,7 @@ type FullSubredditContent = {
     listing: Reddit.Listing,
 };
 type BaseSubredditSidebar = {
-    for_sub: BaseSubredditT5,
+    for_sub: UnsortedSubreddit,
 };
 type FullSubredditSidebar = {
     on_base: BaseSubredditSidebar,
@@ -54,7 +55,7 @@ type FullSubredditSidebar = {
 };
 type BasePostT3 = {
     fullname: `t3_${string}`,
-    on_subreddit: BaseSubredditT5,
+    on_subreddit: UnsortedSubreddit,
     // * we are requiring a subreddit on posts *
     // - this means: "/comments/[id]" will require loading content in order to get the object. we
     //   can't get the wrapper from the url alone.
@@ -88,7 +89,7 @@ type BaseWikipage = {
     aftersub_path: string,
 };
 type BaseSubmitPage = {
-    on_suberddit: BaseSubredditT5,
+    on_subreddit: UnsortedSubreddit,
 };
 
 // part 1 is:
@@ -161,8 +162,8 @@ export const base_subreddit = {
             content: {
                 kind: "page",
                 wrap_page: {
-                    header: base_subreddit_sidebar.identity(content, {for_sub: base}),
-                    sidebar: base_subreddit_sidebar.replies(content, {for_sub: {subreddit: base.subreddit, sort: "default"}}),
+                    header: base_subreddit_sidebar.identity(content, {for_sub: base.subreddit}),
+                    sidebar: base_subreddit_sidebar.replies(content, {for_sub: base.subreddit}),
                 },
             },
             internal_data: base,
@@ -251,9 +252,9 @@ export const base_subreddit_sidebar = {
         // - ids should not depend on filled content
         const id_filled = base_subreddit_sidebar.filledIdentityCardLink(base);
         return {
-            container: base_subreddit.post(content, base.for_sub),
+            container: base_subreddit.post(content, {subreddit: base.for_sub, sort: "default"}),
             limited: {
-                name_raw: "r/" + base.for_sub.subreddit,
+                name_raw: "r/" + base.for_sub,
                 raw_value: base,
             },
             filled: {
@@ -293,7 +294,7 @@ export const full_subreddit_sidebar = {
         (full: FullSubredditSidebar) => base_subreddit_sidebar.filledIdentityCardLink(full.on_base)
     ), (content: Generic.Page2Content, full: FullSubredditSidebar): Generic.FilledIdentityCard => {
         return subredditHeaderExists({
-            subreddit: full.on_base.for_sub.subreddit,
+            subreddit: full.on_base.for_sub,
             widgets: full.widgets,
             sub_t5: full.sub_t5,
         });
@@ -364,7 +365,7 @@ export const full_post = {
             client_id,
             url: full_post.url(full),
 
-            parent: base_subreddit.asParent(content, full.post.on_subreddit),
+            parent: base_subreddit.asParent(content, {subreddit: full.post.on_subreddit, sort: "default"}),
             replies: todoReplies(content),
 
             content: full_post.content(content, full),
@@ -378,10 +379,7 @@ function linkToAndFillAnyPost(content: Generic.Page2Content, post: Reddit.Post):
     if(post.kind === "t3") {
         const post_base: BasePostT3 = {
             fullname: post.data.name as "t3_string",
-            on_subreddit: {
-                subreddit: asLowercaseString(post.data.subreddit),
-                sort: "default",
-            },
+            on_subreddit: asLowercaseString(post.data.subreddit),
             sort: "default",
         };
         return full_post.fill(content, {
@@ -500,7 +498,7 @@ export async function loadPage2v2(
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
         full_subreddit.fill(content, {subreddit: data.subreddit, listing: sub_listing});
     }else if(data.kind === "subreddit_identity_and_sidebar") {
-        const subreddit = data.sub.for_sub.subreddit;
+        const subreddit = data.sub.for_sub;
         const [widgets, about] = await Promise.all([
             redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}),
             redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}),

@@ -53,6 +53,7 @@ export function ClientContent(props: {
     hovering?: undefined | boolean,
     whole_object_clickable?: undefined | boolean,
 }): JSX.Element {
+    const hprc = getWholePageRootContextOpt();
     return <DefaultErrorBoundary data={[props.content, props.opts]}><SwitchKind item={props.content}>{{
         post: content => (
             <ClientPost
@@ -89,7 +90,7 @@ export function ClientContent(props: {
         client: client_v => <>
             <SolidToVanillaBoundary getValue={hsc => {
                 const client = getClientCached(client_v.navbar.client_id)!;
-                return renderNavbar(client, client_v.navbar, props).defer(hsc);
+                return renderNavbar(client, client_v.navbar, hprc).defer(hsc);
             }} />
         </>,
         special: special => <ClientContent content={special.fallback} opts={props.opts} />,
