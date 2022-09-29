@@ -19,7 +19,7 @@ export async function getSidebar(content: Generic.Page2Content, sub: SubrInfo): 
     if(sub.kind === "subreddit") {
         const onerror = () => undefined;
         const [widgets, about] = await Promise.all([
-            redditRequest(`/r/${ec(sub.subreddit)}/api/widgets`, {method: "GET", onerror, cache: true}),
+            redditRequest(`/r/${ec(sub.subreddit)}/api/widgets`, {method: "GET", onerror, query: {}, cache: true}),
             redditRequest(`/r/${ec(sub.subreddit)}/about`, {method: "GET", onerror, cache: true}),
         ]);
         const subinfo: SubInfo = {subreddit: sub.subreddit, sub_t5: about ?? null, widgets: widgets ?? null};

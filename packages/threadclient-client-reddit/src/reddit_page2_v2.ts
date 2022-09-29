@@ -60,17 +60,22 @@ type BasePostT3 = {
     // - this means: "/comments/[id]" will require loading content in order to get the object. we
     //   can't get the wrapper from the url alone.
     // - the reason for this is i forgot
+    //   - probably to make sure that an unfilled post can have a parent but we have decided to not
+    //     use unfilled posts and instead require all posts to be filled.
     sort: PostSort | "default",
 };
 type FullPostT3 = {
     post: BasePostT3,
     data: Reddit.T3,
 };
-// hmm. interestingly, there's no requirement for the comment to be able to render unfilled.
-// we could make it require itself to be filled, but getting asParent or replies would not need a filled comment.
-// we would have a separate type BaseCommentT1Filled for the filled ver that you can get .post() on.
-// we could undo the change allowing content to be unfilled while the post is filled.
-// fun. good idea too.
+type BaseSidebarWidget = {
+    id: `widget_${string}`,
+    subreddit: UnsortedSubreddit,
+};
+type FullSidebarWidget = {
+    on_base: BaseSidebarWidget,
+    widget: Reddit.Widget, // bridges
+};
 type BaseCommentT1 = {
     fullname: `t1_${string}`,
     on_post: BasePostT3,
@@ -199,8 +204,8 @@ export const base_subreddit = {
             },
         };
     },
-    asParent: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.PostParent => {
-        return {loader: Generic.p2.prefilledVerticalLoader(content, base_subreddit.post(content, base), undefined)};
+    asParent: (content: Generic.Page2Content, base: UnsortedSubreddit): Generic.PostParent => {
+        return {loader: Generic.p2.prefilledVerticalLoader(content, base_subreddit.post(content, {subreddit: base, sort: "default"}), undefined)};
     },
 };
 export const full_subreddit = {
@@ -303,8 +308,33 @@ export const full_subreddit_sidebar = {
     filledWidgets: autoFill((
         (full: FullSubredditSidebar) => base_subreddit_sidebar.filledWidgetsLink(full.on_base)
     ), (content, full): Generic.HorizontalLoaded => {
+        const basev = (id: `widget_${string}`): BaseSidebarWidget => {
+            return {id, subreddit: full.on_base.for_sub};
+        };
+        for(const [widget_key, widget_value] of Object.entries(full.widgets.items)) {
+            full_sidebar_widget.filledValue(content, {
+                on_base: basev(widget_value.id),
+                widget: widget_value,
+            });
+        }
         return [
-            Generic.p2.createSymbolLinkToError(content, "TODO", ""),
+            // it's impossible to load an individual widget. we'll just end up with a bad link if one of these is unfilled.
+            // if it were possible, we would use base_sidebar_widget.asSelfHorizontalLoader() rather than .link()
+    
+            // v default collapsed
+            Generic.p2.createSymbolLinkToError(content, "TODO old.reddit sidebar", ""),
+
+            // skipping id card widget as we already provide that with the header
+            ...full.widgets.layout.topbar.order.map(id => base_sidebar_widget.link(basev(id))), // ? what is this
+            ...full.widgets.layout.sidebar.order.map(id => base_sidebar_widget.link(basev(id))),
+            base_sidebar_widget.link(basev(full.widgets.layout.moderatorWidget)),
+            /*
+            ...subinfo.sub_t5 ? [
+                oldSidebarWidget(content, subinfo.sub_t5, subinfo.subreddit, {collapsed: widgets ? true : false}),
+            ] : [],
+            ...widgets ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
+            ...widgets ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
+            */
         ];
     }),
 
@@ -312,6 +342,25 @@ export const full_subreddit_sidebar = {
         full_subreddit_sidebar.filledIdentity(content, full);
         full_subreddit_sidebar.filledWidgets(content, full);
     },
+};
+
+const base_sidebar_widget = {
+    link: (base: BaseSidebarWidget) => autoLinkgen<Generic.Post>("sidebar_widget→post", base),
+};
+const full_sidebar_widget = {
+    filledValue: autoFill((
+        (full: FullSidebarWidget) => base_sidebar_widget.link(full.on_base)
+    ), (content, full): Generic.Post => {
+        return {
+            kind: "post",
+            content: {kind: "post", title: {text: "TODO"}, body: {kind: "none"}, collapsible: false},
+            internal_data: full,
+            parent: base_subreddit.asParent(content, full.on_base.subreddit),
+            replies: null,
+            url: null,
+            client_id,
+        };
+    }),
 };
 
 // * you will only be able to get a link to a post by using the full_post fn
@@ -365,7 +414,7 @@ export const full_post = {
             client_id,
             url: full_post.url(full),
 
-            parent: base_subreddit.asParent(content, {subreddit: full.post.on_subreddit, sort: "default"}),
+            parent: base_subreddit.asParent(content, full.post.on_subreddit),
             replies: todoReplies(content),
 
             content: full_post.content(content, full),
@@ -500,7 +549,7 @@ export async function loadPage2v2(
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub.for_sub;
         const [widgets, about] = await Promise.all([
-            redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}),
+            redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET", query: {}}),
             redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}),
         ]);
         const full: FullSubredditSidebar = {

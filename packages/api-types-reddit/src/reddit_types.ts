@@ -283,7 +283,7 @@ export type MenuItem = {
 // documented here https://www.reddit.com/dev/api/#POST_api_widget
 // (note, that's for POST while this is for GET so there is a chance of differences)
 export type Widget = {
-    id: string,
+    id: `widget_${string}`,
     styles: {
         headerColor: null,
         backgroundColor: null,
@@ -440,10 +440,10 @@ export type CalendarItem = {
 export type ApiWidgets = {
     items: {[key: string]: Widget},
     layout: {
-        idCardWidget: string,
-        topbar: {order: string[]},
-        sidebar: {order: string[]},
-        moderatorWidget: string,
+        idCardWidget: `widget_id-card-${string}`,
+        topbar: {order: `widget_${string}`[]}, // ??? what are topbar widgets
+        sidebar: {order: `widget_${string}`[]},
+        moderatorWidget: `widget_moderators-${string}`,
     },
 };
 
@@ -1384,6 +1384,9 @@ export type Requests = {
         response: "no",
     }>,
     [key: `/r/${PathBit}/api/widgets`]: IsRequest<{
+        query: {
+            progressive_images?: JStr<boolean> | undefined,
+        },
         response: ApiWidgets,
     }>,
     [key: `/r/${PathBit}/about`]: IsRequest<{
