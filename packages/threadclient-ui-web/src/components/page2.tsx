@@ -63,6 +63,11 @@ export function ClientContent(props: {
                 whole_object_clickable={props.whole_object_clickable}
             />
         ),
+        nonpivoted_identity_card: npic => (
+            <div>
+                TODO nonpivoted identity card: {npic.card.name_raw}
+            </div>
+        ),
         page: page => {
             // note: if the flat item indicates that this is below the pivot && not the main sidebar id card:
             // - render a smaller version. just a profile pic and a title.

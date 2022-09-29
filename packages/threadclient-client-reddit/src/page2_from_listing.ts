@@ -12,7 +12,6 @@ import {
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
 import { asLowercaseString, base_subreddit, loadPage2v2 } from "./reddit_page2_v2";
-import { getSidebar } from "./sidebars";
 
 /*
 REORGANIZATION TODO:
@@ -67,6 +66,9 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 });
                 return {pivot: link, content};
             }
+        }
+        if(parsed.kind === "sidebar") {
+            throw new Error("TODO SIDEBAR");
         }
 
         if(parsed.kind === "link_out") {
@@ -140,34 +142,6 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                     parent: parentIsClient(content),
                     replies: null,
                     url: null,
-                    internal_data: parsed,
-                }),
-            };
-        }else if(parsed.kind === "sidebar") {
-            const sb_content = await getSidebar(content, parsed.sub);
-            p2.fillLink(content, subredditHeaderUnloadedID(parsed.sub), sb_content.bio);
-            // subredditHeaderUnloadedID();
-            return {
-                content,
-                pivot: p2.createSymbolLinkToValue<Generic.Post>(content, {
-                    kind: "post",
-                    client_id: client.id,
-                    content: {
-                        kind: "post",
-                        title: {text: "Sidebar"},
-                        body: {kind: "none"},
-                        collapsible: false,
-                    },
-                    parent: parentIsClient(content),
-                    replies: {
-                        display: "tree",
-                        loader: p2.prefilledHorizontalLoader(
-                            content,
-                            subredditSidebarUnloadedID(parsed.sub),
-                            sb_content.sidebar,
-                        ),
-                    },
-                    url: "/"+[...parsed.sub.base, "@sidebar"].join("/"),
                     internal_data: parsed,
                 }),
             };

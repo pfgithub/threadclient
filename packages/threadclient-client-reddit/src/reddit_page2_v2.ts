@@ -1,9 +1,10 @@
 import * as Generic from "api-types-generic";
+import { p2, rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton } from "./page2_from_listing";
-import { authorFromPostOrComment, client_id, deleteButton, ec, editButton, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, PostSort, redditRequest, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
+import { authorFromPostOrComment, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, PostSort, redditRequest, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
 
 // implementing this well should free us to make less things require loaders:
 // - PostReplies would directly contain the posts and put a loader if it doesn't.
@@ -13,6 +14,9 @@ import { authorFromPostOrComment, client_id, deleteButton, ec, editButton, getCo
 // a safety check we can do is:
 // - after generating any Generic.Post:
 //   - check that parsing the url creates the same base as the url was made from
+// how to implement this: @@@@@@@@@@@@@@@@@@@@@@@@@ do this @@@@@@@@@@@
+// - add a method: getPivotLink(url) that returns a OneLoader<Post> from a given url
+// - for every post, verify that if(post.url) |url| getPivotLink(url) === loader.key.
 
 /*
 report screens in page2
@@ -68,6 +72,15 @@ type FullPostT3 = {
     post: BasePostT3,
     data: Reddit.T3,
 };
+type BaseOldSidebar = {
+    subreddit: UnsortedSubreddit,
+};
+type FullOldSidebar = {
+    on_base: BaseOldSidebar,
+    t5: Reddit.T5,
+    has_structuredstyles_widgets: boolean,
+    // ^ if false, have open by default
+};
 type BaseSidebarWidget = {
     id: `widget_${string}`,
     subreddit: UnsortedSubreddit,
@@ -97,11 +110,9 @@ type BaseSubmitPage = {
     on_subreddit: UnsortedSubreddit,
 };
 
-// part 1 is:
-// - converting a base to a shell and embedding what data we know.
-
 // consider using the base .id() fn instead of json.stringify [!] not url
 // - turn base into a class that BaseClient/BaseSubredditT5/… extend
+// !!!! TODO: autoLinkgen will not last. we have to replace it with individual things.
 function autoLinkgen<ResTy>(cid: string, base: unknown): Generic.NullableLink<ResTy> {
     return Generic.p2.stringLink(cid + ":" + JSON.stringify(base));
 }
@@ -249,7 +260,7 @@ export const base_subreddit_sidebar = {
     filledIdentityCardLink: (base: BaseSubredditSidebar): Generic.NullableLink<Generic.FilledIdentityCard> => {
         return autoLinkgen<Generic.FilledIdentityCard>("subreddit_identity→card", base);
     },
-    identity: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.IdentityCard => {
+    identity: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.PageIdentityCard => {
         const id_loader = base_subreddit_sidebar.identityAndSidebarLoader(content, base);
 
         // right, we'll need to figure out the proper place to put this id.
@@ -257,11 +268,7 @@ export const base_subreddit_sidebar = {
         // - ids should not depend on filled content
         const id_filled = base_subreddit_sidebar.filledIdentityCardLink(base);
         return {
-            container: base_subreddit.post(content, {subreddit: base.for_sub, sort: "default"}),
-            limited: {
-                name_raw: "r/" + base.for_sub,
-                raw_value: base,
-            },
+            temp_title: "r/" + base.for_sub,
             filled: {
                 kind: "one_loader",
                 key: id_filled,
@@ -322,10 +329,14 @@ export const full_subreddit_sidebar = {
             // if it were possible, we would use base_sidebar_widget.asSelfHorizontalLoader() rather than .link()
     
             // v default collapsed
-            Generic.p2.createSymbolLinkToError(content, "TODO old.reddit sidebar", ""),
+            full_oldsidebar_widget.filledValue(content, {
+                on_base: {subreddit: full.on_base.for_sub},
+                t5: full.sub_t5,
+                has_structuredstyles_widgets: true,
+            }),
 
             // skipping id card widget as we already provide that with the header
-            ...full.widgets.layout.topbar.order.map(id => base_sidebar_widget.link(basev(id))), // ? what is this
+            // ...full.widgets.layout.topbar.order.map(id => base_sidebar_widget.link(basev(id))), // ? what is this
             ...full.widgets.layout.sidebar.order.map(id => base_sidebar_widget.link(basev(id))),
             base_sidebar_widget.link(basev(full.widgets.layout.moderatorWidget)),
             /*
@@ -344,20 +355,353 @@ export const full_subreddit_sidebar = {
     },
 };
 
+const base_oldsidebar_widget = {
+    url: (base: BaseOldSidebar) => "/r/"+base.subreddit+"/about/sidebar",
+    link: (base: BaseOldSidebar) => autoLinkgen<Generic.Post>("oldsidebar_value→post", base),
+};
+const full_oldsidebar_widget = {
+    filledValue: autoFill((
+        (full: FullOldSidebar) => base_oldsidebar_widget.link(full.on_base)
+    ), (content, full): Generic.Post => {
+        return {
+            kind: "post",
+            content: {
+                kind: "post",
+        
+                title: {text: "old.reddit sidebar"},
+                body: {
+                    kind: "text",
+                    client_id,
+                    markdown_format: "reddit_html",
+                    content: full.t5.data.description_html,
+                },
+        
+                collapsible: {default_collapsed: full.has_structuredstyles_widgets},
+            },
+            internal_data: full,
+            parent: base_subreddit.asParent(content, full.on_base.subreddit),
+            replies: null,
+            url: base_oldsidebar_widget.url(full.on_base),
+            client_id,
+        };
+    }),
+};
+
 const base_sidebar_widget = {
+    url: (base: BaseSidebarWidget) => null, // "/r/"+base.subreddit+"/api/sidebar?tcr-pivot="+encodeURIComponent(base.id)
     link: (base: BaseSidebarWidget) => autoLinkgen<Generic.Post>("sidebar_widget→post", base),
+
+    //! sidebar widgets can't be loaded right now so this just returns the link. hope it exists.
+    asParent: (content: Generic.Page2Content, base: BaseSidebarWidget): Generic.PostParent => {
+        return {
+            loader: p2.prefilledVerticalLoader(content, base_sidebar_widget.link(base), undefined),
+        };
+    },
 };
 const full_sidebar_widget = {
     filledValue: autoFill((
         (full: FullSidebarWidget) => base_sidebar_widget.link(full.on_base)
     ), (content, full): Generic.Post => {
+        const widget = full.widget;
+        let postcontent: Generic.PostContent;
+        let replies: null | Generic.PostReplies;
+        if(widget.kind === "moderators") {
+            // consider making this into a list of identity cards
+            // maybe we consider going back to the page1 style of having custom widgets rather than
+            // making widgets out of posts
+            postcontent = {
+                kind: "post",
+                title: {text: "Moderators"},
+                body: {kind: "richtext", content: [
+                    rt.p(
+                        rt.link({id: client_id}, "/message/compose?to=/r/"+full.on_base.subreddit,
+                            {style: "pill-empty"},
+                            rt.txt("Message the mods"),
+                        ),
+                    ),
+                    rt.ul(...widget.mods.map(mod => rt.li(rt.p(
+                        rt.link({id: client_id}, "/u/"+mod.name, {is_user_link: mod.name}, rt.txt("u/"+mod.name)),
+                        ...flairToGenericFlair({
+                            type: mod.authorFlairType, text: mod.authorFlairText, text_color: mod.authorFlairTextColor,
+                            background_color: mod.authorFlairBackgroundColor, richtext: mod.authorFlairRichText,
+                        }).flatMap(flair => [rt.txt(" "), rt.flair(flair)]),
+                    )))),
+                    rt.p(
+                        rt.link({id: client_id}, "/r/"+full.on_base.subreddit+"/about/moderators", {}, rt.txt("View All Moderators")),
+                    ),
+                ]},
+                collapsible: false,
+            };
+            replies = null;
+        }else if(widget.kind === "subreddit-rules") {
+            postcontent = {
+                kind: "post",
+    
+                title: {text: widget.shortName},
+                body: {kind: "none"},
+                collapsible: false,
+            };
+            replies = {display: "tree", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("r"), widget.data.map((itm, i) => {
+                return p2.createSymbolLinkToValue<Generic.Post>(content, {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+    
+                        title: {text: (i + 1)+". " + itm.shortName},
+                        body: {
+                            kind: "text",
+                            content: itm.descriptionHtml,
+                            markdown_format: "reddit_html", client_id,
+                        },
+                        collapsible: {default_collapsed: true},
+                    },
+                    internal_data: itm,
+                    parent: base_sidebar_widget.asParent(content, full.on_base),
+                    replies: null,
+
+                    url: null,
+                    client_id,
+                });
+            }))};
+        }else if(widget.kind === "post-flair") {
+            // this isn't implemented well. it's heavily dependent on how posts display.
+            // it should have a custom display probably.
+            postcontent = {
+                kind: "post",
+                title: {text: widget.shortName},
+                body: {kind: "none"},
+                collapsible: false,
+            };
+            replies = {display: "repivot_list", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("r"), widget.order.map(id => {
+                const val = widget.templates[id]!;
+                const flair = flairToGenericFlair({
+                    type: val.type, text: val.text, text_color: val.textColor,
+                    background_color: val.backgroundColor, richtext: val.richtext,
+                });
+                return p2.createSymbolLinkToValue<Generic.Post>(content, {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: null,
+                        flair,
+                        body: {kind: "none"},
+                        collapsible: false,
+                    },
+                    internal_data: val,
+                    parent: base_sidebar_widget.asParent(content, full.on_base),
+                    replies: null,
+
+                    url: "/r/"+full.on_base.subreddit+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
+                    disallow_pivot: true,
+                    client_id,
+                });
+            }))};
+        }else if(widget.kind === "textarea") {
+            postcontent = {
+                kind: "post",
+                title: {text: widget.shortName},
+                body: {kind: "text", content: widget.textHtml, markdown_format: "reddit_html", client_id},
+                collapsible: false,
+            };
+            replies = null;
+        }else if(widget.kind === "button") {
+            // doesn't support image buttons yet. not that the old version really did either
+            // image buttons are basically supposed to be pill links but with an image in the background that
+            // is object-fit:cover
+            // the button is usually 286x32
+            postcontent = {
+                kind: "post",
+                title: {text: widget.shortName},
+                body: {
+                    kind: "richtext",
+                    content: widget.buttons.map(button => {
+                        if(button.kind === "text") {
+                            return rt.p(rt.link({id: client_id}, button.url, {style: "pill-empty"}, rt.txt(button.text)));
+                        }else if(button.kind === "image") {
+                            return rt.p(rt.link({id: client_id}, button.linkUrl, {style: "pill-empty"}, rt.txt("[image] "+button.text)));
+                        }else{
+                            return rt.p(rt.error("TODO support button kind: ["+button.kind+"]", button));
+                        }
+                    }),
+                },
+                collapsible: false,
+            };
+            replies = null;
+        }else if(widget.kind === "community-list") {
+            postcontent = {
+                kind: "post",
+                title: {text: widget.shortName},
+                body: {kind: "none"},
+                collapsible: false,
+            };
+            replies = {display: "repivot_list", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("r"), widget.data.map(community => {
+                if(community.type === "subreddit") {
+                    // return base_subreddit.post(content, {
+                    //     subreddit: asLowercaseString(community.name),
+                    //     sort: "default",
+                    //     // ! community.communityIcon || community.iconUrl
+                    //     // ! community.name, community.subscribers, community.isSubscribed
+                    //     // we need to pass this data in
+                    // });
+                    const sub_base: BaseSubredditT5 = {
+                        subreddit: asLowercaseString(community.name),
+                        sort: "default",
+                    };
+                    return p2.createSymbolLinkToValue<Generic.Post>(content, {
+                        kind: "post",
+                        content: {
+                            kind: "nonpivoted_identity_card",
+                            container: base_subreddit.post(content, sub_base),
+                            card: {
+                                name_raw: "r/"+community.name,
+                                pfp: {url: community.communityIcon || community.iconUrl},
+                                main_counter: createSubscribeAction(
+                                    sub_base.subreddit, community.subscribers, community.isSubscribed,
+                                ),
+                                raw_value: community,
+                            },
+                        },
+
+                        internal_data: community,
+                        parent: base_sidebar_widget.asParent(content, full.on_base),
+                        replies: null,
+
+                        url: base_subreddit.url(sub_base),
+                        disallow_pivot: true,
+                        client_id,
+                    });
+                }else{
+                    return p2.createSymbolLinkToError(content, "TODO community type: "+community.type, community);
+                }
+            }))};
+        }else if(widget.kind === "calendar") {
+            postcontent = {
+                kind: "post",
+                title: {text: widget.shortName},
+                body: {kind: "none"},
+                collapsible: false,
+            };
+            replies = {display: "tree", loader: p2.prefilledHorizontalLoader(content, p2.symbolLink("r"), widget.data.map(item => {
+                return p2.createSymbolLinkToValue<Generic.Post>(content, {
+                    kind: "post",
+                    content: {
+                        kind: "post",
+                        title: {text: item.title},
+                        body: {kind: "array", body: [
+                            {
+                                kind: "richtext",
+                                content: [rt.p(
+                                    rt.txt("From "),
+                                    // vv todo: use a date formatter instead of timeAgo
+                                    rt.timeAgo(item.startTime * 1000),
+                                    rt.txt(", to "),
+                                    rt.timeAgo(item.endTime * 1000),
+                                )]
+                            },
+                            ...item.locationHtml != null ? [{
+                                kind: "text" as const,
+                                client_id,
+                                content: item.locationHtml,
+                                markdown_format: "reddit_html" as const,
+                            }] : [],
+                            ...item.descriptionHtml != null ? [{
+                                kind: "text" as const,
+                                client_id,
+                                content: item.descriptionHtml,
+                                markdown_format: "reddit_html" as const,
+                            }] : [],
+                        ]},
+                        collapsible: {default_collapsed: true},
+                    },
+                    internal_data: item,
+                    parent: base_sidebar_widget.asParent(content, full.on_base),
+                    replies: null,
+
+                    url: null,
+                    client_id,
+                });
+            }))};
+        }else if(widget.kind === "image") {
+            const imgdata = widget.data[widget.data.length - 1]!; // highest quality probably. TODO don't always
+            // use the highest quality image.
+            postcontent = {
+                kind: "special",
+                // why not tag_uuid: "FullscreenBody" and then just have it display the body?
+                // oh because we need the link too
+                tag_uuid: "FullscreenImage@-N0D1IW1oTVxv8LLf7Ed",
+                not_typesafe_data: {
+                    url: imgdata.url,
+                    link_url: imgdata.linkUrl ?? null,
+                    w: imgdata.width,
+                    h: imgdata.height,
+                },
+                fallback: ({
+                    kind: "post",
+                    title: {text: widget.shortName},
+                    body: {
+                        kind: "richtext",
+                        content: [
+                            {kind: "body", body: {
+                                kind: "captioned_image",
+                                url: imgdata.url,
+                                w: imgdata.width,
+                                h: imgdata.height,
+                            }},
+                            ...imgdata.linkUrl != null ? [
+                                rt.p(rt.link({id: client_id}, imgdata.linkUrl, {}, rt.txt(imgdata.linkUrl))),
+                            ] : [],
+                        ],
+                    },
+                    collapsible: false,
+                }),
+            };
+            replies = null;
+        }else if(widget.kind === "custom") {
+            const body: Generic.Body = {
+                kind: "iframe_srcdoc",
+                srcdoc: `
+                    <head>
+                        <link rel="stylesheet" href="${widget.stylesheetUrl}">
+                        <base target="_blank">
+                    </head>
+                    <body>${widget.textHtml}</body>
+                `,
+                height_estimate: widget.height,
+            };
+            postcontent = {
+                kind: "special",
+                tag_uuid: "FullscreenEmbed@-N0D96jIL-HGWHWbWKn1",
+                not_typesafe_data: body,
+                fallback: ({
+                    kind: "post",
+                    title: {text: widget.shortName},
+                    body,
+                    collapsible: false,
+                }),
+            };
+            replies = null;
+        }else{
+            if(widget.kind !== "id-card" && widget.kind !== "menu") expectUnsupported(widget.kind);
+            postcontent = {
+                kind: "post",
+                title: {text: "TODO: "+widget.id},
+                body: {
+                    kind: "text",
+                    content: JSON.stringify(widget),
+                    markdown_format: "none",
+                    client_id,
+                },
+                collapsible: false,
+            };
+            replies = null;
+        }
         return {
             kind: "post",
-            content: {kind: "post", title: {text: "TODO"}, body: {kind: "none"}, collapsible: false},
+            content: postcontent,
             internal_data: full,
             parent: base_subreddit.asParent(content, full.on_base.subreddit),
-            replies: null,
-            url: null,
+            replies,
+            url: base_sidebar_widget.url(full.on_base),
             client_id,
         };
     }),

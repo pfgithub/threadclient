@@ -264,17 +264,16 @@ export type PostOrUnloadedLoader = Post | HorizontalLoader | VerticalLoader;
 // consider:
 // - identity cards could also be used for all authors. instead of having Author,
 //   you would have an identity card with lots of unfilled information (basically a partial author)
-export type IdentityCard = {
-    container: Link<Post>,
-    limited: LimitedIdentityCard,
-    filled: OneLoader<FilledIdentityCard>,
-};
 /*
 updated InfoAuthor will be:
     identity_card: IdentityCard,
     flair?: undefined | Flair[],
     color_hash: string,
 */
+export type PageIdentityCard = {
+    temp_title: string,
+    filled: OneLoader<FilledIdentityCard>,
+};
 export type LimitedIdentityCard = {
     name_raw: string,
 
@@ -282,6 +281,7 @@ export type LimitedIdentityCard = {
     // - you don't know the pfp yet
     // - you know there is no pfp
     pfp?: undefined | InfoPfp,
+    main_counter?: undefined | CounterAction,
 
     raw_value: unknown,
 };
@@ -385,13 +385,28 @@ export type PostContent = ClientPost | {
     // * exception: when rendered as the id card in the sidebar, use the normal renderer
     // : logic to determine how to render this should go in flatten2.tsx
 
+    // * we need a way to have an identity card post that's not in a page
+    // - eg: on a sidebar, you might have links to subreddits
+    // - these should be an IdentityCard. more specifically:
+    //   - a {container: Link<Post>, card: LimitedIdentityCard}
+    // - when clicking the card, it should navigate to the container
     kind: "page",
     wrap_page: {
         sidebar: PostReplies,
-        header: IdentityCard, // todo this needs to be able to be a loader
+        header: PageIdentityCard, // TODO: make this a OneLoader<FilledIdentityCard> instead of IdentityCard
     },
     // overview: ClientPost, // I think this is supposed to be for if rendered below the pivot
     // vv todo delete this one and only use the loader one
+} | {
+    // this exists because:
+    // - ideally we would put a page. unfortunately:
+    //   - we have more info than the page's limited identity card can have (its base does not know the pfp)
+    //   - we have less info than the page's full identity card can have (we don't know the banner background)
+    // - so this is a fake post that will often have a symbol link that displays a limited identity with more info
+    //   than the page's limited identity card has and links to its container when clicked
+    kind: "nonpivoted_identity_card",
+    container: Link<Post>,
+    card: LimitedIdentityCard,
 } | PostContentPost | {
     kind: "legacy",
     thread: Thread,

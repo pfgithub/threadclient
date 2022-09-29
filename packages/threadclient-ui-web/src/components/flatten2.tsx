@@ -445,12 +445,12 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                 const known_value = hprc.content().view(header.filled.key);
                 if(known_value != null) {
                     if(known_value.error != null) {
-                        title.push("*Error* ("+header.limited.name_raw+")");
+                        title.push("*Error* ("+header.temp_title+")");
                     }else{
                         title.push(known_value.value.names.display ?? known_value.value.names.raw);
                     }
                 }else{
-                    title.push(header.limited.name_raw);
+                    title.push(header.temp_title);
                 }
             }else if(uwv?.content.kind === "client") {
                 title.push(uwv.client_id);

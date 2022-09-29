@@ -19,7 +19,7 @@ export default class Page2ContentManager {
                 old_deleted.add(key);
             }
             const in_new = new Set<Generic.NullableLink<unknown>>();
-            for(const key of Object.keys(new_data) as Generic.NullableLink<unknown>[]) {
+            for(const key of Reflect.ownKeys(new_data) as Generic.NullableLink<unknown>[]) {
                 in_new.add(key);
                 old_deleted.delete(key);
             }
@@ -38,7 +38,7 @@ export default class Page2ContentManager {
         // diff:
         batch(() => {
             const in_new = new Set<Generic.NullableLink<unknown>>();
-            for(const key of Object.keys(new_data) as Generic.NullableLink<unknown>[]) {
+            for(const key of Reflect.ownKeys(new_data) as Generic.NullableLink<unknown>[]) {
                 in_new.add(key);
             }
 
