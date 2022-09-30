@@ -28,7 +28,9 @@ function warn(...message: unknown[]) {
     // TODO display this visually somewhere if dev mode is enabled
 }
 
-
+function disabled(): void {
+    throw new Error("getpage disabled. TODO: support submit links before release");
+}
 export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
     // TODO: api requests should be seperate from the api result -> page2 stuff.
     // also authentication should be handled better.
@@ -45,6 +47,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
         const loadres = await loadPage2v2(loadreq.value);
         return {content: {...v2res.content, ...loadres.content}, pivot: v2res.pivot_loader.key};
     }
+    disabled();
 
     // unrelated:
     // the plan is a getSkeleton() that suggests what should be loaded immediately

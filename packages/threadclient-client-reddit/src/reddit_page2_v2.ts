@@ -48,6 +48,31 @@ export function urlToOneLoader(pathraw_in: string): {
             return {content, pivot_loader: p2.prefilledOneLoader(content, link, undefined)};
         }
     }
+    if(parsed.kind === "comments") {
+        const post_base: BasePostT3 = {
+            fullname: `t3_${parsed.post_id_unprefixed}`,
+            on_subreddit: asLowercaseString(
+                parsed.sub.kind === "subreddit" ? parsed.sub.subreddit :
+                parsed.sub.kind === "userpage" ? "u_"+parsed.sub.user :
+                "ERROR_subredditkind:"+parsed.sub.kind
+            ),
+            sort: parsed.sort_override != null ? {v: parsed.sort_override} : "default"
+        };
+        const comment_base: BaseCommentT1 | null = parsed.focus_comment != null ? {
+            fullname: `t1_${parsed.focus_comment}`,
+            on_post: post_base,
+        } : null;
+        return {content, pivot_loader: {
+            kind: "one_loader",
+            key: comment_base != null ? base_comment.commentLink(comment_base) : base_post.postLink(post_base),
+            request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
+                kind: "view_post",
+                focus_comment_id: parsed.focus_comment,
+                post: post_base,
+            })),
+            client_id,
+        }};
+    }
     return {content, pivot_loader: null};
 }
 
@@ -152,7 +177,14 @@ type FullSidebarWidget = {
 type BaseCommentT1 = {
     fullname: `t1_${string}`,
     on_post: BasePostT3,
-    sort: PostSort | "default",
+    // sort is the same as the post's sort
+};
+type FullCommentT1 = {
+    on_base: BaseCommentT1,
+    t1: Reddit.T1,
+    replies_valid: true | string,
+    // :: true if the object is below the focused comment
+    // :: string containing the focused comment id if the object is above or at the focused comment
 };
 type BaseUserT2 = {
     username: LowercaseString,
@@ -173,6 +205,9 @@ type BaseSubmitPage = {
 // consider using the base .id() fn instead of json.stringify [!] not url
 // - turn base into a class that BaseClient/BaseSubredditT5/… extend
 // !!!! TODO: autoLinkgen will not last. we have to replace it with individual things.
+//
+// tid: ResTy extends … ? "p:" : ResTy extends … ? "c:" : …
+// or define different ones for different ResTys
 function autoLinkgen<ResTy>(cid: string, base: unknown): Generic.NullableLink<ResTy> {
     return Generic.p2.stringLink(cid + ":" + JSON.stringify(base));
 }
@@ -256,7 +291,7 @@ export const base_subreddit = {
             client_id,
         };
     }),
-    idFilled: (base: BaseSubredditT5): Generic.NullableLink<Generic.HorizontalLoaded> => {
+    repliesIdFilled: (base: BaseSubredditT5): Generic.NullableLink<Generic.HorizontalLoaded> => {
         return autoLinkgen<Generic.HorizontalLoaded>("subreddit→replies", base);
     },
     replies: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.PostReplies => {
@@ -268,7 +303,7 @@ export const base_subreddit = {
                 subreddit: base,
             });
         });
-        const id_filled = base_subreddit.idFilled(base);
+        const id_filled = base_subreddit.repliesIdFilled(base);
         return {
             display: "repivot_list",
             loader: {
@@ -295,14 +330,14 @@ export function subDefaultSort(base: UnsortedSubreddit): SubSort {
 }
 export const full_subreddit = {
     fillContent: autoFill(
-        (full: FullSubredditContent) => base_subreddit.idFilled(full.subreddit),
+        (full: FullSubredditContent) => base_subreddit.repliesIdFilled(full.subreddit),
         (content, full): Generic.HorizontalLoaded => {
             const res: Generic.HorizontalLoaded = [];
             // if full listing data before
             // TODO: - we need, in addition to sort, a before param for subs
             // - then, we can add a loader for the ?before thing
             for(const item of full.listing.data.children) {
-                res.push(linkToAndFillAnyPost(content, item));
+                res.push(linkToAndFillListingChild(content, item));
             }
             if(full.listing.data.after != null) {
                 res.push({
@@ -786,6 +821,32 @@ const full_sidebar_widget = {
 // * you can get a base_post 'as_parent' but no other way
 export const base_post = {
     postLink: (base: BasePostT3) => autoLinkgen<Generic.Post>("postT3→post", base),
+    repliesLink: (base: BasePostT3) => autoLinkgen<Generic.HorizontalLoaded>("postT3→replies", base),
+
+    replies: (content: Generic.Page2Content, base: BasePostT3): Generic.PostReplies => {
+        const id_loader = Generic.p2.fillLinkOnce(content, (
+            autoLinkgen<Generic.Opaque<"loader">>("postT3→replies_loader", base)
+        ), () => {
+            return opaque_loader.encode({
+                kind: "view_post",
+                post: base,
+                focus_comment_id: null,
+            });
+        });
+        const id_filled = base_post.repliesLink(base);
+        return {
+            display: "repivot_list",
+            loader: {
+                kind: "horizontal_loader",
+                key: id_filled,
+                request: id_loader,
+
+                load_count: null,
+                autoload: false,
+                client_id,
+            },
+        };
+    },
 };
 export const full_post = {
     // note: you need a full post to get a url to it. this is to include the title in the url.
@@ -834,7 +895,7 @@ export const full_post = {
             url: full_post.url(full),
 
             parent: base_subreddit.asParent(content, full.post.on_subreddit),
-            replies: todoReplies(content),
+            replies: base_post.replies(content, full.post),
 
             content: full_post.content(content, full),
             internal_data: full,
@@ -842,8 +903,12 @@ export const full_post = {
     }),
 };
 
-// note: this fn will need to get some sort info
-function linkToAndFillAnyPost(content: Generic.Page2Content, post: Reddit.Post): Generic.Link<Generic.Post> {
+const base_comment = {
+    commentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Post>("commentT1→post", base),
+};
+
+// [!] TODO: stuff about comments
+function linkToAndFillListingChild(content: Generic.Page2Content, post: Reddit.Post): Generic.Link<Generic.Post> {
     if(post.kind === "t3") {
         const post_base: BasePostT3 = {
             fullname: post.data.name as "t3_string",
@@ -953,6 +1018,10 @@ type LoaderData = {
 } | {
     kind: "subreddit_identity_and_sidebar",
     sub: BaseSubredditSidebar,
+} | {
+    kind: "view_post",
+    post: BasePostT3,
+    focus_comment_id: null | string,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
@@ -977,6 +1046,24 @@ export async function loadPage2v2(
             sub_t5: about,
         };
         full_subreddit_sidebar.fill(content, full);
+    }else if(data.kind === "view_post") {
+        const target_url = "/" + [].join("/");
+        const postid = data.post.fullname.substring(3);
+        const post_value = await redditRequest(`/comments/${ec(postid)}`, {
+            method: "GET",
+            query: {
+                sort: data.post.sort === "default" ? null : data.post.sort.v,
+                comment: data.focus_comment_id,
+                context: "3", // use a higher context value for vertical loaders
+            },
+        });
+
+        throw new Error("ncjdakcndjklscnjk");
+
+        // /r/[subreddit]/comments/[postid]/_/[focuscommentid]?sort=[v]
+        // [!] for view_post, if the comment isn't found, error:
+        // - this would mean:
+        //   in the loader, after filling, p2.fillLinkOnce(pivoted comment, [gen error comment])
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
     return {content};
 }
