@@ -6,6 +6,8 @@ import { updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton } from "./page2_from_listing";
 import { authorFromPostOrComment, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, parseLink, PostSort, redditRequest, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
 
+const debug_mode = true;
+
 // implementing this well should free us to make less things require loaders:
 // - PostReplies would directly contain the posts and put a loader if it doesn't.
 //   if the base is enough to describe the replies, we can put them in directly,
@@ -25,6 +27,10 @@ report screens in page2
   - or it shows it as a reply with the report as a pivot. doesn't matter
 */
 
+// here's something interesting
+// what if we're loading a post and we say 'this is the pivot link'
+// and then the pivot link is unfilled (ie the comment with the specified id is missing in the tree)
+// - we need to somehow say "repivot to <this link> in case of an error"
 export function urlToOneLoader(pathraw_in: string): {
     content: Generic.Page2Content,
     pivot_loader: null | Generic.OneLoader<Generic.Post>,
@@ -48,6 +54,41 @@ export function urlToOneLoader(pathraw_in: string): {
 type LowercaseString = string & {__is_ascii_lowercase: true};
 export function asLowercaseString(str: string): LowercaseString {
     return str.toLowerCase() as LowercaseString;
+}
+
+let is_validating = false;
+function validatePost<T>(link: Generic.Link<T>, res: T): T {
+    if(is_validating) return res;
+    is_validating = true;
+    try {
+        console.log("*[ValidatePost]* checking:", link);
+        if(debug_mode) {
+            // heuristic to see if it looks like res looks like a generic.post
+            if(res != null && typeof res === "object" && 'kind' in res && (res as {'kind': unknown})["kind"] === "post" && 'url' in res) {
+                const resurl = (res as {'url': unknown}).url;
+                if(typeof resurl === "string") {
+                    if((res as {'disallow_pivot': undefined | boolean}).disallow_pivot ?? false) {
+                        // pass; the object cannot be pivoted and clicking it will redirect to its url rather than repivoting
+                    }else{
+                        // parse the url
+                        const upres = urlToOneLoader(resurl);
+                        if(upres.pivot_loader == null) {
+                            console.warn("*[ValidatePost]* NOT YET SUPPORTED URL:", resurl, link);
+                        }else if(upres.pivot_loader.key !== link){
+                            console.error("*[ValidatePost]* URL PRODUCES DIFFERENT KEY:", resurl, "\n→", link, "\n←", upres.pivot_loader.key);
+                        }else{
+                            // passsed
+                        }
+                    }
+                }else{
+                    // pass. null or undefined or some other type.
+                }
+            }
+        }
+        return res;
+    } finally {
+        is_validating = false;
+    }
 }
 
 // Base is the minimum content required to create a filled link to a Generic.Post
@@ -136,16 +177,21 @@ type BaseSubmitPage = {
 function autoLinkgen<ResTy>(cid: string, base: unknown): Generic.NullableLink<ResTy> {
     return Generic.p2.stringLink(cid + ":" + JSON.stringify(base));
 }
+type AORes<Base, ResTy> = (content: Generic.Page2Content, base: Base) => Generic.Link<ResTy>;
 function autoOutline<Base, ResTy>(
     unique_consistent_id: string,
-    getContent: (content: Generic.Page2Content, base: Base) => ResTy,
-): (content: Generic.Page2Content, base: Base) => Generic.Link<ResTy> {
-    return (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
-        const link = autoLinkgen<ResTy>(unique_consistent_id, base);
+    getContent: (content: Generic.Page2Content, base: Base, link: Generic.Link<ResTy>) => ResTy,
+): AORes<Base, ResTy> & {link: (base: Base) => Generic.Link<ResTy>} {
+    const getlink = (base: Base) => autoLinkgen<ResTy>(unique_consistent_id, base);
+    const res: AORes<Base, ResTy> = (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
+        const link = getlink(base);
         return Generic.p2.fillLinkOnce(content, link, () => {
-            return getContent(content, base);
+            const resv = getContent(content, base, link);
+            validatePost(link, resv);
+            return resv;
         });
     };
+    return Object.assign(res, {link: getlink});
 }
 function autoFill<Base, ResTy>(
     getLink: (base: Base) => Generic.NullableLink<ResTy>,
