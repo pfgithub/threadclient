@@ -61,7 +61,6 @@ function validatePost<T>(link: Generic.Link<T>, res: T): T {
     if(is_validating) return res;
     is_validating = true;
     try {
-        console.log("*[ValidatePost]* checking:", link);
         if(debug_mode) {
             // heuristic to see if it looks like res looks like a generic.post
             if(res != null && typeof res === "object" && 'kind' in res && (res as {'kind': unknown})["kind"] === "post" && 'url' in res) {
@@ -99,7 +98,7 @@ type UnsortedSubreddit = LowercaseString;
 type BaseSubredditT5 = {
     subreddit: LowercaseString, // u_ for user subreddits
     // note: the fullname is not known here
-    sort: SubSort | "default",
+    sort: SubSort,
     // note: sort handling isn't quite right. posts will always set their parent to an unsorted subreddit.
     // - this means that if we show little parent trees like we want to on mastodon, in user pages,
     //   in inbox notifications, and on the homepage, we will accidentally show them any time the subreddit
@@ -200,7 +199,9 @@ function autoFill<Base, ResTy>(
     return (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
         const link = getLink(base);
         return Generic.p2.fillLinkOnce(content, link, () => {
-            return getContent(content, base);
+            const resv = getContent(content, base);
+            validatePost(link, resv);
+            return resv;
         });
     };
 }
@@ -233,8 +234,8 @@ export const base_client = {
 export const base_subreddit = {
     url: (base: BaseSubredditT5): "/__any_listing" => {
         return updateQuery(
-            "/r/" + base.subreddit + (base.sort !== "default" ? "/" + base.sort.v : ""),
-            base.sort !== "default" ? {t: base.sort.t} : {},
+            "/r/" + base.subreddit + ("/" + base.sort.v),
+            {t: base.sort.t},
         ) as "/__any_listing";
     },
     // ie: /r/somesub | /r/u_someusersub | /r/t5:dnjakcns
@@ -282,9 +283,16 @@ export const base_subreddit = {
         };
     },
     asParent: (content: Generic.Page2Content, base: UnsortedSubreddit): Generic.PostParent => {
-        return {loader: Generic.p2.prefilledVerticalLoader(content, base_subreddit.post(content, {subreddit: base, sort: "default"}), undefined)};
+        return {loader: Generic.p2.prefilledVerticalLoader(
+            content, base_subreddit.post(content, {subreddit: base, sort: subDefaultSort(base)}), undefined,
+        )};
     },
 };
+export function subDefaultSort(base: UnsortedSubreddit): SubSort {
+    // specify manual overrides for subreddits which request different default sorts
+    if(base === "teenagersnew" || base === "adultsnew") return {v: "new", t: "all"};
+    return {v: "hot", t: "all"};
+}
 export const full_subreddit = {
     fillContent: autoFill(
         (full: FullSubredditContent) => base_subreddit.idFilled(full.subreddit),
@@ -609,9 +617,10 @@ const full_sidebar_widget = {
                     //     // ! community.name, community.subscribers, community.isSubscribed
                     //     // we need to pass this data in
                     // });
+                    const sub_name = asLowercaseString(community.name);
                     const sub_base: BaseSubredditT5 = {
-                        subreddit: asLowercaseString(community.name),
-                        sort: "default",
+                        subreddit: sub_name,
+                        sort: subDefaultSort(sub_name),
                     };
                     return p2.createSymbolLinkToValue<Generic.Post>(content, {
                         kind: "post",

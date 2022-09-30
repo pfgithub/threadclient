@@ -2,6 +2,7 @@ import * as util from "tmeta-util";
 import { assertNever, encodeQuery } from "tmeta-util";
 import { all_builtin_newreddit_routes as all_routes } from "./new_reddit_route_data";
 import { ParsedPath, SubrInfo } from "./reddit";
+import { asLowercaseString, subDefaultSort } from "./reddit_page2_v2";
 
 export const path_router = util.router<ParsedPath>();
 
@@ -131,15 +132,18 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {
         "/user/:username/m/:multiredditName",
         ...base_sort_methods.map(sm => "/user/:username/m/:multiredditName/"+sm),
     );
-    urlr.route([{sort: [...base_sort_methods, ...kind === "user" ? [] : [null]]}] as const, opts => ({
-        kind: "subreddit",
-        sub: getSub(opts),
-        is_user_page: false,
-        current_sort: {v: opts.sort ?? "hot", t: opts.query["t"] ?? "all"},
+    urlr.route([{sort: [...base_sort_methods, ...kind === "user" ? [] : [null]]}] as const, opts => {
+        const subdefault = subDefaultSort(asLowercaseString(opts.subreddit ?? ""));
+        return {
+            kind: "subreddit",
+            sub: getSub(opts),
+            is_user_page: false,
+            current_sort: {v: opts.sort ?? subdefault.v, t: opts.query["t"] ?? subdefault.t},
 
-        before: opts.query["before"] ?? null,
-        after: opts.query["after"] ?? null,
-    }));
+            before: opts.query["before"] ?? null,
+            after: opts.query["after"] ?? null,
+        };
+    });
 
     urlr.route(["@sidebar"] as const, opts => ({
         kind: "sidebar",
