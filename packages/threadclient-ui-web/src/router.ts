@@ -63,7 +63,6 @@ export function main(): void {
         fixURL();
 
         // onNavigate(ev?.state.index ?? 0);
-        console.log("onpopstate. ev:",ev.state);
         const state = ev.state as HistoryState | undefined;
         const newkey = state?.key ?? uuid();
         if(newkey !== state?.key) {

@@ -41,13 +41,13 @@ export function animateHeight(
         const visualTop = () => 5 + Math.max(
             0, 
             navbar_size.bottom,
-            window.visualViewport.offsetTop,
+            window.visualViewport?.offsetTop ?? 0,
         );
         const visualBottom = () => (
-            window.visualViewport.offsetTop + window.visualViewport.height
+            (window.visualViewport?.offsetTop ?? 0) + (window.visualViewport?.height ?? window.innerHeight)
         );
 
-        console.log("ANIMATE!", initial_size.top, initial_size.bottom, visualTop(), visualBottom());
+        // console.log("ANIMATE!", initial_size.top, initial_size.bottom, visualTop(), visualBottom());
 
         let scroll_offset = 0;
         if(initial_size.top < visualTop() && initial_size.bottom > visualTop()) {

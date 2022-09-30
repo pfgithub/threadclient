@@ -3066,7 +3066,7 @@ export const client: ThreadClient = {
                 mode: "urlencoded",
                 body: act.query,
             });
-            console.log(res);
+            console.log("VOTE RES", res);
         }else if(act.kind === "delete") {
             const res = await redditRequest("/api/del", {
                 method: "POST",
@@ -3080,7 +3080,7 @@ export const client: ThreadClient = {
                 mode: "urlencoded",
                 body: {id: act.fullname},
             });
-            console.log(res);
+            console.log("SAVE RES", res);
         }else if(act.kind === "subscribe") {
             const res = await redditRequest("/api/subscribe", {
                 method: "POST",
@@ -3090,7 +3090,7 @@ export const client: ThreadClient = {
                     sr_name: act.subreddit,
                 },
             });
-            console.log(res);
+            console.log("SUBSCRIBE RES", res);
         }else if(act.kind === "mark_read") {
             const res = await redditRequest(`/api/${act.direction}read_message`, {
                 method: "POST",
@@ -3100,7 +3100,7 @@ export const client: ThreadClient = {
                 },
                 override: true,
             });
-            console.log(res);
+            console.log("READMESSAGE RES", res);
         }else if(act.kind === "log_out") {
             localStorage.removeItem("reddit-secret");
         }else assertUnreachable(act);

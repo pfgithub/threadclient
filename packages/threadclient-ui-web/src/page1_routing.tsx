@@ -103,7 +103,6 @@ export function navigate({path, page, mode}: {
 }): void {
     if(path.startsWith("/")) path = path.replace("/", "#") || "#/";
     const hstate: HistoryState = {key: uuid()};
-    console.log("Appending history state index", hstate, path);
     if(mode === "replace") {
         history.replaceState(hstate, "", path);
     }else{
@@ -162,7 +161,6 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
     if(page) {
         const page2 = page;
         const cmr = new Page2ContentManager();
-        console.log("%ON NAVIGATE%", page);
         cmr.setData(page2.content);
         const pagemut: MutablePage2HistoryNode = {page: {
             pivot: page2.pivot,
