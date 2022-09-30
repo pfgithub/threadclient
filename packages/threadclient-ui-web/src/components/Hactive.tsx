@@ -30,7 +30,6 @@ export default function Hactive(props: {
             setHovering(true);
         });
         el.addEventListener("mouseout", e => {
-            console.log("MOUSEOUT");
             let parent = e.relatedTarget as Node | null;
             while(parent) {
                 if(parent === el) {

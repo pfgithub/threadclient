@@ -68,11 +68,9 @@ export let hidePage2!: () => void;
         </DefaultErrorBoundary>);
     };
     showPage2 = (new_pgin: MutablePage2HistoryNode, first_show: boolean) => {
-        console.log("showing page2", new_pgin.page);
         page2mainel.style.display = "";
 
         setPgin(new_pgin);
-        console.log("SHOWPAGE2 CALLED ON", new_pgin);
 
         initializePage2Viewer();
 
@@ -127,8 +125,6 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
             return url_in;
         }
     })() : url_in;
-
-    console.log("Navigating", to_key, url, to_key, page, [...nav_history_map.keys()]);
 
     document.title = "ThreadClient";
     navigate_event_handlers.forEach(evh => evh(url));

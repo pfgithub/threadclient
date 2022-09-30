@@ -2464,7 +2464,6 @@ export function fetchPromiseThen<T>(
 }
 
 export function renderPath(pathraw: string, search: string): HideShowCleanup<HTMLDivElement> {
-    console.log("RENDERPATH", pathraw, search);
     const pathfull = (pathraw + search).substring(1);
     if(pathfull.toLowerCase().startsWith("http://")
     || pathfull.toLowerCase().startsWith("https://")) {
@@ -2503,8 +2502,6 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
     const path = pathraw.split("/").filter(w => w);
 
     const path0 = path.shift();
-
-    console.log(path);
 
     if(path0 == null) {
         return homePage();

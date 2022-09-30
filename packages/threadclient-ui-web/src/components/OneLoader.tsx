@@ -47,7 +47,7 @@ export function UnfilledLoader(props: {
             batch(() => {
                 setLoading(false);
                 setError(null);
-                console.log("adding content", r.content, props.loader);
+                // console.log("adding content", r.content, props.loader);
                 hprc.addContent(pgin, r.content);
             });
         }).catch((e: Error) => {

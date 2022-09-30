@@ -4,7 +4,7 @@ import { ThreadClient } from "threadclient-client-base";
 import { generateUUID, UUID } from "tmeta-util";
 import { registerSW } from "virtual:pwa-register";
 import { variables } from "virtual:_variables";
-import { renderChangelogBannerIfNeeded } from "./components/changelog_manager";
+import { current_version, renderChangelogBannerIfNeeded } from "./components/changelog_manager";
 import { elButton } from "./page1";
 import { HistoryState, navigate, NavigationEntry, onNavigate, startDebugTool, URLLike } from "./page1_routing";
 import { GlobalCounter } from "./tc_helpers";
@@ -152,7 +152,7 @@ export function main(): void {
         navbar = frame;
     }
     
-    console.log("ThreadClient built on "+variables.build_time);
+    console.log("ThreadClient built on "+variables.build_time+" version "+current_version);
 
     page2mainel = el("div").adto(rootel);
     
@@ -219,10 +219,8 @@ if(navigator.serviceWorker != null) {
     }).catch(e => console.log("Error checking sw registrations", e));    
 }
 
-console.log("ROUTER.TS WAS RELOADED.", import.meta.hot);
 // TODO show an error message
 if(import.meta.hot) {
-    console.log("...configuring router.ts as an hmr boundary");
     // import.meta.hot.decline();
     // technically the "right" thing to do is import.meta.hot.decline(); but I
     // don't want to accidentally refresh the page if I update router.ts. maybe

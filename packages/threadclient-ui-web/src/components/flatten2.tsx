@@ -409,7 +409,6 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
     const hprc = getWholePageRootContext();
     const pivot = createMemo(() => {
         const pivot_read = hprc.content().view(pivotLink());
-        console.log("%=PIVOT UPDATED=%", pivot_read);
         if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
         return pivot_read.value;
     });
@@ -483,7 +482,6 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
 
     const bodyCh = FlatItemTsch.useChildren(() => {
         const p = pivot(); // if pivot changes, we rerender everything
-        console.log("%!PIVOT IS", p, pivotLink, hprc);
         return <>
             <For each={parentsFiltered().view_parents}>{(item): JSX.Element => <>
                 <FlatItemTsch kind="wrapper_start" />

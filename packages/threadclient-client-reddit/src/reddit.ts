@@ -394,7 +394,6 @@ function pathURL(oauth: boolean, path: string, opts: {override?: undefined | boo
     query.set("gilding_detail", "1"); // not sure what this does but new.reddit sends it in an oauth.reddit.com request so it sounds good
     query.set("profile_img", "true"); // profile images
     const res = baseURL(oauth) + pathname + ".json?"+query.toString() + (hash === "" ? "" : "#"+hash);
-    console.log("!PATHURL", res);
     return res;
 }
 
@@ -495,7 +494,6 @@ async function getAccessTokenInternal() {
         refresh_token: string,
         scope: string,
     };
-    console.log(json.expires, Date.now());
     // TODO rather than relying on the system clock, update the token if a request returns a old token error
     if(json.expires < Date.now()) {
         // refresh token

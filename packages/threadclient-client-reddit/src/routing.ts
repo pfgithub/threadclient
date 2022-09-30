@@ -413,8 +413,7 @@ if(all_routes.size > 0) {
     }
 }
 if(router_diagnostics.length > 0) {
-    console.log("reddit router ::");
-    for(const router_diagnostic of router_diagnostics) {
-        console.log(router_diagnostic);
-    }
+    console.groupCollapsed("reddit router diagnostics");
+    console.warn(router_diagnostics.join("\n"));
+    console.groupEnd();
 }
