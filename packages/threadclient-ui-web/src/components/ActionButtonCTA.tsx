@@ -1,16 +1,12 @@
 import * as Generic from "api-types-generic";
 import { JSX } from "solid-js";
-import { Show, SwitchKind } from "tmeta-util-solid";
-import { bioRender } from "../page1";
-import { SolidToVanillaBoundary } from "../util/interop_solid";
+import { Show } from "tmeta-util-solid";
 import { classes } from "../util/utils_solid";
-import { HorizontalActionButton } from "./ActionButtonHorizontal";
-import { Body } from "./body";
-import { getCounterState } from "./counter";
+import { addAction } from "./action_tracker";
+import { actAuto, getCounterState } from "./counter";
+import { voteItemStr } from "./flat_posts";
 import Icon from "./Icon";
-import Pfp from "./Pfp";
-import { ClientPostOpts } from "./Post";
-import proxyURL from "./proxy_url";
+import { formatItemString } from "./InfoBar";
 
 export default function ActionButtonCTA(props: {
     action: Generic.CounterAction,
@@ -23,15 +19,15 @@ export default function ActionButtonCTA(props: {
             getState().your_vote === "increment" ?
             "from-zinc-50 to-zinc-100 text-zinc-900" :
             "from-blue-600 to-blue-700 text-slate-50 dark:text-zinc-50"
-        )}>
+        )} disabled={getState().loading} onClick={() => {
+            void addAction(actAuto(getState().your_vote === "increment" ? undefined : "increment", getState(), setState, props.action));
+        }}>
             <Icon icon={props.action.increment.icon} bold={getState().your_vote === "increment"} label={null} />
-            {" "}{props.action.increment.label}
+            {" "}{getState().your_vote === "increment" ? props.action.increment.undo_label : props.action.increment.label}
         </button>
-        <button class="hidden bg-gradient-to-b from-zinc-100 to-zinc-200 text-zinc-900 hover:text-white px-4 py-2 rounded ">
-            Unsubscribe
-        </button>
+        <Show if={props.action.decrement != null}><div>[TODO decrement]</div></Show>
         <div>
-            <div>{getState().pt_count} Subscribers</div>
+            <div>{formatItemString(voteItemStr(getState().pt_count, getState().your_vote)).long}</div>
         </div>
     </div>;
 }

@@ -61,7 +61,7 @@ function SidebarButton(props: {
 }): JSX.Element {
     return <div class="py-3 text-center">
         <Icon class="text-[2rem]" icon={props.icon} bold={false} label={props.label} />
-        <div>{formatItemString(props.text)[0]}</div>
+        <div>{formatItemString(props.text).short}</div>
     </div>;
 }
 

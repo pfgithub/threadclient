@@ -22,24 +22,24 @@ export function scoreToString(score: number) {
     if(score < 100_000_000) return (score / 1_000_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "m";
     return (score / 1_000_000 |0) + "m";
 }
-export function formatItemString(value: FormattableNumber): [short: string, long: string] {
-    if(value[0] === "none") return ["", ""];
-    if(value[0] === "percent") return [
-        " "+value[1].toLocaleString(undefined, {style: "percent"}),
-        " "+value[1].toLocaleString(undefined, {style: "percent"}),
-    ];
-    if(value[0] === "timeago") return [
-        " "+timeAgoTextWatchable(value[1], {short: true})(),
-        " "+new Date(value[1]).toLocaleString(),
-    ];
-    if(value[0] === "number") return [
-        " "+scoreToString(value[1]),
-        " "+value[1].toLocaleString(),
-    ];
-    if(value[0] === "hidden") return [
-        " "+"—",
-        " "+"Hidden",
-    ];
+export function formatItemString(value: FormattableNumber): {short: string, long: string} {
+    if(value[0] === "none") return {short: "", long: ""};
+    if(value[0] === "percent") return {
+        short: " "+value[1].toLocaleString(undefined, {style: "percent"}),
+        long: " "+value[1].toLocaleString(undefined, {style: "percent"}),
+    };
+    if(value[0] === "timeago") return {
+        short: " "+timeAgoTextWatchable(value[1], {short: true})(),
+        long: " "+new Date(value[1]).toLocaleString(),
+    };
+    if(value[0] === "number") return {
+        short: " "+scoreToString(value[1]),
+        long: " "+value[1].toLocaleString(),
+    };
+    if(value[0] === "hidden") return {
+        short: " "+"—",
+        long: " "+"Hidden",
+    };
     assertNever(value[0]);
 }
 
@@ -59,12 +59,12 @@ export function InfoBarItemNode(props: {item: InfoBarItem}): JSX.Element {
             colorClass(props.item.color),
             props.item.disabled ?? false ? "opacity-50" : "",
         )}
-        title={lblv() + fmt()[1]}
+        title={lblv() + fmt().long}
     >
         {(true as boolean) || size_lt.sm() ? 
             <Icon icon={props.item.icon} bold={props.item.color != null} label={lblv()} />
         : <></>}
-        {fmt()[0]}
+        {fmt().short}
         {(true as boolean) || size_lt.sm() ? <></> : <>{props.item.value[0] === "none" ? "" : " "}{props.item.text}</>}
     </span>;
 }

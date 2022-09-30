@@ -10,12 +10,22 @@ import { ClientPostOpts } from "./Post";
 
 export type FormattableNumber = ["percent" | "number" | "timeago" | "hidden" | "none", number];
 export type InfoBarItem = {
-    value: FormattableNumber,
+    value: FormattableNumber, // instead of this, we can make this a string
     icon: Generic.Icon,
     color: null | Generic.Color,
     text: string,
     disabled?: undefined | boolean,
 };
+
+export function voteItemStr(pt_count: Generic.CounterAction["count_excl_you"], your_vote: "increment" | "decrement" | undefined): FormattableNumber {
+    return pt_count === "hidden"
+    ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
+    : ["number", pt_count + ({
+        increment: 1,
+        decrement: -1,
+        none: 0,
+    } as const)[your_vote ?? "none"]];
+}
 
 function InfoBarItems(props: {post: Generic.PostContentPost}): JSX.Element {
     // TODO make the order user-configurable
@@ -46,13 +56,7 @@ function InfoBarItems(props: {post: Generic.PostContentPost}): JSX.Element {
                     const pt_count = ptCount();
                     const state = stateR();
                     return {
-                        value: pt_count === "hidden"
-                        ? ["hidden", -1000] : pt_count === "none" ? ["none", -1000]
-                        : ["number", pt_count + ({
-                            increment: 1,
-                            decrement: -1,
-                            none: 0,
-                        } as const)[state.your_vote ?? "none"]],
+                        value: voteItemStr(pt_count, state.your_vote),
                         icon: ({
                             none: voteact.neutral_icon ?? voteact.increment.icon,
                             increment: voteact.increment.icon,
