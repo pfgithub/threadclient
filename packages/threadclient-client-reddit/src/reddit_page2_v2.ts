@@ -4,7 +4,7 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton } from "./page2_from_listing";
-import { authorFromPostOrComment, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, getCodeButton, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, parseLink, PostSort, redditRequest, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
+import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
 
 const debug_mode = true;
 
@@ -69,6 +69,7 @@ export function urlToOneLoader(pathraw_in: string): {
                 kind: "view_post",
                 focus_comment_id: parsed.focus_comment,
                 post: post_base,
+                context: parsed.context ?? "3",
             })),
             client_id,
         }};
@@ -157,6 +158,15 @@ type FullPostT3 = {
     post: BasePostT3,
     data: Reddit.T3,
 };
+// here's something fun
+// we don't have to do the page1 mess with /api/moredata results
+// we can just iterate over all the comments and use 'after_id: "#INVALID"' and it will fill itself out
+type CommentRepliesValid = {after_id: string} | true; // note: for 'false', use {after_id: "#INVALID"}
+type FullPostReplies = {
+    on_post: BasePostT3,
+    data: Reddit.Listing,
+    comment_replies_valid: CommentRepliesValid,
+};
 type BaseOldSidebar = {
     subreddit: UnsortedSubreddit,
 };
@@ -182,9 +192,7 @@ type BaseCommentT1 = {
 type FullCommentT1 = {
     on_base: BaseCommentT1,
     t1: Reddit.T1,
-    replies_valid: true | string,
-    // :: true if the object is below the focused comment
-    // :: string containing the focused comment id if the object is above or at the focused comment
+    comment_replies_valid: CommentRepliesValid,
 };
 type BaseUserT2 = {
     username: LowercaseString,
@@ -227,14 +235,14 @@ function autoOutline<Base, ResTy>(
     };
     return Object.assign(res, {link: getlink});
 }
-function autoFill<Base, ResTy>(
-    getLink: (base: Base) => Generic.NullableLink<ResTy>,
-    getContent: (content: Generic.Page2Content, base: Base) => ResTy,
-): (content: Generic.Page2Content, base: Base) => Generic.Link<ResTy> {
-    return (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
-        const link = getLink(base);
+function autoFill<Full, ResTy>(
+    getLink: (full: Full) => Generic.NullableLink<ResTy>,
+    getContent: (content: Generic.Page2Content, full: Full) => ResTy,
+): (content: Generic.Page2Content, full: Full) => Generic.Link<ResTy> {
+    return (content: Generic.Page2Content, full: Full): Generic.Link<ResTy> => {
+        const link = getLink(full);
         return Generic.p2.fillLinkOnce(content, link, () => {
-            const resv = getContent(content, base);
+            const resv = getContent(content, full);
             validatePost(link, resv);
             return resv;
         });
@@ -328,6 +336,10 @@ export function subDefaultSort(base: UnsortedSubreddit): SubSort {
     if(base === "teenagersnew" || base === "adultsnew") return {v: "new", t: "all"};
     return {v: "hot", t: "all"};
 }
+export function commentDefaultCollapsed(author_name: string): boolean {
+    // specify manual overrides for comments which should be automatically collapsed
+    return author_name === "FatFingerHelperBot";
+}
 export const full_subreddit = {
     fillContent: autoFill(
         (full: FullSubredditContent) => base_subreddit.repliesIdFilled(full.subreddit),
@@ -337,7 +349,7 @@ export const full_subreddit = {
             // TODO: - we need, in addition to sort, a before param for subs
             // - then, we can add a loader for the ?before thing
             for(const item of full.listing.data.children) {
-                res.push(linkToAndFillListingChild(content, item));
+                res.push(linkToAndFillListingChild(content, item, null));
             }
             if(full.listing.data.after != null) {
                 res.push({
@@ -823,6 +835,30 @@ export const base_post = {
     postLink: (base: BasePostT3) => autoLinkgen<Generic.Post>("postT3→post", base),
     repliesLink: (base: BasePostT3) => autoLinkgen<Generic.HorizontalLoaded>("postT3→replies", base),
 
+    asParent: (content: Generic.Page2Content, base: BasePostT3): Generic.PostParent => {
+        const id_loader = Generic.p2.fillLinkOnce(content, (
+            autoLinkgen<Generic.Opaque<"loader">>("postT3→as_parent_loader", base)
+        ), () => {
+            return opaque_loader.encode({
+                kind: "view_post",
+                post: base,
+                focus_comment_id: null,
+                context: "3", // doesn't matter here
+            });
+        });
+        const id_filled = base_post.postLink(base);
+        const onsub = base.on_subreddit;
+        return {
+            loader: {
+                kind: "vertical_loader",
+                key: id_filled,
+                request: id_loader,
+                temp_parents: [base_subreddit.post(content, {subreddit: onsub, sort: subDefaultSort(onsub)})],
+
+                load_count: null, autoload: false, client_id,
+            },
+        };
+    },
     replies: (content: Generic.Page2Content, base: BasePostT3): Generic.PostReplies => {
         const id_loader = Generic.p2.fillLinkOnce(content, (
             autoLinkgen<Generic.Opaque<"loader">>("postT3→replies_loader", base)
@@ -831,11 +867,12 @@ export const base_post = {
                 kind: "view_post",
                 post: base,
                 focus_comment_id: null,
+                context: "3", // doesn't matter here
             });
         });
         const id_filled = base_post.repliesLink(base);
         return {
-            display: "repivot_list",
+            display: "tree",
             loader: {
                 kind: "horizontal_loader",
                 key: id_filled,
@@ -901,14 +938,159 @@ export const full_post = {
             internal_data: full,
         };
     }),
+    fillReplies: (content: Generic.Page2Content, full: FullPostReplies): Generic.Link<Generic.HorizontalLoaded> => {
+        const link = base_post.repliesLink(full.on_post);
+        const replies_valid = full.comment_replies_valid === true;
+        // note: .before and .after are ignored on comments
+        const res_replies: Generic.HorizontalLoaded = [];
+        for(const reply of full.data.data.children) {
+            res_replies.push(linkToAndFillListingChild(content, reply, {
+                on_post: full.on_post,
+                comment_replies_valid: full.comment_replies_valid,
+            }));
+        }
+        if(replies_valid) Generic.p2.fillLinkOnce(content, link, () => res_replies);
+        return link;
+    },
 };
 
-const base_comment = {
+export const base_comment = {
     commentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Post>("commentT1→post", base),
+    selfParentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Opaque<"loader">>("commentT1→parent_loader", base),
+    selfRepliesLoaderLink: (base: BaseCommentT1) => autoLinkgen<Generic.Opaque<"loader">>("commentT1→replies_loader", base),
+    selfRepliesLink: (base: BaseCommentT1) => autoLinkgen<Generic.HorizontalLoaded>("commentT1→replies_value", base),
+};
+export const full_comment = {
+    url: (full: FullCommentT1) => updateQuery(full.t1.data.permalink, {context: "3"}),
+    fillContent: (content: Generic.Page2Content, full: FullCommentT1): Generic.PostContent => {
+        const listing = full.t1.data;
+        const our_link = full_comment.url(full);
+        return {
+            kind: "post",
+            title: null,
+            author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
+            body: getCommentBody(listing),
+            info: getPostInfo(full.t1),
+            collapsible: {default_collapsed: commentDefaultCollapsed(listing.author) || (listing.collapsed ?? false)},
+            actions: {
+                // NOTE:
+                // if the post's discussion_type === "CHAT", don't display vote buttons
+                // * how do we do this?
+                //    - what if a chat comment gets returned without information about the post it's on?
+                //    - for instance: on a user page (do they show there?) or on an /api/info page
+                vote: getPointsOn(listing),
+                code: getCodeButton(listing.body),
+                other: [
+                    editButton(listing.name),
+                    deleteButton(listing.name),
+                    saveButton(listing.name, listing.saved),
+                    reportButton(listing.name, listing.subreddit),
+                    rawlinkButton(our_link),
+                ],
+            },
+        };
+    },
+    fill: autoFill((full: FullCommentT1) => base_comment.commentLink(full.on_base), (content, full): Generic.Post => {
+        const replies_valid = full.comment_replies_valid === true || (
+            full.t1.data.id === full.comment_replies_valid.after_id
+        );
+        const parent_id = full.t1.data.parent_id;
+        let parent_unfilled_link: Generic.Link<Generic.Post>;
+        let focus_comment_id: null | string;
+        if(parent_id.startsWith("t1_")) {
+            parent_unfilled_link = base_comment.commentLink({
+                fullname: parent_id as "t1_string",
+                on_post: full.on_base.on_post,
+            });
+            focus_comment_id = parent_id;
+        }else if(parent_id.startsWith("t3_")) {
+            parent_unfilled_link = base_post.postLink(full.on_base.on_post);
+            focus_comment_id = null;
+        }else{
+            // ???
+            parent_unfilled_link = p2.createSymbolLinkToError(content, "? parent id is: "+parent_id, full);
+            focus_comment_id = null;
+        }
+        const load_parent_request: Generic.Link<Generic.Opaque<"loader">> = p2.fillLinkOnce(content, 
+            base_comment.selfParentLink(full.on_base), (): Generic.Opaque<"loader"> => {
+                return opaque_loader.encode({
+                    kind: "view_post",
+                    post: full.on_base.on_post,
+                    focus_comment_id,
+                    context: "9", // max
+                });
+            },
+        );
+        const load_replies_request: Generic.Link<Generic.Opaque<"loader">> = p2.fillLinkOnce(content, (
+            base_comment.selfRepliesLoaderLink(full.on_base)
+        ), () => {
+            return opaque_loader.encode({
+                kind: "view_post",
+                post: full.on_base.on_post,
+                focus_comment_id: full.on_base.fullname.substring(3),
+                context: "1", // min
+            });
+        });
+        const fill_replies_link = base_comment.selfRepliesLink(full.on_base);
+        const res: Generic.HorizontalLoaded = [];
+        // v: replies is an empty string when it's empty
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        for(const reply of (full.t1.data.replies || null)?.data.children ?? []) { //*note: 'before'/'after' are not used in comment replies
+            res.push(linkToAndFillListingChild(content, reply, {
+                on_post: full.on_base.on_post,
+                comment_replies_valid: replies_valid ? true : full.comment_replies_valid,
+            }));
+        }
+        if(replies_valid) p2.fillLinkOnce(content, fill_replies_link, () => res);
+        return {
+            kind: "post",
+            content: full_comment.fillContent(content, full),
+            internal_data: full,
+            parent: {
+                loader: {
+                    kind: "vertical_loader",
+                    temp_parents: [
+                        // post
+                        base_post.postLink(full.on_base.on_post),
+                        // sub
+                        base_subreddit.post(content, {
+                            subreddit: full.on_base.on_post.on_subreddit,
+                            sort: subDefaultSort(full.on_base.on_post.on_subreddit),
+                        }),
+                        // client
+                        base_client.post(content, {}),
+                    ],
+                    key: parent_unfilled_link,
+                    client_id,
+                    request: load_parent_request,
+                },
+            },
+            replies: {
+                display: "tree",
+                loader: {
+                    kind: "horizontal_loader",
+                    key: fill_replies_link,
+                    request: load_replies_request,
+                    client_id,
+                },
+            },
+            url: full_comment.url(full),
+            client_id,
+        };
+    }),
 };
 
-// [!] TODO: stuff about comments
-function linkToAndFillListingChild(content: Generic.Page2Content, post: Reddit.Post): Generic.Link<Generic.Post> {
+type CommentExtra = {
+    on_post: BasePostT3,
+    comment_replies_valid: CommentRepliesValid,
+};
+
+// [!] * does not fill replies *
+function linkToAndFillListingChild(
+    content: Generic.Page2Content,
+    post: Reddit.Post,
+    extra: CommentExtra | null,
+): Generic.Link<Generic.Post> {
     if(post.kind === "t3") {
         const post_base: BasePostT3 = {
             fullname: post.data.name as "t3_string",
@@ -918,6 +1100,20 @@ function linkToAndFillListingChild(content: Generic.Page2Content, post: Reddit.P
         return full_post.fill(content, {
             post: post_base,
             data: post,
+        });
+    }else if(post.kind === "t1") {
+        const comment_base: BaseCommentT1 = {
+            fullname: post.data.name as "t1_string",
+            on_post: extra?.on_post ?? {
+                fullname: post.data.link_id,
+                on_subreddit: asLowercaseString(post.data.subreddit),
+                sort: "default",
+            },
+        };
+        return full_comment.fill(content, {
+            on_base: comment_base,
+            t1: post,
+            comment_replies_valid: extra?.comment_replies_valid ?? {after_id: "#INVALID"},
         });
     }
     return Generic.p2.createSymbolLinkToError(content, "todo: post.kind: "+post.kind, post);
@@ -1022,6 +1218,7 @@ type LoaderData = {
     kind: "view_post",
     post: BasePostT3,
     focus_comment_id: null | string,
+    context: null | string,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
@@ -1054,16 +1251,59 @@ export async function loadPage2v2(
             query: {
                 sort: data.post.sort === "default" ? null : data.post.sort.v,
                 comment: data.focus_comment_id,
-                context: "3", // use a higher context value for vertical loaders
+                context: data.context ?? "3", // use a higher context value for vertical loaders
             },
         });
 
-        throw new Error("ncjdakcndjklscnjk");
+        const on_post: BasePostT3 = data.post;
 
-        // /r/[subreddit]/comments/[postid]/_/[focuscommentid]?sort=[v]
-        // [!] for view_post, if the comment isn't found, error:
-        // - this would mean:
-        //   in the loader, after filling, p2.fillLinkOnce(pivoted comment, [gen error comment])
+        // note: data.before/data.after are not used for post comments
+        for(const post of post_value[0].data.children) {
+            linkToAndFillListingChild(content, post, null);
+        }
+
+        full_post.fillReplies(content, {
+            on_post,
+            data: post_value[1],
+            comment_replies_valid: data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true,
+        });
+
+        // when a comment with a specific id is requested, if that id has been deleted, I think reddit
+        // will return a listing like | parent |- reply |- reply |- (deleted comment but it doesn't show it in the listing)
+        // so in most cases if the focus id doesn't match anything on the page, we want the parent to be the latest
+        // comment in the list.
+        let latest_comment: Generic.Link<Generic.Post> | null = null;
+        // *TODO!*
+        // -one way to do this is in fn fillReplies if the comment has no replies but 'replies_valid' is after an id other
+        // than the current one, generate the fake reply there?
+        () => latest_comment = 0 as unknown as Generic.Link<Generic.Post>;
+
+        if(data.focus_comment_id != null) {
+            const target_link = base_comment.commentLink({
+                fullname: `t1_${data.focus_comment_id}`,
+                on_post,
+            });
+            p2.fillLinkOnce(content, target_link, () => {
+                // pivot not found; display an error
+                // (alternatively we could display a loader but it would just error again)
+                return validatePost(target_link, {kind: "post",
+                    content: {
+                        kind: "error",
+                        message: "Comment not found (maybe it was deleted?) [" + target_link.toString() + "]",
+                    },
+                    internal_data: data,
+                    client_id,
+                    parent: latest_comment != null
+                        ? {loader: p2.prefilledVerticalLoader(content, latest_comment, undefined)}
+                        : base_post.asParent(content, on_post)
+                    ,
+                    replies: null,
+                    url: null, // it technically has a url but no thanks
+                });
+            });
+        }
+
+        // done.
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
     return {content};
 }

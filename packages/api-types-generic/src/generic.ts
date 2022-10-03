@@ -107,7 +107,7 @@ export const p2 = {
         return {
             kind: "vertical_loader",
             key,
-            temp_parent: p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled", fill),
+            temp_parents: [p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled", fill)],
             load_count: null,
             request: p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled @2", fill),
             client_id: "@E@UNNECESSARY",
@@ -180,12 +180,12 @@ export type PostParent = {
     loader: VerticalLoader,
 };
 export type PostReplies = {
+    // !!! reply does not belong here. move it into the post actions. and update it to use submit pages instead
+    // of the old reply system.
     reply?: undefined | {
         action: ReplyAction,
         locked: boolean,
-    }, // does this even belong here? feels like it should be part of the post. having it here just makes
-    // a mess that clients have to deal with and the ui has to deal with. anyway it's staying here for now
-    // but it really doesn't belong here.
+    },
 
     display: "tree" | "repivot_list",
 
@@ -231,8 +231,10 @@ export type VerticalLoader = {
     kind: "vertical_loader",
     key: NullableLink<VerticalLoaded>,
 
-    temp_parent: null | Link<Post>, // temporary parent until the link is fliled. we could, after loading, assert that
+    temp_parents: Link<Post>[], // temporary parent[s] until the link is fliled. we could, after loading, assert that
     // this parent is somewhere in the loaded post's tree because if it isn't, it's likely an error.
+    // - process: find the first filled temp_parent link and use it.
+    // - we could even get rid of key. put "parents: Link<Post>[]"
 } & BaseLoader;
 export type HorizontalLoaded = (Link<Post> | HorizontalLoader)[];
 export type HorizontalLoader = {
@@ -419,6 +421,9 @@ export type PostContent = ClientPost | {
 } | {
     kind: "submit",
     submission_data: Submit.SubmitPost,
+} | {
+    kind: "error",
+    message: string,
 };
 
 // /---------------\

@@ -99,6 +99,7 @@ export function ClientContent(props: {
             }} />
         </>,
         special: special => <ClientContent content={special.fallback} opts={props.opts} />,
+        error: emsg => <div>error {emsg.message}</div>,
     }}</SwitchKind></DefaultErrorBoundary>;
 }
 

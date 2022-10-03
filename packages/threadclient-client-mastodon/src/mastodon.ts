@@ -479,7 +479,7 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.St
             loader: {
                 kind: "vertical_loader",
                 key: postLink(host, post.in_reply_to_id),
-                temp_parent: clientLink(host),
+                temp_parents: [clientLink(host)],
                 load_count: null,
                 request: request_link,
                 client_id: client.id,
@@ -489,7 +489,7 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.St
             loader: {
                 kind: "vertical_loader",
                 key: clientLink(host),
-                temp_parent: clientLink(host),
+                temp_parents: [clientLink(host)],
                 load_count: null,
                 request: p2.createSymbolLinkToError(content, "should never be unloaded", clientLink(host)),
                 client_id: client.id,

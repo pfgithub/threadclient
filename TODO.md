@@ -1,3 +1,7 @@
+# f2 renaming
+
+'Post' / 'PostContent' / 'PostContentPost' ← these need renaming
+
 # PARITY LIST
 
 ## important large components
