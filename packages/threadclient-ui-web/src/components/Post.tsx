@@ -28,10 +28,6 @@ import { postGetPage } from "./PageFlatItem";
 import Pfp from "./Pfp";
 import proxyURL from "./proxy_url";
 
-export function AuthorPfp(props: {pfp: Generic.InfoPfp}): JSX.Element {
-    return <Pfp pfp={props.pfp} class="w-8 h-8 inline-block" />;
-}
-
 function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
     const genv = createMemo(() => getThumbnailPreview(props.body));
     return <>{genv() != null ? <div class={classes(
@@ -388,7 +384,7 @@ export function PostTopBar(props: ClientPostProps & {
                         <Show if={
                             props.visible && settings.authorPfp() === "on"
                         } when={author.pfp} fallback={"By "}>{pfp => <>
-                            <AuthorPfp pfp={pfp} />{" "}
+                            <Pfp pfp={pfp} class="w-8 h-8 inline-block align-middle" />
                         </>}</Show>
                         <UserLink
                             client_id={author.client_id}

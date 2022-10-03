@@ -15,7 +15,7 @@ import { CollapseButton } from "./components/CollapseButton";
 import { Flair } from "./components/Flair";
 import { Homepage } from "./components/homepage";
 import { ClientContent } from "./components/page2";
-import { AuthorPfp } from "./components/Post";
+import Pfp from "./components/Pfp";
 import proxyURL from "./components/proxy_url";
 import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
@@ -1594,7 +1594,7 @@ export function clientListing(
                 return <Show if={
                     settings.authorPfp() === "on"
                 }>
-                    <AuthorPfp pfp={pfp} />{" "}
+                    <Pfp pfp={pfp} class="inline-block w-8 h-8" />{" "}
                 </Show>;
             }).defer(hsc);
             pfpborder.adto(content_subminfo_line);

@@ -8,7 +8,7 @@ import { Flair } from "../../components/Flair";
 import { InternalIconRaw } from "../../components/Icon";
 import InfoBar from "../../components/InfoBar";
 import { LinkButton, UserLink } from "../../components/links";
-import { AuthorPfp } from "../../components/Post";
+import Pfp from "../../components/Pfp";
 import { getSettings, getWholePageRootContext } from "../../util/utils_solid";
 
 export default function ReaderView(props: {
@@ -56,7 +56,7 @@ export default function ReaderView(props: {
                     <Show if={
                         settings.authorPfp() === "on"
                     } when={author.pfp} fallback={"By "}>{pfp => <>
-                        <AuthorPfp pfp={pfp} />{" "}
+                        <Pfp pfp={pfp} class="w-8 h-8 inline-block align-middle" />
                     </>}</Show>
                     <UserLink
                         client_id={author.client_id}
