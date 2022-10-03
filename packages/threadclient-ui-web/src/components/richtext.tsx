@@ -239,6 +239,11 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             return <ul class={listclass}>{listContent()}</ul>;
         },
         code_block: (code) => <CodeBlock text={code.text} default_language={code.lang ?? null} />,
+        // TODO: block overflow-x-auto children-nowrap
+        // but css is bad so we need to find a way to:
+        // - make a div using the intrinsic width
+        // - make content for the div that is any width it wants to be and scrolls without changing the parent
+        //   div's width
         table: (table) => <table>
             <thead><tr>
                 <For each={table.headings}>{heading => (
