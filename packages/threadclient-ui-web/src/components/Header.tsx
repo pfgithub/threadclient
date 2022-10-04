@@ -28,13 +28,15 @@ export default function Header(props: {
     // - that might overlap other objects
     //   - negative margin but only if it's the flat top/bottom?
     return <div class="flex flex-col gap-4 p-2">
-        <div class="h-56 -mx-4 -mt-4 relative">
-            <div class="absolute w-full h-full">
-                <Banner banner={props.header.theme.banner} />
-            </div>
-            <div class="absolute w-full h-full bg-gradient-to-b from-transparent via-transparent pointer-events-none" style={{
-                '--tw-gradient-to': "rgb(0 0 0 / 0.75)",
-            }}></div>
+        <div class={(props.header.theme.banner != null ? "h-56" : "pt-4 -mb-4") + " -mx-4 -mt-4 relative"}>
+            <Show if={props.header.theme.banner != null}>
+                <div class="absolute w-full h-full">
+                    <Banner banner={props.header.theme.banner} />
+                </div>
+                <div class="absolute w-full h-full bg-gradient-to-b from-transparent via-transparent pointer-events-none" style={{
+                    '--tw-gradient-to': "rgb(0 0 0 / 0.75)",
+                }}></div>
+            </Show>
             <div class="h-full relative flex flex-row flex-wrap gap-4 px-4 pb-4 items-end">
                 <Show when={props.header.pfp}>{pfp => (
                     <Pfp class="w-20 h-20" pfp={pfp} />
