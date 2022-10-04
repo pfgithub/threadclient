@@ -2557,6 +2557,7 @@ function sidebarFromMulti(multi_raw: Reddit.LabeledMulti): Generic.ContentNode[]
 
 function subPfp(sub: Reddit.T5Data): null | Generic.InfoPfp {
     const icon = sub.community_icon || sub.icon_img || "";
+    if(!icon) return null;
     return {
         url: icon,
     };
