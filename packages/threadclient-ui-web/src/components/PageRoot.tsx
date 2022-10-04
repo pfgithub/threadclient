@@ -168,7 +168,7 @@ function ClientPageMain(props: ClientPageProps): PageRes {
         </Show>
         <div class="flex flex-row gap-8 justify-center">
             <Show if={tabbed() ? tab() === "content" : true}>
-                <div class="sm:max-w-4xl w-full">
+                <div class="sm:max-w-4xl flex-1 w-0">
                     <For each={view.data.body}>{item => (
                         <PageFlatItem
                             item={item}

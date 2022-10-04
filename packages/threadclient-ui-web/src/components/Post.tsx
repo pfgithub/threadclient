@@ -162,7 +162,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     />
                 </div>
             </Show>
-            <div class="flex-1">
+            <div class="flex-1 w-0">
                 <PostTopBar
                     content={props.content}
                     opts={props.opts}
@@ -205,7 +205,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     />
                 </div>
             </Show>
-            <div class="flex-1">
+            <div class="flex-1 w-0">
                 <PostTopBar
                     content={props.content}
                     opts={props.opts}

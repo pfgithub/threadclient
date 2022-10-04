@@ -220,7 +220,7 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
                         <div>
                             {list.ordered ? `${i()+1}. ` : "- "}
                         </div>
-                        <div class="flex-1">
+                        <div class="flex-1 w-0">
                             <SwitchKind item={child}>{{
                                 list_item: (content) => <RichtextParagraphs
                                     content={content.children}
@@ -239,12 +239,15 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
             return <ul class={listclass}>{listContent()}</ul>;
         },
         code_block: (code) => <CodeBlock text={code.text} default_language={code.lang ?? null} />,
-        // TODO: block overflow-x-auto children-nowrap
-        // but css is bad so we need to find a way to:
-        // - make a div using the intrinsic width
-        // - make content for the div that is any width it wants to be and scrolls without changing the parent
-        //   div's width
-        table: (table) => <table>
+        // * ideally we do the fancy thing where the table scrolls off -mx-4 px-4
+        // but we can't do that because css
+        // - we have to restructure:
+        //   - posts do not have px-4
+        //   - bodies are responsible for applying px-4 themselves
+        //   - all other richtext kinds apply px-4
+        table: (table) => <div><div class="overflow-x-auto max-w-full" style={{
+            '-webkit-overflow-scrolling': "touch",
+        }}><table class="w-max">
             <thead><tr>
                 <For each={table.headings}>{heading => (
                     <th class={alignment[heading.align ?? "none"]}><RichtextSpans spans={heading.children} /></th>
@@ -257,7 +260,7 @@ function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.
                     </td>
                 )}</For>
             </tr>}</For></tbody>
-        </table>,
+        </table></div></div>,
     }}</SwitchKind>;
 }
 

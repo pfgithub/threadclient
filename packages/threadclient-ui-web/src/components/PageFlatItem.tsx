@@ -341,7 +341,7 @@ function PageFlatPostNotSpecial(props: {
                     collapse_data={props.collapse_data}
                 />
                 <div
-                    class={"flex-1"}
+                    class={"flex-1 w-0"}
                 >
                     <Show if={!props.loader_or_post.first_in_wrapper}>
                         <div class="pt-2" />

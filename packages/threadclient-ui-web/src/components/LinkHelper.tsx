@@ -77,7 +77,7 @@ export default function LinkHelper(props: {link: Link}): JSX.Element {
                     <img src={proxyURL(thumb)} class="w-full h-full object-cover rounded-md" alt="" />
                 </div>
             )}</Show>
-            <div class="flex-1">
+            <div class="flex-1 w-0">
                 <div class={"max-lines max-lines-1 select-none " + (props.link.summary != null ? "font-bold" : "")}>
                     <Show when={linkPreview()}>{v => <>{v.visible() ? "▾ " : "▸ "}</>}</Show>
                     {props.link.title}

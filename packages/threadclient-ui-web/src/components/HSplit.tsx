@@ -37,7 +37,7 @@ export const HSplit = {
                 bottom: "self-end",
                 none: "",
             } as const)[props.vertical ?? "none"],
-            props.fullwidth ?? false ? "flex-1" : "",
+            props.fullwidth ?? false ? "flex-1 w-0" : "",
         )}>{props.children}</div>;
     },
 };
