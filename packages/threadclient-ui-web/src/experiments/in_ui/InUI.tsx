@@ -1,6 +1,8 @@
-import { createEffect, createSignal, For, JSX, onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, For, JSX, lazy, onCleanup, onMount } from "solid-js";
 import { localStorageSignal } from "tmeta-util-solid";
 import Clickable from "../../components/Clickable";
+import Nuit from "../nuit/Nuit";
+// const Nuit = lazy(() => import("../nuit/Nuit"));
 
 // note: I should probably compress all data before encrypting and decompress after. it's basically
 // a binary blob already, I might as well
@@ -69,7 +71,7 @@ export default function TermAppMain(props: {
     reloadSelf: () => void,
 }): JSX.Element {
     let inui_content: string | null = null;
-    const [sel, setSel] = createSignal(winget<null | "term" | "encr">("--term-app-sel", null));
+    const [sel, setSel] = createSignal(winget<null | "term" | "encr" | "nuit">("--term-app-sel", null)); // why not just use a url query thing?
     createEffect(() => winset("--term-app-sel", sel()));
     const selTerm = () => {
         const encr_key = encryptionKey() ?? prompt("Passcode?");
@@ -89,10 +91,13 @@ export default function TermAppMain(props: {
     return <>{
         sel() === "term" ? <InUI reloadSelf={props.reloadSelf} content={inui_content!} /> :
         sel() === "encr" ? <Encryptor /> :
+        sel() === "nuit" ? <Nuit /> :
         <div>
             <Clickable class="underline" action={() => selTerm()}>term</Clickable>
             {" "}
             <Clickable class="underline" action={() => setSel("encr")}>encr</Clickable>
+            {" "}
+            <Clickable class="underline" action={() => setSel("nuit")}>nuit</Clickable>
         </div>
     }</>;
 }
