@@ -1,0 +1,8 @@
+.C-vertical {
+    display: grid;
+    grid-template-columns: var(--c-ml) 1fr var(--c-mr);
+}
+
+.C-vertical > * {
+    grid-column: 2 / 3;
+}

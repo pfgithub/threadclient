@@ -1,4 +1,0 @@
-.C-vertical {
-    display: grid;
-    grid-template-columns: attr(C-pl px, 0);
-}
