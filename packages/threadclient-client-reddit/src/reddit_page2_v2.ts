@@ -3,8 +3,8 @@ import { p2, rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
-import { getPostInfo, rawlinkButton } from "./page2_from_listing";
-import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubSort } from "./reddit";
+import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
+import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
 
 const debug_mode = true;
 
@@ -39,6 +39,12 @@ export function urlToOneLoader(pathraw_in: string): {
 
     const [parsed, pathraw] = parseLink(pathraw_in);
 
+    const subToLcs = (sub: SubrInfo): LowercaseString => asLowercaseString(
+        sub.kind === "subreddit" ? sub.subreddit :
+        sub.kind === "userpage" ? "u_"+sub.user :
+        "ERROR_subredditkind:"+sub.kind
+    );
+
     if(parsed.kind === "subreddit") {
         if(parsed.sub.kind === "subreddit") {
             const link = base_subreddit.post(content, {
@@ -51,11 +57,7 @@ export function urlToOneLoader(pathraw_in: string): {
     if(parsed.kind === "comments") {
         const post_base: BasePostT3 = {
             fullname: `t3_${parsed.post_id_unprefixed}`,
-            on_subreddit: asLowercaseString(
-                parsed.sub.kind === "subreddit" ? parsed.sub.subreddit :
-                parsed.sub.kind === "userpage" ? "u_"+parsed.sub.user :
-                "ERROR_subredditkind:"+parsed.sub.kind
-            ),
+            on_subreddit: subToLcs(parsed.sub),
             sort: parsed.sort_override != null ? {v: parsed.sort_override} : "default"
         };
         const comment_base: BaseCommentT1 | null = parsed.focus_comment != null ? {
@@ -70,6 +72,20 @@ export function urlToOneLoader(pathraw_in: string): {
                 focus_comment_id: parsed.focus_comment,
                 post: post_base,
                 context: parsed.context ?? "3",
+            })),
+            client_id,
+        }};
+    }
+    if(parsed.kind === "submit") {
+        const submit_base: BaseSubmitPage = {
+            on_subreddit: subToLcs(parsed.sub),
+        };
+        return {content, pivot_loader: {
+            kind: "one_loader",
+            key: base_submit.objectLink(submit_base),
+            request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
+                kind: "submit_page",
+                base: submit_base,
             })),
             client_id,
         }};
@@ -208,6 +224,12 @@ type BaseWikipage = {
 };
 type BaseSubmitPage = {
     on_subreddit: UnsortedSubreddit,
+};
+type FullSubmitPage = {
+    on_base: BaseSubmitPage,
+    about: Reddit.T5, // we're potentially fetching this information twice
+    // as it might already be available from the sub header
+    linkflair: Reddit.ApiLinkFlair | null, // only if about.data.link_flair_enabled
 };
 
 // consider using the base .id() fn instead of json.stringify [!] not url
@@ -1080,6 +1102,91 @@ export const full_comment = {
     }),
 };
 
+/*
+base_submit.objectLink(submit_base)
+*/
+export const base_submit = {
+    url: (base: BaseSubmitPage) => "/r/"+base.on_subreddit+"/submit",
+    objectLink: (base: BaseSubmitPage) => autoLinkgen<Generic.Post>("submit→post", base),
+};
+export const full_submit = {
+    // const linkout = "raw!https://www.reddit.com/" + [...sub.base, "submit"].join("/");
+    fill: autoFill((full: FullSubmitPage) => base_submit.objectLink(full.on_base), (content, full): Generic.Post => {
+        const linkout = "raw!https://www.reddit.com"+base_submit.url(full.on_base);
+        const about = full.about;
+        const flairinfo = full.linkflair;
+        // TODO: type safety for the returned value. I think I had a plan for this.
+        return {
+            kind: "post",
+            content: {
+                kind: "submit",
+                submission_data: {
+                    send_name: "Post",
+                    client_id,
+                    submit_key: submit_encoder.encode({
+                        kind: "newpost",
+                        sub: full.on_base.on_subreddit,
+                    }),
+                    title: "Submitting to "+full.about.data.display_name_prefixed,
+                    fields: [
+                        {kind: "title", id: "_title"},
+                        {kind: "content", id: "_content", default_id: "_textpost", content_types: [
+                            {kind: "none", id: "_nothing", disabled: null},
+                            {kind: "text", mode: "reddit", id: "_textpost",
+                                disabled: null, client_id,
+                            },
+                            {kind: "todo", title: "Images & Video", linkout, id: "_imagepost",
+                                reason: "Uploading images with threadclient is not supported yet",
+                                linkout_label: "Submit on reddit.com",
+                                client_id,
+                                disabled: about.data.submission_type !== "self" && about.data.allow_images ? null : "Image posts are not allowed on this subreddit",
+                            },
+                            {kind: "link", id: "_linkpost",
+                                disabled: about.data.submission_type !== "self" ? null : "Talk posts are not allowed on this subreddit",
+                            },
+                            {kind: "todo", title: "Poll", linkout, id: "_pollpost",
+                                reason: "Creating polls with threadclient is not supported yet",
+                                linkout_label: "Submit on reddit.com",
+                                client_id,
+                                /*
+                                https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&rtj=both&raw_json=1&gilding_detail=1
+                                */
+                            disabled: about.data.submission_type !== "self" && about.data.allow_polls ? null : "Polls are not allowed on this subredit",
+                            },
+                            {kind: "todo", title: "Talk", linkout, id: "_talkpost",
+                                reason: "Creating talk posts with threadclient is not supported.",
+                                linkout_label: "Submit on reddit.com",
+                                client_id,
+                                disabled: about.data.submission_type !== "self" && about.data.allow_talks ? null : "Talk posts are not allowed on this subreddit",
+                            },
+                        ]},
+                        {kind: "flair_one", id: "_postflair", flairs: (flairinfo ?? []).map((flair): Generic.Submit.FlairChoice => ({
+                            id: flair.id,
+                            flairs: flairToGenericFlair(flair),
+                        }))},
+                        {kind: "flair_many", id: "_postopts", flairs: [
+                            {id: "_OC", flairs: [flair_oc], disabled: about.data.original_content_tag_enabled ? null : "OC tag not allowed on this sub"},
+                            {id: "_OVER18", flairs: [flair_over18]},
+                            {id: "_SPOILER", flairs: [flair_spoiler]},
+                            {id: "_LIVECHAT", flairs: [{elems: [{kind: "text", text: "Live Chat", styles: {}}], content_warning: false}],
+                                disabled: about.data.is_chat_post_feature_enabled && about.data.allow_chat_post_creation ? null : "Live chat posts are not allowed on this sub",
+                            },
+                            {id: "_EVENT", flairs: [{elems: [{kind: "text", text: "Event", styles: {}}], content_warning: false}],
+                                disabled: "ThreadClient does not yet support creating event posts",
+                            },
+                        ]},
+                    ],
+                },
+            },
+            internal_data: {about, flairinfo},
+            parent: base_subreddit.asParent(content, full.on_base.on_subreddit),
+            replies: null,
+            url: base_submit.url(full.on_base),
+            client_id,
+        };
+    }),
+};
+
 type CommentExtra = {
     on_post: BasePostT3,
     comment_replies_valid: CommentRepliesValid,
@@ -1219,6 +1326,9 @@ type LoaderData = {
     post: BasePostT3,
     focus_comment_id: null | string,
     context: null | string,
+} | {
+    kind: "submit_page",
+    base: BaseSubmitPage,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
@@ -1304,6 +1414,18 @@ export async function loadPage2v2(
         }
 
         // done.
+    }else if(data.kind === "submit_page") {
+        const about = await (
+            redditRequest(`/r/${ec(data.base.on_subreddit)}/about`, {method: "GET", cache: true})
+        );
+        const linkflair: Reddit.ApiLinkFlair = about.data.link_flair_enabled ? await (
+            redditRequest(`/r/${ec(data.base.on_subreddit)}/api/link_flair_v2`, {method: "GET", cache: true})
+        ) : [];
+        full_submit.fill(content, {
+            on_base: data.base,
+            about,
+            linkflair,
+        });
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
     return {content};
 }

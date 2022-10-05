@@ -358,7 +358,7 @@ type SubmitData = {
     kind: "newpost",
     sub: string, // for user subreddits, probably "u_username"
 };
-const submit_encoder = encoderGenerator<SubmitData, "submit">("submit");
+export const submit_encoder = encoderGenerator<SubmitData, "submit">("submit");
 
 export async function submitPage2(
     key: Generic.Opaque<"submit">,
@@ -445,77 +445,6 @@ function createSubmitPage(
 ): Generic.Link<Generic.Post> {
     const id = subredditSubmitPostID(sub);
     const linkout = "raw!https://www.reddit.com/" + [...sub.base, "submit"].join("/");
-    p2.fillLink(content, id, {
-        kind: "post",
-        content: {
-            kind: "submit",
-            submission_data: {
-                send_name: "Post",
-                client_id: client.id,
-                submit_key: submit_encoder.encode({
-                    kind: "newpost",
-                    sub: subid,
-                }),
-                title: "Submitting to r/"+subid,
-                fields: [
-                    {kind: "title", id: "_title"},
-                    {kind: "content", id: "_content", default_id: "_textpost", content_types: [
-                        {kind: "none", id: "_nothing", disabled: null},
-                        {kind: "text", mode: "reddit", id: "_textpost",
-                            disabled: null, client_id: client.id,
-                        },
-                        {kind: "todo", title: "Images & Video", linkout, id: "_imagepost",
-                            reason: "Uploading images with threadclient is not supported yet",
-                            linkout_label: "Submit on reddit.com",
-                            client_id: client.id,
-                            disabled: about.data.submission_type !== "self" && about.data.allow_images ? null : "Image posts are not allowed on this subreddit",
-                        },
-                        {kind: "link", id: "_linkpost",
-                            disabled: about.data.submission_type !== "self" ? null : "Talk posts are not allowed on this subreddit",
-                        },
-                        {kind: "todo", title: "Poll", linkout, id: "_pollpost",
-                            reason: "Creating polls with threadclient is not supported yet",
-                            linkout_label: "Submit on reddit.com",
-                            client_id: client.id,
-                            /*
-                            https://oauth.reddit.com/api/submit_poll_post.json?resubmit=true&rtj=both&raw_json=1&gilding_detail=1
-                            */
-                           disabled: about.data.submission_type !== "self" && about.data.allow_polls ? null : "Polls are not allowed on this subredit",
-                        },
-                        {kind: "todo", title: "Talk", linkout, id: "_talkpost",
-                            reason: "Creating talk posts with threadclient is not supported.",
-                            linkout_label: "Submit on reddit.com",
-                            client_id: client.id,
-                            disabled: about.data.submission_type !== "self" && about.data.allow_talks ? null : "Talk posts are not allowed on this subreddit",
-                        },
-                    ]},
-                    {kind: "flair_one", id: "_postflair", flairs: flairinfo.map((flair): Generic.Submit.FlairChoice => ({
-                        id: flair.id,
-                        flairs: flairToGenericFlair(flair),
-                    }))},
-                    {kind: "flair_many", id: "_postopts", flairs: [
-                        {id: "_OC", flairs: [flair_oc], disabled: about.data.original_content_tag_enabled ? null : "OC tag not allowed on this sub"},
-                        {id: "_OVER18", flairs: [flair_over18]},
-                        {id: "_SPOILER", flairs: [flair_spoiler]},
-                        {id: "_LIVECHAT", flairs: [{elems: [{kind: "text", text: "Live Chat", styles: {}}], content_warning: false}],
-                            disabled: about.data.is_chat_post_feature_enabled && about.data.allow_chat_post_creation ? null : "Live chat posts are not allowed on this sub",
-                        },
-                        {id: "_EVENT", flairs: [{elems: [{kind: "text", text: "Event", styles: {}}], content_warning: false}],
-                            disabled: "ThreadClient does not yet support creating event posts",
-                        },
-                    ]},
-                ],
-            },
-        },
-        internal_data: {about, flairinfo},
-        parent: parentIsSubreddit(content, {
-            sub: sub,
-            sort: null,
-        }),
-        replies: null,
-        url: "/" + [...sub.base, "submit"].join("/"),
-        client_id: client.id,
-    });
     return id;
 }
 
