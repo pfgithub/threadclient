@@ -349,17 +349,20 @@ ok this should* work
 
 */
 type BaseInbox = {
-    // it's a little menu:
-    // - inbox (focuses this object)
-    // - compose
-    // its replies has sort options:
+    _?: undefined,
+};
+type SortedInbox = {
+    on_base: BaseInbox,
+    tab: "inbox" | "compose",
     // - "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions" | "[*]sent" | "[*]mod"
 };
 type BaseInboxCompose = {
     // it's a Post containing a submit object who's parent is BaseInbox (tab: 'compose')
+    for_inbox: SortedInbox, // ← this is always 'on_base: {}, tab: {kind: "compose"}
 };
 type BasePrivateMessage = {
     // it's a Post who's parent is BaseInbox (tab: 'messages')
+    for_inbox: SortedInbox, // this is always 'on_base: {}, tab: {kind: "inbox", subtab: "messages"}
     msgid: string,
 };
 type FullSubmitPage = {

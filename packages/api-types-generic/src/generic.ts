@@ -181,7 +181,7 @@ export type PostParent = {
 };
 export type PostReplies = {
     // !!! reply does not belong here. move it into the post actions. and update it to use submit pages instead
-    // of the old reply system.
+    // of the old reply system
     reply?: undefined | {
         action: ReplyAction,
         locked: boolean,
@@ -424,6 +424,18 @@ export type PostContent = ClientPost | {
 } | {
     kind: "error",
     message: string,
+} | {
+    kind: "todo",
+    message: string,
+} | {
+    kind: "sort_wrapper",
+    sort_options: {
+        object: Link<Post>, // Link<sort_wrapper>. repivots on click.
+        name: string,
+    }[],
+    display_object: OneLoader<PostContent>, // a loader so that multiple options can have the same content
+    // without reloads.
+    // PostContent and not Post because Post has information like parent/replies/… that don't apply here.
 };
 
 // /---------------\
