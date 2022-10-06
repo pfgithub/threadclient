@@ -98,7 +98,8 @@ function ClientPageMain(props: ClientPageProps): PageRes {
 
     const collapse_data = useContext(collapse_data_context)!;
 
-    const view = {data: useFlatten(() => props.pivot)};
+    const flatres = useFlatten(() => props.pivot);
+    const view = {get data() {return flatres();}};
 
     // const view = createMergeMemo(() => {
     //     console.log("Reloading data!");

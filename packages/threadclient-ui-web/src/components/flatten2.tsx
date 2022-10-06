@@ -1,5 +1,5 @@
 import * as Generic from "api-types-generic";
-import { createMemo, For, JSX, useContext } from "solid-js";
+import { Accessor, createMemo, For, JSX, useContext } from "solid-js";
 import { updateQuery } from "tmeta-util";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import { allow_threading_override_ctx, collapse_data_context, getWholePageRootContext, PageRootContext } from "../util/utils_solid";
@@ -410,19 +410,38 @@ function FlattenTopLevelReplies(props: {
     </>;
 }
 
-export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPage2 {
+export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): Accessor<FlatPage2> {
+    const hprc = getWholePageRootContext();
+    const pivot = createMemo(() => {
+        const pivot_read = hprc.content().view(pivotLink());
+        if(pivot_read == null || pivot_read.error != null) return null;
+        return pivot_read.value;
+    });
+    return createMemo((): FlatPage2 => {
+        const pivot_v = pivot();
+        if(pivot_v != null) {
+            return useFlattenMain(pivotLink(), pivot_v);
+        }else{
+            return {
+                aboveBody: [],
+                body: [
+                    {kind: "error", note: "Pivot is not defined ["+pivotLink().toString()+"]; Error", data: hprc},
+                ],
+                title: "Err No Pivot",
+                url: null,
+            };
+        }
+    });
+}
+
+function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.Post): FlatPage2 {
     // why don't we return a createMemo on the pivot?
     // should save some logic maybe
     // and we have to regenerate everything if the pivot changes anyway
 
     const hprc = getWholePageRootContext();
-    const pivot = createMemo(() => {
-        const pivot_read = hprc.content().view(pivotLink());
-        if(pivot_read == null || pivot_read.error != null) throw new Error("ebadpivot");
-        return pivot_read.value;
-    });
 
-    const parentsArr = useHighestArray(() => pivotLink());
+    const parentsArr = useHighestArray(() => pivot_link);
     const parentsFiltered = createMemo((): {
         view_parents: FlatTreeItem[],
         view_header_in_sidebar: null | FlatTreeItem,
@@ -431,7 +450,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
         title: string,
     } => {
         const pa = parentsArr();
-        const pivotlink = pivotLink();
+        const pivotlink = pivot_link;
         const res: FlatTreeItem[] = [];
         let view_header_in_sidebar: null | FlatTreeItem = null;
         let view_sidebar: null | Generic.PostReplies = null;
@@ -490,7 +509,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
     });
 
     const bodyCh = FlatItemTsch.useChildren(() => {
-        const p = pivot(); // if pivot changes, we rerender everything
+        const p = pivot; // if pivot changes, we rerender everything
         return <>
             <For each={parentsFiltered().view_parents}>{(item): JSX.Element => <>
                 <FlatItemTsch kind="wrapper_start" />
@@ -500,7 +519,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     opts={{
                         first_in_wrapper: true,
                         at_or_above_pivot: true,
-                        is_pivot: item.kind === "flat_post" && item.link === pivotLink(),
+                        is_pivot: item.kind === "flat_post" && item.link === pivot_link,
                         threaded: false,
                         depth: 0,
                         displayed_in: "repivot_list", // all at_or_above_pivot is a repivot list
@@ -513,7 +532,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                 <FlatItemTsch
                     kind="repivot_list_fullscreen_button"
                     client_id={p.client_id}
-                    pivot={() => pivotLink()}
+                    pivot={() => pivot_link}
                     href={updateQuery(p.url ?? "@ENO", {'--tc-view': "reader"})}
                     name="Reader"
                 />
@@ -533,7 +552,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     <FlatItemTsch
                         kind="repivot_list_fullscreen_button"
                         client_id={p.client_id}
-                        pivot={() => pivotLink()}
+                        pivot={() => pivot_link}
                         href={updateQuery(p.url ?? "@ENO", {'--tc-view': "fullscreen"})}
                         name="Fullscreen"
                     />
@@ -582,7 +601,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
                     opts={{
                         first_in_wrapper: true,
                         at_or_above_pivot: false,
-                        is_pivot: ch.kind === "flat_post" && ch.link === pivotLink(),
+                        is_pivot: ch.kind === "flat_post" && ch.link === pivot_link,
                         threaded: false,
                         depth: 0,
                         displayed_in: "repivot_list",
@@ -606,7 +625,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): FlatPag
             return parentsFiltered().title;
         },
         get url() {
-            const focus = pivot();
+            const focus = pivot;
             return focus.url;
         },
         get body() {

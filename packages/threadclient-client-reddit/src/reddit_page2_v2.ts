@@ -4,9 +4,12 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
-import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
+import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, jstrOf, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
 
 const debug_mode = true;
+
+// * todo fix - we use JSON.stringify right now, but that keeps property order. eventually, that's going to become
+// a problem - two things with the same base are not going to have the same id because of property order.
 
 // implementing this well should free us to make less things require loaders:
 // - PostReplies would directly contain the posts and put a loader if it doesn't.
@@ -44,12 +47,16 @@ export function urlToOneLoader(pathraw_in: string): {
         sub.kind === "userpage" ? "u_"+sub.user :
         "ERROR_subredditkind:"+sub.kind
     );
+    // * TODO FIX:
+    // url '/comments/xl9dsh' doesn't work because it doesn't know the sub
+    // urlToOneLoader should be async to fetch any of that needed info probably
+    // we'll end up double-fetching the post but it will probably be /api/info?ids=… the first time at least
 
     if(parsed.kind === "subreddit") {
         if(parsed.sub.kind === "subreddit") {
             const link = base_subreddit.post(content, {
                 subreddit: asLowercaseString(parsed.sub.subreddit),
-                sort: parsed.current_sort, // ← this is weird. it should be "default" when not specified.
+                sort: parsed.current_sort,
             });
             return {content, pivot_loader: p2.prefilledOneLoader(content, link, undefined)};
         }
@@ -72,6 +79,25 @@ export function urlToOneLoader(pathraw_in: string): {
                 focus_comment_id: parsed.focus_comment,
                 post: post_base,
                 context: parsed.context ?? "3",
+            })),
+            client_id,
+        }};
+    }
+    if(parsed.kind === "duplicates") {
+        // [!] does not yet support without a sub in the url ++ TODO
+        const post_base: BasePostT3 = {
+            fullname: `t3_${parsed.post_id_unprefixed}`,
+            on_subreddit: subToLcs(parsed.sub),
+            sort: {m: "duplicates", v: "num_comments", crossposts_only: parsed.crossposts_only},
+        };
+        return {content, pivot_loader: {
+            kind: "one_loader",
+            key: base_post.postLink(post_base),
+            request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
+                kind: "view_post",
+                focus_comment_id: null,
+                post: post_base,
+                context: "3",
             })),
             client_id,
         }};
@@ -168,7 +194,7 @@ type BasePostT3 = {
     // - the reason for this is i forgot
     //   - probably to make sure that an unfilled post can have a parent but we have decided to not
     //     use unfilled posts and instead require all posts to be filled.
-    sort: PostSort | "default",
+    sort: Sortv,
 };
 type FullPostT3 = {
     post: BasePostT3,
@@ -851,6 +877,12 @@ const full_sidebar_widget = {
     }),
 };
 
+type DuplicaesSortV = {m: "duplicates", v: Reddit.DuplicatesSort, crossposts_only: boolean};
+type Sortv = PostSort | DuplicaesSortV | "default";
+function hasm(sort: Sortv): sort is DuplicaesSortV {
+    return typeof sort === "object" && sort != null && 'm' in sort && sort.m === "duplicates";
+}
+
 // * you will only be able to get a link to a post by using the full_post fn
 // * you can get a base_post 'as_parent' but no other way
 export const base_post = {
@@ -910,7 +942,9 @@ export const base_post = {
 export const full_post = {
     // note: you need a full post to get a url to it. this is to include the title in the url.
     url: (post: FullPostT3): string => {
-        return updateQuery(post.data.data.permalink, post.post.sort !== "default" ? {
+        return hasm(post.post.sort) ? (
+            "/r/"+post.post.on_subreddit+"/duplicates/"+post.post.fullname.substring(3)
+        ) : updateQuery(post.data.data.permalink, post.post.sort !== "default" ? {
             sort: post.post.sort.v,
         } : {});
     },
@@ -938,7 +972,7 @@ export const full_post = {
                     }, deleteButton(listing.name), saveButton(listing.name, listing.saved), {
                         kind: "link",
                         client_id,
-                        url: "/duplicates/"+listing.id,
+                        url: "/r/"+listing.subreddit+"/duplicates/"+listing.id,
                         text: "Duplicates"
                     }, reportButton(listing.name, listing.subreddit),
                     editButton(listing.name),
@@ -1354,9 +1388,18 @@ export async function loadPage2v2(
         };
         full_subreddit_sidebar.fill(content, full);
     }else if(data.kind === "view_post") {
+        // *! on /duplicates, it probably uses a "?after=" url. TODO support that.
         const target_url = "/" + [].join("/");
         const postid = data.post.fullname.substring(3);
-        const post_value = await redditRequest(`/comments/${ec(postid)}`, {
+        const post_value = hasm(data.post.sort) ? await redditRequest(`/duplicates/${ec(postid)}`, {
+            method: "GET",
+            query: {
+                sort: data.post.sort.v,
+                before: null,
+                after: null, // TODO**
+                crossposts_only: jstrOf(data.post.sort.crossposts_only),
+            },
+        }) : await redditRequest(`/comments/${ec(postid)}`, {
             method: "GET",
             query: {
                 sort: data.post.sort === "default" ? null : data.post.sort.v,
@@ -1367,11 +1410,16 @@ export async function loadPage2v2(
 
         const on_post: BasePostT3 = data.post;
 
-        // note: data.before/data.after are not used for post comments
-        for(const post of post_value[0].data.children) {
-            linkToAndFillListingChild(content, post, null);
-        }
-
+        const qpost = post_value[0].data.children;
+        if(qpost.length !== 1) throw new Error("Expected qpost len 1; missing post? gotlen "+qpost.length);
+        const parentpostdata = qpost[0]!;
+        if(parentpostdata.kind !== "t3") throw new Error("expected t3 in qpost[0]; ?? got "+parentpostdata.kind);
+        full_post.fill(content, {
+            post: on_post,
+            data: parentpostdata,
+        });
+        
+        // note: data.before/data.after are not used for post comments but *are* used for /duplicates
         full_post.fillReplies(content, {
             on_post,
             data: post_value[1],

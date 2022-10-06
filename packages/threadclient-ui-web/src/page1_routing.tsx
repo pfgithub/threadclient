@@ -1,5 +1,5 @@
 import type * as Generic from "api-types-generic";
-import { batch, createEffect, createSignal, untrack } from "solid-js";
+import { batch, createEffect, createSignal, onCleanup, untrack, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import { UUID } from "tmeta-util";
 import { Debugtool, Show } from "tmeta-util-solid";
@@ -11,8 +11,7 @@ import {
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import Page2ContentManager from "./util/Page2ContentManager";
-import { DefaultErrorBoundary, getSettings, PageRootProvider } from "./util/utils_solid";
-
+import { DefaultErrorBoundary, getSettings, getWholePageRootContext, PageRootContext, PageRootProvider } from "./util/utils_solid";
 
 export type MutablePage2HistoryNode = {
     page: {
@@ -24,6 +23,18 @@ export type MutablePage2HistoryNode = {
 
 export let showPage2!: (page: MutablePage2HistoryNode, first_show: boolean) => void;
 export let hidePage2!: () => void;
+
+function GlobalPageRootViewer(): JSX.Element {
+    const hprc = getWholePageRootContext();
+    console.log("%globalPageRootViewer", hprc);
+    const wany = window as unknown as {hprc: null | PageRootContext};
+    wany.hprc = hprc;
+    onCleanup(() => {
+        wany.hprc = null;
+        console.log("%globalPageRootViewerDc", hprc);
+    });
+    return <></>;
+}
 
 {
     const [pgin, setPgin] = createSignal<MutablePage2HistoryNode>(null as unknown as MutablePage2HistoryNode, {
@@ -48,7 +59,8 @@ export let hidePage2!: () => void;
                     });
                 }}
             >
-                {untrack(() => {
+                <GlobalPageRootViewer />
+                <DefaultErrorBoundary data={pgin}>{untrack(() => {
                     const res = ClientPage({
                         get pivot() {
                             return pgin().page.pivot;
@@ -63,7 +75,7 @@ export let hidePage2!: () => void;
                     // TODO: createEffect(() => history.replaceState(res.url));
 
                     return () => res.children;
-                })}
+                })}</DefaultErrorBoundary>
             </PageRootProvider>
         </DefaultErrorBoundary>);
     };
