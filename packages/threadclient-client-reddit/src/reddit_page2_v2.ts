@@ -4,7 +4,7 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
-import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
+import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
 
 const debug_mode = true;
 
@@ -157,6 +157,9 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
             client_id,
         }};
     }
+    if(parsed.kind === "inbox") {
+
+    }
     console.log("Enotsuppoprted", parsed);
     return {content, pivot_loader: null};
 }
@@ -294,6 +297,70 @@ type BaseWikipage = {
 };
 type BaseSubmitPage = {
     on_subreddit: UnsortedSubreddit,
+};
+/*
+we want a tabbed ui
+page2 does not support this yet
+*/
+/*
+here's a possability for tabbed ui. this would also replace how sorting works right now:
+- sort no longer is part of a post's base
+- there is one new post content kind:
+  - a 'sort menu'
+the 'sort menu' is the pivoted post. it determines the url of the page, and it has links to other
+'sort menus' (sort modes for the post, containing a parent loader and replies loader)
+
+here's the trouble:
+- the sort menu is the pivoted object, but not from the user's point of view.
+
+oh solution
+
+'sort menu' contains:
+- sortable_object: Link<PostContent>
+- replies (as normal)
+- parent (as normal)
+when displaying a 'sort menu', display its sortable object and put the sort menu below
+
+still trouble. a subreddit is sortable, but getting a subreddit asParent should give a subreddit with
+no (default) sort method specified and should not show a menu
+- no trouble here. that should work
+
+ok the plan:
+PostContent
+- kind: "sort_menu",
+  options: (page1 menu for now, but eventually we'll switch it to be links to other sort menus so we don't have
+   to reload the post/subreddit/… when switching sorts)
+
+display:
+- the sortable_object is displayed. the sortable_object would be eg the post content.
+
+changes to code here:
+- 'post' will be changed to return a content kind sortable object. same with 'subreddit' and 'content'
+- there will be BasePost and BaseSortedPost, BaseSubreddit, BaseSortedSubreddit, …
+
+trouble!
+comments:
+- if you sort a comment, the sorts of all the parents should change
+solution:
+- the sortable object parent will change to a differently sorted comment
+- it won't even have to reload any of the comment contents
+
+ok this should* work
+
+*/
+type BaseInbox = {
+    // it's a little menu:
+    // - inbox (focuses this object)
+    // - compose
+    // its replies has sort options:
+    // - "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions" | "[*]sent" | "[*]mod"
+};
+type BaseInboxCompose = {
+    // it's a Post containing a submit object who's parent is BaseInbox (tab: 'compose')
+};
+type BasePrivateMessage = {
+    // it's a Post who's parent is BaseInbox (tab: 'messages')
+    msgid: string,
 };
 type FullSubmitPage = {
     on_base: BaseSubmitPage,

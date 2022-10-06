@@ -1452,6 +1452,25 @@ export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[
 export type SubSort = {v: Reddit.SortMode, t: Reddit.SortTime};
 export type PostSort = {v: Reddit.Sort};
 
+export type InboxTab = {
+    tab: "compose",
+    // uh oh compose is not a json listing (it's a 404) so this parsing
+    // needs to happen above pageFromListingA
+    to: string | undefined,
+    subject: string | undefined,
+    message: string | undefined,
+} | {
+    tab: "inbox",
+    // selfreply is "post replies". comments is "comment replies"
+    inbox_tab: "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions",
+} | {
+    tab: "sent",
+} | {
+    tab: "message",
+    msgid: string,
+} | {
+    tab: "mod", // /message/moderator seems unused, that's what new modmail is for
+};
 export type ParsedPath = {
     kind: "sidebar",
     sub: SubrInfo,
@@ -1486,25 +1505,7 @@ export type ParsedPath = {
     },
 } | {
     kind: "inbox",
-    current: {
-        tab: "compose",
-        // uh oh compose is not a json listing (it's a 404) so this parsing
-        // needs to happen above pageFromListingA
-        to: string | undefined,
-        subject: string | undefined,
-        message: string | undefined,
-    } | {
-        tab: "inbox",
-        // selfreply is "post replies". comments is "comment replies"
-        inbox_tab: "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions",
-    } | {
-        tab: "sent",
-    } | {
-        tab: "message",
-        msgid: string,
-    } | {
-        tab: "mod", // /message/moderator seems unused, that's what new modmail is for
-    },
+    current: InboxTab,
 } | {
     kind: "link_out",
     out: string,
