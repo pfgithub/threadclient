@@ -35,7 +35,10 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
     // TODO: api requests should be seperate from the api result -> page2 stuff.
     // also authentication should be handled better.
 
-    const v2res = urlToOneLoader(pathraw_in);
+    let v2res = urlToOneLoader(pathraw_in);
+    if('kind' in v2res) {
+        v2res = await v2res.value();
+    }
     if(v2res.pivot_loader != null) {
         const rl_res = Generic.readLink(v2res.content, v2res.pivot_loader.key);
         if(rl_res != null) return {

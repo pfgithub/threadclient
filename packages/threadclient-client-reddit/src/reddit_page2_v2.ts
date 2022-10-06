@@ -4,12 +4,14 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
-import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, jstrOf, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
+import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
 
 const debug_mode = true;
 
 // * todo fix - we use JSON.stringify right now, but that keeps property order. eventually, that's going to become
 // a problem - two things with the same base are not going to have the same id because of property order.
+// - why did we say that base couldn't be a url?
+// - pretty sure every post base should be able to be converted to and from a url
 
 // implementing this well should free us to make less things require loaders:
 // - PostReplies would directly contain the posts and put a loader if it doesn't.
@@ -28,43 +30,73 @@ report screens in page2
 - the report button links to a special @report page including a link to the object being reported
 - the report page is a post that shows the object being reported and shows the report options
   - or it shows it as a reply with the report as a pivot. doesn't matter
+- we continue to use page1 report format, no reason to recreate that yet.
 */
 
-// here's something interesting
-// what if we're loading a post and we say 'this is the pivot link'
-// and then the pivot link is unfilled (ie the comment with the specified id is missing in the tree)
-// - we need to somehow say "repivot to <this link> in case of an error"
-export function urlToOneLoader(pathraw_in: string): {
+export type UTLRes = {
     content: Generic.Page2Content,
     pivot_loader: null | Generic.OneLoader<Generic.Post>,
-} {
+};
+export type UTLResAsync = {kind: "async", value: () => Promise<UTLRes>};
+export function urlToOneLoader(pathraw_in: string): UTLRes | UTLResAsync {
+    const [parsed, pathraw] = parseLink(pathraw_in);
+    return urlToOneLoaderFromParsed(parsed);
+}
+async function resultAsUtlres(result: UTLRes | UTLResAsync): Promise<UTLRes> {
+    if('kind' in result) return await result.value();
+    return result;
+}
+function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
     const content: Generic.Page2Content = {};
 
-    const [parsed, pathraw] = parseLink(pathraw_in);
-
-    const subToLcs = (sub: SubrInfo): LowercaseString => asLowercaseString(
-        sub.kind === "subreddit" ? sub.subreddit :
-        sub.kind === "userpage" ? "u_"+sub.user :
-        "ERROR_subredditkind:"+sub.kind
-    );
+    const subval = (sub: SubrInfo): LowercaseString | null => {
+        if(sub.kind === "subreddit") return asLowercaseString(sub.subreddit);
+        if(sub.kind === "userpage") return asLowercaseString("u_"+sub.user);
+        return null;
+    };
     // * TODO FIX:
     // url '/comments/xl9dsh' doesn't work because it doesn't know the sub
     // urlToOneLoader should be async to fetch any of that needed info probably
     // we'll end up double-fetching the post but it will probably be /api/info?ids=… the first time at least
 
-    if(parsed.kind === "subreddit") {
-        if(parsed.sub.kind === "subreddit") {
-            const link = base_subreddit.post(content, {
-                subreddit: asLowercaseString(parsed.sub.subreddit),
-                sort: parsed.current_sort,
-            });
-            return {content, pivot_loader: p2.prefilledOneLoader(content, link, undefined)};
+    const fixsubv = (parsed: {sub: SubrInfo}, postid: string, subv: LowercaseString | null): UTLResAsync => {
+        if(parsed.sub.kind === "homepage") {
+            return {kind: "async", value: async (): Promise<UTLRes> => {
+                const resv = await redditRequest(`/api/info?id=t3_${postid}` as "/__any_listing", {
+                    method: "GET",
+                });
+                if(resv.data.children.length !== 1) throw new Error("post may not exist?");
+                const rvc = resv.data.children[0];
+                if(!rvc || rvc.kind !== "t3") throw new Error("post not t3?");
+                const sub = rvc.data.subreddit;
+                const wq: {sub: SubrInfo} = {...parsed, sub: {kind: "subreddit", base: ["r", sub], subreddit: sub}};
+                const result = urlToOneLoaderFromParsed(wq as unknown as ParsedPath);
+                return await resultAsUtlres(result);
+            }};
         }
+        throw new Error("TODO support comments on sub kind: ["+parsed.sub.kind+"]");
+    };
+
+    if(parsed.kind === "subreddit") {
+        const subv = subval(parsed.sub);
+        if(subv == null) {
+            throw new Error("TODO support listing kind: ["+parsed.sub.kind+"]")
+        }
+        const link = base_subreddit.post(content, {
+            subreddit: subv,
+            sort: parsed.current_sort,
+        });
+        return {content, pivot_loader: p2.prefilledOneLoader(content, link, undefined)};
     }
     if(parsed.kind === "comments") {
+        const subv = subval(parsed.sub);
+        if(subv == null) {
+            return fixsubv(parsed, parsed.post_id_unprefixed, subv);
+        }
+
         const post_base: BasePostT3 = {
             fullname: `t3_${parsed.post_id_unprefixed}`,
-            on_subreddit: subToLcs(parsed.sub),
+            on_subreddit: subv,
             sort: parsed.sort_override != null ? {v: parsed.sort_override} : "default"
         };
         const comment_base: BaseCommentT1 | null = parsed.focus_comment != null ? {
@@ -84,10 +116,14 @@ export function urlToOneLoader(pathraw_in: string): {
         }};
     }
     if(parsed.kind === "duplicates") {
-        // [!] does not yet support without a sub in the url ++ TODO
+        const subv = subval(parsed.sub);
+        if(subv == null) {
+            return fixsubv(parsed, parsed.post_id_unprefixed, subv);
+        }
+
         const post_base: BasePostT3 = {
             fullname: `t3_${parsed.post_id_unprefixed}`,
-            on_subreddit: subToLcs(parsed.sub),
+            on_subreddit: subv,
             sort: {m: "duplicates", v: "num_comments", crossposts_only: parsed.crossposts_only},
         };
         return {content, pivot_loader: {
@@ -103,8 +139,13 @@ export function urlToOneLoader(pathraw_in: string): {
         }};
     }
     if(parsed.kind === "submit") {
+        const subv = subval(parsed.sub);
+        if(subv == null) {
+            throw new Error("TODO support submit on sub kind: ["+parsed.sub.kind+"]")
+        }
+
         const submit_base: BaseSubmitPage = {
-            on_subreddit: subToLcs(parsed.sub),
+            on_subreddit: subv,
         };
         return {content, pivot_loader: {
             kind: "one_loader",
@@ -116,6 +157,7 @@ export function urlToOneLoader(pathraw_in: string): {
             client_id,
         }};
     }
+    console.log("Enotsuppoprted", parsed);
     return {content, pivot_loader: null};
 }
 
@@ -139,7 +181,9 @@ function validatePost<T>(link: Generic.Link<T>, res: T): T {
                     }else{
                         // parse the url
                         const upres = urlToOneLoader(resurl);
-                        if(upres.pivot_loader == null) {
+                        if('kind' in upres) {
+                            console.warn("*[ValidatePost]* URL DOES NOT CONTAIN BASE:", resurl, link);
+                        }else if(upres.pivot_loader == null) {
                             console.warn("*[ValidatePost]* NOT YET SUPPORTED URL:", resurl, link);
                         }else if(upres.pivot_loader.key !== link){
                             console.error("*[ValidatePost]* URL PRODUCES DIFFERENT KEY:", resurl, "\n→", link, "\n←", upres.pivot_loader.key);
