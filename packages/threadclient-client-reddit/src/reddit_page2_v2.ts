@@ -2,7 +2,7 @@ import * as Generic from "api-types-generic";
 import { p2, rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
-import { updateQuery } from "tmeta-util";
+import { assertNever, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
 import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
 
@@ -158,7 +158,28 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
         }};
     }
     if(parsed.kind === "inbox") {
-
+        const base: BaseInbox = {};
+        if(parsed.current.tab === "compose") {
+            const compose_base: SortedComposeInbox = {on_base: base};
+            return {
+                content,
+                pivot_loader: p2.prefilledOneLoader(content, sorted_compose_inbox.menubar(content, compose_base), undefined),
+            };
+        }else if(parsed.current.tab === "inbox") {
+            const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.inbox_tab};
+            return {
+                content,
+                pivot_loader: p2.prefilledOneLoader(content, sorted_inbox.menubar(content, inbox_base), undefined),
+            };
+        }else if(parsed.current.tab === "sent" || parsed.current.tab === "mod") {
+            const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.tab};
+            return {
+                content,
+                pivot_loader: p2.prefilledOneLoader(content, sorted_inbox.menubar(content, inbox_base), undefined),
+            };
+        }else if(parsed.current.tab === "message") {
+            throw new Error("*TODO* view inbox message ["+parsed.current.msgid+"]");
+        }else assertNever(parsed.current);
     }
     console.log("Enotsuppoprted", parsed);
     return {content, pivot_loader: null};
@@ -183,15 +204,19 @@ function validatePost<T>(link: Generic.Link<T>, res: T): T {
                         // pass; the object cannot be pivoted and clicking it will redirect to its url rather than repivoting
                     }else{
                         // parse the url
-                        const upres = urlToOneLoader(resurl);
-                        if('kind' in upres) {
-                            console.warn("*[ValidatePost]* URL DOES NOT CONTAIN BASE:", resurl, link);
-                        }else if(upres.pivot_loader == null) {
-                            console.warn("*[ValidatePost]* NOT YET SUPPORTED URL:", resurl, link);
-                        }else if(upres.pivot_loader.key !== link){
-                            console.error("*[ValidatePost]* URL PRODUCES DIFFERENT KEY:", resurl, "\n→", link, "\n←", upres.pivot_loader.key);
-                        }else{
-                            // passsed
+                        try{
+                            const upres = urlToOneLoader(resurl);
+                            if('kind' in upres) {
+                                console.warn("*[ValidatePost]* URL DOES NOT CONTAIN BASE:", resurl, link);
+                            }else if(upres.pivot_loader == null) {
+                                console.warn("*[ValidatePost]* NOT YET SUPPORTED URL:", resurl, link);
+                            }else if(upres.pivot_loader.key !== link){
+                                console.error("*[ValidatePost]* URL PRODUCES DIFFERENT KEY:", resurl, "\n→", link, "\n←", upres.pivot_loader.key);
+                            }else{
+                                // passsed
+                            }
+                        }catch(e) {
+                            console.error("*[ValidatePost]* URL ERRORS:", resurl, link, e);
                         }
                     }
                 }else{
@@ -349,21 +374,38 @@ ok this should* work
 
 */
 type BaseInbox = {
+    // note BaseInbox is only for the content. SortedInbox has the url and post and other stuff
     _?: undefined,
 };
+// something's weird here isn't it. 'SortedInbox' and 'SortedComposeInbox' are both tabs of the same
+// thing. that's okay I think though.
 type SortedInbox = {
     on_base: BaseInbox,
-    tab: "inbox" | "compose",
-    // - "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions" | "[*]sent" | "[*]mod"
+    tab: "inbox" | "unread" | "messages" | "comments" | "selfreply" | "mentions" | "sent" | "mod"
+};
+type SortedComposeInbox = {
+    on_base: BaseInbox,
+};
+type FilledInbox = {
+    for_sorted: SortedInbox,
+    content: Reddit.Listing,
 };
 type BaseInboxCompose = {
     // it's a Post containing a submit object who's parent is BaseInbox (tab: 'compose')
-    for_inbox: SortedInbox, // ← this is always 'on_base: {}, tab: {kind: "compose"}
+    for_inbox: SortedComposeInbox, // ← this is always 'on_base: {}, tab: {kind: "compose"}
 };
 type BasePrivateMessage = {
     // it's a Post who's parent is BaseInbox (tab: 'messages')
     for_inbox: SortedInbox, // this is always 'on_base: {}, tab: {kind: "inbox", subtab: "messages"}
-    msgid: string,
+    id: string,
+    kind: "t1" | "t4", // t1s are not normal comments, they are this weird inbox message structured object.
+    // we'll mark them as not pivotable and set the link to the actual comment. while it'd be nice if we could
+    // repivot to them without a page reload, we can't because they're missing lots of stuff. they don't even
+    // have rtjson.
+};
+type FullPrivateMessage = {
+    on_base: BasePrivateMessage,
+    value: Reddit.InboxMsg,
 };
 type FullSubmitPage = {
     on_base: BaseSubmitPage,
@@ -1335,6 +1377,97 @@ export const full_submit = {
     }),
 };
 
+const base_inbox = {
+    consistentData: autoOutline("base_inbox→sort_options", (content, base: BaseInbox): Generic.ConsistentSortData => {
+        const res: Generic.SortOptions = [];
+        for(const [tag, name] of [["compose", "Compose"] as const]) {
+            res.push({
+                name,
+                tag,
+                object: sorted_compose_inbox.menubar(content, {
+                    on_base: base,
+                }),
+            });
+        }
+        for(const [tag, name] of [
+            ["inbox", "All"],
+            ["unread", "Unread"],
+            ["messages", "Messages"],
+            ["comments", "Comment Replies"],
+            ["selfreply", "Post Replies"],
+            ["mentions", "Username Mentions"],
+            ["sent", "Sent"],
+            ["mod", "Legacy Modmail"],
+        ] as const) {
+            res.push({
+                name,
+                tag,
+                object: sorted_inbox.menubar(content, {
+                    tab: tag,
+                    on_base: base,
+                }),
+            });
+        }
+        return {
+            sort_options: res,
+            display_object: {kind: "todo", message: "Inbox. Put some fancy design here or something."},
+        };
+    }),
+    selfParent: (content: Generic.Page2Content, base: BaseInbox): Generic.PostParent => {
+        return base_client.asParent(content, base);
+    },
+};
+const sorted_inbox = {
+    url: (base: SortedInbox): string => {
+        return "/message/"+base.tab;
+    },
+    contentLink: (base: SortedInbox) => autoLinkgen<Generic.HorizontalLoaded>("sorted_inbox→content", base),
+    menubar: autoOutline("sorted_inbox→menubar", (content, base: SortedInbox): Generic.Post => {
+        return {
+            kind: "post",
+            internal_data: base,
+            client_id,
+            url: sorted_inbox.url(base),
+            parent: base_inbox.selfParent(content, base.on_base),
+            content: {
+                kind: "sort_wrapper",
+                consistent: base_inbox.consistentData(content, base.on_base),
+                selected_option_tag: base.tab,
+            },
+            replies: {
+                display: "repivot_list",
+                loader: {
+                    kind: "horizontal_loader",
+                    key: sorted_inbox.contentLink(base),
+                    request: p2.fillLink(content, autoLinkgen("sorted_inbox→content_loader", base), opaque_loader.encode({
+                        kind: "inbox",
+                        base,
+                    })),
+                    client_id,
+                },
+            },
+        };
+    }),
+};
+const sorted_compose_inbox = {
+    url: (base: SortedComposeInbox): string => "/message/compose",
+    menubar: autoOutline("sorted_compose_inbox→menubar", (content, base: SortedComposeInbox): Generic.Post => {
+        return {
+            kind: "post",
+            internal_data: base,
+            client_id,
+            url: sorted_compose_inbox.url(base),
+            parent: base_inbox.selfParent(content, base.on_base),
+            content: {
+                kind: "sort_wrapper",
+                consistent: base_inbox.consistentData(content, base.on_base),
+                selected_option_tag: "compose",
+            },
+            replies: todoReplies(content),
+        };
+    }),
+};
+
 type CommentExtra = {
     on_post: BasePostT3,
     comment_replies_valid: CommentRepliesValid,
@@ -1477,6 +1610,9 @@ type LoaderData = {
 } | {
     kind: "submit_page",
     base: BaseSubmitPage,
+} | {
+    kind: "inbox",
+    base: SortedInbox,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 

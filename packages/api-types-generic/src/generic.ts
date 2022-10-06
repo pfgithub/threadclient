@@ -429,14 +429,21 @@ export type PostContent = ClientPost | {
     message: string,
 } | {
     kind: "sort_wrapper",
-    sort_options: {
-        object: Link<Post>, // Link<sort_wrapper>. repivots on click.
-        name: string,
-    }[],
-    display_object: OneLoader<PostContent>, // a loader so that multiple options can have the same content
-    // without reloads.
-    // PostContent and not Post because Post has information like parent/replies/… that don't apply here.
+    consistent: Link<ConsistentSortData>,
+    selected_option_tag: string, // if it is not found in the sort_options array, it will be displayed last
 };
+export type ConsistentSortData = {
+    sort_options: SortOptions,
+    display_object: PostContent,
+};
+export type SortOptions = {
+    object: Link<Post>, // Link<sort_wrapper>. repivots on click. consider:
+    // - don't create a new history item
+    // - assert that the linked post is a sort wrapper with the same sort_options link (if it isn't, put a warning
+    //   and create a new history item)
+    tag: string, // unique (within the SortOptions array) id
+    name: string,
+}[];
 
 // /---------------\
 // |---- page1 ----|
