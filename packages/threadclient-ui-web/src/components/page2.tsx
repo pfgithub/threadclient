@@ -54,7 +54,9 @@ export function ClientContent(props: {
     whole_object_clickable?: undefined | boolean,
 }): JSX.Element {
     const hprc = getWholePageRootContextOpt();
-    return <DefaultErrorBoundary data={[props.content, props.opts]}><SwitchKind item={props.content}>{{
+    return <DefaultErrorBoundary data={[props.content, props.opts]}><SwitchKind item={props.content} fallback={v => (
+        <div>TODO content kind {v.kind}</div>
+    )}>{{
         post: content => (
             <ClientPost
                 content={content}
