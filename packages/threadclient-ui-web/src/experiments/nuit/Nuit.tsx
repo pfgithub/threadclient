@@ -137,7 +137,7 @@ export default function Nuit(): JSX.Element {
             <div class="py-4 space-y-4">
                 <div class="px-4 text-lg font-bold">Object Title</div>
             </div>
-            <div class="bg-zinc-500">
+            <div class="bg-zinc-500 rounded-b-lg">
                 <div class="p-4">image</div>
             </div>
         </div>
@@ -149,7 +149,7 @@ export default function Nuit(): JSX.Element {
                 <div class="px-4">Richtext Content</div>
                 <div class="px-4">Paragraph two</div>
                 <div class="px-4">Paragraph three</div>
-                <div class="bg-zinc-500">
+                <div class="bg-zinc-500 h-32">
                     <div class="p-4">Embedded Image</div>
                 </div>
                 <div class="px-4">Paragraph four</div>
