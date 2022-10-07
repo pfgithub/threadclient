@@ -6,68 +6,17 @@ import { allow_threading_override_ctx, collapse_data_context, getWholePageRootCo
 import { CollapseButton, CollapseData, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";
 
 /*
-REMINDER:
-there is no reason we should need pageflat
-posts do not have to be flat in dom
-we can have posts be heigherarchical in dom
-we don't have to sunk cost this
+NOTE:
+- can we remove collapse halding from flatten?
+- switch back to dom collapsing?
+- it will significantly improve performance and remove a lot of mess from this code and make
+  animations way easier
 
-heigherarchical posts make it easier to collapse stuff and do animations
+that way we would be reducing the influence pageflat has. pageflat would be for top level objects only and
+hopefully not have to deal with post content too much.
 
-all we do is don't make the indent part of the outermost post, instead
-the indent is in the innermost post
-
-this would mean we would no longer need flatten2.tsx for the main heigherarchical part of the page
-it's still needed for above posts and stuff though
-*/
-
-/*
-CRITICAL TODO:
-hprc.content() needs to be changed
-currently it is a signal that updates any time any content changes
-we need to change it to a map of signals so it only changes if the link you read was modified
-
-- ok I went to do this by making a class and that would have worked fine and taken a few minutes of
-  refactoring after
-- I can also do this by changing hprc.content() to return a proxy holding the object it normally holds
-- either method should work fine. the proxy method doesn't require any refactoring but might be a bit
-  more complicated to program.
-- or we hprc.content.readLink([link]) is the signal
-
-type MutableContentBackingValue<T> = undefined | {data: T} | {error: string};
-type MutableContentBackingSym<T> = Signal<MutableContentBackingValue<T>>;
-// wait there's no reason to do this i can literally make a proxy
-export class MutableContent {
-    backing: Map<
-        Generic.Link<unknown>,
-        MutableContentBackingSym<unknown>
-        // note: this never gets gc'd. ideally it would gc when no watchers remain.
-    >;
-    constructor() {
-        this.backing = new Map();
-    }
-
-    getSignal<T>(link: Generic.Link<T>): MutableContentBackingSym<T> {
-        const value = this.backing.get(link);
-        if(value != null) return value as MutableContentBackingSym<T>;
-        const nv = createSignal<MutableContentBackingValue<unknown>>(undefined);
-        this.backing.set(link, nv);
-        return nv as MutableContentBackingSym<T>;
-    }
-
-    readLink<T>(link: Generic.Link<T>): null | Generic.ReadLinkResult<T> {
-        const signal = this.getSignal(link);
-        const value = signal[0]();
-        if(value == null) return null;
-        if('error' in value) return {error: value.error, value: null};
-        return {value: value.data, error: null};
-    }
-
-    toGenericContent(): Generic.Page2Content {
-        return Object.fromEntries([...this.backing.entries()].map(([k, v]) => [k, v()]));
-    }
-}
-
+I'm going to do a from-scratch experiment I think and see either if we should transfer our existing
+work to it or transfer it to our existing work.
 */
 
 export const FlatReplyTsch = createTypesafeChildren<FlatTreeItem>();
