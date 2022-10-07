@@ -13,7 +13,7 @@ import { DropdownActionButton } from "./ActionButtonDropdown";
 import { HorizontalActionButton } from "./ActionButtonHorizontal";
 import { ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
-import Clickable from "./Clickable";
+import Clickable, { ClickAction } from "./Clickable";
 import { CollapseButton } from "./CollapseButton";
 import { VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
@@ -252,6 +252,43 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     </article>;
 }
 
+export function Thumbnail(props: {
+    thumbnail: Generic.Thumbnail,
+    body: Generic.Body,
+    content_warning: boolean,
+    action: ClickAction,
+}): JSX.Element {
+    /*
+                    const thumbimg: string = {
+                        self: "self", default: "default", image: "image", spoiler: "spoiler",
+                        nsfw: "nsfw", account: "account", error: "error"
+                    }[listing.thumbnail.thumb];
+                    thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-" + thumbimg));
+    */
+    return <Clickable
+        action={props.action}
+        class={classes(
+            "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md bg-slate-100 dark:bg-zinc-800",
+            props.content_warning && props.thumbnail.kind === "image" ? "thumbnail-content-warning" : "",
+            "block",
+            "relative",
+        )}
+    >
+        <SwitchKind item={props.thumbnail}>{{
+            image: img => <img
+                src={proxyURL(img.url)}
+                alt=""
+                class={classes(
+                    "w-full h-full object-cover rounded-md"
+                    // object-contain is nicer but we're using object-cover for now
+                )}
+            />,
+            default: def => <div class={"w-full h-full rounded-full bg-slate-500 dark:bg-zinc-500"}>{def.thumb}</div>,
+        }}</SwitchKind>
+        <PreviewThumbnailIcon body={props.body} />
+    </Clickable>;
+}
+
 // [!] RENDER THIS TWICE, ONCE WITH visible=true AND ONCE WITH visible=false
 // [!] USE A SHOWHIDE TOGGLE ANIMATED THING
 // [!] UPDATE THAT THING TO USE inert=true ON THE THING BEING HIDDEN
@@ -285,35 +322,14 @@ export function PostTopBar(props: ClientPostProps & {
     return <HSplit.Container dir="right" vertical="center">
         <Show if={!props.visible} when={props.content.thumbnail}>{thumb_any => (
             <HSplit.Child>
-                <Clickable
-                    action={{
-                        url: props.opts.frame?.url ?? "ENOHREF",
-                        client_id: props.opts.frame?.client_id ?? "ENOCLIENTID",
-                        page: props.getPage,
-                        onClick: props.collapseInfo.user_controllable ? () => {
-                            props.setVisible(t => !t);
-                        } : undefined,
-                    }}
-                    class={classes(
-                        "w-12 h-12 sm:w-16 sm:h-16 mr-4 rounded-md bg-slate-100 dark:bg-zinc-800",
-                        props.contentWarning && thumb_any.kind === "image" ? "thumbnail-content-warning" : "",
-                        "block",
-                        "relative",
-                    )}
-                >
-                    <SwitchKind item={thumb_any}>{{
-                        image: img => <img
-                            src={proxyURL(img.url)}
-                            alt=""
-                            class={classes(
-                                "w-full h-full object-cover rounded-md"
-                                // object-contain is nicer but we're using object-cover for now
-                            )}
-                        />,
-                        default: def => <>TODO {def.kind}</>,
-                    }}</SwitchKind>
-                    <PreviewThumbnailIcon body={props.content.body} />
-                </Clickable>
+                <Thumbnail content_warning={props.contentWarning} action={{
+                    url: props.opts.frame?.url ?? "ENOHREF",
+                    client_id: props.opts.frame?.client_id ?? "ENOCLIENTID",
+                    page: props.getPage,
+                    onClick: props.collapseInfo.user_controllable ? () => {
+                        props.setVisible(t => !t);
+                    } : undefined,
+                }} body={props.content.body} thumbnail={thumb_any} />
             </HSplit.Child>
         )}</Show>
         <HSplit.Child fullwidth><div

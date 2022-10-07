@@ -8,6 +8,22 @@ import { autoPost, changelogEntry } from "./shell_client";
 
 // [try it out on r/threadclient]
 
+// -NDoYkqYVJiPYkm5HJte (TODO: update version)
+export function changelog5() {return autoPost({
+    parent: "/changelog",
+    replies: [],
+}, changelogEntry({
+    title: "TBD",
+    notes: [
+        rt.p(rt.txt("The bulk of the work in this update has gone towards rewriting core components in ThreadClient. These changes are not visible yet but will hopefully be ready soon™")),
+    ],
+    features: [
+        rt.p(
+            rt.txt("Improves the appearence of thumbnails on posts. Posts will now have icons indicating if they are videos, text posts, external links, …"),
+        ),
+    ],
+}));}
+
 export function changelog4() {return autoPost({
     parent: "/changelog",
     replies: [],

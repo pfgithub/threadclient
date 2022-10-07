@@ -16,6 +16,7 @@ import { Flair } from "./components/Flair";
 import { Homepage } from "./components/homepage";
 import { ClientContent } from "./components/page2";
 import Pfp from "./components/Pfp";
+import { Thumbnail } from "./components/Post";
 import proxyURL from "./components/proxy_url";
 import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
@@ -1630,18 +1631,18 @@ export function clientListing(
         }
     }
 
+    const [contentWarning, setContentWarning] = createSignal(false);
+    let thumbnail_evhl: [() => void] = [() => void 0];
     {
         if(listing.thumbnail) {
-            if(listing.thumbnail.kind === "image") {
-                thumbnail_loc.adch(el("img").attr({src: proxyURL(listing.thumbnail.url), alt: ""}));
-                if(content_warnings.length) thumbnail_loc.clss("thumbnail-content-warning");
-            }else if(listing.thumbnail.kind === "default") {
-                const thumbimg: string = {
-                    self: "self", default: "default", image: "image", spoiler: "spoiler",
-                    nsfw: "nsfw", account: "account", error: "error"
-                }[listing.thumbnail.thumb];
-                thumbnail_loc.adch(el("div").clss("thumbnail-builtin", "thumbnail-" + thumbimg));
-            }else assertNever(listing.thumbnail);
+            vanillaToSolidBoundary(thumbnail_loc, () => <Thumbnail
+                thumbnail={listing.thumbnail!}
+                body={listing.body}
+                content_warning={contentWarning()}
+                action={() => {
+                    thumbnail_evhl[0]();
+                }}
+            />).defer(hsc);
         }
 
         const initContent = (body: Generic.Body, bodyopts: {autoplay: boolean}): HideShowCleanup<HTMLElement> => {
@@ -1650,6 +1651,7 @@ export function clientListing(
             const body_hsc = hideshow(body_container);
 
             if(content_warnings.length) {
+                setContentWarning(true);
                 const cws = content_warnings;
                 const cwbox = el("div").adto(body_container);
                 cwbox.atxt("Content Warning"+(cws.length === 1 ? "" : "s")+": ");
@@ -1659,6 +1661,7 @@ export function clientListing(
                     e.stopPropagation();
                     cwbox.remove();
                     content_warnings = [];
+                    setContentWarning(false);
                     thumbnail_loc.classList.remove("thumbnail-content-warning");
                     renderBody(body, {...bodyopts}).defer(body_hsc).adto(body_container);
                 });
@@ -1707,11 +1710,10 @@ export function clientListing(
                 state =! state;
                 update();
             });
-            thumbnail_loc.onev("click", (e) => {
-                e.stopPropagation();
+            thumbnail_evhl[0] = () => {
                 state =! state;
                 update();
-            });
+            }
         }else{
             initContent(listing.body, {autoplay: false}).defer(hsc).adto(preview_area);
         }
