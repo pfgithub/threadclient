@@ -115,7 +115,7 @@ what we want:
 4du
 */
 
-export default function Nuit(): JSX.Element {
+/*
     return <C kind="vertical" mt={4} mb={4} ml={4} mr={4} gap={0}>
         <C>one</C>
         <C>two</C>
@@ -127,4 +127,62 @@ export default function Nuit(): JSX.Element {
         <C>four</C>
         <C>five</C>
     </C>;
+*/
+
+
+// the goal of Nuit is to put all padding and margin at the last possible moment
+export default function Nuit(): JSX.Element {
+    return <>
+        <div class="max-w-xl mx-auto bg-zinc-800 my-4 rounded-lg">
+            <div class="py-4 space-y-4">
+                <div class="px-4 text-lg font-bold">Object Title</div>
+            </div>
+            <div class="bg-zinc-500">
+                <div class="p-4">image</div>
+            </div>
+        </div>
+        <div class="max-w-xl mx-auto bg-zinc-800 my-4 rounded-lg">
+            <div class="py-4 space-y-4">
+                <div class="px-4 text-lg font-bold">Object Title</div>
+            </div>
+            <div class="py-4 space-y-4">
+                <div class="px-4">Richtext Content</div>
+                <div class="px-4">Paragraph two</div>
+                <div class="px-4">Paragraph three</div>
+                <div class="bg-zinc-500">
+                    <div class="p-4">Embedded Image</div>
+                </div>
+                <div class="px-4">Paragraph four</div>
+                <div>
+                    <div class="overflow-auto"><div class="w-max"><div class="px-4"><table>
+                        <tbody>
+                            <tr>
+                                <th>T</th>
+                                <th>a</th>
+                                <th>b</th>
+                                <th>l</th>
+                                <th>e</th>
+                            </tr>
+                            <tr>
+                                <td>Embedded</td>
+                                <td>table</td>
+                                <td>example</td>
+                                <td>table</td>
+                                <td>sample</td>
+                                <td>lots</td>
+                                <td>of</td>
+                                <td>rows</td>
+                                <td>on</td>
+                                <td>our</td>
+                                <td>sample</td>
+                                <td>table</td>
+                                <td>example</td>
+                            </tr>
+                        </tbody>
+                    </table></div></div></div>
+                </div>
+                <div class="px-4">Paragraph five</div>
+            </div>
+        </div>
+    </>;
 }

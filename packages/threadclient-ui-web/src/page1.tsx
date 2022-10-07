@@ -2620,6 +2620,29 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
             return hsc;
         });
     }
+    if(path0 === "@nuit") {
+        // const [p1, ...p2] = path;
+    
+        return fetchPromiseThen(import("./experiments/nuit/Nuit"), (term) => {
+            const res = el("div");
+            const hsc = hideshow(res);
+            const title = updateTitle(hsc, "inui");
+            title.setTitle(path0);
+    
+            const [shouldReload, setReload] = createSignal(undefined, {equals: () => false});
+            () => setReload;
+    
+            vanillaToSolidBoundary(res, () => <>
+                <DefaultErrorBoundary data={""}>
+                    {createMemo(() => {
+                        shouldReload();
+                        return <term.default />;
+                    })}
+                </DefaultErrorBoundary>
+            </>).defer(hsc);
+            return hsc;
+        });
+    }
 
     return fetchClientThen(path0, (client) => {
         return clientMain(client, "/"+path.join("/")+search);
