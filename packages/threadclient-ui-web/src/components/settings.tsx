@@ -378,6 +378,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     onclick={() => setShowDevSettings(true)}
                 >Show Anyway</button>}
             >
+                <div class="mb-6" />
                 <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Page Version</h3>
                 <SettingPicker
                     setting={settings.pageVersion}
