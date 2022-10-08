@@ -147,6 +147,7 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
             </PageRootProvider>
         </DefaultErrorBoundary>;
     }).defer(hsc);
+    setTimeout(() => elem.scrollIntoView(), 0);
 
     return hsc;
 }
