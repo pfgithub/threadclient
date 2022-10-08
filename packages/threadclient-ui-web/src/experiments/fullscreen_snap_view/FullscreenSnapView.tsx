@@ -611,7 +611,7 @@ export default function FullscreenSnapView(props: {
         replies: Generic.PostReplies,
         pivot: Generic.Post,
     } => {
-        const res = hprc.content().view(props.pivot);
+        const res = hprc.content.view(props.pivot);
         if(res == null || res.error != null) throw new Error("rve");
         const v = res.value;
         if(v.kind !== "post") throw new Error("rve2");
@@ -677,7 +677,7 @@ export default function FullscreenSnapView(props: {
             url: updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined}),
             client_id: m().pivot.client_id,
             mode: "replace",
-            page: (): Generic.Page2 => ({content: hprc.content().untrackToContent(), pivot: props.pivot}),
+            page: (): Generic.Page2 => ({content: hprc.content.untrackToContent(), pivot: props.pivot}),
         }}
     >
         <InternalIconRaw

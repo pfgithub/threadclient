@@ -104,7 +104,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
         repivot_list_fullscreen_button: fsb => <Clickable
             class="bg-slate-100 dark:bg-zinc-800 p-2 rounded-md"
             action={{url: fsb.href, client_id: fsb.client_id, page: () => ({
-                content: hprc.content().untrackToContent(),
+                content: hprc.content.untrackToContent(),
                 pivot: fsb.pivot(),
             }), mode: "replace"}}
         >
@@ -221,7 +221,7 @@ export function postGetPage(hprc: PageRootContext, lpc: FlatTreeItem): Generic.P
     if(lpc.post.disallow_pivot ?? false) return undefined;
     return {
         pivot: lpc.link,
-        content: hprc.content().untrackToContent(),
+        content: hprc.content.untrackToContent(),
     };
 }
 export function postOnClick(hprc: PageRootContext, frame: FlatPost, e: MouseEvent | KeyboardEvent): void {

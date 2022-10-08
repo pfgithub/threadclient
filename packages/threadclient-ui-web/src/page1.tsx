@@ -21,11 +21,10 @@ import proxyURL from "./components/proxy_url";
 import ReplyEditor from "./components/reply";
 import { RichtextParagraphs } from "./components/richtext";
 import { getRandomColor, rgbToString, seededRandom } from "./darken_color";
-import { hidePage2, MutablePage2HistoryNode, navigate, showPage2 } from "./page1_routing";
+import { navigate, renderPage2 } from "./page1_routing";
 import { rootel } from "./router";
 import { getPointsText, isModifiedEvent, unsafeLinkToSafeLink, watchCounterState } from "./tc_helpers";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import Page2ContentManager from "./util/Page2ContentManager";
 import { DefaultErrorBoundary, getSettings } from "./util/utils_solid";
 
 function linkButton(
@@ -1632,7 +1631,7 @@ export function clientListing(
     }
 
     const [contentWarning, setContentWarning] = createSignal(false);
-    let thumbnail_evhl: [() => void] = [() => void 0];
+    const thumbnail_evhl: [() => void] = [() => void 0];
     {
         if(listing.thumbnail) {
             vanillaToSolidBoundary(thumbnail_loc, () => <Thumbnail
@@ -2222,19 +2221,10 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         if(!client.getThread || client.getPage && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
             const page2 = await client.getPage!(current_path);
             const split = splitPathPage1Ver(current_path);
-            const p2v = new Page2ContentManager();
-            p2v.setData(page2.content);
-            const page: MutablePage2HistoryNode = {page: {
-                pivot: page2.pivot,
-                content: p2v,
-            }, query: split.search};
 
-            // const {default: ClientPage} = await import("./components/page2");
             loader_area.remove();
 
-            if(hsc.visible) showPage2(page, true);
-            hsc.on("hide", () => hidePage2());
-            hsc.on("show", () => showPage2(page, false));
+            renderPage2(page2, split.search).defer(hsc).adto(frame);
         }else{
             const listing = await client.getThread(current_path);
             loader_area.remove();

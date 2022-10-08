@@ -30,14 +30,12 @@ export function UnfilledLoader(props: {
 
         const loader = props.loader;
 
-        const pgin = hprc.pgin();
-
         // TODO: make sure there are never two loaders with the same request loading at once
         addAction(
             (async () => {
                 if(error() != null) await new Promise(r => setTimeout(r, 200));
 
-                const request = hprc.content().view(loader.request);
+                const request = hprc.content.view(loader.request);
                 if(request == null) throw new Error("e-request-null: "+loader.request.toString());
                 if(request.error != null) throw new Error(request.error);
                 const client = await fetchClient(loader.client_id);
@@ -48,7 +46,7 @@ export function UnfilledLoader(props: {
                 setLoading(false);
                 setError(null);
                 // console.log("adding content", r.content, props.loader);
-                hprc.addContent(pgin, r.content);
+                hprc.addContent(r.content);
             });
         }).catch((e: Error) => {
             console.log("Error loading; ", e);

@@ -4,7 +4,7 @@ import { render } from "solid-js/web";
 import { UUID } from "tmeta-util";
 import { Debugtool, Show } from "tmeta-util-solid";
 import ClientPage from "./components/PageRoot";
-import { hideshow, renderPath } from "./page1";
+import { hideshow, HideShowCleanup, renderPath } from "./page1";
 import {
     current_nav_history_key, navigate_event_handlers,
     nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid
@@ -12,17 +12,6 @@ import {
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import Page2ContentManager from "./util/Page2ContentManager";
 import { DefaultErrorBoundary, getSettings, getWholePageRootContext, PageRootContext, PageRootProvider } from "./util/utils_solid";
-
-export type MutablePage2HistoryNode = {
-    page: {
-        pivot: Generic.Link<Generic.Post>,
-        content: Page2ContentManager,
-    },
-    query: string,
-};
-
-export let showPage2!: (page: MutablePage2HistoryNode, first_show: boolean) => void;
-export let hidePage2!: () => void;
 
 function GlobalPageRootViewer(): JSX.Element {
     const hprc = getWholePageRootContext();
@@ -36,73 +25,9 @@ function GlobalPageRootViewer(): JSX.Element {
     return <></>;
 }
 
-{
-    const [pgin, setPgin] = createSignal<MutablePage2HistoryNode>(null as unknown as MutablePage2HistoryNode, {
-        equals: (a, b) => false, // so if you click two loaders at once, both update the same pgin
-    });
-    let page2_viewer_initialized = false;
-
-    const initializePage2Viewer = () => {
-        if(page2_viewer_initialized) return;
-        page2_viewer_initialized = true;
-
-        // TODO: set page title in here
-        vanillaToSolidBoundary(page2mainel, () => <DefaultErrorBoundary data={pgin}>
-            <PageRootProvider
-                pgin={pgin()}
-                addContent={(upd_pgin, content) => {
-                    batch(() => {
-                        upd_pgin.page.content.addData(content);
-                        if(pgin() === upd_pgin) {
-                            setPgin(pgin()); // the pgin that was updated is currently being viewed; refresh
-                        }
-                    });
-                }}
-            >
-                <GlobalPageRootViewer />
-                <DefaultErrorBoundary data={pgin}>{untrack(() => {
-                    const res = ClientPage({
-                        get pivot() {
-                            return pgin().page.pivot;
-                        },
-                        get query() {
-                            return pgin().query;
-                        },
-                    });
-                    createEffect(() => {
-                        document.title = res.title + " | " + "ThreadClient";
-                    });
-                    // TODO: createEffect(() => history.replaceState(res.url));
-
-                    return () => res.children;
-                })}</DefaultErrorBoundary>
-            </PageRootProvider>
-        </DefaultErrorBoundary>);
-    };
-    showPage2 = (new_pgin: MutablePage2HistoryNode, first_show: boolean) => {
-        page2mainel.style.display = "";
-
-        setPgin(new_pgin);
-
-        initializePage2Viewer();
-
-        if(first_show) {
-            const pivot = document.querySelector(".\\@\\@IS_PIVOT\\@\\@") ?? document.body;
-            pivot.scrollIntoView();
-        }
-    };
-    hidePage2 = () => {
-        page2mainel.style.display = "none";
-    };
-}
-
 
 export type NavigationEntryNode = {
-    kind: "t1",
     removeSelf: () => void, hide: () => void, show: () => void,
-} | {
-    kind: "t2",
-    page2: MutablePage2HistoryNode,
 };
 export type NavigationEntry = {url: string, node: NavigationEntryNode};
 
@@ -145,18 +70,14 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
     setCurrentHistoryKey(to_key);
 
     // hide all history
-    hidePage2();
     [...nav_history_map.values()].forEach(item => {
-        if(item.node.kind === "t1") {
-            item.node.hide();
-        }
+        item.node.hide();
     });
 
     const historyitem = nav_history_map.get(to_key);
     if(historyitem) {
         // show the current history
-        if(historyitem.node.kind === "t1") historyitem.node.show();
-        else showPage2(historyitem.node.page2, false);
+        historyitem.node.show();
         return; // done
     } else {
         // remove
@@ -166,44 +87,69 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
             if(key <= prev_key) break;
             const value = nav_history_map.get(key)!;
             nav_history_map.delete(key);
-            if(value.node.kind === "t1") value.node.removeSelf();
+            value.node.removeSelf();
         }
     }
 
+    const hsc = hideshow();
+
+    let node: HTMLDivElement;
     if(page) {
-        const page2 = page;
-        const cmr = new Page2ContentManager();
-        cmr.setData(page2.content);
-        const pagemut: MutablePage2HistoryNode = {page: {
-            pivot: page2.pivot,
-            content: cmr,
-        }, query: url.search};
-
-        showPage2(pagemut, true);
-        nav_history_map.set(to_key, {node: {
-            kind: "t2",
-            page2: pagemut,
-        }, url: thisurl});
-
-        return;
+        // * consider for safety doing a check that the url parses to the same pivot link in the client
+        node = renderPage2(page, url.search).defer(hsc).adto(rootel);
+    }else{
+        node = renderPath(url.pathname, url.search).defer(hsc).adto(rootel);
     }
 
-    const hsc = hideshow();
-    const node = renderPath(url.pathname, url.search).defer(hsc).adto(rootel);
     hsc.on("cleanup", () => node.remove());
     hsc.on("hide", () => node.style.display = "none");
     hsc.on("show", () => node.style.display = "");
-
+    
     const naventry: NavigationEntryNode = {
-        kind: "t1",
         removeSelf: () => hsc.cleanup(),
         hide: () => hsc.setVisible(false),
         show: () => hsc.setVisible(true),
     };
-
+    
     nav_history_map.set(to_key, {node: naventry, url: thisurl});
 }
 
+export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup<HTMLDivElement> {
+    const elem = el("div");
+    const hsc = hideshow(elem);
+
+    const content = new Page2ContentManager();
+    content.addData(page.content);
+
+    vanillaToSolidBoundary(elem, () => {
+        return <DefaultErrorBoundary data={content}>
+            <PageRootProvider
+                content={content}
+                addContent={(append_page) => {
+                    batch(() => {
+                        content.addData(append_page);
+                    });
+                }}
+            >
+                <GlobalPageRootViewer />
+                <DefaultErrorBoundary data={content}>{untrack(() => {
+                    const res = ClientPage({
+                        pivot: page.pivot,
+                        query,
+                    });
+                    createEffect(() => {
+                        document.title = res.title + " | " + "ThreadClient";
+                    });
+                    // TODO: createEffect(() => history.replaceState(res.url));
+
+                    return () => res.children;
+                })}</DefaultErrorBoundary>
+            </PageRootProvider>
+        </DefaultErrorBoundary>;
+    }).defer(hsc);
+
+    return hsc;
+}
 
 export function startDebugTool(root: HTMLElement) {
     const belowbody = document.createElement("div");

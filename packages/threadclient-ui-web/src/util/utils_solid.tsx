@@ -7,7 +7,6 @@ import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
 import { CollapseData } from "../components/flatten";
 import { link_styles_v } from "../page1";
-import { MutablePage2HistoryNode } from "../page1_routing";
 import Page2ContentManager from "./Page2ContentManager";
 
 export { localStorageSignal };
@@ -31,23 +30,19 @@ export function getIsVisible(): (() => boolean) {
 }
 
 export type PageRootContext = {
-    pgin: () => MutablePage2HistoryNode,
-    content: () => Page2ContentManager,
-    addContent: (node: MutablePage2HistoryNode, content: Generic.Page2Content) => void,
+    content: Page2ContentManager,
+    addContent: (content: Generic.Page2Content) => void,
 };
 
 const page_root_context = createContext<PageRootContext>();
 
 export function PageRootProvider(props: {
-    pgin: MutablePage2HistoryNode,
-    addContent: (node: MutablePage2HistoryNode, content: Generic.Page2Content) => void,
-    // refocus: (focus: Generic.Link<Generic.Post>) => void, // this should be a navigation
-    // event thing
+    content: Page2ContentManager,
+    addContent: (content: Generic.Page2Content) => void,
     children: JSX.Element,
 }): JSX.Element {
     return <page_root_context.Provider value={{
-        pgin: () => props.pgin,
-        content: () => props.pgin.page.content,
+        content: props.content,
         addContent: props.addContent,
     }}>{props.children}</page_root_context.Provider>;
 }

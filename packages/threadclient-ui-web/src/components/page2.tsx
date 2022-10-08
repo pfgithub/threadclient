@@ -20,7 +20,7 @@ export function ReadLink<T>(props: {
     const hprc = getWholePageRootContextOpt();
     const linkval = createMemo((): ({kind: "none"} | {kind: "error", msg: string} | {kind: "value", value: T}) => {
         if(hprc == null) return {kind: "none"};
-        const linkres = hprc.content().view(props.link);
+        const linkres = hprc.content.view(props.link);
         if(linkres == null) return {kind: "none"};
         if(linkres.error != null) return {kind: "error", msg: linkres.error};
         return {kind: "value", value: linkres.value};

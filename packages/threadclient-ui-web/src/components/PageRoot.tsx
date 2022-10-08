@@ -28,7 +28,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
     const hprc = getWholePageRootContext();
 
     const specialCB = createMemo((): null | SpecialCallback => {
-        const value = hprc.content().view(props.pivot);
+        const value = hprc.content.view(props.pivot);
         if(value == null) return null;
         if(value.value == null) return null;
         const v = value.value;
@@ -105,7 +105,7 @@ function ClientPageMain(props: ClientPageProps): PageRes {
     //     console.log("Reloading data!");
     //     const fres = flatten(props.pivot, {
     //         collapse_data,
-    //         content: hprc.content(),
+    //         content: hprc.content,
     //     });
     //     console.log("Reloaded. New data:", fres);
 

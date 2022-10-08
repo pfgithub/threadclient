@@ -1,16 +1,45 @@
-import {createContext, JSX, useContext} from "solid-js";
+import {createContext, For, JSX, useContext} from "solid-js";
 import Page2ContentManager from "../util/Page2ContentManager";
+import * as Generic from "api-types-generic";
+import { ReadLink } from "./page2";
+import OneLoader from "./OneLoader";
+import { Show } from "tmeta-util-solid";
 
-// ignores history management for now
+// * recommendation: use this like page1 where you have one <Page2v2> node per
+// history element
 export function Page2v2(props: {
-
+    pivot: Generic.Link<Generic.Post>,
 }): JSX.Element {
-
+    /*
+    so for the above:
+    - we'll probably want to use some flat-style thing
+        - this is because of stuff like header extraction and whatever else
+        - this will also handle the title
+        - we won't have any special flat nodes, just normal nodes though
+    for the below:
+    - probably just a standard for loop
+    */
+    return <ReadLink link={props.pivot} fallback={<>
+        The pivot is not defined?
+    </>}>{pivot => <>
+        <Show when={pivot.replies}>{replies => (
+            <OneLoader loader={replies.loader} label="Load More">{replies_items => <div>
+                <For each={replies_items}>{reply_item => {
+                    if(typeof reply_item === "object") return <div>todo top level loader</div>;
+                    return <ReadLink link={reply_item} fallback={<div>error unfilled reply object?</div>}>{post => (
+                        <TopLevelPost
+                            id={reply_item}
+                            post={post}
+                        />
+                    )}</ReadLink>;
+                }}</For>
+            </div>}</OneLoader>
+        )}</Show>
+    </>}</ReadLink>;
 }
 
-const content_manager = createContext<Page2ContentManager>();
-function getContent(): Page2ContentManager {
-    const ctxres = useContext(content_manager);
-    if(ctxres == null) throw new Error("No content here");
-    return ctxres;
+function TopLevelPost(props: {id: Generic.Link<Generic.Post>, post: Generic.Post}): JSX.Element {
+    return <div>
+        post
+    </div>;
 }

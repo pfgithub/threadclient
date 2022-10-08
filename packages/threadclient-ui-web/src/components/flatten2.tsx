@@ -26,7 +26,7 @@ export function FlatRepliesHL(props: {
 }): JSX.Element {
     const hprc = getWholePageRootContext();
     return createMemo(() => {
-        const val = hprc.content().view(props.replies.key);
+        const val = hprc.content.view(props.replies.key);
         if(val == null) {
             return FlatReplyTsch(loaderToFlatLoader(props.replies));
         }
@@ -35,7 +35,7 @@ export function FlatRepliesHL(props: {
         }
         return <For each={val.value ?? []}>{reply => createMemo(() => {
             if(typeof reply === "object") return <FlatRepliesHL replies={reply} />;
-            const readlink = hprc.content().view(reply);
+            const readlink = hprc.content.view(reply);
             if(readlink == null) {
                 return <FlatReplyTsch kind="error" msg={"e-link-bad: "+reply.toString()} />;
             }else if(readlink.error != null) {
@@ -70,7 +70,7 @@ function HighestArray(props: {
         const highest = props.post;
         if(highest == null) return [];
 
-        const postloaded = hprc.content().view(highest);
+        const postloaded = hprc.content.view(highest);
         if(postloaded == null) {
             return <FlatReplyTsch kind="error" msg={"[flat]link not found: "+highest.toString()} />;
         }
@@ -85,10 +85,10 @@ function HighestArray(props: {
                 }
 
                 const {loader} = parent;
-                const loaded = hprc.content().view(loader.key);
+                const loaded = hprc.content.view(loader.key);
                 const tempParent = createMemo((): Generic.Link<Generic.Post> | null => {
                     const temp_parents = loader.temp_parents;
-                    return temp_parents.find(itm => hprc.content().view(itm) != null ? itm : null) ?? null;
+                    return temp_parents.find(itm => hprc.content.view(itm) != null ? itm : null) ?? null;
                 });
                 // ok what we want is:
                 // - change 'key' to 'keys'
@@ -362,7 +362,7 @@ function FlattenTopLevelReplies(props: {
 export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): Accessor<FlatPage2> {
     const hprc = getWholePageRootContext();
     const pivot = createMemo(() => {
-        const pivot_read = hprc.content().view(pivotLink());
+        const pivot_read = hprc.content.view(pivotLink());
         if(pivot_read == null || pivot_read.error != null) return null;
         return pivot_read.value;
     });
@@ -418,7 +418,7 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
             }else if(uwv?.content.kind === "page") {
                 above_header = true;
                 const header = uwv.content.wrap_page.header;
-                const known_value = hprc.content().view(header.filled.key);
+                const known_value = hprc.content.view(header.filled.key);
                 if(known_value != null) {
                     if(known_value.error != null) {
                         title.push("*Error* ("+header.temp_title+")");
