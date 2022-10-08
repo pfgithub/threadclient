@@ -13,6 +13,107 @@ for posts:
   (and it no longer loses state and stuff)
 - if we really wanted to, we could use a fullscreensnapview to view post content. maybe eventually
   but for now this is fine.
+
+concepts:
+- title bar
+  - posts have a title bar. this is where you can click to repivot to them, or if they are collapsed,
+    uncollapse them. if they aren't uncollapsible, it will always repivot.
+
+reading <Post>, this is the mess:
+L85-120: determining if the object is collapsed requires a bit of a mess
+  - this can be simplified as we're getting rid of that collapse holder thing because the
+    nodes themselves will hold their collapse state. eventually, we'll probably want to add
+    it back but in a better way to handle persisting collapse states.
+    determining if the object 
+L150-180:
+  - that's a lot of lines of code to call two functions. also some mess with that
+    whole thing about :: checking if (collapse is user controllable && thumbnail)
+    - why does thumbnail affect whether an object is user controllable? ????
+      - ah. collapse right now is either 'false' or 'default_collapsed: bool'
+        * change: update collapse to be {default_collapsed: bool, user_controllable: bool}
+          - a reddit post is 'default_collapsed: true', 'user_controllable: false'
+            - hmm. this kind of requires reddit posts to be in 
+          - a reddit comment is 'default_collapsed: (value)', 'user_controllable: true'
+        * alternate solution: collapse state is never user controllable in repivot lists
+          - if a reddit post were to be displayed in a tree for some reason, it would
+            be expanded and have a collapse button
+          - we tried this solution already and decided against it but it seems like a better
+            idea now so let's try it again
+        * alternate alternate solution
+          - go backwards to where objects themselves can be repivot nodes instead of
+            tree nodes. there was a reason we moved to repivot list though and I'm sure
+            it was good so don't do this
+    - that's a lot of stuff the PostTopBar needs
+    - this is very different for objects with a thumbnail vs without them. objects with a
+      thumbnail split into this three line view, whereas objects without a thumbnail
+      collapse into this tiny bar with the info line and a little body summary
+      * not sure what to do about this one yet
+L180-200:
+  - is that *another* collapse button?
+    - right, because there is a seperate collapse button when the object is visible vs when
+      it is hidden
+    - this is bad because it requires us to handle focus instead of the browser doing it for us
+ok a quick question to ask:
+- are posts visually similar enough to comments to justify combining them into one renderer?
+  - I think the answer is no. I'm not sure if they can even justify being the same content type.
+    - posts have a thumbnail, title, info byline, and info data line. when pivoted, they have a body.
+    - posts don't get seen in tree views
+    - comments never have thumbnails or titles. they have a combined info byline and data line. they
+      have a body that is always visible.
+  - let's split these out. oh, and let's seperate tree stuff from the post itself.
+    - the only thing is we'll have to do is go ask the post if it has some buttons occupying the top of its
+      collapse button (eg vote buttons)
+
+
+plan:
+* collapse state is 'default_collapsed: bool'. collapse state is always controllable in trees,
+  and never controllable in repivot lists. in the parent list, objects are in their default state
+  but not controllable, and in the pivot, objects are always expanded
+* the post content render no longer renders its own collapse button. all content types can
+  have collapse buttons, and all do when rendered in a tree view. none do in repivot lists.
+* split out PostContent kinds 'kind: "post"' →
+  - "reddit_post" {
+    title: {text: string, flair?: undefined | Flair[]},
+    thumbnail: Thumbnail,
+    info: PostInfo,
+    - author: InfoAuthor, // ← author should be inside info and use the new partial id cards
+    - actions: NodeActions, // ← actions should be inside info
+    body: Body,
+    // notably:
+    // - thumbnail is required. use a kind default none if you don't want one.
+    // - collapse info is moved to the Post
+    // - title is required. this breaks our sidebar flair sort but who cares. the sidebar is already
+    //   a hacky mess anyway, we can turn some of those things into real post content types.
+    //   there might be other use cases in the future where we don't want a title to be required,
+    //   if we find those it shouldn't be too hard to make that change.
+    // - info is required. lots of properties in it will likely be optional though, so maybe 'info: {}'
+    //   will be allowed.
+  }
+  - "reddit_comment" {
+    info: PostInfo, // ← contains author and actions, same notes as before
+    body: Body,
+    // the link learns about it, but not where the client 
+    // notably:
+    // - it's missing flair. gildings will go in the author flair for now.
+    // - it's missing title. we might want that eventually for some clients, or maybe
+    //   we can get away with using a richtext body starting with an h1 of the title.
+    // - collapse info is moved to the Post
+  }
+  - Post {…Post, default_collapsed: boolean}
+  - todo: improve the naming. make it sound more generic or something. DataValueNodeObject.
+  - when rendering posts, we tell them their collapse state. they have no control over
+    it, except maybe with a 'collapse'/'uncollapse' action that we pass in if available.
+  - question: if a post gets put in a tree, how does it behave?
+    - we can just not care for now and figure it out later
+    - specifically, this is asking: what is its default collapse state
+* 'threadclient-client-reddit' → 'threadclient-glue-reddit'. or 'threadclient-server-reddit'
+  - 'glue' is nice because it maintains a 'client (ui)' → 'glue' → 'server (reddit.com)'
+  - 'client' is bad because 'client (ui)' → 'client' → 'server (reddit.com)'
+  - 'emu' maybe acceptable. 'client (ui)' → 'tcemu' → 'server (reddit.com)'
+  - eventually, we might have support for sites without any glue code where the ui directly
+    talks to the server.
+
+
 */
 
 // * recommendation: use this like page1 where you have one <Page2v2> node per

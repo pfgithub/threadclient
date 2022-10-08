@@ -16,6 +16,7 @@ export function scoreToString(score: number) {
     // because I couldn't… *10 |0 /10?
     // idk I'm sure I thought of that when I was programming this
     // weird
+    // ↑ `|0` limits the integer to 32 bits ← but that shouldn't matter here?
     if(score < 10_000) return "" + score;
     if(score < 100_000) return (score / 1_000).toFixed(2).match(/^-?\d+(?:\.\d{0,1})?/)?.[0] + "k";
     if(score < 1_000_000) return (score / 1_000 |0) + "k";
