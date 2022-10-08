@@ -113,8 +113,85 @@ plan:
   - eventually, we might have support for sites without any glue code where the ui directly
     talks to the server.
 
+ok this doesn't feel right yet. here's what I put:
+    // a 'content-first' post. styled like a reddit comment.
+    // suitable for:
+    // - reddit comments
+    // - tw*tter posts
+    // - hackernews comments
+    export type PostContentCTF = {};
+    // a 'metadata-first' post. styled like a reddit post.
+    // suitable for:
+    // - reddit posts
+    // - forum topics and categories
+    // - emails
+    // - hackernews threads
+    export type PostContentMTDF ={};
+
+but thinking about these use-cases, it's more about different ways to display the same data:
+- when looking at the email homepage, you see a bunch of reddit-style posts with titles and some metadata
+- when you focus a specific one, it shows it in a tree view. here, it looks
+  - no, it looks the same. it's expanded, and all the others are too. that's the only difference.
+
+huh. seems right still.
+
+convincing myself:
+- comment:
+  [pfp] [byline] [infobar] [collapsed_desc] [menu]
+- post
+  [thumbnail. kinda like a collapsed_desc in a comment]
+  - [title]
+  - [byline]
+  - [infobar]
+  [menu]
+so in a comment, the byline/infobar are in one line and in a post it's two.
+is this just a difference between having a collapsed_desc and a thumbnail?
+possibly
+
+the concept would be then: comments and posts are identical (as they are now)
+and objects with thumbnails get a two-line byline/infobar whereas without thumbnails,
+objects get a collapsed_desc.
+
+ok so this implies maybe seperate view functions but the same model in generic.ts
+
+so here's the concept
+
+posts have:
+- title (text, flair)
+- thumbnail
+- info
+- body
+comments have:
+- [generated] collapse description
+- info
+- body
+
+let's look at some other things and see how they compare:
+info cards have:
+- banner
+- profile pic
+- id-card-related actions
+- description
+yeah okay maybe that's different enough to justify a different structure
+
+ok nevermind on the plan to change posts. we'll use two renderers, picked based on if
+the post has a thumbnail or not.
 
 */
+
+/*
+function plans:
+
+fn TreePost(post: Link<Post>)
+  - controls the collapse button
+  - has a special case for putting vote buttons in the gutter
+  - has the swipe actions
+  - displays replies (note: a flat replies fn is used here, but it only returns one layer of replies)
+    (since collapse buttons are handled with indentation rather than nesting, child nodes are able to
+     unthread themselves.)
+fn DisplayPost(post: Link<Post>, collapsed: bool) :: displays the content of the post
+*/
+
 
 // * recommendation: use this like page1 where you have one <Page2v2> node per
 // history element
