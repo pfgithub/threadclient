@@ -5,6 +5,16 @@ import { ReadLink } from "./page2";
 import OneLoader from "./OneLoader";
 import { Show } from "tmeta-util-solid";
 
+/*
+interaction model:
+for posts:
+- content is hidden. click to repivot and show content.
+- because page2 acts like page1 now with how history works, this doesn't physically hurt
+  (and it no longer loses state and stuff)
+- if we really wanted to, we could use a fullscreensnapview to view post content. maybe eventually
+  but for now this is fine.
+*/
+
 // * recommendation: use this like page1 where you have one <Page2v2> node per
 // history element
 export function Page2v2(props: {

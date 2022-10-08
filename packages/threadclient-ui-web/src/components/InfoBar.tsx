@@ -79,11 +79,5 @@ export default function InfoBar(props: {
         <For each={getInfoBar()}>{item => (
             <InfoBarItemNode item={item} />
         )}</For>
-        <DevCodeButton data={props} />
-        <Show if={settings.dev.showLogButtons() === "on"}>
-            <div>
-                [{(props.opts.id ?? "null").toString()}]
-            </div>
-        </Show>
     </div>;
 }
