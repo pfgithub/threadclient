@@ -1,9 +1,8 @@
-import {createContext, For, JSX, useContext} from "solid-js";
-import Page2ContentManager from "../util/Page2ContentManager";
 import * as Generic from "api-types-generic";
+import { Accessor, For, JSX } from "solid-js";
+import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
+import OneLoader, { UnfilledLoader } from "./OneLoader";
 import { ReadLink } from "./page2";
-import OneLoader from "./OneLoader";
-import { Show } from "tmeta-util-solid";
 
 /*
 interaction model:
@@ -210,24 +209,109 @@ export function Page2v2(props: {
     return <ReadLink link={props.pivot} fallback={<>
         The pivot is not defined?
     </>}>{pivot => <>
-        <Show when={pivot.replies}>{replies => (
-            <OneLoader loader={replies.loader} label="Load More">{replies_items => <div>
-                <For each={replies_items}>{reply_item => {
-                    if(typeof reply_item === "object") return <div>todo top level loader</div>;
-                    return <ReadLink link={reply_item} fallback={<div>error unfilled reply object?</div>}>{post => (
-                        <TopLevelPost
-                            id={reply_item}
-                            post={post}
-                        />
-                    )}</ReadLink>;
-                }}</For>
-            </div>}</OneLoader>
-        )}</Show>
+        <Show when={pivot.replies}>{replies => {
+            const flatChildren = useFlatChildren(() => replies.loader);
+            return <div class="space-y-4">
+                <For each={flatChildren()}>{flat_child => (
+                    <div>
+                        <FlatChild ch={flat_child} indent={[]} />
+                    </div>
+                )}</For>
+            </div>;
+        }}</Show>
     </>}</ReadLink>;
 }
 
-function TopLevelPost(props: {id: Generic.Link<Generic.Post>, post: Generic.Post}): JSX.Element {
+// we'll need some css tricks (likely solid js providers and no actual css tricks) to
+// make sure posts work such that:
+// - when you hover it, it highlights the entire post
+// - when you hover the title, it highlights the entire title
+
+type TreeIndent = {
+    id: Generic.Link<Generic.Post>,
+};
+function TreePost(props: {id: Generic.Link<Generic.Post>, post: Generic.Post, indent: TreeIndent[]}): JSX.Element {
+    // * note that this fn will need to special-case if the post has a vote button to put it
+    //   in the collapse gutter on desktop
     return <div>
-        post
+        {/* Self */}
+        <TreeIndentOne indent={props.indent}>
+            TODO self
+        </TreeIndentOne>
+        {/* Replies */}
+        <Show when={props.post.replies}>{replies => (
+            <TreeReplies replies={replies} indent={[...props.indent, {id: props.id}]} />
+        )}</Show>
     </div>;
 }
+function TreeIndentOne(props: {indent: TreeIndent[], children: JSX.Element}): JSX.Element {
+    // * consider checking for the optimize for touch css thing instead of
+    //    using screen size to determine if we should use those rainbow side
+    //    bars or desktop-style collapse buttons
+    // * and we can add a setting in case it detects wrong
+    return <div>
+        [todo indent]
+    </div>;
+}
+function FlatChild(props: {ch: FlatChild, indent: TreeIndent[]}): JSX.Element {
+    return <SwitchKind item={props.ch}>{{
+        post: post_id => <ReadLink link={post_id.link} fallback={(
+            <div>error unfilled post {post_id.link.toString()}</div>
+        )}>{post => (
+            <TreePost id={post_id.link} post={post} indent={props.indent} />
+        )}</ReadLink>,
+        loader: loader => <TreeIndentOne indent={props.indent}>
+            <UnfilledLoader label="Load More" loader={loader.loader} />
+        </TreeIndentOne>,
+        error: error => <TreeIndentOne indent={props.indent}>
+            [todo indent]error: {error.message}
+        </TreeIndentOne>,
+    }}</SwitchKind>;
+}
+
+// * this fn will handle unthreading and indent management there in conjunction with the caller passing
+//   in a bit of info. hopefully we can do threading properly but we might end up with either:
+//   - the first comment not being marked as threaded
+//   - comments with no replies being marked as threaded
+//   and it will require a bit of a hack to resolve that unfortunately (without creating that mess where
+//   we check the replies of the replies in the parent)
+function TreeReplies(props: {replies: Generic.PostReplies, indent: TreeIndent[]}): JSX.Element {
+    const flatChildren = useFlatChildren(() => props.replies.loader);
+    return <For each={flatChildren()}>{flat_child => (
+        <FlatChild ch={flat_child} indent={props.indent} />
+    )}</For>;
+}
+
+type FlatChild = {
+    kind: "post",
+    link: Generic.Link<Generic.Post>,
+} | ({
+    kind: "loader",
+    loader: Generic.BaseLoader,
+}) | {
+    kind: "error",
+    message: string,
+};
+// [!] this function does not have anything to do with unthreading procedures
+//      other than that you can check the length of its return value which helps
+function useFlatChildren(loader: Accessor<Generic.HorizontalLoader>): () => FlatChild[] {
+    return FlatChildTsch.useChildren(() => <>
+        <ReadLink link={loader().key} fallback={(
+            <FlatChildTsch
+                kind="loader"
+                loader={loader()}
+            />
+        )} whenError={emsg => (
+            <FlatChildTsch kind="error" message={emsg} />
+        )}>{value => (
+            <For each={value}>{item => {
+                if(typeof item === "object") {
+                    const resv = useFlatChildren(() => item);
+                    return <>{resv}</>;
+                }
+                return <FlatChildTsch kind="post" link={item} />;
+            }}</For>
+        )}</ReadLink>
+    </>);
+}
+const FlatChildTsch = createTypesafeChildren<FlatChild>();

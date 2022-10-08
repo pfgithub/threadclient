@@ -3,7 +3,9 @@ import { batch, createEffect, createSignal, onCleanup, untrack, JSX } from "soli
 import { render } from "solid-js/web";
 import { UUID } from "tmeta-util";
 import { Debugtool, Show } from "tmeta-util-solid";
+import { Page2v2 } from "./components/Page2v2";
 import ClientPage from "./components/PageRoot";
+import ToggleButton from "./components/ToggleButton";
 import { hideshow, HideShowCleanup, renderPath } from "./page1";
 import {
     current_nav_history_key, navigate_event_handlers,
@@ -121,6 +123,9 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
     const content = new Page2ContentManager();
     content.addData(page.content);
 
+    // huh, we could include page1 as a tab here if we wanted
+    const [viewMode, setViewMode] = createSignal<"2v1" | "2v2">("2v1");
+
     vanillaToSolidBoundary(elem, () => {
         return <DefaultErrorBoundary data={content}>
             <PageRootProvider
@@ -132,18 +137,29 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
                 }}
             >
                 <GlobalPageRootViewer />
-                <DefaultErrorBoundary data={content}>{untrack(() => {
+                <div>
+                    <ToggleButton
+                        value={viewMode()}
+                        setValue={v => v ? setViewMode(v) : void 0}
+                        choices={[
+                            ["2v1" as const, <>Page2v1</>],
+                            ["2v2" as const, <>Page2v2</>],
+                        ]}
+                    />
+                </div>
+                <DefaultErrorBoundary data={content}>{viewMode() === "2v1" ? untrack(() => {
                     const res = ClientPage({
                         pivot: page.pivot,
                         query,
                     });
                     createEffect(() => {
+                        // TODO: only when visible
                         document.title = res.title + " | " + "ThreadClient";
                     });
-                    // TODO: createEffect(() => history.replaceState(res.url));
+                    // TODO: set current url in url bar to the res url but only when visible
 
                     return () => res.children;
-                })}</DefaultErrorBoundary>
+                }) : <Page2v2 pivot={page.pivot} />}</DefaultErrorBoundary>
             </PageRootProvider>
         </DefaultErrorBoundary>;
     }).defer(hsc);
