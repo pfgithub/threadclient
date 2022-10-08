@@ -239,12 +239,6 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
                     </section>
                     <Show if={isPivot()}><div class="text-sm">
                         <InfoBar post={props.content} opts={props.opts} />
-                        <div class="mt-2" />
-                        <div class="flex flex-wrap gap-2">
-                            <For each={getActions()}>{action => <>
-                                <HorizontalActionButton action={action} />
-                            </>}</For>
-                        </div>
                     </div></Show>
                 </div>
             </div>
