@@ -2203,8 +2203,9 @@ function splitPathPage1Ver(inpath: string): {path: string, search: string, hash:
 }
 
 function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
-    const outer = el("div").clss("client-wrapper");
-    const hsc = hideshow(outer);
+    const rootouter = el("div");
+    const hsc = hideshow(rootouter);
+    const outer = el("div").clss("client-wrapper").adto(rootouter);
 
     const frame = el("div").adto(outer);
     frame.classList.add("client-main-frame");
@@ -2224,7 +2225,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
             loader_area.remove();
 
-            renderPage2(page2, split.search).defer(hsc).adto(frame);
+            renderPage2(page2, split.search).defer(hsc).adto(rootouter);
         }else{
             const listing = await client.getThread(current_path);
             loader_area.remove();
