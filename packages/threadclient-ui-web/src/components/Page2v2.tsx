@@ -1,8 +1,10 @@
 import * as Generic from "api-types-generic";
 import { Accessor, For, JSX } from "solid-js";
 import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
+import { getSettings } from "../util/utils_solid";
 import OneLoader, { UnfilledLoader } from "./OneLoader";
 import { ReadLink } from "./page2";
+import { SettingPicker } from "./settings";
 
 /*
 interaction model:
@@ -197,6 +199,9 @@ fn DisplayPost(post: Link<Post>, collapsed: bool) :: displays the content of the
 export function Page2v2(props: {
     pivot: Generic.Link<Generic.Post>,
 }): JSX.Element {
+
+    const settings = getSettings();
+
     /*
     so for the above:
     - we'll probably want to use some flat-style thing
@@ -209,17 +214,32 @@ export function Page2v2(props: {
     return <ReadLink link={props.pivot} fallback={<>
         The pivot is not defined?
     </>}>{pivot => <>
+        <div class="pt-2" />
+        <SettingPicker
+            setting={settings.indentMode}
+            options={["desktop", "mobile", undefined]}
+            name={v => ({
+                desktop: "Desktop",
+                mobile: "Mobile",
+                default: "System Default",
+            } as const)[v ?? "default"]}
+        />
+        <div class="pt-4" />
         <Show when={pivot.replies}>{replies => {
             const flatChildren = useFlatChildren(() => replies.loader);
             return <div class="space-y-4">
                 <For each={flatChildren()}>{flat_child => (
-                    <div>
+                    <TopLevelWrapper>
                         <FlatChild ch={flat_child} indent={[]} />
-                    </div>
+                    </TopLevelWrapper>
                 )}</For>
             </div>;
         }}</Show>
     </>}</ReadLink>;
+}
+
+function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
+  return <div class="bg-zinc-800">{props.children}</div>;
 }
 
 // we'll need some css tricks (likely solid js providers and no actual css tricks) to
@@ -229,8 +249,11 @@ export function Page2v2(props: {
 
 type TreeIndent = {
     id: Generic.Link<Generic.Post>,
+    depth: number,
+    threaded: boolean,
 };
 function TreePost(props: {id: Generic.Link<Generic.Post>, post: Generic.Post, indent: TreeIndent[]}): JSX.Element {
+    const settings = getSettings();
     // * note that this fn will need to special-case if the post has a vote button to put it
     //   in the collapse gutter on desktop
     return <div>
@@ -240,17 +263,53 @@ function TreePost(props: {id: Generic.Link<Generic.Post>, post: Generic.Post, in
         </TreeIndentOne>
         {/* Replies */}
         <Show when={props.post.replies}>{replies => (
-            <TreeReplies replies={replies} indent={[...props.indent, {id: props.id}]} />
+            <TreeReplies replies={replies} indent={[
+                ...props.indent,
+                {id: props.id, depth: props.indent.length, threaded: false},
+            ]} />
         )}</Show>
     </div>;
+}
+const rainbow = [
+    "bg-red-500",
+    "bg-orange-500",
+    "bg-yellow-500",
+    "bg-green-500",
+    "bg-blue-500",
+    "bg-purple-500",
+];
+function getRainbow(n: number): string {
+    // this should be @mod not @rem
+    // doesn't matter though, n should never be less than 0
+    return rainbow[n % rainbow.length]!;
 }
 function TreeIndentOne(props: {indent: TreeIndent[], children: JSX.Element}): JSX.Element {
     // * consider checking for the optimize for touch css thing instead of
     //    using screen size to determine if we should use those rainbow side
     //    bars or desktop-style collapse buttons
     // * and we can add a setting in case it detects wrong
-    return <div>
-        [todo indent]
+    const settings = getSettings();
+    return <div class="flex flex-row">
+        <div><SwitchKind item={{kind: settings.indentMode()}}>{{
+            mobile: () => <Show when={props.indent[props.indent.length - 1]}>{last_indent => (
+                <div class="w-1 pl-0.5 relative h-full" style={{
+                    // pt-2 todo do that with gap instead
+                    'margin-left': (0.25 * last_indent.depth)+"rem",
+                }}>
+                    <div class={"w-full h-full "+getRainbow(last_indent.depth)+" rounded" + (
+                        last_indent.threaded ? "threaded-new threaded-new-ltsm" : ""
+                    )} />
+                </div>
+            )}</Show>,
+            desktop: () => <div class="h-full">
+                <For each={props.indent}>{item => <>
+                    <div class="inline-block">[TODO]</div>
+                </>}</For>
+            </div>,
+        }}</SwitchKind></div>
+        <div class="flex-1 w-0">
+            {props.children}
+        </div>
     </div>;
 }
 function FlatChild(props: {ch: FlatChild, indent: TreeIndent[]}): JSX.Element {

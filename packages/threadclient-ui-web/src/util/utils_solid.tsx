@@ -99,6 +99,7 @@ export type UpdateNotifications = "on" | "off";
 export type CustomVideoControls = "browser" | "custom";
 export type PageVersion = "1" | "2";
 export type LinkHelpers = "show" | "hide";
+export type IndentMode = "desktop" | "mobile";
 export type GalleryDisplay = "fullscreen" | "inline";
 export type Motion = "full" | "reduce";
 export type AnimationDevMode = "none" | "shift_slow";
@@ -111,6 +112,7 @@ export type Settings = {
     customVideoControls: ComputeProperty<CustomVideoControls>,
     pageVersion: ComputeProperty<PageVersion>,
     linkHelpers: ComputeProperty<LinkHelpers>,
+    indentMode: ComputeProperty<IndentMode>,
     galleryDisplay: ComputeProperty<GalleryDisplay>,
     motion: ComputeProperty<Motion>,
     animationTime: ComputeProperty<number>,
@@ -197,6 +199,9 @@ const global_settings = createRoot((): Settings => {
         pageVersion: localStorageProperty("page_version", () => "1", {}),
         linkHelpers: localStorageProperty("link_helpers",
             signalFromMatchMedia("(pointer: coarse)", "show", "hide"), {},
+        ),
+        indentMode: localStorageProperty("indent_mode",
+            signalFromMatchMedia("(pointer: coarse)", "mobile", "desktop"), {},
         ),
         galleryDisplay: localStorageProperty("gallery_display", () => "fullscreen", {}),
         motion: localStorageProperty("motion",
