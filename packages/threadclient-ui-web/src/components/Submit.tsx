@@ -8,7 +8,6 @@ import { Body } from "./body";
 import Clickable from "./Clickable";
 import { Flair } from "./Flair";
 import { InternalIconRaw } from "./Icon";
-import { ClientPostOpts } from "./Post";
 import ToggleButton from "./ToggleButton";
 
 /*
@@ -21,7 +20,6 @@ import ToggleButton from "./ToggleButton";
 
 export default function Submit(props: {
     submit: Generic.Submit.SubmitPost,
-    opts: ClientPostOpts,
     cancel_enabled?: undefined | (() => void),
 }): JSX.Element {
     // the alternative is storing data in links in content itself

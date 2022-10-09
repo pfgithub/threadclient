@@ -5,6 +5,15 @@ import { getSettings, getWholePageRootContext } from "../util/utils_solid";
 import OneLoader, { UnfilledLoader } from "./OneLoader";
 import ReadLink from "./ReadLink";
 import { SettingPicker } from "./settings";
+import Submit from "./Submit";
+import SwipeActions from "./SwipeActions";
+import swipeActionSet from "./SwipeActionSet";
+
+// unrelated note:
+// - flairs could be changed to tags on posts
+// - tags would you could click them and filter
+// - and they could show up in the sidebar properly
+// - tags cover things multiple websites have
 
 /*
 interaction model:
@@ -247,6 +256,27 @@ function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
 // - when you hover it, it highlights the entire post
 // - when you hover the title, it highlights the entire title
 
+// ContentTopic :: a post viewer for topic-style posts (these have thumbnails)
+// ContentComment :: a post viewer for comment style posts
+// possibly these can be combined into one since there aren't too many differences
+// might be easier as two though
+function ContentComment(props: {content: Generic.PostContent, collapsed: boolean}): JSX.Element {
+    return <div>
+        comment!!
+    </div>;
+}
+
+function Content(props: {content: Generic.PostContent, collapsed: boolean}): JSX.Element {
+    return <SwitchKind item={props.content} fallback={v => (
+        <div>TODO content kind {v.kind}</div>
+    )}>{{
+        submit: submit => <>
+            <Submit submit={submit.submission_data} />
+        </>,
+        post: post => <ContentComment content={props.content} collapsed={props.collapsed} />
+    }}</SwitchKind>;
+}
+
 type TreeIndent = {
     id: Generic.Link<Generic.Post>,
     depth: number,
@@ -258,9 +288,37 @@ function TreePost(props: {id: Generic.Link<Generic.Post>, post: Generic.Post, in
     //   in the collapse gutter on desktop
     return <div>
         {/* Self */}
-        <TreeIndentOne indent={props.indent}>
-            TODO self5
-        </TreeIndentOne>
+        <SwipeActions {...(() => {
+            // const getActions = useActions(() => props.content, () => props.opts);
+            // TODO: only show available actions
+            // TODO: use the onclick handlers provided there
+            // - not implementing this yet because I'm not sure how getActions should return
+            //   which actions should go in the swipe bar. also we will have to either update swipeactionset
+            //   to a usetypesafechildren thing or we have to explicitly put `get left_stop()` `get icon()` …
+            //   and make sure to memoize so it's not updating when something irrelevant changes
+            return swipeActionSet({
+                left_stop: {
+                    icon: "bookmark",
+                    color: "green",
+                    onActivate: () => {
+                        alert("TODO");
+                    },
+                },
+                right_stop: {
+                    icon: "chevron_up",
+                    color: "blue",
+                    onActivate: () => {
+                        alert("TODO");
+                    },
+                },
+            });
+        })()}>
+            <div class="bg-slate-100 dark:bg-zinc-800">
+                <TreeIndentOne indent={props.indent}>
+                    <Content content={props.post.content} collapsed={false} />
+                </TreeIndentOne>
+            </div>
+        </SwipeActions>
         {/* Replies */}
         <Show when={props.post.replies}>{replies => (
             <TreeReplies replies={replies} indent={[

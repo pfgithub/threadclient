@@ -46,7 +46,7 @@ export function ClientContent(props: {
             )}</OneLoader>;
         },
         submit: submit => <>
-            <Submit submit={submit.submission_data} opts={props.opts} />
+            <Submit submit={submit.submission_data} />
         </>,
         legacy: legacy => <>
             <SolidToVanillaBoundary getValue={hsc => {
