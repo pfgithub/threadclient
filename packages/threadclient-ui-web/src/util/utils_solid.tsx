@@ -1,18 +1,16 @@
 import type * as Generic from "api-types-generic";
 import {
-    Accessor, Context, createComputed, createContext, createEffect, createMemo,
+    Accessor, Context, createComputed, createEffect, createMemo,
     createRoot, createSignal, ErrorBoundary, getOwner, JSX, onCleanup, untrack, useContext
 } from "solid-js";
 import { render } from "solid-js/web";
 import { localStorageSignal, Show } from "tmeta-util-solid";
-import { CollapseData } from "../components/flatten";
 import { link_styles_v } from "../page1";
+import { hideshow_context, page_root_context } from "./contexts";
 import Page2ContentManager from "./Page2ContentManager";
 
 export { localStorageSignal };
 export { screenWidth };
-
-const hideshow_context = createContext<{visible: () => boolean}>();
 
 export function HideshowProvider(props: {visible: () => boolean, children: JSX.Element}): JSX.Element {
     const parent_state = useContext(hideshow_context);
@@ -34,8 +32,6 @@ export type PageRootContext = {
     addContent: (content: Generic.Page2Content) => void,
 };
 
-const page_root_context = createContext<PageRootContext>();
-
 export function PageRootProvider(props: {
     content: Page2ContentManager,
     addContent: (content: Generic.Page2Content) => void,
@@ -55,8 +51,6 @@ export function getWholePageRootContext(): PageRootContext {
     if(!prc_v) throw new Error("no page root context here.");
     return prc_v;
 }
-
-export const collapse_data_context = createContext<CollapseData>();
 
 // this might work? maybe?
 // https://github.com/solidjs/solid/blob/main/packages/solid/src/reactive/signal.ts
@@ -83,8 +77,6 @@ export function provide<T, U>(provider: Context<T>, value: T, cb: () => U): U {
     // https://github.com/solidjs/solid/discussions/490
     // looks like you can use createMemo()? weird
 }
-
-export const allow_threading_override_ctx = createContext<() => boolean>();
 
 type ComputePropertyFn<T> = (() => T);
 type ComputePropertyOpts<T> = {

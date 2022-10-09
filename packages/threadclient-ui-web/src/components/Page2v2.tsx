@@ -1,9 +1,9 @@
 import * as Generic from "api-types-generic";
 import { Accessor, For, JSX } from "solid-js";
 import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
-import { getSettings } from "../util/utils_solid";
+import { getSettings, getWholePageRootContext } from "../util/utils_solid";
 import OneLoader, { UnfilledLoader } from "./OneLoader";
-import { ReadLink } from "./page2";
+import ReadLink from "./ReadLink";
 import { SettingPicker } from "./settings";
 
 /*
@@ -196,7 +196,7 @@ fn DisplayPost(post: Link<Post>, collapsed: bool) :: displays the content of the
 
 // * recommendation: use this like page1 where you have one <Page2v2> node per
 // history element
-export function Page2v2(props: {
+export default function Page2v2(props: {
     pivot: Generic.Link<Generic.Post>,
 }): JSX.Element {
 
@@ -259,7 +259,7 @@ function TreePost(props: {id: Generic.Link<Generic.Post>, post: Generic.Post, in
     return <div>
         {/* Self */}
         <TreeIndentOne indent={props.indent}>
-            TODO self
+            TODO self5
         </TreeIndentOne>
         {/* Replies */}
         <Show when={props.post.replies}>{replies => (

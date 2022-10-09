@@ -16,7 +16,8 @@ import { UnfilledLoader } from "../../components/OneLoader";
 import { ClientPostOpts } from "../../components/Post";
 import { getVideoSources, NativeVideoElement, VideoRef, VideoState } from "../../components/preview_video";
 import proxyURL from "../../components/proxy_url";
-import { collapse_data_context, getWholePageRootContext } from "../../util/utils_solid";
+import { collapse_data_context } from "../../util/contexts";
+import { getWholePageRootContext } from "../../util/utils_solid";
 
 /*
 Planned gestures:

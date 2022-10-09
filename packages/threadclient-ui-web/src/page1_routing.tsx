@@ -3,7 +3,7 @@ import { batch, createEffect, createSignal, onCleanup, untrack, JSX } from "soli
 import { render } from "solid-js/web";
 import { UUID } from "tmeta-util";
 import { Debugtool, Show } from "tmeta-util-solid";
-import { Page2v2 } from "./components/Page2v2";
+import Page2v2 from "./components/Page2v2";
 import ClientPage from "./components/PageRoot";
 import ToggleButton from "./components/ToggleButton";
 import { hideshow, HideShowCleanup, renderPath } from "./page1";

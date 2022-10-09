@@ -7,7 +7,8 @@ import {
 import { Show } from "tmeta-util-solid";
 import FullscreenSnapView from "../experiments/fullscreen_snap_view/FullscreenSnapView";
 import ReaderView from "../experiments/reader_view/ReaderView";
-import { collapse_data_context, getWholePageRootContext, provide, size_lt } from "../util/utils_solid";
+import { collapse_data_context } from "../util/contexts";
+import { getWholePageRootContext, provide, size_lt } from "../util/utils_solid";
 import { useFlatten } from "./flatten2";
 import LandingPage from "./LandingPage";
 import PageFlatItem from "./PageFlatItem";

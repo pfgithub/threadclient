@@ -1,7 +1,8 @@
 import * as Generic from "api-types-generic";
 import { Listbox } from "solid-headless";
 import { createSignal, For, JSX, untrack, useContext } from "solid-js";
-import { allow_threading_override_ctx, collapse_data_context, getSettings, getWholePageRootContext, provide } from "../util/utils_solid";
+import { allow_threading_override_ctx, collapse_data_context } from "../util/contexts";
+import { getSettings, getWholePageRootContext, provide } from "../util/utils_solid";
 import Clickable from "./Clickable";
 import { CollapseData, FlatTreeItem } from "./flatten";
 import { FlatItemTsch, FlattenTreeItem } from "./flatten2";

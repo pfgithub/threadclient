@@ -5,7 +5,7 @@ import { fetchClient } from "../clients";
 import { getWholePageRootContext } from "../util/utils_solid";
 import { addAction } from "./action_tracker";
 import DevCodeButton from "./DevCodeButton";
-import { ReadLink } from "./page2";
+import ReadLink from "./ReadLink";
 
 export default function OneLoader<T>(props: {
     loader: Generic.BaseLoader & {key: Generic.Link<T>},
