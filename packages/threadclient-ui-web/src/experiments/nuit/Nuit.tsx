@@ -207,13 +207,18 @@ function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
 
     // a bit of a mess because we want to know information about the item above and below the
     // target item without rerendering n² times
+    // - cleanup instructions:
+    //   - ChInfo describes the object to render
+    //   - StackData describes all the info required to calculate values for ChInfo
+    //   - we should make a fn to, given a StackChild and SackData, return a ChInfo made of getters
+    //   - we should abstract out the WeakMap handling into a tool specifically designed for these signal caches
+    //     because we need them all the time. it could even possibly use a map with explicit removal.
     type ChInfo = {
         pt: number, // child.fullscreen ? above_fullscreen ? props.gap : max() : 0
         pb: number, // !child.fullscreen && child.below_fullscreen ? props.gap : 0
         fullscreen: boolean,
         content: JSX.Element,
     };
-    // vv we can merge these and put the signal in chinfo instead of doing two of the messy map things
     type StackData = {above_fullscreen: Signal<boolean>, below_fullscreen: Signal<boolean>};
     const ch_map = new WeakMap<StackChild, ChInfo>();
     const addCh = (v: StackChild): ChInfo => {
@@ -222,7 +227,7 @@ function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
         const data = getData(v);
         const res: ChInfo = {
             get pt() {return !v.fullscreen ? data.above_fullscreen[0]() ? gap() : props.gap : 0},
-            get pb() {return !v.fullscreen && data.below_fullscreen[0]() ? props.gap : 0},
+            get pb() {return !v.fullscreen ? data.below_fullscreen[0]() ? gap() : 0 : 0},
             get fullscreen() {return v.fullscreen},
             get content() {return v.content},
         };
