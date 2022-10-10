@@ -171,7 +171,9 @@ function Content(props: {children: JSX.Element}): JSX.Element {
     return <div style={{
         'padding': `${distUnit(parent_goal.pt)} ${distUnit(parent_goal.pr)} ${distUnit(parent_goal.pb)} ${distUnit(parent_goal.pl)}`,
     }}>
-        {props.children}
+        <goal_provider.Provider value={{pt: 0, pb: 0, pl: 0, pr: 0}}>
+            {props.children}
+        </goal_provider.Provider>
     </div>;
 }
 /*
