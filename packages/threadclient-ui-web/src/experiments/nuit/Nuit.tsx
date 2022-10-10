@@ -316,6 +316,18 @@ function Item(props: {fullscreen?: undefined | boolean, fillrem?: undefined | bo
 //     return <></>;
 // }
 
+// main axis should have a known max width, and scrollable will use it
+// minor axis will use as much space as the child takes
+function Scrollable(props: {dir: "v" | "h", children: JSX.Element}): JSX.Element {
+    return <div class="overflow-auto" style={{
+        '-webkit-overflow-scrolling': "touch",
+    }}>
+        <div class={props.dir === "v" ? "h-max" : "w-max"}>
+            {props.children}
+        </div>
+    </div>;
+}
+
 // considering trying out webcomponents here
 // eg: <goal><stack><item fullscreen>
 // 'item' would have to be display:contents
@@ -365,38 +377,36 @@ export default function Nuit(): JSX.Element {
                         <Content>Paragraph four</Content>
                     </Item>
                     <Item>
-                        <div class="overflow-auto">
-                            <div class="w-max">
-                                <Content>
-                                    <table>
-                                        <tbody>
-                                            <tr>
-                                                <th>T</th>
-                                                <th>a</th>
-                                                <th>b</th>
-                                                <th>l</th>
-                                                <th>e</th>
-                                            </tr>
-                                            <tr>
-                                                <td>Embedded</td>
-                                                <td>table</td>
-                                                <td>example</td>
-                                                <td>table</td>
-                                                <td>sample</td>
-                                                <td>lots</td>
-                                                <td>of</td>
-                                                <td>rows</td>
-                                                <td>on</td>
-                                                <td>our</td>
-                                                <td>sample</td>
-                                                <td>table</td>
-                                                <td>example</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </Content>
-                            </div>
-                        </div>
+                        <Scrollable dir="h">
+                            <Content>
+                                <table>
+                                    <tbody>
+                                        <tr>
+                                            <th>T</th>
+                                            <th>a</th>
+                                            <th>b</th>
+                                            <th>l</th>
+                                            <th>e</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Embedded</td>
+                                            <td>table</td>
+                                            <td>example</td>
+                                            <td>table</td>
+                                            <td>sample</td>
+                                            <td>lots</td>
+                                            <td>of</td>
+                                            <td>rows</td>
+                                            <td>on</td>
+                                            <td>our</td>
+                                            <td>sample</td>
+                                            <td>table</td>
+                                            <td>example</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </Content>
+                        </Scrollable>
                     </Item>
                 </Stack>
             </Goal>
