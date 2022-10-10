@@ -194,17 +194,22 @@ maybe if stacks contain stack children and stack children
 can say if they are fullscreen or not
 */
 type StackChild = {
+    kind: "item",
     fullscreen: boolean,
     content: JSX.Element,
 };
 const StackChildRaw = createTypesafeChildren<StackChild>();
 function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
     const children = StackChildRaw.useChildren(() => props.children);
+
+    const parent_goals = useContext(goal_provider);
+    const gap = () => Math.min(parent_goals.pt, parent_goals.pb);
+
     // a bit of a mess because we want to know information about the item above and below the
     // target item without rerendering n² times
     type ChInfo = {
-        above_fullscreen: boolean,
-        below_fullscreen: boolean,
+        pt: number, // child.fullscreen ? above_fullscreen ? props.gap : max() : 0
+        pb: number, // !child.fullscreen && child.below_fullscreen ? props.gap : 0
         fullscreen: boolean,
         content: JSX.Element,
     };
@@ -216,8 +221,8 @@ function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
         if(existsv != null) return existsv;
         const data = getData(v);
         const res: ChInfo = {
-            get above_fullscreen() {return data.above_fullscreen[0]()},
-            get below_fullscreen() {return data.below_fullscreen[0]()},
+            get pt() {return !v.fullscreen ? data.above_fullscreen[0]() ? gap() : props.gap : 0},
+            get pb() {return !v.fullscreen && data.below_fullscreen[0]() ? props.gap : 0},
             get fullscreen() {return v.fullscreen},
             get content() {return v.content},
         };
@@ -256,45 +261,32 @@ function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
         }
         return res;
     });
-    // useChildren(props.children)
-    // loop over children
-    // display with the correct goals
 
-    // target goals:
-    // - for fullscreen objects, make no change to goals
-    // - for non-fullscreen objects:
-    //   - remove the top and bottom margin goals
-    //   - insert a gap above equal to min(top, bottom)
-    //   - if(below_fullscreen): insert a gap below equal to min(top, bottom)
     return <div>
         <For each={chWithInfo()}>{child => {
-            const parent_goals = useContext(goal_provider);
-            const gap = () => Math.min(parent_goals.pt, parent_goals.pb);
             return <goal_provider.Provider value={{
                 get pt() {if(child.fullscreen) return parent_goals.pt; else return 0},
                 get pb() {if(child.fullscreen) return parent_goals.pb; else return 0},
                 get pl() {return parent_goals.pl},
                 get pr() {return parent_goals.pr},
             }}>
-                <Show if={!child.fullscreen}>
-                    <Show if={child.above_fullscreen} fallback={
-                        <div style={{'padding-top': distUnit(props.gap)}} />
-                    }>
-                        <div style={{'padding-top': distUnit(gap())}} />
-                    </Show>
-                </Show>
+                <div style={{'padding-top': distUnit(child.pt)}} />
                 {child.content}
-                <Show if={!child.fullscreen && child.below_fullscreen}>
-                    <div style={{'padding-bottom': distUnit(gap())}} />
-                </Show>
+                <div style={{'padding-top': distUnit(child.pb)}} />
             </goal_provider.Provider>;
         }}</For>    
     </div>;
 }
 /// fullscreen objects do not combine mt/mb of surrounding elements.
 function Item(props: {fullscreen?: undefined | boolean, children: JSX.Element}): JSX.Element {
-    return <StackChildRaw fullscreen={props.fullscreen ?? false} content={props.children} />
+    return <StackChildRaw kind="item" fullscreen={props.fullscreen ?? false} content={props.children} />
 }
+// /// for specifying a custom gap between two nodes. the max of all gaps between two nodes will
+// /// be used as the final gap size. eg I1 gap-2 gap-4 gap-2 I2 : gap-4 will be used
+// function Igap(): JSX.Element {
+//     // return <StackChildRaw kind="igap" />;
+//     return <></>;
+// }
 
 // considering trying out webcomponents here
 // eg: <goal><stack><item fullscreen>
