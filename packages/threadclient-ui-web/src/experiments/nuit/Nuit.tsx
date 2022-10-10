@@ -198,7 +198,7 @@ type StackChild = {
     content: JSX.Element,
 };
 const StackChildRaw = createTypesafeChildren<StackChild>();
-function Stack(props: {children: JSX.Element}): JSX.Element {
+function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
     const children = StackChildRaw.useChildren(() => props.children);
     // a bit of a mess because we want to know information about the item above and below the
     // target item without rerendering n² times
@@ -277,7 +277,11 @@ function Stack(props: {children: JSX.Element}): JSX.Element {
                 get pr() {return parent_goals.pr},
             }}>
                 <Show if={!child.fullscreen}>
-                    <div style={{'padding-top': distUnit(gap())}} />
+                    <Show if={child.above_fullscreen} fallback={
+                        <div style={{'padding-top': distUnit(props.gap)}} />
+                    }>
+                        <div style={{'padding-top': distUnit(gap())}} />
+                    </Show>
                 </Show>
                 {child.content}
                 <Show if={!child.fullscreen && child.below_fullscreen}>
@@ -292,12 +296,18 @@ function Item(props: {fullscreen?: undefined | boolean, children: JSX.Element}):
     return <StackChildRaw fullscreen={props.fullscreen ?? false} content={props.children} />
 }
 
+// considering trying out webcomponents here
+// eg: <goal><stack><item fullscreen>
+// 'item' would have to be display:contents
+// it would make the browser dom thing look nicer but not really offer any functionality
+// and could reduce performance.
+
 // the goal of Nuit is to put all padding and margin at the last possible moment
 export default function Nuit(): JSX.Element {
     return <div class="max-w-xl mx-auto">
         <div class="my-4 bg-zinc-800 rounded-lg">
             <Goal pt={4} pb={4} pl={4} pr={4}>
-                <Stack>
+                <Stack gap={2}>
                     <Item fullscreen>
                         <Content>
                             <div class="text-lg font-bold">Object Title</div>
