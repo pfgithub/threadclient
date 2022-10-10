@@ -1,4 +1,5 @@
-import { Accessor, createEffect, JSX, onCleanup, untrack } from "solid-js";
+import { Accessor, createContext, createEffect, createMemo, createSignal, For, JSX, onCleanup, Signal, untrack, useContext } from "solid-js";
+import { createTypesafeChildren, Show } from "tmeta-util-solid";
 import "./Nuit.scss";
 
 /*
@@ -129,11 +130,232 @@ what we want:
     </C>;
 */
 
+type GoalContext = {
+    pt: number,
+    pb: number,
+    pl: number,
+    pr: number,
+};
+const default_goal: GoalContext = {
+    pt: 0,
+    pb: 0,
+    pl: 0,
+    pr: 0,
+};
+const goal_provider = createContext<GoalContext>(default_goal);
+// content goal size
+function Goal(props: {
+    pt: number,
+    pb: number,
+    pl: number,
+    pr: number,
+    // `p-${number}`: number // Reflect.ownKeys on props probably isn't tracked with solid js so this
+    // could work but only for the first run - if you need dynamic, you would have to use the real props
+    children: JSX.Element,
+}): JSX.Element {
+    const parent_goal = useContext(goal_provider);
+    return <goal_provider.Provider value={{
+        get pt() {return props.pt},
+        get pb() {return props.pb},
+        get pl() {return props.pl},
+        get pr() {return props.pr},
+    }}>
+        {props.children}
+    </goal_provider.Provider>;
+}
+function distUnit(num: number): string {
+    return `${num * 0.25}rem`;
+}
+function Content(props: {children: JSX.Element}): JSX.Element {
+    const parent_goal = useContext(goal_provider);
+    return <div style={{
+        'padding': `${distUnit(parent_goal.pt)} ${distUnit(parent_goal.pr)} ${distUnit(parent_goal.pb)} ${distUnit(parent_goal.pl)}`,
+    }}>
+        {props.children}
+    </div>;
+}
+/*
+hmm. stack is weird.
+- Image
+  [gap]
+- [ml] text [mr]
+  [gap]
+- [ml] text [mr]
+  [gap]
+- Image
+  [gap]
+- [ml] text [mr]
+  [mb]
+
+is that possible?
+maybe if stacks contain stack children and stack children
+can say if they are fullscreen or not
+*/
+type StackChild = {
+    fullscreen: boolean,
+    content: JSX.Element,
+};
+const StackChildRaw = createTypesafeChildren<StackChild>();
+function Stack(props: {children: JSX.Element}): JSX.Element {
+    const children = StackChildRaw.useChildren(() => props.children);
+    // a bit of a mess because we want to know information about the item above and below the
+    // target item without rerendering n² times
+    type ChInfo = {
+        above_fullscreen: boolean,
+        below_fullscreen: boolean,
+        fullscreen: boolean,
+        content: JSX.Element,
+    };
+    // vv we can merge these and put the signal in chinfo instead of doing two of the messy map things
+    type StackData = {above_fullscreen: Signal<boolean>, below_fullscreen: Signal<boolean>};
+    const ch_map = new WeakMap<StackChild, ChInfo>();
+    const addCh = (v: StackChild): ChInfo => {
+        const existsv = ch_map.get(v);
+        if(existsv != null) return existsv;
+        const data = getData(v);
+        const res: ChInfo = {
+            get above_fullscreen() {return data.above_fullscreen[0]()},
+            get below_fullscreen() {return data.below_fullscreen[0]()},
+            get fullscreen() {return v.fullscreen},
+            get content() {return v.content},
+        };
+        ch_map.set(v, res);
+        return res;
+    };
+    const are_edges_fullscreen = true;
+    const getData = (v: StackChild): StackData => {
+        const val = data_map.get(v);
+        if(val == null) {
+            const nv: StackData = {
+                above_fullscreen: createSignal(are_edges_fullscreen),
+                below_fullscreen: createSignal(are_edges_fullscreen),
+            };
+            data_map.set(v, nv);
+            return nv;
+        }
+        return val;
+    };
+    const updateData = (v: StackChild, prev: StackChild | null, next: StackChild | null) => {
+        const q = getData(v);
+        q.above_fullscreen[1](prev?.fullscreen ?? are_edges_fullscreen);
+        q.below_fullscreen[1](next?.fullscreen ?? are_edges_fullscreen);
+    }; 
+    const data_map = new WeakMap<StackChild, StackData>();
+    const chWithInfo = createMemo((): ChInfo[] => {
+        // !: keep the object reference the same across updates to prevent unneeded rerenders
+        // !: update the data map thing
+        const res: ChInfo[] = [];
+        const childrenv = children();
+        for(const [i, item] of childrenv.entries()) {
+            const prev = childrenv[i - 1] ?? null;
+            const next = childrenv[i + 1] ?? null;
+            updateData(item, prev, next);
+            res.push(addCh(item));
+        }
+        return res;
+    });
+    // useChildren(props.children)
+    // loop over children
+    // display with the correct goals
+
+    // target goals:
+    // - for fullscreen objects, make no change to goals
+    // - for non-fullscreen objects:
+    //   - remove the top and bottom margin goals
+    //   - insert a gap above equal to min(top, bottom)
+    //   - if(below_fullscreen): insert a gap below equal to min(top, bottom)
+    return <div>
+        <For each={chWithInfo()}>{child => {
+            const parent_goals = useContext(goal_provider);
+            const gap = () => Math.min(parent_goals.pt, parent_goals.pb);
+            return <goal_provider.Provider value={{
+                get pt() {if(child.fullscreen) return parent_goals.pt; else return 0},
+                get pb() {if(child.fullscreen) return parent_goals.pb; else return 0},
+                get pl() {return parent_goals.pl},
+                get pr() {return parent_goals.pr},
+            }}>
+                <Show if={!child.fullscreen}>
+                    <div style={{'padding-top': distUnit(gap())}} />
+                </Show>
+                {child.content}
+                <Show if={!child.fullscreen && child.below_fullscreen}>
+                    <div style={{'padding-bottom': distUnit(gap())}} />
+                </Show>
+            </goal_provider.Provider>;
+        }}</For>    
+    </div>;
+}
+/// fullscreen objects do not combine mt/mb of surrounding elements.
+function Item(props: {fullscreen?: undefined | boolean, children: JSX.Element}): JSX.Element {
+    return <StackChildRaw fullscreen={props.fullscreen ?? false} content={props.children} />
+}
 
 // the goal of Nuit is to put all padding and margin at the last possible moment
 export default function Nuit(): JSX.Element {
-    return <>
-        <div class="max-w-xl mx-auto bg-zinc-800 my-4 rounded-lg">
+    return <div class="max-w-xl mx-auto">
+        <div class="my-4 bg-zinc-800 rounded-lg">
+            <Goal pt={4} pb={4} pl={4} pr={4}>
+                <Stack>
+                    <Item fullscreen>
+                        <Content>
+                            <div class="px-4 text-lg font-bold">Object Title</div>
+                        </Content>
+                    </Item>
+                    <Item>
+                        <Content>Richtext Content</Content>
+                    </Item>
+                    <Item>
+                        <Content>Paragraph two</Content>
+                    </Item>
+                    <Item>
+                        <Content>Paragraph three</Content>
+                    </Item>
+                    <Item fullscreen>
+                        <div class="bg-zinc-500 h-32">
+                            <Content>Embedded Image</Content>
+                        </div>
+                    </Item>
+                    <Item>
+                        <Content>Paragraph four</Content>
+                    </Item>
+                    <Item>
+                        <div class="overflow-auto">
+                            <div class="w-max">
+                                <Content>
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <th>T</th>
+                                                <th>a</th>
+                                                <th>b</th>
+                                                <th>l</th>
+                                                <th>e</th>
+                                            </tr>
+                                            <tr>
+                                                <td>Embedded</td>
+                                                <td>table</td>
+                                                <td>example</td>
+                                                <td>table</td>
+                                                <td>sample</td>
+                                                <td>lots</td>
+                                                <td>of</td>
+                                                <td>rows</td>
+                                                <td>on</td>
+                                                <td>our</td>
+                                                <td>sample</td>
+                                                <td>table</td>
+                                                <td>example</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </Content>
+                            </div>
+                        </div>
+                    </Item>
+                </Stack>
+            </Goal>
+        </div>
+        <div class="bg-zinc-800 my-4 rounded-lg">
             <div class="py-4 space-y-4">
                 <div class="px-4 text-lg font-bold">Object Title</div>
             </div>
@@ -141,7 +363,7 @@ export default function Nuit(): JSX.Element {
                 <div class="p-4">image</div>
             </div>
         </div>
-        <div class="max-w-xl mx-auto bg-zinc-800 my-4 rounded-lg">
+        <div class="bg-zinc-800 my-4 rounded-lg">
             <div class="py-4 space-y-4">
                 <div class="px-4 text-lg font-bold">Object Title</div>
             </div>
@@ -184,5 +406,5 @@ export default function Nuit(): JSX.Element {
                 <div class="px-4">Paragraph five</div>
             </div>
         </div>
-    </>;
+    </div>;
 }
