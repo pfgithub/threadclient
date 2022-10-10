@@ -247,7 +247,7 @@ function Stack(props: {children: JSX.Element}): JSX.Element {
         // !: keep the object reference the same across updates to prevent unneeded rerenders
         // !: update the data map thing
         const res: ChInfo[] = [];
-        const childrenv = children();
+        const childrenv = children() ?? [];
         for(const [i, item] of childrenv.entries()) {
             const prev = childrenv[i - 1] ?? null;
             const next = childrenv[i + 1] ?? null;
@@ -300,7 +300,7 @@ export default function Nuit(): JSX.Element {
                 <Stack>
                     <Item fullscreen>
                         <Content>
-                            <div class="px-4 text-lg font-bold">Object Title</div>
+                            <div class="text-lg font-bold">Object Title</div>
                         </Content>
                     </Item>
                     <Item>
