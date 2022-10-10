@@ -193,17 +193,29 @@ is that possible?
 maybe if stacks contain stack children and stack children
 can say if they are fullscreen or not
 */
+
+/*
+alright so stack is working✓
+now, time to consider how to mix horizontal stacks with vertical stacks
+for now we can just make them fullscreen probably
+*/
 type StackChild = {
     kind: "item",
     fullscreen: boolean,
+    fillrem: boolean,
     content: JSX.Element,
 };
 const StackChildRaw = createTypesafeChildren<StackChild>();
-function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
+function Stack(props: {dir: "v" | "h", gap?: undefined | number, children: JSX.Element}): JSX.Element {
     const children = StackChildRaw.useChildren(() => props.children);
 
     const parent_goals = useContext(goal_provider);
-    const gap = () => Math.min(parent_goals.pt, parent_goals.pb);
+    const maxpmain = () => props.dir === "v" ? (
+        Math.min(parent_goals.pt, parent_goals.pb)
+    ) : (
+        Math.min(parent_goals.pl, parent_goals.pr)
+    );
+    const gapmain = () => props.gap ?? 0;
 
     // a bit of a mess because we want to know information about the item above and below the
     // target item without rerendering n² times
@@ -214,9 +226,10 @@ function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
     //   - we should abstract out the WeakMap handling into a tool specifically designed for these signal caches
     //     because we need them all the time. it could even possibly use a map with explicit removal.
     type ChInfo = {
-        pt: number, // child.fullscreen ? above_fullscreen ? props.gap : max() : 0
-        pb: number, // !child.fullscreen && child.below_fullscreen ? props.gap : 0
+        pbefore: number, // child.fullscreen ? above_fullscreen ? props.gap : max() : 0
+        pafter: number, // !child.fullscreen && child.below_fullscreen ? props.gap : 0
         fullscreen: boolean,
+        fillrem: boolean,
         content: JSX.Element,
     };
     type StackData = {above_fullscreen: Signal<boolean>, below_fullscreen: Signal<boolean>};
@@ -226,9 +239,10 @@ function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
         if(existsv != null) return existsv;
         const data = getData(v);
         const res: ChInfo = {
-            get pt() {return !v.fullscreen ? data.above_fullscreen[0]() ? gap() : props.gap : 0},
-            get pb() {return !v.fullscreen ? data.below_fullscreen[0]() ? gap() : 0 : 0},
+            get pbefore() {return !v.fullscreen ? data.above_fullscreen[0]() ? maxpmain() : gapmain() : 0},
+            get pafter() {return !v.fullscreen ? data.below_fullscreen[0]() ? maxpmain() : 0 : 0},
             get fullscreen() {return v.fullscreen},
+            get fillrem() {return v.fillrem},
             get content() {return v.content},
         };
         ch_map.set(v, res);
@@ -267,24 +281,33 @@ function Stack(props: {gap: number, children: JSX.Element}): JSX.Element {
         return res;
     });
 
-    return <div>
+    return <div class={"flex " + (props.dir === "v" ? "flex-col" : "flex-row") + " flex-wrap"}>
         <For each={chWithInfo()}>{child => {
-            return <goal_provider.Provider value={{
-                get pt() {if(child.fullscreen) return parent_goals.pt; else return 0},
-                get pb() {if(child.fullscreen) return parent_goals.pb; else return 0},
-                get pl() {return parent_goals.pl},
-                get pr() {return parent_goals.pr},
-            }}>
-                <div style={{'padding-top': distUnit(child.pt)}} />
-                {child.content}
-                <div style={{'padding-top': distUnit(child.pb)}} />
-            </goal_provider.Provider>;
+            return <>
+                <div style={props.dir === "v" ? {'padding-top': distUnit(child.pbefore)} : {'padding-left': distUnit(child.pbefore)}} />
+                <div class={child.fillrem ? "flex-1 " + (props.dir === "v" ? " h-0 " : " w-0 ") : (props.dir === "v" ? " w-full " : " h-full ")}>
+                    <goal_provider.Provider value={{
+                        get pt() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pt; else return 0; else return parent_goals.pt},
+                        get pb() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pb; else return 0; else return parent_goals.pb},
+                        get pl() {if(props.dir === "v") return parent_goals.pl; else if(child.fullscreen) return parent_goals.pl; else return 0},
+                        get pr() {if(props.dir === "v") return parent_goals.pr; else if(child.fullscreen) return parent_goals.pr; else return 0},
+                    }}>
+                        {child.content}
+                    </goal_provider.Provider>
+                </div>
+                <div style={props.dir === "v" ? {'padding-top': distUnit(child.pafter)} : {'padding-left': distUnit(child.pafter)}} />
+            </>;
         }}</For>    
     </div>;
 }
 /// fullscreen objects do not combine mt/mb of surrounding elements.
-function Item(props: {fullscreen?: undefined | boolean, children: JSX.Element}): JSX.Element {
-    return <StackChildRaw kind="item" fullscreen={props.fullscreen ?? false} content={props.children} />
+function Item(props: {fullscreen?: undefined | boolean, fillrem?: undefined | boolean, children: JSX.Element}): JSX.Element {
+    return <StackChildRaw
+        kind="item"
+        fullscreen={props.fullscreen ?? false}
+        fillrem={props.fillrem ?? false}
+        content={props.children}
+    />
 }
 // /// for specifying a custom gap between two nodes. the max of all gaps between two nodes will
 // /// be used as the final gap size. eg I1 gap-2 gap-4 gap-2 I2 : gap-4 will be used
@@ -304,11 +327,25 @@ export default function Nuit(): JSX.Element {
     return <div class="max-w-xl mx-auto">
         <div class="my-4 bg-zinc-800 rounded-lg">
             <Goal pt={4} pb={4} pl={4} pr={4}>
-                <Stack gap={2}>
+                <Stack dir="v" gap={2}>
                     <Item fullscreen>
-                        <Content>
-                            <div class="text-lg font-bold">Object Title</div>
-                        </Content>
+                        <Stack dir="h" gap={2}>
+                            <Item>
+                                <Content>
+                                    ≡
+                                </Content>
+                            </Item>
+                            <Item fillrem>
+                                <Content>
+                                    <div class="text-lg font-bold">Object Title</div>
+                                </Content>
+                            </Item>
+                            <Item>
+                                <Content>
+                                    ≡
+                                </Content>
+                            </Item>
+                        </Stack>
                     </Item>
                     <Item>
                         <Content>Richtext Content</Content>
