@@ -8,8 +8,6 @@ declare module "solid-js" {
             "tc:show-animate": JSX.IntrinsicElements["div"];
             "tc:fallback": JSX.IntrinsicElements["div"];
             "tc:children": JSX.IntrinsicElements["div"];
-            "nuit:scrollable": JSX.IntrinsicElements["div"];
-            [key: `nuit:${string}`]: JSX.IntrinsicElements["div"];
         }
     }
 }
