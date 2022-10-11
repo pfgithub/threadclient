@@ -2,6 +2,8 @@ import * as Generic from "api-types-generic";
 import { Accessor, For, JSX } from "solid-js";
 import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
 import { getSettings, getWholePageRootContext } from "../util/utils_solid";
+import { Content, Goal } from "./nuit/Margin";
+import {Stack, Item } from "./nuit/Stack";
 import OneLoader, { UnfilledLoader } from "./OneLoader";
 import ReadLink from "./ReadLink";
 import { SettingPicker } from "./settings";
@@ -262,16 +264,16 @@ function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
 // might be easier as two though
 function ContentComment(props: {content: Generic.PostContent, collapsed: boolean}): JSX.Element {
     return <div>
-        comment!!
+        <Content>comment!!</Content>
     </div>;
 }
 
-function Content(props: {content: Generic.PostContent, collapsed: boolean}): JSX.Element {
+function NodeContent(props: {content: Generic.PostContent, collapsed: boolean}): JSX.Element {
     return <SwitchKind item={props.content} fallback={v => (
-        <div>TODO content kind {v.kind}</div>
+        <Content>TODO content kind {v.kind}</Content>
     )}>{{
         submit: submit => <>
-            <Submit submit={submit.submission_data} />
+            <Content><Submit submit={submit.submission_data} /></Content>
         </>,
         post: post => <ContentComment content={props.content} collapsed={props.collapsed} />
     }}</SwitchKind>;
@@ -315,7 +317,7 @@ function TreePost(props: {id: Generic.Link<Generic.Post>, post: Generic.Post, in
         })()}>
             <div class="bg-slate-100 dark:bg-zinc-800">
                 <TreeIndentOne indent={props.indent}>
-                    <Content content={props.post.content} collapsed={false} />
+                    <NodeContent content={props.post.content} collapsed={false} />
                 </TreeIndentOne>
             </div>
         </SwipeActions>
@@ -342,13 +344,9 @@ function getRainbow(n: number): string {
     return rainbow[n % rainbow.length]!;
 }
 function TreeIndentOne(props: {indent: TreeIndent[], children: JSX.Element}): JSX.Element {
-    // * consider checking for the optimize for touch css thing instead of
-    //    using screen size to determine if we should use those rainbow side
-    //    bars or desktop-style collapse buttons
-    // * and we can add a setting in case it detects wrong
     const settings = getSettings();
-    return <div class="flex flex-row">
-        <div><SwitchKind item={{kind: settings.indentMode()}}>{{
+    return <Stack dir="h">
+        <Item><SwitchKind item={{kind: settings.indentMode()}}>{{
             mobile: () => <Show when={props.indent[props.indent.length - 1]}>{last_indent => (
                 <div class="w-1 pl-0.5 relative h-full" style={{
                     // pt-2 todo do that with gap instead
@@ -364,24 +362,24 @@ function TreeIndentOne(props: {indent: TreeIndent[], children: JSX.Element}): JS
                     <div class="inline-block">[TODO]</div>
                 </>}</For>
             </div>,
-        }}</SwitchKind></div>
-        <div class="flex-1 w-0">
+        }}</SwitchKind></Item>
+        <Item fillrem>
             {props.children}
-        </div>
-    </div>;
+        </Item>
+    </Stack>;
 }
 function FlatChild(props: {ch: FlatChild, indent: TreeIndent[]}): JSX.Element {
     return <SwitchKind item={props.ch}>{{
         post: post_id => <ReadLink link={post_id.link} fallback={(
-            <div>error unfilled post {post_id.link.toString()}</div>
+            <Content>error unfilled post {post_id.link.toString()}</Content>
         )}>{post => (
             <TreePost id={post_id.link} post={post} indent={props.indent} />
         )}</ReadLink>,
         loader: loader => <TreeIndentOne indent={props.indent}>
-            <UnfilledLoader label="Load More" loader={loader.loader} />
+            <Content><UnfilledLoader label="Load More" loader={loader.loader} /></Content>
         </TreeIndentOne>,
         error: error => <TreeIndentOne indent={props.indent}>
-            [todo indent]error: {error.message}
+            <Content>[todo indent]error: {error.message}</Content>
         </TreeIndentOne>,
     }}</SwitchKind>;
 }
