@@ -1,4 +1,5 @@
 import {createMemo, createSignal, For, JSX, Signal, useContext} from "solid-js";
+import { Show } from "tmeta-util-solid";
 import { goal_provider, StackChildRaw } from "./noreload_symbols";
 import { distUnit } from "./units";
 
@@ -87,7 +88,9 @@ export function Stack(props: {dir: "v" | "h", gap?: undefined | number, children
     return <div class={"flex " + (props.dir === "v" ? "flex-col" : "flex-row") + " flex-wrap"}>
         <For each={chWithInfo()}>{child => {
             return <>
-                <div style={props.dir === "v" ? {'padding-top': distUnit(child.pbefore)} : {'padding-left': distUnit(child.pbefore)}} />
+                <Show if={child.pbefore != 0}>
+                    <div style={props.dir === "v" ? {'padding-top': distUnit(child.pbefore)} : {'padding-left': distUnit(child.pbefore)}} />
+                </Show>
                 <div class={child.fillrem ? "flex-1 " + (props.dir === "v" ? " h-0 " : " w-0 ") : (props.dir === "v" ? " w-auto " : " h-auto ")}>
                     <goal_provider.Provider value={{
                         get pt() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pt; else return 0; else return parent_goals.pt},
@@ -98,7 +101,9 @@ export function Stack(props: {dir: "v" | "h", gap?: undefined | number, children
                         {child.content}
                     </goal_provider.Provider>
                 </div>
-                <div style={props.dir === "v" ? {'padding-top': distUnit(child.pafter)} : {'padding-left': distUnit(child.pafter)}} />
+                <Show if={child.pafter != 0}>
+                    <div style={props.dir === "v" ? {'padding-top': distUnit(child.pafter)} : {'padding-left': distUnit(child.pafter)}} />
+                </Show>
             </>;
         }}</For>    
     </div>;
