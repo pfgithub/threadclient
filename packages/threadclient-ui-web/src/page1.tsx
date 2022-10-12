@@ -2513,7 +2513,7 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
         const [text, setText] = createSignal("loading…");
 
         (async () => {
-            const {client} = await import("threadclient-client-mastodon");
+            const {client} = await import("threadclient-client-reddit");
             const {stringify} = await import("@effectful/serialization");
             const v = await client.getPage!("/"+path.join("/")+search);
             setText(stringify(v));

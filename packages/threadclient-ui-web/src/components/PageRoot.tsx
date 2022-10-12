@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import {
     createMemo,
     createSignal,
-    For, JSX, untrack, useContext
+    For, JSX, lazy, untrack, useContext
 } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import FullscreenSnapView from "../experiments/fullscreen_snap_view/FullscreenSnapView";
@@ -13,6 +13,8 @@ import { useFlatten } from "./flatten2";
 import LandingPage from "./LandingPage";
 import PageFlatItem from "./PageFlatItem";
 import ToggleButton from "./ToggleButton";
+
+const ExplorerView = lazy(() => import("../experiments/explorer_view/ExplorerView"));
 
 type SpecialCallback = () => PageRes;
 const full_page_special_callbacks: Record<string, SpecialCallback> = {
@@ -61,6 +63,13 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
                 children: ReaderView({
                     get pivot() {return props.pivot},
                 }),
+            }));
+        }
+        if(tc_view === "rawcontent") {
+            return untrack((): PageRes => ({
+                url: null,
+                title: "pageres",
+                children: <ExplorerView pivot={props.pivot} />,
             }));
         }
 

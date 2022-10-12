@@ -5,7 +5,7 @@ import * as os from "os";
 import * as path from "path";
 import * as readline from "readline";
 import * as cp from "child_process";
-import { switchKind } from "tmeta-util";
+import { assertNever, switchKind } from "tmeta-util";
 import fetch from "node-fetch";
 
 type VisualNode = {
@@ -22,30 +22,29 @@ const cachedir = path.join(os.homedir(), ".cache", "threadclient-term");
 const imgcachedir = path.join(cachedir, "images");
 
 function unlink(content: Generic.Page2Content, link: Generic.Link<Generic.Post>): Generic.Post {
-    throw new Error("todo update `fn unlink` for page2 changes");
-    // const value = Generic.readLink(content, link);
-    // if(value.error != null) return {
-    //     parent: null,
-    //     replies: null,
-    //     client_id: "n/a",
-    //     url: null,
+    const value = Generic.readLink(content, link);
+    if(value == null || value.error != null) return {
+        parent: null,
+        replies: null,
+        client_id: "n/a",
+        url: null,
 
-    //     kind: "post",
+        kind: "post",
 
-    //     content: {
-    //         kind: "post",
-    //         body: {
-    //             kind: "richtext",
-    //             content: [{kind: "paragraph", children: [{
-    //                 kind: "error", text: value.error, value: value.error,
-    //             }]}],
-    //         },
-    //         title: null,
-    //         collapsible: false,
-    //     },
-    //     internal_data: link,
-    // };
-    // return value.value;
+        content: {
+            kind: "post",
+            body: {
+                kind: "richtext",
+                content: [{kind: "paragraph", children: [{
+                    kind: "error", text: value?.error ?? "error isn ull", value: value?.error ?? link,
+                }]}],
+            },
+            title: null,
+            collapsible: false,
+        },
+        internal_data: link,
+    };
+    return value.value;
 }
 
 // TODO: at top level, return VisualNode[]
@@ -57,28 +56,29 @@ function generateVisualParentsAroundPost(
     replies?: undefined | VisualNode[],
     depth = 0,
 ): VisualNode {
-    throw new Error("todo update `fn generateVisualParentsAroundPost` for page2 changes");
-    // const res: VisualNode = {
-    //     post,
-    //     visual_parent: undefined,
-    //     visual_replies: undefined,
-    //     visual_reply_index: 0,
-    //     depth,
-    //     content,
-    // };
-    // res.visual_parent = parent ?? (post.parent ?
-    //     generateVisualParentsAroundPost(content, unlink(content, post.parent), undefined, [res], depth - 1)
-    // : undefined);
-    // res.visual_replies = replies ?? (() => {
-    //     const actual_replies = post.replies;
-    //     if(!actual_replies) return undefined;
-    //     const rplres: VisualNode[] = [];
-    //     for(const item of actual_replies.items) {
-    //         rplres.push(generateVisualParentsAroundPost(content, unlink(content, item), res, undefined, depth + 1));
-    //     }
-    //     return rplres;
-    // })();
-    // return res;
+    const res: VisualNode = {
+        post,
+        visual_parent: undefined,
+        visual_replies: undefined,
+        visual_reply_index: 0,
+        depth,
+        content,
+    };
+    res.visual_parent = parent ?? (post.parent ?
+        generateVisualParentsAroundPost(content, unlink(content, post.parent.loader.key), undefined, [res], depth - 1)
+    : undefined);
+    res.visual_replies = replies ?? (() => {
+        const actual_replies = post.replies;
+        if(!actual_replies) return undefined;
+        const rplres: VisualNode[] = [];
+        const ar_items = Generic.readLink(content, actual_replies.loader.key);
+        for(const item of ar_items == null ? [] : ar_items.error != null ? [] : ar_items.value) {
+            if(typeof item === "object") continue;
+            rplres.push(generateVisualParentsAroundPost(content, unlink(content, item), res, undefined, depth + 1));
+        }
+        return rplres;
+    })();
+    return res;
 }
 
 enum TermColor {
@@ -431,6 +431,7 @@ export async function main(opts: {
                     resolve(contents[findex]!).then(r => {
                         // done;
                     }).catch(e => {
+                        console.log("error", e);
                         // error;
                     });
                     return;
@@ -548,7 +549,13 @@ function printRichtextParagraph(rtpar: Generic.Richtext.Paragraph): TermText[] {
         blockquote: bquot => [styl({indent: ["> "]},
             ...arrayjoin(bquot.children.map(printRichtextParagraph), () => ["\n\n"]),
         )],
-        list: () => [styl({fg: TermColor.red}, "*list*")],
+        list: list => arrayjoin(list.children.map((li): TermText => {
+            if(li.kind === "list_item") {
+                return arrayjoin(li.children.map(printRichtextParagraph), () => ["\n\n"]);
+            }else if(li.kind === "tight_list_item") {
+                return li.children.map(printRichtextSpan);
+            }else assertNever(li);
+        }).map((itm, i) => list.ordered ? ["" + (i + 1) + ". ", itm] : ["- ", itm]), () => ["\n"]),
         code_block: () => [styl({fg: TermColor.red}, "*code_block*")],
         table: () => [styl({fg: TermColor.red}, "*table*")],
     });
@@ -717,14 +724,14 @@ function renderPost(post: Generic.Post): TermText[] {
         postr.push([]);
     }
     postr.push(printBody(content.body));
-    postr.push([]);
-    postr.push([
-        styl({bg: TermColor.black, fg: TermColor.white}, "[buttons]"),
-        " ",
-        styl({bg: TermColor.black, fg: TermColor.white}, "[go]"),
-        " ",
-        styl({bg: TermColor.black, fg: TermColor.white}, "[here]"),
-    ]);
+    // postr.push([]);
+    // postr.push([
+    //     styl({bg: TermColor.black, fg: TermColor.white}, "[buttons]"),
+    //     " ",
+    //     styl({bg: TermColor.black, fg: TermColor.white}, "[go]"),
+    //     " ",
+    //     styl({bg: TermColor.black, fg: TermColor.white}, "[here]"),
+    // ]);
 
     return arrayjoin(postr, () => ["\n"]);
 }
