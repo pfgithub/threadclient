@@ -178,7 +178,7 @@ export function RichtextSpans(props: {spans: Generic.Richtext.Span[]}): JSX.Elem
     return <For each={props.spans}>{span => <RichtextSpan span={span}/>}</For>;
 }
 
-function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.Element {
+export function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}): JSX.Element {
     return <SwitchKind item={props.paragraph}>{{
         paragraph: (pgph) => <p><RichtextSpans spans={pgph.children} /></p>,
         body: (body) => <Body body={body.body} autoplay={false} />,

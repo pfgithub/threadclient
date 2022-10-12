@@ -1,11 +1,15 @@
 import * as Generic from "api-types-generic";
-import { Accessor, For, JSX } from "solid-js";
+import { Accessor, For, JSX, Switch, useContext } from "solid-js";
 import { createTypesafeChildren, Show, SwitchKind } from "tmeta-util-solid";
-import { getSettings, getWholePageRootContext } from "../util/utils_solid";
+import { DefaultErrorBoundary, getSettings, getWholePageRootContext } from "../util/utils_solid";
+import { Body } from "./body";
 import { Content, Goal } from "./nuit/Margin";
+import { goal_provider } from "./nuit/noreload_symbols";
 import {Stack, Item } from "./nuit/Stack";
+import { distUnit } from "./nuit/units";
 import OneLoader, { UnfilledLoader } from "./OneLoader";
 import ReadLink from "./ReadLink";
+import { RichtextParagraph, RichtextSpans } from "./richtext";
 import { SettingPicker } from "./settings";
 import Submit from "./Submit";
 import SwipeActions from "./SwipeActions";
@@ -262,10 +266,77 @@ function TopLevelWrapper(props: {children: JSX.Element}): JSX.Element {
 // ContentComment :: a post viewer for comment style posts
 // possibly these can be combined into one since there aren't too many differences
 // might be easier as two though
-function ContentComment(props: {content: Generic.PostContent, collapsed: boolean}): JSX.Element {
+function ContentComment(props: {content: Generic.PostContentPost, collapsed: boolean}): JSX.Element {
+    /*
+    kind: "post",
+
+    title: null | {
+        text: string, // make this null | string instead of this null | {text: string} thing
+    },
+    flair?: Flair[] | undefined, // maybe content warnings should be seperate
+    thumbnail?: Thumbnail | undefined,
+    info?: PostInfo | undefined,
+
+    // TODO: author?: Link<Post> | undefined
+    // - author will be rendered using a different post renderer
+    // - it will render the thumbnail and title
+    // - if we use a Bio content type instead of a normal Post content type, we could maybe make it a little
+    //   better
+    author?: InfoAuthor | undefined,
+    body: Body,
+
+    collapsible: false | {default_collapsed: boolean},
+    actions?: undefined | {
+        // puts the up and down arrow in the gutter and points/% voted in the info line. could do
+        // something similar but with a star for mastodon.
+        vote?: CounterAction | undefined,
+        code?: CodeAction | undefined,
+        // delete?: DeleteAction | undefined,
+        // save?: SaveAction | undefined,
+        // report?: ReportAction | undefined,
+        other?: Action[] | undefined,
+
+        mo
+    */
     return <div>
-        <Content>comment!!</Content>
+        <Goal pt={0} pb={0} pl={2} pr={2}>
+            <Body2 body={props.content.body} />
+        </Goal>
     </div>;
+}
+function Body2(props: {body: Generic.Body}): JSX.Element {
+    return <SwitchKind item={props.body} fallback={itm => <>
+        <Content>TODO body kind: {itm.kind}</Content>
+    </>}>{{
+        'richtext': rt => <Richtext2 doc={rt.content} />,
+    }}</SwitchKind>;
+}
+function Richtext2(props: {doc: readonly Generic.Richtext.Paragraph[]}): JSX.Element {
+    return <Stack dir="v" gap={2}>
+        <For each={props.doc}>{par => (
+            <RichtextParagraphItem par={par} />
+        )}</For>
+    </Stack>;
+}
+function RichtextParagraphItem(props: {par: Generic.Richtext.Paragraph}): JSX.Element {
+    const cgoal = useContext(goal_provider);
+    return <SwitchKind item={props.par} fallback={itm => (
+        <Item>
+            <Content>
+                <RichtextParagraph paragraph={itm} />
+            </Content>
+        </Item>
+    )}>{{
+        // alternatively, instead of <blockquote />, we can use a horizontal stack in a semantic-only
+        // blockquote element
+        'blockquote': bq => <Item>
+            <blockquote class="border-l-2 border-slate-500 dark:border-zinc-400" style={{
+                'margin-left': distUnit(cgoal.pl),
+            }}>
+                <Richtext2 doc={bq.children} />
+            </blockquote>
+        </Item>,
+    }}</SwitchKind>;
 }
 
 function NodeContent(props: {content: Generic.PostContent, collapsed: boolean}): JSX.Element {
@@ -275,7 +346,7 @@ function NodeContent(props: {content: Generic.PostContent, collapsed: boolean}):
         submit: submit => <>
             <Content><Submit submit={submit.submission_data} /></Content>
         </>,
-        post: post => <ContentComment content={props.content} collapsed={props.collapsed} />
+        post: post => <ContentComment content={post} collapsed={props.collapsed} />
     }}</SwitchKind>;
 }
 

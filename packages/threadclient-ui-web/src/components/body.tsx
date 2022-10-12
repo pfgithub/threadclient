@@ -15,6 +15,7 @@ import {
 } from "../util/utils_solid";
 import LinkHelper from "./LinkHelper";
 import { LinkButton } from "./links";
+import { Content } from "./nuit/Margin";
 import { ClientContent, CrosspostWrapper } from "./page2";
 import proxyURL from "./proxy_url";
 import { RichtextDocument, summarizeParagraphs } from "./richtext";
@@ -51,7 +52,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             // TODO: start an animation that changes opacity after like 200ms rather
             // than setting it instantly
             return <div class={a.loading ? "animate-loading" : ""}><Show when={c.data} fallback={
-                <>Loading…</>
+                <Content>Loading…</Content>
             }>{b => {
                 return <Body body={b} autoplay={false} />;
             }}</Show></div>;
@@ -67,7 +68,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 return {body};
             });
 
-            return <div>
+            return <Content>
                 <div><LinkButton
                     action={{client_id: link.client_id, url: link.url}}
                     style="normal"
@@ -75,7 +76,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 <Show when={previewBody()}>{preview_opts => (
                     <Body body={preview_opts.body} autoplay={props.autoplay} />
                 )}</Show>
-            </div>;
+            </Content>;
         },
         none: () => <></>,
         gallery: gallery => <ImageGallery images={gallery.images} />,
@@ -84,7 +85,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 kind: "none",
             } | {kind: "loading"} | {kind: "error", body: Generic.Body}
             | {kind: "loaded", body: Generic.Body}>({kind: "none"});
-            return <div>
+            return <Content>
                 <div class="border p-2">
                     <div class="font-bold">{removed.removal_message.title}</div>
                     <div>{removed.removal_message.body}</div>
@@ -140,9 +141,9 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                         <Body body={loaded.body} autoplay={false} />
                     </div>,
                 }}</SwitchKind>
-            </div>;
+            </Content>;
         },
-        crosspost: xpost => <CrosspostWrapper>
+        crosspost: xpost => <Content><CrosspostWrapper>
             <ClientContent content={{
                 kind: "legacy",
                 thread: xpost.source,
@@ -153,18 +154,18 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                 flat_frame: null,
                 id: null,
             }} />
-        </CrosspostWrapper>,
+        </CrosspostWrapper></Content>,
         richtext: richtext => <div>
             <RichtextDocument content={richtext.content} />
         </div>,
-        poll: poll => <div>
+        poll: poll => <Content>
             <div>TODO polls are currently not supported</div>
             <ul>
                 <For each={poll.choices}>{choice => (
                     <li>{choice.name} ({choice.votes === "hidden" ? "hidden" : "Vote(s)"})</li>
                 )}</For>
             </ul>
-        </div>,
+        </Content>,
         captioned_image: image => <div>
             <SolidToVanillaBoundary getValue={() => {
                 const div = el("div");

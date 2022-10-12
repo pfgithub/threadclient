@@ -85,7 +85,7 @@ export function Stack(props: {dir: "v" | "h", gap?: undefined | number, children
         return res;
     });
 
-    return <div class={"flex " + (props.dir === "v" ? "flex-col" : "flex-row") + " flex-wrap"}>
+    return <div class={"flex " + (props.dir === "v" ? "flex-col" : "flex-row flex-wrap") + " "}>
         <For each={chWithInfo()}>{child => {
             return <>
                 <Show if={child.pbefore != 0}>
