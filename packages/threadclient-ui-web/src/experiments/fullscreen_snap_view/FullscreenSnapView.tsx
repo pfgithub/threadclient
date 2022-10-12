@@ -53,6 +53,12 @@ disadvantages:
   - touch
   - screenreader
 - need the inertia or spring effects or whatever it is (no bouncing but a smooth transition)
+  - we can cheat it with css transitions for now. doesn't preserve velocity but better than nothing.
+
+we should definitely handle touch ourselves
+
+also this should change from 'fullscreensnapview' to 'MediaViewer'. while in a fullscreensnapview, it has
+the option to handle swipe up/swipe down for next/prev
 */
 
 function SidebarButton(props: {
