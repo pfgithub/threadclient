@@ -54,7 +54,7 @@ const winsize_provider = createContext<Signal<Winsize>>(readonlySignal(
 
 function WinTitlebar(): JSX.Element {
     const [winsize, setWinsize] = useContext(winsize_provider);
-    return <div class="bg-slate-200 dark:bg-zinc-900 rounded-md p-1" onmousedown={start_ev => {
+    return <div class="bg-slate-200 dark:bg-zinc-900 rounded-t-md p-1" onmousedown={start_ev => {
         draglistener(start_ev, (e, mode) => {
             setWinsize(prev_size => {
                 const new_size = {...prev_size};
@@ -119,6 +119,7 @@ function Window(props: {
             })} />;
         })}
         {props.children}
+        <div class="absolute inset-0 rounded-md w-full h-full pointer-events-none dark:ring-1 dark:ring-offset-1 dark:ring-zinc-900 dark:ring-offset-zinc-400" />
     </div></winsize_provider.Provider>;
 }
 
