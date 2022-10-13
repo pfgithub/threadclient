@@ -88,6 +88,18 @@ a {
 .drop-shadow-2xl {
     filter: drop-shadow(0 25px 25px rgb(0 0 0 / 0.15));
 }
+.cursor-nwse-resize {
+    cursor: nwse-resize;
+}
+.cursor-nesw-resize {
+    cursor: nesw-resize;
+}
+.cursor-ew-resize {
+    cursor: ew-resize;
+}
+.cursor-ns-resize {
+    cursor: ns-resize;
+}
 
 // animation. this can also be defined in the windi/tailwind css config
 @keyframes bounceanim {

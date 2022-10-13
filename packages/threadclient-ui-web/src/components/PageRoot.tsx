@@ -65,7 +65,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
                 }),
             }));
         }
-        if(tc_view === "rawcontent") {
+        if(tc_view === "explorer") {
             return untrack((): PageRes => ({
                 url: null,
                 title: "pageres",
