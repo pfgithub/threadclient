@@ -423,7 +423,7 @@ function TreeIndentOne(props: {indent: TreeIndent[], children: JSX.Element}): JS
                     // pt-2 todo do that with gap instead
                     'margin-left': (0.25 * last_indent.depth)+"rem",
                 }}>
-                    <div class={"w-full h-full "+getRainbow(last_indent.depth)+" rounded" + (
+                    <div class={"w-full h-full "+getRainbow(last_indent.depth)+" rounded min-h-0.5rem" + (
                         last_indent.threaded ? "threaded-new threaded-new-ltsm" : ""
                     )} />
                 </div>
@@ -434,7 +434,7 @@ function TreeIndentOne(props: {indent: TreeIndent[], children: JSX.Element}): JS
                 </>}</For>
             </div>,
         }}</SwitchKind></Item>
-        <Item fillrem>
+        <Item fillrem={{min_w: "50%"}}>
             {props.children}
         </Item>
     </Stack>;

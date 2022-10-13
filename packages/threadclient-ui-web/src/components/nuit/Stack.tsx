@@ -6,7 +6,7 @@ import { distUnit } from "./units";
 export type StackChild = {
     kind: "item",
     fullscreen: boolean,
-    fillrem: boolean,
+    fillrem: undefined | {min_w: string},
     content: JSX.Element,
 };
 
@@ -33,7 +33,7 @@ export function Stack(props: {dir: "v" | "h", gap?: undefined | number, children
         pbefore: number, // child.fullscreen ? above_fullscreen ? props.gap : max() : 0
         pafter: number, // !child.fullscreen && child.below_fullscreen ? props.gap : 0
         fullscreen: boolean,
-        fillrem: boolean,
+        fillrem: undefined | {min_w: string},
         content: JSX.Element,
     };
     type StackData = {above_fullscreen: Signal<boolean>, below_fullscreen: Signal<boolean>};
@@ -88,20 +88,24 @@ export function Stack(props: {dir: "v" | "h", gap?: undefined | number, children
     return <div class={"flex " + (props.dir === "v" ? "flex-col" : "flex-row flex-wrap") + " "}>
         <For each={chWithInfo()}>{child => {
             return <>
-                <Show if={child.pbefore != 0}>
+                <Show if={child.pbefore !== 0}>
                     <div style={props.dir === "v" ? {'padding-top': distUnit(child.pbefore)} : {'padding-left': distUnit(child.pbefore)}} />
                 </Show>
-                <div class={child.fillrem ? "flex-1 " + (props.dir === "v" ? " h-0 " : " w-0 ") : (props.dir === "v" ? " w-auto " : " h-auto ")}>
+                <div class={child.fillrem != null ? "flex-1 " + (props.dir === "v" ? " h-0 " : " w-0 ") : (props.dir === "v" ? " w-auto " : " h-auto ")} style={(
+                    child.fillrem != null ? {
+                        'min-width': child.fillrem.min_w,
+                    } : {}
+                )}>
                     <goal_provider.Provider value={{
-                        get pt() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pt; else return 0; else return parent_goals.pt},
-                        get pb() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pb; else return 0; else return parent_goals.pb},
-                        get pl() {if(props.dir === "v") return parent_goals.pl; else if(child.fullscreen) return parent_goals.pl; else return 0},
-                        get pr() {if(props.dir === "v") return parent_goals.pr; else if(child.fullscreen) return parent_goals.pr; else return 0},
+                        get pt() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pt; else return 0; else return parent_goals.pt;},
+                        get pb() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pb; else return 0; else return parent_goals.pb;},
+                        get pl() {if(props.dir === "v") return parent_goals.pl; else if(child.fullscreen) return parent_goals.pl; else return 0;},
+                        get pr() {if(props.dir === "v") return parent_goals.pr; else if(child.fullscreen) return parent_goals.pr; else return 0;},
                     }}>
                         {child.content}
                     </goal_provider.Provider>
                 </div>
-                <Show if={child.pafter != 0}>
+                <Show if={child.pafter !== 0}>
                     <div style={props.dir === "v" ? {'padding-top': distUnit(child.pafter)} : {'padding-left': distUnit(child.pafter)}} />
                 </Show>
             </>;
@@ -109,13 +113,17 @@ export function Stack(props: {dir: "v" | "h", gap?: undefined | number, children
     </div>;
 }
 /// fullscreen objects do not combine mt/mb of surrounding elements.
-export function Item(props: {fullscreen?: undefined | boolean, fillrem?: undefined | boolean, children: JSX.Element}): JSX.Element {
+export function Item(props: {
+    fullscreen?: undefined | boolean,
+    fillrem?: undefined | {min_w: string},
+    children: JSX.Element,
+}): JSX.Element {
     return <StackChildRaw
         kind="item"
         fullscreen={props.fullscreen ?? false}
-        fillrem={props.fillrem ?? false}
+        fillrem={props.fillrem}
         content={props.children}
-    />
+    />;
 }
 // /// for specifying a custom gap between two nodes. the max of all gaps between two nodes will
 // /// be used as the final gap size. eg I1 gap-2 gap-4 gap-2 I2 : gap-4 will be used
