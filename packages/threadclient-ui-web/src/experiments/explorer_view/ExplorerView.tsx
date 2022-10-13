@@ -1,6 +1,9 @@
 import {Accessor, createContext, createSignal, JSX, Setter, Signal, untrack, useContext} from "solid-js";
 import * as Generic from "api-types-generic";
 import { classes } from "../../util/utils_solid";
+import { Item, Stack } from "../../components/nuit/Stack";
+import { InternalIconRaw } from "../../components/Icon";
+import { Content, Goal } from "../../components/nuit/Margin";
 
 // click a link to focus it
 // - * adds a history breadcrumb
@@ -54,7 +57,7 @@ const winsize_provider = createContext<Signal<Winsize>>(readonlySignal(
 
 function WinTitlebar(): JSX.Element {
     const [winsize, setWinsize] = useContext(winsize_provider);
-    return <div class="bg-slate-200 dark:bg-zinc-900 rounded-t-md p-1" onmousedown={start_ev => {
+    return <><div class="select-none" onmousedown={start_ev => {
         draglistener(start_ev, (e, mode) => {
             setWinsize(prev_size => {
                 const new_size = {...prev_size};
@@ -63,9 +66,28 @@ function WinTitlebar(): JSX.Element {
                 return new_size;
             });
         })
-    }}>
-        titlebar
-    </div>;
+    }}><Goal pt={1} pb={1} pl={2} pr={2}>
+        <Stack dir="h" gap={1}>
+            <Item fillrem={{min_w: "30px"}}>
+                <div class="max-lines max-lines-1">
+                    <Content>
+                        <span class="font-light text-sm">
+                            Files Manager · Shows Files · Showing Files
+                        </span>
+                    </Content>
+                </div>
+            </Item>
+            <Item fullscreen>
+                <button class="text-sm flex items-center h-full hover:bg-slate-300 dark:hover:bg-zinc-600">
+                    <Content>
+                        <InternalIconRaw class="fa-solid fa-xmark" label="Close" />
+                    </Content>
+                </button>
+            </Item>
+        </Stack>
+    </Goal></div><div class="px-1">
+        <div class="w-full border-b border-b-slate-300 dark:border-b-zinc-400" />
+    </div></>;
 }
 
 let frontz = 1;
