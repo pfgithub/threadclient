@@ -29,6 +29,10 @@ export default function ExplorerView(props: {
             <WinTitlebar />
             <div class="p-2">hello</div>
         </Window>
+        <Window>
+            <WinTitlebar />
+            <div class="p-2">hello 2</div>
+        </Window>
     </div>;
 }
 
@@ -64,6 +68,7 @@ function WinTitlebar(): JSX.Element {
     </div>;
 }
 
+let frontz = 1;
 function Window(props: {
     children: JSX.Element,
 }): JSX.Element {
@@ -73,12 +78,18 @@ function Window(props: {
         w: 200,
         h: 200,
     });
+    const [zindex, setZindex] = createSignal<number | undefined>(undefined);
     return <winsize_provider.Provider value={[winsize, setWinsize]}><div class="bg-slate-50 text-slate-900 dark:bg-zinc-800 dark:text-zinc-50 rounded-md shadow" style={{
         'position': "absolute",
         'left': winsize().x + "px",
         'top': winsize().y + "px",
         'width': winsize().w + "px",
         'height': winsize().h + "px",
+        'z-index': zindex(),
+    }} ref={el => {
+        el.addEventListener("mousedown", ev => {
+            setZindex(frontz++);
+        }, {capture: true});
     }}>
         {([
             [-1, -1], [-1, 0], [-1, 1],
