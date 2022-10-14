@@ -1,9 +1,11 @@
-import {Accessor, createContext, createSignal, JSX, Setter, Signal, untrack, useContext} from "solid-js";
+import {Accessor, createContext, createMemo, createSignal, For, JSX, Setter, Signal, untrack, useContext} from "solid-js";
 import * as Generic from "api-types-generic";
 import { classes } from "../../util/utils_solid";
 import { Item, Stack } from "../../components/nuit/Stack";
 import { InternalIconRaw } from "../../components/Icon";
 import { Content, Goal } from "../../components/nuit/Margin";
+import { Show } from "tmeta-util-solid";
+import proxyURL from "../../components/proxy_url";
 
 // click a link to focus it
 // - * adds a history breadcrumb
@@ -28,14 +30,7 @@ export default function ExplorerView(props: {
 }): JSX.Element {
     // linear-gradient(to bottom right, #15d46f, #4f15d4)
     return <div class="bg-gradient-to-br from-green-400 to-blue-600 h-screen relative">
-        <Window>
-            <WinTitlebar />
-            <div class="p-2">hello</div>
-        </Window>
-        <Window>
-            <WinTitlebar />
-            <div class="p-2">hello 2</div>
-        </Window>
+        <FileManager fs={mem_fs} />
     </div>;
 }
 
@@ -55,7 +50,7 @@ const winsize_provider = createContext<Signal<Winsize>>(readonlySignal(
     () => ({x: 0, y: 0, w: window.innerWidth, h: window.innerHeight}),
 ));
 
-function WinTitlebar(): JSX.Element {
+function WinTitlebar(props: {title: string}): JSX.Element {
     const [winsize, setWinsize] = useContext(winsize_provider);
     return <><div class="select-none" onmousedown={start_ev => {
         draglistener(start_ev, (e, mode) => {
@@ -72,7 +67,7 @@ function WinTitlebar(): JSX.Element {
                 <div class="max-lines max-lines-1">
                     <Content>
                         <span class="font-light text-sm">
-                            Files Manager · Shows Files · Showing Files
+                            {props.title}
                         </span>
                     </Content>
                 </div>
@@ -159,27 +154,13 @@ function draglistener(e: MouseEvent, cb: (e: MouseEvent, mode: "start" | "move" 
 
 // https://github.com/ianpreston/redditfs
 // someone did this nine years ago, fun. that's probably why I thought of it.
-type Fd = {
-    icon: string, // url. used for thumbnails.
+type FdWithoutKind = {
+    icon: null | string, // url. used for thumbnails.
     name: string,
-    content: FdContent, // fd[] for folders, uint8array for files
     updated_time: number, // put the create/edit time here
     // linux doesn't have a created time, so put it in the info.md
 };
-type FolderContent = {
-    kind: "list",
-    fds: Fd[],
-} | {
-    kind: "symlink",
-    to: string,
-};
-type FdContent = {
-    kind: "folder",
-    items: FolderContent,
-} | {
-    kind: "file",
-    content: FileContent,
-};
+type Fd = FdWithoutKind & {kind: "folder" | "file"};
 type FileContent = {
     type: "data",
     data: Uint8Array, // we'll use markdown for richtext. we'll need something to convert a markdown
@@ -189,6 +170,76 @@ type FileContent = {
     type: "image",
     url: string, // for web. on native, we'll download the image on read and return it as a Uint8Array
 };
+
+const metasym = Symbol("meta");
+
+class MemfsFile {
+    [metasym]: undefined | MemfsMeta;
+    content: FileContent;
+    constructor(content: Uint8Array) {
+        this.content = {type: "data", data: content};
+    };
+};
+type MemfsMeta = {icon: null | string, updated_time: null | number};
+type MemfsContent = {
+    [key: string]: MemfsContent,
+    [metasym]?: undefined | MemfsMeta,
+} | MemfsFile;
+
+interface Filesystem {
+    readdir(path: string): null | Fd[],
+};
+const mem_fs_content: MemfsContent = {
+    "photos": {
+        "test1.jpg": new MemfsFile(new Uint8Array(0)),
+        "test2.jpg": new MemfsFile(new Uint8Array(0)),
+    },
+};
+const mem_fs: Filesystem = {
+    readdir(path): null | Fd[] {
+        const dirpath = path.split("/").filter(w => w !== "");
+        let nav_pos: MemfsContent = mem_fs_content;
+        for(const nav of dirpath) {
+            if(nav_pos instanceof MemfsFile) return null;
+            if(!Object.hasOwn(nav_pos, nav)) return null;
+            nav_pos = nav_pos[nav]!;
+        }
+        if(nav_pos instanceof MemfsFile) return null;
+        return Object.entries(nav_pos).map(([k, v]): Fd => {
+            return {
+                icon: v[metasym]?.icon ?? null,
+                updated_time: v[metasym]?.updated_time ?? 0,
+                name: k,
+                kind: v instanceof MemfsFile ? "file" : "folder",
+            };
+        });
+    },
+};
+
+function FileManager(props: {fs: Filesystem}): JSX.Element {
+    const [cwd, setCwd] = createSignal<string>("/");
+    const dircont = createMemo(() => props.fs.readdir(cwd()));
+    return (
+        <Window>
+            <WinTitlebar title="Files" />
+            <Show when={dircont()} fallback={(
+                <Content>404 not found '{cwd()}'. <button onClick={() => {
+                    setCwd("/");
+                }}>Return home</button></Content>
+            )}>{dircon => (
+                <For each={dircon} children={dirv => (
+                    // https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/tree/master/Adwaita/32x32/mimetypes
+                    <div ondblclick={() => {
+                        setCwd(dirv.name);
+                    }}>
+                        <img src={proxyURL(dirv.icon ?? dirv.kind === "folder" ? "https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/raw/master/Adwaita/32x32/mimetypes/inode-directory.png" : "https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/raw/master/Adwaita/32x32/mimetypes/text-x-generic-template.png")} />
+                        {dirv.name}
+                    </div>
+                )} />
+            )}</Show>
+        </Window>
+    );
+}
 
 /*
 organization plan:
