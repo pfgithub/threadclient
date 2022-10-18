@@ -232,7 +232,7 @@ function FileManager(props: {fs: Filesystem}): JSX.Element {
                     <div ondblclick={() => {
                         setCwd(dirv.name);
                     }}>
-                        <img src={proxyURL(dirv.icon ?? dirv.kind === "folder" ? "https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/raw/master/Adwaita/32x32/mimetypes/inode-directory.png" : "https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/raw/master/Adwaita/32x32/mimetypes/text-x-generic-template.png")} />
+                        <img width={32} height={32} src={proxyURL(dirv.icon ?? dirv.kind === "folder" ? "https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/raw/master/Adwaita/32x32/mimetypes/inode-directory.png" : "https://gitlab.gnome.org/GNOME/adwaita-icon-theme/-/raw/master/Adwaita/32x32/mimetypes/text-x-generic-template.png")} />
                         {dirv.name}
                     </div>
                 )} />
