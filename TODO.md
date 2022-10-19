@@ -1,3 +1,39 @@
+# random mockup
+
+this is for cohost but imagine:
+
+https://i.imgur.com/QR4fdlH.png
+
+- subreddits, homepages, notification pages, … on a sidebar
+- post list
+- post content and replies when you focus a post
+
+and then that rightmost tab thing would transition left or something
+when you repivot and you can go back there or something
+
+or the rightmost tab would get replaced when you repivot
+
+anyway something we actually should import regardless of if we do that two-panel thing:
+
+- we should have a sidebar
+
+- Home:
+  - your subscribed stuff
+  - r/all
+  - r/mod
+  - …
+- Favourited Subr\*ddits:
+  - r/…
+  - r/…
+- User stuff:
+  - Notifications
+  - Mod notifications
+  - Chat
+  - Profile
+- TC stuff:
+  - Client settings
+  - Threadclient settings
+
 # f2 renaming
 
 'Post' / 'PostContent' / 'PostContentPost' ← these need renaming
