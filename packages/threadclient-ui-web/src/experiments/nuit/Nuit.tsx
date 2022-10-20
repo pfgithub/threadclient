@@ -1,5 +1,7 @@
 import { Accessor, createContext, createEffect, createMemo, createSignal, For, JSX, onCleanup, Signal, untrack, useContext } from "solid-js";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
+import { Content, Goal } from "../../components/nuit/Margin";
+import { Item, Stack } from "../../components/nuit/Stack";
 import "./Nuit.scss";
 
 /*
@@ -130,52 +132,6 @@ what we want:
     </C>;
 */
 
-type GoalContext = {
-    pt: number,
-    pb: number,
-    pl: number,
-    pr: number,
-};
-const default_goal: GoalContext = {
-    pt: 0,
-    pb: 0,
-    pl: 0,
-    pr: 0,
-};
-const goal_provider = createContext<GoalContext>(default_goal);
-// content goal size
-function Goal(props: {
-    pt: number,
-    pb: number,
-    pl: number,
-    pr: number,
-    // `p-${number}`: number // Reflect.ownKeys on props probably isn't tracked with solid js so this
-    // could work but only for the first run - if you need dynamic, you would have to use the real props
-    children: JSX.Element,
-}): JSX.Element {
-    const parent_goal = useContext(goal_provider);
-    return <goal_provider.Provider value={{
-        get pt() {return props.pt},
-        get pb() {return props.pb},
-        get pl() {return props.pl},
-        get pr() {return props.pr},
-    }}>
-        {props.children}
-    </goal_provider.Provider>;
-}
-function distUnit(num: number): string {
-    return `${num * 0.25}rem`;
-}
-function Content(props: {children: JSX.Element}): JSX.Element {
-    const parent_goal = useContext(goal_provider);
-    return <div style={{
-        'padding': `${distUnit(parent_goal.pt)} ${distUnit(parent_goal.pr)} ${distUnit(parent_goal.pb)} ${distUnit(parent_goal.pl)}`,
-    }}>
-        <goal_provider.Provider value={{pt: 0, pb: 0, pl: 0, pr: 0}}>
-            {props.children}
-        </goal_provider.Provider>
-    </div>;
-}
 /*
 hmm. stack is weird.
 - Image
@@ -199,116 +155,7 @@ alright so stack is working✓
 now, time to consider how to mix horizontal stacks with vertical stacks
 for now we can just make them fullscreen probably
 */
-type StackChild = {
-    kind: "item",
-    fullscreen: boolean,
-    fillrem: boolean,
-    content: JSX.Element,
-};
-const StackChildRaw = createTypesafeChildren<StackChild>();
-function Stack(props: {dir: "v" | "h", gap?: undefined | number, children: JSX.Element}): JSX.Element {
-    const children = StackChildRaw.useChildren(() => props.children);
-
-    const parent_goals = useContext(goal_provider);
-    const maxpmain = () => props.dir === "v" ? (
-        Math.min(parent_goals.pt, parent_goals.pb)
-    ) : (
-        Math.min(parent_goals.pl, parent_goals.pr)
-    );
-    const gapmain = () => props.gap ?? 0;
-
-    // a bit of a mess because we want to know information about the item above and below the
-    // target item without rerendering n² times
-    // - cleanup instructions:
-    //   - ChInfo describes the object to render
-    //   - StackData describes all the info required to calculate values for ChInfo
-    //   - we should make a fn to, given a StackChild and SackData, return a ChInfo made of getters
-    //   - we should abstract out the WeakMap handling into a tool specifically designed for these signal caches
-    //     because we need them all the time. it could even possibly use a map with explicit removal.
-    type ChInfo = {
-        pbefore: number, // child.fullscreen ? above_fullscreen ? props.gap : max() : 0
-        pafter: number, // !child.fullscreen && child.below_fullscreen ? props.gap : 0
-        fullscreen: boolean,
-        fillrem: boolean,
-        content: JSX.Element,
-    };
-    type StackData = {above_fullscreen: Signal<boolean>, below_fullscreen: Signal<boolean>};
-    const ch_map = new WeakMap<StackChild, ChInfo>();
-    const addCh = (v: StackChild): ChInfo => {
-        const existsv = ch_map.get(v);
-        if(existsv != null) return existsv;
-        const data = getData(v);
-        const res: ChInfo = {
-            get pbefore() {return !v.fullscreen ? data.above_fullscreen[0]() ? maxpmain() : gapmain() : 0},
-            get pafter() {return !v.fullscreen ? data.below_fullscreen[0]() ? maxpmain() : 0 : 0},
-            get fullscreen() {return v.fullscreen},
-            get fillrem() {return v.fillrem},
-            get content() {return v.content},
-        };
-        ch_map.set(v, res);
-        return res;
-    };
-    const are_edges_fullscreen = true;
-    const getData = (v: StackChild): StackData => {
-        const val = data_map.get(v);
-        if(val == null) {
-            const nv: StackData = {
-                above_fullscreen: createSignal(are_edges_fullscreen),
-                below_fullscreen: createSignal(are_edges_fullscreen),
-            };
-            data_map.set(v, nv);
-            return nv;
-        }
-        return val;
-    };
-    const updateData = (v: StackChild, prev: StackChild | null, next: StackChild | null) => {
-        const q = getData(v);
-        q.above_fullscreen[1](prev?.fullscreen ?? are_edges_fullscreen);
-        q.below_fullscreen[1](next?.fullscreen ?? are_edges_fullscreen);
-    }; 
-    const data_map = new WeakMap<StackChild, StackData>();
-    const chWithInfo = createMemo((): ChInfo[] => {
-        // !: keep the object reference the same across updates to prevent unneeded rerenders
-        // !: update the data map thing
-        const res: ChInfo[] = [];
-        const childrenv = children() ?? [];
-        for(const [i, item] of childrenv.entries()) {
-            const prev = childrenv[i - 1] ?? null;
-            const next = childrenv[i + 1] ?? null;
-            updateData(item, prev, next);
-            res.push(addCh(item));
-        }
-        return res;
-    });
-
-    return <div class={"flex " + (props.dir === "v" ? "flex-col" : "flex-row") + " flex-wrap"}>
-        <For each={chWithInfo()}>{child => {
-            return <>
-                <div style={props.dir === "v" ? {'padding-top': distUnit(child.pbefore)} : {'padding-left': distUnit(child.pbefore)}} />
-                <div class={child.fillrem ? "flex-1 " + (props.dir === "v" ? " h-0 " : " w-0 ") : (props.dir === "v" ? " w-full " : " h-full ")}>
-                    <goal_provider.Provider value={{
-                        get pt() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pt; else return 0; else return parent_goals.pt},
-                        get pb() {if(props.dir === "v") if(child.fullscreen) return parent_goals.pb; else return 0; else return parent_goals.pb},
-                        get pl() {if(props.dir === "v") return parent_goals.pl; else if(child.fullscreen) return parent_goals.pl; else return 0},
-                        get pr() {if(props.dir === "v") return parent_goals.pr; else if(child.fullscreen) return parent_goals.pr; else return 0},
-                    }}>
-                        {child.content}
-                    </goal_provider.Provider>
-                </div>
-                <div style={props.dir === "v" ? {'padding-top': distUnit(child.pafter)} : {'padding-left': distUnit(child.pafter)}} />
-            </>;
-        }}</For>    
-    </div>;
-}
 /// fullscreen objects do not combine mt/mb of surrounding elements.
-function Item(props: {fullscreen?: undefined | boolean, fillrem?: undefined | boolean, children: JSX.Element}): JSX.Element {
-    return <StackChildRaw
-        kind="item"
-        fullscreen={props.fullscreen ?? false}
-        fillrem={props.fillrem ?? false}
-        content={props.children}
-    />
-}
 // /// for specifying a custom gap between two nodes. the max of all gaps between two nodes will
 // /// be used as the final gap size. eg I1 gap-2 gap-4 gap-2 I2 : gap-4 will be used
 // function Igap(): JSX.Element {
@@ -337,6 +184,9 @@ function Scrollable(props: {dir: "v" | "h", children: JSX.Element}): JSX.Element
 // the goal of Nuit is to put all padding and margin at the last possible moment
 export default function Nuit(): JSX.Element {
     return <div class="max-w-xl mx-auto">
+        <div class="my-4">
+            <NavigationExperiment />
+        </div>
         <div class="my-4 bg-zinc-800 rounded-lg">
             <Goal pt={4} pb={4} pl={4} pr={4}>
                 <Stack dir="v" gap={2}>
@@ -347,7 +197,7 @@ export default function Nuit(): JSX.Element {
                                     ≡
                                 </Content>
                             </Item>
-                            <Item fillrem>
+                            <Item fillrem={{min_w: "20px"}}>
                                 <Content>
                                     <div class="text-lg font-bold">Object Title</div>
                                 </Content>
@@ -463,4 +313,81 @@ export default function Nuit(): JSX.Element {
             </div>
         </div>
     </div>;
+}
+
+function NavigationExperiment(): JSX.Element {
+    /*
+    - Notifications
+    - Modmail
+    - Chat
+
+    Feeds:
+    - Subscribed
+    - All
+    - Popular (what's the difference between this and all)
+    - Moderated
+
+    Favourites:
+    - r/SubOne
+    - r/SubTwo
+    - r/SubThree
+    - […show all subscribed]
+    */
+    return <Stack dir="v" gap={4}>
+        <Item>
+            <Stack dir="v">
+                <SidebarItem>Notifications</SidebarItem>
+                <SidebarItem>Modmail</SidebarItem>
+                <SidebarItem>Chat</SidebarItem>
+            </Stack>
+        </Item>
+        <Item>
+            <Stack dir="v">
+                <SidebarHeader>Feeds</SidebarHeader>
+                <Item>
+                    <Stack dir="v">
+                        <SidebarItem>Subscribed</SidebarItem>
+                        <SidebarItem>All</SidebarItem>
+                        <SidebarItem>Popular</SidebarItem>
+                        <SidebarItem>Moderated</SidebarItem>
+                    </Stack>
+                </Item>
+            </Stack>
+        </Item>
+        <Item>
+            <Stack dir="v">
+                <SidebarHeader>Favourites</SidebarHeader>
+                <Item>
+                    <Stack dir="v">
+                        <SidebarItem>r/SubOne</SidebarItem>
+                        <SidebarItem>r/SubTwo</SidebarItem>
+                        <SidebarItem>r/SubThree</SidebarItem>
+                        <SidebarItem>Show all subscribed</SidebarItem>
+                    </Stack>
+                </Item>
+            </Stack>
+        </Item>
+        <Item>
+            <Stack dir="v">
+                <SidebarHeader>You</SidebarHeader>
+                <Item>
+                    <Stack dir="v">
+                        <SidebarItem>Profile</SidebarItem>
+                        <SidebarItem>Settings</SidebarItem>
+                    </Stack>
+                </Item>
+            </Stack>
+        </Item>
+    </Stack>;
+}
+
+function SidebarHeader(props: {children: JSX.Element}): JSX.Element {
+    return <Item>
+        <span class="text-slate-600 dark:text-zinc-400 font-bold text-sm px-4">{props.children}</span>
+    </Item>;
+}
+function SidebarItem(props: {children: JSX.Element}): JSX.Element {
+    return <Item>
+        <div class="px-4 pl-6 py-1 hover:bg-slate-100 dark:hover:bg-zinc-700">{props.children}</div>
+    </Item>;
 }
