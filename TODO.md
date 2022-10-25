@@ -1,3 +1,5 @@
+there's a field 'num_duplicates' ← use it
+
 # random mockup
 
 this is for cohost but imagine:
