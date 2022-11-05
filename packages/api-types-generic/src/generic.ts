@@ -38,6 +38,94 @@ export type Page2Value<T> = {
 // replace_existing_immediately should be false on any data that can be gotten directly from a Base
 */
 
+export function validatePost<T>(link: Link<T>, res: T): T {
+    // how to validate a post:
+    // we'll have to find a better place to put this code
+    /*
+    const debug_mode = true;
+    let is_validating = false;
+    function validatePost<T>(link: Generic.Link<T>, res: T): T {
+        if(is_validating) return res;
+        is_validating = true;
+        try {
+            if(debug_mode) {
+                // heuristic to see if it looks like res looks like a generic.post
+                if(res != null && typeof res === "object" && 'kind' in res && (res as {'kind': unknown})["kind"] === "post" && 'url' in res) {
+                    const resurl = (res as {'url': unknown}).url;
+                    if(typeof resurl === "string") {
+                        if((res as {'disallow_pivot': undefined | boolean}).disallow_pivot ?? false) {
+                            // pass; the object cannot be pivoted and clicking it will redirect to its url rather than repivoting
+                        }else{
+                            // parse the url
+                            try{
+                                const upres = urlToOneLoader(resurl);
+                                if('kind' in upres) {
+                                    console.warn("*[ValidatePost]* URL DOES NOT CONTAIN BASE:", resurl, link);
+                                }else if(upres.pivot_loader == null) {
+                                    console.warn("*[ValidatePost]* NOT YET SUPPORTED URL:", resurl, link);
+                                }else if(upres.pivot_loader.key !== link){
+                                    console.error("*[ValidatePost]* URL PRODUCES DIFFERENT KEY:", resurl, "\n→", link, "\n←", upres.pivot_loader.key);
+                                }else{
+                                    // passsed
+                                }
+                            }catch(e) {
+                                console.error("*[ValidatePost]* URL ERRORS:", resurl, link, e);
+                            }
+                        }
+                    }else{
+                        // pass. null or undefined or some other type.
+                    }
+                }
+            }
+            return res;
+        } finally {
+            is_validating = false;
+        }
+    }
+    */
+    return res; // *TODO validate
+}
+
+// consider using the base .id() fn instead of json.stringify [!] not url
+// - turn base into a class that BaseClient/BaseSubredditT5/… extend
+// !!!! TODO: autoLinkgen will not last. we have to replace it with individual things.
+//
+// tid: ResTy extends … ? "p:" : ResTy extends … ? "c:" : …
+// or define different ones for different ResTys
+// possibly we make a seperate fn for fillds
+export function autoLinkgen<ResTy>(cid: string, base: unknown): NullableLink<ResTy> {
+    return p2.stringLink(cid + ":" + JSON.stringify(base));
+}
+export type AORes<Base, ResTy> = (content: Page2Content, base: Base) => Link<ResTy>;
+export function autoOutline<Base, ResTy>(
+    unique_consistent_id: string,
+    getContent: (content: Page2Content, base: Base, link: Link<ResTy>) => ResTy,
+): AORes<Base, ResTy> & { link: (base: Base) => Link<ResTy> } {
+    const getlink = (base: Base) => autoLinkgen<ResTy>(unique_consistent_id, base);
+    const res: AORes<Base, ResTy> = (content: Page2Content, base: Base): Link<ResTy> => {
+        const link = getlink(base);
+        return p2.fillLinkOnce(content, link, () => {
+            const resv = getContent(content, base, link);
+            validatePost(link, resv);
+            return resv;
+        });
+    };
+    return Object.assign(res, { link: getlink });
+}
+export function autoFill<Full, ResTy>(
+    getLink: (full: Full) => NullableLink<ResTy>,
+    getContent: (content: Page2Content, full: Full) => ResTy,
+): (content: Page2Content, full: Full) => Link<ResTy> {
+    return (content: Page2Content, full: Full): Link<ResTy> => {
+        const link = getLink(full);
+        return p2.fillLinkOnce(content, link, () => {
+            const resv = getContent(content, full);
+            validatePost(link, resv);
+            return resv;
+        });
+    };
+}
+
 export const p2 = {
     symbolLink<T>(debug_msg: string): NullableLink<T> {
         const value = Symbol(debug_msg) as NullableLink<T>;
@@ -284,6 +372,12 @@ export type LimitedIdentityCard = {
     // - you know there is no pfp
     pfp?: undefined | InfoPfp,
     main_counter?: undefined | CounterAction,
+    url: string, // ← this might not end up being right
+    client_id: string,
+    // on a limited identity card, we want limited identity data, and we want to be able to:
+    // - load the full identity card by hovering
+    // - load the page by clicking
+    // so probably we want both a url and a oneloader<filled identity card>
 
     raw_value: unknown,
 };
@@ -431,6 +525,24 @@ export type PostContent = ClientPost | {
     kind: "sort_wrapper",
     consistent: Link<ConsistentSortData>,
     selected_option_tag: string, // if it is not found in the sort_options array, it will be displayed last
+} | PostContentNotification;
+export type PostContentNotification = {
+    kind: "notification",
+    when: number,
+    notification: NotificationContent,
+};
+export type NotificationContent = {
+    kind: "like",
+    liker: Link<LimitedIdentityCard>,
+    liked: Link<Post>,
+    // the client can automatically collapse all the ones that like the same post
+} | {
+    kind: "any_rtspan",
+    spans: Richtext.Span[],
+} | {
+    kind: "todo",
+    actor?: null | Link<LimitedIdentityCard>,
+    text: string,
 };
 export type ConsistentSortData = {
     sort_options: SortOptions,

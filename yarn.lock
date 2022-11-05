@@ -3743,6 +3743,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"api-types-cohost@workspace:packages/api-types-cohost":
+  version: 0.0.0-use.local
+  resolution: "api-types-cohost@workspace:packages/api-types-cohost"
+  dependencies:
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.5.5
+  languageName: unknown
+  linkType: soft
+
 "api-types-generic@^1.0.0, api-types-generic@workspace:packages/api-types-generic":
   version: 0.0.0-use.local
   resolution: "api-types-generic@workspace:packages/api-types-generic"
@@ -15536,6 +15547,17 @@ fsevents@~2.3.2:
   languageName: unknown
   linkType: soft
 
+"threadclient-client-cohost@^1.0.0, threadclient-client-cohost@workspace:packages/threadclient-client-cohost":
+  version: 0.0.0-use.local
+  resolution: "threadclient-client-cohost@workspace:packages/threadclient-client-cohost"
+  dependencies:
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.5.5
+  languageName: unknown
+  linkType: soft
+
 "threadclient-client-faker@^1.0.0, threadclient-client-faker@workspace:packages/threadclient-client-faker":
   version: 0.0.0-use.local
   resolution: "threadclient-client-faker@workspace:packages/threadclient-client-faker"
@@ -15693,6 +15715,7 @@ fsevents@~2.3.2:
     solid-headless: ^0.10.12
     solid-js: ^1.3.14
     threadclient-client-base: ^1.0.0
+    threadclient-client-cohost: ^1.0.0
     threadclient-client-faker: ^1.0.0
     threadclient-client-mastodon: ^1.0.0
     threadclient-client-reddit: ^1.0.0

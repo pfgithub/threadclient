@@ -8,6 +8,7 @@ import { DefaultErrorBoundary, getWholePageRootContextOpt } from "../util/utils_
 import Header from "./Header";
 import OneLoader from "./OneLoader";
 import ClientPost, { ClientPostOpts } from "./Post";
+import Notification from "./Notification";
 
 const Submit = lazy(() => import("./Submit"));
 
@@ -67,6 +68,7 @@ export function ClientContent(props: {
         </>,
         special: special => <ClientContent content={special.fallback} opts={props.opts} />,
         error: emsg => <div>error {emsg.message}</div>,
+        notification: notifyc => <Notification notification={notifyc} />,
     }}</SwitchKind></DefaultErrorBoundary>;
 }
 

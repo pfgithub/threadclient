@@ -1,12 +1,10 @@
 import * as Generic from "api-types-generic";
-import { p2, rt } from "api-types-generic";
+import { autoFill, autoLinkgen, autoOutline, p2, rt, validatePost } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { assertNever, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
 import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
-
-const debug_mode = true;
 
 // * todo fix - we use JSON.stringify right now, but that keeps property order. eventually, that's going to become
 // a problem - two things with the same base are not going to have the same id because of property order.
@@ -188,46 +186,6 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
 type LowercaseString = string & {__is_ascii_lowercase: true};
 export function asLowercaseString(str: string): LowercaseString {
     return str.toLowerCase() as LowercaseString;
-}
-
-let is_validating = false;
-function validatePost<T>(link: Generic.Link<T>, res: T): T {
-    if(is_validating) return res;
-    is_validating = true;
-    try {
-        if(debug_mode) {
-            // heuristic to see if it looks like res looks like a generic.post
-            if(res != null && typeof res === "object" && 'kind' in res && (res as {'kind': unknown})["kind"] === "post" && 'url' in res) {
-                const resurl = (res as {'url': unknown}).url;
-                if(typeof resurl === "string") {
-                    if((res as {'disallow_pivot': undefined | boolean}).disallow_pivot ?? false) {
-                        // pass; the object cannot be pivoted and clicking it will redirect to its url rather than repivoting
-                    }else{
-                        // parse the url
-                        try{
-                            const upres = urlToOneLoader(resurl);
-                            if('kind' in upres) {
-                                console.warn("*[ValidatePost]* URL DOES NOT CONTAIN BASE:", resurl, link);
-                            }else if(upres.pivot_loader == null) {
-                                console.warn("*[ValidatePost]* NOT YET SUPPORTED URL:", resurl, link);
-                            }else if(upres.pivot_loader.key !== link){
-                                console.error("*[ValidatePost]* URL PRODUCES DIFFERENT KEY:", resurl, "\n→", link, "\n←", upres.pivot_loader.key);
-                            }else{
-                                // passsed
-                            }
-                        }catch(e) {
-                            console.error("*[ValidatePost]* URL ERRORS:", resurl, link, e);
-                        }
-                    }
-                }else{
-                    // pass. null or undefined or some other type.
-                }
-            }
-        }
-        return res;
-    } finally {
-        is_validating = false;
-    }
 }
 
 // Base is the minimum content required to create a filled link to a Generic.Post
@@ -414,45 +372,6 @@ type FullSubmitPage = {
     linkflair: Reddit.ApiLinkFlair | null, // only if about.data.link_flair_enabled
 };
 
-// consider using the base .id() fn instead of json.stringify [!] not url
-// - turn base into a class that BaseClient/BaseSubredditT5/… extend
-// !!!! TODO: autoLinkgen will not last. we have to replace it with individual things.
-//
-// tid: ResTy extends … ? "p:" : ResTy extends … ? "c:" : …
-// or define different ones for different ResTys
-function autoLinkgen<ResTy>(cid: string, base: unknown): Generic.NullableLink<ResTy> {
-    return Generic.p2.stringLink(cid + ":" + JSON.stringify(base));
-}
-type AORes<Base, ResTy> = (content: Generic.Page2Content, base: Base) => Generic.Link<ResTy>;
-function autoOutline<Base, ResTy>(
-    unique_consistent_id: string,
-    getContent: (content: Generic.Page2Content, base: Base, link: Generic.Link<ResTy>) => ResTy,
-): AORes<Base, ResTy> & {link: (base: Base) => Generic.Link<ResTy>} {
-    const getlink = (base: Base) => autoLinkgen<ResTy>(unique_consistent_id, base);
-    const res: AORes<Base, ResTy> = (content: Generic.Page2Content, base: Base): Generic.Link<ResTy> => {
-        const link = getlink(base);
-        return Generic.p2.fillLinkOnce(content, link, () => {
-            const resv = getContent(content, base, link);
-            validatePost(link, resv);
-            return resv;
-        });
-    };
-    return Object.assign(res, {link: getlink});
-}
-function autoFill<Full, ResTy>(
-    getLink: (full: Full) => Generic.NullableLink<ResTy>,
-    getContent: (content: Generic.Page2Content, full: Full) => ResTy,
-): (content: Generic.Page2Content, full: Full) => Generic.Link<ResTy> {
-    return (content: Generic.Page2Content, full: Full): Generic.Link<ResTy> => {
-        const link = getLink(full);
-        return Generic.p2.fillLinkOnce(content, link, () => {
-            const resv = getContent(content, full);
-            validatePost(link, resv);
-            return resv;
-        });
-    };
-}
-// possibly we make a seperate fn for fillds
 
 export const base_client = {
     url: (base: BaseClient): string | null => null,
@@ -884,6 +803,8 @@ const full_sidebar_widget = {
                                 main_counter: createSubscribeAction(
                                     sub_base.subreddit, community.subscribers, community.isSubscribed,
                                 ),
+                                url: "/r/"+community.name,
+                                client_id,
                                 raw_value: community,
                             },
                         },
