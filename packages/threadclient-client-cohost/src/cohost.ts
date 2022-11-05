@@ -206,32 +206,36 @@ export const full_notification = {
         },
     ),
     content: (full: FullNotification): Generic.NotificationContent => {
+        // TODO:
+        // - for reshares, show any tags. people put comments in tags sometimes
+        // - for quote reshares, show a full proper post
+        // - for comments, show the proper comment
         if(full.data.type === "like") {
             return {
                 kind: "todo",
                 actor: project_base.limitedIdCardLink({id: full.data.fromProjectId}),
-                text: "project " + full.data.fromProjectId + " liked your post " + full.data.toPostId + " (relationship: " + full.data.relationshipId + ")",
+                text: "liked your post " + full.data.toPostId + " (relationship: " + full.data.relationshipId + ")",
             };
         }
         if(full.data.type === "follow") {
             return {
                 kind: "todo",
                 actor: project_base.limitedIdCardLink({id: full.data.fromProjectId}),
-                text: "project " + full.data.fromProjectId + " followed you",
+                text: "followed you",
             };
         }
         if(full.data.type === "share") {
             return {
                 kind: "todo",
                 actor: project_base.limitedIdCardLink({id: full.data.fromProjectId}),
-                text: "project " + full.data.fromProjectId + " shared your post " + full.data.sharePostId + " to their post " + full.data.toPostId + (full.data.transparentShare ? "" : " and added a note"),
+                text: "shared your post " + full.data.sharePostId + " to their post " + full.data.toPostId + (full.data.transparentShare ? "" : " and added a note"),
             };
         }
         if(full.data.type === "comment") {
             return {
                 kind: "todo",
                 actor: project_base.limitedIdCardLink({id: full.data.fromProjectId}),
-                text: "project " + full.data.fromProjectId + " commented on the post " + full.data.toPostId + " in reply to " + full.data.inReplyTo + " with their comment " + full.data.commentId,
+                text: "commented on the post " + full.data.toPostId + " in reply to " + full.data.inReplyTo + " with their comment " + full.data.commentId,
             };
         }
         return {
