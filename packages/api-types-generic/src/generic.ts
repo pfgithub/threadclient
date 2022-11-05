@@ -456,6 +456,7 @@ export type PostContentPost = {
     // - if we use a Bio content type instead of a normal Post content type, we could maybe make it a little
     //   better
     author?: InfoAuthor | undefined,
+    author2?: undefined | Link<LimitedIdentityCard>,
     body: Body,
 
     collapsible: false | {default_collapsed: boolean},
@@ -541,8 +542,11 @@ export type NotificationContent = {
     spans: Richtext.Span[],
 } | {
     kind: "todo",
-    actor?: null | Link<LimitedIdentityCard>,
+    actor?: undefined | Link<LimitedIdentityCard>,
     text: string,
+} | {
+    kind: "post",
+    post: Link<Post>,
 };
 export type ConsistentSortData = {
     sort_options: SortOptions,

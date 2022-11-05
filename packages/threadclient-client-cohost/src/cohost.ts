@@ -1,8 +1,7 @@
 import * as Generic from "api-types-generic";
-import { autoFill, autoLinkgen, autoOutline, mnu, p2, rt } from "api-types-generic";
+import { autoFill, autoLinkgen, autoOutline, p2 } from "api-types-generic";
 import * as Cohost from "api-types-cohost";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
-import { assertNever, encodeQuery, updateQuery } from "tmeta-util";
 
 // https://trpc.io/
 // woah i want this for my apis
@@ -213,29 +212,29 @@ export const full_notification = {
         if(full.data.type === "like") {
             return {
                 kind: "todo",
-                actor: project_base.limitedIdCardLink({id: full.data.fromProjectId}),
+                actor: base_project.limitedIdCardLink({id: full.data.fromProjectId}),
                 text: "liked your post " + full.data.toPostId + " (relationship: " + full.data.relationshipId + ")",
             };
         }
         if(full.data.type === "follow") {
             return {
                 kind: "todo",
-                actor: project_base.limitedIdCardLink({id: full.data.fromProjectId}),
+                actor: base_project.limitedIdCardLink({id: full.data.fromProjectId}),
                 text: "followed you",
             };
         }
         if(full.data.type === "share") {
             return {
                 kind: "todo",
-                actor: project_base.limitedIdCardLink({id: full.data.fromProjectId}),
+                actor: base_project.limitedIdCardLink({id: full.data.fromProjectId}),
                 text: "shared your post " + full.data.sharePostId + " to their post " + full.data.toPostId + (full.data.transparentShare ? "" : " and added a note"),
             };
         }
         if(full.data.type === "comment") {
+            // "commented on the post " + full.data.toPostId + " in reply to " + full.data.inReplyTo + " with their comment " + full.data.commentId
             return {
-                kind: "todo",
-                actor: project_base.limitedIdCardLink({id: full.data.fromProjectId}),
-                text: "commented on the post " + full.data.toPostId + " in reply to " + full.data.inReplyTo + " with their comment " + full.data.commentId,
+                kind: "post",
+                post: base_comment.postId({uuid: full.data.commentId, on_post: {id: full.data.toPostId}}),
             };
         }
         return {
@@ -245,12 +244,86 @@ export const full_notification = {
     },
 };
 
-const project_base = {
+const base_post = {
+    postLink: (base: BasePost) => autoLinkgen<Generic.Post>("post_base→post_link", base),
+    asParent: (content: Generic.Page2Content, base: BasePost): Generic.PostParent => {
+        const id_loader = Generic.p2.fillLinkOnce(content, (
+            autoLinkgen<Generic.Opaque<"loader">>("post_base→as_parent_loader", base)
+        ), () => {
+            return opaque_loader.encode({
+                kind: "view_post",
+                base,
+            });
+        });
+        const id_filled = base_post.postLink(base);
+        return {
+            loader: {
+                kind: "vertical_loader",
+                key: id_filled,
+                request: id_loader,
+                temp_parents: [
+                    // acct
+                    //     base_account.asParent(content, base.on_acct)
+                    // client
+                    base_client.post(content, {}),
+                ],
+
+                load_count: null, autoload: false, client_id,
+            },
+        };
+    },
+};
+
+const base_comment = {
+    postId: (base: BaseComment) => autoLinkgen<Generic.Post>("comment_base→post_id", base),
+};
+const full_comment = {
+    fill: autoFill(
+        (full: FullComment) => base_comment.postId(full.on_base),
+        (content: Generic.Page2Content, full: FullComment): Generic.Post => {
+            return {
+                kind: "post",
+                content: {
+                    kind: "post",
+                    title: null, // coposts have this but not comments
+                    body: {
+                        kind: "text",
+                        content: full.data.comment.body,
+                        markdown_format: "none",
+                        client_id,
+                    },
+                    info: {
+                        creation_date: new Date(full.data.comment.postedAtISO).getTime(),
+                    },
+                    author2: base_project.limitedIdCardLink({id: full.data.poster.projectId}),
+                    collapsible: {default_collapsed: false},
+                },
+                internal_data: full,
+                parent: base_post.asParent(content, full.on_base.on_post),
+                replies: null, // TODO
+                url: null, // TODO :: so we have a problem:
+                // - to make the url, we need:
+                // - the parent post's 'filename'
+                // - the parent poster's 'handle' or whatever
+                // - but we get both of these through links
+                // - there is no way using the current setup to compute that
+                // * unless we assume that a full comment will always
+                //    contain these in the same query
+                // * but it doesn't because /api/comments or whatever
+                //    returns only the comments without this info
+                // - somehow, we need the client to compute  the url for us
+                client_id,
+            };
+        },
+    ),
+};
+
+const base_project = {
     limitedIdCardLink: (base: BaseProject) => autoLinkgen<Generic.LimitedIdentityCard>("project_base→limited_id_card", base),
 };
-const project_full = {
+const full_project = {
     limitedIdCard: autoFill(
-        (full: FullProject) => project_base.limitedIdCardLink(full.on_base),
+        (full: FullProject) => base_project.limitedIdCardLink(full.on_base),
         (content: Generic.Page2Content, full: FullProject): Generic.LimitedIdentityCard => {
             return {
                 name_raw: "@"+full.data.handle,
@@ -264,7 +337,7 @@ const project_full = {
         },
     ),
     fill: (content: Generic.Page2Content, project: FullProject) => {
-        project_full.limitedIdCard(content, project);
+        full_project.limitedIdCard(content, project);
     },
 };
 
@@ -273,6 +346,9 @@ type LoaderData = {
 } | {
     kind: "notifications",
     base: BaseNotificationsPage,
+} | {
+    kind: "view_post",
+    base: BasePost,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
@@ -286,9 +362,20 @@ export async function loadPage2v2(
 
 
         for(const project of Object.values(notify_data.projects)) {
-            project_full.fill(content, {
+            full_project.fill(content, {
                 on_base: {id: project.projectId},
                 data: project,
+            });
+        }
+        for(const comment of Object.values(notify_data.comments)) {
+            full_comment.fill(content, {
+                on_base: {
+                    uuid: comment.comment.commentId,
+                    on_post: {
+                        id: comment.comment.postId,
+                    },
+                },
+                data: comment,
             });
         }
 

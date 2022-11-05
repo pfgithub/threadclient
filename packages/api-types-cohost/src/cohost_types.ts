@@ -11,7 +11,7 @@ export type Comment = {
         commentId: string, // comment uuid
         deleted: boolean,
         postId: number,
-        postedAtIso: ISO,
+        postedAtISO: ISO,
         inReplyTo: null | string, // uuid of comment this is a reply to
         hasCohostPlus: boolean,
     },

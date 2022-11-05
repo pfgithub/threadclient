@@ -2,6 +2,7 @@ import * as Generic from "api-types-generic";
 import { JSX } from "solid-js";
 import { Show, SwitchKind, TimeAgo } from "tmeta-util-solid";
 import Clickable from "./Clickable";
+import { ClientContent } from "./page2";
 import ReadLink from "./ReadLink";
 import { RichtextSpans } from "./richtext";
 
@@ -23,6 +24,18 @@ export default function Notification(props: {notification: Generic.PostContentNo
                     </div>
                 )}</ReadLink>
             )}</Show> {todo.text}</div>,
+            post: (post) => <>
+                <ReadLink link={post.post} fallback={<div>
+                    post not found error
+                </div>}>{frame => (
+                    <ClientContent content={frame.content} opts={{
+                        client_id: frame.client_id,
+                        frame,
+                        flat_frame: null,
+                        id: post.post,
+                    }} hovering={false} whole_object_clickable={false} />
+                )}</ReadLink>
+            </>,
         }}</SwitchKind>
     </div>;
 }

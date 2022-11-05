@@ -10,7 +10,6 @@ import {
     classes, getSettings, getWholePageRootContextOpt, size_lt
 } from "../util/utils_solid";
 import { DropdownActionButton } from "./ActionButtonDropdown";
-import { HorizontalActionButton } from "./ActionButtonHorizontal";
 import { ShowAnimate } from "./animation";
 import { Body, summarizeBody } from "./body";
 import Clickable, { ClickAction } from "./Clickable";
@@ -27,6 +26,7 @@ import { LinkButton, UserLink } from "./links";
 import { postGetPage } from "./PageFlatItem";
 import Pfp from "./Pfp";
 import proxyURL from "./proxy_url";
+import ReadLink from "./ReadLink";
 
 function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
     const genv = createMemo(() => getThumbnailPreview(props.body));
@@ -404,6 +404,22 @@ export function PostTopBar(props: ClientPostProps & {
                             {author.name}
                         </UserLink>{" "}
                     </>}</Show>
+                    <Show when={props.content.author2}>{author_link => <ReadLink link={author_link} fallback={<>
+                        <div>author not found</div>
+                    </>}>{author => <>
+                        <Show if={
+                            props.visible && settings.authorPfp() === "on"
+                        } when={author.pfp} fallback={"By "}>{pfp => <>
+                            <Pfp pfp={pfp} class="w-8 h-8 inline-block align-middle" />
+                        </>}</Show>
+                        <UserLink
+                            client_id={author.client_id}
+                            href={author.url}
+                            color_hash={author.url}
+                        >
+                            {author.name_raw}
+                        </UserLink>{" "}
+                    </>}</ReadLink>}</Show>
                     <Show if={props.visible}>
                         <Show when={props.content.author}>{author => <>
                             <Show when={author.flair}>{flair => <>
