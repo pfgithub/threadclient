@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
-import { createEffect, createMemo, createSignal, JSX } from "solid-js";
+import { createEffect, createMemo, createSignal, JSX, untrack } from "solid-js";
 import { render } from "solid-js/web";
 import type { ThreadClient } from "threadclient-client-base";
 import { previewLink } from "threadclient-preview";
@@ -1630,7 +1630,7 @@ export function clientListing(
         }
     }
 
-    const [contentWarning, setContentWarning] = createSignal(false);
+    const [contentWarning, setContentWarning] = createSignal(content_warnings.length !== 0);
     const thumbnail_evhl: [() => void] = [() => void 0];
     {
         if(listing.thumbnail) {
@@ -1649,8 +1649,7 @@ export function clientListing(
 
             const body_hsc = hideshow(body_container);
 
-            if(content_warnings.length) {
-                setContentWarning(true);
+            if(untrack(() => contentWarning())) {
                 const cws = content_warnings;
                 const cwbox = el("div").adto(body_container);
                 cwbox.atxt("Content Warning"+(cws.length === 1 ? "" : "s")+": ");
