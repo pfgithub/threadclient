@@ -415,7 +415,7 @@ iframe {
 .thumbnail-content-warning {
     overflow: hidden;
 }
-.thumbnail-content-warning > * {
+.thumbnail-content-warning > .cw-target {
     filter: blur(25px);
 }
 .no-thumbnail {

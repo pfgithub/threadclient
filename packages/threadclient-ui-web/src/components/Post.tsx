@@ -273,7 +273,7 @@ export function Thumbnail(props: {
                 src={proxyURL(img.url)}
                 alt=""
                 class={classes(
-                    "w-full h-full object-cover rounded-md"
+                    "w-full h-full object-cover rounded-md cw-target"
                     // object-contain is nicer but we're using object-cover for now
                 )}
             />,
