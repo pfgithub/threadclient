@@ -67,13 +67,10 @@ ThreadClient:
 ┌──────┐┌────────┐┌──────────┐┌─┐
 │reddit││mastodon││hackernews││…│
 └┬─────┘└┬───────┘└┬─────────┘└┬┘
-┌▽───────▽─────────▽───────────▽┐
+┌v───────v─────────v───────────v┐
 │semantic                       │
-└┬──────────────────────────────┘
-┌▽───────────────┐
-│flat            │
-└┬─△──┬──────△──┬┘
-┌▽─┴┐┌▽──────┴┐┌▽┐
+└┬────┬─────────┬───────────────┘
+┌v──┐┌v───────┐┌v┐
 │web││terminal││…│
 └───┘└────────┘└─┘
 ```
@@ -81,23 +78,33 @@ ThreadClient:
 - `reddit`: packages/threadclient-client-reddit
 - `mastodon`: packages/threadclient-client-mastodon
 - `semantic`\*: packages/api-types-generic
-- `flat`: packages/threadclient-render-flatten
 - `web`: packages/threadclient-ui-web
-- `terminal`: terminal has not been implemented yet
-
-\* Note that ThreadClient is currently in the middle of a migration from old-style 'page1'
-data to newer, more semantic 'page2' data
+- `terminal`: terminal is very early in development and not really usable yet
 
 ThreadClient works by having different Clients that conform to the interface
-in `threadclient-client-base`. Clients return Generic data that is then
-converted in `threadclient-render-flatten` to data easy for common ui display.
-Data is then displayed.
+in `threadclient-client-base`. Clients return semantic data that is rendered by the UI.
 
-Note that ThreadClient is currently in the middle of a migration from the old
+\*: ThreadClient is currently partway through two migrations
 
-ThreadClient is currently in the middle of a migration to Solid JS and a new client structure. Some components in
-`src/components/` are only used in the new page2 format. This can be enabled in settings > developer
-options > page version "v2". Note that many pages do not yet work in page2.
+- Data format: 'page1' → 'page2' structure
+  - page1 requires reloading the page every time you click a post. a client returns
+    a somewhat-semantic description of the page that was visited.
+  - page2 gets closer to my original vision for threadclient, allowing you to click on
+    a post to pivot to it without refreshing the page. a client returns a database
+    of objects, and clicking 'load more' adds to the database.
+- Javascript framework: vanilla js `_stdlib.ts` → solid js
+  - page1 mostly renders with vanilla js, using some solid js components when possible to
+    avoid having two implementations of things
+  - `_stdlib.ts` is a wrapper around vanilla js dom methods to make them faster to write
+    (`let div = document.createElement("div"); parent.addChild(div)` → `el("div").adto(parent)`).
+    the plan is to rewrite or delete all code using these functions.
+  - solid js is a react-like framework that doesn't get slower when you update components higher
+    up in the heigherarchy. it seems to have roughly similar performance to the previous vanilla
+    js code, but maybe encourages slower patterns. right now, page2 is significantly slower than
+    page1 for navigating forwards/back and collapsing/expanding posts because of design decisions,
+    but I'm planning on changing it so it works like page1 for those actions. it's also slower at
+    loading very large comment pages and I likely can't fix that but am planning to mitigate it
+    by lazy displaying comments and maybe doing actual profiling and improving things.
 
 ## Questions
 
