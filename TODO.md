@@ -1,3 +1,15 @@
+# .
+
+we want to change how comments are displayed:
+
+- currently, comments are displayed in a single flat list
+  - this is nice for lazy loading, but not nice for animations
+- change it so comments are displayed in a tree in dom
+
+oh also why is there a show-animate around the post body? do we want to animate it sometimes?
+
+# .
+
 there's a field 'num_duplicates' ← use it
 
 # random mockup
