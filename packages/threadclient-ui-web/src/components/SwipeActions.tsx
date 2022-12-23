@@ -77,6 +77,11 @@ export default function SwipeActions(props: {
             if(e.pointerId !== id) return;
             const offset_x = e.clientX - initial_ev.clientX;
             const offset_y = e.clientY - initial_ev.clientY;
+            // TODO: we want to determine the angle from the vector to a left/right vector and check if
+            // check the abs of the dot product and check if it's >0.9 or smth
+            // const val = Math.abs(vec_dot(vec_normalize([offset_x, offset_y]), [1, 0]));
+            // const dist = vec_len([offset_x, offset_y])
+            // if(started || (dist > 10 && val >= 0.9))
             if(started || (Math.abs(offset_x) > 10 && Math.abs(offset_y) < Math.abs(offset_x))) {
                 started = true;
                 setXoff(offset_x);
