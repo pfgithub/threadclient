@@ -372,15 +372,20 @@ function isLoggedIn(): boolean {
     return true;
 }
 
+function proxyURL(url: string): string {
+    // warning: this code is copy/pasted in multiple files
+    // search and replace all versions
+    const use_mock = localStorage.getItem("--use-mock");
+    if(url.startsWith("http"/*s?://*/) && use_mock != null) {
+        return use_mock + url.replace(":/", "");
+    }
+    return url;
+}
 function baseURL(oauth: boolean) {
     const base = oauth ? "oauth.reddit.com" : "www.reddit.com";
     const res = "https://"+base;
 
-    const usemock = localStorage.getItem("--use-mock");
-    if(usemock != null) {
-        return usemock + res;
-    }
-    return res;
+    return proxyURL(res);
 }
 function pathURL(oauth: boolean, path: string, opts: {override?: undefined | boolean}) {
     const [pathname, query, hash] = splitURL(path);

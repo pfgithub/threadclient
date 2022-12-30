@@ -67,10 +67,18 @@ const genericHeader = (): Generic.Thread => ({
 function mkurl(host: string, ...bits: string[]): string {
     return "https://"+host+"/"+bits.join("/");
 }
+function proxyURL(url: string): string {
+    // warning: this code is copy/pasted in multiple files
+    // search and replace all versions
+    const use_mock = localStorage.getItem("--use-mock");
+    if(url.startsWith("http"/*s?://*/) && use_mock != null) {
+        return use_mock + url.replace(":/", "");
+    }
+    return url;
+}
 async function getResult<T>(auth: TokenResult | undefined, url: string, method: "GET" | "POST" = "GET"): Promise<T | {error: string}> {
     try {
-        const usemock = localStorage.getItem("--use-mock");
-        const [status, posts] = await fetch((usemock ?? "") + url, {
+        const [status, posts] = await fetch(proxyURL(url), {
             method,
             headers: {
                 'Accept': "application/json",
