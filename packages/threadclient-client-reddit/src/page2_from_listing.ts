@@ -161,7 +161,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
                 const [about] = await Promise.all([
                     redditRequest(`/r/${ec(subid)}/about`, {method: "GET", cache: true}),
                 ]);
-                const linkflair: Reddit.ApiLinkFlair = about.data.link_flair_enabled ? await (
+                const linkflair: Reddit.ApiLinkFlair = about.data.link_flair_enabled && about.data.can_assign_link_flair ? await (
                     redditRequest(`/r/${ec(subid)}/api/link_flair_v2`, {method: "GET", cache: true})
                 ) : [];
                 const sp_id = createSubmitPage(content, parsed.sub, subid, about, linkflair);
