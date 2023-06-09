@@ -1,0 +1,20 @@
+{
+  "name": "threadclient-client-lemmy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "eslint": "^7.29.0",
+    "eslint-config-tmeta": "^1.0.0",
+    "tsconfig-tmeta": "^1.0.0",
+    "typescript": "^4.5.5"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings 0 && tsc --noEmit",
+    "test": "true"
+  },
+  "dependencies": {
+    "lemmy-js-client": "^0.17.2-rc.24"
+  }
+}

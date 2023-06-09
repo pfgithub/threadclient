@@ -10516,6 +10516,15 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
+"lemmy-js-client@npm:^0.17.2-rc.24":
+  version: 0.17.2
+  resolution: "lemmy-js-client@npm:0.17.2"
+  dependencies:
+    node-fetch: 2.6.6
+  checksum: 3ab162fd73e024a33d91b0f03421c65acef937f2e85907d296d11f4086b9a12f3c4f2b455c51824a9fb1be8e150ccd1dec4b51912d7ba034928142c3726a0201
+  languageName: node
+  linkType: hard
+
 "leven@npm:^3.1.0":
   version: 3.1.0
   resolution: "leven@npm:3.1.0"
@@ -11635,6 +11644,15 @@ fsevents@~2.3.2:
   version: 1.0.0
   resolution: "node-domexception@npm:1.0.0"
   checksum: ee1d37dd2a4eb26a8a92cd6b64dfc29caec72bff5e1ed9aba80c294f57a31ba4895a60fd48347cf17dd6e766da0ae87d75657dfd1f384ebfa60462c2283f5c7f
+  languageName: node
+  linkType: hard
+
+"node-fetch@npm:2.6.6":
+  version: 2.6.6
+  resolution: "node-fetch@npm:2.6.6"
+  dependencies:
+    whatwg-url: ^5.0.0
+  checksum: ee8290626bdb73629c59722b75dcf4b9b6a67c1ed7eb9102e368479c4a13b56a48c2bb3ad71571e378e98c8b2c64c820e11f9cd39e4b8557dd138ad571ef9a42
   languageName: node
   linkType: hard
 
@@ -15567,6 +15585,18 @@ fsevents@~2.3.2:
     eslint: ^7.29.0
     eslint-config-tmeta: ^1.0.0
     threadclient-client-base: ^1.0.0
+    tsconfig-tmeta: ^1.0.0
+    typescript: ^4.5.5
+  languageName: unknown
+  linkType: soft
+
+"threadclient-client-lemmy@workspace:packages/threadclient-client-lemmy":
+  version: 0.0.0-use.local
+  resolution: "threadclient-client-lemmy@workspace:packages/threadclient-client-lemmy"
+  dependencies:
+    eslint: ^7.29.0
+    eslint-config-tmeta: ^1.0.0
+    lemmy-js-client: ^0.17.2-rc.24
     tsconfig-tmeta: ^1.0.0
     typescript: ^4.5.5
   languageName: unknown
