@@ -1,7 +1,7 @@
 {
   "name": "threadclient-client-lemmy",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/lemmy_client.ts",
   "license": "MIT",
   "private": true,
   "devDependencies": {

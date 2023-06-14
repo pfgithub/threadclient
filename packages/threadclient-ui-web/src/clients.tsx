@@ -7,6 +7,7 @@ const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     mastodon: () =>  import("threadclient-client-mastodon").then(client => client.client),
     shell: () =>  import("threadclient-client-shell").then(client => client.client),
     cohost: () =>  import("threadclient-client-cohost").then(client => client.client),
+    lemmy: () =>  import("threadclient-client-lemmy").then(client => client.client),
 };
 export async function fetchClient(name_any: string): Promise<ThreadClient | undefined> {
     const name = name_any.toLowerCase();
