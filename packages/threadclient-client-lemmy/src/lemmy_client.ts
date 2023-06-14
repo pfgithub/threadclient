@@ -1,7 +1,7 @@
-import { autoFill, autoLinkgen, autoOutline, p2 } from "api-types-generic";
+import { autoFill, autoLinkgen, autoOutline, p2, readLink } from "api-types-generic";
 import type * as Generic from "api-types-generic";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
-import { LemmyHttp } from 'lemmy-js-client';
+import { LemmyHttp, ListingType, SortType } from 'lemmy-js-client';
 
 export type BaseInstance = {
     hostname: string,
@@ -10,17 +10,45 @@ export type FilledInstance = {
 
 };
 
-export type BaseFeed = {};
+export type BaseFeed = {
+    // home feed only for now
+    // home: /, /home ( Post, Local, Active )
+    // subscribed: /home/data_type/Post/listing_type/Subscribed/sort/Active/page/1
+    // all: /home/data_type/Post/listing_type/All/sort/Active/page/1
+    //
+    // this is strange? these are url query parameters but in the url itself?
+    // interesting, you can get a comment feed with data_type=Comment
+    // oh, that's in the UI too
+
+    data_type: "Post" | "Comment",
+    listing_type: ListingType,
+    sort_type: SortType,
+};
 export type FilledFeed = {};
 
 export type BaseCommunity = {};
 export type FilledCommunity = {};
 
-export type BasePost = {};
-export type FilledPost = {};
+export type BasePost = {
+    id: string, // numeric post id '/post/:id'
+};
+export type FilledPost = {
+    // in_communities: BaseCommunity[]
+};
 
-export type BaseComment = {};
-export type FilledComment = {};
+export type BaseComment = {
+    id: string, // looks like comment urls are just '/comment/:id'
+};
+export type FilledComment = {
+    // parent: BaseComment | BasePost
+};
+
+const base_feed = {
+    postLink: (base: BasePost) => autoLinkgen<Generic.Post>("feed_base→link", base),
+    asParent: (content: Generic.Page2Content, base: BasePost): Generic.PostParent => {
+
+    },
+};
 
 export type UTLRes = {
     content: Generic.Page2Content,
@@ -45,6 +73,18 @@ export function urlToOneLoader(pathraw_in: string): UTLRes | UTLResAsync {
     }
 }
 
+type LoaderData = {
+    kind: "todo",
+} | {
+    kind: "feed",
+    base: BaseFeed,
+} | {
+    kind: "post",
+    base: BasePost,
+};
+const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
+
+
 export async function loadPage2v2(
     lreq: Generic.Opaque<"loader">,
 ): Promise<Generic.LoaderResult> {
@@ -67,12 +107,12 @@ export const client: ThreadClient = {
             v2res = await v2res.value();
         }
         if (v2res.pivot_loader != null) {
-            const rl_res = Generic.readLink(v2res.content, v2res.pivot_loader.key);
+            const rl_res = readLink(v2res.content, v2res.pivot_loader.key);
             if (rl_res != null) return {
                 content: v2res.content,
                 pivot: v2res.pivot_loader.key,
             };
-            const loadreq = Generic.readLink(v2res.content, v2res.pivot_loader.request);
+            const loadreq = readLink(v2res.content, v2res.pivot_loader.request);
             if (loadreq == null || loadreq.error != null) throw new Error("load fail: " + JSON.stringify(loadreq));
             const loadres = await loadPage2v2(loadreq.value);
             return { content: { ...v2res.content, ...loadres.content }, pivot: v2res.pivot_loader.key };
@@ -88,6 +128,7 @@ export const client: ThreadClient = {
 async function main() {
     const lemmy_client = new LemmyHttp("https://beehaw.org");
     const res = await lemmy_client.getSite({});
+    await lemmy_client.getPosts();
     console.log(res);
 }
 
