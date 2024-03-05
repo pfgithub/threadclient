@@ -1638,7 +1638,7 @@ export async function loadPage2v2(
             redditRequest(`/r/${ec(data.base.on_subreddit)}/about`, {method: "GET", cache: true})
         );
         const linkflair: Reddit.ApiLinkFlair = about.data.link_flair_enabled && about.data.can_assign_link_flair ? await (
-            redditRequest(`/r/${ec(data.base.on_subreddit)}/api/link_flair_v2`, {method: "GET", cache: true})
+            redditRequest(`/r/${ec(data.base.on_subreddit)}/api/link_flair_v2`, {method: "GET", cache: true, onerror: e => []})
         ) : [];
         full_submit.fill(content, {
             on_base: data.base,
