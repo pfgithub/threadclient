@@ -2125,31 +2125,8 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
         ) as Generic.Thread,
         client_id: client.id,
     };
-    if(listing.is_self) return {
-        kind: "array",
-        body: [
-            listing.rtjson.document.length
-                ? {kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})}
-                : listing.url === "https://www.reddit.com" + listing.permalink // isn't this what is_self is for? why am I doing this check?
-                ? {kind: "none"}
-                : {kind: "link", client_id: client.id, url: listing.url, embed_html: listing.media_embed?.content}, // does this code path ever get used?
-            listing.poll_data
-            ? {kind: "poll",
-                votable: "Cannot vote",
-                total_votes: listing.poll_data.total_vote_count,
-                choices: listing.poll_data.options.map(choice => ({
-                    name: choice.text,
-                    votes: choice.vote_count ?? "hidden",
-                    id: choice.id,
-                })),
-                vote_data: "",
-                select_many: false,
-                your_votes: listing.poll_data.user_selection != null ? [{id: listing.poll_data.user_selection}] : [],
-                close_time: listing.poll_data.voting_end_timestamp,
-            } : undefined,
-        ],
-    };
-    if(listing.gallery_data) return {
+    const arrayElems: Generic.Body[] = [];
+    if(listing.gallery_data) arrayElems.push({
         kind: "gallery",
         images: listing.gallery_data.items.map(gd => {
             if(!listing.media_metadata) throw new Error("missing media metadata");
@@ -2157,13 +2134,11 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
             if(!moreinfo) throw new Error("missing mediameta for "+gd.media_id);
             return mediaMetaToBody(moreinfo, gd.caption);
         })
-    };
-    if(listing.rpan_video) return {
+    }); else if(listing.rpan_video) arrayElems.push({
         kind: "video",
         source: {kind: "video", sources: [{url: listing.rpan_video.hls_url}]},
         gifv: false,
-    };
-    if(listing.preview && listing.preview.images.length === 1) {
+    }); else if(listing.preview && listing.preview.images.length === 1) {
         const image = listing.preview.images[0]!;
         if(image.variants.mp4) {
             const mp4 = image.variants.mp4;
@@ -2171,7 +2146,7 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
                 url: source.url,
                 quality: source.width + "×" + source.height,
             }));
-            return {
+            arrayElems.push({
                 kind: "video",
                 source: {
                     kind: "video",
@@ -2179,22 +2154,46 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
                     preview: [...sources].reverse(),
                 },
                 gifv: true,
-            };
-        }
-        if(listing.preview.enabled) {
+            });
+        } else if(listing.preview.enabled) {
             // not used on videos
             // TODO have sources on images that specify resolutions
             // in order to use lower quality versions when not in fullscreen
             // preview
-            return {
+            arrayElems.push({
                 kind: "captioned_image",
                 url: image.source.url,
                 w: image.source.width,
                 h: image.source.height,
-            };
+            });
         }
     }
-    return {kind: "link", client_id: client.id, url: listing.url, embed_html: listing.media_embed?.content};
+    if (arrayElems.length === 0 && listing.url !== "https://www.reddit.com" + listing.permalink) { // this is probably the same as !listing.is_self
+        arrayElems.push({kind: "link", client_id: client.id, url: listing.url, embed_html: listing.media_embed?.content});
+    }
+
+    if (listing.rtjson.document.length > 0) {
+        arrayElems.push({kind: "richtext", content: richtextDocument(listing.rtjson, {media_metadata: listing.media_metadata ?? {}})});
+    }
+    if (listing.poll_data) {
+        arrayElems.push({kind: "poll",
+            votable: "Cannot vote",
+            total_votes: listing.poll_data.total_vote_count,
+            choices: listing.poll_data.options.map(choice => ({
+                name: choice.text,
+                votes: choice.vote_count ?? "hidden",
+                id: choice.id,
+            })),
+            vote_data: "",
+            select_many: false,
+            your_votes: listing.poll_data.user_selection != null ? [{id: listing.poll_data.user_selection}] : [],
+            close_time: listing.poll_data.voting_end_timestamp,
+        });
+    }
+    
+    if (arrayElems.length === 1) return arrayElems[0]!;
+    if (arrayElems.length > 0) return {kind: "array", body: arrayElems};
+    return {kind: "none"};
 }
 
 export function getPostThumbnail(
