@@ -392,6 +392,19 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 <p class="my-2">
                     Uses the new page2 renderer.
                 </p>
+                <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Page2v2 Toggle</h3>
+                <SettingPicker
+                    setting={settings.page2v2Toggle}
+                    options={["off", "on", undefined]}
+                    name={v => ({
+                        'off': "No Toggle",
+                        'on': "2v2 Toggle",
+                        'default': "Default",
+                    } as const)[v ?? "default"]}
+                />
+                <p class="my-2">
+                    When in pagev2, if the page2v2 toggle should be shown.
+                </p>
                 <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Highlight Updates</h3>
                 <SettingPicker
                     setting={settings.dev.highlightUpdates}

@@ -137,7 +137,7 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
                 }}
             >
                 <GlobalPageRootViewer />
-                <div>
+                <Show if={getSettings().page2v2Toggle() === "on"}><div>
                     <ToggleButton
                         value={viewMode()}
                         setValue={v => v ? setViewMode(v) : void 0}
@@ -146,7 +146,7 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
                             ["2v2" as const, <>Page2v2</>],
                         ]}
                     />
-                </div>
+                </div></Show>
                 <DefaultErrorBoundary data={content}>{viewMode() === "2v1" ? untrack(() => {
                     const res = ClientPage({
                         pivot: page.pivot,
