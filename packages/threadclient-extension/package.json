@@ -9,20 +9,20 @@
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
     "@types/webextension-polyfill": "^0.8.3",
-    "chokidar": "^3.5.3",
+    "chokidar": "^3.6.0",
     "crx": "^5.0.1",
-    "eslint": "^8.13.0",
+    "eslint": "^8.57.1",
     "eslint-config-tmeta": "^1.0.0",
     "esno": "^0.16.3",
-    "fs-extra": "^10.0.1",
+    "fs-extra": "^10.1.0",
     "jszip-cli": "^1.4.24",
-    "kolorist": "^1.5.1",
+    "kolorist": "^1.8.0",
     "npm-run-all": "^4.1.5",
     "tsconfig-tmeta": "^1.0.0",
-    "typescript": "^4.6.3",
-    "vite": "^2.9.1",
-    "vite-plugin-solid": "^2.2.6",
-    "vite-plugin-windicss": "^1.8.3",
+    "typescript": "^4.9.5",
+    "vite": "3",
+    "vite-plugin-solid": "^2.11.10",
+    "vite-plugin-windicss": "^1.9.4",
     "web-ext": "^9.3.0"
   },
   "scripts": {
@@ -45,9 +45,9 @@
     "clear": "rm -r extension/"
   },
   "dependencies": {
-    "solid-js": "^1.3.14",
+    "solid-js": "^1.9.11",
     "tmeta-util": "^1.0.0",
-    "webext-bridge": "^5.0.4",
+    "webext-bridge": "^5.0.5",
     "webextension-polyfill": "^0.9.0"
   }
 }

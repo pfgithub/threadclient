@@ -15,22 +15,22 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/tap": "^15.0.6",
-    "autoprefixer": "^10.4.4",
-    "esbuild-register": "^3.3.2",
+    "@types/tap": "^15.0.12",
+    "autoprefixer": "^10.4.24",
+    "esbuild-register": "^3.6.0",
     "eslint": "^7.32.0",
     "eslint-config-tmeta": "^1.0.0",
     "jsdom": "^19.0.0",
-    "postcss": "^8.4.12",
-    "tailwindcss": "^3.0.23",
-    "tap": "^16.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "tap": "^16.3.10",
     "tsconfig-tmeta": "^1.0.0",
-    "typescript": "^4.6.3",
-    "vite": "^2.9.1",
-    "vite-plugin-solid": "^2.2.6"
+    "typescript": "^4.9.5",
+    "vite": "3",
+    "vite-plugin-solid": "^2.11.10"
   },
   "dependencies": {
-    "solid-js": "^1.3.14",
+    "solid-js": "^1.9.11",
     "tmeta-util": "^1.0.0",
     "tmeta-util-solid": "^1.0.0"
   }

@@ -14,12 +14,12 @@
     "eslint": "^7.32.0",
     "eslint-config-tmeta": "^1.0.0",
     "tsconfig-tmeta": "^1.0.0",
-    "typescript": "^4.6.3",
-    "vite": "^2.9.1",
-    "vite-plugin-solid": "^2.2.6"
+    "typescript": "^4.9.5",
+    "vite": "3",
+    "vite-plugin-solid": "^2.11.10"
   },
   "dependencies": {
-    "solid-js": "^1.3.14",
+    "solid-js": "^1.9.11",
     "tmeta-util": "^1.0.0",
     "tmeta-util-solid": "^1.0.0"
   }

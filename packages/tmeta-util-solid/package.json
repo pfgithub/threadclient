@@ -5,13 +5,13 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "eslint": "^8.13.0",
+    "eslint": "^8.57.1",
     "eslint-config-tmeta": "^1.0.0",
     "tsconfig-tmeta": "^1.0.0",
-    "typescript": "^4.6.3"
+    "typescript": "^4.9.5"
   },
   "dependencies": {
-    "solid-js": "^1.3.14",
+    "solid-js": "^1.9.11",
     "tmeta-util": "^1.0.0"
   },
   "scripts": {
