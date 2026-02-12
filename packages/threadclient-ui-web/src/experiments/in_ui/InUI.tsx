@@ -26,6 +26,7 @@ async function symmetricEncrypt(key: Uint8Array, msg: string): Promise<Uint8Arra
             name: "AES-GCM",
             iv,
         },
+        // @ts-expect-error
         await crypto.subtle.importKey("raw", key, {
             name: "AES-GCM",
         }, false, ["encrypt", "decrypt"]),
@@ -44,6 +45,7 @@ async function symmetricDecrypt(key: Uint8Array, emsg: Uint8Array): Promise<stri
             name: "AES-GCM",
             iv,
         },
+        // @ts-expect-error
         await crypto.subtle.importKey("raw", key, {
             name: "AES-GCM",
         }, false, ["encrypt", "decrypt"]),
