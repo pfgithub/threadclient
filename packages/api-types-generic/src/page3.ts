@@ -16,6 +16,15 @@ type NodeTheme = {
     kind: "post",
     display: "post" | "comment",
     title?: Driver<string | undefined>,
+    sort?: {
+        options: SortOption[],
+        current: Driver<string>,
+        // then with the selected option you would call like sort(Link<Node>, newOption)
+    },
+};
+type SortOption = {
+    name: string,
+    content: SortOption[] | string,
 };
 
 type Driver<T> = string & {__value: T};
