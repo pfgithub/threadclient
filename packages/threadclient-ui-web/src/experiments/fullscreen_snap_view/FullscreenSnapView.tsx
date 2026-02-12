@@ -18,6 +18,7 @@ import { getVideoSources, NativeVideoElement, VideoRef, VideoState } from "../..
 import proxyURL from "../../components/proxy_url";
 import { collapse_data_context } from "../../util/contexts";
 import { getWholePageRootContext } from "../../util/utils_solid";
+import { LinkButton, UserLink } from "../../components/links";
 
 /*
 Planned gestures:
@@ -535,7 +536,28 @@ function FullscreenPost(props: {
             <Flair flairs={props.content.flair ?? []} />
         </div>
         {desc_el}
-        <div class="">By u/author on r/subreddit</div>
+        <div class="">
+            <Show when={props.content.author}>{author => <>
+                {"By "}<UserLink
+                    client_id={author.client_id}
+                    href={author.link}
+                    color_hash={author.color_hash}
+                >
+                    {author.name}
+                </UserLink>{" "}
+            </>}</Show>
+            <Show when={props.content.author}>{author => <>
+                <Show when={author.flair}>{flair => <>
+                    <Flair flairs={flair} />{" "}
+                </>}</Show>
+            </>}</Show>
+            <Show when={props.content.info?.in}>{in_sr => <>
+                {" in "}<LinkButton
+                    action={{url: in_sr.link, client_id: in_sr.client_id}}
+                    style="previewable"
+                >{in_sr.name}</LinkButton>{" "}
+            </>}</Show>
+        </div>
         <div class=""><InfoBar post={props.content} opts={props.opts} /></div>
     </>} sidebar={<>
         <Show when={props.content.actions?.vote}>{voteact => <>
