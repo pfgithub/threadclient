@@ -11,7 +11,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "eslint": "^7.32.0",
+    "eslint": "^10.0.0",
     "eslint-config-tmeta": "^1.0.0",
     "tsconfig-tmeta": "^1.0.0",
     "typescript": "^5.9.3",

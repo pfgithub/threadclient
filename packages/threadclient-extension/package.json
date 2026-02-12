@@ -11,7 +11,7 @@
     "@types/webextension-polyfill": "^0.8.3",
     "chokidar": "^3.6.0",
     "crx": "^5.0.1",
-    "eslint": "^8.57.1",
+    "eslint": "^10.0.0",
     "eslint-config-tmeta": "^1.0.0",
     "esno": "^0.16.3",
     "fs-extra": "^10.1.0",

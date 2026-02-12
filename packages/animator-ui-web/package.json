@@ -5,7 +5,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "eslint": "^8.57.1",
+    "eslint": "^10.0.0",
     "eslint-config-tmeta": "^1.0.0",
     "firebase-bolt": "^0.8.4",
     "firebase-bolt-compiler": "^1.2.9",

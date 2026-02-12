@@ -7,7 +7,7 @@
   "devDependencies": {
     "@types/node": "^17.0.45",
     "enquirer": "^2.4.1",
-    "eslint": "^8.57.1",
+    "eslint": "^10.0.0",
     "eslint-config-tmeta": "^1.0.0",
     "ts-node": "^10.9.2",
     "tsconfig-tmeta": "^1.0.0",

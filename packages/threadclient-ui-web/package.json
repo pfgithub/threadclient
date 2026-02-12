@@ -25,7 +25,7 @@
     "api-types-mastodon": "^1.0.0",
     "api-types-oembed": "^1.0.0",
     "api-types-reddit": "^1.0.0",
-    "eslint": "^8.57.1",
+    "eslint": "^10.0.0",
     "eslint-config-tmeta": "^1.0.0",
     "tmeta-util": "^1.0.0",
     "tmeta-util-solid": "^1.0.0",

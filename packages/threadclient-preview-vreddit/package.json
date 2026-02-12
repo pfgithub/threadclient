@@ -6,7 +6,7 @@
   "private": true,
   "devDependencies": {
     "api-types-generic": "^1.0.0",
-    "eslint": "^8.57.1",
+    "eslint": "^10.0.0",
     "eslint-config-tmeta": "^1.0.0",
     "threadclient-preview-vreddit": "^1.0.0",
     "tsconfig-tmeta": "^1.0.0",
