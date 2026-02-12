@@ -22,6 +22,8 @@ jobs:
 
       - name: Install
         run: yarn install
+      - name: Typecheck
+        run: yarn typecheck
       - name: Lint
         run: echo disabled lint WARNING yarn lint
       - name: Test

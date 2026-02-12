@@ -11,6 +11,7 @@ jobs:
       - name: Install and Build 🔧
         run: |
           yarn install
+          yarn typecheck
           yarn lint
           yarn test
           yarn workspace animator-ui-web build
