@@ -59,6 +59,7 @@ document.head.appendChild(stylel);
 let disable_ev_lsn = false;
 
 function onVisualViewportChange() {
+    if (!visualViewport) return;
     const value = visualViewport.scale < 0.999 || visualViewport.scale > 1.001;
     document.documentElement.classList.toggle("e-zoomed", value);
     canvas.style.display = value ? "none" : "";
@@ -70,11 +71,15 @@ function onVisualViewportChange() {
     eech.style.transform = "translate(" + offset_left + "px," + offset_top + "px) " + "scale(" + 1/visualViewport.scale + ")";
 }
 
-visualViewport.addEventListener("resize", onVisualViewportChange);
-visualViewport.addEventListener("scroll", onVisualViewportChange);
+if (visualViewport) {
+    visualViewport.addEventListener("resize", onVisualViewportChange);
+    visualViewport.addEventListener("scroll", onVisualViewportChange);
+}
 onCleanup(() => {
-    visualViewport.removeEventListener("resize", onVisualViewportChange);
-    visualViewport.removeEventListener("scroll", onVisualViewportChange);
+    if (visualViewport) {
+        visualViewport.removeEventListener("resize", onVisualViewportChange);
+        visualViewport.removeEventListener("scroll", onVisualViewportChange);
+    }
     document.documentElement.classList.remove("e-zoomed");
     disable_ev_lsn = true;
     // cleanupGesRec();
@@ -350,7 +355,7 @@ canvas.style.objectPosition = "top left";
 // const view = new UIView();
 // view.add(new UILabel("Test"));
 
-if(!('requestIdleCallback' in window)) {
+if(!('requestIdleCallback' as string in window)) {
     window.requestIdleCallback = cb => (cb({
         didTimeout: false,
         timeRemaining: () => 0,

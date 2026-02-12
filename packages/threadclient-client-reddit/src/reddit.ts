@@ -3599,8 +3599,8 @@ async (cond: boolean, use: <T>(v: T) => void) => {
 
 export async function redditRequest<Path extends keyof Reddit.Requests, Extra = never>(
     path: Path,
-    opts: RequestOpts<Reddit.Requests[Path], Extra>,
-): Promise<Reddit.Requests[Path]["response"] | Extra> {
+    opts: RequestOpts<Reddit.Requests[NoInfer<Path>], Extra>,
+): Promise<Reddit.Requests[NoInfer<Path>]["response"] | NoInfer<Extra>> {
     const optsmode = (opts as unknown as {mode: undefined | "urlencoded" | "json"}).mode;
     // TODO if error because token needs refreshing, refresh the token and try again
     try {

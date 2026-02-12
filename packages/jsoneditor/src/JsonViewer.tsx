@@ -52,7 +52,7 @@ export function StoreViewerElement(props: {
 }): JSX.Element {
   const color = () => colors[props.level % colors.length |0]!;
 
-  return createMemo((): JSX.Element => {
+  return <>{createMemo((): JSX.Element => {
     const pv = anGet(props.node);
     if(typeof pv === "object" && pv != null) return untrack((): JSX.Element => {
       return <span>
@@ -85,7 +85,7 @@ export function StoreViewerElement(props: {
     }); else return untrack((): JSX.Element => {
       return <span class={color()}>{pv === undefined ? "#E_UNDEFINED" : JSON.stringify(pv)}</span>;
     });
-  });
+  })}</>;
 }
 export function StoreViewer(props: {
   node: AnNode<unknown>,

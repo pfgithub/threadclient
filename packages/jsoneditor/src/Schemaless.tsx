@@ -154,10 +154,10 @@ function ListEditor<T>(props: {
             </Show>
             <div class={"flex flex-row flex-wrap gap-2 "+(dragging() ? "relative z-10" : "")}>
                 <DragButton class={"p-2 rounded-md "+(dragging() ? "bg-gray-500" : "bg-gray-700")}>≡</DragButton>
-                {(() => {
+                <>{(() => {
                     const node = props.node;
                     return untrack(() => props.children(node[key]!));
-                })}
+                })}</>
             </div>
         </div>;
     }}</DraggableList></div>;
@@ -195,7 +195,7 @@ function Demo1Editor(props: {node: AnNode<Demo1>}): JSX.Element {
     return <>
         <div class="space-y-2">
             <HeadingValue title="people">
-                <UIState node={props.node} key="-MyT2dMV6gueGDtP8Pjk" defaultValue={() => null}>{selection => <>
+                <UIState<string | null> node={props.node} key="-MyT2dMV6gueGDtP8Pjk" defaultValue={() => null}>{selection => <>
                     <Tabs selection={selection}>
                         <AnFor node={props.node.people}>{(person, key) => <>
                             <Tab key={key} title={anString(person.name) ?? key}>
@@ -266,11 +266,11 @@ function ButtonsEditor(props: {node: AnNode<{[key: string]: Button}>}): JSX.Elem
 }
 
 function RebindEditor(props: {node: AnNode<Rebind>}): JSX.Element {
-    return <UIState node={props.node} key="-MyT2Tal3z7dM8rw3WCb" defaultValue={() => null}>{selection => <>
+    return <UIState<string | null> node={props.node} key="-MyT2Tal3z7dM8rw3WCb" defaultValue={() => null}>{selection => <>
         <Tabs selection={selection}>
             <Tab key="-MyOCtdMuvfiPHZ0GCN5" title="buttons" data={props.node.buttons}>{buttons => <>
                 {/* TODO HSplit I think */}
-                <UIState node={props.node} key="-MyT2W5uqBcPDOOicF6m" defaultValue={() => null}>{selection2 => <>
+                <UIState<string | null> node={props.node} key="-MyT2W5uqBcPDOOicF6m" defaultValue={() => null}>{selection2 => <>
                     <Tabs selection={selection2}>
                         <Tab key="-MyOCyh-4puuqyb8l94D" title="input" data={buttons.input}>{input => <>
                             <ButtonsEditor node={input} />
@@ -304,7 +304,7 @@ type Schema = {
 };
 
 export default function Schemaless(props: {node: AnNode<Schema>}): JSX.Element {
-    return <UIState node={props.node} key="-MyT2DloSFkzpMNrgAWd" defaultValue={() => null}>{selection => <>
+    return <UIState<string | null> node={props.node} key="-MyT2DloSFkzpMNrgAWd" defaultValue={() => null}>{selection => <>
         <Tabs selection={selection}>
             <Tab key="-MyOD-qlo6NuV_DvBe6p" title="demo1">
                 <Demo1Editor node={props.node.demo1} />

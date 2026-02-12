@@ -20,6 +20,7 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
         browser_specific_settings: {
             gecko: {
                 id: "@threadclient-extension",
+                // @ts-expect-error
                 data_collection_permissions: {
                     required: ["none"]
                 },

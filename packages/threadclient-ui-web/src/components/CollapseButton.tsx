@@ -5,7 +5,7 @@ import { navbar } from "../router";
 import {
     classes,
 } from "../util/utils_solid";
-import { CollapseData, getCState } from "./flatten";
+import { PerPostData, getCState } from "./flatten";
 import { InternalIcon } from "./Icon";
 
 // ok
@@ -46,7 +46,7 @@ export function CollapseButton(props: {
     class?: undefined | string,
     onClick: () => void,
     mode: "fake" | "collapse_only" | "reveal_only",
-    cstates?: undefined | CollapseData,
+    cstates?: undefined | PerPostData,
     threaded?: undefined | boolean,
     id?: undefined | Generic.Link<Generic.Post>,
 }): JSX.Element {
@@ -88,7 +88,7 @@ export function CollapseButton(props: {
             const visualTop = () => 5 + Math.max(
                 0, 
                 navbar_size.bottom,
-                window.visualViewport.offsetTop,
+                window.visualViewport?.offsetTop ?? 0,
             );
             if(orig_button) {
                 const orig_size = orig_button.getBoundingClientRect();

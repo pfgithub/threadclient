@@ -278,7 +278,6 @@ export async function main(opts: {
             return scupdate();
         }else if(key.name === "c") {
             console.log("code");
-            console.log(focus);
             return;
         }else if(key.name === "s") {
             scupdate();

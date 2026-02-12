@@ -36,15 +36,19 @@ function testsample(doc: Reddit.Richtext.Document) {
 }
 
 
+// @ts-expect-error
 test("richtext sample 1", () => {
     // https://thread.pfg.pw/#reddit/r/Solo_Roleplaying/comments/x99b3q/kult_rpg_solo_play_example/inqztdb/?context=3&sort=new
+    // @ts-expect-error
     expect(`
-    [I almost got a solo game of ][_Kult_][ going, but I switched to ][_Silent Legions_][ instead. Although the Machine City in Metropolis seemed to bleed through into my game anyways, so...]
-    `.trim(), testsample({"document":[{"c":[{"e":"text","t":"I almost got a solo game of Kult going, but I switched to Silent Legions instead. Although the Machine City in Metropolis seemed to bleed through into my game anyways, so...","f":[[2,28,4],[2,58,14]]}],"e":"par"}]}));
+        [I almost got a solo game of ][_Kult_][ going, but I switched to ][_Silent Legions_][ instead. Although the Machine City in Metropolis seemed to bleed through into my game anyways, so...]
+        `.trim(), testsample({"document":[{"c":[{"e":"text","t":"I almost got a solo game of Kult going, but I switched to Silent Legions instead. Although the Machine City in Metropolis seemed to bleed through into my game anyways, so...","f":[[2,28,4],[2,58,14]]}],"e":"par"}]}));
 });
+// @ts-expect-error
 test("regression #10", () => {
     // https://github.com/pfgithub/threadclient/issues/10
     // https://thread.pfg.pw/#reddit/r/modnews/comments/14n9426/accessibility_updates_to_mod_tools_part_2/jq67gvk/?context=3&sort=confidence
+    // @ts-expect-error
     expect(testsample({"document":[
         {"c":[{"e":"text","t":"I just want to make sure more admins see many of the existing bugs that still exist in the moderator workflow on mobile. I posted this 4 days ago to Mod Support."}],"e":"par"},
         {"c":[{"u":"https://www.reddit.com/r/ModSupport/comments/14jkqiy/this_is_the_current_experience_moderating_on/","e":"link","t":"This is the Current Experience Moderating on Mobile"}],"e":"par"},

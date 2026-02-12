@@ -380,7 +380,7 @@ export function createAppData<T>(): AnNode<T> {
         undo_index: 0,
         undos_signal: createSignal(undefined, {equals: () => false}),
 
-        performance: createSignal(null),
+        performance: createSignal<{times: [string, number][]} | null>(null),
     };
     return anConstructor(root, []);
 }

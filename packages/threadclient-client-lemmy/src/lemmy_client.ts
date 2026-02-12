@@ -45,9 +45,9 @@ export type FilledComment = {
 
 const base_feed = {
     postLink: (base: BasePost) => autoLinkgen<Generic.Post>("feed_base→link", base),
-    asParent: (content: Generic.Page2Content, base: BasePost): Generic.PostParent => {
+    // asParent: (content: Generic.Page2Content, base: BasePost): Generic.PostParent => {
 
-    },
+    // },
 };
 
 export type UTLRes = {
@@ -57,20 +57,21 @@ export type UTLRes = {
 export type UTLResAsync = { kind: "async", value: () => Promise<UTLRes> };
 export function urlToOneLoader(pathraw_in: string): UTLRes | UTLResAsync {
     const content: Generic.Page2Content = {};
-    if(pathraw_in === "/demo") {
-        const feed_base: BaseFeed = {};
+    // if(pathraw_in === "/demo") {
+    //     const feed_base: BaseFeed = {};
 
-        return {
-            content,
-            pivot_loader: p2.prefilledOneLoader(
-                content,
-                base_feed.post(content, feed_base),
-                undefined,
-            ),
-        };
-    }else{
-        throw new Error("unsupported path");
-    }
+    //     return {
+    //         content,
+    //         pivot_loader: p2.prefilledOneLoader(
+    //             content,
+    //             base_feed.post(content, feed_base),
+    //             undefined,
+    //         ),
+    //     };
+    // }else{
+    //     throw new Error("unsupported path");
+    // }
+    throw new Error("unsupported path");
 }
 
 type LoaderData = {
@@ -128,7 +129,7 @@ export const client: ThreadClient = {
 async function main() {
     const lemmy_client = new LemmyHttp("https://beehaw.org");
     const res = await lemmy_client.getSite({});
-    await lemmy_client.getPosts();
+    // await lemmy_client.getPosts();
     console.log(res);
 }
 

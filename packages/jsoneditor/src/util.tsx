@@ -25,8 +25,8 @@ export function SwitchKind<T extends {kind: string}>(props: {
   item: T,
   children: {[Key in T["kind"]]: MatchFn<T, Key, JSX.Element>},
 }): JSX.Element {
-  return createMemo(() => {
+  return <>{createMemo(() => {
       const match = switchKindCB<JSX.Element>(props.item, props.children);
       return match();
-  });
+  })}</>;
 }

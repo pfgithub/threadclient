@@ -25,7 +25,7 @@ function RichtextLink(props: {rts: Generic.Richtext.LinkSpan}): JSX.Element {
     const settings = getSettings();
     return <span title={props.rts.title}><Switch>
         <Match when={props.rts.is_user_link != null && props.rts.is_user_link}>{color_hash => (
-            <UserLink client_id={props.rts.client_id} color_hash={color_hash} href={props.rts.url}>
+            <UserLink client_id={props.rts.client_id} color_hash={color_hash()} href={props.rts.url}>
                 <RichtextSpans spans={props.rts.children} />
             </UserLink>
         )}</Match>

@@ -213,7 +213,7 @@ export const hmr = {
 };
 
 if(import.meta.hot) {
-    import.meta.hot.accept((new_mod: typeof import("./apply_action")) => {
-        hmr.onAccept(new_mod);
+    import.meta.hot.accept((new_mod) => {
+        hmr.onAccept(new_mod as unknown as typeof import("./apply_action"));
     });
 }

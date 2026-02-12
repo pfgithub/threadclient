@@ -7,7 +7,7 @@
         "noImplicitReturns": true,
         //"exactOptionalPropertyTypes": true, // TODO
         "importsNotUsedAsValues": "remove",
-        "target": "es2019",
+        "target": "esnext",
         "module": "ESNext",
         "moduleResolution": "node",
         "esModuleInterop": true,

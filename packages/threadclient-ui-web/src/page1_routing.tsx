@@ -158,7 +158,7 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
                     });
                     // TODO: set current url in url bar to the res url but only when visible
 
-                    return () => res.children;
+                    return <>{() => res.children}</>;
                 }) : <Page2v2 pivot={page.pivot} />}</DefaultErrorBoundary>
             </PageRootProvider>
         </DefaultErrorBoundary>;

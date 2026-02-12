@@ -160,7 +160,7 @@ export default function System(): JSX.Element {
                             <Horizontal>
                                 <Child>
                                     <div class="h-full px-2 p-1">
-                                        {window.title}
+                                        {window.title()}
                                     </div>
                                 </Child>
                                 <Spacer />

@@ -213,7 +213,7 @@ function FullscreenGallery(props: {
 
     const currentDescs = createMemo(() => {
         const i = currentIndex();
-        const c_desc = object_descriptions[i] ??= createSignal([]);
+        const c_desc = object_descriptions[i] ??= createSignal<JSX.Element[]>([]);
 
         const itms = c_desc[0]();
         return itms;
@@ -263,7 +263,7 @@ function FullscreenGallery(props: {
                             const dc = [description];
                             createEffect(() => {
                                 const iv = i();
-                                const objdsc = object_descriptions[iv] ??= createSignal([]);
+                                const objdsc = object_descriptions[iv] ??= createSignal<JSX.Element[]>([]);
                                 const itms = untrack(() => objdsc[0]());
                                 itms.push(dc);
                                 onCleanup(() => {

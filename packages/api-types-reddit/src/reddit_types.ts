@@ -1384,7 +1384,7 @@ export type Requests = {
         response: "no",
     }>,
     [key: `/r/${PathBit}/api/widgets`]: IsRequest<{
-        query: {
+        query?: {
             progressive_images?: JStr<boolean> | undefined,
         },
         response: ApiWidgets,

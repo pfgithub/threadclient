@@ -433,7 +433,7 @@ async function worldGame(t: Term): Promise<void> {
         return item;
     }
 
-    let setSectionInteractive: null | Setter<false> = null;
+    let setSectionInteractive: null | Setter<boolean> = null;
 
     while(true) {
         const [printcmd, setPrintcmd] = createSignal("");
@@ -933,7 +933,7 @@ async function app(t: Term): Promise<void> {
 
     // TODO: set the URL of the page we're on to match the cwd
 
-    let setSectionInteractive: null | Setter<false> = null;
+    let setSectionInteractive: null | Setter<boolean> = null;
 
     while(true) {
         const [printcmd, setPrintcmd] = createSignal<string>("");

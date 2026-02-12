@@ -1400,7 +1400,7 @@ export function clientContent(
         console.log("Got error", e); 
         frame.innerHTML = "";
         frame.adch(el("pre").adch(el("code").atxt(
-            (e as Error).toString() + "\n\n" + (e as Error).stack ?? "*no stack*"
+            (e as Error).toString() + "\n\n" + ((e as Error).stack ?? "*no stack*")
         )));
         frame.adch(elButton("code-button").atxt("Code")
             .onev("click", (err) => {err.stopPropagation(); console.log(listing)})
@@ -2577,12 +2577,12 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
 
             vanillaToSolidBoundary(res, () => <>
                 <DefaultErrorBoundary data={""}>
-                    {createMemo(() => {
+                    <>{createMemo(() => {
                         shouldReload();
                         return <term.default reloadSelf={() => {
                             setReload(undefined);
                         }} />;
-                    })}
+                    })}</>
                 </DefaultErrorBoundary>
             </>).defer(hsc);
             return hsc;
@@ -2601,12 +2601,12 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
 
             vanillaToSolidBoundary(res, () => <>
                 <DefaultErrorBoundary data={""}>
-                    {createMemo(() => {
+                    <>{createMemo(() => {
                         shouldReload();
                         return <term.default reloadSelf={() => {
                             setReload(undefined);
                         }} />;
-                    })}
+                    })}</>
                 </DefaultErrorBoundary>
             </>).defer(hsc);
             return hsc;
@@ -2626,10 +2626,10 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
     
             vanillaToSolidBoundary(res, () => <>
                 <DefaultErrorBoundary data={""}>
-                    {createMemo(() => {
+                    <>{createMemo(() => {
                         shouldReload();
                         return <term.default />;
-                    })}
+                    })}</>
                 </DefaultErrorBoundary>
             </>).defer(hsc);
             return hsc;

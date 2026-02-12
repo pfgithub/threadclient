@@ -15,13 +15,13 @@ export function SwitchKind<T extends {kind: string}>(props: {
     // not explicitly matched in children. not sure how though
     children: {[Key in T["kind"]]?: undefined | MatchFn<T, Key, JSX.Element>},
 }): JSX.Element {
-    return createMemo(() => {
+    return <>{createMemo(() => {
         const match = switchKindCB<JSX.Element>(props.item, 'fallback' in props ? {
             ...props.children,
             unsupported: props.fallback,
         } : props.children);
         return untrack(() => match());
-    });
+    })}</>;
 }
 
 export function Show<T>(props: {
@@ -35,7 +35,7 @@ export function Show<T>(props: {
     fallback?: undefined | JSX.Element,
 }): JSX.Element {
     const ifcond = createMemo(() => ('if' in props ? (props.if ?? false) : true));
-    return createMemo(() => {
+    return <>{createMemo(() => {
         if (
             ifcond() &&
             ('when' in props ? props.when != null : true)
@@ -46,7 +46,7 @@ export function Show<T>(props: {
             })() : props.children;
         }
         return props.fallback;
-    });
+    })}</>;
 }
 
 // TODO export function Show<T>{
@@ -164,7 +164,7 @@ export function timeAgoTextWatchable(
 export function TimeAgo(props: {start: number}): JSX.Element {
 
     return <time datetime={new Date(props.start).toString()} title={"" + new Date(props.start)}>
-        {timeAgoTextWatchable(props.start)}
+        <>{timeAgoTextWatchable(props.start)}</>
     </time>;
 }
 

@@ -974,19 +974,19 @@ function postDataFromListingMayError(
                 autoload: true,
             },
 
-            sort_options: [
-                // ["duplicates num_comments", "Comments"], ["duplicates new", "New"]
-                // [["confidence", "Best"], ["top", "Top"], ["new", "New"], ["controversial", "Controversial"],
-                // ["old", "Old"], ["random", "Random"], ["qa", "Q&A"], ["live", "Live"]]
-                {kind: "url", name: "Best",  url: objectURL(listing_raw, updateSort(sort, "confidence"))},
-                {kind: "url", name: "Top",  url: objectURL(listing_raw, updateSort(sort, "top"))},
-                {kind: "url", name: "New",  url: objectURL(listing_raw, updateSort(sort, "new"))},
-                {kind: "url", name: "Controversial",  url: objectURL(listing_raw, updateSort(sort, "controversial"))},
-                {kind: "url", name: "Old",  url: objectURL(listing_raw, updateSort(sort, "old"))},
-                {kind: "url", name: "Random",  url: objectURL(listing_raw, updateSort(sort, "random"))},
-                {kind: "url", name: "Q&A",  url: objectURL(listing_raw, updateSort(sort, "qa"))},
-                {kind: "url", name: "Live",  url: objectURL(listing_raw, updateSort(sort, "live"))},
-            ],
+            // sort_options: [
+            //     // ["duplicates num_comments", "Comments"], ["duplicates new", "New"]
+            //     // [["confidence", "Best"], ["top", "Top"], ["new", "New"], ["controversial", "Controversial"],
+            //     // ["old", "Old"], ["random", "Random"], ["qa", "Q&A"], ["live", "Live"]]
+            //     {kind: "url", name: "Best",  url: objectURL(listing_raw, updateSort(sort, "confidence"))},
+            //     {kind: "url", name: "Top",  url: objectURL(listing_raw, updateSort(sort, "top"))},
+            //     {kind: "url", name: "New",  url: objectURL(listing_raw, updateSort(sort, "new"))},
+            //     {kind: "url", name: "Controversial",  url: objectURL(listing_raw, updateSort(sort, "controversial"))},
+            //     {kind: "url", name: "Old",  url: objectURL(listing_raw, updateSort(sort, "old"))},
+            //     {kind: "url", name: "Random",  url: objectURL(listing_raw, updateSort(sort, "random"))},
+            //     {kind: "url", name: "Q&A",  url: objectURL(listing_raw, updateSort(sort, "qa"))},
+            //     {kind: "url", name: "Live",  url: objectURL(listing_raw, updateSort(sort, "live"))},
+            // ],
         };
 
         const filled_replies = ((): Generic.HorizontalLoaded => {
@@ -1076,28 +1076,28 @@ function postDataFromListingMayError(
                 autoload: true,
             },
 
-            sort_options: [
-                {kind: "url", name: "Hot", url: subUrl(data.details, {v: "hot", t: "all"})},
-                {kind: "url", name: "Best", url: subUrl(data.details, {v: "best", t: "all"})},
-                {kind: "url", name: "New", url: subUrl(data.details, {v: "new", t: "all"})},
-                {kind: "url", name: "Rising", url: subUrl(data.details, {v: "rising", t: "all"})},
-                {kind: "more", name: "Top", submenu: [
-                    {kind: "url", name: "Hour", url: subUrl(data.details, {v: "top", t: "hour"})},
-                    {kind: "url", name: "Day", url: subUrl(data.details, {v: "top", t: "day"})},
-                    {kind: "url", name: "Week", url: subUrl(data.details, {v: "top", t: "week"})},
-                    {kind: "url", name: "Month", url: subUrl(data.details, {v: "top", t: "month"})},
-                    {kind: "url", name: "Year", url: subUrl(data.details, {v: "top", t: "year"})},
-                    {kind: "url", name: "All", url: subUrl(data.details, {v: "top", t: "all"})},
-                ]},
-                {kind: "more", name: "Controversial", submenu: [
-                    {kind: "url", name: "Hour", url: subUrl(data.details, {v: "controversial", t: "hour"})},
-                    {kind: "url", name: "Day", url: subUrl(data.details, {v: "controversial", t: "day"})},
-                    {kind: "url", name: "Week", url: subUrl(data.details, {v: "controversial", t: "week"})},
-                    {kind: "url", name: "Month", url: subUrl(data.details, {v: "controversial", t: "month"})},
-                    {kind: "url", name: "Year", url: subUrl(data.details, {v: "controversial", t: "year"})},
-                    {kind: "url", name: "All", url: subUrl(data.details, {v: "controversial", t: "all"})},
-                ]},
-            ],
+            // sort_options: [
+            //     {kind: "url", name: "Hot", url: subUrl(data.details, {v: "hot", t: "all"})},
+            //     {kind: "url", name: "Best", url: subUrl(data.details, {v: "best", t: "all"})},
+            //     {kind: "url", name: "New", url: subUrl(data.details, {v: "new", t: "all"})},
+            //     {kind: "url", name: "Rising", url: subUrl(data.details, {v: "rising", t: "all"})},
+            //     {kind: "more", name: "Top", submenu: [
+            //         {kind: "url", name: "Hour", url: subUrl(data.details, {v: "top", t: "hour"})},
+            //         {kind: "url", name: "Day", url: subUrl(data.details, {v: "top", t: "day"})},
+            //         {kind: "url", name: "Week", url: subUrl(data.details, {v: "top", t: "week"})},
+            //         {kind: "url", name: "Month", url: subUrl(data.details, {v: "top", t: "month"})},
+            //         {kind: "url", name: "Year", url: subUrl(data.details, {v: "top", t: "year"})},
+            //         {kind: "url", name: "All", url: subUrl(data.details, {v: "top", t: "all"})},
+            //     ]},
+            //     {kind: "more", name: "Controversial", submenu: [
+            //         {kind: "url", name: "Hour", url: subUrl(data.details, {v: "controversial", t: "hour"})},
+            //         {kind: "url", name: "Day", url: subUrl(data.details, {v: "controversial", t: "day"})},
+            //         {kind: "url", name: "Week", url: subUrl(data.details, {v: "controversial", t: "week"})},
+            //         {kind: "url", name: "Month", url: subUrl(data.details, {v: "controversial", t: "month"})},
+            //         {kind: "url", name: "Year", url: subUrl(data.details, {v: "controversial", t: "year"})},
+            //         {kind: "url", name: "All", url: subUrl(data.details, {v: "controversial", t: "all"})},
+            //     ]},
+            // ],
         };
 
         if(!entry.data.missing_replies && (listing.data.children.length > 0 || listing.data.after != null)) {

@@ -28,7 +28,7 @@ export function Key<T, U>(props: {
     for (const disposer of disposers.values()) disposer();
   });
 
-  return createMemo(() => {
+  return <>{createMemo(() => {
     const list = props.each;
     const mapped: JSX.Element[] = [];
     const new_nodes = new Map<U, PrevNode>();
@@ -62,6 +62,6 @@ export function Key<T, U>(props: {
       prev = new_nodes;
       return mapped;
     });
-  });
+  })}</>;
 }
   

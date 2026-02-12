@@ -2,6 +2,7 @@ import browser from "webextension-polyfill";
 // import { sendMessage, onMessage } from "webext-bridge";
 
 // only on dev mode
+// @ts-expect-error
 if (import.meta.hot) {
     // @ts-expect-error for background HMR
     import("/@vite/client");

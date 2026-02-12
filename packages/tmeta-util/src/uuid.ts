@@ -71,7 +71,7 @@ export const generateUUID = (() => {
             for (i = 11; i >= 0 && last_rand_chars[i] === 63; i--) {
                 last_rand_chars[i] = 0;
             }
-            last_rand_chars[i]++;
+            last_rand_chars[i]!++;
         }
         for (let i = 0; i < 12; i++) {
             id += push_chars.charAt(last_rand_chars[i]!);

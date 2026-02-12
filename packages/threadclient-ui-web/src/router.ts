@@ -228,7 +228,7 @@ if(import.meta.hot) {
     // I really hate it when hmr reloads your app pages. wish I could have an hmr
     // that never reloads app pages - at the most it shows a dialog saying "the
     // app is out of date. refresh."
-    import.meta.hot.accept((new_mod: typeof import("./router")) => {
+    import.meta.hot.accept((new_mod) => {
         console.log("ATTEMPT TO HOT RELOAD ROUTER.TSX", new_mod, alertarea);
 
         // don't want to bother with manually updating all the exports this has or

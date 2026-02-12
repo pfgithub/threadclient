@@ -1624,7 +1624,7 @@ export async function loadPage2v2(
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub.for_sub;
         const [widgets, about] = await Promise.all([
-            redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET", query: {}}),
+            redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}),
             redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}),
         ]);
         const full: FullSubredditSidebar = {

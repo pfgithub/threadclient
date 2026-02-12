@@ -19,7 +19,7 @@ export function DefaultErrorBoundary(props: {data: unknown, children: JSX.Elemen
                 }}
             >Retry</button>
             <pre class="whitespace-pre-wrap"><code textContent={err instanceof Error ? (
-                err.toString() + "\n\n" + err.stack ?? "*no stack*"
+                err.toString() + "\n\n" + (err.stack ?? "*no stack*")
             ) : "Something went wrong"} /></pre>
         </div>;
     }}>

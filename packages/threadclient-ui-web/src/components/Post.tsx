@@ -17,7 +17,7 @@ import { CollapseButton } from "./CollapseButton";
 import { VerticalIconCounter } from "./counter";
 import Dropdown from "./Dropdown";
 import { Flair } from "./Flair";
-import { CollapseData, CollapseInfo, FlatPost, getCState, postContentCollapseInfo } from "./flatten";
+import { CollapseInfo, FlatPost, getCState, PerPostData, postContentCollapseInfo } from "./flatten";
 import { ActionItem, getThumbnailPreview, useActions } from "./flat_posts";
 import { HSplit } from "./HSplit";
 import { InternalIcon, InternalIconRaw } from "./Icon";
@@ -63,7 +63,7 @@ export type ClientPostOpts = {
     frame: Generic.Post | null, // oh and this too :(
     id: Generic.Link<Generic.Post> | null,
     flat_frame: null | FlatPost,
-    collapse_data?: undefined | CollapseData, // oh we need this too unfortunately
+    collapse_data?: undefined | PerPostData, // oh we need this too unfortunately
 };
 
 export type ClientPostProps = {
