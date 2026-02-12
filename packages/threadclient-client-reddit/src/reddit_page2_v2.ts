@@ -495,10 +495,40 @@ export const base_subreddit_sidebar = {
         return Generic.p2.fillLinkOnce(content, (
             autoLinkgen<Generic.Opaque<"loader">>("subreddit_id_sidebar→loader", base)
         ), () => {
-            return opaque_loader.encode({
+            const res = opaque_loader.encode({
                 kind: "subreddit_identity_and_sidebar",
                 sub: base,
             });
+
+            if (base.for_sub === "all") {
+                const id_filled = base_subreddit_sidebar.filledIdentityCardLink(base);
+                const id_widgets = base_subreddit_sidebar.filledWidgetsLink(base);
+                p2.fillLinkOnce(content, id_filled, (): Generic.FilledIdentityCard => ({
+                    names: {display: "All", raw: "r/all"},
+                    pfp: null,
+                    theme: {banner: null},
+                    description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "All posts from all subreddits", styles: {}}]}]},
+                    actions: {main_counter: null},
+                    menu: null,
+                    raw_value: null,
+                }));
+                p2.fillLinkOnce(content, id_widgets, (): Generic.HorizontalLoaded => []);
+            } else if (base.for_sub === "popular") {
+                const id_filled = base_subreddit_sidebar.filledIdentityCardLink(base);
+                const id_widgets = base_subreddit_sidebar.filledWidgetsLink(base);
+                p2.fillLinkOnce(content, id_filled, (): Generic.FilledIdentityCard => ({
+                    names: {display: "Popular", raw: "r/popular"},
+                    pfp: null,
+                    theme: {banner: null},
+                    description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "Filtered posts from all subreddits", styles: {}}]}]},
+                    actions: {main_counter: null},
+                    menu: null,
+                    raw_value: null,
+                }));
+                p2.fillLinkOnce(content, id_widgets, (): Generic.HorizontalLoaded => []);
+            }
+
+            return res;
         });
     },
     filledIdentityCardLink: (base: BaseSubredditSidebar): Generic.NullableLink<Generic.FilledIdentityCard> => {
