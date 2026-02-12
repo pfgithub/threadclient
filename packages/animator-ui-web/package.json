@@ -19,7 +19,8 @@
     "dev": "vite",
     "build": "vite build && cp dist/index.html dist/404.html && touch dist/.nojekyll",
     "serve": "vite preview",
-    "lint": "tsc --noEmit && eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
     "test": "true",
     "firebase-codegen": "firebase-bolt src/security-rules.bolt --output src/generated/security-rules.json && echo '/* eslint-disable */' > src/generated/security-rules.ts && firebase-bolt-compiler < src/security-rules.bolt >> src/generated/security-rules.ts"
   },

@@ -3,8 +3,9 @@
     "compilerOptions": {
         "outDir": "./dist",
         "lib": [
+            "dom",
             "DOM.Iterable",
-            "es2021",
+            "ESNext",
         ],
         "types": [
             "node"

@@ -15,7 +15,7 @@
         "jsx": "preserve",
         "jsxImportSource": "solid-js",
         "lib": [
-            "esnext"
+            "ESNext",
         ],
         "skipLibCheck": true,
         "sourceMap": true,

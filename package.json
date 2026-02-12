@@ -4,6 +4,7 @@
     "packages/*"
   ],
   "scripts": {
+    "typecheck": "yarn workspaces foreach -A -p run typecheck",
     "lint": "yarn workspaces foreach -A -p run lint",
     "test": "yarn workspaces foreach -A -p run test",
     "create-package": "yarn workspace create-tmeta-package run ts-node src/create.ts"

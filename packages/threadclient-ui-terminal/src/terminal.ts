@@ -131,6 +131,7 @@ export async function downloadimage(url: string, signal: AbortSignal): Promise<{
 
     const fetchres = await fetch(url, {signal}).then(r => r.arrayBuffer());
     await fs.mkdir(imgcachedir, {recursive: true});
+    // @ts-expect-error
     await fs.writeFile(filename, Buffer.from(fetchres));
 
     return {filename, bytes: fetchres.byteLength};

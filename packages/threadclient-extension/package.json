@@ -40,7 +40,8 @@
     "pack:xpi": "cd dist/bundles && WEB_EXT_ARTIFACTS_DIR=. web-ext build --source-dir ../../extension --filename extension.xpi --overwrite-dest",
     "start:chromium": "web-ext run --source-dir ./extension --target=chromium",
     "start:firefox": "web-ext run --source-dir ./extension --target=firefox-desktop",
-    "lint": "tsc --noEmit && eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
     "test": "true",
     "clear": "rm -r extension/"
   },

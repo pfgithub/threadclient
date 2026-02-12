@@ -21,7 +21,8 @@
     "threadclient-preview": "^1.0.0"
   },
   "scripts": {
-    "lint": "tsc --noEmit && eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
     "test": "true"
   }
 }
