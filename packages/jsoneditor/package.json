@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "lint": "eslint src --max-warnings 0 && tsc --noEmit",
+    "lint": "tsc --noEmit && eslint src --max-warnings 0",
     "test": "tap --node-arg=--require=esbuild-register/register && tap --node-arg=--require=esbuild-register/register --coverage-report=html --no-browser"
   },
   "tap": {

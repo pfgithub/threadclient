@@ -15,7 +15,7 @@
     "tmeta-util": "^1.0.0"
   },
   "scripts": {
-    "lint": "eslint src --max-warnings 0 && tsc --noEmit",
+    "lint": "tsc --noEmit && eslint src --max-warnings 0",
     "test": "true"
   }
 }
