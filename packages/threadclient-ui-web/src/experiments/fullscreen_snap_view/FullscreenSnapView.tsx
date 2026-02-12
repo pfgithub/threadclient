@@ -9,7 +9,7 @@ import { Body } from "../../components/body";
 import Clickable from "../../components/Clickable";
 import { Flair } from "../../components/Flair";
 import { FlatReplies, FlatReplyTsch } from "../../components/flatten2";
-import { FormattableNumber } from "../../components/flat_posts";
+import { FormattableNumber, voteItemStr } from "../../components/flat_posts";
 import Icon, { InternalIconRaw } from "../../components/Icon";
 import InfoBar, { formatItemString } from "../../components/InfoBar";
 import { UnfilledLoader } from "../../components/OneLoader";
@@ -19,6 +19,8 @@ import proxyURL from "../../components/proxy_url";
 import { collapse_data_context } from "../../util/contexts";
 import { getWholePageRootContext } from "../../util/utils_solid";
 import { LinkButton, UserLink } from "../../components/links";
+import { actAuto, getCounterState } from "../../components/counter";
+import { addAction } from "../../components/action_tracker";
 
 /*
 Planned gestures:
@@ -560,15 +562,18 @@ function FullscreenPost(props: {
         </div>
         <div class=""><InfoBar post={props.content} opts={props.opts} /></div>
     </>} sidebar={<>
-        <Show when={props.content.actions?.vote}>{voteact => <>
-            <Clickable class="block w-full" action="TODO">
+        <Show when={props.content.actions?.vote}>{voteact => {
+            const [stateR, setState] = getCounterState(() => voteact);
+            const ptCount = () => stateR().pt_count;
+        return <>
+            <Clickable class="block w-full" action={() => addAction(actAuto(stateR().your_vote === "increment" ? undefined : "increment", stateR(), setState, voteact))}>
                 <SidebarButton
                     icon={voteact.increment.icon}
                     label={voteact.increment.label}
-                    text={["number", -1]}
+                    text={voteItemStr(ptCount(), stateR().your_vote)}
                 />
             </Clickable>
-            <Clickable class="block w-full" action="TODO">
+            <Clickable class="block w-full" action={() => addAction(actAuto(stateR().your_vote === "decrement" ? undefined :"decrement", stateR(), setState, voteact))}>
                 <Show when={voteact.decrement}>{decrement => <>
                     <SidebarButton
                         icon={decrement.icon}
@@ -577,7 +582,7 @@ function FullscreenPost(props: {
                     />
                 </>}</Show>
             </Clickable>
-        </>}</Show>
+        </>;}}</Show>
         <Show when={props.opts.frame?.url}>{post_url => (
             <Clickable class="block w-full" action={{url: post_url, client_id: props.opts.client_id}}>
                 <SidebarButton
