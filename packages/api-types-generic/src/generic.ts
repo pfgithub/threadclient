@@ -150,7 +150,7 @@ export const p2 = {
         content[link] = {data: value};
         return link as unknown as Link<T>;
     },
-    fillLinkOnce<T>(content: Page2Content, link: NullableLink<T>, value: () => T): Link<T> {
+    fillLinkOnce<T>(content: Page2Content, link: NullableLink<T>, value: () => NoInfer<T>): Link<NoInfer<T>> {
         if(!Object.hasOwn(content, link)) {
             content[link] = {error: "filling…"};
             try{
@@ -278,9 +278,6 @@ export type PostReplies = {
     display: "tree" | "repivot_list",
 
     loader: HorizontalLoader,
-
-    sort_options?: undefined | SortOption[],
-    // ^ should this go in the post?
 };
 export type SortOption = ({
     kind: "url",
@@ -328,12 +325,22 @@ export type HorizontalLoaded = (Link<Post> | HorizontalLoader)[];
 export type HorizontalLoader = {
     kind: "horizontal_loader",
     key: NullableLink<HorizontalLoaded>, // unfilled = not yet loaded
+    sort?: {
+        methods: NullableLink<SortOption2[]>,
+        current: Opaque<"sort_option">, // which sort method the loader.key will load
+        post_id: Link<Post>, // yeah we shouldn't need this. arguably a hack.
+    },
 } & BaseLoader;
 export type OneLoaded<T> = T;
 export type OneLoader<T> = {
     kind: "one_loader",
     key: NullableLink<OneLoaded<T>>,
 } & BaseLoader;
+
+export type SortOption2 = {
+    label: string,
+    value: {kind: "single", key: Opaque<"sort_option">} | {kind: "list", items: SortOption2[]},
+};
 
 export type BaseLoader = {
     load_count?: undefined | null | number, // number of items to be loaded, or null if it is not known.
@@ -1184,7 +1191,7 @@ export declare namespace SubmitResult {
 export type DataEncodings = 
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
     | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
-    | "loader" | "edit" | "submit"
+    | "loader" | "edit" | "submit" | "sort_option"
 ;
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 

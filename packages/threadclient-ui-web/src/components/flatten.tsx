@@ -64,9 +64,11 @@ export type FlatItem = ({
     href: string,
     name: string,
 } | FlatPost | {
-    kind: "sort_buttons",
-    sort_buttons: Generic.SortOption[],
+    kind: "sort_buttons_2",
+    sort_buttons: Generic.NullableLink<Generic.SortOption2[]>,
     client_id: string,
+    post: Generic.Link<Generic.Post>,
+    default: Generic.Opaque<"sort_option">,
 } | {
     kind: "todo",
     note: string,
@@ -180,41 +182,51 @@ export function postCollapseInfo(
     return {default_collapsed: false, user_controllable: false};
 }
 
-export type CollapseData = {
+export type PerPostData = {
     // map from a Link<Post> to an array of watchers and a current value
-    map: Map<Generic.Link<Generic.Post>, CollapseEntry>,
+    map: Map<Generic.Link<Generic.Post>, PerPostEntry>,
 };
-export type CollapseEntry = {
+export type PerPostEntry = {
+    // for collapsing
     hovering: Accessor<number>,
     setHovering: Setter<number>,
     collapsed: Accessor<boolean>,
     setCollapsed: Setter<boolean>,
+
+    // for sorting. null = not set.
+    sortKey: Accessor<Generic.Opaque<"sort_option"> | null>,
+    setSortKey: Setter<Generic.Opaque<"sort_option"> | null>,
 };
 
-export function getCState(cst: CollapseData, id: Generic.Link<Generic.Post>, opts?: {
+export function getCState(cst: PerPostData, id: Generic.Link<Generic.Post>, opts?: {
     default: boolean,
-} | undefined): CollapseEntry {
-    return untrack((): CollapseEntry => {
-        const csv = cst.map.get(id);
-        if(csv == null) {
-            if(!opts) {
-                console.error("Eaccessing cstate", cst, {id});
-                throw new Error("accessing cstate before it has been created");
-            }
-            const [hovering, setHovering] = createSignal(0);
-            const [collapsed, setCollapsed] = createSignal(opts.default);
-            const nv: CollapseEntry = {
-                hovering, setHovering,
-                collapsed, setCollapsed,
+} | undefined): PerPostEntry {
+    return untrack((): PerPostEntry => {
+        if(!cst.map.has(id)) {
+            const [sortKey, setSortKey] = createSignal<Generic.Opaque<"sort_option"> | null>(null);
+            const nv: PerPostEntry = {
+                hovering: errorFn, setHovering: errorFn,
+                collapsed: errorFn, setCollapsed: errorFn,
+                sortKey, setSortKey,
             };
             cst.map.set(id, nv);
-            return nv;
+        }
+        const csv = cst.map.get(id)!;
+        if (opts && csv.hovering === errorFn) {
+            const [hovering, setHovering] = createSignal(0);
+            const [collapsed, setCollapsed] = createSignal(opts.default);
+            csv.hovering = hovering;
+            csv.setHovering = setHovering;
+            csv.collapsed = collapsed;
+            csv.setCollapsed = setCollapsed;
         }
         return csv;
         // huh we should probably gc this once there are no watchers left
         // not going to worry about that for now
     });
 }
+
+const errorFn = () => {throw new Error("cstate was not initialized yet")};
 
 // comments:
 // we could easily move this to createTypesafeChildren

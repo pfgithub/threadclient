@@ -2,9 +2,9 @@ import * as Generic from "api-types-generic";
 import { Accessor, createMemo, For, JSX, useContext } from "solid-js";
 import { updateQuery } from "tmeta-util";
 import { createTypesafeChildren, Show } from "tmeta-util-solid";
-import { allow_threading_override_ctx, collapse_data_context } from "../util/contexts";
+import { allow_threading_override_ctx, per_post_context } from "../util/contexts";
 import { getWholePageRootContext, PageRootContext } from "../util/utils_solid";
-import { CollapseButton, CollapseData, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";
+import { CollapseButton, PerPostData, FlatItem, FlatPage2, FlatTreeItem, getCState, loaderToFlatLoader, postCollapseInfo, RenderPostOpts, unwrapPost } from "./flatten";
 
 /*
 NOTE:
@@ -26,15 +26,29 @@ export function FlatRepliesHL(props: {
     replies: Generic.HorizontalLoader,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
-    return createMemo(() => {
-        const val = hprc.content.view(props.replies.key);
+    const post_data = useContext(per_post_context);
+    if (!post_data) throw new Error("missing per_post_context in flatRepliesHL");
+    return <>{createMemo(() => {
+        const replies = props.replies;
+        // to determine the key, we must check the sort
+        if (replies.sort != null) {
+            // check for sort changes
+            const cstate = getCState(post_data!, replies.sort.post_id);
+            const base_key = replies.sort.current;
+            const sort_key = cstate.sortKey() ?? base_key;
+            if (JSON.stringify(sort_key) !== JSON.stringify(base_key)) {
+                return <FlatReplyTsch kind="error" msg={"TODO sorted replies: "+JSON.stringify(sort_key)} />;
+            }
+        }
+
+        const val = hprc.content.view(replies.key);
         if(val == null) {
-            return FlatReplyTsch(loaderToFlatLoader(props.replies));
+            return FlatReplyTsch(loaderToFlatLoader(replies));
         }
         if(val.error != null) {
             return <FlatReplyTsch kind="error" msg={val.error} />;
         }
-        return <For each={val.value ?? []}>{reply => createMemo(() => {
+        return <For each={val.value ?? []}>{reply => <>{createMemo(() => {
             if(typeof reply === "object") return <FlatRepliesHL replies={reply} />;
             const readlink = hprc.content.view(reply);
             if(readlink == null) {
@@ -49,8 +63,8 @@ export function FlatRepliesHL(props: {
                     link={reply}
                 />;
             }
-        })}</For>;
-    });
+        })}</>}</For>;
+    })}</>;
 }
 export function FlatReplies(props: {
     replies: Generic.PostReplies | null,
@@ -67,7 +81,7 @@ function HighestArray(props: {
     post: Generic.NullableLink<Generic.Post> | null,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
-    return createMemo(() => {
+    return <>{createMemo(() => {
         const highest = props.post;
         if(highest == null) return [];
 
@@ -117,7 +131,7 @@ function HighestArray(props: {
             })}
             <FlatReplyTsch kind="flat_post" link={highest} post={postloaded.value} />
         </>;
-    });
+    })}</>;
 }
 
 export const FlatItemTsch = createTypesafeChildren<FlatItem>();
@@ -144,7 +158,7 @@ type TII = {
 
 function getTreeItemIndent(
     hprc: PageRootContext,
-    csc: CollapseData,
+    csc: PerPostData,
     tree_item: FlatTreeItem,
     parent_indent: CollapseButton[],
     opts: RenderPostOpts,
@@ -202,7 +216,7 @@ function RenderTreeItemAuto(props: {
     last: boolean,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
-    const csc = useContext(collapse_data_context)!;
+    const csc = useContext(per_post_context)!;
     return <RenderTreeItem
         tree_item={props.tree_item}
         opts={props.opts}
@@ -219,9 +233,9 @@ export function FlattenTreeItem(props: {
 }): JSX.Element {
     const hprc = getWholePageRootContext();
     const allowThreading = useContext(allow_threading_override_ctx) ?? (() => true);
-    const csc = useContext(collapse_data_context)!;
+    const csc = useContext(per_post_context)!;
     const tii = createMemo(() => getTreeItemIndent(hprc, csc, props.tree_item, props.parent_indent, props.rpo));
-    return createMemo(() => {
+    return <>{createMemo(() => {
         // [!] TODO: this will needlessly rerender when the parent indent changes
         // or when any renderpostopts change
         // - should be a pretty simple fix by reimplementing renderTreeItem to have
@@ -330,7 +344,7 @@ export function FlattenTreeItem(props: {
                 <FlatItemTsch kind="wrapper_end" />
             </Show>
         </>;
-    });
+    })}</>;
 }
 
 function FlattenTopLevelReplies(props: {
@@ -491,13 +505,6 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
                 {FlatItemTsch({
                     kind: "horizontal_line",
                 })}
-                {p.replies.sort_options != null ? <>
-                    <FlatItemTsch
-                        kind="sort_buttons"
-                        sort_buttons={p.replies.sort_options}
-                        client_id={p.client_id}
-                    />
-                </> : null}
                 {p.replies.display === "repivot_list" ? <>
                     <FlatItemTsch
                         kind="repivot_list_fullscreen_button"
@@ -512,6 +519,15 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
                         kind="todo"
                         note="TODO reply button"
                         data={p.replies}
+                    />
+                </> : null}
+                {p.replies.loader.sort != null ? <>
+                    <FlatItemTsch
+                        kind="sort_buttons_2"
+                        sort_buttons={p.replies.loader.sort.methods}
+                        client_id={p.client_id}
+                        default={p.replies.loader.sort.current}
+                        post={p.replies.loader.sort.post_id}
                     />
                 </> : null}
                 <FlattenTopLevelReplies replies={p.replies} />

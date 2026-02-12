@@ -445,6 +445,12 @@ export const base_subreddit = {
                 load_count: null,
                 autoload: false,
                 client_id,
+
+                sort: {
+                    methods: subredditSortOptions(content),
+                    current: opaque_sort_option.encode({kind: "sub", sub: simplifySort(base.sort)}),
+                    post_id: base_subreddit.post.link(base),
+                },
             },
         };
     },
@@ -454,6 +460,38 @@ export const base_subreddit = {
         )};
     },
 };
+
+function simplifySort(sort: SubSort): SubSort {
+    if (sort.v === "controversial" || sort.v === "top") return {v: sort.v, t: sort.t};
+    return {v: sort.v, t: "all"};
+}
+
+export function subredditSortOptions(content: Generic.Page2Content): Generic.Link<Generic.SortOption2[]> {
+    return Generic.p2.fillLinkOnce(content, (
+        autoLinkgen<Generic.SortOption2[]>("subreddit→sort", {})
+    ), (): Generic.SortOption2[] => {
+        const single = (label: string, sub: SubSort): Generic.SortOption2 => ({label, value: {kind: "single", key: opaque_sort_option.encode({kind: "sub", sub})}});
+        const multi = (label: string, v: Reddit.SortMode): Generic.SortOption2 => ({label, value: {
+            kind: "list", items: ([
+                ["hour", "Hour"],
+                ["day", "Day"],
+                ["week", "Week"],
+                ["month", "Month"],
+                ["year", "Year"],
+                ["all", "All"],
+            ] satisfies [key: Reddit.SortTime, name: string][]).map(([t, label]): Generic.SortOption2 => single(label, {v, t})),
+        }});
+        return [
+            single("Hot", {v: "hot", t: "all"}),
+            single("Best", {v: "best", t: "all"}),
+            single("New", {v: "new", t: "all"}),
+            single("Rising", {v: "rising", t: "all"}),
+            multi("Top", "top"),
+            multi("Controversial", "controversial"),
+        ];
+    });
+}
+
 export function subDefaultSort(base: UnsortedSubreddit): SubSort {
     // specify manual overrides for subreddits which request different default sorts
     if(base === "teenagersnew" || base === "adultsnew") return {v: "new", t: "all"};
@@ -1566,6 +1604,13 @@ type LoaderData = {
     base: SortedInbox,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
+const opaque_sort_option = encoderGenerator<SortOptionKind, "sort_option">("sort_option");
+type SortOptionKind = {
+    kind: "sub",
+    sub: SubSort,
+} | {
+    kind: "todo",
+};
 
 export async function loadPage2v2(
     lreq: Generic.Opaque<"loader">,

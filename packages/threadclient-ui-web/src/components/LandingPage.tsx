@@ -1,10 +1,10 @@
 import * as Generic from "api-types-generic";
 import { Listbox } from "solid-headless";
 import { createSignal, For, JSX, untrack, useContext } from "solid-js";
-import { allow_threading_override_ctx, collapse_data_context } from "../util/contexts";
+import { allow_threading_override_ctx, per_post_context } from "../util/contexts";
 import { getSettings, getWholePageRootContext, provide } from "../util/utils_solid";
 import Clickable from "./Clickable";
-import { CollapseData, FlatTreeItem } from "./flatten";
+import { PerPostData, FlatTreeItem } from "./flatten";
 import { FlatItemTsch, FlattenTreeItem } from "./flatten2";
 import { InternalIcon, InternalIconRaw } from "./Icon";
 import PageFlatItem from "./PageFlatItem";
@@ -16,7 +16,7 @@ function DisplayPost(props: {
     options?: undefined | {allow_threading?: undefined | boolean},
 }): JSX.Element {
     return provide(allow_threading_override_ctx, () => props.options?.allow_threading ?? true, () => {
-        const collapse_data: CollapseData = useContext(collapse_data_context)!;
+        const collapse_data: PerPostData = useContext(per_post_context)!;
     
         const hprc = getWholePageRootContext();
     

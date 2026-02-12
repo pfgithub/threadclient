@@ -1,9 +1,10 @@
 import * as Generic from "api-types-generic";
 import {
-    createMemo, createSignal,
+    createMemo, createSelector, createSignal,
     For,
     JSX,
-    untrack
+    untrack,
+    useContext
 } from "solid-js";
 import { switchKind } from "tmeta-util";
 import { allowedToAcceptClick, Show, SwitchKind } from "tmeta-util-solid";
@@ -14,7 +15,7 @@ import {
 import { Body } from "./body";
 import Clickable from "./Clickable";
 import { CollapseButton } from "./CollapseButton";
-import { CollapseData, FlatItem, FlatPost, FlatTreeItem, getCState } from "./flatten";
+import { FlatItem, FlatPost, FlatTreeItem, getCState, PerPostData } from "./flatten";
 import Hactive from "./Hactive";
 import { InternalIconRaw } from "./Icon";
 import { UnfilledLoader } from "./OneLoader";
@@ -22,6 +23,8 @@ import { ClientContent } from "./page2";
 import proxyURL from "./proxy_url";
 import SwipeActions from "./SwipeActions";
 import swipeActionSet from "./SwipeActionSet";
+import ReadLink from "./ReadLink";
+import { per_post_context } from "../util/contexts";
 
 const rainbow = [
     "bg-red-500",
@@ -47,7 +50,7 @@ type FullscreenImageProps = {
 type SCProps<T> = {
     data: T,
 
-    collapse_data: CollapseData,
+    collapse_data: PerPostData,
     loader_or_post: FlatPost,
     post: Generic.Post,
 };
@@ -88,12 +91,12 @@ const replace_post_special_callbacks: Record<string, SpecialCallback> = {
     },
 };
 
-export default function PageFlatItem(props: {item: FlatItem, collapse_data: CollapseData}): JSX.Element {
+export default function PageFlatItem(props: {item: FlatItem, collapse_data: PerPostData}): JSX.Element {
     return <DefaultErrorBoundary data={props.item}>
         <PageFlatItemNoError item={props.item} collapse_data={props.collapse_data} />
     </DefaultErrorBoundary>;
 }
-function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData}): JSX.Element {
+function PageFlatItemNoError(props: {item: FlatItem, collapse_data: PerPostData}): JSX.Element {
     const hprc = getWholePageRootContext();
     return <SwitchKind item={props.item}>{{
         // TODO: remove wrapper_start and wrapper_end and instead make these properties of loader_or_post
@@ -111,24 +114,32 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
             <InternalIconRaw class="fa-solid fa-up-right-and-down-left-from-center" label={null} />
             {" "}{fsb.name}
         </Clickable>,
-        sort_buttons: sortbtns => <div class={"mt-4 mb-4 rounded-lg bg-slate-100 dark:bg-zinc-800"}>
+        sort_buttons_2: sortbtns => <div class={"mt-4 mb-4 rounded-lg bg-slate-100 dark:bg-zinc-800"}>
             <menu class="p-2 flex flex-row flex-wrap gap-2 dark:text-zinc-400">
-                <For each={sortbtns.sort_buttons}>{sortbtn => <li style={{display: "contents"}}>
-                    {// inline-block mx-1 px-1 text-base border-b-2 transition-colors border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900
-                    }
-                    <Clickable
-                        class="px-1 border-b-2 border-transparent dark:hover:text-zinc-50"
-                        action={switchKind(sortbtn, {
-                            url: u => ({url: u.url, client_id: sortbtns.client_id, mode: "replace"}),
-                            post: p => (() => alert("TODO post: "+p.name)),
-                            more: () => (() => alert("TODO more")),
-                        })}
-                        children={<>
-                            {sortbtn.name}
-                            {sortbtn.kind === "more" ? " ▾" : ""}
-                        </>}
-                    />
-                </li>}</For>
+                <ReadLink link={sortbtns.sort_buttons} fallback={<>error</>}>{sort_buttons => {
+                    const cst = useContext(per_post_context);
+                    const cstate = getCState(cst!, sortbtns.post);
+                    const key = createSelector(() => JSON.stringify(cstate.sortKey() ?? sortbtns.default));
+                    return <For each={sort_buttons}>{sortbtn => <li style={{display: "contents"}}>
+                        {// inline-block mx-1 px-1 text-base border-b-2 transition-colors border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900
+                        }
+                        <Clickable
+                            class={"px-1 border-b-2 border-transparent hover:text-slate-700 dark:hover:text-zinc-50 " + (
+                                sortbtn.value.kind === "single" ? key(JSON.stringify(sortbtn.value.key)) ? "text-slate-700 dark:text-zinc-50" : "" : "")}
+                            action={switchKind(sortbtn.value, {
+                                list: () => (() => alert("TODO list")),
+                                single: () => (() => {
+                                    if (sortbtn.value.kind !== "single") throw new Error("unreachable");
+                                    cstate.setSortKey(sortbtn.value.key);
+                                }),
+                            })}
+                            children={<>
+                                {sortbtn.label}
+                                {sortbtn.value.kind === "list" ? " ▾" : ""}
+                            </>}
+                        />
+                    </li>}</For>;
+                }}</ReadLink>
             </menu>
         </div>,
         post: loader_or_post => <PageFlatPost
@@ -148,7 +159,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: CollapseData
 
 function PostIndent(props: {
     loader_or_post: FlatPost,
-    collapse_data: CollapseData,
+    collapse_data: PerPostData,
 }): JSX.Element {
     return <Show if={!size_lt.sm()} fallback={(
         <Show if={props.loader_or_post.indent.length > 0}><div
@@ -186,7 +197,7 @@ function PostIndent(props: {
 }
 
 function PageFlatPost(props: {
-    collapse_data: CollapseData,
+    collapse_data: PerPostData,
     loader_or_post: FlatPost,
 }): JSX.Element {
     const specialCB = createMemo((): null | (() => JSX.Element) => {
@@ -206,14 +217,14 @@ function PageFlatPost(props: {
         }});
     });
 
-    return createMemo(() => {
+    return <>{createMemo(() => {
         const scb = specialCB();
         if(scb) return untrack(() => scb());
         return <PageFlatPostNotSpecial
             collapse_data={props.collapse_data}
             loader_or_post={props.loader_or_post}
         />;
-    });
+    })}</>;
 }
 
 export function postGetPage(hprc: PageRootContext, lpc: FlatTreeItem): Generic.Page2 | undefined {
@@ -242,7 +253,7 @@ export function postOnClick(hprc: PageRootContext, frame: FlatPost, e: MouseEven
 }
 
 function PageFlatPostNotSpecial(props: {
-    collapse_data: CollapseData,
+    collapse_data: PerPostData,
     loader_or_post: FlatPost,
 }): JSX.Element {
     // ok detect if clickable:
@@ -361,7 +372,7 @@ function PageFlatPostNotSpecial(props: {
 
 function PageFlatPostContent(props: {
     loader_or_post: FlatPost,
-    collapse_data: CollapseData,
+    collapse_data: PerPostData,
 
     hovering: boolean,
     whole_object_clickable: boolean,

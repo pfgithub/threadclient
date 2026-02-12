@@ -7,7 +7,7 @@ import {
 import { Show } from "tmeta-util-solid";
 import FullscreenSnapView from "../experiments/fullscreen_snap_view/FullscreenSnapView";
 import ReaderView from "../experiments/reader_view/ReaderView";
-import { collapse_data_context } from "../util/contexts";
+import { per_post_context } from "../util/contexts";
 import { getWholePageRootContext, provide, size_lt } from "../util/utils_solid";
 import { useFlatten } from "./flatten2";
 import LandingPage from "./LandingPage";
@@ -75,20 +75,12 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
 
         const scb = specialCB();
         return untrack((): PageRes => {
-            return provide(collapse_data_context, {
+            return provide(per_post_context, {
                 map: new Map(),
             }, () => {
                 if(scb) {
                     return scb();
                 }else{
-                    // collapse_data_context.Provider({
-                    //     value: {
-                    //         map: new Map(),
-                    //     },
-                    // });
-
-                    // I want a provide(v => …) => v
-
                     return ClientPageMain({
                         get pivot() {return props.pivot},
                     });
@@ -106,7 +98,7 @@ function ClientPageMain(props: ClientPageProps): PageRes {
     // [!] we'll want to fix this up and make it observable and stuff
     // now that page2 is ready to be properly observable, flatten should be too.
 
-    const collapse_data = useContext(collapse_data_context)!;
+    const collapse_data = useContext(per_post_context)!;
 
     const flatres = useFlatten(() => props.pivot);
     const view = {get data() {return flatres();}};

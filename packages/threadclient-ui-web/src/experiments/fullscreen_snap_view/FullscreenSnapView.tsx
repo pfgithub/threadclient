@@ -16,7 +16,7 @@ import { UnfilledLoader } from "../../components/OneLoader";
 import { ClientPostOpts } from "../../components/Post";
 import { getVideoSources, NativeVideoElement, VideoRef, VideoState } from "../../components/preview_video";
 import proxyURL from "../../components/proxy_url";
-import { collapse_data_context } from "../../util/contexts";
+import { per_post_context } from "../../util/contexts";
 import { getWholePageRootContext } from "../../util/utils_solid";
 import { LinkButton, UserLink } from "../../components/links";
 import { actAuto, getCounterState } from "../../components/counter";
@@ -660,9 +660,9 @@ export default function FullscreenSnapView(props: {
     });
 
     const replies = FlatReplyTsch.useChildren(() => (
-        <collapse_data_context.Provider value={{map: new Map()}}>
+        <per_post_context.Provider value={{map: new Map()}}>
             <FlatReplies replies={m().replies} />
-        </collapse_data_context.Provider>
+        </per_post_context.Provider>
     ));
 
     const [zoomed, setZoomed] = createSignal<boolean>(false);
