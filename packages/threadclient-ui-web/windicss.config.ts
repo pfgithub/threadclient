@@ -85,7 +85,7 @@ export default defineConfig({
                 300: "rgb(189, 183, 175)"
             },
             // nightwind doesn't work properly with dahes in names for some reason
-            'postcolor': {100: "var(--postcolor-100)", 800: "#181a1b"}, // TODO add more colors here :: spoiler-color spoiler-color-hover spoiler-color-revealed + those collapse btn colors
+            'postcolor': {100: "#202023", 800: "#f1f5f9"}, // TODO add more colors here :: spoiler-color spoiler-color-hover spoiler-color-revealed + those collapse btn colors
         },
         cursor: {
             'auto': "auto",

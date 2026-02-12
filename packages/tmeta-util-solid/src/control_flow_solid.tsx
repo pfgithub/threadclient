@@ -162,9 +162,9 @@ export function timeAgoTextWatchable(
 }
 
 export function TimeAgo(props: {start: number}): JSX.Element {
-
+    const tw = timeAgoTextWatchable(props.start);
     return <time datetime={new Date(props.start).toString()} title={"" + new Date(props.start)}>
-        <>{timeAgoTextWatchable(props.start)}</>
+        {tw()}
     </time>;
 }
 
