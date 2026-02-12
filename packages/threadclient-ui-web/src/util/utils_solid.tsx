@@ -55,12 +55,13 @@ export function getWholePageRootContext(): PageRootContext {
 // this might work? maybe?
 // https://github.com/solidjs/solid/blob/main/packages/solid/src/reactive/signal.ts
 // 'createProvider'
+// why do we have this function. why are we reaching into solidjs internals for this. what are we doing.
 export function provide<T, U>(provider: Context<T>, value: T, cb: () => U): U {
     let res: {v: U};
     // is createComputed needed? I have no clue
     createComputed(() => {
         res = {v: untrack(() => {
-            getOwner()!.context = {[provider.id]: value};
+            getOwner()!.context = {...getOwner()!.context, [provider.id]: value};
             return cb();
         })};
     });
