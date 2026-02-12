@@ -17,6 +17,14 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
             default_icon: "./assets/threadclient.png",
             default_popup: "./dist/popup/index.html",
         },
+        browser_specific_settings: {
+            gecko: {
+                id: "@threadclient-extension",
+                data_collection_permissions: {
+                    required: ["none"]
+                },
+            },
+        },
         options_ui: {
             page: "./dist/options/index.html",
             open_in_tab: true,

@@ -99,7 +99,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
     return {
         get url() {return res().url},
         get title() {return res().title},
-        get children() {return res().children},
+        get children() {return res()?.children ?? <div>error res().children is undefined?</div>},
     };
 }
 function ClientPageMain(props: ClientPageProps): PageRes {

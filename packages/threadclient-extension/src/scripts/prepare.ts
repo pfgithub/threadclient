@@ -29,13 +29,14 @@ function writeManifest() {
     execSync("npx esno ./src/scripts/manifest.ts", { stdio: "inherit" });
 }
 
-function copyAssets() {
-    execSync("mkdir -p ./extension && cp -r ./src/assets ./extension/assets", { stdio: "inherit" });
+async function copyAssets() {
+    await fs.ensureDir("extension");
+    await fs.promises.cp("src/assets", "extension/assets", {recursive: true});
     log("PRE", `copy assets`);
 }
 
 writeManifest();
-copyAssets();
+await copyAssets();
 
 if (is_dev) {
     void stubIndexHtml();
@@ -46,6 +47,6 @@ if (is_dev) {
         writeManifest();
     });
     chokidar.watch(r("src/assets/**/*")).on("change", () => {
-        copyAssets();
+        copyAssets(); // todo limit to one running at a time
     });
 }

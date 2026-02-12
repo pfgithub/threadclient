@@ -1,3 +1,9 @@
+# building:
+
+`bun --bun run build`
+
+# other:
+
 https://github.com/antfu/vitesse-webext
 
 before release:
