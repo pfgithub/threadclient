@@ -20,7 +20,6 @@ export default defineConfig({
     ],
     build: {
         target: "esnext",
-        polyfillDynamicImport: false,
         // rollupOptions: {
         //     treeshake: {
         //         moduleSideEffects: [
