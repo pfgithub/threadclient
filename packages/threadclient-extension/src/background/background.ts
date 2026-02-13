@@ -110,12 +110,12 @@ function allowDev(): boolean {
 
 browser.webRequest.onHeadersReceived.addListener(
     (details) => {
-        console.log("xt", "onHeadersReceived", details.originUrl);
+        // console.log("xt", "onHeadersReceived", details.originUrl);
         const origin_url = new URL(details.originUrl ?? "https://example.com/");
-        console.log("xt", origin_url);
-        console.log("xt", origin_url.hostname);
+        // console.log("xt", origin_url);
+        // console.log("xt", origin_url.hostname);
         if(origin_url.hostname === "thread.pfg.pw" || (allowDev() && origin_url.hostname === "localhost")) {
-            console.log("xt");
+            // console.log("xt");
             details.responseHeaders ??= [];
             let location: string | null = null;
             details.responseHeaders = details.responseHeaders.filter(h => {
@@ -166,7 +166,7 @@ browser.webRequest.onHeadersReceived.addListener(
                 responseHeaders: details.responseHeaders,
             };
         }else{
-            console.log("xt", "fail", details.responseHeaders);
+            // console.log("xt", "fail", details.responseHeaders);
             return;
         }
     },
