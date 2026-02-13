@@ -1541,6 +1541,12 @@ export type ParsedPath = {
     sort_override: Reddit.Sort | null,
     context: string | null,
 } | {
+    kind: "s",
+    sub: SubrInfo, // if this is 'home', the page must be fetched before the subreddit is known
+    s_id: string,
+    sort_override: Reddit.Sort | null,
+    context: string | null,
+} | {
     kind: "wiki",
     sub: SubrInfo,
     path: string[],
@@ -2755,6 +2761,21 @@ export function ec<T extends string>(v: T): Reddit.PathBit<T> {
     return v as Reddit.PathBit<T>;
 }
 
+export async function resolveSLink(sl: string): Promise<string | {error: string}> {
+    try {
+        const resp = await fetch("https://oauth.reddit.com" + sl);
+        const result = new URL(resp.url);
+        console.log("resolve-slink", {sl, resp, result})
+        if (result.pathname === "/api/needs_captcha.json") {
+            return result.searchParams.get("s") ?? result.toString();
+        }
+        return result.toString();
+    } catch (e) {
+        return {error: "failed to resolve s-link: "+(e as Error).toString()};
+    }
+
+}
+
 export const client_id = "reddit";
 export const client: ThreadClient = {
     id: client_id,
@@ -2779,6 +2800,11 @@ export const client: ThreadClient = {
                 ]);
 
                 return pageFromListing(pathraw, parsed, page, {...subinfo});
+            }else if(parsed.kind === "s") {
+                const r = await resolveSLink(pathraw);
+                if (typeof r === "object") throw new Error(r.error);
+                const u = new URL(r);
+                return client.getThread!(u.pathname + u.search + u.hash);
             }else if(parsed.kind === "duplicates") {
                 // ?sort=num_comments|new
                 // ?before=

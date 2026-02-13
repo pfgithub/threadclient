@@ -205,6 +205,17 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {
             sort_override: opts.query["sort"] ?? null,
             context: opts.query["context"] ?? null,
         }));
+
+        urlr.route([
+            "s",
+            {s_id: "any"},
+        ] as const, opts => ({
+            kind: "s",
+            sub: getSub(opts),
+            s_id: opts.s_id,
+            sort_override: opts.query["sort"] ?? null,
+            context: opts.query["context"] ?? null,
+        }));
     }
 }
 

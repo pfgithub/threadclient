@@ -1,4 +1,3 @@
-import { sendMessage } from "webext-bridge";
 import browser from "webextension-polyfill";
 // import { sendMessage, onMessage } from "webext-bridge";
 
@@ -153,8 +152,9 @@ browser.webRequest.onHeadersReceived.addListener(
                 if (resolved.hostname === "www.reddit.com") {
                     // cross-origin redirect; adjust
                     // for s-links.
+                    resolved.search = "?s=" + encodeURIComponent(resolved.toString());
                     resolved.hostname = "oauth.reddit.com";
-                    resolved.pathname += ".json";
+                    resolved.pathname = "/api/needs_captcha.json";
                 }
                 details.responseHeaders.push({
                     name: "Location",

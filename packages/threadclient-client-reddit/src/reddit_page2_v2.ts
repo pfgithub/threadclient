@@ -4,7 +4,7 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
 import { assertNever, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
-import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort } from "./reddit";
+import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink } from "./reddit";
 
 // * todo fix - we use JSON.stringify right now, but that keeps property order. eventually, that's going to become
 // a problem - two things with the same base are not going to have the same id because of property order.
@@ -38,6 +38,17 @@ export type UTLRes = {
 export type UTLResAsync = {kind: "async", value: () => Promise<UTLRes>};
 export function urlToOneLoader(pathraw_in: string): UTLRes | UTLResAsync {
     const [parsed, pathraw] = parseLink(pathraw_in);
+
+    if (parsed.kind === "s") {
+        return {kind: "async", value: (async (): Promise<UTLRes> => {
+            const r = await resolveSLink(pathraw);
+            if (typeof r === "object") throw new Error(r.error);
+            const u = new URL(r);
+            console.log("sl-resp", {r, u});
+            return await resultAsUtlres(urlToOneLoader(u.pathname + u.search + u.hash));
+        })};
+    }
+
     return urlToOneLoaderFromParsed(parsed);
 }
 async function resultAsUtlres(result: UTLRes | UTLResAsync): Promise<UTLRes> {
