@@ -1,3 +1,4 @@
+import { sendMessage } from "webext-bridge";
 import browser from "webextension-polyfill";
 // import { sendMessage, onMessage } from "webext-bridge";
 
@@ -104,16 +105,32 @@ browser.webRequest.onBeforeSendHeaders.addListener(
 );
 
 function allowDev(): boolean {
-    return localStorage.getItem("allow-dev") === "true";
+    // return localStorage.getItem("allow-dev") === "true";
+    return true;
 }
 
 browser.webRequest.onHeadersReceived.addListener(
     (details) => {
+        console.log("xt", "onHeadersReceived", details.originUrl);
         const origin_url = new URL(details.originUrl ?? "https://example.com/");
+        console.log("xt", origin_url);
+        console.log("xt", origin_url.hostname);
         if(origin_url.hostname === "thread.pfg.pw" || (allowDev() && origin_url.hostname === "localhost")) {
+            console.log("xt");
             details.responseHeaders ??= [];
+            let location: string | null = null;
             details.responseHeaders = details.responseHeaders.filter(h => {
-                if(h.name === "Access-Control-Allow-Origin") {
+                if(h.name.toLowerCase() === "Access-Control-Allow-Origin".toLowerCase()) {
+                    return false;
+                }
+                if(h.name.toLowerCase() === "Access-Control-Expose-Headers".toLowerCase()) {
+                    return false;
+                }
+                if(h.name.toLowerCase() === "Location".toLowerCase()) {
+                    location = h.value ?? "bad-utf8";
+                    return false;
+                }
+                if(h.name.toLowerCase() === "Report-To".toLowerCase()) {
                     return false;
                 }
                 return true;
@@ -122,14 +139,38 @@ browser.webRequest.onHeadersReceived.addListener(
                 name: "Access-Control-Allow-Origin",
                 value: origin_url.origin,
             });
+            details.responseHeaders.push({
+                name: "Access-Control-Expose-Headers",
+                value: "X-ThreadClient-Extension",
+            });
+            details.responseHeaders.push({
+                name: "X-ThreadClient-Extension",
+                value: "1",
+            });
+
+            if (location) {
+                const resolved = new URL(location, details.url);
+                if (resolved.hostname === "www.reddit.com") {
+                    // cross-origin redirect; adjust
+                    // for s-links.
+                    resolved.hostname = "oauth.reddit.com";
+                    resolved.pathname += ".json";
+                }
+                details.responseHeaders.push({
+                    name: "Location",
+                    value: resolved.toString(),
+                });
+            }
+
             return {
                 responseHeaders: details.responseHeaders,
             };
         }else{
+            console.log("xt", "fail", details.responseHeaders);
             return;
         }
     },
-    { urls: ["https://gql.reddit.com/*"] },
+    { urls: ["https://gql.reddit.com/*", "https://oauth.reddit.com/*"] },
     ["blocking", "responseHeaders"],
 );
 
