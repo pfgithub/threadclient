@@ -98,11 +98,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     props.opts.collapse_data && props.opts.id && props.opts.flat_frame) ?
     ((): [Accessor<boolean>, Setter<boolean>] => {
         const ff = props.opts.flat_frame;
-        const pivot_signal = createSignal(true);
-        if(ff.is_pivot) return createSignal(true);
         const ci = collapseInfo();
-        if(!ci.user_controllable) return createSignal(!ci.default_collapsed);
-        const cs = getCState(props.opts.collapse_data, props.opts.id);
+        const cs = getCState(props.opts.collapse_data, props.opts.id, {default: ci.default_collapsed});
         const setter: Setter<boolean> = (nv) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return !cs.setCollapsed((pv): boolean => {
@@ -111,8 +108,8 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
             // why is this setter type so messy aaaa
         };
         return [
-            createMemo(() => ff.is_pivot ? pivot_signal[0]() : !cs.collapsed()),
-            (arg) => ff.is_pivot ? pivot_signal[1](arg) : setter(arg),
+            createMemo(() => !cs.collapsed()),
+            (arg) => setter(arg),
         ];
     })() : createSignal(
         untrack(isPivot) ? true :

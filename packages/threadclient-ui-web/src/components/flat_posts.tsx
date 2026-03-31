@@ -233,7 +233,7 @@ function ActionBarItems(props: {
             postContentCollapseInfo(props.post, props.opts.flat_frame).user_controllable
             // TODO: dispatch this event to the post - eg a post may not have collapse data but still
             // have a collapse button and we need to tell it to collapse then
-        ) && !props.opts.flat_frame.is_pivot ? <>
+        ) ? <>
             <ActionItemRaw {...((): ActionItem => {
                 const cs = getCState(props.opts.collapse_data, props.opts.flat_frame.collapse!.id);
                 const collapsed = cs.collapsed();

@@ -159,8 +159,8 @@ export function postContentCollapseInfo(
         return {default_collapsed: false, user_controllable: false};
     }else {
         return {
-            default_collapsed: collapsible.default_collapsed,
-            user_controllable: opts.is_pivot || opts.displayed_in === "tree",
+            default_collapsed: opts.is_pivot ? false : collapsible.default_collapsed,
+            user_controllable: true,//opts.is_pivot || opts.displayed_in === "tree",
         };
     }
 }
