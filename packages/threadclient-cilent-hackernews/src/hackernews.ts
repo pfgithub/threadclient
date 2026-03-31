@@ -5,6 +5,13 @@ import { assertNever, assertUnreachable, splitURL, updateQuery } from "tmeta-uti
 import * as HN from "./api_types";
 import { path_router } from "./routing";
 
+/*
+threadclient-extension will be needed for:
+- user comments / favourites
+- impl /past
+- showing new user badges (unless we want to load every single account we see, which could contain thousands of post ids)
+- log in, comment, submit
+*/
 
 type LoaderData = {
     kind: "item",
