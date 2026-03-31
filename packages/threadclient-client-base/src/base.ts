@@ -4,7 +4,7 @@ export type ThreadClient = {
     id: string,
     getLoginURL?: undefined | ((path: Generic.Opaque<"login_url">) => Promise<string>),
     login?: undefined | ((path: string[], query: URLSearchParams) => Promise<void>),
-    /** @deprecated: replace with getPagev2 once available */
+    /** @deprecated: replace with getPagev2 */
     getPage?: undefined | ((path: string) => Promise<Generic.Page2>),
     getPagev2?: (path: string) => Promise<Generic.Pagev2>
     getThread?: undefined | ((path: string) => Promise<Generic.Page>),

@@ -35,27 +35,20 @@ export type UTLRes = {
     content: Generic.Page2Content,
     pivot_loader: null | Generic.OneLoader<Generic.Post>,
 };
-export type UTLResAsync = {kind: "async", value: () => Promise<UTLRes>};
-export function urlToOneLoader(pathraw_in: string): UTLRes | UTLResAsync {
+export async function getPagev2(pathraw_in: string): Promise<Generic.Pagev2> {
     const [parsed, pathraw] = parseLink(pathraw_in);
 
     if (parsed.kind === "s") {
-        return {kind: "async", value: (async (): Promise<UTLRes> => {
-            const r = await resolveSLink(pathraw);
-            if (typeof r === "object") throw new Error(r.error);
-            const u = new URL(r);
-            console.log("sl-resp", {r, u});
-            return await resultAsUtlres(urlToOneLoader(u.pathname + u.search + u.hash));
-        })};
+        const r = await resolveSLink(pathraw);
+        if (typeof r === "object") throw new Error(r.error);
+        const u = new URL(r);
+        console.log("sl-resp", {r, u});
+        return await getPagev2(u.pathname + u.search + u.hash);
     }
 
     return urlToOneLoaderFromParsed(parsed);
 }
-async function resultAsUtlres(result: UTLRes | UTLResAsync): Promise<UTLRes> {
-    if('kind' in result) return await result.value();
-    return result;
-}
-function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
+async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pagev2> {
     const content: Generic.Page2Content = {};
 
     const subval = (sub: SubrInfo): LowercaseString | null => {
@@ -68,20 +61,17 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
     // urlToOneLoader should be async to fetch any of that needed info probably
     // we'll end up double-fetching the post but it will probably be /api/info?ids=… the first time at least
 
-    const fixsubv = (parsed: {sub: SubrInfo}, postid: string, subv: LowercaseString | null): UTLResAsync => {
+    const fixsubv = async (parsed: {sub: SubrInfo}, postid: string, subv: LowercaseString | null): Promise<Generic.Pagev2> => {
         if(parsed.sub.kind === "homepage") {
-            return {kind: "async", value: async (): Promise<UTLRes> => {
-                const resv = await redditRequest(`/api/info?id=t3_${postid}` as "/__any_listing", {
-                    method: "GET",
-                });
-                if(resv.data.children.length !== 1) throw new Error("post may not exist?");
-                const rvc = resv.data.children[0];
-                if(!rvc || rvc.kind !== "t3") throw new Error("post not t3?");
-                const sub = rvc.data.subreddit;
-                const wq: {sub: SubrInfo} = {...parsed, sub: {kind: "subreddit", base: ["r", sub], subreddit: sub}};
-                const result = urlToOneLoaderFromParsed(wq as unknown as ParsedPath);
-                return await resultAsUtlres(result);
-            }};
+            const resv = await redditRequest(`/api/info?id=t3_${postid}` as "/__any_listing", {
+                method: "GET",
+            });
+            if(resv.data.children.length !== 1) throw new Error("post may not exist?");
+            const rvc = resv.data.children[0];
+            if(!rvc || rvc.kind !== "t3") throw new Error("post not t3?");
+            const sub = rvc.data.subreddit;
+            const wq: {sub: SubrInfo} = {...parsed, sub: {kind: "subreddit", base: ["r", sub], subreddit: sub}};
+            return await urlToOneLoaderFromParsed(wq as unknown as ParsedPath);
         }
         throw new Error("TODO support comments on sub kind: ["+parsed.sub.kind+"]");
     };
@@ -95,7 +85,7 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
             subreddit: subv,
             sort: parsed.current_sort,
         });
-        return {content, pivot_loader: p2.prefilledOneLoader(content, link, undefined)};
+        return {content, loader: p2.prefilledVerticalLoader(content, link, undefined)};
     }
     if(parsed.kind === "comments") {
         const subv = subval(parsed.sub);
@@ -112,8 +102,9 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
             fullname: `t1_${parsed.focus_comment}`,
             on_post: post_base,
         } : null;
-        return {content, pivot_loader: {
-            kind: "one_loader",
+        return {content, loader: {
+            kind: "vertical_loader",
+            temp_parents: [base_client.post(content, {})],
             key: comment_base != null ? base_comment.commentLink(comment_base) : base_post.postLink(post_base),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
@@ -135,8 +126,9 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
             on_subreddit: subv,
             sort: {m: "duplicates", v: "num_comments", crossposts_only: parsed.crossposts_only},
         };
-        return {content, pivot_loader: {
-            kind: "one_loader",
+        return {content, loader: {
+            kind: "vertical_loader",
+            temp_parents: [base_client.post(content, {})],
             key: base_post.postLink(post_base),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
@@ -156,8 +148,9 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
         const submit_base: BaseSubmitPage = {
             on_subreddit: subv,
         };
-        return {content, pivot_loader: {
-            kind: "one_loader",
+        return {content, loader: {
+            kind: "vertical_loader",
+            temp_parents: [base_client.post(content, {})],
             key: base_submit.objectLink(submit_base),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "submit_page",
@@ -172,26 +165,25 @@ function urlToOneLoaderFromParsed(parsed: ParsedPath): UTLRes | UTLResAsync {
             const compose_base: SortedComposeInbox = {on_base: base};
             return {
                 content,
-                pivot_loader: p2.prefilledOneLoader(content, sorted_compose_inbox.menubar(content, compose_base), undefined),
+                loader: p2.prefilledVerticalLoader(content, sorted_compose_inbox.menubar(content, compose_base), undefined),
             };
         }else if(parsed.current.tab === "inbox") {
             const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.inbox_tab};
             return {
                 content,
-                pivot_loader: p2.prefilledOneLoader(content, sorted_inbox.menubar(content, inbox_base), undefined),
+                loader: p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined),
             };
         }else if(parsed.current.tab === "sent" || parsed.current.tab === "mod") {
             const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.tab};
             return {
                 content,
-                pivot_loader: p2.prefilledOneLoader(content, sorted_inbox.menubar(content, inbox_base), undefined),
+                loader: p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined),
             };
         }else if(parsed.current.tab === "message") {
             throw new Error("*TODO* view inbox message ["+parsed.current.msgid+"]");
         }else assertNever(parsed.current);
     }
-    console.log("Enotsuppoprted", parsed);
-    return {content, pivot_loader: null};
+    throw new Error("Enotsupported: " + JSON.stringify(parsed)); // TODO
 }
 
 type LowercaseString = string & {__is_ascii_lowercase: true};
@@ -1436,7 +1428,7 @@ const sorted_inbox = {
                 loader: {
                     kind: "horizontal_loader",
                     key: sorted_inbox.contentLink(base),
-                    request: p2.fillLink(content, autoLinkgen("sorted_inbox→content_loader", base), opaque_loader.encode({
+                    request: p2.fillLink(content, autoLinkgen<Generic.Opaque<"loader">>("sorted_inbox→content_loader", base), opaque_loader.encode({
                         kind: "inbox",
                         base,
                     })),

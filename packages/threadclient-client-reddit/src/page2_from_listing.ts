@@ -11,7 +11,7 @@ import {
     ParsedPath, parseLink, PostSort, rawlink, redditRequest,
     replyButton, reportButton, saveButton, SubrInfo, SubSort, urlNotSupportedYet
 } from "./reddit";
-import { asLowercaseString, base_subreddit, loadPage2v2, urlToOneLoader } from "./reddit_page2_v2";
+import { asLowercaseString, base_subreddit, loadPage2v2, getPagev2 } from "./reddit_page2_v2";
 
 /*
 REORGANIZATION TODO:
@@ -31,25 +31,7 @@ function warn(...message: unknown[]) {
 function disabled(): void {
     throw new Error("getpage disabled. TODO: support submit links before release");
 }
-export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
-    // TODO: api requests should be seperate from the api result -> page2 stuff.
-    // also authentication should be handled better.
-
-    let v2res = urlToOneLoader(pathraw_in);
-    if('kind' in v2res) {
-        v2res = await v2res.value();
-    }
-    if(v2res.pivot_loader != null) {
-        const rl_res = Generic.readLink(v2res.content, v2res.pivot_loader.key);
-        if(rl_res != null) return {
-            content: v2res.content,
-            pivot: v2res.pivot_loader.key,
-        };
-        const loadreq = Generic.readLink(v2res.content, v2res.pivot_loader.request);
-        if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
-        const loadres = await loadPage2v2(loadreq.value);
-        return {content: {...v2res.content, ...loadres.content}, pivot: v2res.pivot_loader.key};
-    }
+export async function deprecated(pathraw_in: string): Promise<Generic.Page2> {
     disabled();
 
     // unrelated:
@@ -213,6 +195,7 @@ export async function getPage(pathraw_in: string): Promise<Generic.Page2> {
             user: () => pathraw,
             inbox: () => pathraw,
             subreddits: () => pathraw,
+            s: () => pathraw,
         });
         
         const page = await redditRequest(link as "/__any", {method: "GET"});
@@ -1293,8 +1276,15 @@ export async function loadPage2(
     };
 
     if(data.kind === "link_replies") {
-        const res = await getPage(data.url);
-        return {content: res.content};
+        const page2new = await getPagev2(data.url);
+
+        const rl_res = Generic.readLink(page2new.content, page2new.loader.key);
+        if(rl_res != null) return {content: page2new.content,};
+        const loadreq = Generic.readLink(page2new.content, page2new.loader.request);
+        if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
+        if (client.loader == null) throw new Error("load fail - missing client.loader");
+        const loadres = await client.loader(loadreq.value);
+        return {content: {...page2new.content, ...loadres.content}};
     }else if(data.kind === "more") {
         throw new Error("TODO more");
     }else if(data.kind === "vertical") {

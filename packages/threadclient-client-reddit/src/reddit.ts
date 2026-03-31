@@ -6,8 +6,9 @@ import type * as Reddit from "api-types-reddit";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { assertNever, assertUnreachable, encodeQuery, encodeURL, expectUnsupported, splitURL, updateQuery } from "tmeta-util";
 import { getVredditSources } from "threadclient-preview-vreddit";
-import { getPage, loadPage2, submitPage2 } from "./page2_from_listing";
+import { loadPage2, submitPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
+import { getPagev2 } from "./reddit_page2_v2";
 
 const reddit_app_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -2777,7 +2778,7 @@ export const client_id = "reddit";
 export const client: ThreadClient = {
     id: client_id,
     // loginURL: getLoginURL(),
-    getPage,
+    getPagev2,
     loader: loadPage2,
     submit: submitPage2,
     async getThread(pathraw_in): Promise<Generic.Page> {
