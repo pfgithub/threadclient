@@ -57,7 +57,7 @@ export type CollapseButton = {
 export type FlatItem = ({
     kind: "wrapper_start" | "wrapper_end" | "horizontal_line",
 } | {
-    kind: "repivot_list_fullscreen_button",
+    kind: "button",
 
     client_id: string,
     pivot: () => Generic.Link<Generic.Post>,

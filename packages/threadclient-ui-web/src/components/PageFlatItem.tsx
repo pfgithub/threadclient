@@ -104,7 +104,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: PerPostData}
         // should not be used to make gaps.
         wrapper_start: () => <div class="mt-4" />,
         wrapper_end: () => <div class={"pb-2 sm:rounded-b-lg bg-slate-100 dark:bg-zinc-800"} />,
-        repivot_list_fullscreen_button: fsb => <Clickable
+        button: fsb => <Clickable
             class="bg-slate-100 dark:bg-zinc-800 p-2 rounded-md"
             action={{url: fsb.href, client_id: fsb.client_id, page: () => ({
                 content: hprc.content.untrackToContent(),

@@ -475,6 +475,15 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
     const bodyCh = FlatItemTsch.useChildren(() => {
         const p = pivot; // if pivot changes, we rerender everything
         return <>
+            {(p.kind === "post" && p.content.kind === "post") ? <>
+                <FlatItemTsch
+                    kind="button"
+                    client_id={p.client_id}
+                    pivot={() => pivot_link}
+                    href={updateQuery(p.url ?? "@ENO", {'--tc-view': "reader"})}
+                    name="Reader"
+                />
+            </> : null}
             <For each={parentsFiltered().view_parents}>{(item): JSX.Element => <>
                 <FlatItemTsch kind="wrapper_start" />
                 <RenderTreeItemAuto
@@ -492,22 +501,13 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
                     last={true}
                 />
             </>}</For>
-            {p.replies?.display === "repivot_list" ? <>
-                <FlatItemTsch
-                    kind="repivot_list_fullscreen_button"
-                    client_id={p.client_id}
-                    pivot={() => pivot_link}
-                    href={updateQuery(p.url ?? "@ENO", {'--tc-view': "reader"})}
-                    name="Reader"
-                />
-            </> : null}
             {p.replies ? <>
                 {FlatItemTsch({
                     kind: "horizontal_line",
                 })}
                 {p.replies.display === "repivot_list" ? <>
                     <FlatItemTsch
-                        kind="repivot_list_fullscreen_button"
+                        kind="button"
                         client_id={p.client_id}
                         pivot={() => pivot_link}
                         href={updateQuery(p.url ?? "@ENO", {'--tc-view': "fullscreen"})}
