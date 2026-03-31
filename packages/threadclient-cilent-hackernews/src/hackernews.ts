@@ -106,7 +106,7 @@ export const base_listing = {
                     request: id_loader,
 
                     load_count: null,
-                    autoload: false,
+                    autoload: true,
                     client_id,
                 },
             },
@@ -147,6 +147,7 @@ export const base_item = {
 
             load_count: 1,
             client_id,
+            autoload: true,
         };
     },
 };

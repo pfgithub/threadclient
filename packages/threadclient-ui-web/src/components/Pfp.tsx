@@ -1,6 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { createSignal, JSX, onCleanup } from "solid-js";
 import proxyURL from "./proxy_url";
+import { intersectionObserverObserve } from "./intersection_observer";
 
 const decorative_alt = "";
 
@@ -62,17 +63,13 @@ export default function Pfp(props: {pfp: Generic.InfoPfp, class: string}): JSX.E
         loading="lazy" // ← not working? I had to implement it myself ↓
         ref={el => {
             imgel = el;
-            new IntersectionObserver(itms => {
-                itms.forEach(itm => {
-                    if(itm.target !== el) return;
-                    if(itm.isIntersecting) {
-                        setVisible(true);
-                    }
-                });
-            }, {
-                rootMargin: "100%",
-                threshold: 0,
-            }).observe(el);
+            const unregister = intersectionObserverObserve(el, list => {
+                if (list.isIntersecting) {
+                    setVisible(true);
+                    unregister();
+                }
+            });
+            onCleanup(() => unregister());
         }}
         alt={decorative_alt}
         class={"w-full h-full block rounded-md " + (pswpOpen() ? " opacity-0" : "") + (masked() ? " filter blur-sm" : "")}

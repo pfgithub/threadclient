@@ -1,11 +1,12 @@
 import * as Generic from "api-types-generic";
-import { batch, createSignal, JSX } from "solid-js";
+import { batch, createSignal, JSX, onCleanup } from "solid-js";
 import { Show } from "tmeta-util-solid";
 import { fetchClient } from "../clients";
 import { getWholePageRootContext } from "../util/utils_solid";
 import { addAction } from "./action_tracker";
 import DevCodeButton from "./DevCodeButton";
 import ReadLink from "./ReadLink";
+import { intersection_observer, intersectionObserverObserve } from "./intersection_observer";
 
 export default function OneLoader<T>(props: {
     loader: Generic.BaseLoader & {key: Generic.Link<T>},
@@ -57,7 +58,17 @@ export function UnfilledLoader(props: {
         });
     };
 
-    return <div>
+    return <div ref={self => {
+        if (props.loader.autoload) {
+            const unregister = intersectionObserverObserve(self, upds => {
+                if (upds.isIntersecting) {
+                    unregister();
+                    doLoad();
+                }
+            });
+            onCleanup(() => unregister());
+        }
+    }}>
         <button
             class="text-blue-500 hover:underline"
             disabled={loading()}

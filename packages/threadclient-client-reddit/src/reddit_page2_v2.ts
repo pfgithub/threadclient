@@ -446,7 +446,7 @@ export const base_subreddit = {
                 request: id_loader,
 
                 load_count: null,
-                autoload: false,
+                autoload: true,
                 client_id,
 
                 sort: {
@@ -587,7 +587,7 @@ export const base_subreddit_sidebar = {
                 load_count: null,
                 request: id_loader,
                 client_id,
-                autoload: false,
+                autoload: true,
             },
         };
     },
@@ -605,7 +605,7 @@ export const base_subreddit_sidebar = {
                 request: id_loader,
 
                 load_count: null,
-                autoload: false,
+                autoload: true,
                 client_id,
             },
         };
