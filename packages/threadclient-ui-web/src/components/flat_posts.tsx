@@ -229,7 +229,7 @@ function ActionBarItems(props: {
 }): JSX.Element {
     return <>
         {/* now I want a <Show whenAll={{a, b, c}}>{(props) => } */}
-        {props.opts.collapse_data && props.opts.flat_frame != null && (
+        {props.opts.collapse_data && props.opts.flat_frame != null && props.opts.flat_frame.collapse && (
             postContentCollapseInfo(props.post, props.opts.flat_frame).user_controllable
             // TODO: dispatch this event to the post - eg a post may not have collapse data but still
             // have a collapse button and we need to tell it to collapse then
