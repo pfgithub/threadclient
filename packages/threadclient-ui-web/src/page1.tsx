@@ -1,4 +1,4 @@
-import type * as Generic from "api-types-generic";
+import * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
@@ -2218,13 +2218,30 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        if(!client.getThread || client.getPage && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
-            const page2 = await client.getPage!(current_path);
+        if(!client.getThread || (client.getPage || client.getPagev2) && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
+            // load the central loader so we have a valid pivot post
+            const page2old: Generic.Page2 = await (async (): Promise<Generic.Page2> => {
+                if (!client.getPagev2) {
+                    if (client.getPage) return await client.getPage(current_path);
+                    throw new Error("missing getThread/getPage for client: "+client.id);
+                }
+                const page2new = await client.getPagev2!(current_path);
+                const rl_res = Generic.readLink(page2new.content, page2new.loader.key);
+                if(rl_res != null) return {
+                    content: page2new.content,
+                    pivot: page2new.loader.key,
+                };
+                const loadreq = Generic.readLink(page2new.content, page2new.loader.request);
+                if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
+                if (client.loader == null) throw new Error("load fail - missing client.loader");
+                const loadres = await client.loader(loadreq.value);
+                return {content: {...page2new.content, ...loadres.content}, pivot: page2new.loader.key};
+            })();
             const split = splitPathPage1Ver(current_path);
 
             loader_area.remove();
 
-            renderPage2(page2, split.search).defer(hsc).adto(rootouter);
+            renderPage2(page2old, split.search).defer(hsc).adto(rootouter);
         }else{
             const listing = await client.getThread(current_path);
             loader_area.remove();

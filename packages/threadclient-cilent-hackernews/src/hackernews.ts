@@ -295,7 +295,7 @@ export type UTLRes = {
     content: Generic.Page2Content,
     pivot_loader: null | Generic.OneLoader<Generic.Post>, // TODO: shouldn't this be a vertical loader?
 };
-export function urlToOneLoader(pathraw_in: string): UTLRes {
+export async function getPagev2(pathraw_in: string): Promise<Generic.Pagev2> {
     let parsed = path_router.parse(pathraw_in);
     if (!parsed) parsed = {kind: "link_out", out: pathraw_in};
     const content: Generic.Page2Content = {};
@@ -304,11 +304,12 @@ export function urlToOneLoader(pathraw_in: string): UTLRes {
         const link = base_listing.post(content, {
             type: parsed.listing,
         });
-        return {content, pivot_loader: Generic.p2.prefilledOneLoader(content, link, undefined)};
+        return {content, loader: Generic.p2.prefilledVerticalLoader(content, link, undefined)};
     } else if (parsed.kind === "item") {
         const item_base: BaseItem = {id: parsed.id};
-        return {content, pivot_loader: {
-            kind: "one_loader",
+        return {content, loader: {
+            kind: "vertical_loader",
+            temp_parents: [base_client.post(content, {})],
             key: base_item.postLink(item_base),
             request: Generic.p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "item",
@@ -318,10 +319,10 @@ export function urlToOneLoader(pathraw_in: string): UTLRes {
         }};
     } else if (parsed.kind === "user") {
         const link = base_user.post(content, {id: parsed.id});
-        return {content, pivot_loader: Generic.p2.prefilledOneLoader(content, link, undefined)};
+        return {content, loader: Generic.p2.prefilledVerticalLoader(content, link, undefined)};
     } else if (parsed.kind === "link_out") {
         const link = base_rawlink.post(content, {url: parsed.out});
-        return {content, pivot_loader: Generic.p2.prefilledOneLoader(content, link, undefined)};
+        return {content, loader: Generic.p2.prefilledVerticalLoader(content, link, undefined)};
     } else assertNever(parsed);
 }
 async function loadPage2(
@@ -348,7 +349,7 @@ async function loadPage2(
 export const client_id = "hackernews";
 export const client: ThreadClient = {
     id: client_id,
-    getPage: getPage2,
+    getPagev2: getPagev2,
     loader: loadPage2,
 };
 
@@ -426,24 +427,6 @@ export async function hnRequest<Path extends keyof HN.Requests, Extra = never>(
     }
 }
 
-/** @deprecated: replace with getPagev2 which will just be urlToOneLoader */
-async function getPage2(
-    pathraw_in: string,
-): Promise<Generic.Page2> {
-    let v2res = urlToOneLoader(pathraw_in);
-    if(v2res.pivot_loader != null) {
-        const rl_res = Generic.readLink(v2res.content, v2res.pivot_loader.key);
-        if(rl_res != null) return {
-            content: v2res.content,
-            pivot: v2res.pivot_loader.key,
-        };
-        const loadreq = Generic.readLink(v2res.content, v2res.pivot_loader.request);
-        if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
-        const loadres = await loadPage2(loadreq.value);
-        return {content: {...v2res.content, ...loadres.content}, pivot: v2res.pivot_loader.key};
-    }
-    throw new Error("hn-todo: missing pivot loader");
-}
 export function rawlink(path: string): string {
     return "raw!https://news.ycombinator.com"+path;
 }

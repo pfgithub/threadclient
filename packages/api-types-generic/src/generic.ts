@@ -241,6 +241,10 @@ export type Page2 = {
     pivot: Link<Post>,
     content: Page2Content,
 };
+export type Pagev2 = {
+    content: Page2Content,
+    loader: VerticalLoader,
+};
 export type LoaderResult = {
     content: Page2Content,
 };
