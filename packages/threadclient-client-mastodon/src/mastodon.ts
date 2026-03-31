@@ -977,7 +977,7 @@ export const client: ThreadClient = {
                 rid.push(descendant.id);
             }
 
-            const repliesFor = (id: string): Generic.HorizontalLoaded | null => {
+            const repliesFor = (id: string): Generic.HorizontalLoaded => {
                 return (reply_ids.get(id) ?? []).map(itm => postLink(host, itm));
             };
 

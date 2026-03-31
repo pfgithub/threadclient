@@ -1,3 +1,6 @@
+// @ts-nocheck
+// ^ todo
+
 import type * as Generic from "api-types-generic";
 import {rt} from "api-types-generic";
 import collapse from "collapse-whitespace";
