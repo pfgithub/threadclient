@@ -2,9 +2,9 @@ import * as Generic from "api-types-generic";
 import { autoFill, autoLinkgen, autoOutline, p2, rt, validatePost } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
-import { assertNever, updateQuery } from "tmeta-util";
+import { assertNever, expectUnsupported, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
-import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink } from "./reddit";
+import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink } from "./reddit";
 
 // * todo fix - we use JSON.stringify right now, but that keeps property order. eventually, that's going to become
 // a problem - two things with the same base are not going to have the same id because of property order.
@@ -513,7 +513,7 @@ export function commentDefaultCollapsed(author_name: string): boolean {
     return author_name === "FatFingerHelperBot";
 }
 export const full_subreddit = {
-    fillContent: autoFill(
+    fill: autoFill(
         (full: FullSubredditContent) => base_subreddit.repliesIdFilled(full.subreddit),
         (content, full): Generic.HorizontalLoaded => {
             const res: Generic.HorizontalLoaded = [];
@@ -534,9 +534,6 @@ export const full_subreddit = {
             return res;
         },
     ),
-    fill: (content: Generic.Page2Content, full: FullSubredditContent): void => {
-        full_subreddit.fillContent(content, full);
-    },
 };
 
 export const base_subreddit_sidebar = {

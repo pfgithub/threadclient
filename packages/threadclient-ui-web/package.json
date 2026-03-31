@@ -60,6 +60,7 @@
     "threadclient-client-base": "^1.0.0",
     "threadclient-client-cohost": "^1.0.0",
     "threadclient-client-faker": "^1.0.0",
+    "threadclient-client-hackernews": "^1.0.0",
     "threadclient-client-mastodon": "^1.0.0",
     "threadclient-client-reddit": "^1.0.0",
     "threadclient-client-shell": "^1.0.0",

@@ -316,7 +316,7 @@ export function summarizeBody(body: Generic.Body): string {
     //       rendered body could contribute to the summary?
     // note: if a comment is default collapsed for downvotes, maybe don't show a body summary on it
     return switchKind(body, {
-        text: () => "[text]",
+        text: text => text.content,
         richtext: richtext => summarizeParagraphs(richtext.content),
         link: link => link.url,
         captioned_image: () => "[image]",

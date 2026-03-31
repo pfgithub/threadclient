@@ -4,7 +4,7 @@ import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
-import { encodeQuery, encodeURL, splitURL, updateQuery } from "tmeta-util";
+import { assertNever, assertUnreachable, encodeQuery, encodeURL, expectUnsupported, splitURL, updateQuery } from "tmeta-util";
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { getPage, loadPage2, submitPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
@@ -103,9 +103,6 @@ function richtextParagraphArray(
     opt: RichtextFormattingOptions,
 ): Generic.Richtext.Paragraph[] {
     return rtd.map(v => richtextParagraph(v, opt));
-}
-export function expectUnsupported(text: "unsupported"): void {
-    console.log("Expected unsupported", text);
 }
 
 function mediaMetaToBody(media_meta: Reddit.Media, caption?: string): Generic.GalleryItem {
@@ -3481,13 +3478,6 @@ export const client: ThreadClient = {
     }
 };
 
-// turns out (content: never): never => {} doesn't work properly
-// TODO make a util.ts file that has stuff like assertNever, expectUnsupported, …
-// or add expectUnsupported to base.ts
-function assertNever(content: never): never {
-    console.log("not never:", content);
-    throw new Error("Expected never");
-}
 function siteRuleToReportScreen(data: ReportInfo, site_rule: Reddit.FlowRule): Generic.ReportScreen {
     let action: Generic.ReportAction;
     if('nextStepReasons' in site_rule) {
@@ -3698,8 +3688,3 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
 // POST /api/comment {api_type: json, return_rtjson: true, richtext_json: JSON, text: string, thing_id: parent_thing_id}
 type ReplyInfo = {parent_id: string};
 const reply_encoder = encoderGenerator<ReplyInfo, "reply">("reply");
-
-function assertUnreachable(v: never): never {
-    console.log(v);
-    throw new Error("not unreachable");
-}

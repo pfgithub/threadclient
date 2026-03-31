@@ -2,10 +2,10 @@ import * as Generic from "api-types-generic";
 import { p2, rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
-import { assertNever, encodeQuery, splitURL, switchKind, updateQuery } from "tmeta-util";
+import { assertNever, encodeQuery, expectUnsupported, splitURL, switchKind, updateQuery } from "tmeta-util";
 import {
     authorFromPostOrComment, authorFromT2, awardingsToFlair, client, deleteButton, ec, editButton,
-    expectUnsupported, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody,
+    flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody,
     getNavbar,
     getPointsOn, getPostBody, getPostFlair, getPostThumbnail, jstrOf,
     ParsedPath, parseLink, PostSort, rawlink, redditRequest,
@@ -774,7 +774,7 @@ export function getPostInfo(listing_raw: Reddit.T1 | Reddit.T3): Generic.PostInf
 }
 
 export function rawlinkButton(url: string): Generic.Action {
-    return {kind: "link", text: "View on reddit.com", url: rawlink(url), client_id: "reddit"};
+    return {kind: "link", text: "View on reddit.com", url: rawlink(url), client_id: "reddit", icon: "external"};
 }
 
 function genClient(content: Generic.Page2Content): Generic.Link<Generic.Post> {

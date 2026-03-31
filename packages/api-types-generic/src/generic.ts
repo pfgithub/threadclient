@@ -146,7 +146,7 @@ export const p2 = {
     stringLink<T>(link: string): NullableLink<T> {
         return link as NullableLink<T>;
     },
-    fillLink<T>(content: Page2Content, link: NullableLink<T>, value: T): Link<T> {
+    fillLink<T>(content: Page2Content, link: NullableLink<T>, value: NoInfer<T>): Link<NoInfer<T>> {
         content[link] = {data: value};
         return link as unknown as Link<T>;
     },
@@ -424,7 +424,7 @@ export type Post = {
 
     disallow_pivot?: undefined | boolean,
     parent: null | PostParent,
-    replies: null | PostReplies,
+    replies: null | PostReplies, // TODO: rename to 'children'
     
     url: string | null, // if a thing does not have a url, it cannot be the pivot
     client_id: string,
@@ -454,7 +454,7 @@ export type PostContentPost = {
         text: string, // make this null | string instead of this null | {text: string} thing
     },
     flair?: Flair[] | undefined, // maybe content warnings should be seperate
-    thumbnail?: Thumbnail | undefined,
+    thumbnail?: Thumbnail | undefined, // TODO: remove this, rename to thumbnail_hint. Show a thumbnail if there is a title.
     info?: PostInfo | undefined,
 
     // TODO: author?: Link<Post> | undefined
@@ -590,6 +590,9 @@ export type Page = {
     display_style: "comments-view" | "fullscreen-view",
 };
 export type Navbar = {
+    // TODO: to page2-ify this, we should have
+    // - login?: {... info on login/logout/signup}
+    // - inboxes?: Inbox[]
     actions: Action[],
     inboxes: Inbox[],
     client_id: string,
@@ -617,6 +620,7 @@ export type BodyText = {
     kind: "text",
     content: string,
     client_id: string,
+    // TODO: this should be moved to be the job of the client, not the renderer
     markdown_format: TextMarkdownFormat,
 };
 export type TextMarkdownFormat = "reddit" | "reddit_html" | "none";

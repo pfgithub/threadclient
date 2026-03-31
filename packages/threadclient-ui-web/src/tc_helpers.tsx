@@ -1,6 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import { assertNever, escapeHTML } from "tmeta-util";
+import { assertNever, escapeHTML, parseContentHTML } from "tmeta-util";
 import { scoreToString } from "./components/InfoBar";
 import { dynamicLoader, hideshow, HideShowCleanup } from "./page1";
 import { global_counter_info } from "./router";
@@ -128,18 +128,16 @@ export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditM
 export async function textToBody(body: Generic.BodyText): Promise<Generic.Body> {
     const content = body.content;
     if(body.markdown_format === "reddit") {
-        const [mdr, htr] = await Promise.all([
+        const [mdr] = await Promise.all([
             getRedditMarkdownRenderer(),
-            import("threadclient-client-reddit/src/html_to_richtext"),
         ]);
         const safe_html = mdr.renderMd(content);
-        return {kind: "richtext", content: htr.parseContentHTML(safe_html, body.client_id)};
+        return {kind: "richtext", content: parseContentHTML(safe_html, body.client_id)};
     }else if(body.markdown_format === "none") {
         return {kind: "richtext", content: [rt.p(rt.txt(content))]};
     }else if(body.markdown_format === "reddit_html") {
-        const htr = await import("threadclient-client-reddit/src/html_to_richtext");
         console.log(content);
-        return {kind: "richtext", content: htr.parseContentHTML(content, body.client_id)};
+        return {kind: "richtext", content: parseContentHTML(content, body.client_id)};
     }else assertNever(body.markdown_format);
 }
 

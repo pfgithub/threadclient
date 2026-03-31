@@ -252,13 +252,7 @@ function ActionBarItems(props: {
             <ActionItemRaw
                 icon="link"
                 color={null}
-                text={props.post.info?.comments != null ? (
-                    props.post.info.comments.toLocaleString() + " comment"+(
-                        props.post.info.comments === 1 ? "" : "s"
-                    )
-                ) : (
-                    "Comments"
-                )}
+                text={"Permalink"}
                 onClick={{url: props.opts.frame.url}}
 
                 client_id={props.opts.client_id}

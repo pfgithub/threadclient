@@ -1,0 +1,19 @@
+{
+  "name": "threadclient-client-hackernews",
+  "version": "1.0.0",
+  "main": "src/hackernews.ts",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "eslint": "^10.0.0",
+    "eslint-config-tmeta": "^1.0.0",
+    "esno": "^0.16.3",
+    "tsconfig-tmeta": "^1.0.0",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
+    "test": "esno src/reddit.spec.ts"
+  }
+}

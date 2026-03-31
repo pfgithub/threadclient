@@ -41,11 +41,6 @@ export function escapeHTML(unsafe_html: string): string {
 
 export const safehtml = templateGenerator((v: string) => escapeHTML(v));
 
-export function assertNever(content: never): never {
-    console.log("not never:", content);
-    throw new Error("Expected never");
-}
-
 // URL Router
 
 type UnionToIntersection<U> = 
@@ -85,11 +80,11 @@ type CleanTooltip<T> = T extends Record<string, unknown> ? { [k in keyof T] : T[
 export type Router<ParentOpts extends BaseParentOpts, Out> = {
     with<Bits extends readonly RouteBit[]>(
         bits: Bits,
-        cb: (urlr: Router<CleanTooltip<ParentOpts & BitsToOpts<Bits>>, Out>) => void,
+        cb: (urlr: Router<CleanTooltip<ParentOpts & BitsToOpts<NoInfer<Bits>>>, Out>) => void,
     ): void,
     route<Bits extends readonly RouteBit[]>(
         bits: Bits,
-        cb: (args: CleanTooltip<ParentOpts & BitsToOpts<Bits>>) => Out,
+        cb: (args: CleanTooltip<ParentOpts & BitsToOpts<NoInfer<Bits>>>) => Out,
     ): void,
     catchall(cb: (args: ParentOpts) => Out): void,
     parse(path: string): Out | null,
@@ -262,3 +257,17 @@ export function updateQuery(path: string, update: {[key: string]: string | undef
     const qstr = query.toString();
     return pathname + (qstr !== "" ? "?" + qstr : "") + (hash !== "" ? "#"+hash : "");
 }
+
+export function expectUnsupported(text: "unsupported"): void {
+    console.log("Expected unsupported", text);
+}
+export function assertNever(content: never): never {
+    console.log("not never:", content);
+    throw new Error("Expected never");
+}
+export function assertUnreachable(v: never): never {
+    console.log(v);
+    throw new Error("not unreachable");
+}
+
+export {parseContentHTML} from "./html_to_richtext";

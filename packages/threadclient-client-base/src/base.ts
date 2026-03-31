@@ -4,8 +4,9 @@ export type ThreadClient = {
     id: string,
     getLoginURL?: undefined | ((path: Generic.Opaque<"login_url">) => Promise<string>),
     login?: undefined | ((path: string[], query: URLSearchParams) => Promise<void>),
+    /** @deprecated: replace with getPagev2 once available */
     getPage?: undefined | ((path: string) => Promise<Generic.Page2>),
-    // getPagev2: (path: string) => {content: Generic.Page2Content, pivot: Generic.OneLoader<Generic.Post>}
+    // getPagev2: (path: string) => Promise<{content: Generic.Page2Content, pivot: Generic.VerticalLoader<Generic.Post>}>
     getThread?: undefined | ((path: string) => Promise<Generic.Page>),
     fetchRemoved?: undefined | ((fetch_removed_path: Generic.Opaque<"fetch_removed_path">) => Promise<Generic.Body>),
     //v I guess this should return the updated action state. mastodon returns an entire updated post, reddit returns nothing.

@@ -274,7 +274,7 @@ export function Thumbnail(props: {
                     // object-contain is nicer but we're using object-cover for now
                 )}
             />,
-            default: def => <div class={"w-full h-full rounded-full bg-slate-500 dark:bg-zinc-500"}>{def.thumb}</div>,
+            default: def => <div class={"w-full h-full rounded-full bg-slate-500 dark:bg-zinc-500 text-center"}>{def.thumb === "default" ? "" : def.thumb}</div>,
         }}</SwitchKind>
         <PreviewThumbnailIcon body={props.body} />
     </Clickable>;
@@ -304,9 +304,7 @@ export function PostTopBar(props: ClientPostProps & {
         return !props.visible || (props.opts.frame?.url != null && !isPivot());
     };
 
-    const hasThumbnail = () => {
-        return !!props.content.thumbnail && !props.visible;
-    };
+    const hasTitle = () => props.content.title != null;
 
     const settings = getSettings();
 
@@ -359,7 +357,7 @@ export function PostTopBar(props: ClientPostProps & {
             <div class={classes(
                 "text-gray-500",
                 "text-sm",
-                props.visible || hasThumbnail()
+                props.visible || hasTitle()
                 ? ""
                 : "filter grayscale text-$collapsed-header-color italic",
             )}><div class={classes([
@@ -437,9 +435,9 @@ export function PostTopBar(props: ClientPostProps & {
                     </div>
                 </Show>
                 <HSplit.Child fullwidth>
-                    <Show if={!(props.visible || hasThumbnail())}>
+                    <Show if={!props.visible}>
                         <Show if={
-                            !props.collapseInfo.default_collapsed
+                            !hasTitle()
                         } children={<div>
                             <div class="whitespace-normal max-lines max-lines-1">
                                 {"“" + (() => {
@@ -453,7 +451,7 @@ export function PostTopBar(props: ClientPostProps & {
                 </HSplit.Child>
             </div></div>
         </div></HSplit.Child>
-        <Show if={props.visible || hasThumbnail()}>
+        <Show if={props.visible || hasTitle()}>
             <HSplit.Child>
                 <div class={props.hovering == null ? "" : (
                     props.hovering ? "" : "can-hover:opacity-0 can-hover:focus-within:opacity-100"
