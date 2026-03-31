@@ -605,7 +605,7 @@ export const base_subreddit_sidebar = {
                 request: id_loader,
 
                 load_count: null,
-                autoload: true,
+                autoload: false,
                 client_id,
             },
         };
@@ -1078,7 +1078,7 @@ export const base_post = {
                 request: id_loader,
 
                 load_count: null,
-                autoload: false,
+                autoload: true,
                 client_id,
             },
         };
