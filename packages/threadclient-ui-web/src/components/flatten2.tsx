@@ -502,9 +502,9 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
                 />
             </>}</For>
             {p.replies ? <>
-                {FlatItemTsch({
+                <Show if={parentsFiltered().view_parents.length > 0}>{FlatItemTsch({
                     kind: "horizontal_line",
-                })}
+                })}</Show>
                 {p.replies.display === "repivot_list" ? <>
                     <FlatItemTsch
                         kind="button"
