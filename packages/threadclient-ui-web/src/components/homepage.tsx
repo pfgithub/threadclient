@@ -15,6 +15,7 @@ export function Homepage(props: {_?: undefined}): JSX.Element {
                 <main>
                     <p>Try for <LinkButton action={{client_id: "reddit", url: "/"}} style="normal">Reddit</LinkButton></p>
                     <p>Try for <LinkButton action={{client_id: "hackernews", url: "/"}} style="normal">Hacker News</LinkButton></p>
+                    <p><LinkButton action={{client_id: "shell", url: "/"}} style="normal">New Homepage</LinkButton></p>
                 </main>
                 <div class="mt-10"></div>
                 <footer>
