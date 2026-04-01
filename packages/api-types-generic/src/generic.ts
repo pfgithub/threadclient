@@ -480,8 +480,10 @@ export type PostContentPost = {
         // save?: SaveAction | undefined,
         // report?: ReportAction | undefined,
         other?: Action[] | undefined,
+        // rawlink?: RawlinkAction | undefined,
 
         moderator?: RedditModState | undefined,
+
     },
 };
 
