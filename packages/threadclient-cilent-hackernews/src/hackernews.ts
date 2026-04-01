@@ -12,7 +12,7 @@ threadclient-extension will be needed for:
     - comment
     - submit
     - newpoll
-    - upvote/downvote
+    - upvote/downvote (requires html scraping, see https://lukakerr.github.io/javascript/reverse-engineering-hacker-news-into-an-api)
     - flag
     - favourite
 - html scraping:
