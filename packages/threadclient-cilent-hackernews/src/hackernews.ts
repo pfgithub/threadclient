@@ -168,6 +168,13 @@ export const full_item = {
         if (full.full.url != null) body.push({kind: "link", url: full.full.url, client_id});
         if (full.full.text != null) body.push({kind: "text", content: full.full.text, markdown_format: "reddit_html", client_id});
         if (full.full.deleted) body.push({kind: "richtext", content: [Generic.rt.p(Generic.rt.txt("[deleted]"))]});
+        if (full.full.parts) {
+            body.push({kind: "richtext", content: [Generic.rt.ul(
+                ...full.full.parts.map((part, i) => Generic.rt.li(Generic.rt.p(Generic.rt.link({id: client_id}, base_item.url({id: part}), {}, Generic.rt.txt(`Option ${i+1}`))))),
+            )]});
+        };
+
+        const parent_id = full.full.parent ?? full.full.poll ?? undefined;
 
         return {
             kind: "post",
@@ -183,15 +190,39 @@ export const full_item = {
                     comments: full.full.descendants,
                 },
                 actions: {
-                    other: [rawlinkButton(base_item.url(full.base))],
+                    vote: {
+                        kind: "counter",
+                        client_id,
+                        unique_id: Generic.autoLinkgen("item→vote", full.base).toString(),
+                        increment: {icon: "caret_up", color: "orange", label: "Upvote", undo_label: "Undo Upvote"},
+                        decrement: null,
+                        count_excl_you: full.full.score ?? "hidden",
+                        you: undefined,
+                        actions: {},
+                        time: Date.now(),
+                    },
+                    other: [
+                        {
+                            kind: "counter",
+                            client_id,
+                            unique_id: Generic.autoLinkgen("item→flag", full.base).toString(),
+                            increment: {icon: "flag", color: "orange", label: "Flag", undo_label: "Undo Flag"},
+                            decrement: null,
+                            count_excl_you: full.full.score ?? "hidden",
+                            you: undefined,
+                            actions: {},
+                            time: Date.now(),
+                        },
+                        rawlinkButton(base_item.url(full.base)),
+                    ],
                 },
             },
             internal_data: full,
             parent: {loader: {
                 kind: "vertical_loader",
-                key: full.full.parent != null ? base_item.postLink({id: full.full.parent}) : base_client.post(content, {}),
+                key: parent_id != null ? base_item.postLink({id: parent_id}) : base_client.post(content, {}),
                 temp_parents: [base_client.post(content, {})],
-                request: full.full.parent != null ? base_item.loadSelfRequest(content, {id: full.full.parent}) : Generic.p2.createSymbolLinkToError(content, "hn-full_item-noparent", full),
+                request: parent_id != null ? base_item.loadSelfRequest(content, {id: parent_id}) : Generic.p2.createSymbolLinkToError(content, "hn-full_item-noparent", full),
                 client_id,
             }},
             replies: (full.full.kids != null && full.full.kids.length > 0) ? {

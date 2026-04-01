@@ -24,6 +24,7 @@ path_router.route(["ask"] as const, (): ParsedPath => ({kind: "listing", listing
 path_router.route(["show"] as const, (): ParsedPath => ({kind: "listing", listing: "showstories"}));
 path_router.route(["jobs"] as const, (): ParsedPath => ({kind: "listing", listing: "jobstories"}));
 path_router.route(["submit"] as const, linkout);
+path_router.route(["newpoll"] as const, linkout);
 path_router.route(["best"] as const, (): ParsedPath => ({kind: "listing", listing: "beststories"})); // note that the ?h=... parameter is not supported. it defaults to 48 hours.
 path_router.route(["item"] as const, (a): ParsedPath => ({kind: "item", id: +(a.query["id"] ?? "")}));
 path_router.route(["user"] as const, (a): ParsedPath => ({kind: "user", id: (a.query["id"] ?? "")}));

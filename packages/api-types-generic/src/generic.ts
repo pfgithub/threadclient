@@ -1233,6 +1233,9 @@ export type Icon =
     | "reply"
     | "chevron_up"
     | "chevron_down"
+    | "caret_up"
+    | "caret_down"
+    | "flag"
     | "ellipsis"
     | "external"
     | "trash"
@@ -1292,7 +1295,7 @@ export type CounterAction = {
     kind: "counter",
     client_id: string,
 
-    unique_id: string | null, // identifier that refers to this counter, unique per-client
+    unique_id: string | null, // TODO: this should be a Link<{you,count_excl_you}>
 
     neutral_icon?: undefined | Icon,
     increment: CounterButton,
