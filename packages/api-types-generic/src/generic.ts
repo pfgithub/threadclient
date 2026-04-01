@@ -1422,3 +1422,23 @@ export function mergeContent(a: Page2Content, b: Page2Content): Page2Content {
     // }
     return {...a, ...b};
 }
+
+class DeprecatedClient<T> {
+    content: Page2Content = {};
+    constructor(private backing: (url: string) => Promise<Pagev2>) {}
+
+    async pageFromURL(url: string): Promise<{pivot: VerticalLoader, dirty: Link<unknown>[]}> {
+        const result = await this.backing(url)
+        this.content = {...this.content, ...result.content};
+        // return 
+        return {pivot: result.loader, dirty: Object.keys(result.content) as Link<unknown>[]};
+    }
+    resolveLink<T>(link: Link<T>): T {
+        if (!Object.hasOwn(this.content, link)) throw new Error("missing link target");
+        return this.content[link] as any;
+    }
+    // first we need to modify all things to assume all links are filled
+    // - that means vertical loaders to linked lists and horizontal loaders to linked lists
+    // then we can migrate to this
+    // then we can start implementing nondeprecated clients
+}
