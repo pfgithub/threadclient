@@ -177,7 +177,7 @@ export const full_item = {
                 title: full.full.title != null ? {text: full.full.title} : null,
                 author2: full.full.by != null ? base_user.authorCard(content, {id: full.full.by}) : undefined,
                 body: body.length > 1 ? {kind: "array", body} : body.length === 1 ? body[0]! : {kind: "none"},
-                collapsible: {default_collapsed: full.full.type !== "comment"},
+                collapsible: {default_collapsed: full.full.deleted || full.full.dead || full.full.type !== "comment"},
                 info: {
                     creation_date: full.full.time != null ? full.full.time * 1000 : undefined,
                     comments: full.full.descendants,
