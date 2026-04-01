@@ -1,6 +1,6 @@
 
 import * as Generic from "api-types-generic";
-import { encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { assertNever, assertUnreachable, splitURL, updateQuery } from "tmeta-util";
 import * as HN from "./api_types";
 import { path_router } from "./routing";
@@ -411,11 +411,11 @@ async function loadPage2(
 
 
 export const client_id = "hackernews";
-export const client: ThreadClient = {
+export const client: ThreadClient = new DeprecatedClient({
     id: client_id,
     getPagev2: getPagev2,
     loader: loadPage2,
-};
+});
 
 
 type RequestOpts<ThingType extends HN.RequestInfo, Extra> = {

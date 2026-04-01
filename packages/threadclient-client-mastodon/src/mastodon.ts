@@ -3,7 +3,7 @@
 import * as Generic from "api-types-generic";
 import { mnu, p2, rt } from "api-types-generic";
 import * as Mastodon from "api-types-mastodon";
-import { encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { assertNever, encodeQuery, updateQuery } from "tmeta-util";
 import { parseContentHTML } from "./mastodon_html_to_rt";
 import { Timeline, timelineApiUrl, timelineAppUrl, url_parser } from "./mastodon_url_parser";
@@ -552,7 +552,7 @@ type LoginURL = {
     host: string,
 };
 const login_url_encoder = encoderGenerator<LoginURL, "login_url">("login_url");
-export const client: ThreadClient = {
+export const client: ThreadClient = new DeprecatedClient({
     id: "mastodon",
     // isLoggedIn: (pathraw: string) => {
     //     const [, host] = pathraw.split("/");
@@ -1144,7 +1144,7 @@ export const client: ThreadClient = {
         console.log("ERROR got", timeline_view);
         throw new Error("TODO support "+timeline_view.body.kind);
     },
-};
+});
 
 async function performBasicPostAction(host: string, url: string): Promise<void> {
     const auth = await getAuth(host);

@@ -3,7 +3,7 @@
 import type * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
-import { encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { assertNever, assertUnreachable, encodeQuery, encodeURL, expectUnsupported, splitURL, updateQuery } from "tmeta-util";
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { loadPage2, submitPage2 } from "./page2_from_listing";
@@ -2775,7 +2775,7 @@ export async function resolveSLink(sl: string): Promise<string | {error: string}
 }
 
 export const client_id = "reddit";
-export const client: ThreadClient = {
+export const client: ThreadClient = new DeprecatedClient({
     id: client_id,
     // loginURL: getLoginURL(),
     getPagev2,
@@ -3477,7 +3477,7 @@ export const client: ThreadClient = {
             };
         }else assertNever(inbox);
     }
-};
+});
 
 function siteRuleToReportScreen(data: ReportInfo, site_rule: Reddit.FlowRule): Generic.ReportScreen {
     let action: Generic.ReportAction;

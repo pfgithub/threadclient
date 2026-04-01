@@ -1,6 +1,6 @@
 import * as Generic from "api-types-generic";
 import {rt} from "api-types-generic";
-import { encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { faker as faker_dontuse } from "@faker-js/faker";
 
 function setSeed(seed: string, property_id: string) {
@@ -440,7 +440,7 @@ type LoaderData = {
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
-export const client: ThreadClient = {
+export const client: ThreadClient = new DeprecatedClient({
     id: "faker",
     async getPage(url: string): Promise<Generic.Page2> {
         const base = urlToBase(url);
@@ -460,4 +460,4 @@ export const client: ThreadClient = {
         }else throw new Error("TODO loader ["+(req as LoaderData).kind+"]");
         return {content};
     },
-};
+});
