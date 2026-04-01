@@ -49,7 +49,7 @@ const tag_from_icon_kind: {[key in Generic.Icon]: [
     chevron_down: [false, "fa-chevron-down"],
     caret_up: [false, "fa-caret-up"],
     caret_down: [false, "fa-caret-down"],
-    flag: [false, "fa-flag"],
+    flag: [true, "fa-flag"],
     ellipsis: [false, "fa-ellipsis"],
     external: [false, "fa-arrow-up-right-from-square"],
     trash: [false, "fa-trash"],

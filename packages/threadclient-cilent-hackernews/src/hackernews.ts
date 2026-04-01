@@ -203,10 +203,22 @@ export const full_item = {
                     },
                     other: [
                         {
+                            // maybe this should be a report action rather than a counter?
                             kind: "counter",
                             client_id,
                             unique_id: Generic.autoLinkgen("item→flag", full.base).toString(),
                             increment: {icon: "flag", color: "orange", label: "Flag", undo_label: "Undo Flag"},
+                            decrement: null,
+                            count_excl_you: full.full.score ?? "hidden",
+                            you: undefined,
+                            actions: {},
+                            time: Date.now(),
+                        },
+                        {
+                            kind: "counter",
+                            client_id,
+                            unique_id: Generic.autoLinkgen("item→favourite", full.base).toString(),
+                            increment: {icon: "star", color: "orange", label: "Favorite", undo_label: "Undo Favorite"},
                             decrement: null,
                             count_excl_you: full.full.score ?? "hidden",
                             you: undefined,
