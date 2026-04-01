@@ -882,7 +882,7 @@ function postDataFromListingMayError(
             loader: {
                 kind: "vertical_loader",
                 key: fullnameID(listing.parent_id, sort),
-                temp_parents: [fullnameID(listing.link_id, sort)],
+                unfilled_parent: fullnameID(listing.link_id, sort),
                 request: load_parent_id,
                 load_count: listing.depth, // this might be off by one or smth
                 client_id: client.id,

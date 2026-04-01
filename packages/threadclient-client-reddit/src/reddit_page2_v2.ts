@@ -104,7 +104,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
         } : null;
         return {content, loader: {
             kind: "vertical_loader",
-            temp_parents: [base_client.post(content, {})],
+            unfilled_parent: base_client.post(content, {}),
             key: comment_base != null ? base_comment.commentLink(comment_base) : base_post.postLink(post_base),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
@@ -128,7 +128,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
         };
         return {content, loader: {
             kind: "vertical_loader",
-            temp_parents: [base_client.post(content, {})],
+            unfilled_parent: base_client.post(content, {}),
             key: base_post.postLink(post_base),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
@@ -150,7 +150,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
         };
         return {content, loader: {
             kind: "vertical_loader",
-            temp_parents: [base_client.post(content, {})],
+            unfilled_parent: base_client.post(content, {}),
             key: base_submit.objectLink(submit_base),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "submit_page",
@@ -1052,7 +1052,7 @@ export const base_post = {
                 kind: "vertical_loader",
                 key: id_filled,
                 request: id_loader,
-                temp_parents: [base_subreddit.post(content, {subreddit: onsub, sort: subDefaultSort(onsub)})],
+                unfilled_parent: base_subreddit.post(content, {subreddit: onsub, sort: subDefaultSort(onsub)}),
 
                 load_count: null, autoload: false, client_id,
             },
@@ -1250,17 +1250,7 @@ export const full_comment = {
             parent: {
                 loader: {
                     kind: "vertical_loader",
-                    temp_parents: [
-                        // post
-                        base_post.postLink(full.on_base.on_post),
-                        // sub
-                        base_subreddit.post(content, {
-                            subreddit: full.on_base.on_post.on_subreddit,
-                            sort: subDefaultSort(full.on_base.on_post.on_subreddit),
-                        }),
-                        // client
-                        base_client.post(content, {}),
-                    ],
+                    unfilled_parent: base_post.postLink(full.on_base.on_post),
                     key: parent_unfilled_link,
                     client_id,
                     request: load_parent_request,

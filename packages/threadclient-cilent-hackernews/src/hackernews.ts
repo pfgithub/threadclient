@@ -246,7 +246,7 @@ export const full_item = {
             parent: {loader: {
                 kind: "vertical_loader",
                 key: parent_id != null ? base_item.postLink({id: parent_id}) : base_client.post(content, {}),
-                temp_parents: [base_client.post(content, {})],
+                unfilled_parent: base_client.post(content, {}),
                 request: parent_id != null ? base_item.loadSelfRequest(content, {id: parent_id}) : Generic.p2.createSymbolLinkToError(content, "hn-full_item-noparent", full),
                 client_id,
             }},
@@ -373,7 +373,7 @@ export async function getPagev2(pathraw_in: string): Promise<Generic.Pagev2> {
         const item_base: BaseItem = {id: parsed.id};
         return {content, loader: {
             kind: "vertical_loader",
-            temp_parents: [base_client.post(content, {})],
+            unfilled_parent: base_client.post(content, {}),
             key: base_item.postLink(item_base),
             request: Generic.p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "item",

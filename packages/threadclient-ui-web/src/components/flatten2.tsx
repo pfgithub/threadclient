@@ -101,10 +101,6 @@ function HighestArray(props: {
 
                 const {loader} = parent;
                 const loaded = hprc.content.view(loader.key);
-                const tempParent = createMemo((): Generic.Link<Generic.Post> | null => {
-                    const temp_parents = loader.temp_parents;
-                    return temp_parents.find(itm => hprc.content.view(itm) != null ? itm : null) ?? null;
-                });
                 // ok what we want is:
                 // - change 'key' to 'keys'
                 // - change this to display:
@@ -113,7 +109,7 @@ function HighestArray(props: {
                 if(!loaded) {
                     // insert a loader and the temp_parent and then continue with temp_parent.parent
                     return <>
-                        <HighestArray post={tempParent()} />
+                        <HighestArray post={loader.unfilled_parent} />
                         {FlatReplyTsch(loaderToFlatLoader(loader))}
                     </>;
                 }
@@ -121,7 +117,7 @@ function HighestArray(props: {
                     //^ loader.key resolves to an error
                     //v display both the error and the temp_parent
                     return <>
-                        <HighestArray post={tempParent()} />
+                        <HighestArray post={loader.unfilled_parent} />
                         <FlatReplyTsch kind="error" msg={loaded.error} />
                     </>;
                 }

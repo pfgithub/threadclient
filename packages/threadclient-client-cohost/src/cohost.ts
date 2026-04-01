@@ -261,12 +261,7 @@ const base_post = {
                 kind: "vertical_loader",
                 key: id_filled,
                 request: id_loader,
-                temp_parents: [
-                    // acct
-                    //     base_account.asParent(content, base.on_acct)
-                    // client
-                    base_client.post(content, {}),
-                ],
+                unfilled_parent: base_client.post(content, {}),
 
                 load_count: null, autoload: false, client_id,
             },

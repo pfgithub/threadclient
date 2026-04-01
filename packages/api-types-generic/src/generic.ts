@@ -195,7 +195,7 @@ export const p2 = {
         return {
             kind: "vertical_loader",
             key,
-            temp_parents: [p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled", fill)],
+            unfilled_parent: p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled", fill),
             load_count: null,
             request: p2.createSymbolLinkToError(content, "vertical loader claimed to be prefilled @2", fill),
             client_id: "@E@UNNECESSARY",
@@ -320,7 +320,7 @@ export type VerticalLoader = {
     kind: "vertical_loader",
     key: NullableLink<VerticalLoaded>,
 
-    temp_parents: Link<Post>[], // temporary parent[s] until the link is fliled. we could, after loading, assert that
+    unfilled_parent: Link<Post>, // temporary parent until the link is filled. we could, after loading, assert that
     // this parent is somewhere in the loaded post's tree because if it isn't, it's likely an error.
     // - process: find the first filled temp_parent link and use it.
     // - we could even get rid of key. put "parents: Link<Post>[]"
