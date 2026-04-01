@@ -7,10 +7,23 @@ import { path_router } from "./routing";
 
 /*
 threadclient-extension will be needed for:
-- user comments / favourites
-- impl /past
-- showing new user badges (unless we want to load every single account we see, which could contain thousands of post ids)
-- log in, comment, submit
+- accounts:
+    - log in
+    - comment
+    - submit
+    - newpoll
+    - upvote/downvote
+    - flag
+    - favourite
+- html scraping:
+    - impl /past
+    - impl /comments
+    - user page comments/favourites
+    - showing new user badges
+    - showing comment opacities
+    - showdead
+- can be made as a threadclient ui feature
+    - noprocrast
 */
 
 type LoaderData = {
@@ -194,8 +207,8 @@ export const full_item = {
                         kind: "counter",
                         client_id,
                         unique_id: Generic.autoLinkgen("item→vote", full.base).toString(),
-                        increment: {icon: "caret_up", color: "orange", label: "Upvote", undo_label: "Undo Upvote"},
-                        decrement: null,
+                        increment: {icon: "up_arrow", color: "orange", label: "Upvote", undo_label: "Undo Upvote"},
+                        decrement: full.full.type === "comment" ? {icon: "down_arrow", color: "orange", label: "Downvote", undo_label: "Undo Downvote"} : null,
                         count_excl_you: full.full.score ?? "hidden",
                         you: undefined,
                         actions: {},
