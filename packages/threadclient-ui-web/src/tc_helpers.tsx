@@ -59,7 +59,7 @@ type RedditMarkdownRenderer = {
 export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdownRenderer> => {
     const enc = new TextEncoder();
     const dec = new TextDecoder();
-    const exports = await (await import("./snudown.wasm")).default<{
+    const exports = await (await import("./snudown.wasm?init")).default<{
         memory: WebAssembly.Memory,
 
         // (len: usize) => [*]u8
