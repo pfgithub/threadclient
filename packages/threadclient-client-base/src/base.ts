@@ -72,6 +72,8 @@ export class DeprecatedClient<T> implements ThreadClient {
     }
     // first we need to modify all things to assume all links are filled
     // - that means vertical loaders to linked lists and horizontal loaders to linked lists
+    // - ✗ looks like we have to wait until the migration to do this
     // then we can migrate to this
+    // then we can migrate to assuming all links are filled by changing vertical loaders
     // then we can start implementing nondeprecated clients
 }
