@@ -58,7 +58,6 @@
     "solid-headless": "^0.10.12",
     "solid-js": "^1.9.11",
     "threadclient-client-base": "^1.0.0",
-    "threadclient-client-cohost": "^1.0.0",
     "threadclient-client-faker": "^1.0.0",
     "threadclient-client-hackernews": "^1.0.0",
     "threadclient-client-mastodon": "^1.0.0",

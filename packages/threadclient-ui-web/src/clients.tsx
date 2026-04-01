@@ -6,7 +6,6 @@ const client_initializers: {[key: string]: () => Promise<ThreadClient>} = {
     reddit: () => import("threadclient-client-reddit").then(client => client.client),
     mastodon: () =>  import("threadclient-client-mastodon").then(client => client.client),
     shell: () =>  import("threadclient-client-shell").then(client => client.client),
-    cohost: () =>  import("threadclient-client-cohost").then(client => client.client),
     lemmy: () =>  import("threadclient-client-lemmy").then(client => client.client),
     hackernews: () => import("threadclient-client-hackernews").then(client => client.client),
 };
