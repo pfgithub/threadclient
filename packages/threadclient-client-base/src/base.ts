@@ -52,3 +52,26 @@ export function encoderGenerator<InType extends Object, T extends Generic.DataEn
         }
     };
 }
+
+export class DeprecatedClient<T> implements ThreadClient {
+    id: string;
+    content: Generic.Page2Content = {};
+    constructor(private backing: ThreadClient) {
+        this.id = backing.id;
+    }
+
+    async pageFromURL(url: string): Promise<{pivot: Generic.VerticalLoader, dirty: Generic.Link<unknown>[]}> {
+        const result = await this.backing.getPagev2!(url)
+        this.content = {...this.content, ...result.content};
+        // return 
+        return {pivot: result.loader, dirty: Object.keys(result.content) as Generic.Link<unknown>[]};
+    }
+    resolveLink<T>(link: Generic.Link<T>): T {
+        if (!Object.hasOwn(this.content, link)) throw new Error("missing link target");
+        return this.content[link] as any;
+    }
+    // first we need to modify all things to assume all links are filled
+    // - that means vertical loaders to linked lists and horizontal loaders to linked lists
+    // then we can migrate to this
+    // then we can start implementing nondeprecated clients
+}
