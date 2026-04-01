@@ -1398,27 +1398,27 @@ export const mnu = {
     }),
 };
 
-export function mergeContent(a: Page2Content, b_raw: Page2Content): Page2Content {
-    const a_keys = new Set([...Object.keys(a)]);
-    const b = {...b_raw};
-    for (const [key, bv] of Object.entries(b_raw)) {
-        if (!a_keys.has(key)) continue;
-        const av = a[key];
-        // merge if there are any keys present in a but not present in b
-        if (typeof av !== "object" || typeof bv !== "object") continue;
-        const akeys = Object.keys(av);
-        const bkeys = new Set(Object.keys(bv));
-        let needs_merge = false;
-        for (const key of akeys) {
-            if (!bkeys.has(key)) {
-                needs_merge = true;
-                break;
-            }
-        }
-        if (needs_merge) {
-            console.log("merge notice", {key, av, bv});
-            (b[key] as any) = {...av, ...bv};
-        }
-    }
+export function mergeContent(a: Page2Content, b: Page2Content): Page2Content {
+    // const a_keys = new Set([...Object.keys(a)]);
+    // const b = {...b_raw};
+    // for (const [key, bv] of Object.entries(b_raw)) {
+    //     if (!a_keys.has(key)) continue;
+    //     const av = a[key];
+    //     // merge if there are any keys present in a but not present in b
+    //     if (typeof av !== "object" || typeof bv !== "object") continue;
+    //     const akeys = Object.keys(av);
+    //     const bkeys = new Set(Object.keys(bv));
+    //     let needs_merge = false;
+    //     for (const key of akeys) {
+    //         if (!bkeys.has(key)) {
+    //             needs_merge = true;
+    //             break;
+    //         }
+    //     }
+    //     if (needs_merge) {
+    //         console.log("merge notice", {key, av, bv});
+    //         (b[key] as any) = {...av, ...bv};
+    //     }
+    // }
     return {...a, ...b};
 }
