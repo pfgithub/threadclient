@@ -2235,7 +2235,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
                 if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
                 if (client.loader == null) throw new Error("load fail - missing client.loader");
                 const loadres = await client.loader(loadreq.value);
-                return {content: {...page2new.content, ...loadres.content}, pivot: page2new.loader.key};
+                return {content: Generic.mergeContent(page2new.content, loadres.content), pivot: page2new.loader.key};
             })();
             const split = splitPathPage1Ver(current_path);
 

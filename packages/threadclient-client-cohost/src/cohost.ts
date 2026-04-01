@@ -89,7 +89,7 @@ export const client: ThreadClient = {
             const loadreq = Generic.readLink(v2res.content, v2res.pivot_loader.request);
             if (loadreq == null || loadreq.error != null) throw new Error("load fail: " + JSON.stringify(loadreq));
             const loadres = await loadPage2v2(loadreq.value);
-            return { content: { ...v2res.content, ...loadres.content }, pivot: v2res.pivot_loader.key };
+            return { content: Generic.mergeContent(v2res.content, loadres.content), pivot: v2res.pivot_loader.key };
         }
         throw new Error("not supported url "+path);
     },

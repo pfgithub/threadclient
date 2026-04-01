@@ -1,5 +1,5 @@
 import { autoFill, autoLinkgen, autoOutline, p2, readLink } from "api-types-generic";
-import type * as Generic from "api-types-generic";
+import * as Generic from "api-types-generic";
 import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { LemmyHttp, ListingType, SortType } from 'lemmy-js-client';
 
@@ -116,7 +116,7 @@ export const client: ThreadClient = {
             const loadreq = readLink(v2res.content, v2res.pivot_loader.request);
             if (loadreq == null || loadreq.error != null) throw new Error("load fail: " + JSON.stringify(loadreq));
             const loadres = await loadPage2v2(loadreq.value);
-            return { content: { ...v2res.content, ...loadres.content }, pivot: v2res.pivot_loader.key };
+            return { content: Generic.mergeContent(v2res.content, loadres.content), pivot: v2res.pivot_loader.key };
         }
         throw new Error("not supported url "+path);
     },

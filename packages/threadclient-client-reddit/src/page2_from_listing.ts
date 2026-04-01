@@ -1284,7 +1284,7 @@ export async function loadPage2(
         if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
         if (client.loader == null) throw new Error("load fail - missing client.loader");
         const loadres = await client.loader(loadreq.value);
-        return {content: {...page2new.content, ...loadres.content}};
+        return {content: Generic.mergeContent(page2new.content, loadres.content)};
     }else if(data.kind === "more") {
         throw new Error("TODO more");
     }else if(data.kind === "vertical") {
