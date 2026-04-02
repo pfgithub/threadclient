@@ -10,6 +10,7 @@ import { InternalIcon, InternalIconRaw } from "./Icon";
 import PageFlatItem from "./PageFlatItem";
 import ReplyEditor from "./reply";
 import ToggleButton from "./ToggleButton";
+import Page2ContentManager from "../util/Page2ContentManager";
 
 function DisplayPost(props: {
     post: Generic.Link<Generic.Post>,
@@ -55,13 +56,10 @@ function FeaturePreviewCard(props: {
     link: string,
 }): JSX.Element {
     const hprc = getWholePageRootContext();
-    return <Clickable action={{url: props.link, client_id: "shell", page: (): Generic.Page2 | undefined => {
+    return <Clickable action={{url: props.link, client_id: "shell", page: (): Page2ContentManager | undefined => {
         const rlres = hprc.content.view(props.link as Generic.Link<Generic.Post>);
         if(rlres == null) return undefined;
-        return {
-            content: hprc.content.untrackToContent(),
-            pivot: props.link as Generic.Link<Generic.Post>,
-        };
+        return hprc.content.dupe(props.link as Generic.Link<Generic.Post>);
     }}} class={`
         dark:border-t-1 dark:border-zinc-500
         block rounded-xl

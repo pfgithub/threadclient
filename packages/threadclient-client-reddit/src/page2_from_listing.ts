@@ -1282,8 +1282,7 @@ export async function loadPage2(
         if(rl_res != null) return {content: page2new.content,};
         const loadreq = Generic.readLink(page2new.content, page2new.loader.request);
         if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
-        if (client.loader == null) throw new Error("load fail - missing client.loader");
-        const loadres = await client.loader(loadreq.value);
+        const loadres = await loadPage2(loadreq.value);
         return {content: Generic.mergeContent(page2new.content, loadres.content)};
     }else if(data.kind === "more") {
         throw new Error("TODO more");

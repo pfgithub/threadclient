@@ -1,12 +1,9 @@
-import type * as Generic from "api-types-generic";
+import * as Generic from "api-types-generic";
 
 export type ThreadClient = {
     id: string,
     getLoginURL?: undefined | ((path: Generic.Opaque<"login_url">) => Promise<string>),
     login?: undefined | ((path: string[], query: URLSearchParams) => Promise<void>),
-    /** @deprecated: replace with getPagev2 */
-    getPage?: undefined | ((path: string) => Promise<Generic.Page2>),
-    getPagev2?: (path: string) => Promise<Generic.Pagev2>
     getThread?: undefined | ((path: string) => Promise<Generic.Page>),
     fetchRemoved?: undefined | ((fetch_removed_path: Generic.Opaque<"fetch_removed_path">) => Promise<Generic.Body>),
     //v I guess this should return the updated action state. mastodon returns an entire updated post, reddit returns nothing.
@@ -23,10 +20,6 @@ export type ThreadClient = {
     loadMoreUnmounted?: undefined | ((
         action: Generic.Opaque<"load_more_unmounted">
     ) => Promise<{children: Generic.UnmountedNode[], next?: undefined | Generic.LoadMoreUnmounted}>),
-
-    loader?: undefined | ((
-        request: Generic.Opaque<"loader">,
-    ) => Promise<Generic.LoaderResult>),
 
     hydrateInbox?: undefined | ((inbox: Generic.Opaque<"deferred_inbox">) => Promise<Generic.InboxData>),
 
@@ -58,8 +51,6 @@ export class DeprecatedClient implements ThreadClient {
     getLoginURL?: undefined | ((path: Generic.Opaque<"login_url">) => Promise<string>);
     login?: undefined | ((path: string[], query: URLSearchParams) => Promise<void>);
     /** @deprecated: replace with getPagev2 */
-    getPage?: undefined | ((path: string) => Promise<Generic.Page2>);
-    getPagev2?: (path: string) => Promise<Generic.Pagev2>
     getThread?: undefined | ((path: string) => Promise<Generic.Page>);
     fetchRemoved?: undefined | ((fetch_removed_path: Generic.Opaque<"fetch_removed_path">) => Promise<Generic.Body>);
     //v I guess this should return the updated action state. mastodon returns an entire updated post, reddit returns nothing.
@@ -77,20 +68,22 @@ export class DeprecatedClient implements ThreadClient {
         action: Generic.Opaque<"load_more_unmounted">
     ) => Promise<{children: Generic.UnmountedNode[], next?: undefined | Generic.LoadMoreUnmounted}>);
 
-    loader?: undefined | ((
-        request: Generic.Opaque<"loader">,
-    ) => Promise<Generic.LoaderResult>);
-
     hydrateInbox?: undefined | ((inbox: Generic.Opaque<"deferred_inbox">) => Promise<Generic.InboxData>);
 
     submit?: undefined | ((action: Generic.Opaque<"submit">, content: Generic.SubmitResult.SubmitPost) => Promise<string>);
 
     content: Generic.Page2Content = {};
-    constructor(backing: ThreadClient) {
+    constructor(private backing: ThreadClient & {
+        /** @deprecated: replace with getPagev2 */
+        getPage?: undefined | ((path: string) => Promise<Generic.Page2>),
+        getPagev2?: (path: string) => Promise<Generic.Pagev2>
+        loader?: undefined | ((
+            request: Generic.Opaque<"loader">,
+        ) => Promise<Generic.LoaderResult>),
+    }) {
         this.id = backing.id;
         this.getLoginURL = backing.getLoginURL;
         this.login = backing.login;
-        this.getPagev2 = backing.getPagev2;
         this.getThread = backing.getThread;
         this.fetchRemoved = backing.fetchRemoved;
         this.act = backing.act;
@@ -100,32 +93,51 @@ export class DeprecatedClient implements ThreadClient {
         this.sendReply = backing.sendReply;
         this.loadMore = backing.loadMore;
         this.loadMoreUnmounted = backing.loadMoreUnmounted;
-        this.loader = backing.loader;
         this.hydrateInbox = backing.hydrateInbox;
         this.submit = backing.submit;
     }
 
-    async pageFromURL(url: string): Promise<{pivot: Generic.VerticalLoader, dirty: Generic.Link<unknown>[]}> {
-        const result = await this.getPagev2!(url)
-        this.content = {...this.content, ...result.content};
-        return {pivot: result.loader, dirty: Object.keys(result.content) as Generic.Link<unknown>[]};
+    hasPage2(): boolean {
+        return !!(this.backing.getPage || this.backing.getPagev2);
+    }
+    async pageFromURL(url: string): Promise<{pivot: Generic.Link<Generic.Post>, dirty: Generic.Link<unknown>[]}> {
+        const client = this.backing;
+        if (!client.getPagev2) {
+            if (client.getPage) {
+                const result = await client.getPage(url);
+                this.content = {...this.content, ...result.content};
+                return {pivot: result.pivot, dirty: Object.keys(result.content) as Generic.Link<unknown>[]};
+            }
+            throw new Error("missing getThread/getPage for client: "+client.id);
+        }
+        const page2new = await client.getPagev2!(url);
+        const dirty = new Set<Generic.Link<unknown>>();
+        for (const key of Object.keys(page2new.content)) dirty.add(key as Generic.Link<unknown>);
+        this.content = {...this.content, ...page2new.content};
+        const rl_res = Generic.readLink(this.content, page2new.loader.key);
+        if (rl_res == null) {
+            const loadreq = Generic.readLink(page2new.content, page2new.loader.request);
+            if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
+            if (client.loader == null) throw new Error("load fail - missing client.loader");
+            const loadres = await client.loader(loadreq.value);
+            this.content = {...this.content, ...loadres.content};
+            for (const key of Object.keys(loadres.content)) dirty.add(key as Generic.Link<unknown>);
+        }
+        return {pivot: page2new.loader.key, dirty: [...dirty]};
     }
     async loaderLoad(request: Generic.Opaque<"loader">): Promise<{dirty: Generic.Link<unknown>[]}> {
-        const result = await this.loader!(request);
+        const result = await this.backing.loader!(request);
         this.content = {...this.content, ...result.content};
         return {dirty: Object.keys(result.content) as Generic.Link<unknown>[]};
     }
     resolveLink<T>(link: Generic.Link<T>): T {
-        if (!Object.hasOwn(this.content, link)) throw new Error("missing link target");
-        const resp = this.content[link];
-        if (resp == null || 'error' in resp) throw new Error("link contents none or error: "+(resp?.error ?? "none"));
-        return resp.data as T;
+        const rlres = Generic.readLink(this.content, link);
+        if (rlres == null || rlres.error) throw new Error("link contents none or error: "+(rlres?.error ?? "none"));
+        return rlres.value!;
     }
     /** @deprecated use resolveLink instead (TODO: finish the checklist) */
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
-        if (!Object.hasOwn(this.content, link)) return null;
-        const resp = this.content[link];
-        return resp as Generic.ReadLinkResult<T>;
+        return Generic.readLink(this.content, link);
     }
     // first we need to modify all things to assume all links are filled
     // - that means vertical loaders to linked lists and horizontal loaders to linked lists
@@ -133,4 +145,10 @@ export class DeprecatedClient implements ThreadClient {
     // then we can migrate to this
     // then we can migrate to assuming all links are filled by changing vertical loaders
     // then we can start implementing nondeprecated clients
+
+    dupe(): DeprecatedClient {
+        const result = new DeprecatedClient(this.backing);
+        result.content = {...this.content};
+        return result;
+    }
 }

@@ -27,6 +27,7 @@ import { postGetPage } from "./PageFlatItem";
 import Pfp from "./Pfp";
 import proxyURL from "./proxy_url";
 import ReadLink from "./ReadLink";
+import Page2ContentManager from "../util/Page2ContentManager";
 
 function PreviewThumbnailIcon(props: {body: Generic.Body}): JSX.Element {
     const genv = createMemo(() => getThumbnailPreview(props.body));
@@ -123,7 +124,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     const hprc = getWholePageRootContextOpt();
 
-    const getPage = (): Generic.Page2 | undefined => {
+    const getPage = (): Page2ContentManager | undefined => {
         if(!props.opts.flat_frame) return undefined;
         if(!hprc) return undefined;
         return postGetPage(hprc, props.opts.flat_frame.content);
@@ -296,7 +297,7 @@ export function PostTopBar(props: ClientPostProps & {
     hovering: undefined | boolean,
     whole_object_clickable: undefined | boolean,
 
-    getPage: () => Generic.Page2 | undefined,
+    getPage: () => Page2ContentManager | undefined,
 }): JSX.Element {
     const isPivot = () => props.opts.flat_frame?.is_pivot ?? false;
     const postIsClickable = () => {

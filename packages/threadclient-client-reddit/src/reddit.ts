@@ -2775,7 +2775,7 @@ export async function resolveSLink(sl: string): Promise<string | {error: string}
 }
 
 export const client_id = "reddit";
-export const client: ThreadClient = new DeprecatedClient({
+export const client: DeprecatedClient= new DeprecatedClient({
     id: client_id,
     // loginURL: getLoginURL(),
     getPagev2,

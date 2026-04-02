@@ -4,12 +4,13 @@ import { createMergeMemo, SwitchKind } from "tmeta-util-solid";
 import { navigate } from "../page1_routing";
 import { isModifiedEvent, unsafeLinkToSafeLink } from "../tc_helpers";
 import { getSettings } from "../util/utils_solid";
+import Page2ContentManager from "../util/Page2ContentManager";
 
 export type ClickAction = {
     url: string,
     client_id: string, // TODO get rid of this. it should be the client's responsability to include client_id in its links.
     mode?: undefined | "navigate" | "replace",
-    page?: undefined | (() => (Generic.Page2 | undefined)),
+    page?: undefined | (() => (Page2ContentManager | undefined)),
     onClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
 } | JSX.EventHandler<HTMLElement, MouseEvent> | "TODO";
 export default function Clickable(props: {

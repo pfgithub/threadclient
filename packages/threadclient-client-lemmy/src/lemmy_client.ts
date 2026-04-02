@@ -99,7 +99,7 @@ export async function loadPage2v2(
 }
 
 const client_id = "lemmy";
-export const client: ThreadClient = new DeprecatedClient({
+export const client: DeprecatedClient= new DeprecatedClient({
     id: client_id,
 
     getPage: async (path) => {

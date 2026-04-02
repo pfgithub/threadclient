@@ -411,7 +411,7 @@ async function loadPage2(
 
 
 export const client_id = "hackernews";
-export const client: ThreadClient = new DeprecatedClient({
+export const client: DeprecatedClient= new DeprecatedClient({
     id: client_id,
     getPagev2: getPagev2,
     loader: loadPage2,

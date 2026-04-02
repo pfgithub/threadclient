@@ -25,6 +25,7 @@ import SwipeActions from "./SwipeActions";
 import swipeActionSet from "./SwipeActionSet";
 import ReadLink from "./ReadLink";
 import { per_post_context } from "../util/contexts";
+import Page2ContentManager from "../util/Page2ContentManager";
 
 const rainbow = [
     "bg-red-500",
@@ -106,10 +107,7 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: PerPostData}
         wrapper_end: () => <div class={"pb-2 sm:rounded-b-lg bg-slate-100 dark:bg-zinc-800"} />,
         button: fsb => <Clickable
             class="bg-slate-100 dark:bg-zinc-800 p-2 rounded-md"
-            action={{url: fsb.href, client_id: fsb.client_id, page: () => ({
-                content: hprc.content.untrackToContent(),
-                pivot: fsb.pivot(),
-            }), mode: "replace"}}
+            action={{url: fsb.href, client_id: fsb.client_id, page: () => hprc.content.dupe(fsb.pivot()), mode: "replace"}}
         >
             <InternalIconRaw class="fa-solid fa-up-right-and-down-left-from-center" label={null} />
             {" "}{fsb.name}
@@ -227,13 +225,10 @@ function PageFlatPost(props: {
     })}</>;
 }
 
-export function postGetPage(hprc: PageRootContext, lpc: FlatTreeItem): Generic.Page2 | undefined {
+export function postGetPage(hprc: PageRootContext, lpc: FlatTreeItem): Page2ContentManager | undefined {
     if(lpc.kind !== "flat_post") return undefined; // only posts are focusable
     if(lpc.post.disallow_pivot ?? false) return undefined;
-    return {
-        pivot: lpc.link,
-        content: hprc.content.untrackToContent(),
-    };
+    return hprc.content.dupe(lpc.link);
 }
 export function postOnClick(hprc: PageRootContext, frame: FlatPost, e: MouseEvent | KeyboardEvent): void {
     const post = frame.content;

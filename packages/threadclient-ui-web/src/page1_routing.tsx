@@ -37,7 +37,7 @@ export type HistoryState = {key: UUID};
 
 export function navigate({path, page, mode}: {
     path: string,
-    page?: undefined | Generic.Page2,
+    page?: undefined | Page2ContentManager,
     mode?: undefined | "navigate" | "replace",
 }): void {
     if(path.startsWith("/")) path = path.replace("/", "#") || "#/";
@@ -55,7 +55,7 @@ export function navigate({path, page, mode}: {
 export type URLLike = {search: string, pathname: string, hash: string};
 
 
-export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Generic.Page2): void {
+export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Page2ContentManager): void {
     const url = url_in.pathname === "/" && url_in.search === "" && url_in.hash.length > 2 ? (() => {
         try {
             return new URL("https://thread.pfg.pw/"+url_in.hash.substring(1));
@@ -116,12 +116,9 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Gene
     nav_history_map.set(to_key, {node: naventry, url: thisurl});
 }
 
-export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup<HTMLDivElement> {
+export function renderPage2(content: Page2ContentManager, query: string): HideShowCleanup<HTMLDivElement> {
     const elem = el("div");
     const hsc = hideshow(elem);
-
-    const content = new Page2ContentManager();
-    content.addData(page.content);
 
     // huh, we could include page1 as a tab here if we wanted
     const [viewMode, setViewMode] = createSignal<"2v1" | "2v2">("2v1");
@@ -144,7 +141,7 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
                 </div></Show>
                 <DefaultErrorBoundary data={content}>{viewMode() === "2v1" ? untrack(() => {
                     const res = ClientPage({
-                        pivot: page.pivot,
+                        pivot: content.pivot,
                         query,
                     });
                     createEffect(() => {
@@ -154,7 +151,7 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
                     // TODO: set current url in url bar to the res url but only when visible
 
                     return <>{() => res.children}</>;
-                }) : <Page2v2 pivot={page.pivot} />}</DefaultErrorBoundary>
+                }) : <Page2v2 pivot={content.pivot} />}</DefaultErrorBoundary>
             </PageRootProvider>
         </DefaultErrorBoundary>;
     }).defer(hsc);

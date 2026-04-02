@@ -4,7 +4,7 @@ import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
 import { createEffect, createMemo, createSignal, JSX, untrack } from "solid-js";
 import { render } from "solid-js/web";
-import type { ThreadClient } from "threadclient-client-base";
+import type { DeprecatedClient, ThreadClient } from "threadclient-client-base";
 import { previewLink } from "threadclient-preview";
 import { assertNever } from "tmeta-util";
 import { allowedToAcceptClick, Show, TimeAgo } from "tmeta-util-solid";
@@ -26,6 +26,7 @@ import { rootel } from "./router";
 import { getPointsText, isModifiedEvent, unsafeLinkToSafeLink, watchCounterState } from "./tc_helpers";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { DefaultErrorBoundary, getSettings } from "./util/utils_solid";
+import Page2ContentManager from "./util/Page2ContentManager";
 
 function linkButton(
     client_id: string,
@@ -2201,7 +2202,7 @@ function splitPathPage1Ver(inpath: string): {path: string, search: string, hash:
     return {path, search, hash};
 }
 
-function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
+function clientMain(client: DeprecatedClient, current_path: string): HideShowCleanup<HTMLDivElement> {
     const rootouter = el("div");
     const hsc = hideshow(rootouter);
     const outer = el("div").clss("client-wrapper").adto(rootouter);
@@ -2218,30 +2219,16 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     (async () => {
         // await new Promise(r => 0);
-        if(!client.getThread || (client.getPage || client.getPagev2) && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
+        if(!client.getThread || client.hasPage2() && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
             // load the central loader so we have a valid pivot post
-            const page2old: Generic.Page2 = await (async (): Promise<Generic.Page2> => {
-                if (!client.getPagev2) {
-                    if (client.getPage) return await client.getPage(current_path);
-                    throw new Error("missing getThread/getPage for client: "+client.id);
-                }
-                const page2new = await client.getPagev2!(current_path);
-                const rl_res = Generic.readLink(page2new.content, page2new.loader.key);
-                if(rl_res != null) return {
-                    content: page2new.content,
-                    pivot: page2new.loader.key,
-                };
-                const loadreq = Generic.readLink(page2new.content, page2new.loader.request);
-                if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
-                if (client.loader == null) throw new Error("load fail - missing client.loader");
-                const loadres = await client.loader(loadreq.value);
-                return {content: Generic.mergeContent(page2new.content, loadres.content), pivot: page2new.loader.key};
-            })();
+            const purl_res = await client.pageFromURL(current_path);
+            const contentManager = new Page2ContentManager(client, purl_res.pivot);
+            contentManager.invalidate(purl_res.dirty);
             const split = splitPathPage1Ver(current_path);
 
             loader_area.remove();
 
-            renderPage2(page2old, split.search).defer(hsc).adto(rootouter);
+            renderPage2(contentManager, split.search).defer(hsc).adto(rootouter);
         }else{
             const listing = await client.getThread(current_path);
             loader_area.remove();
@@ -2437,7 +2424,7 @@ export function hideshow<T>(a_any?: T): HideShowCleanup<T> {
 
 function fetchClientThen(
     client_id: string,
-    cb: (client: ThreadClient) => HideShowCleanup<HTMLDivElement>,
+    cb: (client: DeprecatedClient) => HideShowCleanup<HTMLDivElement>,
 ): HideShowCleanup<HTMLDivElement> {
     const cached = getClientCached(client_id);
     if(cached) {
@@ -2523,38 +2510,6 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
     }
     if(path0 === "ui_testing") {
         return uiTestingPage();
-    }
-
-    function Component(): JSX.Element {
-        const [text, setText] = createSignal("loading…");
-
-        (async () => {
-            const {client} = await import("threadclient-client-reddit");
-            const {stringify} = await import("@effectful/serialization");
-            const v = await client.getPage!("/"+path.join("/")+search);
-            setText(stringify(v));
-        })().catch(e => {
-            console.log("err;", e);
-            setText((e as Error).toString() + "\n" + (e as Error).stack);
-        });
-
-        return <main class="client-wrapper">
-            <div class="display-comments-view">
-                <RichtextParagraphs content={[
-                    rt.pre(text(), "json"),
-                ]} />
-            </div>
-        </main>;
-    }
-
-    if(path0 === "temp0") {
-
-        const res = el("div");
-        const hsc = hideshow(res);
-
-        vanillaToSolidBoundary(res, () => <Component />).defer(hsc);
-
-        return hsc;
     }
 
     if(path0 === "login"){

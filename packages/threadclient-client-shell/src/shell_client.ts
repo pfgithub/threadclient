@@ -4,7 +4,7 @@ import { DeprecatedClient, ThreadClient } from "threadclient-client-base";
 import { splitURL } from "tmeta-util";
 import { changelog1, changelog2, changelog3, changelog4 } from "./changelog";
 
-export const client: ThreadClient = new DeprecatedClient({
+export const client: DeprecatedClient= new DeprecatedClient({
     id: "shell",
 
     async getPage(path: string): Promise<Generic.Page2> {

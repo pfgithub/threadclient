@@ -552,7 +552,7 @@ type LoginURL = {
     host: string,
 };
 const login_url_encoder = encoderGenerator<LoginURL, "login_url">("login_url");
-export const client: ThreadClient = new DeprecatedClient({
+export const client: DeprecatedClient= new DeprecatedClient({
     id: "mastodon",
     // isLoggedIn: (pathraw: string) => {
     //     const [, host] = pathraw.split("/");
@@ -646,18 +646,19 @@ export const client: ThreadClient = new DeprecatedClient({
         const auth = await getAuth(host);
 
         if(parsed.kind === "acct_internal_redirect") {
-            const value = await getResult<Mastodon.Account>(auth, mkurl(host, updateQuery(
-                "api/v1/accounts/lookup",
-                {acct: parsed.acct},
-            )));
-            if('error' in value) {
-                throw new Error("mastodon error: "+value.error);
-            }
-            const rplcv = pathraw.replace("/@"+parsed.acct, "/accounts/"+value.id);
-            if(rplcv === pathraw) throw new Error("bad acct_internal_redirect");
-            const res = await client.getPage!(rplcv);
-            fillAccount(res.content, host, value);
-            return res;
+            throw new Error("TODO: re-enable acct_internal_lookup");
+            // const value = await getResult<Mastodon.Account>(auth, mkurl(host, updateQuery(
+            //     "api/v1/accounts/lookup",
+            //     {acct: parsed.acct},
+            // )));
+            // if('error' in value) {
+            //     throw new Error("mastodon error: "+value.error);
+            // }
+            // const rplcv = pathraw.replace("/@"+parsed.acct, "/accounts/"+value.id);
+            // if(rplcv === pathraw) throw new Error("bad acct_internal_redirect");
+            // const res = await client.getPage!(rplcv);
+            // fillAccount(res.content, host, value);
+            // return res;
         }
     
         const content: Generic.Page2Content = {};

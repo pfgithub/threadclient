@@ -10,6 +10,7 @@ import InfoBar from "../../components/InfoBar";
 import { LinkButton, UserLink } from "../../components/links";
 import Pfp from "../../components/Pfp";
 import { getSettings, getWholePageRootContext } from "../../util/utils_solid";
+import Page2ContentManager from "../../util/Page2ContentManager";
 
 export default function ReaderView(props: {
     pivot: Generic.Link<Generic.Post>,
@@ -33,7 +34,7 @@ export default function ReaderView(props: {
                 action={{
                     mode: "replace",
                     client_id: pivotedPost().v.client_id,
-                    page: (): Generic.Page2 => ({content: hprc.content.untrackToContent(), pivot: props.pivot}),
+                    page: (): Page2ContentManager => hprc.content.dupe(props.pivot),
                     url: updateQuery(pivotedPost().v.url ?? "ENO", {'--tc-view': undefined}),
                 }}
             >

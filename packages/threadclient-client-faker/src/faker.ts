@@ -440,7 +440,7 @@ type LoaderData = {
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
-export const client: ThreadClient = new DeprecatedClient({
+export const client: DeprecatedClient = new DeprecatedClient({
     id: "faker",
     async getPage(url: string): Promise<Generic.Page2> {
         const base = urlToBase(url);

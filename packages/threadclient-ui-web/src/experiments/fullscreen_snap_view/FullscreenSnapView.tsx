@@ -21,6 +21,7 @@ import { getWholePageRootContext } from "../../util/utils_solid";
 import { LinkButton, UserLink } from "../../components/links";
 import { actAuto, getCounterState } from "../../components/counter";
 import { addAction } from "../../components/action_tracker";
+import Page2ContentManager from "../../util/Page2ContentManager";
 
 /*
 Planned gestures:
@@ -711,7 +712,7 @@ export default function FullscreenSnapView(props: {
             url: updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined}),
             client_id: m().pivot.client_id,
             mode: "replace",
-            page: (): Generic.Page2 => ({content: hprc.content.untrackToContent(), pivot: props.pivot}),
+            page: (): Page2ContentManager => hprc.content.dupe(props.pivot),
         }}
     >
         <InternalIconRaw
