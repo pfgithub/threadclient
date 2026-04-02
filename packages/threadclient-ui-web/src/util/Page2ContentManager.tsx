@@ -12,12 +12,14 @@ export class Page4ContentManager {
     }
     invalidate(dirty: Generic.Link<unknown>[]): void {
         // refetch all dirty link contents
-        for (const link of dirty) {
-            if (this.#signals.has(link)) {
-                const [, setValue] = this.#signals.get(link)!;
-                setValue(this.#backing.resolveLink(link));
+        batch(() => {
+            for (const link of dirty) {
+                if (this.#signals.has(link)) {
+                    const [, setValue] = this.#signals.get(link)!;
+                    setValue(this.#backing.resolveLink(link));
+                }
             }
-        }
+        });
     }
     view<T>(link: Generic.Link<T>): T {
         const [value] = this.#getSignal(link);
