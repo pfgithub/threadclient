@@ -439,6 +439,19 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                         settings.dev.mockRequests.setOverride(v.currentTarget.value || undefined);
                     }}
                 />
+                <h3 class="mt-6 text-sm uppercase font-bold text-slate-600 dark:text-zinc-400">Autoload</h3>
+                <SettingPicker
+                    setting={settings.dev.allowAutoload}
+                    options={["on", "off", undefined]}
+                    name={v => ({
+                        'on': "On",
+                        'off': "Off",
+                        'default': "Default",
+                    } as const)[v ?? "default"]}
+                />
+                <p class="my-2">
+                    In page2v2, if 'load more' buttons are allowed to be automatically pressed.
+                </p>
             </ShowAnimate>
         </SettingsSection>
     </div></main>;

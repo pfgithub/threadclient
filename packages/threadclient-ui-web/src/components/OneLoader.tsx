@@ -1,12 +1,11 @@
 import * as Generic from "api-types-generic";
-import { batch, createSignal, JSX, onCleanup } from "solid-js";
+import { createMemo, JSX, onCleanup } from "solid-js";
 import { Show } from "tmeta-util-solid";
-import { fetchClient } from "../clients";
-import { getWholePageRootContext } from "../util/utils_solid";
-import { addAction } from "./action_tracker";
+import { LoadStateError } from "../util/Page2ContentManager";
+import { getSettings, getWholePageRootContext } from "../util/utils_solid";
 import DevCodeButton from "./DevCodeButton";
+import { intersectionObserverObserve } from "./intersection_observer";
 import ReadLink from "./ReadLink";
-import { intersection_observer, intersectionObserverObserve } from "./intersection_observer";
 
 export default function OneLoader<T>(props: {
     loader: Generic.BaseLoader & {key: Generic.Link<T>},
@@ -21,49 +20,16 @@ export function UnfilledLoader(props: {
     loader: Generic.BaseLoader,
     label: string,
 }): JSX.Element {
-    const [loading, setLoading] = createSignal(false);
-    const [error, setError] = createSignal<null | string>(null);
     const hprc = getWholePageRootContext();
-
-    const doLoad = () => {
-        if(loading()) return;
-        setLoading(true);
-
-        const loader = props.loader;
-
-        // TODO: make sure there are never two loaders with the same request loading at once
-        addAction(
-            (async () => {
-                if(error() != null) await new Promise(r => setTimeout(r, 200));
-
-                const request = hprc.content.view(loader.request);
-                if(request == null) throw new Error("e-request-null: "+loader.request.toString());
-                if(request.error != null) throw new Error(request.error);
-                const client = await fetchClient(loader.client_id);
-                return await client!.loader!(request.value);
-            })(),
-        ).then(r => {
-            batch(() => {
-                setLoading(false);
-                setError(null);
-                // console.log("adding content", r.content, props.loader);
-                hprc.addContent(r.content);
-            });
-        }).catch((e: Error) => {
-            console.log("Error loading; ", e);
-            batch(() => {
-                setLoading(false);
-                setError(e.toString());
-            });
-        });
-    };
+    const settings = getSettings();
+    const loadState = createMemo(() => hprc.content.viewLoadStatus(props.loader));
 
     return <div ref={self => {
-        if (props.loader.autoload) {
+        if (props.loader.autoload && settings.dev.allowAutoload() === "on") {
             const unregister = intersectionObserverObserve(self, upds => {
                 if (upds.isIntersecting) {
                     unregister();
-                    doLoad();
+                    hprc.content.load(props.loader);
                 }
             });
             onCleanup(() => unregister());
@@ -71,16 +37,16 @@ export function UnfilledLoader(props: {
     }}>
         <button
             class="text-blue-500 hover:underline"
-            disabled={loading()}
-            onClick={doLoad}
+            disabled={loadState().kind === "progress"}
+            onClick={() => hprc.content.load(props.loader)}
         >{
-            loading()
+            loadState().kind === "progress"
             ? "Loading…"
-            : (error() != null ? "Retry Load" : props.label)
+            : (loadState().kind === "error" ? "Retry Load" : props.label)
             + (props.loader.load_count != null ? " ("+props.loader.load_count+")" : "")
-        }</button><DevCodeButton data={props} /><Show when={error()}>{err => (
+        }</button><DevCodeButton data={props} /><Show if={loadState().kind === "error"}>{(
             <p class="text-red-600 dark:text-red-500">
-                Error loading; {err}
+                Error loading; {(loadState() as LoadStateError).msg ?? "?"}
             </p>
         )}</Show>
     </div>;

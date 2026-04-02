@@ -130,11 +130,6 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
         return <DefaultErrorBoundary data={content}>
             <PageRootProvider
                 content={content}
-                addContent={(append_page) => {
-                    batch(() => {
-                        content.addData(append_page);
-                    });
-                }}
             >
                 <GlobalPageRootViewer />
                 <Show if={getSettings().page2v2Toggle() === "on"}><div>

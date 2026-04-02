@@ -29,17 +29,14 @@ export function getIsVisible(): (() => boolean) {
 
 export type PageRootContext = {
     content: Page2ContentManager,
-    addContent: (content: Generic.Page2Content) => void,
 };
 
 export function PageRootProvider(props: {
     content: Page2ContentManager,
-    addContent: (content: Generic.Page2Content) => void,
     children: JSX.Element,
 }): JSX.Element {
     return <page_root_context.Provider value={{
         content: props.content,
-        addContent: props.addContent,
     }}>{props.children}</page_root_context.Provider>;
 }
 
@@ -119,6 +116,7 @@ export type Settings = {
         showLogButtons: ComputeProperty<"on" | "off">,
         highlightUpdates: ComputeProperty<"on" | "off">,
         mockRequests: ComputeProperty<string | null>,
+        allowAutoload: ComputeProperty<"on" | "off">,
     },
 };
 
@@ -215,6 +213,7 @@ const global_settings = createRoot((): Settings => {
             showLogButtons: localStorageProperty("dev.show-log-buttons", () => "off", {}),
             highlightUpdates: localStorageProperty("dev.highlight-updates", () => "off", {}),
             mockRequests: localStorageProperty("--use-mock", () => null, {}),
+            allowAutoload: localStorageProperty("dev.allow-autoload", () => "on", {}),
         },
     };
 

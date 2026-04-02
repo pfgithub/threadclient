@@ -1,6 +1,7 @@
 import type * as Generic from "api-types-generic";
 import { batch, createSignal, Signal, untrack } from "solid-js";
 import { DeprecatedClient } from "threadclient-client-base";
+import { fetchClient } from "../clients";
 
 export class Page4ContentManager {
     #signals: Map<Generic.Link<unknown>, Signal<unknown>>;
@@ -34,14 +35,53 @@ export class Page4ContentManager {
     }
 }
 
+export type LoadState = {kind: "none"} | {kind: "progress"} | LoadStateError | {kind: "success"};
+export type LoadStateError = {kind: "error", msg: string};
+
 export default class Page2ContentManager {
     #signals: Map<
         Generic.NullableLink<unknown>,
         Signal<null | Generic.ReadLinkResult<unknown>>
     >;
+    #load_states: Map<Generic.Link<Generic.Opaque<"loader">>, Signal<LoadState>>;
 
     constructor() {
         this.#signals = new Map();
+        this.#load_states = new Map();
+    }
+
+    load(loader: Generic.BaseLoader): void {
+        const [state, setState] = this.#getLoadSignal(loader.request);
+        const cstate = untrack(() => state());
+        if (cstate.kind === "progress" || cstate.kind === "success") {
+            return; // already loading
+        }
+        setState({kind: "progress"});
+        (async () => {
+            const request = untrack(() => this.view(loader.request));
+            if (request == null || request.error != null) {
+                throw new Error(`load failure: ${request?.error ?? "e-request-null"} / for key: ${loader.request.toString()}`);
+            }
+            const client = await fetchClient(loader.client_id);
+            const resp = await client!.loader!(request.value);
+            batch(() => {
+                this.addData(resp.content);
+                setState({kind: "success"});
+            });
+        })().catch(e => {
+            console.error(e);
+            setState({kind: "error", msg: (e as Error).toString()});
+        });
+    }
+    viewLoadStatus(loader: Generic.BaseLoader): LoadState {
+        const [state, setState] = this.#getLoadSignal(loader.request);
+        return state();
+    }
+    #getLoadSignal(request: Generic.Link<Generic.Opaque<"loader">>): Signal<LoadState> {
+        if (!this.#load_states.has(request)) {
+            this.#load_states.set(request, createSignal<LoadState>({kind: "none"}));
+        }
+        return this.#load_states.get(request)!;
     }
 
     setData(new_data: Generic.Page2Content) {
