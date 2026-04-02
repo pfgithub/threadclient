@@ -146,9 +146,9 @@ export class DeprecatedClient implements ThreadClient {
     // then we can migrate to assuming all links are filled by changing vertical loaders
     // then we can start implementing nondeprecated clients
 
-    dupe(): DeprecatedClient {
+    dupe(): {client: DeprecatedClient, dirty: Generic.Link<unknown>[]} {
         const result = new DeprecatedClient(this.backing);
         result.content = {...this.content};
-        return result;
+        return {client: result, dirty: []};
     }
 }

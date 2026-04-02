@@ -82,7 +82,10 @@ export default class Page2ContentManager {
 
     /** for navigation */
     dupe(pivot: Generic.Link<Generic.Post>): Page2ContentManager {
-        return new Page2ContentManager(this.#backing.dupe(), pivot);
+        const {client, dirty} = this.#backing.dupe();
+        const res = new Page2ContentManager(client, pivot);
+        res.invalidate(dirty);
+        return res;
     }
 }
 function toLinkres(v: Generic.Page2Content[Generic.NullableLink<unknown>]): null | Generic.ReadLinkResult<unknown> {
