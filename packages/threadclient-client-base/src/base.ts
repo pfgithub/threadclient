@@ -53,7 +53,7 @@ export function encoderGenerator<InType extends Object, T extends Generic.DataEn
     };
 }
 
-export class DeprecatedClient<T> implements ThreadClient {
+export class DeprecatedClient implements ThreadClient {
     id: string;
     getLoginURL?: undefined | ((path: Generic.Opaque<"login_url">) => Promise<string>);
     login?: undefined | ((path: string[], query: URLSearchParams) => Promise<void>);

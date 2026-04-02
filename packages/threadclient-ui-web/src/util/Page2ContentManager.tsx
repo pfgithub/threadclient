@@ -1,5 +1,36 @@
 import type * as Generic from "api-types-generic";
 import { batch, createSignal, Signal, untrack } from "solid-js";
+import { DeprecatedClient } from "threadclient-client-base";
+
+export class Page4ContentManager {
+    #signals: Map<Generic.Link<unknown>, Signal<unknown>>;
+    #backing: DeprecatedClient;
+
+    constructor(client: DeprecatedClient) {
+        this.#signals = new Map();
+        this.#backing = client;
+    }
+    invalidate(dirty: Generic.Link<unknown>[]): void {
+        // refetch all dirty link contents
+        for (const link of dirty) {
+            if (this.#signals.has(link)) {
+                const [, setValue] = this.#signals.get(link)!;
+                setValue(this.#backing.resolveLink(link));
+            }
+        }
+    }
+    view<T>(link: Generic.Link<T>): T {
+        const [value] = this.#getSignal(link);
+        return value();
+    }
+    #getSignal<T>(link: Generic.Link<T>): Signal<T> {
+        const existsver = this.#signals.get(link);
+        if(existsver != null) return existsver as Signal<T>;
+        const newver = createSignal<T>(this.#backing.resolveLink(link));
+        this.#signals.set(link, newver as Signal<unknown>);
+        return newver;
+    }
+}
 
 export default class Page2ContentManager {
     #signals: Map<
