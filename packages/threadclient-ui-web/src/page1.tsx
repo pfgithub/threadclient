@@ -4,7 +4,7 @@ import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
 import { createEffect, createMemo, createSignal, JSX, untrack } from "solid-js";
 import { render } from "solid-js/web";
-import type { DeprecatedClient, ThreadClient } from "threadclient-client-base";
+import type { ThreadClient } from "threadclient-client-base";
 import { previewLink } from "threadclient-preview";
 import { assertNever } from "tmeta-util";
 import { allowedToAcceptClick, Show, TimeAgo } from "tmeta-util-solid";
@@ -2202,7 +2202,7 @@ function splitPathPage1Ver(inpath: string): {path: string, search: string, hash:
     return {path, search, hash};
 }
 
-function clientMain(client: DeprecatedClient, current_path: string): HideShowCleanup<HTMLDivElement> {
+function clientMain(client: ThreadClient, current_path: string): HideShowCleanup<HTMLDivElement> {
     const rootouter = el("div");
     const hsc = hideshow(rootouter);
     const outer = el("div").clss("client-wrapper").adto(rootouter);
@@ -2424,7 +2424,7 @@ export function hideshow<T>(a_any?: T): HideShowCleanup<T> {
 
 function fetchClientThen(
     client_id: string,
-    cb: (client: DeprecatedClient) => HideShowCleanup<HTMLDivElement>,
+    cb: (client: ThreadClient) => HideShowCleanup<HTMLDivElement>,
 ): HideShowCleanup<HTMLDivElement> {
     const cached = getClientCached(client_id);
     if(cached) {

@@ -1,6 +1,6 @@
 
 import { createSignal } from "solid-js";
-import { DeprecatedClient, ThreadClient } from "threadclient-client-base";
+import { ThreadClient } from "threadclient-client-base";
 import { generateUUID, UUID } from "tmeta-util";
 import { registerSW } from "virtual:pwa-register";
 import { variables } from "virtual:_variables";
@@ -20,7 +20,7 @@ export let navbar: HTMLElement;
 export let nav_history_map: Map<UUID, NavigationEntry>;
 export let current_nav_history_key!: UUID;
 
-export let client_cache!: {[key: string]: DeprecatedClient}; // what's this for? can't we just import() every time?
+export let client_cache!: {[key: string]: ThreadClient}; // what's this for? can't we just import() every time?
 // that should cache for us right?
 
 export let navigate_event_handlers!: ((url: URLLike) => void)[];

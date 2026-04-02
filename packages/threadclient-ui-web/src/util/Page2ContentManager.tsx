@@ -1,7 +1,6 @@
 import type * as Generic from "api-types-generic";
 import { batch, createSignal, Signal, untrack } from "solid-js";
-import { DeprecatedClient } from "threadclient-client-base";
-import { fetchClient } from "../clients";
+import { ThreadClient } from "threadclient-client-base";
 
 export type LoadState = {kind: "none"} | {kind: "progress"} | LoadStateError | {kind: "success"};
 export type LoadStateError = {kind: "error", msg: string};
@@ -10,10 +9,10 @@ export default class Page2ContentManager {
     // TODO: once view is removed, we can switch this to Signal<unknown>
     #signals: Map<Generic.Link<unknown>, Signal<Generic.ReadLinkResult<unknown> | null>>;
     #load_states: Map<Generic.Link<Generic.Opaque<"loader">>, Signal<LoadState>>;
-    #backing: DeprecatedClient; // TODO: multiple backing for multiclient (we might need ids to have a client on them?)
+    #backing: ThreadClient; // TODO: multiple backing for multiclient (we might need ids to have a client on them?)
     pivot: Generic.Link<Generic.Post>;
 
-    constructor(client: DeprecatedClient, pivot: Generic.Link<Generic.Post>) {
+    constructor(client: ThreadClient, pivot: Generic.Link<Generic.Post>) {
         this.#signals = new Map();
         this.#load_states = new Map();
         this.#backing = client;
