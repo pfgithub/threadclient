@@ -411,11 +411,46 @@ async function loadPage2(
 
 
 export const client_id = "hackernews";
-export const client: DeprecatedClient= new DeprecatedClient({
+export const client: DeprecatedClient = new DeprecatedClient({
     id: client_id,
     getPagev2: getPagev2,
     loader: loadPage2,
 });
+
+class HnClient extends ThreadClient {
+    data: {
+        id_to_item: Map<number, HN.Item>,
+        id_to_user: Map<string, HN.User>,
+    };
+
+    constructor() {
+        super(client_id);
+        this.data = {id_to_item: new Map(), id_to_user: new Map()};
+    }
+    hasPage2(): boolean {
+        return true;
+    }
+    async pageFromURL(url: string): Promise<{ pivot: Generic.Link<Generic.Post>; dirty: Generic.Link<unknown>[]; }> {
+        // - parse the url
+        // - cache the link->value map
+        // - return the value
+        throw new Error("TODO");
+    }
+    async loaderLoad(request: Generic.Opaque<"loader">): Promise<{ dirty: Generic.Link<unknown>[]; }> {
+        // so here:
+        // - fetch the url
+        // - cache the information, logging any affected links
+        throw new Error("TODO");
+    }
+    resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
+        // - generate the content from the cached data
+        return null;
+    }
+    dupe(): { client: HnClient; dirty: Generic.Link<unknown>[]; } {
+        const res = new HnClient();
+        return {client: res, dirty: []};
+    }
+}
 
 
 type RequestOpts<ThingType extends HN.RequestInfo, Extra> = {

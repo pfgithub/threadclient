@@ -58,10 +58,14 @@ export abstract class ThreadClient implements ThreadClientImplements {
     abstract hasPage2(): boolean;
     abstract pageFromURL(url: string): Promise<{pivot: Generic.Link<Generic.Post>, dirty: Generic.Link<unknown>[]}>;
     abstract loaderLoad(request: Generic.Opaque<"loader">): Promise<{dirty: Generic.Link<unknown>[]}>;
-    abstract resolveLink<T>(link: Generic.Link<T>): T;
+    resolveLink<T>(link: Generic.Link<T>): T {
+        const rlres = this.resolveLinkOld(link);
+        if (rlres == null || rlres.error) throw new Error("link contents none or error: "+(rlres?.error ?? "none"));
+        return rlres.value!;
+    }
     /** @deprecated use resolveLink instead (TODO: finish the checklist) */
     abstract resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null;
-    abstract dupe(): {client: DeprecatedClient, dirty: Generic.Link<unknown>[]};
+    abstract dupe(): {client: ThreadClient, dirty: Generic.Link<unknown>[]};
 }
 
 //eslint-disable-next-line @typescript-eslint/ban-types
@@ -166,11 +170,6 @@ export class DeprecatedClient extends ThreadClient {
         const result = await this.backing.loader!(request);
         this.content = {...this.content, ...result.content};
         return {dirty: Object.keys(result.content) as Generic.Link<unknown>[]};
-    }
-    resolveLink<T>(link: Generic.Link<T>): T {
-        const rlres = Generic.readLink(this.content, link);
-        if (rlres == null || rlres.error) throw new Error("link contents none or error: "+(rlres?.error ?? "none"));
-        return rlres.value!;
     }
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
         return Generic.readLink(this.content, link);
