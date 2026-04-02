@@ -122,8 +122,8 @@ export class DeprecatedClient implements ThreadClient {
         return resp.data as T;
     }
     /** @deprecated use resolveLink instead (TODO: finish the checklist) */
-    resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> {
-        if (!Object.hasOwn(this.content, link)) throw new Error("missing link target");
+    resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
+        if (!Object.hasOwn(this.content, link)) return null;
         const resp = this.content[link];
         return resp as Generic.ReadLinkResult<T>;
     }

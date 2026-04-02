@@ -4,9 +4,10 @@ import { DeprecatedClient } from "threadclient-client-base";
 import { fetchClient } from "../clients";
 
 export class Page4ContentManager {
-    #signals: Map<Generic.Link<unknown>, Signal<unknown>>;
+    // TODO: once view is removed, we can switch this to Signal<unknown>
+    #signals: Map<Generic.Link<unknown>, Signal<Generic.ReadLinkResult<unknown> | null>>;
     #load_states: Map<Generic.Link<Generic.Opaque<"loader">>, Signal<LoadState>>;
-    #backing: DeprecatedClient; // TODO: multiple backing for multiclient
+    #backing: DeprecatedClient; // TODO: multiple backing for multiclient (we might need ids to have a client on them?)
 
     constructor(client: DeprecatedClient) {
         this.#signals = new Map();
@@ -17,12 +18,12 @@ export class Page4ContentManager {
     load(loader: Generic.BaseLoader): void {
         const [state, setState] = this.#getLoadSignal(loader.request);
         const cstate = untrack(() => state());
-        if (cstate.kind === "progress" || cstate.kind === "success") {
+        if (cstate.kind === "progress") {
             return; // already loading
         }
         setState({kind: "progress"});
         (async () => {
-            const request = untrack(() => this.view(loader.request));
+            const request = untrack(() => this.view2(loader.request));
             const resp = await this.#backing.loaderLoad(request);
             batch(() => {
                 this.invalidate(resp.dirty);
@@ -50,20 +51,27 @@ export class Page4ContentManager {
             for (const link of dirty) {
                 if (this.#signals.has(link)) {
                     const [, setValue] = this.#signals.get(link)!;
-                    setValue(this.#backing.resolveLink(link));
+                    setValue(this.#backing.resolveLinkOld(link));
                 }
             }
         });
     }
-    view<T>(link: Generic.Link<T>): T {
+    /** @deprecated: use view2 */
+    view<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
         const [value] = this.#getSignal(link);
         return value();
     }
-    #getSignal<T>(link: Generic.Link<T>): Signal<T> {
+    view2<T>(link: Generic.Link<T>): T {
+        const [value] = this.#getSignal(link);
+        const res = value();
+        if (!res || res.error != null) throw new Error(res?.error ?? "none");
+        return res.value;
+    }
+    #getSignal<T>(link: Generic.Link<T>): Signal<Generic.ReadLinkResult<T> | null> {
         const existsver = this.#signals.get(link);
-        if(existsver != null) return existsver as Signal<T>;
-        const newver = createSignal<T>(this.#backing.resolveLink(link));
-        this.#signals.set(link, newver as Signal<unknown>);
+        if(existsver != null) return existsver as Signal<Generic.ReadLinkResult<T> | null>;
+        const newver = createSignal<Generic.ReadLinkResult<T> | null>(this.#backing.resolveLinkOld(link));
+        this.#signals.set(link, newver as Signal<Generic.ReadLinkResult<unknown> | null>);
         return newver;
     }
 }
@@ -86,7 +94,7 @@ export default class Page2ContentManager {
     load(loader: Generic.BaseLoader): void {
         const [state, setState] = this.#getLoadSignal(loader.request);
         const cstate = untrack(() => state());
-        if (cstate.kind === "progress" || cstate.kind === "success") {
+        if (cstate.kind === "progress") {
             return; // already loading
         }
         setState({kind: "progress"});
