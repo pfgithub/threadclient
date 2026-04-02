@@ -108,12 +108,24 @@ export class DeprecatedClient implements ThreadClient {
     async pageFromURL(url: string): Promise<{pivot: Generic.VerticalLoader, dirty: Generic.Link<unknown>[]}> {
         const result = await this.getPagev2!(url)
         this.content = {...this.content, ...result.content};
-        // return 
         return {pivot: result.loader, dirty: Object.keys(result.content) as Generic.Link<unknown>[]};
+    }
+    async loaderLoad(request: Generic.Opaque<"loader">): Promise<{dirty: Generic.Link<unknown>[]}> {
+        const result = await this.loader!(request);
+        this.content = {...this.content, ...result.content};
+        return {dirty: Object.keys(result.content) as Generic.Link<unknown>[]};
     }
     resolveLink<T>(link: Generic.Link<T>): T {
         if (!Object.hasOwn(this.content, link)) throw new Error("missing link target");
-        return this.content[link] as any;
+        const resp = this.content[link];
+        if (resp == null || 'error' in resp) throw new Error("link contents none or error: "+(resp?.error ?? "none"));
+        return resp.data as T;
+    }
+    /** @deprecated use resolveLink instead (TODO: finish the checklist) */
+    resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> {
+        if (!Object.hasOwn(this.content, link)) throw new Error("missing link target");
+        const resp = this.content[link];
+        return resp as Generic.ReadLinkResult<T>;
     }
     // first we need to modify all things to assume all links are filled
     // - that means vertical loaders to linked lists and horizontal loaders to linked lists

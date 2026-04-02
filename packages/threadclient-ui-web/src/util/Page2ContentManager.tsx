@@ -5,12 +5,45 @@ import { fetchClient } from "../clients";
 
 export class Page4ContentManager {
     #signals: Map<Generic.Link<unknown>, Signal<unknown>>;
-    #backing: DeprecatedClient;
+    #load_states: Map<Generic.Link<Generic.Opaque<"loader">>, Signal<LoadState>>;
+    #backing: DeprecatedClient; // TODO: multiple backing for multiclient
 
     constructor(client: DeprecatedClient) {
         this.#signals = new Map();
+        this.#load_states = new Map();
         this.#backing = client;
     }
+
+    load(loader: Generic.BaseLoader): void {
+        const [state, setState] = this.#getLoadSignal(loader.request);
+        const cstate = untrack(() => state());
+        if (cstate.kind === "progress" || cstate.kind === "success") {
+            return; // already loading
+        }
+        setState({kind: "progress"});
+        (async () => {
+            const request = untrack(() => this.view(loader.request));
+            const resp = await this.#backing.loaderLoad(request);
+            batch(() => {
+                this.invalidate(resp.dirty);
+                setState({kind: "success"});
+            });
+        })().catch(e => {
+            console.error(e);
+            setState({kind: "error", msg: (e as Error).toString()});
+        });
+    }
+    viewLoadStatus(loader: Generic.BaseLoader): LoadState {
+        const [state, setState] = this.#getLoadSignal(loader.request);
+        return state();
+    }
+    #getLoadSignal(request: Generic.Link<Generic.Opaque<"loader">>): Signal<LoadState> {
+        if (!this.#load_states.has(request)) {
+            this.#load_states.set(request, createSignal<LoadState>({kind: "none"}));
+        }
+        return this.#load_states.get(request)!;
+    }
+
     invalidate(dirty: Generic.Link<unknown>[]): void {
         // refetch all dirty link contents
         batch(() => {
