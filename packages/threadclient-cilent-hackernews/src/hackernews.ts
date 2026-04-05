@@ -400,6 +400,44 @@ class HnClient extends ThreadClientHelper {
     and also we would be keeping around extra data
 
     using the old method we keep around less total data
+
+    advantages:
+    - loaders will become Link<{request?: Link<Opaque>, next?: Link<T>}>
+      - instead of {value: Link<T>, request: Link<Opaque>}
+      - is that really better? it's just different
+    - profile cards simplify
+      - create profile cards from as much data as we have, including a request to fill them
+      - we won't be able to overwrite a high quality profile card with a low quality one
+        - eg currently, say we are on a user profile page. it would get the profile, then replace
+          it with a lower quality one when it sees a comment and generates a profile for the comment.
+        - this is maybe the main advantage?
+      - remove nonpivoted_identity_card
+    - we can fix some unnecessary rerender issues
+      - when you load the comments of a post, it shouldn't rerender the post
+        - well... the thing is on reddit, the comments include an updated copy of the post
+        - so we can't really remove that rerender. the post actually did change.
+      - we can fix unnecessary rerenders of Client
+        - there's no reason for us to be returning a new Client every time the page loads
+        - previously we had that by not overwriting existing link values, but we dropped that
+          when we made the api compatible for serverside-only
+    disadvantages:
+    - manual dirty tracking sucks. we shouldn't have to do that.
+      - automating it is possible but we would have to keep maps of ids to change when a given map entry changes
+    - the resolvers setup requires un-nesting some things that are currently nested. especially bad for things which
+      are strongly linked, ie item_replies which we want to do with all the context we have in item
+    - we end up storing extra data. we now have two caches instead of one, and everything is duplicated
+      - previously, we had internal_value fields but we could have removed those. the new method bakes those in.
+    - we lose the ability to run threadclient functions on a seperate thread
+      - eg when we move markdown parsing to the client instead of the app, now that goes into the resolver instead
+        of going into the main loader() function. loader() could easily be called from a worker, resolvers can't.
+    - we lose the ability to have a server-only client. now every client needs to have a module that defines the resolvers.
+      - before, we could make a threadclient api with like `/--tc/getPage/...path` and `/--tc/loader/...opaque` (requiring string opaques)
+      - but now we would have to use content for that
+
+    the advantages of the new method start to show for loaders:
+    and they show for profile cards, because we can partially fill them and fully fill them on request
+    and they show for post upvotes
+    but in exchange we lose the potential to have a serverside-only client (because it needs client code)
     */
     data: {
         listing_id_to_listing: Map<HN.ListingType, HN.Listing>,
