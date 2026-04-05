@@ -391,6 +391,16 @@ function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.Horizon
 }
 
 class HnClient extends ThreadClientHelper {
+    /*
+    decision:
+    - either we can migrate to resolvers
+    - or we can migrate only what is necessary
+    the problem with the resolvers is they make you manually do dirty tracking
+    and fixing that would be a bit annoying (the maps would have to be custom classes that track some stuff)
+    and also we would be keeping around extra data
+
+    using the old method we keep around less total data
+    */
     data: {
         listing_id_to_listing: Map<HN.ListingType, HN.Listing>,
         id_to_item: Map<number, HN.Item>,
