@@ -271,3 +271,4 @@ export function assertUnreachable(v: never): never {
 }
 
 export {parseContentHTML} from "./html_to_richtext";
+export {resolveThreadClientSupportedURL} from "./urls";

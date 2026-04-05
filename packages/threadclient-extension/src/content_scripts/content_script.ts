@@ -12,7 +12,7 @@ export type NotificationsType = {
 
 // Firefox `browser.tabs.executeScript()` requires scripts return a primitive value
 void (async () => {
-    if(!location.hostname.endsWith(".reddit.com") && location.hostname !== "reddit.com") {
+    if(!location.hostname.endsWith(".reddit.com") && location.hostname !== "reddit.com" && location.hostname !== "news.ycombinator.com") {
         return; // nothing to do
     }
 

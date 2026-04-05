@@ -50,7 +50,7 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
             "https://*/",
         ],
         content_scripts: [{
-            matches: ["*://*.reddit.com/*", "*://thread.pfg.pw/*"],
+            matches: ["*://*.reddit.com/*", "*://thread.pfg.pw/*", "*://news.ycombinator.com/*"],
             js: ["./dist/contentScripts/index.global.js"],
         }],
         web_accessible_resources: [

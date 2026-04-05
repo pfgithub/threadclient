@@ -1,3 +1,4 @@
+import { resolveThreadClientSupportedURL } from "tmeta-util";
 import browser from "webextension-polyfill";
 // import { sendMessage, onMessage } from "webext-bridge";
 
@@ -23,8 +24,9 @@ browser.webRequest.onBeforeRequest.addListener(
             return;
         }
 
-        const url = new URL(details.url);
-        if(url.hostname === "reddit.com" || url.hostname.endsWith(".reddit.com")) {
+        // TODO: we should reuse unsafeLinkToSafeLink here
+        const resolved = resolveThreadClientSupportedURL(details.url);
+        if(resolved != null) {
             // don't redirect if we got here from a link on threadclient or
             // a link on reddit.com
 
@@ -33,14 +35,18 @@ browser.webRequest.onBeforeRequest.addListener(
             }
 
             const origin_url = new URL(details.originUrl);
-            if(origin_url.hostname === "thread.pfg.pw"
-            || origin_url.hostname === "reddit.com"
-            || origin_url.hostname.endsWith(".reddit.com")) {
+            const origin_resolved = resolveThreadClientSupportedURL(details.originUrl);
+            if (origin_url.hostname === "thread.pfg.pw") {
+                // so if you click a raw! link on threadclient, it links out
+                return;
+            }
+            if (origin_resolved?.client === resolved.client) {
+                // so if you click a reddit link on reddit, it stays on reddit
+                // but if you click a hackernews link on reddit, it goes to threadclient
                 return;
             }
 
             // TODO: don't redirect if threadclient doesn't support the page
-            
             return { redirectUrl: "https://thread.pfg.pw/"+details.url };
         }
 
