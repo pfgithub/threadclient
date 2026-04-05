@@ -18,6 +18,7 @@ function getVredditPreview(id: string): Generic.Video {
     return video;
 }
 
+// TODO: let's reimplement this with page2 as getting a post that contains the Generic.Body
 export const preview_sources: {[key: string]: (args: {
     url: URL | undefined,
     path: string,

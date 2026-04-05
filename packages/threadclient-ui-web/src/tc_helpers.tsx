@@ -4,6 +4,7 @@ import { assertNever, escapeHTML, parseContentHTML } from "tmeta-util";
 import { scoreToString } from "./components/InfoBar";
 import { dynamicLoader, hideshow, HideShowCleanup } from "./page1";
 import { global_counter_info } from "./router";
+import { resolveThreadClientSupportedURL } from "tmeta-util";
 
 export function isModifiedEvent(event: MouseEvent): boolean {
     return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
@@ -31,23 +32,12 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): (
         return {kind: "error", title: href};
     }
     // consider just returning "#https://www.reddit.com/" instead of having this url replacement logic
-    let urlparsed: URL | undefined;
-    try {
-        urlparsed = new URL(href);
-    }catch(e) {
-        urlparsed = undefined;
+    // then we would move the convertURL call to src/page1.ts:renderPath
+    // well we would call convertURL here too but just to check if the result is not null
+    if (!is_raw) {
+        const converted = resolveThreadClientSupportedURL(href);
+        if (converted) href = `/${converted.client}${converted.path}`;
     }
-    if(urlparsed && !is_raw && (urlparsed.host === "reddit.com" || urlparsed.host.endsWith(".reddit.com"))) {
-        if(urlparsed.host === "mod.reddit.com") {
-            href = "/reddit/mod"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
-        }else{
-            href = "/reddit"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
-        }
-    }
-    if(urlparsed && !is_raw && (urlparsed.host === "redd.it")) {
-        href = "/reddit/comments"+urlparsed.pathname+urlparsed.search+urlparsed.hash;
-    }
-
     if(href.startsWith("/")) return {kind: "link", url: href.replace("/", "#"), external: false};
     return {kind: "link", url: href, external: true};
 }
