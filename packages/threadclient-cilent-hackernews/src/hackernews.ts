@@ -142,121 +142,8 @@ export type FullListing = {base: BaseListing, full: HN.Listing};
 export const full_listing = {
     fill: Generic.autoFill((full: FullListing) => base_listing.repliesId(full.base), (content, full): Generic.HorizontalLoaded => {
         return full.full.map((id): Generic.HorizontalLoader => {
-            return base_item.horizontalLoader(content, {id}); // maybe these should have autoload set to true?
+            return itemHorizontalLoader(clientFromContent(content), {id});
         });
-    }),
-};
-
-export type BaseItem = {id: number};
-export const base_item = {
-    url: (base: BaseItem): string => {
-        return updateQuery("/item", {id: "" + base.id});
-    },
-    postLink: (base: BaseItem) => Generic.autoLinkgen<Generic.Post>("item→post", base),
-    repliesLink: (base: BaseItem) => Generic.autoLinkgen<Generic.HorizontalLoaded>("item→replies", base),
-    
-    selfHorizontalContentID: (base: BaseItem) => Generic.autoLinkgen<Generic.HorizontalLoaded>("item→horizontalLoader", base),
-    loadSelfRequest: Generic.autoFill((base: BaseItem) => Generic.autoLinkgen<Generic.Opaque<"loader">>("item→horizontalLoaderRequest", base), (content, base): Generic.Opaque<"loader"> => {
-        return opaque_loader.encode({kind: "item", item: base});
-    }),
-    horizontalLoader: (content: Generic.Page2Content, base: BaseItem): Generic.HorizontalLoader => {
-        return {
-            kind: "horizontal_loader",
-            key: base_item.selfHorizontalContentID(base),
-            request: base_item.loadSelfRequest(content, base),
-
-            load_count: 1,
-            client_id,
-            autoload: true,
-        };
-    },
-};
-export type FullItem = {base: BaseItem, full: HN.Item};
-export const full_item = {
-    fill: Generic.autoFill((full: FullItem) => base_item.postLink(full.base), (content, full): Generic.Post => {
-        // also fill any horizontal content loaders for this item
-        Generic.p2.fillLinkOnce(content, base_item.selfHorizontalContentID(full.base), (): Generic.HorizontalLoaded => [base_item.postLink(full.base)]);
-
-        const body: Generic.Body[] = [];
-        if (full.full.url != null) body.push({kind: "link", url: full.full.url, client_id});
-        if (full.full.text != null) body.push({kind: "text", content: full.full.text, markdown_format: "reddit_html", client_id});
-        if (full.full.deleted) body.push({kind: "richtext", content: [Generic.rt.p(Generic.rt.txt("[deleted]"))]});
-        if (full.full.parts) {
-            body.push({kind: "richtext", content: [Generic.rt.ul(
-                ...full.full.parts.map((part, i) => Generic.rt.li(Generic.rt.p(Generic.rt.link({id: client_id}, base_item.url({id: part}), {}, Generic.rt.txt(`Option ${i+1}`))))),
-            )]});
-        };
-
-        const parent_id = full.full.parent ?? full.full.poll ?? undefined;
-
-        return {
-            kind: "post",
-            content: {
-                kind: "post",
-                thumbnail: full.full.title != null ? {kind: "default", thumb: full.full.url != null ? "default" : "self"} : undefined,
-                title: full.full.title != null ? {text: full.full.title} : null,
-                author2: full.full.by != null ? base_user.authorCard(content, {id: full.full.by}) : undefined,
-                body: body.length > 1 ? {kind: "array", body} : body.length === 1 ? body[0]! : {kind: "none"},
-                collapsible: {default_collapsed: full.full.deleted || full.full.dead || full.full.type !== "comment"},
-                info: {
-                    creation_date: full.full.time != null ? full.full.time * 1000 : undefined,
-                    comments: full.full.descendants,
-                },
-                actions: {
-                    vote: {
-                        kind: "counter",
-                        client_id,
-                        unique_id: Generic.autoLinkgen("item→vote", full.base).toString(),
-                        increment: {icon: "up_arrow", color: "orange", label: "Upvote", undo_label: "Undo Upvote"},
-                        decrement: full.full.type === "comment" ? {icon: "down_arrow", color: "orange", label: "Downvote", undo_label: "Undo Downvote"} : null,
-                        count_excl_you: full.full.score ?? "hidden",
-                        you: undefined,
-                        actions: {},
-                        time: Date.now(),
-                    },
-                    other: [
-                        {
-                            // maybe this should be a report action rather than a counter?
-                            kind: "counter",
-                            client_id,
-                            unique_id: Generic.autoLinkgen("item→flag", full.base).toString(),
-                            increment: {icon: "flag", color: "orange", label: "Flag", undo_label: "Undo Flag"},
-                            decrement: null,
-                            count_excl_you: full.full.score ?? "hidden",
-                            you: undefined,
-                            actions: {},
-                            time: Date.now(),
-                        },
-                        {
-                            kind: "counter",
-                            client_id,
-                            unique_id: Generic.autoLinkgen("item→favourite", full.base).toString(),
-                            increment: {icon: "star", color: "orange", label: "Favorite", undo_label: "Undo Favorite"},
-                            decrement: null,
-                            count_excl_you: full.full.score ?? "hidden",
-                            you: undefined,
-                            actions: {},
-                            time: Date.now(),
-                        },
-                        rawlinkButton(base_item.url(full.base)),
-                    ],
-                },
-            },
-            internal_data: full,
-            parent: {loader: {
-                kind: "vertical_loader",
-                key: parent_id != null ? base_item.postLink({id: parent_id}) : base_client.post(content, {}),
-                unfilled_parent: base_client.post(content, {}),
-                request: parent_id != null ? base_item.loadSelfRequest(content, {id: parent_id}) : Generic.p2.createSymbolLinkToError(content, "hn-full_item-noparent", full),
-                client_id,
-            }},
-            replies: (full.full.kids != null && full.full.kids.length > 0) ? {
-                display: "tree",
-                loader: Generic.p2.prefilledHorizontalLoader(content, base_item.repliesLink(full.base), full.full.kids?.map(ch => base_item.horizontalLoader(content, {id: ch}))),
-            } : null,
-            url: base_item.url(full.base),
-            client_id,
-        };
     }),
 };
 
@@ -331,7 +218,7 @@ export const full_user = {
             menu: null,
             raw_value: full,
         });
-        Generic.p2.fillLink(content, base_user.repliesId(full.base), (full.full.submitted ?? []).map(item => base_item.horizontalLoader(content, {id: item})));
+        Generic.p2.fillLink(content, base_user.repliesId(full.base), (full.full.submitted ?? []).map(id => itemHorizontalLoader(clientFromContent(content), {id})));
     },
 };
 
@@ -359,99 +246,276 @@ export type UTLRes = {
     content: Generic.Page2Content,
     pivot_loader: null | Generic.OneLoader<Generic.Post>, // TODO: shouldn't this be a vertical loader?
 };
-export async function getPagev2(pathraw_in: string): Promise<Generic.Pagev2> {
-    let parsed = path_router.parse(pathraw_in);
-    if (!parsed) parsed = {kind: "link_out", out: pathraw_in};
-    const content: Generic.Page2Content = {};
 
-    if (parsed.kind === "listing") {
-        const link = base_listing.post(content, {
-            type: parsed.listing,
-        });
-        return {content, loader: Generic.p2.prefilledVerticalLoader(content, link, undefined)};
-    } else if (parsed.kind === "item") {
-        const item_base: BaseItem = {id: parsed.id};
-        return {content, loader: {
-            kind: "vertical_loader",
-            unfilled_parent: base_client.post(content, {}),
-            key: base_item.postLink(item_base),
-            request: Generic.p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
-                kind: "item",
-                item: {id: parsed.id},
-            })),
+type HnLinkDescriptors = {
+    item: {
+        data: BaseItem,
+        content: Generic.Post,
+    },
+    item_horizontal: {
+        data: BaseItem,
+        content: Generic.HorizontalLoaded,
+    },
+    item_request: {
+        data: BaseItem,
+        content: Generic.Opaque<"loader">,
+    },
+    item_replies: {
+        data: BaseItem,
+        content: Generic.HorizontalLoaded,
+    },
+};
+
+type BaseItem = {id: number};
+function itemUrl(base: BaseItem): string {
+    return updateQuery("/item", {id: "" + base.id});
+}
+const resolvers: {
+    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
+    [key in keyof HnLinkDescriptors]: (client: HnClient, base: HnLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<HnLinkDescriptors[key]["content"]> | null
+} = {
+    item: (client: HnClient, base: BaseItem): Generic.ReadLinkResult<Generic.Post> | null => {
+        const content = client.content;
+        const full = client.data.id_to_item.get(base.id);
+        if (!full) return null;
+        const url = itemUrl(base);
+        const body: Generic.Body[] = [];
+        if (full.url != null) body.push({kind: "link", url: full.url, client_id});
+        if (full.text != null) body.push({kind: "text", content: full.text, markdown_format: "reddit_html", client_id});
+        if (full.deleted) body.push({kind: "richtext", content: [Generic.rt.p(Generic.rt.txt("[deleted]"))]});
+        if (full.parts) {
+            body.push({kind: "richtext", content: [Generic.rt.ul(
+                ...full.parts.map((part, i) => Generic.rt.li(Generic.rt.p(Generic.rt.link({id: client_id}, itemUrl({id: part}), {}, Generic.rt.txt(`Option ${i+1}`))))),
+            )]});
+        };
+
+        const parent_id = full.parent ?? full.poll ?? undefined;
+
+        return {error:null,value:{
+            kind: "post",
+            content: {
+                kind: "post",
+                thumbnail: full.title != null ? {kind: "default", thumb: full.url != null ? "default" : "self"} : undefined,
+                title: full.title != null ? {text: full.title} : null,
+                author2: full.by != null ? base_user.authorCard(content, {id: full.by}) : undefined,
+                body: body.length > 1 ? {kind: "array", body} : body.length === 1 ? body[0]! : {kind: "none"},
+                collapsible: {default_collapsed: full.deleted || full.dead || full.type !== "comment"},
+                info: {
+                    creation_date: full.time != null ? full.time * 1000 : undefined,
+                    comments: full.descendants,
+                },
+                actions: {
+                    vote: {
+                        kind: "counter",
+                        client_id,
+                        unique_id: Generic.autoLinkgen("item→vote", base).toString(),
+                        increment: {icon: "up_arrow", color: "orange", label: "Upvote", undo_label: "Undo Upvote"},
+                        decrement: full.type === "comment" ? {icon: "down_arrow", color: "orange", label: "Downvote", undo_label: "Undo Downvote"} : null,
+                        count_excl_you: full.score ?? "hidden",
+                        you: undefined,
+                        actions: {},
+                        time: Date.now(),
+                    },
+                    other: [
+                        {
+                            // maybe this should be a report action rather than a counter?
+                            kind: "counter",
+                            client_id,
+                            unique_id: Generic.autoLinkgen("item→flag", base).toString(),
+                            increment: {icon: "flag", color: "orange", label: "Flag", undo_label: "Undo Flag"},
+                            decrement: null,
+                            count_excl_you: full.score ?? "hidden",
+                            you: undefined,
+                            actions: {},
+                            time: Date.now(),
+                        },
+                        {
+                            kind: "counter",
+                            client_id,
+                            unique_id: Generic.autoLinkgen("item→favourite", base).toString(),
+                            increment: {icon: "star", color: "orange", label: "Favorite", undo_label: "Undo Favorite"},
+                            decrement: null,
+                            count_excl_you: full.score ?? "hidden",
+                            you: undefined,
+                            actions: {},
+                            time: Date.now(),
+                        },
+                        rawlinkButton(url),
+                    ],
+                },
+            },
+            internal_data: full,
+            parent: {loader: {
+                kind: "vertical_loader",
+                key: parent_id != null ? client.getLink("item", {id: parent_id}) : base_client.post(content, {}),
+                unfilled_parent: base_client.post(content, {}),
+                request: parent_id != null ? client.getLink("item_request", {id: parent_id}) : Generic.p2.createSymbolLinkToError(content, "hn-full_item-noparent", full),
+                client_id,
+            }},
+            replies: (full.kids != null && full.kids.length > 0) ? {
+                display: "tree",
+                loader: {
+                    kind: "horizontal_loader",
+                    key: client.getLink("item_replies", base),
+                    load_count: null,
+                    request: Generic.p2.createSymbolLinkToError(content, "horizontal loader claimed to be prefilled", {}),
+                    client_id,
+                },
+            } : null,
+            url: url,
             client_id,
         }};
-    } else if (parsed.kind === "user") {
-        const link = base_user.post(content, {id: parsed.id});
-        return {content, loader: Generic.p2.prefilledVerticalLoader(content, link, undefined)};
-    } else if (parsed.kind === "link_out") {
-        const link = base_rawlink.post(content, {url: parsed.out});
-        return {content, loader: Generic.p2.prefilledVerticalLoader(content, link, undefined)};
-    } else assertNever(parsed);
-}
-async function loadPage2(
-    lreq: Generic.Opaque<"loader">,
-): Promise<Generic.LoaderResult> {
-    const content: Generic.Page2Content = {};
-    const dec = opaque_loader.decode(lreq);
-    if (dec.kind === "listing") {
-        const resp = await hnRequest(`/v0/${dec.listing.type as HN.PathBit}`, {method: "GET"});
-        full_listing.fill(content, {base: dec.listing, full: resp});
-    } else if (dec.kind === "item") {
-        const resp = await hnRequest(`/v0/item/${(""+dec.item.id) as HN.PathBit}`, {method: "GET"});
-        full_item.fill(content, {base: dec.item, full: resp});
-    } else if (dec.kind === "user") {
-        const resp = await hnRequest(`/v0/user/${dec.user.id as HN.PathBit}`, {method: "GET"});
-        full_user.fill(content, {base: dec.user, full: resp});
-    } else {
-        throw new Error("hn-todo");
-    }
-    return {content};
+    },
+    item_horizontal(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
+        if (!client.data.id_to_item.has(base.id)) return null;
+        return {error: null, value: [client.getLink("item", base)]};
+    },
+    item_replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
+        const full = client.data.id_to_item.get(base.id);
+        if (!full) return null;
+        return {error: null, value: full.kids?.map((ch): Generic.HorizontalLoader => itemHorizontalLoader(client, {id: ch})) ?? []};
+    },
+    item_request(client, base): Generic.ReadLinkResult<Generic.Opaque<"loader">> | null {
+        return {error: null, value: opaque_loader.encode({kind: "item", item: base})};
+    },
+};
+function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.HorizontalLoader {
+    return {
+        kind: "horizontal_loader",
+        key: client.getLink("item_horizontal", base),
+        load_count: null,
+        request: client.getLink("item_request", base),
+        client_id,
+        autoload: true,
+    };
 }
 
-
-export const client_id = "hackernews";
-export const client: DeprecatedClient = new DeprecatedClient({
-    id: client_id,
-    getPagev2: getPagev2,
-    loader: loadPage2,
-});
-
+const cxsym = Symbol("client");
+function clientFromContent(content: Generic.Page2Content): HnClient {
+    const client = content[cxsym] as HnClient;
+    if (!client) throw new Error("missing client in clientFromContent");
+    return client;
+}
 class HnClient extends ThreadClient {
     data: {
+        listing_id_to_listing: Map<HN.ListingType, HN.Listing>,
         id_to_item: Map<number, HN.Item>,
         id_to_user: Map<string, HN.User>,
     };
+    dirty: Set<Generic.Link<unknown>>;
 
-    constructor() {
+    /** @deprecated: migrate off of this */
+    content: Generic.Page2Content;
+
+    constructor(prev?: HnClient) {
         super(client_id);
-        this.data = {id_to_item: new Map(), id_to_user: new Map()};
+        this.data = {
+            listing_id_to_listing: new Map(prev?.data.listing_id_to_listing),
+            id_to_item: new Map(prev?.data.id_to_item),
+            id_to_user: new Map(prev?.data.id_to_user),
+        };
+        this.dirty = new Set(prev?.dirty);
+        this.content = {...prev?.content ?? {}, [cxsym]: this};
     }
+    dupe(): { client: HnClient; dirty: Generic.Link<unknown>[]; } {
+        const res = new HnClient(this);
+        return {client: res, dirty: res.takeDirtyAndApplyContent({})};
+    }
+
+    /**
+     * @deprecated TODO remove the apply content part. it should just be takeDirty. this is for the transition period.
+     */
+    takeDirtyAndApplyContent(content: Generic.Page2Content): Generic.Link<unknown>[] {
+        for (const key of Object.keys(content)) this.dirty.add(key as Generic.Link<unknown>);
+        const dirty = [...this.dirty];
+        this.dirty.clear();
+        this.content = {...this.content, ...content};
+        return dirty;
+    }
+
+    /** do not add a link if there is no content to back it */
+    updateLink<T extends keyof HnLinkDescriptors>(type: T, value: HnLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]> {
+        const link = this.getLink(type, value);
+        this.dirty.add(link);
+        return link;
+    }
+    getLink<T extends keyof HnLinkDescriptors>(type: T, value: HnLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]> {
+        return `${JSON.stringify([type, value])}` as Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]>;
+    }
+    private async fetchItem(id: number): Promise<Generic.Link<Generic.Post>> {
+        const resp = await hnRequest(`/v0/item/${(""+id) as HN.PathBit}`, {method: "GET"});
+        this.data.id_to_item.set(id, resp);
+        // this probably shouldn't be necessary? we should find a better way? probably some kind of dependency-tracking system could do it?
+        // I guess we would have to track dependencies on which links access this.data.id_to_item for values
+        // which would be a bit annoying
+        // oh actually it would be when this.data.id_to_item is called, it would mark dirty the current link which is doable
+        // note that only replies needs the update here because it is the only one that uses the data we just modified (& item). request doesn't.
+        this.updateLink("item_horizontal", {id});
+        this.updateLink("item_replies", {id});
+        return this.updateLink("item", {id});
+    }
+    
+    resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
+        if (!(link as string).startsWith("[")) {
+            return Generic.readLink(this.content, link);
+        }
+        const [type, value_raw] = JSON.parse(link as string) as [keyof HnLinkDescriptors, unknown];
+        try {
+            return resolvers[type](this, value_raw as any) as Generic.ReadLinkResult<T>;
+        } catch(e) {
+            console.error(e);
+            return {error: (e as Error).toString(), value: null};
+        }
+    }
+    makeContent(): Generic.Page2Content {
+        return {[cxsym]: this};
+    }
+
     hasPage2(): boolean {
         return true;
     }
-    async pageFromURL(url: string): Promise<{ pivot: Generic.Link<Generic.Post>; dirty: Generic.Link<unknown>[]; }> {
-        // - parse the url
-        // - cache the link->value map
-        // - return the value
-        throw new Error("TODO");
+    async pageFromURL(pathraw_in: string): Promise<{ pivot: Generic.Link<Generic.Post>; dirty: Generic.Link<unknown>[]; }> {
+        let parsed = path_router.parse(pathraw_in);
+        if (!parsed) parsed = {kind: "link_out", out: pathraw_in};
+
+        const content: Generic.Page2Content = this.makeContent();
+
+        if (parsed.kind === "listing") {
+            const pivot = base_listing.post(content, {
+                type: parsed.listing,
+            });
+            return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
+        } else if (parsed.kind === "item") {
+            const pivot = await this.fetchItem(parsed.id);
+            return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
+        } else if (parsed.kind === "user") {
+            const pivot = base_user.post(content, {id: parsed.id});
+            return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
+        } else if (parsed.kind === "link_out") {
+            const pivot = base_rawlink.post(content, {url: parsed.out});
+            return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
+        } else assertNever(parsed);
     }
     async loaderLoad(request: Generic.Opaque<"loader">): Promise<{ dirty: Generic.Link<unknown>[]; }> {
-        // so here:
-        // - fetch the url
-        // - cache the information, logging any affected links
-        throw new Error("TODO");
-    }
-    resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
-        // - generate the content from the cached data
-        return null;
-    }
-    dupe(): { client: HnClient; dirty: Generic.Link<unknown>[]; } {
-        const res = new HnClient();
-        return {client: res, dirty: []};
+        const content: Generic.Page2Content = this.makeContent();
+        const dec = opaque_loader.decode(request);
+        if (dec.kind === "listing") {
+            const resp = await hnRequest(`/v0/${dec.listing.type as HN.PathBit}`, {method: "GET"});
+            full_listing.fill(content, {base: dec.listing, full: resp});
+        } else if (dec.kind === "item") {
+            await this.fetchItem(dec.item.id);
+        } else if (dec.kind === "user") {
+            const resp = await hnRequest(`/v0/user/${dec.user.id as HN.PathBit}`, {method: "GET"});
+            full_user.fill(content, {base: dec.user, full: resp});
+        } else {
+            throw new Error("hn-todo");
+        }
+        return {dirty: this.takeDirtyAndApplyContent(content)};
     }
 }
 
+export const client_id = "hackernews";
+export const client: ThreadClient = new HnClient();
 
 type RequestOpts<ThingType extends HN.RequestInfo, Extra> = {
     onerror?: undefined | ((e: Error) => Extra),
