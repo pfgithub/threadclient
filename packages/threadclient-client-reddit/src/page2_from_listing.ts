@@ -1259,12 +1259,13 @@ const loader_enc = encoderGenerator<LoaderData, "loader">("loader");
 // - a depth-based horizontal loader
 
 export async function loadPage2(
+    content: Generic.Page2Content,
     lreq: Generic.Opaque<"loader">,
-): Promise<Generic.LoaderResult> {
+): Promise<void> {
     // throw new Error("TODO load reddit page2");
     let data: LoaderData;
     try {data = loader_enc.decode(lreq)}catch(e) {
-        return loadPage2v2(lreq);
+        return loadPage2v2(content, lreq);
     }
     if(data.kind === "parent_permalink") data = {
         kind: "link_replies",
@@ -1276,14 +1277,14 @@ export async function loadPage2(
     };
 
     if(data.kind === "link_replies") {
-        const page2new = await getPagev2(data.url);
+        const page2new = await getPagev2(content, data.url);
 
-        const rl_res = Generic.readLink(page2new.content, page2new.loader.key);
-        if(rl_res != null) return {content: page2new.content,};
-        const loadreq = Generic.readLink(page2new.content, page2new.loader.request);
+        const rl_res = Generic.readLink(content, page2new.key);
+        if(rl_res != null) return;
+        const loadreq = Generic.readLink(content, page2new.request);
         if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
-        const loadres = await loadPage2(loadreq.value);
-        return {content: Generic.mergeContent(page2new.content, loadres.content)};
+        const loadres = await loadPage2(content, loadreq.value);
+        return;
     }else if(data.kind === "more") {
         throw new Error("TODO more");
     }else if(data.kind === "vertical") {

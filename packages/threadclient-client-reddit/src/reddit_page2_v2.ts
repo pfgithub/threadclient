@@ -35,7 +35,7 @@ export type UTLRes = {
     content: Generic.Page2Content,
     pivot_loader: null | Generic.OneLoader<Generic.Post>,
 };
-export async function getPagev2(pathraw_in: string): Promise<Generic.Pagev2> {
+export async function getPagev2(content: Generic.Page2Content, pathraw_in: string): Promise<Generic.VerticalLoader> {
     const [parsed, pathraw] = parseLink(pathraw_in);
 
     if (parsed.kind === "s") {
@@ -43,14 +43,12 @@ export async function getPagev2(pathraw_in: string): Promise<Generic.Pagev2> {
         if (typeof r === "object") throw new Error(r.error);
         const u = new URL(r);
         console.log("sl-resp", {r, u});
-        return await getPagev2(u.pathname + u.search + u.hash);
+        return await getPagev2(content, u.pathname + u.search + u.hash);
     }
 
-    return urlToOneLoaderFromParsed(parsed);
+    return urlToOneLoaderFromParsed(content, parsed);
 }
-async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pagev2> {
-    const content: Generic.Page2Content = {};
-
+async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: ParsedPath): Promise<Generic.VerticalLoader> {
     const subval = (sub: SubrInfo): LowercaseString | null => {
         if(sub.kind === "subreddit") return asLowercaseString(sub.subreddit);
         if(sub.kind === "userpage") return asLowercaseString("u_"+sub.user);
@@ -61,7 +59,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
     // urlToOneLoader should be async to fetch any of that needed info probably
     // we'll end up double-fetching the post but it will probably be /api/info?ids=… the first time at least
 
-    const fixsubv = async (parsed: {sub: SubrInfo}, postid: string, subv: LowercaseString | null): Promise<Generic.Pagev2> => {
+    const fixsubv = async (parsed: {sub: SubrInfo}, postid: string, subv: LowercaseString | null): Promise<Generic.VerticalLoader> => {
         if(parsed.sub.kind === "homepage") {
             const resv = await redditRequest(`/api/info?id=t3_${postid}` as "/__any_listing", {
                 method: "GET",
@@ -71,7 +69,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
             if(!rvc || rvc.kind !== "t3") throw new Error("post not t3?");
             const sub = rvc.data.subreddit;
             const wq: {sub: SubrInfo} = {...parsed, sub: {kind: "subreddit", base: ["r", sub], subreddit: sub}};
-            return await urlToOneLoaderFromParsed(wq as unknown as ParsedPath);
+            return await urlToOneLoaderFromParsed(content, wq as unknown as ParsedPath);
         }
         throw new Error("TODO support comments on sub kind: ["+parsed.sub.kind+"]");
     };
@@ -85,7 +83,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
             subreddit: subv,
             sort: parsed.current_sort,
         });
-        return {content, loader: p2.prefilledVerticalLoader(content, link, undefined)};
+        return p2.prefilledVerticalLoader(content, link, undefined);
     }
     if(parsed.kind === "comments") {
         const subv = subval(parsed.sub);
@@ -102,7 +100,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
             fullname: `t1_${parsed.focus_comment}`,
             on_post: post_base,
         } : null;
-        return {content, loader: {
+        return {
             kind: "vertical_loader",
             unfilled_parent: base_client.post(content, {}),
             key: comment_base != null ? base_comment.commentLink(comment_base) : base_post.postLink(post_base),
@@ -113,7 +111,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
                 context: parsed.context ?? "3",
             })),
             client_id,
-        }};
+        };
     }
     if(parsed.kind === "duplicates") {
         const subv = subval(parsed.sub);
@@ -126,7 +124,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
             on_subreddit: subv,
             sort: {m: "duplicates", v: "num_comments", crossposts_only: parsed.crossposts_only},
         };
-        return {content, loader: {
+        return {
             kind: "vertical_loader",
             unfilled_parent: base_client.post(content, {}),
             key: base_post.postLink(post_base),
@@ -137,7 +135,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
                 context: "3",
             })),
             client_id,
-        }};
+        };
     }
     if(parsed.kind === "submit") {
         const subv = subval(parsed.sub);
@@ -148,7 +146,7 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
         const submit_base: BaseSubmitPage = {
             on_subreddit: subv,
         };
-        return {content, loader: {
+        return {
             kind: "vertical_loader",
             unfilled_parent: base_client.post(content, {}),
             key: base_submit.objectLink(submit_base),
@@ -157,28 +155,19 @@ async function urlToOneLoaderFromParsed(parsed: ParsedPath): Promise<Generic.Pag
                 base: submit_base,
             })),
             client_id,
-        }};
+        };
     }
     if(parsed.kind === "inbox") {
         const base: BaseInbox = {};
         if(parsed.current.tab === "compose") {
             const compose_base: SortedComposeInbox = {on_base: base};
-            return {
-                content,
-                loader: p2.prefilledVerticalLoader(content, sorted_compose_inbox.menubar(content, compose_base), undefined),
-            };
+            return p2.prefilledVerticalLoader(content, sorted_compose_inbox.menubar(content, compose_base), undefined);
         }else if(parsed.current.tab === "inbox") {
             const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.inbox_tab};
-            return {
-                content,
-                loader: p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined),
-            };
+            return p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined);
         }else if(parsed.current.tab === "sent" || parsed.current.tab === "mod") {
             const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.tab};
-            return {
-                content,
-                loader: p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined),
-            };
+            return p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined);
         }else if(parsed.current.tab === "message") {
             throw new Error("*TODO* view inbox message ["+parsed.current.msgid+"]");
         }else assertNever(parsed.current);
@@ -1603,9 +1592,9 @@ type SortOptionKind = {
 };
 
 export async function loadPage2v2(
+    content: Generic.Page2Content,
     lreq: Generic.Opaque<"loader">,
-): Promise<Generic.LoaderResult> {
-    const content: Generic.Page2Content = {};
+): Promise<void> {
     const data = opaque_loader.decode(lreq);
     if(data.kind === "subreddit_posts") {
         // fetch the subreddit listing
@@ -1711,5 +1700,4 @@ export async function loadPage2v2(
             linkflair,
         });
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
-    return {content};
 }

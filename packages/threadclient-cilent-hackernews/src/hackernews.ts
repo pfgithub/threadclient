@@ -1,6 +1,6 @@
 
 import * as Generic from "api-types-generic";
-import { DeprecatedClient, encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ThreadClient, ThreadClientHelper } from "threadclient-client-base";
 import { assertNever, assertUnreachable, splitURL, updateQuery } from "tmeta-util";
 import * as HN from "./api_types";
 import { path_router } from "./routing";
@@ -142,7 +142,7 @@ export type FullListing = {base: BaseListing, full: HN.Listing};
 export const full_listing = {
     fill: Generic.autoFill((full: FullListing) => base_listing.repliesId(full.base), (content, full): Generic.HorizontalLoaded => {
         return full.full.map((id): Generic.HorizontalLoader => {
-            return itemHorizontalLoader(clientFromContent(content), {id});
+            return itemHorizontalLoader(HnClient.fromContent(content), {id});
         });
     }),
 };
@@ -218,7 +218,7 @@ export const full_user = {
             menu: null,
             raw_value: full,
         });
-        Generic.p2.fillLink(content, base_user.repliesId(full.base), (full.full.submitted ?? []).map(id => itemHorizontalLoader(clientFromContent(content), {id})));
+        Generic.p2.fillLink(content, base_user.repliesId(full.base), (full.full.submitted ?? []).map(id => itemHorizontalLoader(HnClient.fromContent(content), {id})));
     },
 };
 
@@ -390,73 +390,43 @@ function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.Horizon
     };
 }
 
-const cxsym = Symbol("client");
-function clientFromContent(content: Generic.Page2Content): HnClient {
-    const client = content[cxsym] as HnClient;
-    if (!client) throw new Error("missing client in clientFromContent");
-    return client;
-}
-class HnClient extends ThreadClient {
+class HnClient extends ThreadClientHelper {
     data: {
         listing_id_to_listing: Map<HN.ListingType, HN.Listing>,
         id_to_item: Map<number, HN.Item>,
         id_to_user: Map<string, HN.User>,
     };
-    dirty: Set<Generic.Link<unknown>>;
-
-    /** @deprecated: migrate off of this */
-    content: Generic.Page2Content;
 
     constructor(prev?: HnClient) {
-        super(client_id);
+        super(client_id, prev);
         this.data = {
             listing_id_to_listing: new Map(prev?.data.listing_id_to_listing),
             id_to_item: new Map(prev?.data.id_to_item),
             id_to_user: new Map(prev?.data.id_to_user),
         };
-        this.dirty = new Set(prev?.dirty);
-        this.content = {...prev?.content ?? {}, [cxsym]: this};
     }
     dupe(): { client: HnClient; dirty: Generic.Link<unknown>[]; } {
         const res = new HnClient(this);
         return {client: res, dirty: res.takeDirtyAndApplyContent({})};
     }
 
-    /**
-     * @deprecated TODO remove the apply content part. it should just be takeDirty. this is for the transition period.
-     */
-    takeDirtyAndApplyContent(content: Generic.Page2Content): Generic.Link<unknown>[] {
-        for (const key of Object.keys(content)) this.dirty.add(key as Generic.Link<unknown>);
-        const dirty = [...this.dirty];
-        this.dirty.clear();
-        this.content = {...this.content, ...content};
-        return dirty;
-    }
-
-    /** do not add a link if there is no content to back it */
-    updateLink<T extends keyof HnLinkDescriptors>(type: T, value: HnLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]> {
-        const link = this.getLink(type, value);
-        this.dirty.add(link);
-        return link;
-    }
     getLink<T extends keyof HnLinkDescriptors>(type: T, value: HnLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]> {
         return `${JSON.stringify([type, value])}` as Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]>;
     }
     private async fetchItem(id: number): Promise<Generic.Link<Generic.Post>> {
         const resp = await hnRequest(`/v0/item/${(""+id) as HN.PathBit}`, {method: "GET"});
         this.data.id_to_item.set(id, resp);
-        // this probably shouldn't be necessary? we should find a better way? probably some kind of dependency-tracking system could do it?
-        // I guess we would have to track dependencies on which links access this.data.id_to_item for values
-        // which would be a bit annoying
-        // oh actually it would be when this.data.id_to_item is called, it would mark dirty the current link which is doable
-        // note that only replies needs the update here because it is the only one that uses the data we just modified (& item). request doesn't.
-        this.updateLink("item_horizontal", {id});
-        this.updateLink("item_replies", {id});
-        return this.updateLink("item", {id});
+
+        const item = this.getLink("item", {id});
+        // this sucks. we should have these update automatically by tracking the dependencies of the resolve functions?
+        this.dirty.add(item);
+        this.dirty.add(this.getLink("item_horizontal", {id}));
+        this.dirty.add(this.getLink("item_replies", {id}));
+        return item;
     }
     
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
-        if (!(link as string).startsWith("[")) {
+        if (typeof link === "symbol" || !link.startsWith("[")) {
             return Generic.readLink(this.content, link);
         }
         const [type, value_raw] = JSON.parse(link as string) as [keyof HnLinkDescriptors, unknown];
@@ -466,9 +436,6 @@ class HnClient extends ThreadClient {
             console.error(e);
             return {error: (e as Error).toString(), value: null};
         }
-    }
-    makeContent(): Generic.Page2Content {
-        return {[cxsym]: this};
     }
 
     hasPage2(): boolean {

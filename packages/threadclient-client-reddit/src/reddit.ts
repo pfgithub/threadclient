@@ -1,9 +1,9 @@
 /* eslint-disable max-len */
 
-import type * as Generic from "api-types-generic";
+import * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
-import { DeprecatedClient, encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ThreadClient, ThreadClientHelper, ThreadClientImplements } from "threadclient-client-base";
 import { assertNever, assertUnreachable, encodeQuery, encodeURL, expectUnsupported, splitURL, updateQuery } from "tmeta-util";
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { loadPage2, submitPage2 } from "./page2_from_listing";
@@ -2774,12 +2774,79 @@ export async function resolveSLink(sl: string): Promise<string | {error: string}
 
 }
 
+type RedditLinkDescriptors = {
+    example: {
+        data: unknown,
+        content: unknown,
+    },
+};
+const resolvers: {
+    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
+    [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
+} = {
+    example(client, base): Generic.ReadLinkResult<unknown> | null {
+        return null;
+    }
+};
+class RedditClient extends ThreadClientHelper {
+    constructor(prev?: RedditClient) {
+        super(client_id, prev);
+        this.submit = client_base.submit;
+        this.getThread = client_base.getThread;
+        this.login = client_base.login;
+        this.fetchRemoved = client_base.fetchRemoved;
+        this.act = client_base.act;
+        this.previewReply = client_base.previewReply;
+        this.sendReply = client_base.sendReply;
+        this.fetchReportScreen = client_base.fetchReportScreen;
+        this.sendReport = client_base.sendReport;
+        this.loadMore = client_base.loadMore;
+        this.loadMoreUnmounted = client_base.loadMoreUnmounted;
+        this.hydrateInbox = client_base.hydrateInbox;
+    }
+    dupe(): { client: RedditClient; dirty: Generic.Link<unknown>[]; } {
+        const res = new RedditClient(this);
+        return {client: res, dirty: res.takeDirtyAndApplyContent({})};
+    }
+
+    hasPage2(): boolean {
+        return true;
+    }
+
+    async pageFromURL(url: string): Promise<{ pivot: Generic.Link<Generic.Post>; dirty: Generic.Link<unknown>[]; }> {
+        const content = this.makeContent();
+        const page2new = await getPagev2!(content, url);
+        const rl_res = Generic.readLink(content, page2new.key);
+        if (rl_res == null) {
+            const loadreq = Generic.readLink(content, page2new.request);
+            if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
+            await loadPage2(content, loadreq.value);
+        }
+        return {pivot: page2new.key, dirty: this.takeDirtyAndApplyContent(content)};
+    }
+    async loaderLoad(request: Generic.Opaque<"loader">): Promise<{ dirty: Generic.Link<unknown>[]; }> {
+        const content = this.makeContent();
+        await loadPage2(content, request);
+        return {dirty: this.takeDirtyAndApplyContent(content)};
+    }
+    resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
+        if (typeof link === "symbol" || !link.startsWith("[")) {
+            return Generic.readLink(this.content, link);
+        }
+        const [type, value_raw] = JSON.parse(link as string) as [keyof RedditLinkDescriptors, unknown];
+        try {
+            return resolvers[type](this, value_raw as any) as Generic.ReadLinkResult<T>;
+        } catch(e) {
+            console.error(e);
+            return {error: (e as Error).toString(), value: null};
+        }
+    }
+}
+
 export const client_id = "reddit";
-export const client: DeprecatedClient= new DeprecatedClient({
+export const client_base: ThreadClientImplements = {
     id: client_id,
     // loginURL: getLoginURL(),
-    getPagev2,
-    loader: loadPage2,
     submit: submitPage2,
     async getThread(pathraw_in): Promise<Generic.Page> {
         try {
@@ -3477,7 +3544,8 @@ export const client: DeprecatedClient= new DeprecatedClient({
             };
         }else assertNever(inbox);
     }
-});
+};
+export const client = new RedditClient();
 
 function siteRuleToReportScreen(data: ReportInfo, site_rule: Reddit.FlowRule): Generic.ReportScreen {
     let action: Generic.ReportAction;
