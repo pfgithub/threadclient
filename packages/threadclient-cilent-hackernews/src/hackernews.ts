@@ -203,24 +203,6 @@ const base_user = {
 };
 
 type BaseRawlink = {url: string};
-const base_rawlink = {
-    post: Generic.autoFill((base: BaseRawlink) => Generic.autoLinkgen<Generic.Post>("rawlink→post", base), (content, base): Generic.Post => {
-        return {
-            kind: "post",
-            content: {
-                kind: "post",
-                title: {text: "URL not supported"},
-                body: {kind: "link", url: rawlink(base.url), client_id},
-                collapsible: false,
-            },
-            internal_data: base,
-            replies: null,
-            parent: base_client.asParent(content, {}),
-            url: base.url,
-            client_id,
-        };
-    }),
-};
 
 export type UTLRes = {
     content: Generic.Page2Content,
@@ -253,7 +235,16 @@ type HnLinkDescriptors = {
         data: BaseUser,
         content: Generic.HorizontalLoaded,
     },
+
+    rawlink: {
+        data: BaseRawlink,
+        content: Generic.Post,
+    },
 };
+
+function result<T>(a: NoInfer<T>): T {
+    return a;
+}
 
 type BaseItem = {id: number};
 function itemUrl(base: BaseItem): string {
@@ -264,7 +255,7 @@ const resolvers: {
     [key in keyof HnLinkDescriptors]: (client: HnClient, base: HnLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<HnLinkDescriptors[key]["content"]> | null
 } = {
     item: (client: HnClient, base: BaseItem): Generic.ReadLinkResult<Generic.Post> | null => {
-        const content = client.content;
+        const content = client.content; // TODO: this isn't correct. it won't register dirties.
         const full = client.data.id_to_item.get(base.id);
         if (!full) return null;
         const url = itemUrl(base);
@@ -398,6 +389,24 @@ const resolvers: {
         if (!full) return null;
         return {error: null, value: full.submitted?.map((ch): Generic.HorizontalLoader => itemHorizontalLoader(client, {id: ch})) ?? []};
     },
+
+    rawlink(client, base) {
+        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        return result({error: null, value: {
+            kind: "post",
+            content: {
+                kind: "post",
+                title: {text: "URL not supported"},
+                body: {kind: "link", url: rawlink(base.url), client_id},
+                collapsible: false,
+            },
+            internal_data: base,
+            replies: null,
+            parent: base_client.asParent(content, {}),
+            url: base.url,
+            client_id,
+        }});
+    }
 };
 
 function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.HorizontalLoader {
@@ -536,7 +545,7 @@ class HnClient extends ThreadClientHelper {
             const pivot = base_user.post(content, {id: parsed.id});
             return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
         } else if (parsed.kind === "link_out") {
-            const pivot = base_rawlink.post(content, {url: parsed.out});
+            const pivot = this.getLink("rawlink", {url: parsed.out}); // no dirties are added because it never changes
             return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
         } else assertNever(parsed);
     }
