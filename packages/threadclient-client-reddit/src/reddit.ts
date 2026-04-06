@@ -949,7 +949,7 @@ export type SubInfo = {
     sub_t5: Reddit.T5 | null,
 };
 export function rawlink(path: string): string {
-    if(path.startsWith("/mod/")) return "raw!https://mod.reddit.com"+path.replace("/mod/", "");
+    if(path.match(/^\/mod[\/?#]/)) return "raw!https://mod.reddit.com"+path.replace("/mod", "");
     return "raw!https://www.reddit.com"+path;
 }
 export function getNavbar(page_url: string | null): Generic.Navbar {
