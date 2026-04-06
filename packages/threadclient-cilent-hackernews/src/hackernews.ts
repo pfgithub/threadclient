@@ -26,6 +26,27 @@ threadclient-extension will be needed for:
     - noprocrast
 */
 
+/*
+reconsidering the decision:
+- this is basically entirely for loaders and identity cards
+- but why can't we just have two limited identity cards for the same thing
+  - ie for subreddits, we have one for when only the subreddit name is known and a seperate one for name+pfp
+  - why should they both be the same? they're different elements on screen
+    - why should hovering over a user update every other instance of that same user on the screen
+    - what if hovering over a user loads a new pfp. now every instance updates. isn't that odd?
+  - it seems like limited identity cards are a good thing
+- we still have the downside of constantly updating stuff that hasn't changed, ie replacing client on every loader 
+- but I think when we try to apply this migration to reddit we'll have trouble managing the caches
+- and is it really worth it just to have one identity card card instead of two limited identity cards + one filled identity card?
+  - and lose out on the serverside-only option
+  - and lose out on the potential to run in a worker thread (well I guess we could still do this but only if we view every link immediately)
+
+to undecide, we can
+- revert to 37771b0de8e58a8ec60463b33963fa2eadae03a9
+- cherry-pick 4b3b3d179efba8ef429cc0a6efbfe3eb7c03c824
+in order to not lose any features
+*/
+
 type LoaderData = {
     kind: "item",
     item: BaseItem,
@@ -48,59 +69,6 @@ function clientAsParent(content: Generic.Page2Content, base: BaseClient): Generi
 export type BaseListing = {type: HN.ListingType};
 
 type BaseUser = {id: string};
-const base_user = {
-    url: (base: BaseUser): string => updateQuery("/user", {id: base.id}),
-    authorCard: Generic.autoFill((base: BaseUser) => Generic.autoLinkgen<Generic.LimitedIdentityCard>("user→card", base), (content, base): Generic.LimitedIdentityCard => {
-        return {
-            name_raw: base.id,
-            url: base_user.url(base),
-            client_id,
-            raw_value: base,
-            // to fill the card, we can use the same base_user.loadRequest()
-        };
-    }),
-    loadRequest: Generic.autoOutline("user→load_request", (content, base: BaseUser): Generic.Opaque<"loader"> => {
-        return opaque_loader.encode({kind: "user", user: base});
-    }),
-    post: Generic.autoOutline("user→post", (content, base: BaseUser): Generic.Post => {
-        return {
-            kind: "post",
-            content: {
-                kind: "page",
-                wrap_page: {
-                    header: {
-                        temp_title: base.id,
-                        filled: {
-                            kind: "one_loader",
-                            request: base_user.loadRequest(content, base),
-                            key: HnClient.fromContent(content).getLink("user_card", base),
-                            client_id,
-                        },
-                    },
-                    sidebar: {
-                        display: "tree",
-                        loader: Generic.p2.prefilledHorizontalLoader(content, Generic.autoLinkgen("user→wrap→sidebar", base), []),
-                    },
-                },
-            },
-            internal_data: base,
-            parent: clientAsParent(content, {}),
-            replies: {
-                display: "repivot_list",
-                loader: {
-                    kind: "horizontal_loader",
-                    request: base_user.loadRequest(content, base),
-                    key: HnClient.fromContent(content).getLink("user_replies", base),
-                    client_id,
-                },
-                // todo sorts: submisisons/comments/favourites
-                // unfortunately, the api only supports submissions
-            },
-            url: base_user.url(base),
-            client_id,
-        };
-    }),
-};
 
 type BaseRawlink = {url: string};
 
@@ -145,9 +113,21 @@ type HnLinkDescriptors = {
         content: Generic.HorizontalLoaded,
     },
 
+    user_limited_card: { // TODO: remove, just use user_card
+        data: BaseUser,
+        content: Generic.LimitedIdentityCard,
+    },
     user_card: {
         data: BaseUser,
         content: Generic.FilledIdentityCard,
+    },
+    user_request: {
+        data: BaseUser,
+        content: Generic.Opaque<"loader">,
+    },
+    user_post: {
+        data: BaseUser,
+        content: Generic.Post,
     },
     user_replies: {
         data: BaseUser,
@@ -284,7 +264,7 @@ const resolvers: {
                 kind: "post",
                 thumbnail: full.title != null ? {kind: "default", thumb: full.url != null ? "default" : "self"} : undefined,
                 title: full.title != null ? {text: full.title} : null,
-                author2: full.by != null ? base_user.authorCard(content, {id: full.by}) : undefined,
+                author2: full.by != null ? client.getLink("user_limited_card", {id: full.by}) : undefined,
                 body: body.length > 1 ? {kind: "array", body} : body.length === 1 ? body[0]! : {kind: "none"},
                 collapsible: {default_collapsed: full.deleted || full.dead || full.type !== "comment"},
                 info: {
@@ -366,6 +346,15 @@ const resolvers: {
         return {error: null, value: opaque_loader.encode({kind: "item", item: base})};
     },
 
+    user_limited_card(client, base) {
+        const url = updateQuery("/user", {id: base.id});
+        return result({error: null, value: {
+            name_raw: base.id,
+            url,
+            client_id,
+            raw_value: base,
+        }});
+    },
     user_card(client, base): Generic.ReadLinkResult<Generic.FilledIdentityCard> | null {
         const full = client.data.id_to_user.get(base.id);
 
@@ -390,6 +379,49 @@ const resolvers: {
             raw_value: full,
             // url: `/user?id=${...}`
         }};
+    },
+    user_request(client, base) {
+        return result({error: null, value: opaque_loader.encode({kind: "user", user: base})});
+    },
+    user_post(client, base) {
+        const url = updateQuery("/user", {id: base.id});
+        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        return result({error: null, value: {
+            kind: "post",
+            content: {
+                kind: "page",
+                wrap_page: {
+                    header: {
+                        temp_title: base.id,
+                        filled: {
+                            kind: "one_loader",
+                            request: client.getLink("user_request", base),
+                            key: client.getLink("user_card", base),
+                            client_id,
+                        },
+                    },
+                    sidebar: {
+                        display: "tree",
+                        loader: Generic.p2.prefilledHorizontalLoader(content, Generic.autoLinkgen("user→wrap→sidebar", base), []),
+                    },
+                },
+            },
+            internal_data: base,
+            parent: clientAsParent(content, {}),
+            replies: {
+                display: "repivot_list",
+                loader: {
+                    kind: "horizontal_loader",
+                    request: client.getLink("user_request", base),
+                    key: HnClient.fromContent(content).getLink("user_replies", base),
+                    client_id,
+                },
+                // todo sorts: submisisons/comments/favourites
+                // unfortunately, the api only supports submissions
+            },
+            url,
+            client_id,
+        }});
     },
     user_replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         const full = client.data.id_to_user.get(base.id);
@@ -502,7 +534,7 @@ class HnClient extends ThreadClientHelper {
             const pivot = await this.fetchItem(parsed.id);
             return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
         } else if (parsed.kind === "user") {
-            const pivot = base_user.post(content, {id: parsed.id});
+            const pivot = this.getLink("user_post", {id: parsed.id});
             return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
         } else if (parsed.kind === "link_out") {
             const pivot = this.getLink("rawlink", {url: parsed.out}); // no dirties are added because it never changes
