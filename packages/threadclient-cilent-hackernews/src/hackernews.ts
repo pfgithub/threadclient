@@ -26,27 +26,6 @@ threadclient-extension will be needed for:
     - noprocrast
 */
 
-/*
-reconsidering the decision:
-- this is basically entirely for loaders and identity cards
-- but why can't we just have two limited identity cards for the same thing
-  - ie for subreddits, we have one for when only the subreddit name is known and a seperate one for name+pfp
-  - why should they both be the same? they're different elements on screen
-    - why should hovering over a user update every other instance of that same user on the screen
-    - what if hovering over a user loads a new pfp. now every instance updates. isn't that odd?
-  - it seems like limited identity cards are a good thing
-- we still have the downside of constantly updating stuff that hasn't changed, ie replacing client on every loader 
-- but I think when we try to apply this migration to reddit we'll have trouble managing the caches
-- and is it really worth it just to have one identity card card instead of two limited identity cards + one filled identity card?
-  - and lose out on the serverside-only option
-  - and lose out on the potential to run in a worker thread (well I guess we could still do this but only if we view every link immediately)
-
-to undecide, we can
-- revert to 37771b0de8e58a8ec60463b33963fa2eadae03a9
-- cherry-pick 4b3b3d179efba8ef429cc0a6efbfe3eb7c03c824
-in order to not lose any features
-*/
-
 type LoaderData = {
     kind: "item",
     item: BaseItem,
