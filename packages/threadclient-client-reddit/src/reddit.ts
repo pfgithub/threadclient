@@ -3,12 +3,12 @@
 import * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
-import { DeprecatedClient, encoderGenerator, ThreadClient, ThreadClientHelper, ThreadClientImplements } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ObservableMap, ThreadClient, ThreadClientHelper, ThreadClientImplements } from "threadclient-client-base";
 import { assertNever, assertUnreachable, encodeQuery, encodeURL, expectUnsupported, splitURL, updateQuery } from "tmeta-util";
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { loadPage2, submitPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
-import { getPagev2 } from "./reddit_page2_v2";
+import { getPagev2, initRedditClientData, RedditClientData, RedditLinkDescriptors, resolvers, trackRedditClientData, untrackRedditClientData } from "./reddit_page2_v2";
 
 const reddit_app_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -2774,21 +2774,9 @@ export async function resolveSLink(sl: string): Promise<string | {error: string}
 
 }
 
-type RedditLinkDescriptors = {
-    example: {
-        data: unknown,
-        content: unknown,
-    },
-};
-const resolvers: {
-    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
-    [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
-} = {
-    example(client, base): Generic.ReadLinkResult<unknown> | null {
-        return null;
-    }
-};
-class RedditClient extends ThreadClientHelper {
+export class RedditClient extends ThreadClientHelper {
+    data: RedditClientData;
+
     constructor(prev?: RedditClient) {
         super(client_id, prev);
         this.submit = client_base.submit;
@@ -2803,10 +2791,16 @@ class RedditClient extends ThreadClientHelper {
         this.loadMore = client_base.loadMore;
         this.loadMoreUnmounted = client_base.loadMoreUnmounted;
         this.hydrateInbox = client_base.hydrateInbox;
+
+        this.data = initRedditClientData(prev?.data);
     }
     dupe(): { client: RedditClient; dirty: Generic.Link<unknown>[]; } {
         const res = new RedditClient(this);
         return {client: res, dirty: res.takeDirtyAndApplyContent({})};
+    }
+    
+    getLink<T extends keyof RedditLinkDescriptors>(type: T, value: RedditLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<RedditLinkDescriptors[NoInfer<T>]["content"]> {
+        return `${JSON.stringify([type, value])}` as Generic.Link<RedditLinkDescriptors[NoInfer<T>]["content"]>;
     }
 
     hasPage2(): boolean {
@@ -2833,12 +2827,15 @@ class RedditClient extends ThreadClientHelper {
         if (typeof link === "symbol" || !link.startsWith("[")) {
             return Generic.readLink(this.content, link);
         }
+        trackRedditClientData(this.data, link);
         const [type, value_raw] = JSON.parse(link as string) as [keyof RedditLinkDescriptors, unknown];
         try {
             return resolvers[type](this, value_raw as any) as Generic.ReadLinkResult<T>;
         } catch(e) {
             console.error(e);
             return {error: (e as Error).toString(), value: null};
+        } finally {
+            untrackRedditClientData(this.data);
         }
     }
 }

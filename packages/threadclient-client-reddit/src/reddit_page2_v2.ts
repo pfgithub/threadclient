@@ -1,10 +1,10 @@
 import * as Generic from "api-types-generic";
 import { autoFill, autoLinkgen, autoOutline, p2, rt, validatePost } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
-import { encoderGenerator } from "threadclient-client-base";
+import { encoderGenerator, ObservableMap } from "threadclient-client-base";
 import { assertNever, expectUnsupported, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
-import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink } from "./reddit";
+import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink, RedditClient } from "./reddit";
 
 // * todo fix - we use JSON.stringify right now, but that keeps property order. eventually, that's going to become
 // a problem - two things with the same base are not going to have the same id because of property order.
@@ -1144,43 +1144,67 @@ export const full_post = {
     },
 };
 
-export const base_comment = {
-    commentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Post>("commentT1→post", base),
-    selfParentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Opaque<"loader">>("commentT1→parent_loader", base),
-    selfRepliesLoaderLink: (base: BaseCommentT1) => autoLinkgen<Generic.Opaque<"loader">>("commentT1→replies_loader", base),
-    selfRepliesLink: (base: BaseCommentT1) => autoLinkgen<Generic.HorizontalLoaded>("commentT1→replies_value", base),
+export type RedditClientData = {
+    
+    // we should be able to have this not include sort and instead have comment replies be per-sort. but for now it will include it.
+    // currently, this maps from JSON.stringify(BaseComment) to FullCommentT1
+    // but instead we should split this up:
+    // - items: ObservableMap<#{id: string}, Reddit.T1 | Reddit.T2 | Reddit.T3 | Reddit.T5 | {kind: "unsupported"}>,
+    // - t1_replies: ObservableMap<#{id: string, sort: ...}, Reddit.Listing>, // this would only be filled for comments which have valid replies
+    comments: ObservableMap<string, FullCommentT1, Generic.Link<unknown>>,
+
+    /*
+    do we really want to be mutating RedditClientData from inside resolvers?
+    say we load comment replies:
+    - we'll update data.posts
+    - but the replies won't update because even though it re-calls the post resolver, getting a link
+      value doesn't return the dirty array
+    - and we don't want it to. because what if the client stopped watching the post link. the dirty
+      returned from loading comment replies should include that loader that we just filled.
+    but this requires pre-walking. why should we have to do that? it seems like it would make it
+    easy to miss stuff. aka when we load a post, we need to first loop over all the replies and add
+    them in the data array. and then we return the link to the post. and then the post itself loops
+    over the replies and gets links to them. that doesn't seem right.
+
+    maybe we can make the tracking work for tracked sets?
+    - ie if "a" sets "b", then if a mutation affects "a" we should automatically mark it to affect "b" too?
+      - no that doesn't work. because "a"'s resolver has to be called for that to happen
+      - so we would say if a mutation affects "a", then when we write to "a" we mark it to be re-called???
+      - maybe kind of works
+    */
 };
-export const full_comment = {
-    url: (full: FullCommentT1) => updateQuery(full.t1.data.permalink, {context: "3"}),
-    fillContent: (content: Generic.Page2Content, full: FullCommentT1): Generic.PostContent => {
-        const listing = full.t1.data;
-        const our_link = full_comment.url(full);
-        return {
-            kind: "post",
-            title: null,
-            author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
-            body: getCommentBody(listing),
-            info: getPostInfo(full.t1),
-            collapsible: {default_collapsed: commentDefaultCollapsed(listing.author) || (listing.collapsed ?? false)},
-            actions: {
-                // NOTE:
-                // if the post's discussion_type === "CHAT", don't display vote buttons
-                // * how do we do this?
-                //    - what if a chat comment gets returned without information about the post it's on?
-                //    - for instance: on a user page (do they show there?) or on an /api/info page
-                vote: getPointsOn(listing),
-                code: getCodeButton(listing.body),
-                other: [
-                    editButton(listing.name),
-                    deleteButton(listing.name),
-                    saveButton(listing.name, listing.saved),
-                    reportButton(listing.name, listing.subreddit),
-                    rawlinkButton(our_link),
-                ],
-            },
-        };
+export function initRedditClientData(prev?: RedditClientData): RedditClientData {
+    return {
+        comments: new ObservableMap(prev?.comments),
+    };
+}
+export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
+    data.comments.beginTracking(link);
+}
+export function untrackRedditClientData(data: RedditClientData): void {
+    data.comments.endTracking();
+}
+
+function result<T>(a: NoInfer<T>): T {
+    return a;
+}
+export type RedditLinkDescriptors = {
+    comment: {
+        data: BaseCommentT1, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
+        content: Generic.Post,
     },
-    fill: autoFill((full: FullCommentT1) => base_comment.commentLink(full.on_base), (content, full): Generic.Post => {
+};
+export const resolvers: {
+    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
+    [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
+} = {
+    comment(client, base) {
+        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        const full = client.data.comments.get(JSON.stringify(base));
+        if (!full) return result(null);
+
+        const url = updateQuery(full.t1.data.permalink, {context: "3"});
+
         const replies_valid = full.comment_replies_valid === true || (
             full.t1.data.id === full.comment_replies_valid.after_id
         );
@@ -1232,9 +1256,35 @@ export const full_comment = {
             }));
         }
         if(replies_valid) p2.fillLinkOnce(content, fill_replies_link, () => res);
-        return {
+
+        const listing = full.t1.data;
+
+        return result({error: null, value: {
             kind: "post",
-            content: full_comment.fillContent(content, full),
+            content: {
+                kind: "post",
+                title: null,
+                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
+                body: getCommentBody(listing),
+                info: getPostInfo(full.t1),
+                collapsible: {default_collapsed: commentDefaultCollapsed(listing.author) || (listing.collapsed ?? false)},
+                actions: {
+                    // NOTE:
+                    // if the post's discussion_type === "CHAT", don't display vote buttons
+                    // * how do we do this?
+                    //    - what if a chat comment gets returned without information about the post it's on?
+                    //    - for instance: on a user page (do they show there?) or on an /api/info page
+                    vote: getPointsOn(listing),
+                    code: getCodeButton(listing.body),
+                    other: [
+                        editButton(listing.name),
+                        deleteButton(listing.name),
+                        saveButton(listing.name, listing.saved),
+                        reportButton(listing.name, listing.subreddit),
+                        rawlinkButton(url),
+                    ],
+                },
+            },
             internal_data: full,
             parent: {
                 loader: {
@@ -1254,10 +1304,17 @@ export const full_comment = {
                     client_id,
                 },
             },
-            url: full_comment.url(full),
+            url,
             client_id,
-        };
-    }),
+        }});
+    }
+};
+
+export const base_comment = {
+    commentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Post>("commentT1→post", base),
+    selfParentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Opaque<"loader">>("commentT1→parent_loader", base),
+    selfRepliesLoaderLink: (base: BaseCommentT1) => autoLinkgen<Generic.Opaque<"loader">>("commentT1→replies_loader", base),
+    selfRepliesLink: (base: BaseCommentT1) => autoLinkgen<Generic.HorizontalLoaded>("commentT1→replies_value", base),
 };
 
 /*
@@ -1466,11 +1523,14 @@ function linkToAndFillListingChild(
                 sort: "default",
             },
         };
-        return full_comment.fill(content, {
+
+        const client = RedditClient.fromContent(content);
+        client.addDirty(client.data.comments.setAndList(JSON.stringify(comment_base), {
             on_base: comment_base,
             t1: post,
             comment_replies_valid: extra?.comment_replies_valid ?? {after_id: "#INVALID"},
-        });
+        }));
+        return client.getLink("comment", comment_base);
     }
     return Generic.p2.createSymbolLinkToError(content, "todo: post.kind: "+post.kind, post);
 }
