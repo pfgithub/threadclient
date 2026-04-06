@@ -1456,53 +1456,45 @@ type CommentExtra = {
     comment_replies_valid: CommentRepliesValid,
 };
 
-type BaseMore = {id: string};
+const none_link = autoLinkgen<Generic.HorizontalLoaded>("more→depth→none", {});
+
+type BaseMore = {id: string, post: BasePostT3};
 type FullMore = {more: Reddit.More, post: BasePostT3};
 function moreLink(base: BaseMore): Generic.Link<Generic.HorizontalLoaded> {
     return autoLinkgen<Generic.HorizontalLoaded>("more→loaded", base);
 }
 function fillMore(content: Generic.Page2Content, full: FullMore): Generic.HorizontalLoadedItem {
-    const base: BaseMore = {id: full.more.data.id};
     if (full.more.data.children.length === 0) {
-        // this has to be handled in the comment itself instead of here
-        // because otherwise we have an infinite loop of T -> loader -> key: T -> loader -> key: T -> ...
-        /*
         const id_loader = Generic.p2.fillLinkOnce(content, (
-            autoLinkgen<Generic.Opaque<"loader">>("more→depth_loader", base)
+            autoLinkgen<Generic.Opaque<"loader">>("more→depth_loader", {parent: full.more.data.parent_id, post: full.post})
         ), () => {
             return opaque_loader.encode({
                 kind: "view_post",
                 post: full.post,
-                focus_comment_id: full.more.data.parent_id,
+                focus_comment_id: full.more.data.parent_id.substring(3), // have to remove the t1_
                 context: "0", // context is a waste, we don't need it here
             });
         });
-        // dang. this doesn't work because 
-        // this is one of those situations where the new loaders would work better
-        // because the workaround here is to detect the presence of depth loaders and overwrite
-        const id_filled = base_comment.selfRepliesLink({fullname: full.more.data.parent_id as `t1_${string}`, on_post: full.post});
         return {
             kind: "horizontal_loader",
-            key: id_filled,
+            key: none_link, // it's a trick. we don't actually need a key because the whole replies will get replaced
             request: id_loader,
 
             load_count: null,
             client_id,
         };
-        */
-        return Generic.p2.createSymbolLinkToError(content, "todo: depth-based loader", full);
     }
 
-    return fillMorechildrenMore(content, {base, children: full.more.data.children, post: full.post});
+    const base: BaseMore = {id: full.more.data.id, post: full.post};
+    return fillMorechildrenMore(content, {base, children: full.more.data.children});
 }
-function fillMorechildrenMore(content: Generic.Page2Content, full: {base: BaseMore, children: string[], post: BasePostT3}): Generic.HorizontalLoadedItem {
+function fillMorechildrenMore(content: Generic.Page2Content, full: {base: BaseMore, children: string[]}): Generic.HorizontalLoadedItem {
     const base = full.base;
     const request = autoLinkgen<Generic.Opaque<"loader">>("more→request", base);
     p2.fillLink(content, request, opaque_loader.encode({
         kind: "morechildren",
         base: base,
         items: full.children,
-        post: full.post,
     }));
     return {
         kind: "horizontal_loader",
@@ -1661,7 +1653,6 @@ type LoaderData = {
     kind: "morechildren",
     base: BaseMore,
     items: string[],
-    post: BasePostT3,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 const opaque_sort_option = encoderGenerator<SortOptionKind, "sort_option">("sort_option");
@@ -1790,8 +1781,8 @@ export async function loadPage2v2(
                 api_type: "json",
                 limit_children: "false",
                 children: batch.join(","),
-                link_id: data.post.fullname,
-                sort: data.post.sort === "default" || isDuplicates(data.post.sort) ? null : data.post.sort.v,
+                link_id: data.base.post.fullname,
+                sort: data.base.post.sort === "default" || isDuplicates(data.base.post.sort) ? null : data.base.post.sort.v,
             },
         });
 
@@ -1814,15 +1805,14 @@ export async function loadPage2v2(
         }
 
         const res_value: Generic.HorizontalLoadedItem[] = reparenting.map(child => linkToAndFillListingChild(content, child, {
-            on_post: data.post,
+            on_post: data.base.post,
             comment_replies_valid: true,
         }));
 
         if(remaining.length > 0) {
             res_value.push(fillMorechildrenMore(content, {
-                base: {id: `${data.base.id}/rem-${remaining.length}`},
+                base: {id: `${data.base.id}/rem-${remaining.length}`, post: data.base.post},
                 children: remaining,
-                post: data.post,
             }));
         }
 
