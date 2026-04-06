@@ -31,3 +31,5 @@ path_router.route(["user"] as const, (a): ParsedPath => ({kind: "user", id: (a.q
 path_router.route(["submitted"] as const, (a): ParsedPath => ({kind: "user", id: (a.query["id"] ?? "")}));
 path_router.route(["threads"] as const, linkout);
 path_router.route(["favorites"] as const, linkout);
+
+path_router.route(["algolia"] as const, linkout);
