@@ -46,76 +46,6 @@ function clientAsParent(content: Generic.Page2Content, base: BaseClient): Generi
 }
 
 export type BaseListing = {type: HN.ListingType};
-export const base_listing = {
-    url: (base: BaseListing): string => {
-        return updateQuery("/" + base, {});
-    },
-    post: Generic.autoOutline("listing→post", (content, base: BaseListing): Generic.Post => {
-        const id_loader = Generic.p2.fillLinkOnce(content, (
-            Generic.autoLinkgen<Generic.Opaque<"loader">>("listing→replies_loader", base)
-        ), () => {
-            return opaque_loader.encode({
-                kind: "listing",
-                listing: base,
-            });
-        });
-        const id_filled = base_listing.repliesId(base);
-        return {
-            kind: "post",
-            content: {
-                kind: "page",
-                wrap_page: {
-                    header: {
-                        temp_title: base.type,
-                        filled: Generic.p2.prefilledOneLoader<Generic.FilledIdentityCard>(content, Generic.autoLinkgen("listing→identity→header", base), {
-                            names: {
-                                display: null,
-                                raw: base.type,
-                            },
-                            pfp: null,
-                            theme: {banner: {kind: "color", color: "#ff6600"}},
-                            description: null,
-                            actions: {main_counter: null},
-                            menu: null,
-                            raw_value: 0,
-                        }),
-                    },
-                    sidebar: {
-                        display: "tree",
-                        loader: Generic.p2.prefilledHorizontalLoader(content, Generic.autoLinkgen("listing→identity→sidebar", base), []),
-                    },
-                },
-            },
-            internal_data: base,
-            parent: clientAsParent(content, {}),
-            replies: {
-                display: "repivot_list",
-                loader: {
-                    kind: "horizontal_loader",
-                    key: id_filled,
-                    request: id_loader,
-
-                    load_count: null,
-                    autoload: true,
-                    client_id,
-                },
-            },
-            url: base_listing.url(base),
-            client_id,
-        };
-    }),
-    repliesId: (base: BaseListing): Generic.NullableLink<Generic.HorizontalLoaded> => {
-        return Generic.autoLinkgen<Generic.HorizontalLoaded>("listing→replies", base);
-    },
-};
-export type FullListing = {base: BaseListing, full: HN.Listing};
-export const full_listing = {
-    fill: Generic.autoFill((full: FullListing) => base_listing.repliesId(full.base), (content, full): Generic.HorizontalLoaded => {
-        return full.full.map((id): Generic.HorizontalLoader => {
-            return itemHorizontalLoader(HnClient.fromContent(content), {id});
-        });
-    }),
-};
 
 type BaseUser = {id: string};
 const base_user = {
@@ -183,6 +113,19 @@ type HnLinkDescriptors = {
     client: {
         data: BaseClient,
         content: Generic.Post,
+    },
+
+    listing: {
+        data: BaseListing,
+        content: Generic.Post,
+    },
+    listing_request: {
+        data: BaseListing,
+        content: Generic.Opaque<"loader">,
+    },
+    listing_replies: {
+        data: BaseListing,
+        content: Generic.HorizontalLoaded,
     },
 
     item: {
@@ -255,6 +198,67 @@ const resolvers: {
             url: null,
             client_id,
         }});
+    },
+
+    listing(client, base) {
+        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        const url = updateQuery("/" + base.type, {});
+        return result({error: null, value: {
+            kind: "post",
+            content: {
+                kind: "page",
+                wrap_page: {
+                    header: {
+                        temp_title: base.type,
+                        filled: Generic.p2.prefilledOneLoader<Generic.FilledIdentityCard>(content, Generic.autoLinkgen("listing→identity→header", base), {
+                            names: {
+                                display: null,
+                                raw: base.type,
+                            },
+                            pfp: null,
+                            theme: {banner: {kind: "color", color: "#ff6600"}},
+                            description: null,
+                            actions: {main_counter: null},
+                            menu: null,
+                            raw_value: 0,
+                        }),
+                    },
+                    sidebar: {
+                        display: "tree",
+                        loader: Generic.p2.prefilledHorizontalLoader(content, Generic.autoLinkgen("listing→identity→sidebar", base), []),
+                    },
+                },
+            },
+            internal_data: base,
+            parent: clientAsParent(content, {}),
+            replies: {
+                display: "repivot_list",
+                loader: {
+                    kind: "horizontal_loader",
+                    key: client.getLink("listing_replies", base),
+                    request: client.getLink("listing_request", base),
+
+                    load_count: null,
+                    autoload: true,
+                    client_id,
+                },
+            },
+            url,
+            client_id,
+        }});
+    },
+    listing_request(client, base) {
+        return result({error: null, value: opaque_loader.encode({
+            kind: "listing",
+            listing: base,
+        })});
+    },
+    listing_replies(client, base) {
+        const full = client.data.listing_id_to_listing.get(base.type);
+        if (!full) return null;
+        return result({error: null, value: full.map((id): Generic.HorizontalLoader => {
+            return itemHorizontalLoader(client, {id});
+        })});
     },
 
     item: (client: HnClient, base: BaseItem): Generic.ReadLinkResult<Generic.Post> | null => {
@@ -446,6 +450,10 @@ class HnClient extends ThreadClientHelper {
     getLink<T extends keyof HnLinkDescriptors>(type: T, value: HnLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]> {
         return `${JSON.stringify([type, value])}` as Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]>;
     }
+    private async fetchListing(listing: HN.ListingType): Promise<void> {
+        const resp = await hnRequest(`/v0/${listing as HN.PathBit}`, {method: "GET"});
+        this.addDirty(this.data.listing_id_to_listing.setAndList(listing, resp));
+    }
     private async fetchItem(id: number): Promise<Generic.Link<Generic.Post>> {
         const resp = await hnRequest(`/v0/item/${(""+id) as HN.PathBit}`, {method: "GET"});
         this.addDirty(this.data.id_to_item.setAndList(id, resp));
@@ -488,9 +496,7 @@ class HnClient extends ThreadClientHelper {
         const content: Generic.Page2Content = this.makeContent();
 
         if (parsed.kind === "listing") {
-            const pivot = base_listing.post(content, {
-                type: parsed.listing,
-            });
+            const pivot = this.getLink("listing", {type: parsed.listing});
             return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
         } else if (parsed.kind === "item") {
             const pivot = await this.fetchItem(parsed.id);
@@ -507,8 +513,7 @@ class HnClient extends ThreadClientHelper {
         const content: Generic.Page2Content = this.makeContent();
         const dec = opaque_loader.decode(request);
         if (dec.kind === "listing") {
-            const resp = await hnRequest(`/v0/${dec.listing.type as HN.PathBit}`, {method: "GET"});
-            full_listing.fill(content, {base: dec.listing, full: resp});
+            await this.fetchListing(dec.listing.type);
         } else if (dec.kind === "item") {
             await this.fetchItem(dec.item.id);
         } else if (dec.kind === "user") {
