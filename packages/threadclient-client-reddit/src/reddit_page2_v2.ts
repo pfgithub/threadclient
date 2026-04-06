@@ -1473,6 +1473,7 @@ function fillMore(content: Generic.Page2Content, full: FullMore): Generic.Horizo
                 post: full.post,
                 focus_comment_id: full.more.data.parent_id.substring(3), // have to remove the t1_
                 context: "0", // context is a waste, we don't need it here
+                // TODO: we should error if the focus_comment_id is not found in the comment tree
             });
         });
         return {
