@@ -81,6 +81,10 @@ export abstract class ThreadClientHelper extends ThreadClient {
         this.content = {...prev?.content ?? {}, [cxsym]: this as any};
     }
 
+    addDirty(add: Set<Generic.Link<unknown>>): void {
+        for (const item of add) this.dirty.add(item);
+    }
+
     /**
      * @deprecated TODO remove the apply content part. it should just be takeDirty. this is for the transition period.
      */

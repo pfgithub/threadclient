@@ -423,6 +423,72 @@ function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.Horizon
     };
 }
 
+class ObservableMap<T, U, Tracking> {
+    private _map: Map<T, U>;
+    private _dependencies: Map<T, Set<Tracking>>;
+    private _tracking?: {key: Tracking, cleared: Set<T>};
+    constructor(prev?: ObservableMap<T, U, Tracking>) {
+        this._map = new Map(prev?._map);
+        this._dependencies = new Map(prev?._dependencies.entries().map(([k, v]) => [k, new Set(v)]));
+        this._tracking = prev?._tracking; // should be undefined. maybe we should assert it is.
+    }
+
+    get(key: T): U | undefined {
+        this._view(key);
+        return this._map.get(key);
+    }
+    has(key: T): boolean {
+        this._view(key);
+        return this._map.has(key);
+    }
+    setAndList(key: T, value: U): Set<Tracking> {
+        this._map.set(key, value);
+        return this._deps(key);
+    }
+    private _deps(key: T): Set<Tracking> {
+        if (!this._dependencies.has(key)) {
+            this._dependencies.set(key, new Set());
+        }
+        return this._dependencies.get(key)!;
+    }
+    private _view(key: T): void {
+        if (this._tracking === undefined) return;
+        const deps = this._deps(key);
+        if (!this._tracking.cleared.has(key)) {
+            this._tracking.cleared.add(key);
+            deps.clear();
+        }
+        deps.add(this._tracking.key);
+    }
+
+    // https://github.com/tc39/proposal-upsert
+    getOrInsert(key: T, value: U): U {
+        if (!this._map.has(key)) this._map.set(key, value);
+        return this._map.get(key)!;
+    }
+    getOrInsertComputed(key: T, value: (key: T) => U): U {
+        if (!this._map.has(key)) this._map.set(key, value(key));
+        return this._map.get(key)!;
+    }
+
+    track(key: Tracking): {[Symbol.dispose]: () => void} {
+        this.beginTracking(key);
+        return {[Symbol.dispose]: this.endTracking.bind(this)};
+    }
+    beginTracking(key: Tracking): void {
+        if (this._tracking !== undefined) {
+            throw new Error("should not be tracking");
+        }
+        this._tracking = {key, cleared: new Set()};
+    }
+    endTracking(): void {
+        if (this._tracking === undefined) {
+            throw new Error("should be tracking");
+        }
+        this._tracking = undefined;
+    }
+}
+
 class HnClient extends ThreadClientHelper {
     /*
     decision:
@@ -473,17 +539,17 @@ class HnClient extends ThreadClientHelper {
     but in exchange we lose the potential to have a serverside-only client (because it needs client code)
     */
     data: {
-        listing_id_to_listing: Map<HN.ListingType, HN.Listing>,
-        id_to_item: Map<number, HN.Item>,
-        id_to_user: Map<string, HN.User>,
+        listing_id_to_listing: ObservableMap<HN.ListingType, HN.Listing, Generic.Link<unknown>>,
+        id_to_item: ObservableMap<number, HN.Item, Generic.Link<unknown>>,
+        id_to_user: ObservableMap<string, HN.User, Generic.Link<unknown>>,
     };
 
     constructor(prev?: HnClient) {
         super(client_id, prev);
         this.data = {
-            listing_id_to_listing: new Map(prev?.data.listing_id_to_listing),
-            id_to_item: new Map(prev?.data.id_to_item),
-            id_to_user: new Map(prev?.data.id_to_user),
+            listing_id_to_listing: new ObservableMap(prev?.data.listing_id_to_listing),
+            id_to_item: new ObservableMap(prev?.data.id_to_item),
+            id_to_user: new ObservableMap(prev?.data.id_to_user),
         };
     }
     dupe(): { client: HnClient; dirty: Generic.Link<unknown>[]; } {
@@ -496,22 +562,13 @@ class HnClient extends ThreadClientHelper {
     }
     private async fetchItem(id: number): Promise<Generic.Link<Generic.Post>> {
         const resp = await hnRequest(`/v0/item/${(""+id) as HN.PathBit}`, {method: "GET"});
-        this.data.id_to_item.set(id, resp);
+        this.addDirty(this.data.id_to_item.setAndList(id, resp));
 
-        const item = this.getLink("item", {id});
-        // this sucks. we should have these update automatically by tracking the dependencies of the resolve functions?
-        this.dirty.add(item);
-        this.dirty.add(this.getLink("item_horizontal", {id}));
-        this.dirty.add(this.getLink("item_replies", {id}));
-        if (resp.by != null) this.dirty.add(this.getLink("user_card", {id: resp.by})); // adding this will cause the user card to rerender even if the map entry exists which is a mistake
-        return item;
+        return this.getLink("item", {id});
     }
     private async fetchUser(id: string): Promise<void> {
         const resp = await hnRequest(`/v0/user/${id as HN.PathBit}`, {method: "GET"});
-        this.data.id_to_user.set(id, resp);
-
-        this.dirty.add(this.getLink("user_card", {id}));
-        this.dirty.add(this.getLink("user_replies", {id}));
+        this.addDirty(this.data.id_to_user.setAndList(id, resp));
     }
     
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
@@ -519,11 +576,19 @@ class HnClient extends ThreadClientHelper {
             return Generic.readLink(this.content, link);
         }
         const [type, value_raw] = JSON.parse(link as string) as [keyof HnLinkDescriptors, unknown];
+        this.data.id_to_item.beginTracking(link);
+        this.data.id_to_user.beginTracking(link);
+        this.data.listing_id_to_listing.beginTracking(link);
         try {
             return resolvers[type](this, value_raw as any) as Generic.ReadLinkResult<T>;
         } catch(e) {
             console.error(e);
             return {error: (e as Error).toString(), value: null};
+        } finally {
+            // oops need to update esbuild to use 'using'
+            this.data.id_to_item.endTracking();
+            this.data.id_to_user.endTracking();
+            this.data.listing_id_to_listing.endTracking();
         }
     }
 
