@@ -2,7 +2,7 @@ import * as Generic from "api-types-generic";
 import { autoFill, autoLinkgen, autoOutline, p2, rt, validatePost } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator } from "threadclient-client-base";
-import { assertNever, expectUnsupported, updateQuery } from "tmeta-util";
+import { assertNever, expectUnsupported, result, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
 import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink } from "./reddit";
 
@@ -508,7 +508,7 @@ export const full_subreddit = {
     fill: autoFill(
         (full: FullSubredditContent) => base_subreddit.repliesIdFilled(full.subreddit),
         (content, full): Generic.HorizontalLoaded => {
-            const res: Generic.HorizontalLoaded = [];
+            const res: Generic.HorizontalLoadedItem[] = [];
             // if full listing data before
             // TODO: - we need, in addition to sort, a before param for subs
             // - then, we can add a loader for the ?before thing
@@ -1024,7 +1024,7 @@ const full_sidebar_widget = {
 
 type DuplicaesSortV = {m: "duplicates", v: Reddit.DuplicatesSort, crossposts_only: boolean};
 type Sortv = PostSort | DuplicaesSortV | "default";
-function hasm(sort: Sortv): sort is DuplicaesSortV {
+function isDuplicates(sort: Sortv): sort is DuplicaesSortV {
     return typeof sort === "object" && sort != null && 'm' in sort && sort.m === "duplicates";
 }
 
@@ -1087,7 +1087,7 @@ export const base_post = {
 export const full_post = {
     // note: you need a full post to get a url to it. this is to include the title in the url.
     url: (post: FullPostT3): string => {
-        return hasm(post.post.sort) ? (
+        return isDuplicates(post.post.sort) ? (
             "/r/"+post.post.on_subreddit+"/duplicates/"+post.post.fullname.substring(3)
         ) : updateQuery(post.data.data.permalink, post.post.sort !== "default" ? {
             sort: post.post.sort.v,
@@ -1452,12 +1452,44 @@ type CommentExtra = {
     comment_replies_valid: CommentRepliesValid,
 };
 
+type BaseMore = {id: string};
+type FullMore = {more: Reddit.More, post: BasePostT3};
+function moreLink(base: BaseMore): Generic.Link<Generic.HorizontalLoaded> {
+    return autoLinkgen<Generic.HorizontalLoaded>("more→loaded", base);
+}
+function fillMore(content: Generic.Page2Content, full: FullMore): Generic.HorizontalLoadedItem {
+    const base: BaseMore = {id: full.more.data.id};
+    if (full.more.data.children.length === 0) {
+        // depth-based
+        return Generic.p2.createSymbolLinkToError(content, "todo: depth-based loader", full);
+    }
+
+    return fillMorechildrenMore(content, {base, children: full.more.data.children, post: full.post});
+}
+function fillMorechildrenMore(content: Generic.Page2Content, full: {base: BaseMore, children: string[], post: BasePostT3}): Generic.HorizontalLoadedItem {
+    const base = full.base;
+    const request = autoLinkgen<Generic.Opaque<"loader">>("more→request", base);
+    p2.fillLink(content, request, opaque_loader.encode({
+        kind: "morechildren",
+        base: base,
+        items: full.children,
+        post: full.post,
+    }));
+    return {
+        kind: "horizontal_loader",
+        key: moreLink(base),
+        request,
+        client_id,
+        load_count: full.children.length,
+    };
+}
+
 // [!] * does not fill replies *
 function linkToAndFillListingChild(
     content: Generic.Page2Content,
     post: Reddit.Post,
     extra: CommentExtra | null,
-): Generic.Link<Generic.Post> {
+): Generic.HorizontalLoadedItem {
     if(post.kind === "t3") {
         const post_base: BasePostT3 = {
             fullname: post.data.name as "t3_string",
@@ -1482,6 +1514,10 @@ function linkToAndFillListingChild(
             t1: post,
             comment_replies_valid: extra?.comment_replies_valid ?? {after_id: "#INVALID"},
         });
+    }else if(post.kind === "more") {
+        if (extra == null) return Generic.p2.createSymbolLinkToError(content, "more is missing on_post", post);
+        const more_full: FullMore = {more: post, post: extra.on_post};
+        return fillMore(content, more_full);
     }
     return Generic.p2.createSymbolLinkToError(content, "todo: post.kind: "+post.kind, post);
 }
@@ -1592,6 +1628,11 @@ type LoaderData = {
 } | {
     kind: "inbox",
     base: SortedInbox,
+} | {
+    kind: "morechildren",
+    base: BaseMore,
+    items: string[],
+    post: BasePostT3,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 const opaque_sort_option = encoderGenerator<SortOptionKind, "sort_option">("sort_option");
@@ -1627,7 +1668,7 @@ export async function loadPage2v2(
         // *! on /duplicates, it probably uses a "?after=" url. TODO support that.
         const target_url = "/" + [].join("/");
         const postid = data.post.fullname.substring(3);
-        const post_value = hasm(data.post.sort) ? await redditRequest(`/duplicates/${ec(postid)}`, {
+        const post_value = isDuplicates(data.post.sort) ? await redditRequest(`/duplicates/${ec(postid)}`, {
             method: "GET",
             query: {
                 sort: data.post.sort.v,
@@ -1710,6 +1751,53 @@ export async function loadPage2v2(
             about,
             linkflair,
         });
+    }else if(data.kind === "morechildren") {
+        const remaining = [...data.items];
+        const batch = remaining.splice(0, 100);
+
+        const resp = await redditRequest("/api/morechildren", {
+            method: "GET",
+            query: {
+                api_type: "json",
+                limit_children: "false",
+                children: batch.join(","),
+                link_id: data.post.fullname,
+                sort: data.post.sort === "default" || isDuplicates(data.post.sort) ? null : data.post.sort.v,
+            },
+        });
+
+        const reparenting: Reddit.PostCommentLike[] = [];
+        const id_map = new Map<string, Reddit.PostCommentLike>();
+
+        for(const item of resp.json.data.things) {
+            id_map.set(item.data.name, item);
+            const parent_comment = id_map.get(item.data.parent_id);
+            if(parent_comment) {
+                if(parent_comment.kind !== "t1") {
+                    throw new Error("expected t1 here");
+                }
+                // ||= because replies might be "" if it's empty
+                parent_comment.data.replies ||= {kind: "Listing", data: {before: null, children: [], after: null}};
+                parent_comment.data.replies.data.children.push(item);
+            }else {
+                reparenting.push(item);
+            }
+        }
+
+        const res_value: Generic.HorizontalLoadedItem[] = reparenting.map(child => linkToAndFillListingChild(content, child, {
+            on_post: data.post,
+            comment_replies_valid: true,
+        }));
+
+        if(remaining.length > 0) {
+            res_value.push(fillMorechildrenMore(content, {
+                base: {id: `${data.base.id}/rem-${remaining.length}`},
+                children: remaining,
+                post: data.post,
+            }));
+        }
+
+        p2.fillLink(content, moreLink(data.base), res_value);
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
     return {content};
 }

@@ -1484,7 +1484,7 @@ export type Requests = {
             limit_children: "false",
             children: string,
             link_id: `t3_${string}`,
-            sort: Sort,
+            sort: Sort | null,
         },
         response: MoreChildren,
     }>,
