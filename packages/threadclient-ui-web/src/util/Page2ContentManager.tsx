@@ -1,6 +1,5 @@
 import type * as Generic from "api-types-generic";
 import { batch, createSignal, Signal, untrack } from "solid-js";
-import { DeprecatedClient } from "threadclient-client-base";
 import { fetchClient } from "../clients";
 
 export type LoadState = {kind: "none"} | {kind: "progress"} | LoadStateError | {kind: "success"};

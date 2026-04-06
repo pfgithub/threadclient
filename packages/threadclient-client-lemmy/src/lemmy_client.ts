@@ -1,6 +1,6 @@
 import { autoFill, autoLinkgen, autoOutline, p2, readLink } from "api-types-generic";
 import * as Generic from "api-types-generic";
-import { DeprecatedClient, encoderGenerator, ThreadClient } from "threadclient-client-base";
+import { encoderGenerator, ThreadClient } from "threadclient-client-base";
 import { LemmyHttp, ListingType, SortType } from 'lemmy-js-client';
 
 export type BaseInstance = {
@@ -99,7 +99,7 @@ export async function loadPage2v2(
 }
 
 const client_id = "lemmy";
-export const client: ThreadClient = new DeprecatedClient({
+export const client: ThreadClient = {
     id: client_id,
 
     getPage: async (path) => {
@@ -121,7 +121,7 @@ export const client: ThreadClient = new DeprecatedClient({
         throw new Error("not supported url "+path);
     },
     loader: loadPage2v2,
-});
+};
 
 // const base_url = "test";
 //

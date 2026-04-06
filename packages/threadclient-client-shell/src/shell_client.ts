@@ -1,10 +1,10 @@
 import * as Generic from "api-types-generic";
 import { p2, rt } from "api-types-generic";
-import { DeprecatedClient, ThreadClient } from "threadclient-client-base";
+import { ThreadClient } from "threadclient-client-base";
 import { splitURL } from "tmeta-util";
 import { changelog1, changelog2, changelog3, changelog4 } from "./changelog";
 
-export const client: ThreadClient = new DeprecatedClient({
+export const client: ThreadClient = {
     id: "shell",
 
     async getPage(path: string): Promise<Generic.Page2> {
@@ -38,7 +38,7 @@ export const client: ThreadClient = new DeprecatedClient({
             content: {kind: "text", content: body, markdown_format: "reddit", client_id: client.id},
         })("/@reply-demo");
     },
-});
+};
 
 // there's 0 chance this is possible but what if we could automatically extract the urls from the posts to
 // make text typesafe
