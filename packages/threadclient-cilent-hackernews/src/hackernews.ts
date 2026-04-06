@@ -39,41 +39,11 @@ type LoaderData = {
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 
 type BaseClient = {_?: undefined};
-export const base_client = {
-    url: (base: BaseClient): string | null => null,
-    post: Generic.autoOutline("client→post", (content, base: BaseClient): Generic.Post => {
-        return {
-            kind: "post",
-            content: {
-                kind: "client",
-                navbar: {
-                    actions: [
-                        {kind: "link", client_id, url: "/", text: "Home"},
-                        {kind: "link", client_id, url: "/newest", text: "New"},
-                        {kind: "link", client_id, url: "/front", text: "Past"},
-                        {kind: "link", client_id, url: "/newcomments", text: "Comments"},
-                        {kind: "link", client_id, url: "/ask", text: "Ask"},
-                        {kind: "link", client_id, url: "/show", text: "Show"},
-                        {kind: "link", client_id, url: "/jobs", text: "Jobs"},
-                        {kind: "link", client_id, url: "/best", text: "Best"},
-                    ],
-                    inboxes: [],
-                    client_id,
-                },
-            },
-            internal_data: 0,
-            parent: null,
-            replies: null,
-            url: base_client.url(base),
-            client_id,
-        };
-    }),
-    asParent: (content: Generic.Page2Content, base: BaseClient): Generic.PostParent => {
-        return {
-            loader: Generic.p2.prefilledVerticalLoader(content, base_client.post(content, base), undefined),
-        };
-    },
-};
+function clientAsParent(content: Generic.Page2Content, base: BaseClient): Generic.PostParent {
+    return {
+        loader: Generic.p2.prefilledVerticalLoader(content, HnClient.fromContent(content).getLink("client", base), undefined),
+    };
+}
 
 export type BaseListing = {type: HN.ListingType};
 export const base_listing = {
@@ -117,7 +87,7 @@ export const base_listing = {
                 },
             },
             internal_data: base,
-            parent: base_client.asParent(content, {}),
+            parent: clientAsParent(content, {}),
             replies: {
                 display: "repivot_list",
                 loader: {
@@ -184,7 +154,7 @@ const base_user = {
                 },
             },
             internal_data: base,
-            parent: base_client.asParent(content, {}),
+            parent: clientAsParent(content, {}),
             replies: {
                 display: "repivot_list",
                 loader: {
@@ -210,6 +180,11 @@ export type UTLRes = {
 };
 
 type HnLinkDescriptors = {
+    client: {
+        data: BaseClient,
+        content: Generic.Post,
+    },
+
     item: {
         data: BaseItem,
         content: Generic.Post,
@@ -254,6 +229,34 @@ const resolvers: {
     // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
     [key in keyof HnLinkDescriptors]: (client: HnClient, base: HnLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<HnLinkDescriptors[key]["content"]> | null
 } = {
+    client(client, base) {
+        return result({error: null, value: {
+            kind: "post",
+            content: {
+                kind: "client",
+                navbar: {
+                    actions: [
+                        {kind: "link", client_id, url: "/", text: "Home"},
+                        {kind: "link", client_id, url: "/newest", text: "New"},
+                        {kind: "link", client_id, url: "/front", text: "Past"},
+                        {kind: "link", client_id, url: "/newcomments", text: "Comments"},
+                        {kind: "link", client_id, url: "/ask", text: "Ask"},
+                        {kind: "link", client_id, url: "/show", text: "Show"},
+                        {kind: "link", client_id, url: "/jobs", text: "Jobs"},
+                        {kind: "link", client_id, url: "/best", text: "Best"},
+                    ],
+                    inboxes: [],
+                    client_id,
+                },
+            },
+            internal_data: 0,
+            parent: null,
+            replies: null,
+            url: null,
+            client_id,
+        }});
+    },
+
     item: (client: HnClient, base: BaseItem): Generic.ReadLinkResult<Generic.Post> | null => {
         const content = client.content; // TODO: this isn't correct. it won't register dirties.
         const full = client.data.id_to_item.get(base.id);
@@ -327,8 +330,8 @@ const resolvers: {
             internal_data: full,
             parent: {loader: {
                 kind: "vertical_loader",
-                key: parent_id != null ? client.getLink("item", {id: parent_id}) : base_client.post(content, {}),
-                unfilled_parent: base_client.post(content, {}),
+                key: parent_id != null ? client.getLink("item", {id: parent_id}) : client.getLink("client", {}),
+                unfilled_parent: client.getLink("client", {}),
                 request: parent_id != null ? client.getLink("item_request", {id: parent_id}) : Generic.p2.createSymbolLinkToError(content, "hn-full_item-noparent", full),
                 client_id,
             }},
@@ -402,7 +405,7 @@ const resolvers: {
             },
             internal_data: base,
             replies: null,
-            parent: base_client.asParent(content, {}),
+            parent: clientAsParent(content, {}),
             url: base.url,
             client_id,
         }});
