@@ -1,6 +1,6 @@
 
 import * as Generic from "api-types-generic";
-import { DeprecatedClient, encoderGenerator, ThreadClient, ThreadClientHelper } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ObservableMap, ThreadClient, ThreadClientHelper } from "threadclient-client-base";
 import { assertNever, assertUnreachable, splitURL, updateQuery } from "tmeta-util";
 import * as HN from "./api_types";
 import { path_router } from "./routing";
@@ -421,72 +421,6 @@ function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.Horizon
         client_id,
         autoload: true,
     };
-}
-
-class ObservableMap<T, U, Tracking> {
-    private _map: Map<T, U>;
-    private _dependencies: Map<T, Set<Tracking>>;
-    private _tracking?: {key: Tracking, cleared: Set<T>};
-    constructor(prev?: ObservableMap<T, U, Tracking>) {
-        this._map = new Map(prev?._map);
-        this._dependencies = new Map(prev?._dependencies.entries().map(([k, v]) => [k, new Set(v)]));
-        this._tracking = prev?._tracking; // should be undefined. maybe we should assert it is.
-    }
-
-    get(key: T): U | undefined {
-        this._view(key);
-        return this._map.get(key);
-    }
-    has(key: T): boolean {
-        this._view(key);
-        return this._map.has(key);
-    }
-    setAndList(key: T, value: U): Set<Tracking> {
-        this._map.set(key, value);
-        return this._deps(key);
-    }
-    private _deps(key: T): Set<Tracking> {
-        if (!this._dependencies.has(key)) {
-            this._dependencies.set(key, new Set());
-        }
-        return this._dependencies.get(key)!;
-    }
-    private _view(key: T): void {
-        if (this._tracking === undefined) return;
-        const deps = this._deps(key);
-        if (!this._tracking.cleared.has(key)) {
-            this._tracking.cleared.add(key);
-            deps.clear();
-        }
-        deps.add(this._tracking.key);
-    }
-
-    // https://github.com/tc39/proposal-upsert
-    getOrInsert(key: T, value: U): U {
-        if (!this._map.has(key)) this._map.set(key, value);
-        return this._map.get(key)!;
-    }
-    getOrInsertComputed(key: T, value: (key: T) => U): U {
-        if (!this._map.has(key)) this._map.set(key, value(key));
-        return this._map.get(key)!;
-    }
-
-    track(key: Tracking): {[Symbol.dispose]: () => void} {
-        this.beginTracking(key);
-        return {[Symbol.dispose]: this.endTracking.bind(this)};
-    }
-    beginTracking(key: Tracking): void {
-        if (this._tracking !== undefined) {
-            throw new Error("should not be tracking");
-        }
-        this._tracking = {key, cleared: new Set()};
-    }
-    endTracking(): void {
-        if (this._tracking === undefined) {
-            throw new Error("should be tracking");
-        }
-        this._tracking = undefined;
-    }
 }
 
 class HnClient extends ThreadClientHelper {
