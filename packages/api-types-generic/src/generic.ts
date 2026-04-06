@@ -325,7 +325,8 @@ export type VerticalLoader = {
     // - process: find the first filled temp_parent link and use it.
     // - we could even get rid of key. put "parents: Link<Post>[]"
 } & BaseLoader;
-export type HorizontalLoaded = (Link<Post> | HorizontalLoader)[];
+export type HorizontalLoaded = HorizontalLoadedItem[];
+export type HorizontalLoadedItem = Link<Post> | HorizontalLoader;
 export type HorizontalLoader = {
     kind: "horizontal_loader",
     key: NullableLink<HorizontalLoaded>, // unfilled = not yet loaded
