@@ -162,8 +162,6 @@ const base_user = {
     loadRequest: Generic.autoOutline("user→load_request", (content, base: BaseUser): Generic.Opaque<"loader"> => {
         return opaque_loader.encode({kind: "user", user: base});
     }),
-    headerId: (base: BaseUser) => Generic.autoLinkgen<Generic.FilledIdentityCard>("user→wrap→header", base),
-    repliesId: (base: BaseUser) => Generic.autoLinkgen<Generic.HorizontalLoaded>("user→replies", base),
     post: Generic.autoOutline("user→post", (content, base: BaseUser): Generic.Post => {
         return {
             kind: "post",
@@ -175,7 +173,7 @@ const base_user = {
                         filled: {
                             kind: "one_loader",
                             request: base_user.loadRequest(content, base),
-                            key: base_user.headerId(base),
+                            key: HnClient.fromContent(content).getLink("user_card", base),
                             client_id,
                         },
                     },
@@ -192,7 +190,7 @@ const base_user = {
                 loader: {
                     kind: "horizontal_loader",
                     request: base_user.loadRequest(content, base),
-                    key: base_user.repliesId(base),
+                    key: HnClient.fromContent(content).getLink("user_replies", base),
                     client_id,
                 },
                 // todo sorts: submisisons/comments/favourites
@@ -202,24 +200,6 @@ const base_user = {
             client_id,
         };
     }),
-};
-export type FullUser = {base: BaseUser, full: HN.User};
-export const full_user = {
-    fill(content: Generic.Page2Content, full: FullUser): void {
-        Generic.p2.fillLink(content, base_user.headerId(full.base), {
-            names: {
-                display: null,
-                raw: full.full.id,
-            },
-            pfp: null,
-            theme: {banner: {kind: "color", color: "#ff6600"}},
-            description: full.full.about != null ? {kind: "text", content: full.full.about, client_id, markdown_format: "reddit_html"} : {kind: "none"},
-            actions: {main_counter: null},
-            menu: null,
-            raw_value: full,
-        });
-        Generic.p2.fillLink(content, base_user.repliesId(full.base), (full.full.submitted ?? []).map(id => itemHorizontalLoader(HnClient.fromContent(content), {id})));
-    },
 };
 
 type BaseRawlink = {url: string};
@@ -262,6 +242,15 @@ type HnLinkDescriptors = {
     },
     item_replies: {
         data: BaseItem,
+        content: Generic.HorizontalLoaded,
+    },
+
+    user_card: {
+        data: BaseUser,
+        content: Generic.FilledIdentityCard,
+    },
+    user_replies: {
+        data: BaseUser,
         content: Generic.HorizontalLoaded,
     },
 };
@@ -378,7 +367,39 @@ const resolvers: {
     item_request(client, base): Generic.ReadLinkResult<Generic.Opaque<"loader">> | null {
         return {error: null, value: opaque_loader.encode({kind: "item", item: base})};
     },
+
+    user_card(client, base): Generic.ReadLinkResult<Generic.FilledIdentityCard> | null {
+        const full = client.data.id_to_user.get(base.id);
+
+        if (full == null) {
+            // for the loader, we need to return null for now. TODO: once we migrate reddit, we will
+            // be able to remove this
+            if (true as false) {
+                return null;
+            }
+        }
+        
+        return {error: null, value: {
+            names: {
+                display: full?.id ?? null,
+                raw: base.id,
+            },
+            pfp: null,
+            theme: {banner: {kind: "color", color: "#ff6600"}},
+            description: full?.about != null ? {kind: "text", content: full.about, client_id, markdown_format: "reddit_html"} : {kind: "none"},
+            actions: {main_counter: null},
+            menu: null,
+            raw_value: full,
+            // url: `/user?id=${...}`
+        }};
+    },
+    user_replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
+        const full = client.data.id_to_user.get(base.id);
+        if (!full) return null;
+        return {error: null, value: full.submitted?.map((ch): Generic.HorizontalLoader => itemHorizontalLoader(client, {id: ch})) ?? []};
+    },
 };
+
 function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.HorizontalLoader {
     return {
         kind: "horizontal_loader",
@@ -470,7 +491,15 @@ class HnClient extends ThreadClientHelper {
         this.dirty.add(item);
         this.dirty.add(this.getLink("item_horizontal", {id}));
         this.dirty.add(this.getLink("item_replies", {id}));
+        if (resp.by != null) this.dirty.add(this.getLink("user_card", {id: resp.by})); // adding this will cause the user card to rerender even if the map entry exists which is a mistake
         return item;
+    }
+    private async fetchUser(id: string): Promise<void> {
+        const resp = await hnRequest(`/v0/user/${id as HN.PathBit}`, {method: "GET"});
+        this.data.id_to_user.set(id, resp);
+
+        this.dirty.add(this.getLink("user_card", {id}));
+        this.dirty.add(this.getLink("user_replies", {id}));
     }
     
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
@@ -520,8 +549,7 @@ class HnClient extends ThreadClientHelper {
         } else if (dec.kind === "item") {
             await this.fetchItem(dec.item.id);
         } else if (dec.kind === "user") {
-            const resp = await hnRequest(`/v0/user/${dec.user.id as HN.PathBit}`, {method: "GET"});
-            full_user.fill(content, {base: dec.user, full: resp});
+            await this.fetchUser(dec.user.id);
         } else {
             throw new Error("hn-todo");
         }
