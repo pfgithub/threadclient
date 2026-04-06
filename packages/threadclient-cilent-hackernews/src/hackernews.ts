@@ -481,6 +481,8 @@ export async function hnRequest<Path extends keyof HN.Requests, Extra = never>(
 }
 
 export function rawlink(path: string): string {
+    // maybe we should switch it so the client receives the full url instead of just the path
+    if(path.match(/^\/algolia[\/?#]/)) return "raw!https://mod.reddit.com"+path.replace("/algolia", "");
     return "raw!https://news.ycombinator.com"+path;
 }
 export function rawlinkButton(url: string): Generic.Action {
