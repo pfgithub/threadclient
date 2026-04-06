@@ -1242,6 +1242,10 @@ export const full_comment = {
                 comment_replies_valid: replies_valid ? true : full.comment_replies_valid,
             }));
         }
+        
+        // TODO: detect and handle depth-based loader
+        // (it needs a different key for the replies link so it can be filled later)
+
         if(replies_valid) p2.fillLinkOnce(content, fill_replies_link, () => res);
         return {
             kind: "post",
@@ -1460,7 +1464,32 @@ function moreLink(base: BaseMore): Generic.Link<Generic.HorizontalLoaded> {
 function fillMore(content: Generic.Page2Content, full: FullMore): Generic.HorizontalLoadedItem {
     const base: BaseMore = {id: full.more.data.id};
     if (full.more.data.children.length === 0) {
-        // depth-based
+        // this has to be handled in the comment itself instead of here
+        // because otherwise we have an infinite loop of T -> loader -> key: T -> loader -> key: T -> ...
+        /*
+        const id_loader = Generic.p2.fillLinkOnce(content, (
+            autoLinkgen<Generic.Opaque<"loader">>("more→depth_loader", base)
+        ), () => {
+            return opaque_loader.encode({
+                kind: "view_post",
+                post: full.post,
+                focus_comment_id: full.more.data.parent_id,
+                context: "0", // context is a waste, we don't need it here
+            });
+        });
+        // dang. this doesn't work because 
+        // this is one of those situations where the new loaders would work better
+        // because the workaround here is to detect the presence of depth loaders and overwrite
+        const id_filled = base_comment.selfRepliesLink({fullname: full.more.data.parent_id as `t1_${string}`, on_post: full.post});
+        return {
+            kind: "horizontal_loader",
+            key: id_filled,
+            request: id_loader,
+
+            load_count: null,
+            client_id,
+        };
+        */
         return Generic.p2.createSymbolLinkToError(content, "todo: depth-based loader", full);
     }
 
