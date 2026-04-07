@@ -126,6 +126,12 @@ function repliesLink(post_id: AllLinks, replies: Generic.Link<Generic.Post>[]): 
         loader: p2.prefilledHorizontalLoader(extra_content, p2.stringLink("replies_"+post_id.toString()), replies),
     };
 }
+function repliesLinkRepivotList(post_id: AllLinks, replies: Generic.Link<Generic.Post>[]): Generic.PostReplies {
+    return {
+        display: "repivot_list",
+        loader: p2.prefilledHorizontalLoader(extra_content, p2.stringLink("replies_"+post_id.toString()), replies),
+    };
+}
 
 const extra_content: Generic.Page2Content = {};
 
@@ -365,6 +371,85 @@ const all_content_raw_dontuse = {
     // v we could make changelog entries loaders so they don't have to be loaded in order to load the homepagee
     // put all the changelog stuff in "changelog.ts" or something
     "/changelog/-N02c8ctxITU-BqvlytL": changelog1,
+
+    "/app": (): AllContentRawItem => feedItem({
+        text: "App",
+        parent: "/@special-navbar",
+        children: ["/app/feed", "/app/search", "/app/notifications", "/app/accounts"],
+    }),
+    "/app/feed": (): AllContentRawItem => feedItem({
+        text: "Feeds",
+        parent: "/app",
+        children: [
+            "/app/feed/reddit", // this should link to a page within the reddit client itself
+            "/app/feed/hackernews", // same
+        ],
+    }),
+    "/app/feed/reddit": () => feedItem({
+        text: "Reddit",
+        parent: "/app/feed",
+        children: ["/app/feed/reddit/home", "/app/feed/reddit/all", "/app/feed/reddit/popular", "/app/feed/reddit/examplesub"],
+    }),
+    "/app/feed/reddit/home": () => feedItem({
+        text: "Home",
+        parent: "/app/feed/reddit",
+        children: [],
+        body: {kind: "link", url: "raw!/reddit", client_id: client.id},
+    }),
+    "/app/feed/reddit/all": () => feedItem({
+        text: "All",
+        parent: "/app/feed/reddit",
+        children: [],
+        body: {kind: "link", url: "raw!/reddit/r/all", client_id: client.id},
+    }),
+    "/app/feed/reddit/popular": () => feedItem({
+        text: "Popular",
+        parent: "/app/feed/reddit",
+        children: [],
+        body: {kind: "link", url: "raw!/reddit/r/popular", client_id: client.id},
+    }),
+    "/app/feed/reddit/examplesub": () => feedItem({
+        text: "r/abcd",
+        parent: "/app/feed/reddit",
+        children: [],
+        body: {kind: "link", url: "raw!/reddit/r/abcd", client_id: client.id},
+    }),
+    "/app/feed/hackernews": (): AllContentRawItem => feedItem({
+        text: "Hacker News",
+        parent: "/app/feed",
+        children: [],
+    }),
+    "/app/search": (): AllContentRawItem => feedItem({
+        text: "Search",
+        parent: "/app/feed",
+        children: [],
+    }),
+    "/app/notifications": (): AllContentRawItem => feedItem({
+        text: "Notifications",
+        parent: "/app/notifications",
+        children: [],
+    }),
+    "/app/accounts": (): AllContentRawItem => feedItem({
+        text: "Accounts",
+        parent: "/app/accounts",
+        children: [],
+    }),
+};
+function feedItem(props: {text: string, parent: AllLinks, children: AllLinks[], body?: Generic.Body}): AllContentRawItem {
+    return url => ({
+        kind: "post",
+        parent: parentLink(linkToPost(props.parent)),
+        replies: repliesLinkRepivotList(url, props.children.map(ch => linkToPost(ch))),
+        url: url,
+        client_id: client.id,
+        internal_data: 0,
+        content: {
+            kind: "post",
+            title: {text: props.text},
+            body: props.body ?? {kind: "none"} ,
+            collapsible: false,
+        },
+    });
 };
 
 // ok changelog display
