@@ -49,7 +49,7 @@ type RedditMarkdownRenderer = {
 export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditMarkdownRenderer> => {
     const enc = new TextEncoder();
     const dec = new TextDecoder();
-    const exports = await (await import("./snudown.wasm?init")).default<{
+    const instance = await (await import("./snudown.wasm?init")).default<{
         memory: WebAssembly.Memory,
 
         // (len: usize) => [*]u8
@@ -78,7 +78,7 @@ export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditM
                 throw new Error("stack overflow");
             },
             debugprints: (text: number, len: number) => {
-                console.log("print text:",dec.decode(new Uint8Array(exports.memory.buffer, text, len)));
+                console.log("print text:",dec.decode(new Uint8Array(instance.exports.memory.buffer, text, len)));
             },
             debugprinti: (intv: number) => {
                 console.log("print int:", intv);
@@ -87,22 +87,22 @@ export const getRedditMarkdownRenderer = dynamicLoader(async (): Promise<RedditM
                 console.log("print char:", String.fromCodePoint(intv));
             },
             debugpanic: (text: number, len: number) => {
-                throw new Error("Panic: "+ dec.decode(new Uint8Array(exports.memory.buffer, text, len)));
+                throw new Error("Panic: "+ dec.decode(new Uint8Array(instance.exports.memory.buffer, text, len)));
             }
         },
     });
     return {renderMd(md: string) {
         try{
             const utf8 = enc.encode(md);
-            const strptr = exports.allocString(utf8.byteLength);
-            const inmem = new Uint8Array(exports.memory.buffer, strptr, utf8.byteLength);
+            const strptr = instance.exports.allocString(utf8.byteLength);
+            const inmem = new Uint8Array(instance.exports.memory.buffer, strptr, utf8.byteLength);
             inmem.set(utf8);
-            const res = exports.markdownToHTML(strptr, utf8.byteLength);
-            const outlen = exports.strlen(res);
-            const outarr = new Uint8Array(exports.memory.buffer, res, outlen);
+            const res = instance.exports.markdownToHTML(strptr, utf8.byteLength);
+            const outlen = instance.exports.strlen(res);
+            const outarr = new Uint8Array(instance.exports.memory.buffer, res, outlen);
             const decoded = dec.decode(outarr);
-            exports.freeText(strptr, utf8.byteLength);
-            exports.freeText(res, outlen);
+            instance.exports.freeText(strptr, utf8.byteLength);
+            instance.exports.freeText(res, outlen);
             return decoded as string & {_is_safe: true};
         }catch(er){
             const e = er as Error;
