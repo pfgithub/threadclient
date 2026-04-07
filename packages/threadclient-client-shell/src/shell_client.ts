@@ -421,17 +421,17 @@ const all_content_raw_dontuse = {
     }),
     "/app/search": (): AllContentRawItem => feedItem({
         text: "Search",
-        parent: "/app/feed",
+        parent: "/app",
         children: [],
     }),
     "/app/notifications": (): AllContentRawItem => feedItem({
         text: "Notifications",
-        parent: "/app/notifications",
+        parent: "/app",
         children: [],
     }),
     "/app/accounts": (): AllContentRawItem => feedItem({
         text: "Accounts",
-        parent: "/app/accounts",
+        parent: "/app",
         children: [],
     }),
 };
