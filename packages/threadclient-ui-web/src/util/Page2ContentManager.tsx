@@ -5,16 +5,46 @@ import { fetchClient } from "../clients";
 export type LoadState = {kind: "none"} | {kind: "progress"} | LoadStateError | {kind: "success"};
 export type LoadStateError = {kind: "error", msg: string};
 
+export class Page2SecretsManager {
+    #tokens: Map<string, Generic.Tokens>;
+
+    constructor() {
+        this.#tokens = new Map();
+    }
+
+    updateTokens(client: string, from: Generic.Tokens, to?: Generic.UpdateTokens): void {
+        if (!to) return;
+        // from will be used to match the active account when we support multiaccount
+        const store = this.getTokens(client);
+        if (to.app != null) store.app = to.app;
+        if (to.active_account != null) store.active_account = to.active_account; 
+        if (to.active_account_name != null) store.active_account_name = to.active_account_name;
+    }
+    getTokens(client: string): Generic.Tokens {
+        if (!this.#tokens.has(client)) {
+            this.#tokens.set(client, {});
+        }
+        return this.#tokens.get(client)!;
+    }
+
+    static instance(): Page2SecretsManager {
+        return page2SecretsManagerInstance;
+    }
+}
+const page2SecretsManagerInstance = new Page2SecretsManager();
+
 export default class Page2ContentManager {
     #signals: Map<
         Generic.NullableLink<unknown>,
         Signal<null | Generic.ReadLinkResult<unknown>>
     >;
     #load_states: Map<Generic.Link<Generic.Opaque<"loader">>, Signal<LoadState>>;
+    #secrets: Page2SecretsManager;
 
-    constructor() {
+    constructor(secrets: Page2SecretsManager) {
         this.#signals = new Map();
         this.#load_states = new Map();
+        this.#secrets = secrets;
     }
 
     load(loader: Generic.BaseLoader): void {
@@ -30,7 +60,9 @@ export default class Page2ContentManager {
                 throw new Error(`load failure: ${request?.error ?? "e-request-null"} / for key: ${loader.request.toString()}`);
             }
             const client = await fetchClient(loader.client_id);
-            const resp = await client!.loader!(request.value);
+            const tokens = this.#secrets.getTokens(loader.client_id);
+            const resp = await client!.loader!(request.value, tokens);
+            this.#secrets.updateTokens(loader.client_id, tokens, resp.tokens);
             batch(() => {
                 this.addData(resp.content);
                 setState({kind: "success"});

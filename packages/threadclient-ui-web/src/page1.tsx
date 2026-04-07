@@ -26,6 +26,7 @@ import { rootel } from "./router";
 import { getPointsText, isModifiedEvent, unsafeLinkToSafeLink, watchCounterState } from "./tc_helpers";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { DefaultErrorBoundary, getSettings } from "./util/utils_solid";
+import { Page2SecretsManager } from "./util/Page2ContentManager";
 
 function linkButton(
     client_id: string,
@@ -2225,7 +2226,10 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
                     if (client.getPage) return await client.getPage(current_path);
                     throw new Error("missing getThread/getPage for client: "+client.id);
                 }
-                const page2new = await client.getPagev2!(current_path);
+                const secrets = Page2SecretsManager.instance();
+                const tokens1 = secrets.getTokens(client.id);
+                const page2new = await client.getPagev2!(current_path, tokens1);
+                secrets.updateTokens(client.id, tokens1, page2new.tokens);
                 const rl_res = Generic.readLink(page2new.content, page2new.loader.key);
                 if(rl_res != null) return {
                     content: page2new.content,
@@ -2234,7 +2238,9 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
                 const loadreq = Generic.readLink(page2new.content, page2new.loader.request);
                 if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
                 if (client.loader == null) throw new Error("load fail - missing client.loader");
-                const loadres = await client.loader(loadreq.value);
+                const tokens2 = secrets.getTokens(client.id);
+                const loadres = await client.loader(loadreq.value, tokens2);
+                secrets.updateTokens(client.id, tokens2, loadres.tokens);
                 return {content: Generic.mergeContent(page2new.content, loadres.content), pivot: page2new.loader.key};
             })();
             const split = splitPathPage1Ver(current_path);

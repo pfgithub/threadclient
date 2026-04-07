@@ -12,7 +12,7 @@ import {
     nav_history_map, page2mainel, rootel, setCurrentHistoryKey, uuid
 } from "./router";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
-import Page2ContentManager from "./util/Page2ContentManager";
+import Page2ContentManager, { Page2SecretsManager } from "./util/Page2ContentManager";
 import { DefaultErrorBoundary, getSettings, getWholePageRootContext, PageRootContext, PageRootProvider } from "./util/utils_solid";
 
 function GlobalPageRootViewer(): JSX.Element {
@@ -120,7 +120,7 @@ export function renderPage2(page: Generic.Page2, query: string): HideShowCleanup
     const elem = el("div");
     const hsc = hideshow(elem);
 
-    const content = new Page2ContentManager();
+    const content = new Page2ContentManager(Page2SecretsManager.instance());
     content.addData(page.content);
 
     // huh, we could include page1 as a tab here if we wanted

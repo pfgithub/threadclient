@@ -244,9 +244,11 @@ export type Page2 = {
 export type Pagev2 = {
     content: Page2Content,
     loader: VerticalLoader,
+    tokens?: UpdateTokens,
 };
 export type LoaderResult = {
     content: Page2Content,
+    tokens?: UpdateTokens,
 };
 
 // !NOTE: the empty string is not a valid link due to eslint limitations
@@ -1202,9 +1204,20 @@ export declare namespace SubmitResult {
 export type DataEncodings = 
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
     | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
-    | "loader" | "edit" | "submit" | "sort_option"
+    | "loader" | "edit" | "submit" | "sort_option" | "account"
 ;
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
+
+export type Tokens = {
+    app?: Opaque<"account">,
+    active_account?: Opaque<"account">,
+    active_account_name?: string,
+};
+export type UpdateTokens = {
+    app?: Opaque<"account">,
+    active_account?: Opaque<"account">,
+    active_account_name?: string,
+};
 
 export type FlairList = {
     flair: Flair,
