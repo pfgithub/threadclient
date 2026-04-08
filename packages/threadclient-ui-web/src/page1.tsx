@@ -2241,7 +2241,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
                 const tokens2 = secrets.getTokens(client.id);
                 const loadres = await client.loader(loadreq.value, tokens2);
                 secrets.updateTokens(client.id, tokens2, loadres.tokens);
-                return {content: Generic.mergeContent(page2new.content, loadres.content), pivot: page2new.loader.key};
+                return {content: {...page2new.content, ...loadres.content}, pivot: page2new.loader.key};
             })();
             const split = splitPathPage1Ver(current_path);
 
