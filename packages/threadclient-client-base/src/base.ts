@@ -160,6 +160,7 @@ export abstract class ThreadClientHelper extends ThreadClient {
         this.dirty.clear();
         Object.assign(this.stored_content, this.dirty_content);
         this.dirty_content = {};
+        console.log("dirty", dirty, Object.keys(this.dirty_content), Object.keys(this.stored_content));
         return dirty;
     }
     /** @deprecated: migrate off of Page2Content */

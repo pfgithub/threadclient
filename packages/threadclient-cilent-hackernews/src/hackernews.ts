@@ -474,7 +474,7 @@ class HnClient extends ThreadClientHelper {
     
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
         if (typeof link === "symbol" || !link.startsWith("[")) {
-            return Generic.readLink(this.stored_content, link);
+            return Generic.readLink(this.dirty_content, link) ?? Generic.readLink(this.stored_content, link);
         }
         const [type, value_raw] = JSON.parse(link as string) as [keyof HnLinkDescriptors, unknown];
         this.data.id_to_item.beginTracking(link);

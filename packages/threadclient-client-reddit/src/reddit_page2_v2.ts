@@ -103,7 +103,9 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         return {
             kind: "vertical_loader",
             unfilled_parent: base_client.post(content, {}),
-            key: comment_base != null ? RedditClient.fromContent(content).getLink("item", {fullname: comment_base.fullname, sort: comment_base.on_post.sort}) : base_post.postLink(post_base),
+            key: comment_base != null
+                ? RedditClient.fromContent(content).getLink("item", {fullname: comment_base.fullname, sort: comment_base.on_post.sort})
+                : RedditClient.fromContent(content).getLink("item", {fullname: post_base.fullname, sort: post_base.sort}),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
                 focus_comment_id: parsed.focus_comment,
@@ -127,7 +129,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         return {
             kind: "vertical_loader",
             unfilled_parent: base_client.post(content, {}),
-            key: base_post.postLink(post_base),
+            key: RedditClient.fromContent(content).getLink("item", {fullname: post_base.fullname, sort: post_base.sort}),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
                 focus_comment_id: null,
@@ -1019,131 +1021,6 @@ function isDuplicates(sort: Sortv): sort is DuplicaesSortV {
 
 // * you will only be able to get a link to a post by using the full_post fn
 // * you can get a base_post 'as_parent' but no other way
-export const base_post = {
-    postLink: (base: BasePostT3) => autoLinkgen<Generic.Post>("postT3→post", base),
-    repliesLink: (base: BasePostT3) => autoLinkgen<Generic.HorizontalLoaded>("postT3→replies", base),
-
-    asParent: (content: Generic.Page2Content, base: BasePostT3): Generic.PostParent => {
-        const id_loader = Generic.p2.fillLinkOnce(content, (
-            autoLinkgen<Generic.Opaque<"loader">>("postT3→as_parent_loader", base)
-        ), () => {
-            return opaque_loader.encode({
-                kind: "view_post",
-                post: base,
-                focus_comment_id: null,
-                context: "3", // doesn't matter here
-            });
-        });
-        const id_filled = base_post.postLink(base);
-        const onsub = base.on_subreddit;
-        return {
-            loader: {
-                kind: "vertical_loader",
-                key: id_filled,
-                request: id_loader,
-                unfilled_parent: base_subreddit.post(content, {subreddit: onsub, sort: subDefaultSort(onsub)}),
-
-                load_count: null, autoload: false, client_id,
-            },
-        };
-    },
-    replies: (content: Generic.Page2Content, base: BasePostT3): Generic.PostReplies => {
-        const id_loader = Generic.p2.fillLinkOnce(content, (
-            autoLinkgen<Generic.Opaque<"loader">>("postT3→replies_loader", base)
-        ), () => {
-            return opaque_loader.encode({
-                kind: "view_post",
-                post: base,
-                focus_comment_id: null,
-                context: "3", // doesn't matter here
-            });
-        });
-        const id_filled = base_post.repliesLink(base);
-        return {
-            display: "tree",
-            loader: {
-                kind: "horizontal_loader",
-                key: id_filled,
-                request: id_loader,
-
-                load_count: null,
-                autoload: true,
-                client_id,
-            },
-        };
-    },
-};
-export const full_post = {
-    // note: you need a full post to get a url to it. this is to include the title in the url.
-    url: (post: FullPostT3): string => {
-        return isDuplicates(post.post.sort) ? (
-            "/r/"+post.post.on_subreddit+"/duplicates/"+post.post.fullname.substring(3)
-        ) : updateQuery(post.data.data.permalink, post.post.sort !== "default" ? {
-            sort: post.post.sort.v,
-        } : {});
-    },
-    content: (content: Generic.Page2Content, full: FullPostT3): Generic.PostContentPost => {
-        const listing = full.data.data;
-        return {
-            kind: "post",
-            title: {text: listing.title},
-            collapsible: {default_collapsed: true},
-            flair: getPostFlair(listing),
-            author: authorFromPostOrComment(listing),
-            body: getPostBody(listing),
-            thumbnail: getPostThumbnail(listing, "open"),
-            info: getPostInfo(full.data),
-
-            actions: {
-                vote: getPointsOn(listing),
-                code: getCodeButton(listing.is_self ? listing.selftext : listing.url),
-                other: [
-                    {
-                        kind: "link",
-                        client_id,
-                        url: "/domain/"+listing.domain,
-                        text: listing.domain,
-                    }, deleteButton(listing.name), saveButton(listing.name, listing.saved), {
-                        kind: "link",
-                        client_id,
-                        url: "/r/"+listing.subreddit+"/duplicates/"+listing.id,
-                        text: "Duplicates"
-                    }, reportButton(listing.name, listing.subreddit),
-                    editButton(listing.name),
-                    rawlinkButton(full_post.url(full)),
-                ],
-            },
-        };
-    },
-    fill: autoFill((full: FullPostT3) => base_post.postLink(full.post), (content, full): Generic.Post => {
-        return {
-            kind: "post",
-            client_id,
-            url: full_post.url(full),
-
-            parent: base_subreddit.asParent(content, full.post.on_subreddit),
-            replies: base_post.replies(content, full.post),
-
-            content: full_post.content(content, full),
-            internal_data: full,
-        };
-    }),
-    fillReplies: (content: Generic.Page2Content, full: FullPostReplies): Generic.Link<Generic.HorizontalLoaded> => {
-        const link = base_post.repliesLink(full.on_post);
-        const replies_valid = full.comment_replies_valid === true;
-        // note: .before and .after are ignored on comments
-        const res_replies: Generic.HorizontalLoaded = [];
-        for(const reply of full.data.data.children) {
-            res_replies.push(linkToAndFillListingChild(content, reply, {
-                on_post: full.on_post,
-                comment_replies_valid: full.comment_replies_valid,
-            }));
-        }
-        if(replies_valid) Generic.p2.fillLinkOnce(content, link, () => res_replies);
-        return link;
-    },
-};
-
 type Stringified<T> = string & {__is_stringified: T};
 function stringify<T>(v: NoInfer<T>): Stringified<T> {
     return JSON.stringify(v) as Stringified<T>;
@@ -1248,21 +1125,86 @@ export const resolvers: {
         if (!full) return result(null);
         if (full.kind === "t1") {
             return {error: null, value: resolveT1(client, base, full)};
+        } else if (full.kind === "t3") {
+            return {error: null, value: resolveT3(client, base, full)};
         }
         return {error: "TODO: impl support for item kind: "+full.kind + ` (id ${full.data.name})`, value: null};
     }
 };
 
+function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Reddit.T3): {replies: Generic.PostReplies} {
+    return {
+        replies: {
+            display: "tree",
+            loader: {
+                kind: "horizontal_loader",
+                key: client.getLink("replies", {kind: "item", fullname: full.data.name, sort: base.sort}),
+                request: client.getLink("comment_replies_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, comment_fullname: full.data.id, sort: base.sort}),
+                client_id,
+            },
+        },
+    };
+}
+
+function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Generic.Post {
+    const url = isDuplicates(base.sort) ? (
+        "/r/"+full.data.subreddit+"/duplicates/"+full.data.id
+    ) : updateQuery(full.data.permalink, base.sort !== "default" ? {
+        sort: base.sort.v,
+    } : {});
+    const listing = full.data;
+    const {replies} = itemReplies(client, base, full);
+    return {
+        kind: "post",
+        client_id,
+        url,
+
+        parent: base_subreddit.asParent(client.dirty_content, asLowercaseString(full.data.subreddit)),
+        replies,
+
+        content: {
+            kind: "post",
+            title: {text: listing.title},
+            collapsible: {default_collapsed: true},
+            flair: getPostFlair(listing),
+            author: authorFromPostOrComment(listing),
+            body: getPostBody(listing),
+            thumbnail: getPostThumbnail(listing, "open"),
+            info: getPostInfo(full),
+
+            actions: {
+                vote: getPointsOn(listing),
+                code: getCodeButton(listing.is_self ? listing.selftext : listing.url),
+                other: [
+                    {
+                        kind: "link",
+                        client_id,
+                        url: "/domain/"+listing.domain,
+                        text: listing.domain,
+                    }, deleteButton(listing.name), saveButton(listing.name, listing.saved), {
+                        kind: "link",
+                        client_id,
+                        url: "/r/"+listing.subreddit+"/duplicates/"+listing.id,
+                        text: "Duplicates"
+                    }, reportButton(listing.name, listing.subreddit),
+                    editButton(listing.name),
+                    rawlinkButton(url),
+                ],
+            },
+        },
+        internal_data: full,
+    };
+}
+
 function resolveT1(client: RedditClient, base: BaseItem, full: Reddit.T1): Generic.Post {
     const url = updateQuery(full.data.permalink, {context: "3"});
 
-    const parent_id = full.data.parent_id;
+    const listing = full.data;
+
     const parent_unfilled_link = client.getLink("item", {fullname: full.data.parent_id, sort: base.sort});
     const load_parent_request = client.getLink("comment_parent_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, parent_comment_fullname: full.data.parent_id.startsWith("t1_") ? full.data.parent_id : null, sort: base.sort});
-    const load_replies_request = client.getLink("comment_replies_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, comment_fullname: full.data.id, sort: base.sort});
-    const fill_replies_link = client.getLink("replies", {kind: "item", fullname: base.fullname, sort: base.sort});
 
-    const listing = full.data;
+    const {replies} = itemReplies(client, base, full);
 
     return {
         kind: "post",
@@ -1302,15 +1244,7 @@ function resolveT1(client: RedditClient, base: BaseItem, full: Reddit.T1): Gener
                 request: load_parent_request,
             },
         },
-        replies: {
-            display: "tree",
-            loader: {
-                kind: "horizontal_loader",
-                key: fill_replies_link,
-                request: load_replies_request,
-                client_id,
-            },
-        },
+        replies,
         url,
         client_id,
     };
@@ -1535,17 +1469,7 @@ function linkToAndFillListingChild(
     post: Reddit.Post,
     extra: CommentExtra | null,
 ): Generic.HorizontalLoadedItem {
-    if(post.kind === "t3") {
-        const post_base: BasePostT3 = {
-            fullname: post.data.name as "t3_string",
-            on_subreddit: asLowercaseString(post.data.subreddit),
-            sort: "default",
-        };
-        return full_post.fill(content, {
-            post: post_base,
-            data: post,
-        });
-    }else if(post.kind === "t1") {
+    if(post.kind === "t1" || post.kind === "t3") {
         const client = RedditClient.fromContent(content);
         return client.getLink("item", {fullname: post.data.name, sort: "default"});
     }else if(post.kind === "more") {
@@ -1755,24 +1679,6 @@ export async function loadPage2v2(
         const client = RedditClient.fromContent(content);
         addListing(client, {kind: "none"}, top_half, true);
         addListing(client, {kind: "item", fullname: top_half.data.children[0]!.data.name, sort: data.post.sort}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
-
-        const on_post: BasePostT3 = data.post;
-
-        const qpost = post_value[0].data.children;
-        if(qpost.length !== 1) throw new Error("Expected qpost len 1; missing post? gotlen "+qpost.length);
-        const parentpostdata = qpost[0]!;
-        if(parentpostdata.kind !== "t3") throw new Error("expected t3 in qpost[0]; ?? got "+parentpostdata.kind);
-        full_post.fill(content, {
-            post: on_post,
-            data: parentpostdata,
-        });
-        
-        // note: data.before/data.after are not used for post comments but *are* used for /duplicates
-        full_post.fillReplies(content, {
-            on_post,
-            data: post_value[1],
-            comment_replies_valid: data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true,
-        });
 
         if(data.focus_comment_id != null) {
             if (!client.data.items.has(stringify({fullname: `t1_${data.focus_comment_id}`, sort: data.post.sort}))) {
