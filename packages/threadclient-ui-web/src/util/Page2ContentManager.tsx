@@ -29,6 +29,7 @@ export default class Page2ContentManager {
         (async () => {
             const request = untrack(() => this.view2(loader.request));
             const resp = await this.#backing.loaderLoad(request);
+            console.log("load response", resp);
             batch(() => {
                 this.invalidate(resp.dirty);
                 setState({kind: "success"});

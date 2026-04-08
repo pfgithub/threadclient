@@ -103,7 +103,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         return {
             kind: "vertical_loader",
             unfilled_parent: base_client.post(content, {}),
-            key: comment_base != null ? base_comment.commentLink(comment_base) : base_post.postLink(post_base),
+            key: comment_base != null ? RedditClient.fromContent(content).getLink("item", {fullname: comment_base.fullname, sort: comment_base.on_post.sort}) : base_post.postLink(post_base),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
                 focus_comment_id: parsed.focus_comment,
@@ -1153,8 +1153,8 @@ export type RedditClientData = {
     // we should be able to have this not include sort and instead have comment replies be per-sort. but for now it will include it.
     // currently, this maps from JSON.stringify(BaseComment) to FullCommentT1
     // but instead we should split this up:
-    items: ObservableMap<Stringified<{fullname: string}>, Reddit.Item, Generic.Link<unknown>>,
-    listings: ObservableMap<Stringified<ObjectID>, Reddit.Listing, Generic.Link<unknown>>,
+    items: ObservableMap<Stringified<BaseItem>, Reddit.Item, Generic.Link<unknown>>,
+    listings: ObservableMap<Stringified<ObjectID>, Reddit.Listing | "", Generic.Link<unknown>>,
 
     /*
     do we really want to be mutating RedditClientData from inside resolvers?
@@ -1217,7 +1217,9 @@ export const resolvers: {
     replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         const content = client.content; // TODO: this isn't correct. it won't register dirties.
         const full = client.data.listings.get(stringify(base));
-        if (!full) return result(null);
+        console.log("replies for " + stringify(base), full, client);
+        if (full == null) return result(null);
+        if (full === "") return {error: null, value: []};
         return {error: null, value: [
             ...full.data.before ? [p2.createSymbolLinkToError(content, "TODO impl before", full.data.before)] : [],
             ...full.data.children.map(ch => client.getLink("item", {fullname: ch.data.name, sort: base.kind === "item" ? base.sort : "default"})),
@@ -1328,13 +1330,6 @@ export const resolvers: {
             client_id,
         }};
     }
-};
-
-export const base_comment = {
-    commentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Post>("commentT1→post", base),
-    selfParentLink: (base: BaseCommentT1) => autoLinkgen<Generic.Opaque<"loader">>("commentT1→parent_loader", base),
-    selfRepliesLoaderLink: (base: BaseCommentT1) => autoLinkgen<Generic.Opaque<"loader">>("commentT1→replies_loader", base),
-    selfRepliesLink: (base: BaseCommentT1) => autoLinkgen<Generic.HorizontalLoaded>("commentT1→replies_value", base),
 };
 
 /*
@@ -1698,28 +1693,27 @@ type SortOptionKind = {
     kind: "todo",
 };
 
-function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}, sort: Sortv | null): void {
+function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}, sort: Sortv): void {
     // TODO: note that if item.kind is more and it is a depth-based loader, then the item.data.name will be bad.
-    client.addDirty(client.data.items.setAndList(stringify({fullname: item.data.name}), item));
+    client.addDirty(client.data.items.setAndList(stringify({fullname: item.data.name, sort}), item));
 
     if (item.kind === "t1") {
         // TODO: we can probably use item.data.subreddit_id,item.data.link_id & sort
         // instead of that method for on_post
-        if (item.data.replies !== "") {
-            if (sort != null) {
-                addListing(client, {kind: "item", fullname: item.data.parent_id, sort}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
-            } else {
-                console.warn("t1 item found with replies but no sort", {client, item, allow_replies, sort});
-            }
+        if (sort != null) {
+            addListing(client, {kind: "item", fullname: item.data.name, sort}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
+        } else {
+            console.warn("t1 item found with replies but no sort", {client, item, allow_replies, sort});
         }
     }
 }
 
 type ObjectID = {kind: "item", fullname: string, sort: Sortv} | {kind: "subreddit", sr_name: string, sort: SubSort}; // TODO: subreddits have T5s and it should be possible to use them?
 
-function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing, allow_replies: true | {after_id: string}): void {
+function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
     // if we have a 'before' link, same but before us
+    console.log("add listing for", parent, allow_replies);
     if (parent.kind !== "none" && allow_replies === true) {
         // TODO:
         // - if there is already a listing
@@ -1727,7 +1721,7 @@ function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, lis
         // - if ...
         client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
     }
-    for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.sort : null);
+    if (listing !== "") for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.sort : "default");
 }
 
 export async function loadPage2v2(
@@ -1797,39 +1791,10 @@ export async function loadPage2v2(
             comment_replies_valid: data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true,
         });
 
-        // when a comment with a specific id is requested, if that id has been deleted, I think reddit
-        // will return a listing like | parent |- reply |- reply |- (deleted comment but it doesn't show it in the listing)
-        // so in most cases if the focus id doesn't match anything on the page, we want the parent to be the latest
-        // comment in the list.
-        let latest_comment: Generic.Link<Generic.Post> | null = null;
-        // *TODO!*
-        // -one way to do this is in fn fillReplies if the comment has no replies but 'replies_valid' is after an id other
-        // than the current one, generate the fake reply there?
-        () => latest_comment = 0 as unknown as Generic.Link<Generic.Post>;
-
         if(data.focus_comment_id != null) {
-            const target_link = base_comment.commentLink({
-                fullname: `t1_${data.focus_comment_id}`,
-                on_post,
-            });
-            p2.fillLinkOnce(content, target_link, () => {
-                // pivot not found; display an error
-                // (alternatively we could display a loader but it would just error again)
-                return validatePost(target_link, {kind: "post",
-                    content: {
-                        kind: "error",
-                        message: "Comment not found (maybe it was deleted?) [" + target_link.toString() + "]",
-                    },
-                    internal_data: data,
-                    client_id,
-                    parent: latest_comment != null
-                        ? {loader: p2.prefilledVerticalLoader(content, latest_comment, undefined)}
-                        : base_post.asParent(content, on_post)
-                    ,
-                    replies: null,
-                    url: null, // it technically has a url but no thanks
-                });
-            });
+            if (!client.data.items.has(stringify({fullname: `t1_${data.focus_comment_id}`, sort: data.post.sort}))) {
+                console.warn("TODO: mark comment as 'Comment not found (maybe it was deleted?)");
+            }
         }
 
         // done.
