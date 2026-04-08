@@ -1215,7 +1215,7 @@ export const resolvers: {
     [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
 } = {
     replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
-        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        const content = client.dirty_content;
         const full = client.data.listings.get(stringify(base));
         console.log("replies for " + stringify(base), full, client);
         if (full == null) return result(null);
@@ -1244,7 +1244,6 @@ export const resolvers: {
     },
 
     item(client, base): Generic.ReadLinkResult<Generic.Post> | null {
-        const content = client.content; // TODO: this isn't correct. it won't register dirties.
         const full = client.data.items.get(stringify(base));
         if (!full) return result(null);
         if (full.kind !== "t1") return {error: "TODO: impl support for item kind: "+full.kind, value: null};

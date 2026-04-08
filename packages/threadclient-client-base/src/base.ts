@@ -138,36 +138,35 @@ const cxsym = Symbol("client");
 export abstract class ThreadClientHelper extends ThreadClient {
     dirty: Set<Generic.Link<unknown>>;
 
-    /** @deprecated: migrate off of this */
-    content: Generic.Page2Content;
+    /** @deprecated: migrate off of Page2Content */
+    dirty_content: Generic.Page2Content;
+    /** @deprecated: migrate off of Page2Content */
+    stored_content: Generic.Page2Content;
 
     constructor(id: string, prev?: ThreadClientHelper) {
         super(id);
         this.dirty = new Set(prev?.dirty);
-        this.content = {...prev?.content ?? {}, [cxsym]: this as any};
+        this.stored_content = {...prev?.stored_content ?? {}, [cxsym]: this as any};
+        this.dirty_content = {...prev?.dirty_content ?? {}, [cxsym]: this as any};
     }
 
     addDirty(add: Set<Generic.Link<unknown>>): void {
         for (const item of add) this.dirty.add(item);
     }
 
-    /**
-     * @deprecated TODO remove the apply content part. it should just be takeDirty. this is for the transition period.
-     */
-    takeDirtyAndApplyContent(content: Generic.Page2Content): Generic.Link<unknown>[] {
-        for (const key of Object.keys(content)) this.dirty.add(key as Generic.Link<unknown>);
+    takeDirty(): Generic.Link<unknown>[] {
+        for (const key of Object.keys(this.dirty_content)) this.dirty.add(key as Generic.Link<unknown>);
         const dirty = [...this.dirty];
         this.dirty.clear();
-        this.content = {...this.content, ...content};
+        Object.assign(this.stored_content, this.dirty_content);
+        this.dirty_content = {};
         return dirty;
     }
+    /** @deprecated: migrate off of Page2Content */
     static fromContent<T extends abstract new (...args: any) => any>(this: T, content: Generic.Page2Content): NoInfer<InstanceType<T>> {
         const res = content[cxsym] as unknown as InstanceType<T>;
         if (!res) throw new Error("missing client in fromContent");
         return res;
-    }
-    makeContent(): Generic.Page2Content {
-        return {[cxsym]: this as unknown as undefined};
     }
 }
 

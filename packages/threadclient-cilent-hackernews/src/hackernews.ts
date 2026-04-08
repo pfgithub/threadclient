@@ -156,7 +156,7 @@ const resolvers: {
     },
 
     listing(client, base) {
-        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        const content = client.dirty_content;
         const url = updateQuery("/" + base.type, {});
         return result({error: null, value: {
             kind: "post",
@@ -217,7 +217,7 @@ const resolvers: {
     },
 
     item: (client: HnClient, base: BaseItem): Generic.ReadLinkResult<Generic.Post> | null => {
-        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        const content = client.dirty_content;
         const full = client.data.id_to_item.get(base.id);
         if (!full) return null;
         const url = itemUrl(base);
@@ -360,7 +360,7 @@ const resolvers: {
     },
     user_post(client, base) {
         const url = updateQuery("/user", {id: base.id});
-        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        const content = client.dirty_content;
         return result({error: null, value: {
             kind: "post",
             content: {
@@ -405,7 +405,7 @@ const resolvers: {
     },
 
     rawlink(client, base) {
-        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        const content = client.dirty_content;
         return result({error: null, value: {
             kind: "post",
             content: {
@@ -451,7 +451,7 @@ class HnClient extends ThreadClientHelper {
     }
     dupe(): { client: HnClient; dirty: Generic.Link<unknown>[]; } {
         const res = new HnClient(this);
-        return {client: res, dirty: res.takeDirtyAndApplyContent({})};
+        return {client: res, dirty: res.takeDirty()};
     }
 
     getLink<T extends keyof HnLinkDescriptors>(type: T, value: HnLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]> {
@@ -474,7 +474,7 @@ class HnClient extends ThreadClientHelper {
     
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
         if (typeof link === "symbol" || !link.startsWith("[")) {
-            return Generic.readLink(this.content, link);
+            return Generic.readLink(this.stored_content, link);
         }
         const [type, value_raw] = JSON.parse(link as string) as [keyof HnLinkDescriptors, unknown];
         this.data.id_to_item.beginTracking(link);
@@ -500,24 +500,24 @@ class HnClient extends ThreadClientHelper {
         let parsed = path_router.parse(pathraw_in);
         if (!parsed) parsed = {kind: "link_out", out: pathraw_in};
 
-        const content: Generic.Page2Content = this.makeContent();
+        const content = this.dirty_content;
 
         if (parsed.kind === "listing") {
             const pivot = this.getLink("listing", {type: parsed.listing});
-            return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
+            return {pivot, dirty: this.takeDirty()};
         } else if (parsed.kind === "item") {
             const pivot = await this.fetchItem(parsed.id);
-            return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
+            return {pivot, dirty: this.takeDirty()};
         } else if (parsed.kind === "user") {
             const pivot = this.getLink("user_post", {id: parsed.id});
-            return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
+            return {pivot, dirty: this.takeDirty()};
         } else if (parsed.kind === "link_out") {
             const pivot = this.getLink("rawlink", {url: parsed.out}); // no dirties are added because it never changes
-            return {pivot, dirty: this.takeDirtyAndApplyContent(content)};
+            return {pivot, dirty: this.takeDirty()};
         } else assertNever(parsed);
     }
     async loaderLoad(request: Generic.Opaque<"loader">): Promise<{ dirty: Generic.Link<unknown>[]; }> {
-        const content: Generic.Page2Content = this.makeContent();
+        const content: Generic.Page2Content = this.dirty_content;
         const dec = opaque_loader.decode(request);
         if (dec.kind === "listing") {
             await this.fetchListing(dec.listing.type);
@@ -528,7 +528,7 @@ class HnClient extends ThreadClientHelper {
         } else {
             throw new Error("hn-todo");
         }
-        return {dirty: this.takeDirtyAndApplyContent(content)};
+        return {dirty: this.takeDirty()};
     }
 }
 

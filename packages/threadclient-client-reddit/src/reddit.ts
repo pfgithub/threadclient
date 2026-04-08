@@ -2796,7 +2796,7 @@ export class RedditClient extends ThreadClientHelper {
     }
     dupe(): { client: RedditClient; dirty: Generic.Link<unknown>[]; } {
         const res = new RedditClient(this);
-        return {client: res, dirty: res.takeDirtyAndApplyContent({})};
+        return {client: res, dirty: res.takeDirty()};
     }
     
     getLink<T extends keyof RedditLinkDescriptors>(type: T, value: RedditLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<RedditLinkDescriptors[NoInfer<T>]["content"]> {
@@ -2808,7 +2808,7 @@ export class RedditClient extends ThreadClientHelper {
     }
 
     async pageFromURL(url: string): Promise<{ pivot: Generic.Link<Generic.Post>; dirty: Generic.Link<unknown>[]; }> {
-        const content = this.makeContent();
+        const content = this.dirty_content;
         const page2new = await getPagev2!(content, url);
         const rl_res = Generic.readLink(content, page2new.key);
         if (rl_res == null) {
@@ -2816,16 +2816,16 @@ export class RedditClient extends ThreadClientHelper {
             if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
             await loadPage2(content, loadreq.value);
         }
-        return {pivot: page2new.key, dirty: this.takeDirtyAndApplyContent(content)};
+        return {pivot: page2new.key, dirty: this.takeDirty()};
     }
     async loaderLoad(request: Generic.Opaque<"loader">): Promise<{ dirty: Generic.Link<unknown>[]; }> {
-        const content = this.makeContent();
+        const content = this.dirty_content;
         await loadPage2(content, request);
-        return {dirty: this.takeDirtyAndApplyContent(content)};
+        return {dirty: this.takeDirty()};
     }
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
         if (typeof link === "symbol" || !link.startsWith("[")) {
-            return Generic.readLink(this.content, link);
+            return Generic.readLink(this.stored_content, link);
         }
         trackRedditClientData(this.data, link);
         const [type, value_raw] = JSON.parse(link as string) as [keyof RedditLinkDescriptors, unknown];
