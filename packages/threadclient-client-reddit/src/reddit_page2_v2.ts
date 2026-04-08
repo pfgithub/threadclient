@@ -1849,6 +1849,11 @@ export async function loadPage2v2(
             },
         });
 
+        const client = RedditClient.fromContent(content);
+        for (const item of resp.json.data.things) {
+            addItem(client, item, {after_id: "#none"});
+        }
+
         const reparenting: Reddit.PostCommentLike[] = [];
         const id_map = new Map<string, Reddit.PostCommentLike>();
 
