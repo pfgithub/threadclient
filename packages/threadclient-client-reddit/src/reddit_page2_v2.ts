@@ -1153,8 +1153,8 @@ export type RedditClientData = {
     // we should be able to have this not include sort and instead have comment replies be per-sort. but for now it will include it.
     // currently, this maps from JSON.stringify(BaseComment) to FullCommentT1
     // but instead we should split this up:
-    items: ObservableMap<Stringified<{name: string}>, Reddit.Item, Generic.Link<unknown>>,
-    // - t1_replies: ObservableMap<#{id: string, sort: ...}, Reddit.Listing>, // this would only be filled for comments which have valid replies
+    items: ObservableMap<Stringified<{fullname: string}>, Reddit.Item, Generic.Link<unknown>>,
+    listings: ObservableMap<Stringified<ObjectID>, Reddit.Listing, Generic.Link<unknown>>,
     comments: ObservableMap<string, FullCommentT1, Generic.Link<unknown>>,
 
     /*
@@ -1180,13 +1180,18 @@ export type RedditClientData = {
 export function initRedditClientData(prev?: RedditClientData): RedditClientData {
     return {
         items: new ObservableMap(prev?.items),
+        listings: new ObservableMap(prev?.listings),
         comments: new ObservableMap(prev?.comments),
     };
 }
 export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
+    data.items.beginTracking(link);
+    data.listings.beginTracking(link);
     data.comments.beginTracking(link);
 }
 export function untrackRedditClientData(data: RedditClientData): void {
+    data.items.endTracking();
+    data.listings.endTracking();
     data.comments.endTracking();
 }
 
@@ -1656,16 +1661,24 @@ type SortOptionKind = {
     kind: "todo",
 };
 
-function addItem(client: RedditClient, item: Reddit.Item): void {
+function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}): void {
     // TODO: note that if item.kind is more and it is a depth-based loader, then the item.data.name will be bad.
-    client.addDirty(client.data.items.setAndList(stringify({name: item.data.name}), item));
+    client.addDirty(client.data.items.setAndList(stringify({fullname: item.data.name}), item));
 
     if (item.kind === "t1") {
-        if (item.data.replies !== "") addListing(client, item.data.replies);
+        // TODO: we can probably use item.data.subreddit_id,item.data.link_id & sort
+        // instead of that method for on_post
+        if (item.data.replies !== "") addListing(client, {kind: "item", fullname: item.data.parent_id}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
     }
 }
-function addListing(client: RedditClient, listing: Reddit.Listing): void {
-    for (const ch of listing.data.children) addItem(client, ch);
+
+type ObjectID = {kind: "item", fullname: string} | {kind: "subreddit", sr_name: string};
+
+function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing, allow_replies: true | {after_id: string}): void {
+    // if we have a 'after' link, then that means to add a load more after us
+    // if we have a 'before' link, same but before us
+    if (parent.kind !== "none" && allow_replies === true) client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
+    for (const ch of listing.data.children) addItem(client, ch, allow_replies);
 }
 
 export async function loadPage2v2(
@@ -1677,7 +1690,7 @@ export async function loadPage2v2(
         // fetch the subreddit listing
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
         const client = RedditClient.fromContent(content);
-        addListing(client, sub_listing);
+        addListing(client, {kind: "subreddit", sr_name: data.subreddit.subreddit}, sub_listing, true);
         full_subreddit.fill(content, {subreddit: data.subreddit, listing: sub_listing});
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub.for_sub;
@@ -1711,6 +1724,11 @@ export async function loadPage2v2(
                 context: data.context ?? "3", // use a higher context value for vertical loaders
             },
         });
+        const top_half = post_value[0];
+        const bottom_half = post_value[1];
+        const client = RedditClient.fromContent(content);
+        addListing(client, {kind: "none"}, top_half, true);
+        addListing(client, {kind: "item", fullname: top_half.data.children[0]!.data.name}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
 
         const on_post: BasePostT3 = data.post;
 
