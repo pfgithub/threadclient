@@ -1715,7 +1715,13 @@ type ObjectID = {kind: "item", fullname: string} | {kind: "subreddit", sr_name: 
 function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing, allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
     // if we have a 'before' link, same but before us
-    if (parent.kind !== "none" && allow_replies === true) client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
+    if (parent.kind !== "none" && allow_replies === true) {
+        // TODO:
+        // - if there is already a listing
+        // - if there are multiple listings
+        // - if ...
+        client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
+    }
     for (const ch of listing.data.children) addItem(client, ch, allow_replies);
 }
 
@@ -1849,11 +1855,6 @@ export async function loadPage2v2(
             },
         });
 
-        const client = RedditClient.fromContent(content);
-        for (const item of resp.json.data.things) {
-            addItem(client, item, {after_id: "#none"});
-        }
-
         const reparenting: Reddit.PostCommentLike[] = [];
         const id_map = new Map<string, Reddit.PostCommentLike>();
 
@@ -1870,6 +1871,11 @@ export async function loadPage2v2(
             }else {
                 reparenting.push(item);
             }
+        }
+        
+        const client = RedditClient.fromContent(content);
+        for (const item of resp.json.data.things) {
+            addItem(client, item, true); // add reparented listings
         }
 
         const res_value: Generic.HorizontalLoadedItem[] = reparenting.map(child => linkToAndFillListingChild(content, child, {
