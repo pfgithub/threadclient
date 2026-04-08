@@ -1052,6 +1052,7 @@ export type PostMore = {
     // /api/morechildren loader
     count: number,
     depth: number,
+    // the id/name of a more is the same as the id of its first child
     id: string,
     name: Fullname,
     parent_id: Fullname,

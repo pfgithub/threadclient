@@ -1028,43 +1028,28 @@ export type RedditClientData = {
     // but instead we should split this up:
     items: ObservableMap<Stringified<BaseItem>, Reddit.Item, Generic.Link<unknown>>,
     listings: ObservableMap<Stringified<ObjectID>, Reddit.Listing | "", Generic.Link<unknown>>,
-
-    /*
-    do we really want to be mutating RedditClientData from inside resolvers?
-    say we load comment replies:
-    - we'll update data.posts
-    - but the replies won't update because even though it re-calls the post resolver, getting a link
-      value doesn't return the dirty array
-    - and we don't want it to. because what if the client stopped watching the post link. the dirty
-      returned from loading comment replies should include that loader that we just filled.
-    but this requires pre-walking. why should we have to do that? it seems like it would make it
-    easy to miss stuff. aka when we load a post, we need to first loop over all the replies and add
-    them in the data array. and then we return the link to the post. and then the post itself loops
-    over the replies and gets links to them. that doesn't seem right.
-
-    maybe we can make the tracking work for tracked sets?
-    - ie if "a" sets "b", then if a mutation affects "a" we should automatically mark it to affect "b" too?
-      - no that doesn't work. because "a"'s resolver has to be called for that to happen
-      - so we would say if a mutation affects "a", then when we write to "a" we mark it to be re-called???
-      - maybe kind of works
-    */
+    mores: ObservableMap<Stringified<BaseMore2>, Reddit.More, Generic.Link<unknown>>
 };
 export function initRedditClientData(prev?: RedditClientData): RedditClientData {
     return {
         items: new ObservableMap(prev?.items),
         listings: new ObservableMap(prev?.listings),
+        mores: new ObservableMap(prev?.mores),
     };
 }
 export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
     data.items.beginTracking(link);
     data.listings.beginTracking(link);
+    data.mores.beginTracking(link);
 }
 export function untrackRedditClientData(data: RedditClientData): void {
     data.items.endTracking();
     data.listings.endTracking();
+    data.mores.endTracking();
 }
 
 type BaseItem = {fullname: string, sort: Sortv};
+type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: Sortv};
 export type RedditLinkDescriptors = {
     item: {
         data: BaseItem, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
@@ -1082,7 +1067,15 @@ export type RedditLinkDescriptors = {
         data: ObjectID,
         content: Generic.HorizontalLoaded,
     },
+    loadmore_request: {
+        data: {base: BaseMore2, sort: Sortv, post_fullname: string},
+        content: Generic.Opaque<"loader">,
+    },
 };
+
+function moreBase(more: Reddit.More, sort: Sortv): BaseMore2 {
+    return {parent_fullname: more.data.parent_id, first_child_id: more.data.children[0] ?? null, sort};
+}
 
 export const resolvers: {
     // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
@@ -1095,7 +1088,27 @@ export const resolvers: {
         if (full === "") return {error: null, value: []};
         return {error: null, value: [
             ...full.data.before ? [p2.createSymbolLinkToError(content, "TODO impl before", full.data.before)] : [],
-            ...full.data.children.map(ch => client.getLink("item", {fullname: ch.data.name, sort: base.kind === "item" ? base.sort : "default"})),
+            ...full.data.children.map((ch): Generic.HorizontalLoadedItem => {
+                const sort: Sortv = base.kind === "item" ? base.item.sort : "default";
+                // implement special 'more' handling
+                if (ch.kind === "more") {
+                    const parent_content = client.data.items.get(stringify({fullname: ch.data.parent_id, sort}));
+                    if (!parent_content) return p2.createSymbolLinkToError(content, "more is missing parent item", ch);
+                    let post_fullname: string;
+                    let subreddit_name: LowercaseString;
+                    if (parent_content.kind === "t1") {
+                        post_fullname = parent_content.data.link_id;
+                        subreddit_name = asLowercaseString(parent_content.data.subreddit);
+                    } else if (parent_content.kind === "t3") {
+                        post_fullname = parent_content.data.name;
+                        subreddit_name = asLowercaseString(parent_content.data.subreddit);
+                    } else {
+                        return p2.createSymbolLinkToError(content, "more parent is not t1 or t3", ch);
+                    }
+                    return handleMore(client, ch, sort, post_fullname, subreddit_name);
+                }
+                return client.getLink("item", {fullname: ch.data.name, sort})
+            }),
             ...full.data.after ? [p2.createSymbolLinkToError(content, "TODO impl after", full.data.after)] : [],
         ]};
     },
@@ -1126,17 +1139,27 @@ export const resolvers: {
             return {error: null, value: resolveT3(client, base, full)};
         }
         return {error: "TODO: impl support for item kind: "+full.kind + ` (id ${full.data.name})`, value: null};
-    }
+    },
+
+    loadmore_request(client, base): Generic.ReadLinkResult<Generic.Opaque<"loader">> | null {
+        const full = client.data.mores.get(stringify(base.base));
+        if (full == null || full.kind !== "more" || full.data.children.length === 0) return {error: "loadmore issue", value: null};
+        return {error: null, value: opaque_loader.encode({
+            kind: "morechildren",
+            base: base.base,
+            more: full,
+            post_fullname: base.post_fullname,
+        })};
+    },
 };
 
 function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Reddit.T3): {replies: Generic.PostReplies} {
-    console.log("itemReplies", full.data.link_id, full);
     return {
         replies: {
             display: "tree",
             loader: {
                 kind: "horizontal_loader",
-                key: client.getLink("replies", {kind: "item", fullname: full.data.name, sort: base.sort}),
+                key: client.getLink("replies", {kind: "item", item: {fullname: full.data.name, sort: base.sort}}),
                 request: client.getLink("item_replies_request", {
                     subreddit: asLowercaseString(full.data.subreddit),
                     post_fullname: full.kind === "t1" ? full.data.link_id : full.data.name,
@@ -1439,30 +1462,30 @@ type FullMore = {more: Reddit.More, post: BasePostT3};
 function moreLink(base: BaseMore): Generic.Link<Generic.HorizontalLoaded> {
     return autoLinkgen<Generic.HorizontalLoaded>("more→loaded", base);
 }
-function fillMore(content: Generic.Page2Content, full: FullMore): Generic.HorizontalLoadedItem {
-    const base: BaseMore = {id: full.more.data.id};
-    if (full.more.data.children.length === 0) {
+function handleMore(client: RedditClient, full: Reddit.More, sort: Sortv, post_fullname: string, subreddit: LowercaseString): Generic.HorizontalLoadedItem {
+    if (full.data.children.length === 0) {
         // depth-based
-        return Generic.p2.createSymbolLinkToError(content, "todo: depth-based loader", full);
+        return {
+            kind: "horizontal_loader",
+            key: "#none" as Generic.NullableLink<Generic.HorizontalLoaded>,
+            request: client.getLink("item_replies_request", {
+                post_fullname,
+                comment_fullname: full.data.parent_id,
+                subreddit,
+                sort: sort,
+            }),
+            load_count: full.data.count,
+            client_id,
+        };
     }
 
-    return fillMorechildrenMore(content, {base, children: full.more.data.children, post: full.post});
-}
-function fillMorechildrenMore(content: Generic.Page2Content, full: {base: BaseMore, children: string[], post: BasePostT3}): Generic.HorizontalLoadedItem {
-    const base = full.base;
-    const request = autoLinkgen<Generic.Opaque<"loader">>("more→request", base);
-    p2.fillLink(content, request, opaque_loader.encode({
-        kind: "morechildren",
-        base: base,
-        items: full.children,
-        post: full.post,
-    }));
+    // morechildren-based
     return {
         kind: "horizontal_loader",
-        key: moreLink(base),
-        request,
+        key: client.getLink("replies", {kind: "item", item: {fullname: stringify<BaseMore2>(moreBase(full, sort)), sort}}),
+        request: client.getLink("loadmore_request", {base: moreBase(full, sort), sort, post_fullname}), // the id of a 'more' is the id of its first child, so we need to differentiate
+        load_count: full.data.count,
         client_id,
-        load_count: full.children.length,
     };
 }
 
@@ -1472,15 +1495,7 @@ function linkToAndFillListingChild(
     post: Reddit.Post,
     extra: CommentExtra | null,
 ): Generic.HorizontalLoadedItem {
-    if(post.kind === "t1" || post.kind === "t3") {
-        const client = RedditClient.fromContent(content);
-        return client.getLink("item", {fullname: post.data.name, sort: "default"});
-    }else if(post.kind === "more") {
-        if (extra == null) return Generic.p2.createSymbolLinkToError(content, "more is missing on_post", post);
-        const more_full: FullMore = {more: post, post: extra.on_post};
-        return fillMore(content, more_full);
-    }
-    return Generic.p2.createSymbolLinkToError(content, "todo: post.kind: "+post.kind, post);
+    return RedditClient.fromContent(content).getLink("item", {fullname: post.data.name, sort: "default"});
 }
 
 function todoReplies(content: Generic.Page2Content): Generic.PostReplies {
@@ -1591,9 +1606,9 @@ type LoaderData = {
     base: SortedInbox,
 } | {
     kind: "morechildren",
-    base: BaseMore,
-    items: string[],
-    post: BasePostT3,
+    base: BaseMore2,
+    more: Reddit.More,
+    post_fullname: string,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 const opaque_sort_option = encoderGenerator<SortOptionKind, "sort_option">("sort_option");
@@ -1605,6 +1620,11 @@ type SortOptionKind = {
 };
 
 function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}, sort: Sortv): void {
+    if (item.kind === "more") {
+        client.addDirty(client.data.mores.setAndList(stringify(moreBase(item, sort)), item));
+        return;
+    }
+
     // TODO: note that if item.kind is more and it is a depth-based loader, then the item.data.name will be bad.
     client.addDirty(client.data.items.setAndList(stringify({fullname: item.data.name, sort}), item));
 
@@ -1612,14 +1632,14 @@ function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | 
         // TODO: we can probably use item.data.subreddit_id,item.data.link_id & sort
         // instead of that method for on_post
         if (sort != null) {
-            addListing(client, {kind: "item", fullname: item.data.name, sort}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
+            addListing(client, {kind: "item", item: {fullname: item.data.name, sort}}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
         } else {
             console.warn("t1 item found with replies but no sort", {client, item, allow_replies, sort});
         }
     }
 }
 
-type ObjectID = {kind: "item", fullname: string, sort: Sortv} | {kind: "subreddit", sr_name: string, sort: SubSort}; // TODO: subreddits have T5s and it should be possible to use them?
+type ObjectID = {kind: "item", item: BaseItem} | {kind: "subreddit", sr_name: string, sort: SubSort}; // TODO: subreddits have T5s and it should be possible to use them?
 
 function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
@@ -1631,7 +1651,7 @@ function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, lis
         // - if ...
         client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
     }
-    if (listing !== "") for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.sort : "default");
+    if (listing !== "") for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.item.sort : "default");
 }
 
 export async function loadPage2v2(
@@ -1639,7 +1659,8 @@ export async function loadPage2v2(
     lreq: Generic.Opaque<"loader">,
 ): Promise<void> {
     const data = opaque_loader.decode(lreq);
-    console.log("loadPage2v2", data);
+    const client = RedditClient.fromContent(content);
+    console.log("loadpage2v2", data);
     if(data.kind === "subreddit_posts") {
         // fetch the subreddit listing
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
@@ -1679,9 +1700,8 @@ export async function loadPage2v2(
         });
         const top_half = post_value[0];
         const bottom_half = post_value[1];
-        const client = RedditClient.fromContent(content);
         addListing(client, {kind: "none"}, top_half, true);
-        addListing(client, {kind: "item", fullname: top_half.data.children[0]!.data.name, sort: data.post.sort}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
+        addListing(client, {kind: "item", item: {fullname: top_half.data.children[0]!.data.name, sort: data.post.sort}}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
 
         if(data.focus_comment_id != null) {
             if (!client.data.items.has(stringify({fullname: `t1_${data.focus_comment_id}`, sort: data.post.sort}))) {
@@ -1703,7 +1723,7 @@ export async function loadPage2v2(
             linkflair,
         });
     }else if(data.kind === "morechildren") {
-        const remaining = [...data.items];
+        const remaining = [...data.more.data.children];
         const batch = remaining.splice(0, 100);
 
         const resp = await redditRequest("/api/morechildren", {
@@ -1712,8 +1732,8 @@ export async function loadPage2v2(
                 api_type: "json",
                 limit_children: "false",
                 children: batch.join(","),
-                link_id: data.post.fullname,
-                sort: data.post.sort === "default" || isDuplicates(data.post.sort) ? null : data.post.sort.v,
+                link_id: data.post_fullname as `t3_${string}`,
+                sort: data.base.sort === "default" || isDuplicates(data.base.sort) ? null : data.base.sort.v,
             },
         });
 
@@ -1734,25 +1754,44 @@ export async function loadPage2v2(
                 reparenting.push(item);
             }
         }
-        
-        const client = RedditClient.fromContent(content);
-        for (const item of resp.json.data.things) {
-            addItem(client, item, true, data.post.sort); // add reparented listings
+        let rem_disp = data.more.data.count - resp.json.data.things.length;
+        if (rem_disp < remaining.length) rem_disp = remaining.length; // in case we loaded more than expected, which is common on active threads
+
+        if (remaining.length > 0) {
+            const prev = reparenting[reparenting.length - 1];
+            if (prev?.kind === "more") {
+                prev.data.count += rem_disp;
+                prev.data.children = [...remaining, ...prev.data.children];
+                // these are unnecessary, we ignore id/name values on morechildren
+                prev.data.id = prev.data.children[0] ?? "_";
+                prev.data.name = `t1_${prev.data.id}`;
+            } else {
+                reparenting.push({
+                    kind: "more",
+                    data: {
+                        count: rem_disp, // good enough for now. alternatively we could use the base count - resp.json.data.things.length and fall back to remaining.length if that is 
+                        depth: data.more.data.depth,
+                        id: remaining[0] ?? "_",
+                        name: `t1_${remaining[0] ?? "_"}`,
+                        parent_id: data.more.data.parent_id,
+                        children: remaining,
+                    },
+                });
+            }
         }
-
-        const res_value: Generic.HorizontalLoadedItem[] = reparenting.map(child => linkToAndFillListingChild(content, child, {
-            on_post: data.post,
-            comment_replies_valid: true,
-        }));
-
-        if(remaining.length > 0) {
-            res_value.push(fillMorechildrenMore(content, {
-                base: {id: `${data.base.id}/rem-${remaining.length}`},
-                children: remaining,
-                post: data.post,
-            }));
-        }
-
-        p2.fillLink(content, moreLink(data.base), res_value);
+        addListing(client, {
+            kind: "item",
+            item: {
+                fullname: stringify(data.base), // it's kind of a hack to overload data.listings to contain morechildren. we should probably make a seperate data.morechildren instead.
+                sort: data.base.sort,
+            },
+        }, {
+            kind: "Listing",
+            data: {
+                before: null,
+                children: reparenting,
+                after: null,
+            },
+        }, true);
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
 }
