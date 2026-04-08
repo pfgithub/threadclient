@@ -1155,7 +1155,6 @@ export type RedditClientData = {
     // but instead we should split this up:
     items: ObservableMap<Stringified<{fullname: string}>, Reddit.Item, Generic.Link<unknown>>,
     listings: ObservableMap<Stringified<ObjectID>, Reddit.Listing, Generic.Link<unknown>>,
-    comments: ObservableMap<string, FullCommentT1, Generic.Link<unknown>>,
 
     /*
     do we really want to be mutating RedditClientData from inside resolvers?
@@ -1181,99 +1180,111 @@ export function initRedditClientData(prev?: RedditClientData): RedditClientData 
     return {
         items: new ObservableMap(prev?.items),
         listings: new ObservableMap(prev?.listings),
-        comments: new ObservableMap(prev?.comments),
     };
 }
 export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
     data.items.beginTracking(link);
     data.listings.beginTracking(link);
-    data.comments.beginTracking(link);
 }
 export function untrackRedditClientData(data: RedditClientData): void {
     data.items.endTracking();
     data.listings.endTracking();
-    data.comments.endTracking();
 }
 
+type BaseItem = {fullname: string, sort: Sortv};
 export type RedditLinkDescriptors = {
-    comment: {
-        data: BaseCommentT1, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
+    item: {
+        data: BaseItem, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
         content: Generic.Post,
+    },
+    comment_parent_request: {
+        data: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null, sort: Sortv},
+        content: Generic.Opaque<"loader">,
+    },
+    comment_replies_request: {
+        data: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string, sort: Sortv},
+        content: Generic.Opaque<"loader">,
+    },
+    replies: {
+        data: ObjectID,
+        content: Generic.HorizontalLoaded,
     },
 };
 export const resolvers: {
     // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
     [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
 } = {
-    comment(client, base) {
+    replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         const content = client.content; // TODO: this isn't correct. it won't register dirties.
-        const full = client.data.comments.get(JSON.stringify(base));
+        const full = client.data.listings.get(stringify(base));
         if (!full) return result(null);
+        return {error: null, value: [
+            ...full.data.before ? [p2.createSymbolLinkToError(content, "TODO impl before", full.data.before)] : [],
+            ...full.data.children.map(ch => client.getLink("item", {fullname: ch.data.name, sort: base.kind === "item" ? base.sort : "default"})),
+            ...full.data.after ? [p2.createSymbolLinkToError(content, "TODO impl after", full.data.after)] : [],
+        ]};
+    },
+    comment_parent_request(client, base): Generic.ReadLinkResult<Generic.Opaque<"loader">> | null {
+        return {error: null, value: opaque_loader.encode({
+            kind: "view_post",
+            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: base.sort},
+            focus_comment_id: base.parent_comment_fullname,
+            context: "9", // max
+        })};
+    },
+    comment_replies_request(client, base) {
+        return {error: null, value: opaque_loader.encode({
+            kind: "view_post",
+            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: base.sort},
+            focus_comment_id: base.comment_fullname,
+            context: "0", // min
+        })};
+    },
 
-        const url = updateQuery(full.t1.data.permalink, {context: "3"});
+    item(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const content = client.content; // TODO: this isn't correct. it won't register dirties.
+        const full = client.data.items.get(stringify(base));
+        if (!full) return result(null);
+        if (full.kind !== "t1") return {error: "TODO: impl support for item kind: "+full.kind, value: null};
 
-        const replies_valid = full.comment_replies_valid === true || (
-            full.t1.data.id === full.comment_replies_valid.after_id
-        );
-        const parent_id = full.t1.data.parent_id;
-        let parent_unfilled_link: Generic.Link<Generic.Post>;
-        let focus_comment_id: null | string;
-        if(parent_id.startsWith("t1_")) {
-            parent_unfilled_link = base_comment.commentLink({
-                fullname: parent_id as "t1_string",
-                on_post: full.on_base.on_post,
-            });
-            focus_comment_id = parent_id;
-        }else if(parent_id.startsWith("t3_")) {
-            parent_unfilled_link = base_post.postLink(full.on_base.on_post);
-            focus_comment_id = null;
-        }else{
-            // ???
-            parent_unfilled_link = p2.createSymbolLinkToError(content, "? parent id is: "+parent_id, full);
-            focus_comment_id = null;
-        }
-        const load_parent_request: Generic.Link<Generic.Opaque<"loader">> = p2.fillLinkOnce(content, 
-            base_comment.selfParentLink(full.on_base), (): Generic.Opaque<"loader"> => {
-                return opaque_loader.encode({
-                    kind: "view_post",
-                    post: full.on_base.on_post,
-                    focus_comment_id,
-                    context: "9", // max
-                });
-            },
-        );
-        const load_replies_request: Generic.Link<Generic.Opaque<"loader">> = p2.fillLinkOnce(content, (
-            base_comment.selfRepliesLoaderLink(full.on_base)
-        ), () => {
-            return opaque_loader.encode({
-                kind: "view_post",
-                post: full.on_base.on_post,
-                focus_comment_id: full.on_base.fullname.substring(3),
-                context: "1", // min
-            });
-        });
-        const fill_replies_link = base_comment.selfRepliesLink(full.on_base);
-        const res: Generic.HorizontalLoaded = [];
-        // v: replies is an empty string when it's empty
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        for(const reply of (full.t1.data.replies || null)?.data.children ?? []) { //*note: 'before'/'after' are not used in comment replies
-            res.push(linkToAndFillListingChild(content, reply, {
-                on_post: full.on_base.on_post,
-                comment_replies_valid: replies_valid ? true : full.comment_replies_valid,
-            }));
-        }
-        if(replies_valid) p2.fillLinkOnce(content, fill_replies_link, () => res);
+        const url = updateQuery(full.data.permalink, {context: "3"});
 
-        const listing = full.t1.data;
+        const parent_id = full.data.parent_id;
+        const parent_unfilled_link = client.getLink("item", {fullname: full.data.parent_id, sort: base.sort});
+        const load_parent_request = client.getLink("comment_parent_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, parent_comment_fullname: full.data.parent_id.startsWith("t1_") ? full.data.parent_id : null, sort: base.sort});
+        const load_replies_request = client.getLink("comment_replies_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, comment_fullname: full.data.id, sort: base.sort});
+        // const load_parent_request: Generic.Link<Generic.Opaque<"loader">> = p2.fillLinkOnce(content, 
+        //     base_comment.selfParentLink(full.on_base), (): Generic.Opaque<"loader"> => {
+        //         return opaque_loader.encode({
+        //             kind: "view_post",
+        //             post: full.on_base.on_post,
+        //             focus_comment_id,
+        //             context: "9", // max
+        //         });
+        //     },
+        // );
+        // const load_replies_request: Generic.Link<Generic.Opaque<"loader">> = p2.fillLinkOnce(content, (
+        //     base_comment.selfRepliesLoaderLink(full.on_base)
+        // ), () => {
+        //     return opaque_loader.encode({
+        //         kind: "view_post",
+        //         post: full.on_base.on_post,
+        //         focus_comment_id: full.on_base.fullname.substring(3),
+        //         context: "1", // min
+        //     });
+        // });
+        const fill_replies_link = client.getLink("replies", {kind: "item", fullname: base.fullname, sort: base.sort});
 
-        return result({error: null, value: {
+        const listing = full.data;
+
+        return {error: null, value: {
             kind: "post",
             content: {
                 kind: "post",
                 title: null,
                 author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
                 body: getCommentBody(listing),
-                info: getPostInfo(full.t1),
+                info: getPostInfo(full),
                 collapsible: {default_collapsed: commentDefaultCollapsed(listing.author) || (listing.collapsed ?? false)},
                 actions: {
                     // NOTE:
@@ -1281,6 +1292,8 @@ export const resolvers: {
                     // * how do we do this?
                     //    - what if a chat comment gets returned without information about the post it's on?
                     //    - for instance: on a user page (do they show there?) or on an /api/info page
+                    // we can implement this now: add a new map of post_to_is_chat, then check that here. that way we won't cause item
+                    // to rerender unnecesarily.
                     vote: getPointsOn(listing),
                     code: getCodeButton(listing.body),
                     other: [
@@ -1296,7 +1309,7 @@ export const resolvers: {
             parent: {
                 loader: {
                     kind: "vertical_loader",
-                    unfilled_parent: base_post.postLink(full.on_base.on_post),
+                    unfilled_parent: client.getLink("item", {fullname: full.data.link_id, sort: base.sort}),
                     key: parent_unfilled_link,
                     client_id,
                     request: load_parent_request,
@@ -1313,7 +1326,7 @@ export const resolvers: {
             },
             url,
             client_id,
-        }});
+        }};
     }
 };
 
@@ -1554,22 +1567,8 @@ function linkToAndFillListingChild(
             data: post,
         });
     }else if(post.kind === "t1") {
-        const comment_base: BaseCommentT1 = {
-            fullname: post.data.name as "t1_string",
-            on_post: extra?.on_post ?? {
-                fullname: post.data.link_id,
-                on_subreddit: asLowercaseString(post.data.subreddit),
-                sort: "default",
-            },
-        };
-
         const client = RedditClient.fromContent(content);
-        client.addDirty(client.data.comments.setAndList(JSON.stringify(comment_base), {
-            on_base: comment_base,
-            t1: post,
-            comment_replies_valid: extra?.comment_replies_valid ?? {after_id: "#INVALID"},
-        }));
-        return client.getLink("comment", comment_base);
+        return client.getLink("item", {fullname: post.data.name, sort: "default"});
     }else if(post.kind === "more") {
         if (extra == null) return Generic.p2.createSymbolLinkToError(content, "more is missing on_post", post);
         const more_full: FullMore = {more: post, post: extra.on_post};
@@ -1699,18 +1698,24 @@ type SortOptionKind = {
     kind: "todo",
 };
 
-function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}): void {
+function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}, sort: Sortv | null): void {
     // TODO: note that if item.kind is more and it is a depth-based loader, then the item.data.name will be bad.
     client.addDirty(client.data.items.setAndList(stringify({fullname: item.data.name}), item));
 
     if (item.kind === "t1") {
         // TODO: we can probably use item.data.subreddit_id,item.data.link_id & sort
         // instead of that method for on_post
-        if (item.data.replies !== "") addListing(client, {kind: "item", fullname: item.data.parent_id}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
+        if (item.data.replies !== "") {
+            if (sort != null) {
+                addListing(client, {kind: "item", fullname: item.data.parent_id, sort}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
+            } else {
+                console.warn("t1 item found with replies but no sort", {client, item, allow_replies, sort});
+            }
+        }
     }
 }
 
-type ObjectID = {kind: "item", fullname: string} | {kind: "subreddit", sr_name: string};
+type ObjectID = {kind: "item", fullname: string, sort: Sortv} | {kind: "subreddit", sr_name: string, sort: SubSort}; // TODO: subreddits have T5s and it should be possible to use them?
 
 function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing, allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
@@ -1722,7 +1727,7 @@ function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, lis
         // - if ...
         client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
     }
-    for (const ch of listing.data.children) addItem(client, ch, allow_replies);
+    for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.sort : null);
 }
 
 export async function loadPage2v2(
@@ -1734,7 +1739,7 @@ export async function loadPage2v2(
         // fetch the subreddit listing
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
         const client = RedditClient.fromContent(content);
-        addListing(client, {kind: "subreddit", sr_name: data.subreddit.subreddit}, sub_listing, true);
+        addListing(client, {kind: "subreddit", sr_name: data.subreddit.subreddit, sort: data.subreddit.sort}, sub_listing, true);
         full_subreddit.fill(content, {subreddit: data.subreddit, listing: sub_listing});
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub.for_sub;
@@ -1772,7 +1777,7 @@ export async function loadPage2v2(
         const bottom_half = post_value[1];
         const client = RedditClient.fromContent(content);
         addListing(client, {kind: "none"}, top_half, true);
-        addListing(client, {kind: "item", fullname: top_half.data.children[0]!.data.name}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
+        addListing(client, {kind: "item", fullname: top_half.data.children[0]!.data.name, sort: data.post.sort}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
 
         const on_post: BasePostT3 = data.post;
 
@@ -1875,7 +1880,7 @@ export async function loadPage2v2(
         
         const client = RedditClient.fromContent(content);
         for (const item of resp.json.data.things) {
-            addItem(client, item, true); // add reparented listings
+            addItem(client, item, true, data.post.sort); // add reparented listings
         }
 
         const res_value: Generic.HorizontalLoadedItem[] = reparenting.map(child => linkToAndFillListingChild(content, child, {
