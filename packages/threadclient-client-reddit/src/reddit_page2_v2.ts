@@ -1210,6 +1210,7 @@ export type RedditLinkDescriptors = {
         content: Generic.HorizontalLoaded,
     },
 };
+
 export const resolvers: {
     // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
     [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
@@ -1238,97 +1239,82 @@ export const resolvers: {
             kind: "view_post",
             post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: base.sort},
             focus_comment_id: base.comment_fullname,
-            context: "0", // min
+            context: "0", // min (or is it 1?)
         })};
     },
 
     item(client, base): Generic.ReadLinkResult<Generic.Post> | null {
         const full = client.data.items.get(stringify(base));
         if (!full) return result(null);
-        if (full.kind !== "t1") return {error: "TODO: impl support for item kind: "+full.kind, value: null};
-
-        const url = updateQuery(full.data.permalink, {context: "3"});
-
-        const parent_id = full.data.parent_id;
-        const parent_unfilled_link = client.getLink("item", {fullname: full.data.parent_id, sort: base.sort});
-        const load_parent_request = client.getLink("comment_parent_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, parent_comment_fullname: full.data.parent_id.startsWith("t1_") ? full.data.parent_id : null, sort: base.sort});
-        const load_replies_request = client.getLink("comment_replies_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, comment_fullname: full.data.id, sort: base.sort});
-        // const load_parent_request: Generic.Link<Generic.Opaque<"loader">> = p2.fillLinkOnce(content, 
-        //     base_comment.selfParentLink(full.on_base), (): Generic.Opaque<"loader"> => {
-        //         return opaque_loader.encode({
-        //             kind: "view_post",
-        //             post: full.on_base.on_post,
-        //             focus_comment_id,
-        //             context: "9", // max
-        //         });
-        //     },
-        // );
-        // const load_replies_request: Generic.Link<Generic.Opaque<"loader">> = p2.fillLinkOnce(content, (
-        //     base_comment.selfRepliesLoaderLink(full.on_base)
-        // ), () => {
-        //     return opaque_loader.encode({
-        //         kind: "view_post",
-        //         post: full.on_base.on_post,
-        //         focus_comment_id: full.on_base.fullname.substring(3),
-        //         context: "1", // min
-        //     });
-        // });
-        const fill_replies_link = client.getLink("replies", {kind: "item", fullname: base.fullname, sort: base.sort});
-
-        const listing = full.data;
-
-        return {error: null, value: {
-            kind: "post",
-            content: {
-                kind: "post",
-                title: null,
-                author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
-                body: getCommentBody(listing),
-                info: getPostInfo(full),
-                collapsible: {default_collapsed: commentDefaultCollapsed(listing.author) || (listing.collapsed ?? false)},
-                actions: {
-                    // NOTE:
-                    // if the post's discussion_type === "CHAT", don't display vote buttons
-                    // * how do we do this?
-                    //    - what if a chat comment gets returned without information about the post it's on?
-                    //    - for instance: on a user page (do they show there?) or on an /api/info page
-                    // we can implement this now: add a new map of post_to_is_chat, then check that here. that way we won't cause item
-                    // to rerender unnecesarily.
-                    vote: getPointsOn(listing),
-                    code: getCodeButton(listing.body),
-                    other: [
-                        editButton(listing.name),
-                        deleteButton(listing.name),
-                        saveButton(listing.name, listing.saved),
-                        reportButton(listing.name, listing.subreddit),
-                        rawlinkButton(url),
-                    ],
-                },
-            },
-            internal_data: full,
-            parent: {
-                loader: {
-                    kind: "vertical_loader",
-                    unfilled_parent: client.getLink("item", {fullname: full.data.link_id, sort: base.sort}),
-                    key: parent_unfilled_link,
-                    client_id,
-                    request: load_parent_request,
-                },
-            },
-            replies: {
-                display: "tree",
-                loader: {
-                    kind: "horizontal_loader",
-                    key: fill_replies_link,
-                    request: load_replies_request,
-                    client_id,
-                },
-            },
-            url,
-            client_id,
-        }};
+        if (full.kind === "t1") {
+            return {error: null, value: resolveT1(client, base, full)};
+        }
+        return {error: "TODO: impl support for item kind: "+full.kind + ` (id ${full.data.name})`, value: null};
     }
 };
+
+function resolveT1(client: RedditClient, base: BaseItem, full: Reddit.T1): Generic.Post {
+    const url = updateQuery(full.data.permalink, {context: "3"});
+
+    const parent_id = full.data.parent_id;
+    const parent_unfilled_link = client.getLink("item", {fullname: full.data.parent_id, sort: base.sort});
+    const load_parent_request = client.getLink("comment_parent_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, parent_comment_fullname: full.data.parent_id.startsWith("t1_") ? full.data.parent_id : null, sort: base.sort});
+    const load_replies_request = client.getLink("comment_replies_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, comment_fullname: full.data.id, sort: base.sort});
+    const fill_replies_link = client.getLink("replies", {kind: "item", fullname: base.fullname, sort: base.sort});
+
+    const listing = full.data;
+
+    return {
+        kind: "post",
+        content: {
+            kind: "post",
+            title: null,
+            author: authorFromPostOrComment(listing, awardingsToFlair(listing.all_awardings ?? [])),
+            body: getCommentBody(listing),
+            info: getPostInfo(full),
+            collapsible: {default_collapsed: commentDefaultCollapsed(listing.author) || (listing.collapsed ?? false)},
+            actions: {
+                // NOTE:
+                // if the post's discussion_type === "CHAT", don't display vote buttons
+                // * how do we do this?
+                //    - what if a chat comment gets returned without information about the post it's on?
+                //    - for instance: on a user page (do they show there?) or on an /api/info page
+                // we can implement this now: add a new map of post_to_is_chat, then check that here. that way we won't cause item
+                // to rerender unnecesarily.
+                vote: getPointsOn(listing),
+                code: getCodeButton(listing.body),
+                other: [
+                    editButton(listing.name),
+                    deleteButton(listing.name),
+                    saveButton(listing.name, listing.saved),
+                    reportButton(listing.name, listing.subreddit),
+                    rawlinkButton(url),
+                ],
+            },
+        },
+        internal_data: full,
+        parent: {
+            loader: {
+                kind: "vertical_loader",
+                unfilled_parent: client.getLink("item", {fullname: full.data.link_id, sort: base.sort}),
+                key: parent_unfilled_link,
+                client_id,
+                request: load_parent_request,
+            },
+        },
+        replies: {
+            display: "tree",
+            loader: {
+                kind: "horizontal_loader",
+                key: fill_replies_link,
+                request: load_replies_request,
+                client_id,
+            },
+        },
+        url,
+        client_id,
+    };
+}
 
 /*
 base_submit.objectLink(submit_base)
