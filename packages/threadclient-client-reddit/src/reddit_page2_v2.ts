@@ -1144,12 +1144,16 @@ export const full_post = {
     },
 };
 
+type Stringified<T> = string & {__is_stringified: T};
+function stringify<T>(v: NoInfer<T>): Stringified<T> {
+    return JSON.stringify(v) as Stringified<T>;
+}
 export type RedditClientData = {
     
     // we should be able to have this not include sort and instead have comment replies be per-sort. but for now it will include it.
     // currently, this maps from JSON.stringify(BaseComment) to FullCommentT1
     // but instead we should split this up:
-    // - items: ObservableMap<#{id: string}, Reddit.T1 | Reddit.T2 | Reddit.T3 | Reddit.T5 | {kind: "unsupported"}>,
+    items: ObservableMap<Stringified<{name: string}>, Reddit.Item, Generic.Link<unknown>>,
     // - t1_replies: ObservableMap<#{id: string, sort: ...}, Reddit.Listing>, // this would only be filled for comments which have valid replies
     comments: ObservableMap<string, FullCommentT1, Generic.Link<unknown>>,
 
@@ -1175,6 +1179,7 @@ export type RedditClientData = {
 };
 export function initRedditClientData(prev?: RedditClientData): RedditClientData {
     return {
+        items: new ObservableMap(prev?.items),
         comments: new ObservableMap(prev?.comments),
     };
 }
@@ -1651,6 +1656,18 @@ type SortOptionKind = {
     kind: "todo",
 };
 
+function addItem(client: RedditClient, item: Reddit.Item): void {
+    // TODO: note that if item.kind is more and it is a depth-based loader, then the item.data.name will be bad.
+    client.addDirty(client.data.items.setAndList(stringify({name: item.data.name}), item));
+
+    if (item.kind === "t1") {
+        if (item.data.replies !== "") addListing(client, item.data.replies);
+    }
+}
+function addListing(client: RedditClient, listing: Reddit.Listing): void {
+    for (const ch of listing.data.children) addItem(client, ch);
+}
+
 export async function loadPage2v2(
     content: Generic.Page2Content,
     lreq: Generic.Opaque<"loader">,
@@ -1659,6 +1676,8 @@ export async function loadPage2v2(
     if(data.kind === "subreddit_posts") {
         // fetch the subreddit listing
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
+        const client = RedditClient.fromContent(content);
+        addListing(client, sub_listing);
         full_subreddit.fill(content, {subreddit: data.subreddit, listing: sub_listing});
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub.for_sub;

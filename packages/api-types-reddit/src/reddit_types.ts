@@ -571,6 +571,8 @@ export type SubredditType =
     | "unsupported"
 ;
 
+export type Item = T1 | T2 | T3 | T5 | More | {kind: "unsupported", data: {name: string}};
+
 // outdated documentation: https://github.com/reddit-archive/reddit/wiki/JSON
 // more here: https://github.com/Pyprohly/reddit-api-doc-notes/blob/master/docs/api-reference/subreddit.rst
 // oh my this is a mess
