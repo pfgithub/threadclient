@@ -1035,7 +1035,9 @@ export type PostComment = PostOrComment & {
     /// code.
     collapsed_reason_code: "DELETED" | "LOW_SCORE" | null,
 } & ({
+    // TODO: this is not specified on posts. it should go just in comment
     link_id: `t3_${string}`,
+    // TODO: these are never specified? maybe in some endpoints but they don't even exist normally
     link_author: string,
     link_permalink: string,
     link_title: string,

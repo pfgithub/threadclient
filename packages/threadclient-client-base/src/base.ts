@@ -159,7 +159,7 @@ export abstract class ThreadClientHelper extends ThreadClient {
         const dirty = [...this.dirty];
         this.dirty.clear();
         Object.assign(this.stored_content, this.dirty_content);
-        this.dirty_content = {};
+        this.dirty_content = {[cxsym]: this as any};
         console.log("dirty", dirty, Object.keys(this.dirty_content), Object.keys(this.stored_content));
         return dirty;
     }

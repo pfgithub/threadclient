@@ -91,27 +91,23 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
             return fixsubv(parsed, parsed.post_id_unprefixed, subv);
         }
 
-        const post_base: BasePostT3 = {
-            fullname: `t3_${parsed.post_id_unprefixed}`,
-            on_subreddit: subv,
-            sort: parsed.sort_override != null ? {v: parsed.sort_override} : "default"
-        };
-        const comment_base: BaseCommentT1 | null = parsed.focus_comment != null ? {
-            fullname: `t1_${parsed.focus_comment}`,
-            on_post: post_base,
-        } : null;
+        const post_fullname = `t3_${parsed.post_id_unprefixed}`;
+        const comment_fullname = parsed.focus_comment != null ? `t1_${parsed.focus_comment}` : null;
+
+        const sort: Sortv = parsed.sort_override != null ? {v: parsed.sort_override} : "default";
+        const client = RedditClient.fromContent(content);
+        const key = client.getLink("item", {fullname: comment_fullname ?? post_fullname, sort});
+        const request = client.getLink("item_replies_request", {
+            post_fullname,
+            comment_fullname,
+            subreddit: subv,
+            sort,
+        });
         return {
             kind: "vertical_loader",
             unfilled_parent: base_client.post(content, {}),
-            key: comment_base != null
-                ? RedditClient.fromContent(content).getLink("item", {fullname: comment_base.fullname, sort: comment_base.on_post.sort})
-                : RedditClient.fromContent(content).getLink("item", {fullname: post_base.fullname, sort: post_base.sort}),
-            request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
-                kind: "view_post",
-                focus_comment_id: parsed.focus_comment,
-                post: post_base,
-                context: parsed.context ?? "3",
-            })),
+            key,
+            request,
             client_id,
         };
     }
@@ -1078,8 +1074,8 @@ export type RedditLinkDescriptors = {
         data: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null, sort: Sortv},
         content: Generic.Opaque<"loader">,
     },
-    comment_replies_request: {
-        data: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string, sort: Sortv},
+    item_replies_request: {
+        data: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string | null, sort: Sortv},
         content: Generic.Opaque<"loader">,
     },
     replies: {
@@ -1111,12 +1107,13 @@ export const resolvers: {
             context: "9", // max
         })};
     },
-    comment_replies_request(client, base) {
+    item_replies_request(client, base) {
         return {error: null, value: opaque_loader.encode({
             kind: "view_post",
             post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: base.sort},
             focus_comment_id: base.comment_fullname,
             context: "0", // min (or is it 1?)
+            // TODO: set to 3 if the parent is not known?
         })};
     },
 
@@ -1133,13 +1130,19 @@ export const resolvers: {
 };
 
 function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Reddit.T3): {replies: Generic.PostReplies} {
+    console.log("itemReplies", full.data.link_id, full);
     return {
         replies: {
             display: "tree",
             loader: {
                 kind: "horizontal_loader",
                 key: client.getLink("replies", {kind: "item", fullname: full.data.name, sort: base.sort}),
-                request: client.getLink("comment_replies_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, comment_fullname: full.data.id, sort: base.sort}),
+                request: client.getLink("item_replies_request", {
+                    subreddit: asLowercaseString(full.data.subreddit),
+                    post_fullname: full.kind === "t1" ? full.data.link_id : full.data.name,
+                    comment_fullname: full.kind === "t1" ? full.data.id : null,
+                    sort: base.sort,
+                }),
                 client_id,
             },
         },
@@ -1636,6 +1639,7 @@ export async function loadPage2v2(
     lreq: Generic.Opaque<"loader">,
 ): Promise<void> {
     const data = opaque_loader.decode(lreq);
+    console.log("loadPage2v2", data);
     if(data.kind === "subreddit_posts") {
         // fetch the subreddit listing
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
@@ -1656,7 +1660,6 @@ export async function loadPage2v2(
         full_subreddit_sidebar.fill(content, full);
     }else if(data.kind === "view_post") {
         // *! on /duplicates, it probably uses a "?after=" url. TODO support that.
-        const target_url = "/" + [].join("/");
         const postid = data.post.fullname.substring(3);
         const post_value = isDuplicates(data.post.sort) ? await redditRequest(`/duplicates/${ec(postid)}`, {
             method: "GET",

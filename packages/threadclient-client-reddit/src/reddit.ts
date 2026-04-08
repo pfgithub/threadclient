@@ -2800,6 +2800,7 @@ export class RedditClient extends ThreadClientHelper {
     }
     
     getLink<T extends keyof RedditLinkDescriptors>(type: T, value: RedditLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<RedditLinkDescriptors[NoInfer<T>]["content"]> {
+        console.log("getLink", type, JSON.stringify(value));
         return `${JSON.stringify([type, value])}` as Generic.Link<RedditLinkDescriptors[NoInfer<T>]["content"]>;
     }
 
@@ -2808,13 +2809,12 @@ export class RedditClient extends ThreadClientHelper {
     }
 
     async pageFromURL(url: string): Promise<{ pivot: Generic.Link<Generic.Post>; dirty: Generic.Link<unknown>[]; }> {
-        const content = this.dirty_content;
-        const page2new = await getPagev2!(content, url);
-        const rl_res = Generic.readLink(content, page2new.key);
+        const page2new = await getPagev2!(this.dirty_content, url);
+        const rl_res = this.resolveLinkOld(page2new.key);
         if (rl_res == null) {
-            const loadreq = Generic.readLink(content, page2new.request);
+            const loadreq = this.resolveLinkOld(page2new.request);
             if(loadreq == null || loadreq.error != null) throw new Error("load fail: "+JSON.stringify(loadreq));
-            await loadPage2(content, loadreq.value);
+            await loadPage2(this.dirty_content, loadreq.value);
         }
         return {pivot: page2new.key, dirty: this.takeDirty()};
     }
