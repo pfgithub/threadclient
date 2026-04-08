@@ -1195,9 +1195,6 @@ export function untrackRedditClientData(data: RedditClientData): void {
     data.comments.endTracking();
 }
 
-function result<T>(a: NoInfer<T>): T {
-    return a;
-}
 export type RedditLinkDescriptors = {
     comment: {
         data: BaseCommentT1, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve

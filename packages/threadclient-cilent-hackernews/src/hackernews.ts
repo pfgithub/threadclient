@@ -1,7 +1,7 @@
 
 import * as Generic from "api-types-generic";
 import { DeprecatedClient, encoderGenerator, ObservableMap, ThreadClient, ThreadClientHelper } from "threadclient-client-base";
-import { assertNever, assertUnreachable, splitURL, updateQuery } from "tmeta-util";
+import { assertNever, assertUnreachable, result, splitURL, updateQuery } from "tmeta-util";
 import * as HN from "./api_types";
 import { path_router } from "./routing";
 
@@ -118,10 +118,6 @@ type HnLinkDescriptors = {
         content: Generic.Post,
     },
 };
-
-function result<T>(a: NoInfer<T>): T {
-    return a;
-}
 
 type BaseItem = {id: number};
 function itemUrl(base: BaseItem): string {
