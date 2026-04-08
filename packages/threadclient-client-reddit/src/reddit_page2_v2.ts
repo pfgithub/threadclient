@@ -1217,7 +1217,6 @@ export const resolvers: {
     replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         const content = client.dirty_content;
         const full = client.data.listings.get(stringify(base));
-        console.log("replies for " + stringify(base), full, client);
         if (full == null) return result(null);
         if (full === "") return {error: null, value: []};
         return {error: null, value: [
@@ -1712,7 +1711,6 @@ type ObjectID = {kind: "item", fullname: string, sort: Sortv} | {kind: "subreddi
 function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
     // if we have a 'before' link, same but before us
-    console.log("add listing for", parent, allow_replies);
     if (parent.kind !== "none" && allow_replies === true) {
         // TODO:
         // - if there is already a listing
