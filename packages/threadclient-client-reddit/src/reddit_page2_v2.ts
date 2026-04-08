@@ -1487,9 +1487,9 @@ function fillMore(content: Generic.Page2Content, full: FullMore): Generic.Horizo
     }
 
     const base: BaseMore = {id: full.more.data.id, post: full.post};
-    return fillMorechildrenMore(content, {base, children: full.more.data.children});
+    return fillMorechildrenMore(content, {base, children: full.more.data.children, count: full.more.data.count});
 }
-function fillMorechildrenMore(content: Generic.Page2Content, full: {base: BaseMore, children: string[]}): Generic.HorizontalLoadedItem {
+function fillMorechildrenMore(content: Generic.Page2Content, full: {base: BaseMore, children: string[], count: number}): Generic.HorizontalLoadedItem {
     const base = full.base;
     const request = autoLinkgen<Generic.Opaque<"loader">>("more→request", base);
     p2.fillLink(content, request, opaque_loader.encode({
@@ -1502,7 +1502,7 @@ function fillMorechildrenMore(content: Generic.Page2Content, full: {base: BaseMo
         key: moreLink(base),
         request,
         client_id,
-        load_count: full.children.length,
+        load_count: full.count,
     };
 }
 
@@ -1814,6 +1814,7 @@ export async function loadPage2v2(
             res_value.push(fillMorechildrenMore(content, {
                 base: {id: `${data.base.id}/rem-${remaining.length}`, post: data.base.post},
                 children: remaining,
+                count: remaining.length, // good enough
             }));
         }
 
