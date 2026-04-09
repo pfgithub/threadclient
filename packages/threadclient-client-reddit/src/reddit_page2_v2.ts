@@ -105,7 +105,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         });
         return {
             kind: "vertical_loader",
-            unfilled_parent: base_client.post(content, {}),
+            unfilled_parent: RedditClient.fromContent(content).getLink("client", {}),
             key,
             request,
             client_id,
@@ -124,7 +124,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         };
         return {
             kind: "vertical_loader",
-            unfilled_parent: base_client.post(content, {}),
+            unfilled_parent: RedditClient.fromContent(content).getLink("client", {}),
             key: RedditClient.fromContent(content).getLink("item", {fullname: post_base.fullname, sort: post_base.sort}),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
@@ -146,7 +146,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         };
         return {
             kind: "vertical_loader",
-            unfilled_parent: base_client.post(content, {}),
+            unfilled_parent: RedditClient.fromContent(content).getLink("client", {}),
             key: base_submit.objectLink(submit_base),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "submit_page",
@@ -364,24 +364,9 @@ type FullSubmitPage = {
 
 
 export const base_client = {
-    url: (base: BaseClient): string | null => null,
-    post: autoOutline("client→post", (content, base: BaseClient): Generic.Post => {
-        return {
-            kind: "post",
-            content: {
-                kind: "client",
-                navbar: getNavbar(null),
-            },
-            internal_data: 0,
-            parent: null,
-            replies: null,
-            url: base_client.url(base),
-            client_id,
-        };
-    }),
     asParent: (content: Generic.Page2Content, base: BaseClient): Generic.PostParent => {
         return {
-            loader: Generic.p2.prefilledVerticalLoader(content, base_client.post(content, base), undefined),
+            loader: Generic.p2.prefilledVerticalLoader(content, RedditClient.fromContent(content).getLink("client", {}), undefined),
         };
     },
 };
@@ -1051,6 +1036,10 @@ export function untrackRedditClientData(data: RedditClientData): void {
 type BaseItem = {fullname: string, sort: Sortv};
 type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: Sortv};
 export type RedditLinkDescriptors = {
+    client: {
+        data: {_?: undefined},
+        content: Generic.Post,
+    },
     item: {
         data: BaseItem, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
         content: Generic.Post,
@@ -1081,6 +1070,20 @@ export const resolvers: {
     // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
     [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
 } = {
+    client(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "client",
+                navbar: getNavbar(null),
+            },
+            internal_data: 0,
+            parent: null,
+            replies: null,
+            url: null,
+            client_id,
+        }};
+    },
     replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         const content = client.dirty_content;
         const full = client.data.listings.get(stringify(base));
