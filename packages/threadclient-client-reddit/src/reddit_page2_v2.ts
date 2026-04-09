@@ -79,8 +79,8 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         if(subv == null) {
             throw new Error("TODO support listing kind: ["+parsed.sub.kind+"]")
         }
-        const link = base_subreddit.post(content, {
-            subreddit: subv,
+        const link = RedditClient.fromContent(content).getLink("subreddit", {
+            sr_name: subv,
             sort: parsed.current_sort,
         });
         return p2.prefilledVerticalLoader(content, link, undefined);
@@ -183,19 +183,6 @@ type BaseClient = {
     _?: undefined,
 };
 type UnsortedSubreddit = LowercaseString;
-type BaseSubredditT5 = {
-    subreddit: LowercaseString, // u_ for user subreddits
-    // note: the fullname is not known here
-    sort: SubSort,
-    // note: sort handling isn't quite right. posts will always set their parent to an unsorted subreddit.
-    // - this means that if we show little parent trees like we want to on mastodon, in user pages,
-    //   in inbox notifications, and on the homepage, we will accidentally show them any time the subreddit
-    //   is sorted. we will have to solve this.
-};
-type FullSubredditContent = {
-    subreddit: BaseSubredditT5,
-    listing: Reddit.Listing,
-};
 type BaseSubredditSidebar = {
     for_sub: UnsortedSubreddit,
 };
@@ -262,11 +249,6 @@ type BaseUserT2 = {
 };
 type BasePrivateMessageT4 = {
     fullname: `t4_${string}`,
-};
-type BaseWikipage = {
-    kind: "wikipage",
-    in_subreddit: BaseSubredditT5 | null, // there is a root wiki with no subreddit
-    aftersub_path: string,
 };
 type BaseSubmitPage = {
     on_subreddit: UnsortedSubreddit,
@@ -373,65 +355,16 @@ export const base_client = {
 
 // class Subreddit extends Base<BaseSubredditT5> implements asPost, getReplies
 export const base_subreddit = {
-    url: (base: BaseSubredditT5): "/__any_listing" => {
+    url: (base: BaseSubreddit): "/__any_listing" => {
         return updateQuery(
-            "/r/" + base.subreddit + ("/" + base.sort.v),
+            "/r/" + base.sr_name + ("/" + base.sort.v),
             {t: base.sort.t},
         ) as "/__any_listing";
     },
-    // ie: /r/somesub | /r/u_someusersub | /r/t5:dnjakcns
-    post: autoOutline("subreddit→post", (content, base: BaseSubredditT5): Generic.Post => {
-        return {
-            kind: "post",
-            content: {
-                kind: "page",
-                wrap_page: {
-                    header: base_subreddit_sidebar.identity(content, {for_sub: base.subreddit}),
-                    sidebar: base_subreddit_sidebar.replies(content, {for_sub: base.subreddit}),
-                },
-            },
-            internal_data: base,
-            parent: base_client.asParent(content, {}),
-            replies: base_subreddit.replies(content, base),
-            url: base_subreddit.url(base),
-            client_id,
-        };
-    }),
-    repliesIdFilled: (base: BaseSubredditT5): Generic.NullableLink<Generic.HorizontalLoaded> => {
-        return autoLinkgen<Generic.HorizontalLoaded>("subreddit→replies", base);
-    },
-    replies: (content: Generic.Page2Content, base: BaseSubredditT5): Generic.PostReplies => {
-        const id_loader = Generic.p2.fillLinkOnce(content, (
-            autoLinkgen<Generic.Opaque<"loader">>("subreddit→replies_loader", base)
-        ), () => {
-            return opaque_loader.encode({
-                kind: "subreddit_posts",
-                subreddit: base,
-            });
-        });
-        const id_filled = base_subreddit.repliesIdFilled(base);
-        return {
-            display: "repivot_list",
-            loader: {
-                kind: "horizontal_loader",
-                key: id_filled,
-                request: id_loader,
-
-                load_count: null,
-                autoload: true,
-                client_id,
-
-                sort: {
-                    methods: subredditSortOptions(content),
-                    current: opaque_sort_option.encode({kind: "sub", sub: simplifySort(base.sort)}),
-                    post_id: base_subreddit.post.link(base),
-                },
-            },
-        };
-    },
     asParent: (content: Generic.Page2Content, base: UnsortedSubreddit): Generic.PostParent => {
+        const client = RedditClient.fromContent(content);
         return {loader: Generic.p2.prefilledVerticalLoader(
-            content, base_subreddit.post(content, {subreddit: base, sort: subDefaultSort(base)}), undefined,
+            content, client.getLink("subreddit", {sr_name: base, sort: subDefaultSort(base)}), undefined,
         )};
     },
 };
@@ -476,29 +409,6 @@ export function commentDefaultCollapsed(author_name: string): boolean {
     // specify manual overrides for comments which should be automatically collapsed
     return author_name === "FatFingerHelperBot";
 }
-export const full_subreddit = {
-    fill: autoFill(
-        (full: FullSubredditContent) => base_subreddit.repliesIdFilled(full.subreddit),
-        (content, full): Generic.HorizontalLoaded => {
-            const res: Generic.HorizontalLoadedItem[] = [];
-            // if full listing data before
-            // TODO: - we need, in addition to sort, a before param for subs
-            // - then, we can add a loader for the ?before thing
-            for(const item of full.listing.data.children) {
-                res.push(linkToAndFillListingChild(content, item, null));
-            }
-            if(full.listing.data.after != null) {
-                res.push({
-                    kind: "horizontal_loader",
-                    key: Generic.p2.symbolLink("todo"),
-                    request: Generic.p2.createSymbolLinkToError(content, "todo", 0),
-                    client_id,
-                });
-            }
-            return res;
-        },
-    ),
-};
 
 export const base_subreddit_sidebar = {
     identityAndSidebarLoader: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.Link<Generic.Opaque<"loader">> => {
@@ -828,20 +738,20 @@ const full_sidebar_widget = {
                     //     // we need to pass this data in
                     // });
                     const sub_name = asLowercaseString(community.name);
-                    const sub_base: BaseSubredditT5 = {
-                        subreddit: sub_name,
+                    const sub_base: BaseSubreddit = {
+                        sr_name: sub_name,
                         sort: subDefaultSort(sub_name),
                     };
                     return p2.createSymbolLinkToValue<Generic.Post>(content, {
                         kind: "post",
                         content: {
                             kind: "nonpivoted_identity_card",
-                            container: base_subreddit.post(content, sub_base),
+                            container: RedditClient.fromContent(content).getLink("subreddit", sub_base),
                             card: {
                                 name_raw: "r/"+community.name,
                                 pfp: {url: community.communityIcon || community.iconUrl},
                                 main_counter: createSubscribeAction(
-                                    sub_base.subreddit, community.subscribers, community.isSubscribed,
+                                    sub_base.sr_name, community.subscribers, community.isSubscribed,
                                 ),
                                 url: "/r/"+community.name,
                                 client_id,
@@ -1034,6 +944,7 @@ export function untrackRedditClientData(data: RedditClientData): void {
 }
 
 type BaseItem = {fullname: string, sort: Sortv};
+type BaseSubreddit = {sr_name: LowercaseString, sort: SubSort};
 type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: Sortv};
 export type RedditLinkDescriptors = {
     client: {
@@ -1060,6 +971,14 @@ export type RedditLinkDescriptors = {
         data: {base: BaseMore2, sort: Sortv, post_fullname: string},
         content: Generic.Opaque<"loader">,
     },
+    subreddit: {
+        data: BaseSubreddit,
+        content: Generic.Post,
+    },
+    subreddit_replies_request: {
+        data: BaseSubreddit,
+        content: Generic.Opaque<"loader">,
+    },
 };
 
 function moreBase(more: Reddit.More, sort: Sortv): BaseMore2 {
@@ -1083,6 +1002,38 @@ export const resolvers: {
             url: null,
             client_id,
         }};
+    },
+    subreddit(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const content = client.dirty_content;
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "page",
+                wrap_page: {
+                    header: base_subreddit_sidebar.identity(content, {for_sub: base.sr_name}),
+                    sidebar: base_subreddit_sidebar.replies(content, {for_sub: base.sr_name}),
+                },
+            },
+            internal_data: base,
+            parent: base_client.asParent(content, {}),
+            replies: {
+                display: "repivot_list",
+                loader: {
+                    kind: "horizontal_loader",
+                    key: client.getLink("replies", {kind: "subreddit", sub: base}),
+                    request: client.getLink("subreddit_replies_request", base),
+                    client_id,
+                },
+            },
+            url: base_subreddit.url(base),
+            client_id,
+        }};
+    },
+    subreddit_replies_request(client, base) {
+        return {error: null, value: opaque_loader.encode({
+            kind: "subreddit_posts",
+            subreddit: base,
+        })};
     },
     replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         const content = client.dirty_content;
@@ -1183,6 +1134,7 @@ function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Gener
     } : {});
     const listing = full.data;
     const {replies} = itemReplies(client, base, full);
+    const sr_name = asLowercaseString(full.data.subreddit);
     return {
         kind: "post",
         client_id,
@@ -1592,7 +1544,7 @@ type LoaderData = {
     kind: "todo",
 } | {
     kind: "subreddit_posts",
-    subreddit: BaseSubredditT5,
+    subreddit: BaseSubreddit,
 } | {
     kind: "subreddit_identity_and_sidebar",
     sub: BaseSubredditSidebar,
@@ -1642,7 +1594,7 @@ function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | 
     }
 }
 
-type ObjectID = {kind: "item", item: BaseItem} | {kind: "subreddit", sr_name: string, sort: SubSort}; // TODO: subreddits have T5s and it should be possible to use them?
+type ObjectID = {kind: "item", item: BaseItem} | {kind: "subreddit", sub: BaseSubreddit}; // TODO: subreddits have T5s and it should be possible to use them?
 
 function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
@@ -1668,8 +1620,7 @@ export async function loadPage2v2(
         // fetch the subreddit listing
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
         const client = RedditClient.fromContent(content);
-        addListing(client, {kind: "subreddit", sr_name: data.subreddit.subreddit, sort: data.subreddit.sort}, sub_listing, true);
-        full_subreddit.fill(content, {subreddit: data.subreddit, listing: sub_listing});
+        addListing(client, {kind: "subreddit", sub: data.subreddit}, sub_listing, true);
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub.for_sub;
         const [widgets, about] = await Promise.all([
