@@ -402,35 +402,7 @@ export function commentDefaultCollapsed(author_name: string): boolean {
 }
 
 const base_oldsidebar_widget = {
-    url: (base: BaseOldSidebar) => "/r/"+base.subreddit+"/about/sidebar",
-    link: (base: BaseOldSidebar) => autoLinkgen<Generic.Post>("oldsidebar_value→post", base),
-};
-const full_oldsidebar_widget = {
-    filledValue: autoFill((
-        (full: FullOldSidebar) => base_oldsidebar_widget.link(full.on_base)
-    ), (content, full): Generic.Post => {
-        return {
-            kind: "post",
-            content: {
-                kind: "post",
-        
-                title: {text: "old.reddit sidebar"},
-                body: {
-                    kind: "text",
-                    client_id,
-                    markdown_format: "reddit_html",
-                    content: full.t5.data.description_html,
-                },
-        
-                collapsible: {default_collapsed: full.has_structuredstyles_widgets},
-            },
-            internal_data: full,
-            parent: base_subreddit.asParent(content, full.on_base.subreddit),
-            replies: null,
-            url: base_oldsidebar_widget.url(full.on_base),
-            client_id,
-        };
-    }),
+    url: (base: LowercaseString) => "/r/"+base+"/about/sidebar",
 };
 
 type DuplicaesSortV = {m: "duplicates", v: Reddit.DuplicatesSort, crossposts_only: boolean};
@@ -537,6 +509,10 @@ export type RedditLinkDescriptors = {
     subreddit_identity_request: {
         data: LowercaseString,
         content: Generic.Opaque<"loader">,
+    },
+    subreddit_oldsidebar_widget: {
+        data: LowercaseString,
+        content: Generic.Post,
     },
     widget: {
         data: BaseWidget,
@@ -660,19 +636,14 @@ export const resolvers: {
     },
     subreddit_widgets(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         if (base === "all" || base === "popular") return {error: null, value: []};
-        
-        const content = client.dirty_content;
+
         const widgets = client.data.widgets.get(base);
         const t5 = client.data.subreddit_t5s.get(base);
         if (widgets == null || t5 == null || t5.kind !== "t5") return null;
 
         return {error: null, value:[
             // v default collapsed
-            full_oldsidebar_widget.filledValue(content, {
-                on_base: {subreddit: base},
-                t5: t5,
-                has_structuredstyles_widgets: true,
-            }),
+            client.getLink("subreddit_oldsidebar_widget", base),
 
             // skipping id card widget as we already provide that with the header
             // ...full.widgets.layout.topbar.order.map(id => base_sidebar_widget.link(basev(id))), // this is for the dropdown menu? TODO
@@ -681,6 +652,32 @@ export const resolvers: {
             )),
             client.getLink("widget", {sub: base, widget: widgets.layout.moderatorWidget}),
         ]};
+    },
+    subreddit_oldsidebar_widget(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const content = client.dirty_content;
+        const t5 = client.data.subreddit_t5s.get(base);
+        if (t5 == null || t5.kind !== "t5") return null;
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "post",
+        
+                title: {text: "old.reddit sidebar"},
+                body: {
+                    kind: "text",
+                    client_id,
+                    markdown_format: "reddit_html",
+                    content: t5.data.description_html,
+                },
+        
+                collapsible: {default_collapsed: true},
+            },
+            internal_data: t5,
+            parent: base_subreddit.asParent(content, base),
+            replies: null,
+            url: base_oldsidebar_widget.url(base),
+            client_id,
+        }};
     },
     widget(client, base): Generic.ReadLinkResult<Generic.Post> | null {
         const widget = client.data.widget.get(stringify(base));
