@@ -26,7 +26,7 @@ import { rootel } from "./router";
 import { getPointsText, isModifiedEvent, unsafeLinkToSafeLink, watchCounterState } from "./tc_helpers";
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { DefaultErrorBoundary, getSettings } from "./util/utils_solid";
-import Page2ContentManager from "./util/Page2ContentManager";
+import Page2ContentManager, { Page2SecretsManager } from "./util/Page2ContentManager";
 
 function linkButton(
     client_id: string,
@@ -2221,7 +2221,11 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
         // await new Promise(r => 0);
         if(!client.getThread || client.hasPage2() && getSettings().pageVersion() === "2" || current_path.includes("--tc-view=")) {
             // load the central loader so we have a valid pivot post
-            const purl_res = await client.pageFromURL(current_path);
+
+            const tokens = Page2SecretsManager.instance().getTokens(client.id);
+            const purl_res = await client.pageFromURL(current_path, tokens);
+            Page2SecretsManager.instance().updateTokens(client.id, tokens, purl_res.tokens);
+            
             const contentManager = new Page2ContentManager(client, purl_res.pivot);
             contentManager.invalidate(purl_res.dirty);
             const split = splitPathPage1Ver(current_path);

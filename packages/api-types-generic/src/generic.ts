@@ -1202,9 +1202,24 @@ export declare namespace SubmitResult {
 export type DataEncodings = 
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
     | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
-    | "loader" | "edit" | "submit" | "sort_option"
+    | "loader" | "edit" | "submit" | "sort_option" | "account"
 ;
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
+
+export type Tokens = {
+    // shared between all accounts
+    app?: Opaque<"account">,
+    // just for the active account
+    active_account?: Opaque<"account">,
+    active_account_name?: string,
+
+    // TODO: we will also want per-app settings, so this should probably not be called 'Tokens'
+};
+export type UpdateTokens = {
+    app?: Opaque<"account">,
+    active_account?: Opaque<"account">,
+    active_account_name?: string,
+};
 
 export type FlairList = {
     flair: Flair,

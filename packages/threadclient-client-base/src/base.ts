@@ -56,8 +56,8 @@ export abstract class ThreadClient implements ThreadClientImplements {
     }
     
     abstract hasPage2(): boolean;
-    abstract pageFromURL(url: string): Promise<{pivot: Generic.Link<Generic.Post>, dirty: Generic.Link<unknown>[]}>;
-    abstract loaderLoad(request: Generic.Opaque<"loader">): Promise<{dirty: Generic.Link<unknown>[]}>;
+    abstract pageFromURL(url: string, tokens: Generic.Tokens): Promise<{pivot: Generic.Link<Generic.Post>, dirty: Generic.Link<unknown>[], tokens?: Generic.UpdateTokens}>;
+    abstract loaderLoad(request: Generic.Opaque<"loader">, tokens: Generic.Tokens): Promise<{dirty: Generic.Link<unknown>[], tokens?: Generic.UpdateTokens}>;
     resolveLink<T>(link: Generic.Link<T>): T {
         const rlres = this.resolveLinkOld(link);
         if (rlres == null || rlres.error) throw new Error("link contents none or error: "+(rlres?.error ?? "none"));

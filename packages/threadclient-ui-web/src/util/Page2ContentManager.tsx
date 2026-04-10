@@ -5,6 +5,34 @@ import { ThreadClient } from "threadclient-client-base";
 export type LoadState = {kind: "none"} | {kind: "progress"} | LoadStateError | {kind: "success"};
 export type LoadStateError = {kind: "error", msg: string};
 
+export class Page2SecretsManager {
+    #tokens: Map<string, Generic.Tokens>;
+
+    constructor() {
+        this.#tokens = new Map();
+    }
+
+    updateTokens(client: string, from: Generic.Tokens, to?: Generic.UpdateTokens): void {
+        if (!to) return;
+        // from will be used to match the active account when we support multiaccount
+        const store = this.getTokens(client);
+        if (to.app != null) store.app = to.app;
+        if (to.active_account != null) store.active_account = to.active_account; 
+        if (to.active_account_name != null) store.active_account_name = to.active_account_name;
+    }
+    getTokens(client: string): Generic.Tokens {
+        if (!this.#tokens.has(client)) {
+            this.#tokens.set(client, {});
+        }
+        return this.#tokens.get(client)!;
+    }
+
+    static instance(): Page2SecretsManager {
+        return page2SecretsManagerInstance;
+    }
+}
+const page2SecretsManagerInstance = new Page2SecretsManager();
+
 export default class Page2ContentManager {
     // TODO: once view is removed, we can switch this to Signal<unknown>
     #signals: Map<Generic.Link<unknown>, Signal<Generic.ReadLinkResult<unknown> | null>>;
@@ -28,7 +56,9 @@ export default class Page2ContentManager {
         setState({kind: "progress"});
         (async () => {
             const request = untrack(() => this.view2(loader.request));
-            const resp = await this.#backing.loaderLoad(request);
+            const tokens = Page2SecretsManager.instance().getTokens(this.#backing.id);
+            const resp = await this.#backing.loaderLoad(request, tokens);
+            Page2SecretsManager.instance().updateTokens(this.#backing.id, tokens, resp.tokens);
             console.log("load response", resp);
             batch(() => {
                 this.invalidate(resp.dirty);
