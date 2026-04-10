@@ -15,6 +15,7 @@ export class Page2SecretsManager {
     updateTokens(client: string, from: Generic.Tokens, to?: Generic.UpdateTokens): void {
         if (!to) return;
         // from will be used to match the active account when we support multiaccount
+        // ie if the active account changed between when we sent the request and when we got the response
         const store = this.getTokens(client);
         if (to.app != null) store.app = to.app;
         if (to.active_account != null) store.active_account = to.active_account; 
