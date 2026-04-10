@@ -582,6 +582,11 @@ export const resolvers: {
                     key: client.getLink("replies", {kind: "subreddit", sub: base}),
                     request: client.getLink("subreddit_replies_request", base),
                     client_id,
+                    sort: {
+                        methods: subredditSortOptions(client.dirty_content),
+                        current: opaque_sort_option.encode({kind: "sub", sub: simplifySort(base.sort)}),
+                        post_id: client.getLink("subreddit", base),
+                    },
                 },
             },
             url: base_subreddit.url(base),
