@@ -183,15 +183,6 @@ type BaseClient = {
     _?: undefined,
 };
 type UnsortedSubreddit = LowercaseString;
-type BaseSubredditSidebar = {
-    for_sub: UnsortedSubreddit,
-};
-type FullSubredditSidebar = {
-    on_base: BaseSubredditSidebar,
-
-    widgets: Reddit.ApiWidgets,
-    sub_t5: Reddit.T5,
-};
 type BasePostT3 = {
     fullname: `t3_${string}`,
     on_subreddit: UnsortedSubreddit,
@@ -410,145 +401,6 @@ export function commentDefaultCollapsed(author_name: string): boolean {
     return author_name === "FatFingerHelperBot";
 }
 
-export const base_subreddit_sidebar = {
-    identityAndSidebarLoader: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.Link<Generic.Opaque<"loader">> => {
-        return Generic.p2.fillLinkOnce(content, (
-            autoLinkgen<Generic.Opaque<"loader">>("subreddit_id_sidebar→loader", base)
-        ), () => {
-            const res = opaque_loader.encode({
-                kind: "subreddit_identity_and_sidebar",
-                sub: base,
-            });
-
-            if (base.for_sub === "all") {
-                const id_filled = base_subreddit_sidebar.filledIdentityCardLink(base);
-                const id_widgets = base_subreddit_sidebar.filledWidgetsLink(base);
-                p2.fillLinkOnce(content, id_filled, (): Generic.FilledIdentityCard => ({
-                    names: {display: "All", raw: "r/all"},
-                    pfp: null,
-                    theme: {banner: null},
-                    description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "All posts from all subreddits", styles: {}}]}]},
-                    actions: {main_counter: null},
-                    menu: null,
-                    raw_value: null,
-                }));
-                p2.fillLinkOnce(content, id_widgets, (): Generic.HorizontalLoaded => []);
-            } else if (base.for_sub === "popular") {
-                const id_filled = base_subreddit_sidebar.filledIdentityCardLink(base);
-                const id_widgets = base_subreddit_sidebar.filledWidgetsLink(base);
-                p2.fillLinkOnce(content, id_filled, (): Generic.FilledIdentityCard => ({
-                    names: {display: "Popular", raw: "r/popular"},
-                    pfp: null,
-                    theme: {banner: null},
-                    description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "Filtered posts from all subreddits", styles: {}}]}]},
-                    actions: {main_counter: null},
-                    menu: null,
-                    raw_value: null,
-                }));
-                p2.fillLinkOnce(content, id_widgets, (): Generic.HorizontalLoaded => []);
-            }
-
-            return res;
-        });
-    },
-    filledIdentityCardLink: (base: BaseSubredditSidebar): Generic.NullableLink<Generic.FilledIdentityCard> => {
-        return autoLinkgen<Generic.FilledIdentityCard>("subreddit_identity→card", base);
-    },
-    identity: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.PageIdentityCard => {
-        const id_loader = base_subreddit_sidebar.identityAndSidebarLoader(content, base);
-
-        // right, we'll need to figure out the proper place to put this id.
-        // - the filled object will make bad ids because the ids depend on the filled content
-        // - ids should not depend on filled content
-        const id_filled = base_subreddit_sidebar.filledIdentityCardLink(base);
-        return {
-            temp_title: "r/" + base.for_sub,
-            filled: {
-                kind: "one_loader",
-                key: id_filled,
-                load_count: null,
-                request: id_loader,
-                client_id,
-                autoload: true,
-            },
-        };
-    },
-    filledWidgetsLink: (base: BaseSubredditSidebar): Generic.NullableLink<Generic.HorizontalLoaded> => {
-        return autoLinkgen<Generic.HorizontalLoaded>("subreddit_sidebar→replies", base);
-    },
-    replies: (content: Generic.Page2Content, base: BaseSubredditSidebar): Generic.PostReplies => {
-        const id_loader = base_subreddit_sidebar.identityAndSidebarLoader(content, base);
-        const id_filled = base_subreddit_sidebar.filledWidgetsLink(base);
-        return {
-            display: "tree",
-            loader: {
-                kind: "horizontal_loader",
-                key: id_filled,
-                request: id_loader,
-
-                load_count: null,
-                autoload: false,
-                client_id,
-            },
-        };
-    },
-};
-
-export const full_subreddit_sidebar = {
-    // FullSubredditSidebar
-    filledIdentity: autoFill((
-        (full: FullSubredditSidebar) => base_subreddit_sidebar.filledIdentityCardLink(full.on_base)
-    ), (content: Generic.Page2Content, full: FullSubredditSidebar): Generic.FilledIdentityCard => {
-        return subredditHeaderExists({
-            subreddit: full.on_base.for_sub,
-            widgets: full.widgets,
-            sub_t5: full.sub_t5,
-        });
-    }),
-
-    filledWidgets: autoFill((
-        (full: FullSubredditSidebar) => base_subreddit_sidebar.filledWidgetsLink(full.on_base)
-    ), (content, full): Generic.HorizontalLoaded => {
-        const basev = (id: `widget_${string}`): BaseSidebarWidget => {
-            return {id, subreddit: full.on_base.for_sub};
-        };
-        for(const [widget_key, widget_value] of Object.entries(full.widgets.items)) {
-            full_sidebar_widget.filledValue(content, {
-                on_base: basev(widget_value.id),
-                widget: widget_value,
-            });
-        }
-        return [
-            // it's impossible to load an individual widget. we'll just end up with a bad link if one of these is unfilled.
-            // if it were possible, we would use base_sidebar_widget.asSelfHorizontalLoader() rather than .link()
-    
-            // v default collapsed
-            full_oldsidebar_widget.filledValue(content, {
-                on_base: {subreddit: full.on_base.for_sub},
-                t5: full.sub_t5,
-                has_structuredstyles_widgets: true,
-            }),
-
-            // skipping id card widget as we already provide that with the header
-            // ...full.widgets.layout.topbar.order.map(id => base_sidebar_widget.link(basev(id))), // ? what is this
-            ...full.widgets.layout.sidebar.order.map(id => base_sidebar_widget.link(basev(id))),
-            base_sidebar_widget.link(basev(full.widgets.layout.moderatorWidget)),
-            /*
-            ...subinfo.sub_t5 ? [
-                oldSidebarWidget(content, subinfo.sub_t5, subinfo.subreddit, {collapsed: widgets ? true : false}),
-            ] : [],
-            ...widgets ? widgets.layout.sidebar.order.map(id => wrap(getItem(id))) : [],
-            ...widgets ? [wrap(getItem(widgets.layout.moderatorWidget))] : [],
-            */
-        ];
-    }),
-
-    fill: (content: Generic.Page2Content, full: FullSubredditSidebar): void => {
-        full_subreddit_sidebar.filledIdentity(content, full);
-        full_subreddit_sidebar.filledWidgets(content, full);
-    },
-};
-
 const base_oldsidebar_widget = {
     url: (base: BaseOldSidebar) => "/r/"+base.subreddit+"/about/sidebar",
     link: (base: BaseOldSidebar) => autoLinkgen<Generic.Post>("oldsidebar_value→post", base),
@@ -581,22 +433,260 @@ const full_oldsidebar_widget = {
     }),
 };
 
-const base_sidebar_widget = {
-    url: (base: BaseSidebarWidget) => null, // "/r/"+base.subreddit+"/api/sidebar?tcr-pivot="+encodeURIComponent(base.id)
-    link: (base: BaseSidebarWidget) => autoLinkgen<Generic.Post>("sidebar_widget→post", base),
+type DuplicaesSortV = {m: "duplicates", v: Reddit.DuplicatesSort, crossposts_only: boolean};
+type Sortv = PostSort | DuplicaesSortV | "default";
+function isDuplicates(sort: Sortv): sort is DuplicaesSortV {
+    return typeof sort === "object" && sort != null && 'm' in sort && sort.m === "duplicates";
+}
 
-    //! sidebar widgets can't be loaded right now so this just returns the link. hope it exists.
-    asParent: (content: Generic.Page2Content, base: BaseSidebarWidget): Generic.PostParent => {
-        return {
-            loader: p2.prefilledVerticalLoader(content, base_sidebar_widget.link(base), undefined),
-        };
+// * you will only be able to get a link to a post by using the full_post fn
+// * you can get a base_post 'as_parent' but no other way
+type Stringified<T> = string & {__is_stringified: T};
+function stringify<T>(v: NoInfer<T>): Stringified<T> {
+    return JSON.stringify(v) as Stringified<T>;
+}
+export type RedditClientData = {
+    
+    // we should be able to have this not include sort and instead have comment replies be per-sort. but for now it will include it.
+    // currently, this maps from JSON.stringify(BaseComment) to FullCommentT1
+    // but instead we should split this up:
+    items: ObservableMap<Stringified<BaseItem>, Reddit.Item, Generic.Link<unknown>>,
+    listings: ObservableMap<Stringified<ObjectID>, Reddit.Listing | "", Generic.Link<unknown>>,
+    mores: ObservableMap<Stringified<BaseMore2>, Reddit.More, Generic.Link<unknown>>,
+    widgets: ObservableMap<LowercaseString, Reddit.ApiWidgets, Generic.Link<unknown>>,
+    widget: ObservableMap<Stringified<BaseWidget>, Reddit.Widget, Generic.Link<unknown>>,
+    subreddit_t5s: ObservableMap<LowercaseString, Reddit.T5, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
+};
+type BaseWidget = {
+    sub: LowercaseString,
+    widget: string,
+
+};
+export function initRedditClientData(prev?: RedditClientData): RedditClientData {
+    return {
+        items: new ObservableMap(prev?.items),
+        listings: new ObservableMap(prev?.listings),
+        mores: new ObservableMap(prev?.mores),
+        widgets: new ObservableMap(prev?.widgets),
+        widget: new ObservableMap(prev?.widget),
+        subreddit_t5s: new ObservableMap(prev?.subreddit_t5s),
+    };
+}
+export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
+    data.items.beginTracking(link);
+    data.listings.beginTracking(link);
+    data.mores.beginTracking(link);
+    data.widgets.beginTracking(link);
+    data.widget.beginTracking(link);
+    data.subreddit_t5s.beginTracking(link);
+}
+export function untrackRedditClientData(data: RedditClientData): void {
+    data.items.endTracking();
+    data.listings.endTracking();
+    data.mores.endTracking();
+    data.widgets.endTracking();
+    data.widget.endTracking();
+    data.subreddit_t5s.endTracking();
+}
+
+type BaseItem = {fullname: string, sort: Sortv};
+type BaseSubreddit = {sr_name: LowercaseString, sort: SubSort};
+type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: Sortv};
+export type RedditLinkDescriptors = {
+    // TODO: most of these should not need a sort method! sort should only be for replies, where the client chooses which one to use
+    client: {
+        data: {_?: undefined},
+        content: Generic.Post,
+    },
+    item: {
+        data: BaseItem, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
+        content: Generic.Post,
+    },
+    comment_parent_request: {
+        data: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null, sort: Sortv},
+        content: Generic.Opaque<"loader">,
+    },
+    item_replies_request: {
+        data: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string | null, sort: Sortv},
+        content: Generic.Opaque<"loader">,
+    },
+    replies: {
+        data: ObjectID,
+        content: Generic.HorizontalLoaded,
+    },
+    loadmore_request: {
+        data: {base: BaseMore2, sort: Sortv, post_fullname: string},
+        content: Generic.Opaque<"loader">,
+    },
+    subreddit: {
+        data: BaseSubreddit,
+        content: Generic.Post,
+    },
+    subreddit_replies_request: {
+        data: BaseSubreddit,
+        content: Generic.Opaque<"loader">,
+    },
+    subreddit_card: {
+        data: LowercaseString,
+        content: Generic.FilledIdentityCard,
+    },
+    subreddit_widgets: {
+        data: LowercaseString,
+        content: Generic.HorizontalLoaded,
+    },
+    subreddit_identity_request: {
+        data: LowercaseString,
+        content: Generic.Opaque<"loader">,
+    },
+    widget: {
+        data: BaseWidget,
+        content: Generic.Post,
     },
 };
-const full_sidebar_widget = {
-    filledValue: autoFill((
-        (full: FullSidebarWidget) => base_sidebar_widget.link(full.on_base)
-    ), (content, full): Generic.Post => {
-        const widget = full.widget;
+
+function moreBase(more: Reddit.More, sort: Sortv): BaseMore2 {
+    return {parent_fullname: more.data.parent_id, first_child_id: more.data.children[0] ?? null, sort};
+}
+
+export const resolvers: {
+    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
+    [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
+} = {
+    client(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "client",
+                navbar: getNavbar(null),
+            },
+            internal_data: 0,
+            parent: null,
+            replies: null,
+            url: null,
+            client_id,
+        }};
+    },
+    subreddit(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const content = client.dirty_content;
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "page",
+                wrap_page: {
+                    header: {
+                        temp_title: "r/" + base.sr_name,
+                        filled: {
+                            kind: "one_loader",
+                            key: client.getLink("subreddit_card", base.sr_name),
+                            load_count: null,
+                            request: client.getLink("subreddit_identity_request", base.sr_name),
+                            client_id,
+                            autoload: true,
+                        },
+                    },
+                    sidebar: {
+                        display: "tree",
+                        loader: {
+                            kind: "horizontal_loader",
+                            key: client.getLink("subreddit_widgets", base.sr_name),
+                            request: client.getLink("subreddit_identity_request", base.sr_name),
+                            load_count: null,
+                            autoload: false,
+                            client_id,
+                        },
+                    },
+                },
+            },
+            internal_data: base,
+            parent: base_client.asParent(content, {}),
+            replies: {
+                display: "repivot_list",
+                loader: {
+                    kind: "horizontal_loader",
+                    key: client.getLink("replies", {kind: "subreddit", sub: base}),
+                    request: client.getLink("subreddit_replies_request", base),
+                    client_id,
+                },
+            },
+            url: base_subreddit.url(base),
+            client_id,
+        }};
+    },
+    subreddit_replies_request(client, base) {
+        return {error: null, value: opaque_loader.encode({
+            kind: "subreddit_posts",
+            subreddit: base,
+        })};
+    },
+    subreddit_identity_request(client, base) {
+        return {error: null, value: opaque_loader.encode({
+            kind: "subreddit_identity_and_sidebar",
+            sub: base,
+        })};
+    },
+    subreddit_card(client, base): Generic.ReadLinkResult<Generic.FilledIdentityCard> | null {
+        // arguably these should not use subreddit_card
+        if (base === "all") {
+            return {error: null, value: {
+                names: {display: "All", raw: "r/all"},
+                pfp: null,
+                theme: {banner: null},
+                description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "All posts from all subreddits", styles: {}}]}]},
+                actions: {main_counter: null},
+                menu: null,
+                raw_value: null,
+            }};
+        } else if (base === "popular") {
+            return {error: null, value: {
+                names: {display: "Popular", raw: "r/popular"},
+                pfp: null,
+                theme: {banner: null},
+                description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "Filtered posts from all subreddits", styles: {}}]}]},
+                actions: {main_counter: null},
+                menu: null,
+                raw_value: null,
+            }};
+        }
+
+        const widgets = client.data.widgets.get(base);
+        const t5 = client.data.subreddit_t5s.get(base);
+        console.log("subreddit_card", base, widgets, t5);
+        if (widgets == null || t5 == null || t5.kind !== "t5") return null;
+        return {error: null, value: subredditHeaderExists({
+            subreddit: t5.data.display_name,
+            widgets: widgets,
+            sub_t5: t5,
+        })};
+    },
+    subreddit_widgets(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
+        if (base === "all" || base === "popular") return {error: null, value: []};
+        
+        const content = client.dirty_content;
+        const widgets = client.data.widgets.get(base);
+        const t5 = client.data.subreddit_t5s.get(base);
+        if (widgets == null || t5 == null || t5.kind !== "t5") return null;
+
+        return {error: null, value:[
+            // v default collapsed
+            full_oldsidebar_widget.filledValue(content, {
+                on_base: {subreddit: base},
+                t5: t5,
+                has_structuredstyles_widgets: true,
+            }),
+
+            // skipping id card widget as we already provide that with the header
+            // ...full.widgets.layout.topbar.order.map(id => base_sidebar_widget.link(basev(id))), // this is for the dropdown menu? TODO
+            ...widgets.layout.sidebar.order.map(id => (
+                client.getLink("widget", {sub: base, widget: id})
+            )),
+            client.getLink("widget", {sub: base, widget: widgets.layout.moderatorWidget}),
+        ]};
+    },
+    widget(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const widget = client.data.widget.get(stringify(base));
+        if (!widget) return null;
+        const content = client.dirty_content;
+        
         let postcontent: Generic.PostContent;
         let replies: null | Generic.PostReplies;
         if(widget.kind === "moderators") {
@@ -608,7 +698,7 @@ const full_sidebar_widget = {
                 title: {text: "Moderators"},
                 body: {kind: "richtext", content: [
                     rt.p(
-                        rt.link({id: client_id}, "/message/compose?to=/r/"+full.on_base.subreddit,
+                        rt.link({id: client_id}, "/message/compose?to=/r/"+base.sub,
                             {style: "pill-empty"},
                             rt.txt("Message the mods"),
                         ),
@@ -621,7 +711,7 @@ const full_sidebar_widget = {
                         }).flatMap(flair => [rt.txt(" "), rt.flair(flair)]),
                     )))),
                     rt.p(
-                        rt.link({id: client_id}, "/r/"+full.on_base.subreddit+"/about/moderators", {}, rt.txt("View All Moderators")),
+                        rt.link({id: client_id}, "/r/"+base.sub+"/about/moderators", {}, rt.txt("View All Moderators")),
                     ),
                 ]},
                 collapsible: false,
@@ -650,7 +740,7 @@ const full_sidebar_widget = {
                         collapsible: {default_collapsed: true},
                     },
                     internal_data: itm,
-                    parent: base_sidebar_widget.asParent(content, full.on_base),
+                    parent: {loader: p2.prefilledVerticalLoader(content, client.getLink("widget", base), undefined)},
                     replies: null,
 
                     url: null,
@@ -682,10 +772,10 @@ const full_sidebar_widget = {
                         collapsible: false,
                     },
                     internal_data: val,
-                    parent: base_sidebar_widget.asParent(content, full.on_base),
+                    parent: {loader: p2.prefilledVerticalLoader(content, client.getLink("widget", base), undefined)},
                     replies: null,
 
-                    url: "/r/"+full.on_base.subreddit+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
+                    url: "/r/"+base.sub+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
                     disallow_pivot: true,
                     client_id,
                 });
@@ -760,7 +850,7 @@ const full_sidebar_widget = {
                         },
 
                         internal_data: community,
-                        parent: base_sidebar_widget.asParent(content, full.on_base),
+                        parent: {loader: p2.prefilledVerticalLoader(content, client.getLink("widget", base), undefined)},
                         replies: null,
 
                         url: base_subreddit.url(sub_base),
@@ -811,7 +901,7 @@ const full_sidebar_widget = {
                         collapsible: {default_collapsed: true},
                     },
                     internal_data: item,
-                    parent: base_sidebar_widget.asParent(content, full.on_base),
+                    parent: {loader: p2.prefilledVerticalLoader(content, client.getLink("widget", base), undefined)},
                     replies: null,
 
                     url: null,
@@ -892,148 +982,15 @@ const full_sidebar_widget = {
             };
             replies = null;
         }
-        return {
-            kind: "post",
-            content: postcontent,
-            internal_data: full,
-            parent: base_subreddit.asParent(content, full.on_base.subreddit),
-            replies,
-            url: base_sidebar_widget.url(full.on_base),
-            client_id,
-        };
-    }),
-};
-
-type DuplicaesSortV = {m: "duplicates", v: Reddit.DuplicatesSort, crossposts_only: boolean};
-type Sortv = PostSort | DuplicaesSortV | "default";
-function isDuplicates(sort: Sortv): sort is DuplicaesSortV {
-    return typeof sort === "object" && sort != null && 'm' in sort && sort.m === "duplicates";
-}
-
-// * you will only be able to get a link to a post by using the full_post fn
-// * you can get a base_post 'as_parent' but no other way
-type Stringified<T> = string & {__is_stringified: T};
-function stringify<T>(v: NoInfer<T>): Stringified<T> {
-    return JSON.stringify(v) as Stringified<T>;
-}
-export type RedditClientData = {
-    
-    // we should be able to have this not include sort and instead have comment replies be per-sort. but for now it will include it.
-    // currently, this maps from JSON.stringify(BaseComment) to FullCommentT1
-    // but instead we should split this up:
-    items: ObservableMap<Stringified<BaseItem>, Reddit.Item, Generic.Link<unknown>>,
-    listings: ObservableMap<Stringified<ObjectID>, Reddit.Listing | "", Generic.Link<unknown>>,
-    mores: ObservableMap<Stringified<BaseMore2>, Reddit.More, Generic.Link<unknown>>
-};
-export function initRedditClientData(prev?: RedditClientData): RedditClientData {
-    return {
-        items: new ObservableMap(prev?.items),
-        listings: new ObservableMap(prev?.listings),
-        mores: new ObservableMap(prev?.mores),
-    };
-}
-export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
-    data.items.beginTracking(link);
-    data.listings.beginTracking(link);
-    data.mores.beginTracking(link);
-}
-export function untrackRedditClientData(data: RedditClientData): void {
-    data.items.endTracking();
-    data.listings.endTracking();
-    data.mores.endTracking();
-}
-
-type BaseItem = {fullname: string, sort: Sortv};
-type BaseSubreddit = {sr_name: LowercaseString, sort: SubSort};
-type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: Sortv};
-export type RedditLinkDescriptors = {
-    client: {
-        data: {_?: undefined},
-        content: Generic.Post,
-    },
-    item: {
-        data: BaseItem, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
-        content: Generic.Post,
-    },
-    comment_parent_request: {
-        data: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null, sort: Sortv},
-        content: Generic.Opaque<"loader">,
-    },
-    item_replies_request: {
-        data: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string | null, sort: Sortv},
-        content: Generic.Opaque<"loader">,
-    },
-    replies: {
-        data: ObjectID,
-        content: Generic.HorizontalLoaded,
-    },
-    loadmore_request: {
-        data: {base: BaseMore2, sort: Sortv, post_fullname: string},
-        content: Generic.Opaque<"loader">,
-    },
-    subreddit: {
-        data: BaseSubreddit,
-        content: Generic.Post,
-    },
-    subreddit_replies_request: {
-        data: BaseSubreddit,
-        content: Generic.Opaque<"loader">,
-    },
-};
-
-function moreBase(more: Reddit.More, sort: Sortv): BaseMore2 {
-    return {parent_fullname: more.data.parent_id, first_child_id: more.data.children[0] ?? null, sort};
-}
-
-export const resolvers: {
-    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
-    [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
-} = {
-    client(client, base): Generic.ReadLinkResult<Generic.Post> | null {
         return {error: null, value: {
             kind: "post",
-            content: {
-                kind: "client",
-                navbar: getNavbar(null),
-            },
-            internal_data: 0,
-            parent: null,
-            replies: null,
+            content: postcontent,
+            internal_data: widget,
+            parent: base_subreddit.asParent(content, base.sub),
+            replies,
             url: null,
             client_id,
         }};
-    },
-    subreddit(client, base): Generic.ReadLinkResult<Generic.Post> | null {
-        const content = client.dirty_content;
-        return {error: null, value: {
-            kind: "post",
-            content: {
-                kind: "page",
-                wrap_page: {
-                    header: base_subreddit_sidebar.identity(content, {for_sub: base.sr_name}),
-                    sidebar: base_subreddit_sidebar.replies(content, {for_sub: base.sr_name}),
-                },
-            },
-            internal_data: base,
-            parent: base_client.asParent(content, {}),
-            replies: {
-                display: "repivot_list",
-                loader: {
-                    kind: "horizontal_loader",
-                    key: client.getLink("replies", {kind: "subreddit", sub: base}),
-                    request: client.getLink("subreddit_replies_request", base),
-                    client_id,
-                },
-            },
-            url: base_subreddit.url(base),
-            client_id,
-        }};
-    },
-    subreddit_replies_request(client, base) {
-        return {error: null, value: opaque_loader.encode({
-            kind: "subreddit_posts",
-            subreddit: base,
-        })};
     },
     replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         const content = client.dirty_content;
@@ -1547,7 +1504,7 @@ type LoaderData = {
     subreddit: BaseSubreddit,
 } | {
     kind: "subreddit_identity_and_sidebar",
-    sub: BaseSubredditSidebar,
+    sub: LowercaseString,
 } | {
     kind: "view_post",
     post: BasePostT3,
@@ -1616,23 +1573,23 @@ export async function loadPage2v2(
     const data = opaque_loader.decode(lreq);
     const client = RedditClient.fromContent(content);
     console.log("loadpage2v2", data);
+    (window as any).__last_loaded = client;
     if(data.kind === "subreddit_posts") {
         // fetch the subreddit listing
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
         const client = RedditClient.fromContent(content);
         addListing(client, {kind: "subreddit", sub: data.subreddit}, sub_listing, true);
     }else if(data.kind === "subreddit_identity_and_sidebar") {
-        const subreddit = data.sub.for_sub;
+        const subreddit = data.sub;
         const [widgets, about] = await Promise.all([
             redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}),
             redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}),
         ]);
-        const full: FullSubredditSidebar = {
-            on_base: data.sub,
-            widgets,
-            sub_t5: about,
-        };
-        full_subreddit_sidebar.fill(content, full);
+        client.addDirty(client.data.subreddit_t5s.setAndList(subreddit, about));
+        client.addDirty(client.data.widgets.setAndList(subreddit, widgets));
+        for (const [key, widget] of Object.entries(widgets.items)) {
+            client.addDirty(client.data.widget.setAndList(stringify({sub: subreddit, widget: key}), widget));
+        }
     }else if(data.kind === "view_post") {
         // *! on /duplicates, it probably uses a "?after=" url. TODO support that.
         const postid = data.post.fullname.substring(3);

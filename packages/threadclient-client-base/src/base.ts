@@ -71,7 +71,7 @@ export abstract class ThreadClient implements ThreadClientImplements {
 export class ObservableMap<T, U, Tracking> {
     private _map: Map<T, U>;
     private _dependencies: Map<T, Set<Tracking>>;
-    private _tracking?: {key: Tracking, cleared: Set<T>};
+    private _tracking?: {key: Tracking};
     constructor(prev?: ObservableMap<T, U, Tracking>) {
         this._map = new Map(prev?._map);
         this._dependencies = new Map(prev?._dependencies.entries().map(([k, v]) => [k, new Set(v)]));
@@ -99,10 +99,6 @@ export class ObservableMap<T, U, Tracking> {
     private _view(key: T): void {
         if (this._tracking === undefined) return;
         const deps = this._deps(key);
-        if (!this._tracking.cleared.has(key)) {
-            this._tracking.cleared.add(key);
-            deps.clear();
-        }
         deps.add(this._tracking.key);
     }
 
@@ -124,7 +120,10 @@ export class ObservableMap<T, U, Tracking> {
         if (this._tracking !== undefined) {
             throw new Error("should not be tracking");
         }
-        this._tracking = {key, cleared: new Set()};
+        this._tracking = {key};
+        // TODO: clear every instance of 'key' in this._dependencies
+        // we could do that if we use backrefs or something, ie a map of key -> all items which track it
+        // for now we will skip clearing, though it is important and we should add it back.
     }
     endTracking(): void {
         if (this._tracking === undefined) {
