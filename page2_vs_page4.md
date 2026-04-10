@@ -1,4 +1,4 @@
-
+# page2 vs page4
 
 page2 is append-only. you can only replace if you know the full content
 - that means even if you have partial content, you can't show anything
@@ -33,3 +33,29 @@ page4 lets you show partial content
     if we prefetched every link.
 - we no longer need on_post/on_sub stuff in the bases for comments which saves
   a web request in a rare case. this is nice?
+
+# sorting
+
+so with sorting:
+
+- a url can change the sort method. ie `/r/abc/top?t=all` vs `/r/abc/new`
+- the sort method doesn't change anything about the post content, only the replies & the url
+- it would be nice for Items to map from fullname to content. not listings though, that needs sort. mores also needs sort.
+
+so how do we do it?
+
+```
+post:
+  sort_group: Link<SortGroup>,
+  sorted: SortedLink<{
+    replies: ...,
+    url: ...,
+  }>,
+sort_group:
+  options: ["best", "new", ...]
+  selection: string,
+```
+
+so now when you fetch /r/abc/top?t=all, it has to tell you which sort to start with. I guess since we're using client classes now,
+the client could keep track of that? I mean we could literally have sort_value: `Link<string>` which we would default to the
+current sort value
