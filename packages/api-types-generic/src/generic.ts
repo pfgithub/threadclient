@@ -39,50 +39,6 @@ export type Page2Value<T> = {
 */
 
 export function validatePost<T>(link: Link<T>, res: T): T {
-    // how to validate a post:
-    // we'll have to find a better place to put this code
-    /*
-    const debug_mode = true;
-    let is_validating = false;
-    function validatePost<T>(link: Generic.Link<T>, res: T): T {
-        if(is_validating) return res;
-        is_validating = true;
-        try {
-            if(debug_mode) {
-                // heuristic to see if it looks like res looks like a generic.post
-                if(res != null && typeof res === "object" && 'kind' in res && (res as {'kind': unknown})["kind"] === "post" && 'url' in res) {
-                    const resurl = (res as {'url': unknown}).url;
-                    if(typeof resurl === "string") {
-                        if((res as {'disallow_pivot': undefined | boolean}).disallow_pivot ?? false) {
-                            // pass; the object cannot be pivoted and clicking it will redirect to its url rather than repivoting
-                        }else{
-                            // parse the url
-                            try{
-                                const upres = urlToOneLoader(resurl);
-                                if('kind' in upres) {
-                                    console.warn("*[ValidatePost]* URL DOES NOT CONTAIN BASE:", resurl, link);
-                                }else if(upres.pivot_loader == null) {
-                                    console.warn("*[ValidatePost]* NOT YET SUPPORTED URL:", resurl, link);
-                                }else if(upres.pivot_loader.key !== link){
-                                    console.error("*[ValidatePost]* URL PRODUCES DIFFERENT KEY:", resurl, "\n→", link, "\n←", upres.pivot_loader.key);
-                                }else{
-                                    // passsed
-                                }
-                            }catch(e) {
-                                console.error("*[ValidatePost]* URL ERRORS:", resurl, link, e);
-                            }
-                        }
-                    }else{
-                        // pass. null or undefined or some other type.
-                    }
-                }
-            }
-            return res;
-        } finally {
-            is_validating = false;
-        }
-    }
-    */
     return res; // *TODO validate
 }
 
@@ -419,7 +375,6 @@ export type Post = {
     content: PostContent, // content should always be in a PostData. eg: crossposts that are embedded in a body also need parent, replies.
     internal_data: unknown,
 
-    disallow_pivot?: undefined | boolean,
     parent: null | PostParent, // TODO: change this to a Link<{load?: opaque, next: Post | null}>
     replies: null | PostReplies, // TODO: rename to 'children' and change this to a Link<HorizontalLoaded> which will contain any loaders.
     

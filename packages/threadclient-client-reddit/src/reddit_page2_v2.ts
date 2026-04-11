@@ -830,7 +830,6 @@ export const resolvers: {
                     replies: null,
 
                     url: "/r/"+base.subreddit.sr_name+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
-                    disallow_pivot: true,
                     client_id,
                 });
             }))};
@@ -907,7 +906,6 @@ export const resolvers: {
                         replies: null,
 
                         url: base_subreddit.url(sub_base, subSortMethod(client, sub_base)),
-                        disallow_pivot: true,
                         client_id,
                     });
                 }else{
@@ -1547,7 +1545,6 @@ export type Post = {
     content: PostContent, // content should always be in a PostData. eg: crossposts that are embedded in a body also need parent, replies.
     internal_data: unknown,
 
-    disallow_pivot?: undefined | boolean,
     parent: null | PostParent,
     replies: null | PostReplies,
     

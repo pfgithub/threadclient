@@ -1173,7 +1173,6 @@ function unpivotablePostBelowPivot(
 ): Generic.Link<Generic.Post> {
     return p2.fillLinkOnce<Generic.Post>(content, opts.link ?? p2.symbolLink(""), () => ({
         url: opts.link_to ?? null,
-        disallow_pivot: true,
         parent: null, // always below the pivot, doesn't matter.
         // ^ not true - top level posts below the pivot might show their parents. so we should be able to
         // pass something in here

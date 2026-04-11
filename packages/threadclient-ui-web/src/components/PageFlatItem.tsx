@@ -246,7 +246,6 @@ function PageFlatPost(props: {
 
 export function postGetPage(hprc: PageRootContext, lpc: FlatTreeItem): Page2ContentManager | undefined {
     if(lpc.kind !== "flat_post") return undefined; // only posts are focusable
-    if(lpc.post.disallow_pivot ?? false) return undefined;
     return hprc.content.dupe(lpc.link);
 }
 export function postOnClick(hprc: PageRootContext, frame: FlatPost, e: MouseEvent | KeyboardEvent): void {
