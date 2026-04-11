@@ -1365,19 +1365,7 @@ export function pageFromListing(
                         }))
                     ]}
                     // action: {kind: "link", client_id: client.id, url: "/"+[...menu_kind.base, ...tab === "overview" ? [] : [tab]].join("/")},
-                })), {
-                    selected: page.current.tab === "gilded",
-                    text: "Gilded",
-                    action: {kind: "show-line-two", children: [{
-                        selected: page.current.tab === "gilded" && page.current.by === "received",
-                        text: "Received",
-                        action: {kind: "link", client_id: client.id, url: "/"+["u", page.username, "gilded"].join("/")}
-                    }, {
-                        selected: page.current.tab === "gilded" && page.current.by === "given",
-                        text: "Given",
-                        action: {kind: "link", client_id: client.id, url: "/"+["u", page.username, "gilded", "given"].join("/")}
-                    }]},
-                }, ...user_sortless_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
+                })), ...user_sortless_tabs_named.map(([tab, tabname]): Generic.MenuItem => ({
                     selected: page.current.tab === tab,
                     text: tabname,
                     action: {kind: "link", client_id: client.id, url: "/"+["u", page.username, tab].join("/")},
@@ -1495,13 +1483,6 @@ export type ParsedPath = {
         // overview defaults ?sort=new
         // comments defaults ?sort=new
         // submitted defaults ?sort=hot
-    } | {
-        kind: "gild-tab",
-        tab: "gilded",
-        by: "received" | "given" | "unsupported",
-        // /gilded/ : received
-        // /gilded/reveived
-        // /gilded/given
     } | {
         kind: "unsorted-tab",
         tab: "upvoted" | "downvoted" | "hidden" | "saved",
@@ -2445,7 +2426,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
         };
         return result;
     }else{ //eslint-disable-line no-else-return
-        expectUnsupported(listing_raw.kind);
+        if (listing_raw.kind !== "t6") expectUnsupported(listing_raw.kind);
         return {
             kind: "thread",
             title: {text: "unsupported listing kind "+listing_raw.kind},

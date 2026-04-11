@@ -70,3 +70,16 @@ we're implementing sort like this. it will work, but it wouldn't allow us to dis
 and it's odd changing state for literally just calling getPage.
 
 so ideally we will improve upon this later but at least for now we will have it working.
+
+# alternate sorting
+
+a version of sorting that is compatible with page2(non-4):
+- sorters are a post with kind sorter
+- when they are the pivot, they're not really the pivot. the client renders the thing above them as the real pivot
+- when you're deep in a thread if you want to change the sort you scroll up to under the post. you change the sort there
+- each item has its own replies
+- there is a default
+
+this is interesting to consider? but maybe we prefer existing sorting?
+
+this would be the same as keeping that other sorting but only putting it on the top level instead of every reply too

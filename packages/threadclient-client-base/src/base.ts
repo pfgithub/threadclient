@@ -90,6 +90,7 @@ export class ObservableMap<T, U, Tracking> {
         return this._map.has(key);
     }
     setAndList(key: T, value: U): Set<Tracking> {
+        console.log("setAndList", key, value);
         this._map.set(key, value);
         return this._deps(key);
     }
