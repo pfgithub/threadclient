@@ -1,5 +1,6 @@
 import * as Generic from "api-types-generic";
 import {
+    Accessor,
     createMemo, createSelector, createSignal,
     For,
     JSX,
@@ -25,7 +26,7 @@ import SwipeActions from "./SwipeActions";
 import swipeActionSet from "./SwipeActionSet";
 import ReadLink from "./ReadLink";
 import { per_post_context } from "../util/contexts";
-import Page2ContentManager from "../util/Page2ContentManager";
+import Page2ContentManager, { SortState } from "../util/Page2ContentManager";
 
 const rainbow = [
     "bg-red-500",
@@ -115,29 +116,11 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: PerPostData}
         sort_buttons_2: sortbtns => <div class={"mt-4 mb-4 rounded-lg bg-slate-100 dark:bg-zinc-800"}>
             <menu class="p-2 flex flex-row flex-wrap gap-2 dark:text-zinc-400">
                 <ReadLink link={sortbtns.sort_menu} fallback={<>error</>}>{sort_menu => {
-                    const hprc = getWholePageRootContext();
                     const key = createSelector(() => hprc.content.view2(sortbtns.sort_group).selected.key);
-                    const status = () => hprc.content.viewSortStatus(sortbtns.sort_group);
-                    return <><For each={sort_menu.options}>{sortbtn => <li style={{display: "contents"}}>
-                        {// inline-block mx-1 px-1 text-base border-b-2 transition-colors border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900
-                        }
-                        <Clickable
-                            class={"px-1 border-b-2 border-transparent hover:text-slate-700 dark:hover:text-zinc-50 " + (
-                                sortbtn.value.kind === "single" ? key(sortbtn.value.key) ? "text-slate-700 dark:text-zinc-50" : "" : "")}
-                            action={switchKind(sortbtn.value, {
-                                list: () => (() => alert("TODO list")),
-                                single: () => (() => {
-                                    if (sortbtn.value.kind !== "single") throw new Error("unreachable");
-                                    hprc.content.sort(sortbtns.sort_group, sortbtn.value.request);
-                                }),
-                            })}
-                            disabled={status().kind === "load"}
-                            children={<>
-                                {sortbtn.label}
-                                {sortbtn.value.kind === "list" ? " ▾" : ""}
-                            </>}
-                        />
-                    </li>}</For><Show if={status().kind === "error"}><li class="text-red-500">Sort error: {(() => {
+                    const status = createMemo(() => hprc.content.viewSortStatus(sortbtns.sort_group));
+                    return <><For each={sort_menu.options}>{sortbtn => (
+                        <SortButton sortbtn={sortbtn} sort_group={sortbtns.sort_group} selected={key} status={status} />
+                    )}</For><Show if={status().kind === "error"}><li class="text-red-500">Sort error: {(() => {
                         const s = status();
                         if (s.kind === "error") return s.message;
                         return "ok";
@@ -158,6 +141,37 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: PerPostData}
             Error: {error.note} <button onclick={() => console.log(error.data)}>code</button>
         </div>,
     }}</SwitchKind>;
+}
+function SortButton(props: {
+    sortbtn: Generic.SortOption,
+    sort_group: Generic.Link<Generic.SortGroup>,
+    selected: (key: string) => boolean,
+    status: Accessor<SortState>,
+}): JSX.Element {
+    const hprc = getWholePageRootContext();
+    const [listOpen, setListOpen] = createSignal(false);
+    return <><li style={{display: "contents"}}>
+        <Clickable
+            class={"px-1 border-b-2 border-transparent hover:text-slate-700 dark:hover:text-zinc-50 " + (
+                props.sortbtn.value.kind === "single" ? props.selected(props.sortbtn.value.key) ? "text-slate-700 dark:text-zinc-50" : "" : "")}
+            action={switchKind(props.sortbtn.value, {
+                list: () => (() => setListOpen(l => !l)),
+                single: () => (() => {
+                    if (props.sortbtn.value.kind !== "single") throw new Error("unreachable");
+                    hprc.content.sort(props.sort_group, props.sortbtn.value.request);
+                }),
+            })}
+            disabled={props.status().kind === "load"}
+            children={<>
+                {props.sortbtn.label}
+                {props.sortbtn.value.kind === "list" ? " ▾" : ""}
+            </>}
+        />
+    </li><Show if={listOpen()}>
+        <For each={props.sortbtn.value.kind === "list" ? props.sortbtn.value.items : []}>{item => (
+            <SortButton sortbtn={item} sort_group={props.sort_group} selected={props.selected} status={props.status} />
+        )}</For>
+    </Show></>;
 }
 
 function PostIndent(props: {

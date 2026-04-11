@@ -34,7 +34,7 @@ export class Page2SecretsManager {
 }
 const page2SecretsManagerInstance = new Page2SecretsManager();
 
-type SortState = {kind: "none"} | {kind: "load"} | {kind: "error", message: string};
+export type SortState = {kind: "none"} | {kind: "load"} | {kind: "error", message: string};
 
 export default class Page2ContentManager {
     // TODO: once view is removed, we can switch this to Signal<unknown>
