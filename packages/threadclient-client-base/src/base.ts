@@ -289,3 +289,7 @@ export class DeprecatedClient extends ThreadClient {
         return {client: result, dirty: []};
     }
 }
+export type Stringified<T> = string & {__is_stringified: T};
+export function stringify<T>(v: NoInfer<T>): Stringified<T> {
+    return JSON.stringify(v) as Stringified<T>;
+}

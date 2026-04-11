@@ -1,7 +1,7 @@
 import * as Generic from "api-types-generic";
 import { autoFill, autoLinkgen, autoOutline, p2, rt, validatePost } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
-import { encoderGenerator, ObservableMap } from "threadclient-client-base";
+import { encoderGenerator, ObservableMap, Stringified, stringify } from "threadclient-client-base";
 import { assertNever, expectUnsupported, result, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
 import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink, RedditClient } from "./reddit";
@@ -81,7 +81,6 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         }
         const link = RedditClient.fromContent(content).getLink("subreddit", {
             sr_name: subv,
-            sort: parsed.current_sort,
         });
         return p2.prefilledVerticalLoader(content, link, undefined);
     }
@@ -96,7 +95,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
 
         const sort: Sortv = parsed.sort_override != null ? {v: parsed.sort_override} : "default";
         const client = RedditClient.fromContent(content);
-        const key = client.getLink("item", {fullname: comment_fullname ?? post_fullname, sort});
+        const key = client.getLink("item", {fullname: comment_fullname ?? post_fullname});
         const request = client.getLink("item_replies_request", {
             post_fullname,
             comment_fullname,
@@ -125,7 +124,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         return {
             kind: "vertical_loader",
             unfilled_parent: RedditClient.fromContent(content).getLink("client", {}),
-            key: RedditClient.fromContent(content).getLink("item", {fullname: post_base.fullname, sort: post_base.sort}),
+            key: RedditClient.fromContent(content).getLink("item", {fullname: post_base.fullname}),
             request: p2.createSymbolLinkToValue<Generic.Opaque<"loader">>(content, opaque_loader.encode({
                 kind: "view_post",
                 focus_comment_id: null,
@@ -347,15 +346,17 @@ export const base_client = {
 // class Subreddit extends Base<BaseSubredditT5> implements asPost, getReplies
 export const base_subreddit = {
     url: (base: BaseSubreddit): "/__any_listing" => {
+        const sort: SubSort = subDefaultSort(base.sr_name);
         return updateQuery(
-            "/r/" + base.sr_name + ("/" + base.sort.v),
-            {t: base.sort.t},
+            "/r/" + base.sr_name + ("/" + sort.v),
+            {t: sort.t},
+            // TODO: we will make URLs a Link<string> and then they will change based on the sort
         ) as "/__any_listing";
     },
-    asParent: (content: Generic.Page2Content, base: UnsortedSubreddit): Generic.PostParent => {
+    asParent: (content: Generic.Page2Content, base: BaseSubreddit): Generic.PostParent => {
         const client = RedditClient.fromContent(content);
         return {loader: Generic.p2.prefilledVerticalLoader(
-            content, client.getLink("subreddit", {sr_name: base, sort: subDefaultSort(base)}), undefined,
+            content, client.getLink("subreddit", base), undefined,
         )};
     },
 };
@@ -402,37 +403,36 @@ export function commentDefaultCollapsed(author_name: string): boolean {
 }
 
 const base_oldsidebar_widget = {
-    url: (base: LowercaseString) => "/r/"+base+"/about/sidebar",
+    url: (base: BaseSubreddit) => "/r/"+base.sr_name+"/about/sidebar",
 };
 
 type DuplicaesSortV = {m: "duplicates", v: Reddit.DuplicatesSort, crossposts_only: boolean};
-type Sortv = PostSort | DuplicaesSortV | "default";
+type Sortv = PostSort | DuplicaesSortV | "default"; // TODO: remove "default" sort
 function isDuplicates(sort: Sortv): sort is DuplicaesSortV {
     return typeof sort === "object" && sort != null && 'm' in sort && sort.m === "duplicates";
 }
 
 // * you will only be able to get a link to a post by using the full_post fn
 // * you can get a base_post 'as_parent' but no other way
-type Stringified<T> = string & {__is_stringified: T};
-function stringify<T>(v: NoInfer<T>): Stringified<T> {
-    return JSON.stringify(v) as Stringified<T>;
-}
+
 export type RedditClientData = {
     
     // we should be able to have this not include sort and instead have comment replies be per-sort. but for now it will include it.
     // currently, this maps from JSON.stringify(BaseComment) to FullCommentT1
     // but instead we should split this up:
     items: ObservableMap<Stringified<BaseItem>, Reddit.Item, Generic.Link<unknown>>,
-    listings: ObservableMap<Stringified<ObjectID>, Reddit.Listing | "", Generic.Link<unknown>>,
+    listings: ObservableMap<Stringified<SortedObjectID>, Reddit.Listing | "", Generic.Link<unknown>>,
     mores: ObservableMap<Stringified<BaseMore2>, Reddit.More, Generic.Link<unknown>>,
-    widgets: ObservableMap<LowercaseString, Reddit.ApiWidgets, Generic.Link<unknown>>,
+    widgets: ObservableMap<Stringified<BaseSubreddit>, Reddit.ApiWidgets, Generic.Link<unknown>>,
     widget: ObservableMap<Stringified<BaseWidget>, Reddit.Widget, Generic.Link<unknown>>,
-    subreddit_t5s: ObservableMap<LowercaseString, Reddit.T5, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
+    subreddit_t5s: ObservableMap<Stringified<BaseSubreddit>, Reddit.T5, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
+
+    post_sorts: ObservableMap<Stringified<BaseItem>, Sortv, Generic.Link<unknown>>,
+    subreddit_sorts: ObservableMap<Stringified<BaseSubreddit>, Sortv, Generic.Link<unknown>>,
 };
 type BaseWidget = {
-    sub: LowercaseString,
+    subreddit: BaseSubreddit,
     widget: string,
-
 };
 export function initRedditClientData(prev?: RedditClientData): RedditClientData {
     return {
@@ -442,6 +442,9 @@ export function initRedditClientData(prev?: RedditClientData): RedditClientData 
         widgets: new ObservableMap(prev?.widgets),
         widget: new ObservableMap(prev?.widget),
         subreddit_t5s: new ObservableMap(prev?.subreddit_t5s),
+
+        post_sorts: new ObservableMap(prev?.post_sorts),
+        subreddit_sorts: new ObservableMap(prev?.subreddit_sorts),
     };
 }
 export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
@@ -451,6 +454,9 @@ export function trackRedditClientData(data: RedditClientData, link: Generic.Link
     data.widgets.beginTracking(link);
     data.widget.beginTracking(link);
     data.subreddit_t5s.beginTracking(link);
+
+    data.post_sorts.beginTracking(link);
+    data.subreddit_sorts.beginTracking(link);
 }
 export function untrackRedditClientData(data: RedditClientData): void {
     data.items.endTracking();
@@ -459,10 +465,13 @@ export function untrackRedditClientData(data: RedditClientData): void {
     data.widgets.endTracking();
     data.widget.endTracking();
     data.subreddit_t5s.endTracking();
+
+    data.post_sorts.endTracking();
+    data.subreddit_sorts.endTracking();
 }
 
-type BaseItem = {fullname: string, sort: Sortv};
-type BaseSubreddit = {sr_name: LowercaseString, sort: SubSort};
+type BaseItem = {fullname: string};
+type BaseSubreddit = {sr_name: LowercaseString};
 type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: Sortv};
 export type RedditLinkDescriptors = {
     // TODO: most of these should not need a sort method! sort should only be for replies, where the client chooses which one to use
@@ -475,7 +484,7 @@ export type RedditLinkDescriptors = {
         content: Generic.Post,
     },
     comment_parent_request: {
-        data: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null, sort: Sortv},
+        data: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null},
         content: Generic.Opaque<"loader">,
     },
     item_replies_request: {
@@ -499,19 +508,19 @@ export type RedditLinkDescriptors = {
         content: Generic.Opaque<"loader">,
     },
     subreddit_card: {
-        data: LowercaseString,
+        data: BaseSubreddit,
         content: Generic.FilledIdentityCard,
     },
     subreddit_widgets: {
-        data: LowercaseString,
+        data: BaseSubreddit,
         content: Generic.HorizontalLoaded,
     },
     subreddit_identity_request: {
-        data: LowercaseString,
+        data: BaseSubreddit,
         content: Generic.Opaque<"loader">,
     },
     subreddit_oldsidebar_widget: {
-        data: LowercaseString,
+        data: BaseSubreddit,
         content: Generic.Post,
     },
     widget: {
@@ -553,9 +562,9 @@ export const resolvers: {
                         temp_title: "r/" + base.sr_name,
                         filled: {
                             kind: "one_loader",
-                            key: client.getLink("subreddit_card", base.sr_name),
+                            key: client.getLink("subreddit_card", base),
                             load_count: null,
-                            request: client.getLink("subreddit_identity_request", base.sr_name),
+                            request: client.getLink("subreddit_identity_request", base),
                             client_id,
                             autoload: true,
                         },
@@ -564,8 +573,8 @@ export const resolvers: {
                         display: "tree",
                         loader: {
                             kind: "horizontal_loader",
-                            key: client.getLink("subreddit_widgets", base.sr_name),
-                            request: client.getLink("subreddit_identity_request", base.sr_name),
+                            key: client.getLink("subreddit_widgets", base),
+                            request: client.getLink("subreddit_identity_request", base),
                             load_count: null,
                             autoload: false,
                             client_id,
@@ -584,7 +593,7 @@ export const resolvers: {
                     client_id,
                     sort: {
                         methods: subredditSortOptions(client.dirty_content),
-                        current: opaque_sort_option.encode({kind: "sub", sub: simplifySort(base.sort)}),
+                        current: opaque_sort_option.encode({kind: "sub", sub: subDefaultSort(base.sr_name)}),
                         post_id: client.getLink("subreddit", base),
                     },
                 },
@@ -602,12 +611,12 @@ export const resolvers: {
     subreddit_identity_request(client, base) {
         return {error: null, value: opaque_loader.encode({
             kind: "subreddit_identity_and_sidebar",
-            sub: base,
+            sub: base.sr_name,
         })};
     },
     subreddit_card(client, base): Generic.ReadLinkResult<Generic.FilledIdentityCard> | null {
         // arguably these should not use subreddit_card
-        if (base === "all") {
+        if (base.sr_name === "all") {
             return {error: null, value: {
                 names: {display: "All", raw: "r/all"},
                 pfp: null,
@@ -617,7 +626,7 @@ export const resolvers: {
                 menu: null,
                 raw_value: null,
             }};
-        } else if (base === "popular") {
+        } else if (base.sr_name === "popular") {
             return {error: null, value: {
                 names: {display: "Popular", raw: "r/popular"},
                 pfp: null,
@@ -629,8 +638,8 @@ export const resolvers: {
             }};
         }
 
-        const widgets = client.data.widgets.get(base);
-        const t5 = client.data.subreddit_t5s.get(base);
+        const widgets = client.data.widgets.get(stringify(base));
+        const t5 = client.data.subreddit_t5s.get(stringify(base));
         console.log("subreddit_card", base, widgets, t5);
         if (widgets == null || t5 == null || t5.kind !== "t5") return null;
         return {error: null, value: subredditHeaderExists({
@@ -640,10 +649,10 @@ export const resolvers: {
         })};
     },
     subreddit_widgets(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
-        if (base === "all" || base === "popular") return {error: null, value: []};
+        if (base.sr_name === "all" || base.sr_name === "popular") return {error: null, value: []};
 
-        const widgets = client.data.widgets.get(base);
-        const t5 = client.data.subreddit_t5s.get(base);
+        const widgets = client.data.widgets.get(stringify(base));
+        const t5 = client.data.subreddit_t5s.get(stringify(base));
         if (widgets == null || t5 == null || t5.kind !== "t5") return null;
 
         return {error: null, value:[
@@ -653,14 +662,14 @@ export const resolvers: {
             // skipping id card widget as we already provide that with the header
             // ...full.widgets.layout.topbar.order.map(id => base_sidebar_widget.link(basev(id))), // this is for the dropdown menu? TODO
             ...widgets.layout.sidebar.order.map(id => (
-                client.getLink("widget", {sub: base, widget: id})
+                client.getLink("widget", {subreddit: base, widget: id})
             )),
-            client.getLink("widget", {sub: base, widget: widgets.layout.moderatorWidget}),
+            client.getLink("widget", {subreddit: base, widget: widgets.layout.moderatorWidget}),
         ]};
     },
     subreddit_oldsidebar_widget(client, base): Generic.ReadLinkResult<Generic.Post> | null {
         const content = client.dirty_content;
-        const t5 = client.data.subreddit_t5s.get(base);
+        const t5 = client.data.subreddit_t5s.get(stringify(base));
         if (t5 == null || t5.kind !== "t5") return null;
         return {error: null, value: {
             kind: "post",
@@ -700,7 +709,7 @@ export const resolvers: {
                 title: {text: "Moderators"},
                 body: {kind: "richtext", content: [
                     rt.p(
-                        rt.link({id: client_id}, "/message/compose?to=/r/"+base.sub,
+                        rt.link({id: client_id}, "/message/compose?to=/r/"+base.subreddit.sr_name,
                             {style: "pill-empty"},
                             rt.txt("Message the mods"),
                         ),
@@ -713,7 +722,7 @@ export const resolvers: {
                         }).flatMap(flair => [rt.txt(" "), rt.flair(flair)]),
                     )))),
                     rt.p(
-                        rt.link({id: client_id}, "/r/"+base.sub+"/about/moderators", {}, rt.txt("View All Moderators")),
+                        rt.link({id: client_id}, "/r/"+base.subreddit.sr_name+"/about/moderators", {}, rt.txt("View All Moderators")),
                     ),
                 ]},
                 collapsible: false,
@@ -777,7 +786,7 @@ export const resolvers: {
                     parent: {loader: p2.prefilledVerticalLoader(content, client.getLink("widget", base), undefined)},
                     replies: null,
 
-                    url: "/r/"+base.sub+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
+                    url: "/r/"+base.subreddit.sr_name+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
                     disallow_pivot: true,
                     client_id,
                 });
@@ -832,7 +841,6 @@ export const resolvers: {
                     const sub_name = asLowercaseString(community.name);
                     const sub_base: BaseSubreddit = {
                         sr_name: sub_name,
-                        sort: subDefaultSort(sub_name),
                     };
                     return p2.createSymbolLinkToValue<Generic.Post>(content, {
                         kind: "post",
@@ -988,7 +996,7 @@ export const resolvers: {
             kind: "post",
             content: postcontent,
             internal_data: widget,
-            parent: base_subreddit.asParent(content, base.sub),
+            parent: base_subreddit.asParent(content, base.subreddit),
             replies,
             url: null,
             client_id,
@@ -996,16 +1004,24 @@ export const resolvers: {
     },
     replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
         const content = client.dirty_content;
-        const full = client.data.listings.get(stringify(base));
+        let sorted: SortedObjectID;
+        if (base.kind === "item") {
+            sorted = {kind: "item", item: base.item, sort: "default"};
+        } else if (base.kind === "subreddit") {
+            sorted = {kind: "subreddit", sub: base.sub, sort: subDefaultSort(base.sub.sr_name)};
+        } else {
+            throw new Error("todo support base kind: " + stringify(base));
+        }
+        const full = client.data.listings.get(stringify(sorted));
         if (full == null) return result(null);
         if (full === "") return {error: null, value: []};
         return {error: null, value: [
             ...full.data.before ? [p2.createSymbolLinkToError(content, "TODO impl before", full.data.before)] : [],
             ...full.data.children.map((ch): Generic.HorizontalLoadedItem => {
-                const sort: Sortv = base.kind === "item" ? base.item.sort : "default";
+                const sort: Sortv = sorted.kind === "item" ? sorted.sort : "default";
                 // implement special 'more' handling
                 if (ch.kind === "more") {
-                    const parent_content = client.data.items.get(stringify({fullname: ch.data.parent_id, sort}));
+                    const parent_content = client.data.items.get(stringify({fullname: ch.data.parent_id}));
                     if (!parent_content) return p2.createSymbolLinkToError(content, "more is missing parent item", ch);
                     let post_fullname: string;
                     let subreddit_name: LowercaseString;
@@ -1020,7 +1036,7 @@ export const resolvers: {
                     }
                     return handleMore(client, ch, sort, post_fullname, subreddit_name);
                 }
-                return client.getLink("item", {fullname: ch.data.name, sort})
+                return client.getLink("item", {fullname: ch.data.name});
             }),
             ...full.data.after ? [p2.createSymbolLinkToError(content, "TODO impl after", full.data.after)] : [],
         ]};
@@ -1028,7 +1044,7 @@ export const resolvers: {
     comment_parent_request(client, base): Generic.ReadLinkResult<Generic.Opaque<"loader">> | null {
         return {error: null, value: opaque_loader.encode({
             kind: "view_post",
-            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: base.sort},
+            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: "default"},
             focus_comment_id: base.parent_comment_fullname,
             context: "9", // max
         })};
@@ -1072,12 +1088,12 @@ function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Red
             display: "tree",
             loader: {
                 kind: "horizontal_loader",
-                key: client.getLink("replies", {kind: "item", item: {fullname: full.data.name, sort: base.sort}}),
+                key: client.getLink("replies", {kind: "item", item: {fullname: full.data.name}}),
                 request: client.getLink("item_replies_request", {
                     subreddit: asLowercaseString(full.data.subreddit),
                     post_fullname: full.kind === "t1" ? full.data.link_id : full.data.name,
                     comment_fullname: full.kind === "t1" ? full.data.id : null,
-                    sort: base.sort,
+                    sort: "default",
                 }),
                 client_id,
             },
@@ -1086,10 +1102,11 @@ function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Red
 }
 
 function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Generic.Post {
-    const url = isDuplicates(base.sort) ? (
+    const sort = ("default" satisfies Sortv) as Sortv;
+    const url = isDuplicates(sort) ? (
         "/r/"+full.data.subreddit+"/duplicates/"+full.data.id
-    ) : updateQuery(full.data.permalink, base.sort !== "default" ? {
-        sort: base.sort.v,
+    ) : updateQuery(full.data.permalink, sort !== "default" ? {
+        sort: sort.v,
     } : {});
     const listing = full.data;
     const {replies} = itemReplies(client, base, full);
@@ -1099,7 +1116,7 @@ function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Gener
         client_id,
         url,
 
-        parent: base_subreddit.asParent(client.dirty_content, asLowercaseString(full.data.subreddit)),
+        parent: base_subreddit.asParent(client.dirty_content, {sr_name: asLowercaseString(full.data.subreddit)}),
         replies,
 
         content: {
@@ -1141,8 +1158,8 @@ function resolveT1(client: RedditClient, base: BaseItem, full: Reddit.T1): Gener
 
     const listing = full.data;
 
-    const parent_unfilled_link = client.getLink("item", {fullname: full.data.parent_id, sort: base.sort});
-    const load_parent_request = client.getLink("comment_parent_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, parent_comment_fullname: full.data.parent_id.startsWith("t1_") ? full.data.parent_id : null, sort: base.sort});
+    const parent_unfilled_link = client.getLink("item", {fullname: full.data.parent_id});
+    const load_parent_request = client.getLink("comment_parent_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, parent_comment_fullname: full.data.parent_id.startsWith("t1_") ? full.data.parent_id : null});
 
     const {replies} = itemReplies(client, base, full);
 
@@ -1178,7 +1195,7 @@ function resolveT1(client: RedditClient, base: BaseItem, full: Reddit.T1): Gener
         parent: {
             loader: {
                 kind: "vertical_loader",
-                unfilled_parent: client.getLink("item", {fullname: full.data.link_id, sort: base.sort}),
+                unfilled_parent: client.getLink("item", {fullname: full.data.link_id}),
                 key: parent_unfilled_link,
                 client_id,
                 request: load_parent_request,
@@ -1267,7 +1284,7 @@ export const full_submit = {
                 },
             },
             internal_data: {about, flairinfo},
-            parent: base_subreddit.asParent(content, full.on_base.on_subreddit),
+            parent: base_subreddit.asParent(content, {sr_name: full.on_base.on_subreddit}),
             replies: null,
             url: base_submit.url(full.on_base),
             client_id,
@@ -1366,16 +1383,6 @@ const sorted_compose_inbox = {
     }),
 };
 
-type CommentExtra = {
-    on_post: BasePostT3,
-    comment_replies_valid: CommentRepliesValid,
-};
-
-type BaseMore = {id: string};
-type FullMore = {more: Reddit.More, post: BasePostT3};
-function moreLink(base: BaseMore): Generic.Link<Generic.HorizontalLoaded> {
-    return autoLinkgen<Generic.HorizontalLoaded>("more→loaded", base);
-}
 function handleMore(client: RedditClient, full: Reddit.More, sort: Sortv, post_fullname: string, subreddit: LowercaseString): Generic.HorizontalLoadedItem {
     if (full.data.children.length === 0) {
         // depth-based
@@ -1396,20 +1403,11 @@ function handleMore(client: RedditClient, full: Reddit.More, sort: Sortv, post_f
     // morechildren-based
     return {
         kind: "horizontal_loader",
-        key: client.getLink("replies", {kind: "item", item: {fullname: stringify<BaseMore2>(moreBase(full, sort)), sort}}),
+        key: client.getLink("replies", {kind: "item", item: {fullname: stringify<BaseMore2>(moreBase(full, sort))}}),
         request: client.getLink("loadmore_request", {base: moreBase(full, sort), sort, post_fullname}), // the id of a 'more' is the id of its first child, so we need to differentiate
         load_count: full.data.count,
         client_id,
     };
-}
-
-// [!] * does not fill replies *
-function linkToAndFillListingChild(
-    content: Generic.Page2Content,
-    post: Reddit.Post,
-    extra: CommentExtra | null,
-): Generic.HorizontalLoadedItem {
-    return RedditClient.fromContent(content).getLink("item", {fullname: post.data.name, sort: "default"});
 }
 
 function todoReplies(content: Generic.Page2Content): Generic.PostReplies {
@@ -1540,22 +1538,23 @@ function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | 
     }
 
     // TODO: note that if item.kind is more and it is a depth-based loader, then the item.data.name will be bad.
-    client.addDirty(client.data.items.setAndList(stringify({fullname: item.data.name, sort}), item));
+    client.addDirty(client.data.items.setAndList(stringify({fullname: item.data.name}), item));
 
     if (item.kind === "t1") {
         // TODO: we can probably use item.data.subreddit_id,item.data.link_id & sort
         // instead of that method for on_post
         if (sort != null) {
-            addListing(client, {kind: "item", item: {fullname: item.data.name, sort}}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
+            addListing(client, {kind: "item", item: {fullname: item.data.name}, sort}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
         } else {
             console.warn("t1 item found with replies but no sort", {client, item, allow_replies, sort});
         }
     }
 }
 
+type SortedObjectID = {kind: "item", item: BaseItem, sort: Sortv} | {kind: "subreddit", sub: BaseSubreddit, sort: SubSort}; // TODO: subreddits have T5s and it should be possible to use them?
 type ObjectID = {kind: "item", item: BaseItem} | {kind: "subreddit", sub: BaseSubreddit}; // TODO: subreddits have T5s and it should be possible to use them?
 
-function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
+function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
     // if we have a 'before' link, same but before us
     if (parent.kind !== "none" && allow_replies === true) {
@@ -1565,7 +1564,7 @@ function addListing(client: RedditClient, parent: ObjectID | {kind: "none"}, lis
         // - if ...
         client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
     }
-    if (listing !== "") for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.item.sort : "default");
+    if (listing !== "") for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.sort : "default");
 }
 
 export async function loadPage2v2(
@@ -1580,17 +1579,17 @@ export async function loadPage2v2(
         // fetch the subreddit listing
         const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
         const client = RedditClient.fromContent(content);
-        addListing(client, {kind: "subreddit", sub: data.subreddit}, sub_listing, true);
+        addListing(client, {kind: "subreddit", sub: data.subreddit, sort: subDefaultSort(data.subreddit.sr_name)}, sub_listing, true);
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub;
         const [widgets, about] = await Promise.all([
             redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}),
             redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}),
         ]);
-        client.addDirty(client.data.subreddit_t5s.setAndList(subreddit, about));
-        client.addDirty(client.data.widgets.setAndList(subreddit, widgets));
+        client.addDirty(client.data.subreddit_t5s.setAndList(stringify({sr_name: subreddit}), about));
+        client.addDirty(client.data.widgets.setAndList(stringify({sr_name: subreddit}), widgets));
         for (const [key, widget] of Object.entries(widgets.items)) {
-            client.addDirty(client.data.widget.setAndList(stringify({sub: subreddit, widget: key}), widget));
+            client.addDirty(client.data.widget.setAndList(stringify({subreddit: {sr_name: subreddit}, widget: key}), widget));
         }
     }else if(data.kind === "view_post") {
         // *! on /duplicates, it probably uses a "?after=" url. TODO support that.
@@ -1614,10 +1613,10 @@ export async function loadPage2v2(
         const top_half = post_value[0];
         const bottom_half = post_value[1];
         addListing(client, {kind: "none"}, top_half, true);
-        addListing(client, {kind: "item", item: {fullname: top_half.data.children[0]!.data.name, sort: data.post.sort}}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
+        addListing(client, {kind: "item", item: {fullname: top_half.data.children[0]!.data.name}, sort: data.post.sort}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
 
         if(data.focus_comment_id != null) {
-            if (!client.data.items.has(stringify({fullname: `t1_${data.focus_comment_id}`, sort: data.post.sort}))) {
+            if (!client.data.items.has(stringify({fullname: `t1_${data.focus_comment_id}`}))) {
                 console.warn("TODO: mark comment as 'Comment not found (maybe it was deleted?)");
             }
         }
@@ -1696,8 +1695,8 @@ export async function loadPage2v2(
             kind: "item",
             item: {
                 fullname: stringify(data.base), // it's kind of a hack to overload data.listings to contain morechildren. we should probably make a seperate data.morechildren instead.
-                sort: data.base.sort,
             },
+            sort: data.base.sort,
         }, {
             kind: "Listing",
             data: {

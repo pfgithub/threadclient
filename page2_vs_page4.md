@@ -59,3 +59,14 @@ sort_group:
 so now when you fetch /r/abc/top?t=all, it has to tell you which sort to start with. I guess since we're using client classes now,
 the client could keep track of that? I mean we could literally have sort_value: `Link<string>` which we would default to the
 current sort value
+
+our issue here is what if you click on a post and then click back on the subreddit? ideally we would reset the sort.
+- would we? unclear
+- well right now that's a link so it will reset anyway, it's not a repivot point. unless you click on the identity card in the sidebar.
+
+we're implementing sort like this. it will work, but it wouldn't allow us to display for example:
+- the same listing twice. once sorted one way and once sorted another way.
+
+and it's odd changing state for literally just calling getPage.
+
+so ideally we will improve upon this later but at least for now we will have it working.
