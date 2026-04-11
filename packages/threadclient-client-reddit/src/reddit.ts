@@ -1044,7 +1044,7 @@ export function pageFromListing(
         }
 
         const link_fullname = firstchild.data.name as `t3_${string}`;
-        const default_sort: Reddit.Sort = firstchild.data.suggested_sort ?? "confidence";
+        const default_sort: Reddit.PostSortMode = firstchild.data.suggested_sort ?? "confidence";
         const is_contest_mode = firstchild.data.contest_mode;
         const can_mod_post = firstchild.data.can_mod_post;
         const permalink: string = firstchild.data.permalink;
@@ -1452,8 +1452,8 @@ export function urlNotSupportedYet(pathraw: string): Generic.Richtext.Paragraph[
     ];
 }
 
-export type SubSort = {v: Reddit.SortMode, t: Reddit.SortTime};
-export type PostSort = {v: Reddit.Sort};
+export type SubSort = {v: Reddit.SubSortMode, t: Reddit.SubSortTime};
+export type PostSort = {v: Reddit.PostSortMode};
 
 export type InboxTab = {
     tab: "compose",
@@ -1491,7 +1491,7 @@ export type ParsedPath = {
     current: {
         kind: "sorted-tab",
         tab: "overview" | "comments" | "submitted",
-        sort: {sort: Reddit.SortMode | "unsupported", t: Reddit.SortTime},
+        sort: {sort: Reddit.SubSortMode | "unsupported", t: Reddit.SubSortTime},
         // overview defaults ?sort=new
         // comments defaults ?sort=new
         // submitted defaults ?sort=hot
@@ -1536,13 +1536,13 @@ export type ParsedPath = {
     post_id_unprefixed: string,
     focus_comment: string | null, // unprefixed id | null
     // /comments/:post_id_unprefixed.json?comment=:focus_comment
-    sort_override: Reddit.Sort | null,
+    sort_override: Reddit.PostSortMode | null,
     context: string | null,
 } | {
     kind: "s",
     sub: SubrInfo, // if this is 'home', the page must be fetched before the subreddit is known
     s_id: string,
-    sort_override: Reddit.Sort | null,
+    sort_override: Reddit.PostSortMode | null,
     context: string | null,
 } | {
     kind: "wiki",
@@ -2014,7 +2014,7 @@ const fetch_path = encoderGenerator<{path: string}, "fetch_removed_path">("fetch
 
 export type SortedPermalink = {
     permalink: string, // with sort param
-    sort: Reddit.Sort,
+    sort: Reddit.PostSortMode,
     is_chat: boolean,
 };
 

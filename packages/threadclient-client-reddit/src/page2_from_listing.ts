@@ -604,9 +604,9 @@ function unsupportedPage(
 //     return getEntryFullname(value);
 // }
 
-type FullnameSort = {kind: "post", suggested_sort: Reddit.Sort, sort: PostSort | "default"} | null;
+type FullnameSort = {kind: "post", suggested_sort: Reddit.PostSortMode, sort: PostSort | "default"} | null;
 
-function updateSort(fn_sort: FullnameSort, sort: Reddit.Sort): FullnameSort {
+function updateSort(fn_sort: FullnameSort, sort: Reddit.PostSortMode): FullnameSort {
     return {kind: "post", sort: {v: sort}, suggested_sort: fn_sort?.suggested_sort ?? "confidence"};
 }
 

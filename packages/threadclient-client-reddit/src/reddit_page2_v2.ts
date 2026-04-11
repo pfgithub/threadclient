@@ -49,6 +49,7 @@ export async function getPagev2(content: Generic.Page2Content, pathraw_in: strin
     return urlToOneLoaderFromParsed(content, parsed);
 }
 async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: ParsedPath): Promise<Generic.VerticalLoader> {
+    const client = RedditClient.fromContent(content);
     const subval = (sub: SubrInfo): LowercaseString | null => {
         if(sub.kind === "subreddit") return asLowercaseString(sub.subreddit);
         if(sub.kind === "userpage") return asLowercaseString("u_"+sub.user);
@@ -79,6 +80,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         if(subv == null) {
             throw new Error("TODO support listing kind: ["+parsed.sub.kind+"]")
         }
+        client.addDirty(client.data.subreddit_sorts.setAndList(stringify({sr_name: subv}), parsed.current_sort));
         const link = RedditClient.fromContent(content).getLink("subreddit", {
             sr_name: subv,
         });
@@ -93,14 +95,14 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         const post_fullname = `t3_${parsed.post_id_unprefixed}`;
         const comment_fullname = parsed.focus_comment != null ? `t1_${parsed.focus_comment}` : null;
 
-        const sort: Sortv = parsed.sort_override != null ? {v: parsed.sort_override} : "default";
-        const client = RedditClient.fromContent(content);
+        if (parsed.sort_override != null) {
+            client.addDirty(client.data.post_sorts.setAndList(stringify({fullname: post_fullname}), {v: parsed.sort_override}));
+        }
         const key = client.getLink("item", {fullname: comment_fullname ?? post_fullname});
         const request = client.getLink("item_replies_request", {
             post_fullname,
             comment_fullname,
             subreddit: subv,
-            sort,
         });
         return {
             kind: "vertical_loader",
@@ -116,11 +118,13 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
             return fixsubv(parsed, parsed.post_id_unprefixed, subv);
         }
 
+        const sort: Sortv = {m: "duplicates", v: parsed.sort ?? "num_comments", crossposts_only: parsed.crossposts_only};
         const post_base: BasePostT3 = {
             fullname: `t3_${parsed.post_id_unprefixed}`,
             on_subreddit: subv,
-            sort: {m: "duplicates", v: "num_comments", crossposts_only: parsed.crossposts_only},
+            sort,
         };
+        client.addDirty(client.data.post_sorts.setAndList(stringify({fullname: post_base.fullname}), sort));
         return {
             kind: "vertical_loader",
             unfilled_parent: RedditClient.fromContent(content).getLink("client", {}),
@@ -191,7 +195,7 @@ type BasePostT3 = {
     // - the reason for this is i forgot
     //   - probably to make sure that an unfilled post can have a parent but we have decided to not
     //     use unfilled posts and instead require all posts to be filled.
-    sort: Sortv,
+    sort: Sortv | "infer",
 };
 type FullPostT3 = {
     post: BasePostT3,
@@ -380,8 +384,8 @@ const base_oldsidebar_widget = {
 };
 
 type DuplicaesSortV = {m: "duplicates", v: Reddit.DuplicatesSort, crossposts_only: boolean};
-type Sortv = PostSort | DuplicaesSortV | "default"; // TODO: remove "default" sort
-function isDuplicates(sort: Sortv): sort is DuplicaesSortV {
+type Sortv = PostSort | DuplicaesSortV; // TODO: remove "default" sort
+function isDuplicates(sort: Sortv | "infer") : sort is DuplicaesSortV {
     return typeof sort === "object" && sort != null && 'm' in sort && sort.m === "duplicates";
 }
 
@@ -445,7 +449,7 @@ export function untrackRedditClientData(data: RedditClientData): void {
 
 type BaseItem = {fullname: string};
 type BaseSubreddit = {sr_name: LowercaseString};
-type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: Sortv};
+type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: PostSort};
 export type RedditLinkDescriptors = {
     // TODO: most of these should not need a sort method! sort should only be for replies, where the client chooses which one to use
     client: {
@@ -456,12 +460,20 @@ export type RedditLinkDescriptors = {
         data: BaseItem, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
         content: Generic.Post,
     },
+    comment_sort_menu: {
+        data: {_?: undefined},
+        content: Generic.SortMenu,
+    },
+    comment_sort: {
+        data: BaseItem,
+        content: Generic.SortGroup,
+    },
     comment_parent_request: {
         data: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null},
         content: Generic.Opaque<"loader">,
     },
     item_replies_request: {
-        data: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string | null, sort: Sortv},
+        data: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string | null},
         content: Generic.Opaque<"loader">,
     },
     replies: {
@@ -469,7 +481,7 @@ export type RedditLinkDescriptors = {
         content: Generic.HorizontalLoaded,
     },
     loadmore_request: {
-        data: {base: BaseMore2, sort: Sortv, post_fullname: string},
+        data: {base: BaseMore2, sort: Sortv | "infer", post_fullname: string},
         content: Generic.Opaque<"loader">,
     },
     subreddit: {
@@ -510,12 +522,24 @@ export type RedditLinkDescriptors = {
     },
 };
 
-function moreBase(more: Reddit.More, sort: Sortv): BaseMore2 {
+function moreBase(more: Reddit.More, sort: PostSort): BaseMore2 {
     return {parent_fullname: more.data.parent_id, first_child_id: more.data.children[0] ?? null, sort};
 }
 
 function subSortMethod(client: RedditClient, base: BaseSubreddit): SubSort {
     return client.data.subreddit_sorts.get(stringify(base)) ?? subDefaultSort(base.sr_name);
+}
+function postSortMethod(client: RedditClient, base: BaseItem): Sortv {
+    const post = client.data.items.get(stringify(base));
+    if (post?.kind === "t1") return postSortMethod(client, {fullname: post.data.link_id});
+    const override = client.data.post_sorts.get(stringify(base));
+    if (override) return override;
+    if (post?.kind === "t3") {
+        if (post.data.suggested_sort != null) {
+            return {v: post.data.suggested_sort};
+        }
+    }
+    return {v: "confidence"};
 }
 
 export const resolvers: {
@@ -591,7 +615,7 @@ export const resolvers: {
             key: stringify(sub),
             request: opaque_sort_option.encode({kind: "sub", sort: sub}),
         }});
-            const multi = (label: string, v: Reddit.SortMode): Generic.SortOption => ({label, value: {
+            const multi = (label: string, v: Reddit.SubSortMode): Generic.SortOption => ({label, value: {
             kind: "list", items: ([
                 ["hour", "Hour"],
                 ["day", "Day"],
@@ -599,7 +623,7 @@ export const resolvers: {
                 ["month", "Month"],
                 ["year", "Year"],
                 ["all", "All"],
-            ] satisfies [key: Reddit.SortTime, name: string][]).map(([t, label]): Generic.SortOption => single(label, {v, t})),
+            ] satisfies [key: Reddit.SubSortTime, name: string][]).map(([t, label]): Generic.SortOption => single(label, {v, t})),
         }});
         return {error: null, value: {options: [
             single("Hot", {v: "hot", t: "all"}),
@@ -1025,7 +1049,7 @@ export const resolvers: {
         const content = client.dirty_content;
         let sorted: SortedObjectID;
         if (base.kind === "item") {
-            sorted = {kind: "item", item: base.item, sort: "default"};
+            sorted = {kind: "item", item: base.item, sort: postSortMethod(client, base.item)};
         } else if (base.kind === "subreddit") {
             sorted = {kind: "subreddit", sub: base.sub, sort: subSortMethod(client, base.sub)};
         } else {
@@ -1037,9 +1061,11 @@ export const resolvers: {
         return {error: null, value: [
             ...full.data.before ? [p2.createSymbolLinkToError(content, "TODO impl before", full.data.before)] : [],
             ...full.data.children.map((ch): Generic.HorizontalLoadedItem => {
-                const sort: Sortv = sorted.kind === "item" ? sorted.sort : "default";
                 // implement special 'more' handling
                 if (ch.kind === "more") {
+                    if (sorted.kind !== "item") return p2.createSymbolLinkToError(content, "more without sort", ch);
+                    const sort: Sortv = sorted.sort;
+                    if (isDuplicates(sort)) return p2.createSymbolLinkToError(content, "more link with 'duplicates' sort", ch);
                     const parent_content = client.data.items.get(stringify({fullname: ch.data.parent_id}));
                     if (!parent_content) return p2.createSymbolLinkToError(content, "more is missing parent item", ch);
                     let post_fullname: string;
@@ -1060,18 +1086,54 @@ export const resolvers: {
             ...full.data.after ? [p2.createSymbolLinkToError(content, "TODO impl after", full.data.after)] : [],
         ]};
     },
+    comment_sort_menu(client, base): Generic.ReadLinkResult<Generic.SortMenu> | null {
+        const opt = (l: string, v: Sortv): Generic.SortOption => ({label: l, value: {
+            kind: "single",
+            key: stringify(v),
+            request: opaque_sort_option.encode({kind: "item", item: v}),
+        }});
+        return {error: null, value: {
+            options: [
+                opt("Best", {v: "confidence"}),
+                opt("Top", {v: "top"}),
+                opt("New", {v: "new"}),
+                opt("Controversial", {v: "controversial"}),
+                opt("Old", {v: "old"}),
+                opt("Random", {v: "random"}),
+                opt("Q&A", {v: "qa"}),
+                opt("Live", {v: "live"}),
+                {label: "Duplicates", value: {kind: "list", items: [
+                    opt("Comments", {m: "duplicates", v: "num_comments", crossposts_only: false}),
+                    opt("New", {m: "duplicates", v: "new", crossposts_only: false}),
+                ]}},
+                {label: "Crossposts", value: {kind: "list", items: [
+                    opt("Comments", {m: "duplicates", v: "num_comments", crossposts_only: false}),
+                    opt("New", {m: "duplicates", v: "new", crossposts_only: false}),
+                ]}},
+            ],
+        }};
+    },
+    comment_sort(client, base): Generic.ReadLinkResult<Generic.SortGroup> | null {
+        return {error: null, value: {
+            selected: {
+                key: stringify(postSortMethod(client, base)),
+            },
+            group: opaque_sort_group.encode({kind: "item", item: base}),
+        }};
+    },
     comment_parent_request(client, base): Generic.ReadLinkResult<Generic.Opaque<"loader">> | null {
         return {error: null, value: opaque_loader.encode({
             kind: "view_post",
-            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: "default"},
+            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: postSortMethod(client, {fullname: base.post_fullname})},
             focus_comment_id: base.parent_comment_fullname,
             context: "9", // max
         })};
     },
     item_replies_request(client, base) {
+        const sort = postSortMethod(client, {fullname: base.post_fullname});
         return {error: null, value: opaque_loader.encode({
             kind: "view_post",
-            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: base.sort},
+            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort},
             focus_comment_id: base.comment_fullname,
             context: "0", // min (or is it 1?)
             // TODO: set to 3 if the parent is not known?
@@ -1112,19 +1174,23 @@ function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Red
                     subreddit: asLowercaseString(full.data.subreddit),
                     post_fullname: full.kind === "t1" ? full.data.link_id : full.data.name,
                     comment_fullname: full.kind === "t1" ? full.data.id : null,
-                    sort: "default",
                 }),
                 client_id,
             },
+            sort_menu: client.getLink("comment_sort_menu", {}),
+            sort_group: client.getLink("comment_sort", {fullname: full.kind === "t1" ? full.data.link_id : full.data.name}),
         },
     };
 }
 
 function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Generic.Post {
-    const sort = ("default" satisfies Sortv) as Sortv;
-    const url = isDuplicates(sort) ? (
-        "/r/"+full.data.subreddit+"/duplicates/"+full.data.id
-    ) : updateQuery(full.data.permalink, sort !== "default" ? {
+    const sort = ("infer" satisfies Sortv | "infer") as (Sortv | "infer");
+    const url = isDuplicates(sort) ? updateQuery(
+        "/r/"+full.data.subreddit+"/duplicates/"+full.data.id, {
+            sort: sort.v,
+            crossposts_only: "" + sort.crossposts_only,
+        }
+    ) : updateQuery(full.data.permalink, sort !== "infer" ? {
         sort: sort.v,
     } : {});
     const listing = full.data;
@@ -1157,12 +1223,7 @@ function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Gener
                         client_id,
                         url: "/domain/"+listing.domain,
                         text: listing.domain,
-                    }, deleteButton(listing.name), saveButton(listing.name, listing.saved), {
-                        kind: "link",
-                        client_id,
-                        url: "/r/"+listing.subreddit+"/duplicates/"+listing.id,
-                        text: "Duplicates"
-                    }, reportButton(listing.name, listing.subreddit),
+                    }, deleteButton(listing.name), saveButton(listing.name, listing.saved), reportButton(listing.name, listing.subreddit),
                     editButton(listing.name),
                     rawlinkButton(url),
                 ],
@@ -1402,7 +1463,7 @@ const sorted_compose_inbox = {
     // }),
 };
 
-function handleMore(client: RedditClient, full: Reddit.More, sort: Sortv, post_fullname: string, subreddit: LowercaseString): Generic.HorizontalLoadedItem {
+function handleMore(client: RedditClient, full: Reddit.More, sort: PostSort, post_fullname: string, subreddit: LowercaseString): Generic.HorizontalLoadedItem {
     if (full.data.children.length === 0) {
         // depth-based
         return {
@@ -1412,7 +1473,6 @@ function handleMore(client: RedditClient, full: Reddit.More, sort: Sortv, post_f
                 post_fullname,
                 comment_fullname: full.data.parent_id,
                 subreddit,
-                sort: sort,
             }),
             load_count: full.data.count,
             client_id,
@@ -1562,8 +1622,10 @@ type SortGroupKind = {
 };
 
 
-function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}, sort: Sortv): void {
+function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}, sort: Sortv | null): void {
     if (item.kind === "more") {
+        if (sort == null) return; // need sort for morechildren
+        if (isDuplicates(sort)) return; // duplicates doesn't have 'morechildren', it has 'after'
         client.addDirty(client.data.mores.setAndList(stringify(moreBase(item, sort)), item));
         return;
     }
@@ -1576,8 +1638,6 @@ function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | 
         // instead of that method for on_post
         if (sort != null) {
             addListing(client, {kind: "item", item: {fullname: item.data.name}, sort}, item.data.replies, allow_replies === true ? true : item.data.id === allow_replies.after_id ? true : allow_replies);
-        } else {
-            console.warn("t1 item found with replies but no sort", {client, item, allow_replies, sort});
         }
     }
 }
@@ -1595,7 +1655,9 @@ function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"
         // - if ...
         client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
     }
-    if (listing !== "") for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.sort : "default");
+    if (listing !== "") {
+        for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent.kind === "item" ? parent.sort : null);
+    }
 }
 
 export async function loadPage2v2(
@@ -1636,15 +1698,26 @@ export async function loadPage2v2(
         }) : await redditRequest(`/comments/${ec(postid)}`, {
             method: "GET",
             query: {
-                sort: data.post.sort === "default" ? null : data.post.sort.v,
+                sort: data.post.sort === "infer" ? null : data.post.sort.v,
                 comment: data.focus_comment_id,
                 context: data.context ?? "3", // use a higher context value for vertical loaders
             },
         });
         const top_half = post_value[0];
+        const top_post = top_half.data.children[0]!;
         const bottom_half = post_value[1];
         addListing(client, {kind: "none"}, top_half, true);
-        addListing(client, {kind: "item", item: {fullname: top_half.data.children[0]!.data.name}, sort: data.post.sort}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
+
+        let sort: Sortv;
+        if (data.post.sort !== "infer") {
+            sort = data.post.sort;
+        } else if (top_post.kind === "t3" && top_post.data.suggested_sort != null) {
+            sort = {v: top_post.data.suggested_sort};
+        } else {
+            sort = {v: "confidence"}; // hopefully right
+        }
+
+        addListing(client, {kind: "item", item: {fullname: top_half.data.children[0]!.data.name}, sort}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
 
         if(data.focus_comment_id != null) {
             if (!client.data.items.has(stringify({fullname: `t1_${data.focus_comment_id}`}))) {
@@ -1676,7 +1749,7 @@ export async function loadPage2v2(
                 limit_children: "false",
                 children: batch.join(","),
                 link_id: data.post_fullname as `t3_${string}`,
-                sort: data.base.sort === "default" || isDuplicates(data.base.sort) ? null : data.base.sort.v,
+                sort: data.base.sort.v,
             },
         });
 
@@ -1745,7 +1818,10 @@ export async function sortPage2(client: RedditClient, group: Generic.Opaque<"sor
     if (group_dec.kind === "sub") {
         if (option_dec.kind !== "sub") throw new Error("sort sub on non-sub: " + option_dec.kind);
         client.addDirty(client.data.subreddit_sorts.setAndList(stringify(group_dec.sub), option_dec.sort));
+    } else if (group_dec.kind === "item") {
+        if (option_dec.kind !== "item") throw new Error("sort item on non-item: " + option_dec.kind);
+        client.addDirty(client.data.post_sorts.setAndList(stringify(group_dec.item), option_dec.item));
     } else {
-        throw new Error("todo sort: " + group_dec.kind);
+        throw new Error("todo sort: " + stringify(group_dec));
     }
 }

@@ -230,7 +230,7 @@ export type Rules = {
     // site_rules: string[],
 };
 // note "best" is "confidence"
-export type Sort = "confidence" | "top" | "new" | "controversial" | "old" | "random" | "qa" | "live" | "unsupported";
+export type PostSortMode = "confidence" | "top" | "new" | "controversial" | "old" | "random" | "qa" | "live" | "unsupported";
 
 export type SitewideRulesFlow = FlowRule[];
 
@@ -965,7 +965,7 @@ export type PostSubmission = PostOrComment & {
     // https://thread.pfg.pw/reddit/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/gjpjyw3/?context=3&sort=confidence
     removed_by_category: null | RemovedByCategory,
 
-    suggested_sort?: undefined | Sort | null,
+    suggested_sort?: undefined | PostSortMode | null,
 
     rpan_video?: undefined | {
         hls_url: string, // https://watch.redd.it/hls/…/index.m3u8 // note this can be fetched, it allows cross-origin requests
@@ -1408,7 +1408,7 @@ export type Requests = {
     }>,
     [key: `/comments/${PathBit}`]: IsRequest<{
         query: {
-            sort: Sort | null,
+            sort: PostSortMode | null,
             comment: string | null,
             context: string | null,
         },
@@ -1426,7 +1426,7 @@ export type Requests = {
     // if bases are updated to start with a slash and not end with a slash, i think we can support them properly
     "/__unknown_base/__unknown_sort": IsRequest<{
         query: {
-            t: SortTime | null, before: string | null, after: string | null,
+            t: SubSortTime | null, before: string | null, after: string | null,
         },
         response: Listing,
     }>,
@@ -1489,7 +1489,7 @@ export type Requests = {
             limit_children: "false",
             children: string,
             link_id: `t3_${string}`,
-            sort: Sort | null,
+            sort: PostSortMode | null,
         },
         response: MoreChildren,
     }>,
@@ -1517,8 +1517,8 @@ export type EmptyResult = {_?: undefined};
 export type DuplicatesSort = "num_comments" | "new" | "unsupported";
 
 
-export type SortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded" | "unsupported";
-export type SortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
+export type SubSortMode = "hot" | "new" | "rising" | "top" | "controversial" | "gilded" | "best" | "awarded" | "unsupported";
+export type SubSortTime = "hour" | "day" | "week" | "month" | "year" | "all" | "unsupported";
 
 export type ApiMe = {
     loid: string,
