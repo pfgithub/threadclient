@@ -65,10 +65,9 @@ export type FlatItem = ({
     name: string,
 } | FlatPost | {
     kind: "sort_buttons_2",
-    sort_buttons: Generic.NullableLink<Generic.SortOption2[]>,
+    sort_menu: Generic.Link<Generic.SortMenu>,
+    sort_group: Generic.Link<Generic.SortGroup>,
     client_id: string,
-    post: Generic.Link<Generic.Post>,
-    default: Generic.Opaque<"sort_option">,
 } | {
     kind: "todo",
     note: string,
@@ -192,10 +191,6 @@ export type PerPostEntry = {
     setHovering: Setter<number>,
     collapsed: Accessor<boolean>,
     setCollapsed: Setter<boolean>,
-
-    // for sorting. null = not set.
-    sortKey: Accessor<Generic.Opaque<"sort_option"> | null>,
-    setSortKey: Setter<Generic.Opaque<"sort_option"> | null>,
 };
 
 export function getCState(cst: PerPostData, id: Generic.Link<Generic.Post>, opts?: {
@@ -203,11 +198,9 @@ export function getCState(cst: PerPostData, id: Generic.Link<Generic.Post>, opts
 } | undefined): PerPostEntry {
     return untrack((): PerPostEntry => {
         if(!cst.map.has(id)) {
-            const [sortKey, setSortKey] = createSignal<Generic.Opaque<"sort_option"> | null>(null);
             const nv: PerPostEntry = {
                 hovering: errorFn, setHovering: errorFn,
                 collapsed: errorFn, setCollapsed: errorFn,
-                sortKey, setSortKey,
             };
             cst.map.set(id, nv);
         }

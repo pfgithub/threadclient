@@ -114,29 +114,34 @@ function PageFlatItemNoError(props: {item: FlatItem, collapse_data: PerPostData}
         </Clickable>,
         sort_buttons_2: sortbtns => <div class={"mt-4 mb-4 rounded-lg bg-slate-100 dark:bg-zinc-800"}>
             <menu class="p-2 flex flex-row flex-wrap gap-2 dark:text-zinc-400">
-                <ReadLink link={sortbtns.sort_buttons} fallback={<>error</>}>{sort_buttons => {
-                    const cst = useContext(per_post_context);
-                    const cstate = getCState(cst!, sortbtns.post);
-                    const key = createSelector(() => JSON.stringify(cstate.sortKey() ?? sortbtns.default));
-                    return <For each={sort_buttons}>{sortbtn => <li style={{display: "contents"}}>
+                <ReadLink link={sortbtns.sort_menu} fallback={<>error</>}>{sort_menu => {
+                    const hprc = getWholePageRootContext();
+                    const key = createSelector(() => hprc.content.view2(sortbtns.sort_group).selected.key);
+                    const status = () => hprc.content.viewSortStatus(sortbtns.sort_group);
+                    return <><For each={sort_menu.options}>{sortbtn => <li style={{display: "contents"}}>
                         {// inline-block mx-1 px-1 text-base border-b-2 transition-colors border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900
                         }
                         <Clickable
                             class={"px-1 border-b-2 border-transparent hover:text-slate-700 dark:hover:text-zinc-50 " + (
-                                sortbtn.value.kind === "single" ? key(JSON.stringify(sortbtn.value.key)) ? "text-slate-700 dark:text-zinc-50" : "" : "")}
+                                sortbtn.value.kind === "single" ? key(sortbtn.value.key) ? "text-slate-700 dark:text-zinc-50" : "" : "")}
                             action={switchKind(sortbtn.value, {
                                 list: () => (() => alert("TODO list")),
                                 single: () => (() => {
                                     if (sortbtn.value.kind !== "single") throw new Error("unreachable");
-                                    cstate.setSortKey(sortbtn.value.key);
+                                    hprc.content.sort(sortbtns.sort_group, sortbtn.value.request);
                                 }),
                             })}
+                            disabled={status().kind === "load"}
                             children={<>
                                 {sortbtn.label}
                                 {sortbtn.value.kind === "list" ? " ▾" : ""}
                             </>}
                         />
-                    </li>}</For>;
+                    </li>}</For><Show if={status().kind === "error"}><li class="text-red-500">Sort error: {(() => {
+                        const s = status();
+                        if (s.kind === "error") return s.message;
+                        return "ok";
+                    })()}</li></Show></>;
                 }}</ReadLink>
             </menu>
         </div>,

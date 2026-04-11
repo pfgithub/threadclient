@@ -30,17 +30,6 @@ export function FlatRepliesHL(props: {
     if (!post_data) throw new Error("missing per_post_context in flatRepliesHL");
     return <>{createMemo(() => {
         const replies = props.replies;
-        // to determine the key, we must check the sort
-        if (replies.sort != null) {
-            // check for sort changes
-            const cstate = getCState(post_data!, replies.sort.post_id);
-            const base_key = replies.sort.current;
-            const sort_key = cstate.sortKey() ?? base_key;
-            if (JSON.stringify(sort_key) !== JSON.stringify(base_key)) {
-                return <FlatReplyTsch kind="error" msg={"TODO sorted replies: "+JSON.stringify(sort_key)} />;
-            }
-        }
-
         const val = hprc.content.view(replies.key);
         if(val == null) {
             return FlatReplyTsch(loaderToFlatLoader(replies));
@@ -517,13 +506,12 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
                         data={p.replies}
                     />
                 </> : null}
-                {p.replies.loader.sort != null ? <>
+                {(p.replies.sort_menu != null) && (p.replies.sort_group != null) ? <>
                     <FlatItemTsch
                         kind="sort_buttons_2"
-                        sort_buttons={p.replies.loader.sort.methods}
+                        sort_menu={p.replies.sort_menu}
+                        sort_group={p.replies.sort_group}
                         client_id={p.client_id}
-                        default={p.replies.loader.sort.current}
-                        post={p.replies.loader.sort.post_id}
                     />
                 </> : null}
                 <FlattenTopLevelReplies replies={p.replies} />

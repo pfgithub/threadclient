@@ -282,20 +282,10 @@ export type PostReplies = {
     display: "tree" | "repivot_list",
 
     loader: HorizontalLoader,
+
+    sort_menu?: Link<SortMenu>,
+    sort_group?: Link<SortGroup>,
 };
-export type SortOption = ({
-    kind: "url",
-    name: string,
-    url: string,
-} | {
-    kind: "post",
-    name: string,
-    post: Link<Post>,
-} | {
-    kind: "more",
-    name: string,
-    submenu: SortOption[],
-});
 
 // ok two options:
 // - tabbed replies
@@ -330,11 +320,6 @@ export type HorizontalLoadedItem = Link<Post> | HorizontalLoader;
 export type HorizontalLoader = {
     kind: "horizontal_loader",
     key: NullableLink<HorizontalLoaded>, // unfilled = not yet loaded
-    sort?: {
-        methods: NullableLink<SortOption2[]>,
-        current: Opaque<"sort_option">, // which sort method the loader.key will load
-        post_id: Link<Post>, // yeah we shouldn't need this. arguably a hack.
-    },
 } & BaseLoader;
 export type OneLoaded<T> = T;
 export type OneLoader<T> = {
@@ -342,9 +327,16 @@ export type OneLoader<T> = {
     key: NullableLink<OneLoaded<T>>,
 } & BaseLoader;
 
-export type SortOption2 = {
+export type SortGroup = {
+    selected: {label?: string, key: string}, // the label will show only if the key is not present in the SortOptions list.
+    group: Opaque<"sort_group">,
+};
+export type SortMenu = {
+    options: SortOption[],
+};
+export type SortOption = {
     label: string,
-    value: {kind: "single", key: Opaque<"sort_option">} | {kind: "list", items: SortOption2[]},
+    value: {kind: "single", key: string, request: Opaque<"sort_option">} | {kind: "list", items: SortOption[]},
 };
 
 export type BaseLoader = {
@@ -428,17 +420,12 @@ export type Post = {
     internal_data: unknown,
 
     disallow_pivot?: undefined | boolean,
-    parent: null | PostParent,
-    replies: null | PostReplies, // TODO: rename to 'children'
+    parent: null | PostParent, // TODO: change this to a Link<{load?: opaque, next: Post | null}>
+    replies: null | PostReplies, // TODO: rename to 'children' and change this to a Link<HorizontalLoaded> which will contain any loaders.
     
     url: string | null, // if a thing does not have a url, it cannot be the pivot
     client_id: string,
 };
-
-export type TabSet = {
-    link: Link<Post>,
-    text: string,
-}[];
 
 export type ClientPost = {
     kind: "client",
@@ -536,10 +523,6 @@ export type PostContent = ClientPost | {
 } | {
     kind: "todo",
     message: string,
-} | {
-    kind: "sort_wrapper",
-    consistent: Link<ConsistentSortData>,
-    selected_option_tag: string, // if it is not found in the sort_options array, it will be displayed last
 } | PostContentNotification;
 export type PostContentNotification = {
     kind: "notification",
@@ -562,18 +545,6 @@ export type NotificationContent = {
     kind: "post",
     post: Link<Post>,
 };
-export type ConsistentSortData = {
-    sort_options: SortOptions,
-    display_object: PostContent,
-};
-export type SortOptions = {
-    object: Link<Post>, // Link<sort_wrapper>. repivots on click. consider:
-    // - don't create a new history item
-    // - assert that the linked post is a sort wrapper with the same sort_options link (if it isn't, put a warning
-    //   and create a new history item)
-    tag: string, // unique (within the SortOptions array) id
-    name: string,
-}[];
 
 // /---------------\
 // |---- page1 ----|
@@ -1202,7 +1173,7 @@ export declare namespace SubmitResult {
 export type DataEncodings = 
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
     | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
-    | "loader" | "edit" | "submit" | "sort_option" | "account"
+    | "loader" | "edit" | "submit" | "account" | "sort_group" | "sort_option"
 ;
 export type Opaque<T extends DataEncodings> = {encoding_type: T, encoding_symbol: symbol};
 

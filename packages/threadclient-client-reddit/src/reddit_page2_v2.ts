@@ -154,21 +154,21 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
             client_id,
         };
     }
-    if(parsed.kind === "inbox") {
-        const base: BaseInbox = {};
-        if(parsed.current.tab === "compose") {
-            const compose_base: SortedComposeInbox = {on_base: base};
-            return p2.prefilledVerticalLoader(content, sorted_compose_inbox.menubar(content, compose_base), undefined);
-        }else if(parsed.current.tab === "inbox") {
-            const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.inbox_tab};
-            return p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined);
-        }else if(parsed.current.tab === "sent" || parsed.current.tab === "mod") {
-            const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.tab};
-            return p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined);
-        }else if(parsed.current.tab === "message") {
-            throw new Error("*TODO* view inbox message ["+parsed.current.msgid+"]");
-        }else assertNever(parsed.current);
-    }
+    // if(parsed.kind === "inbox") {
+    //     const base: BaseInbox = {};
+    //     if(parsed.current.tab === "compose") {
+    //         const compose_base: SortedComposeInbox = {on_base: base};
+    //         return p2.prefilledVerticalLoader(content, sorted_compose_inbox.menubar(content, compose_base), undefined);
+    //     }else if(parsed.current.tab === "inbox") {
+    //         const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.inbox_tab};
+    //         return p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined);
+    //     }else if(parsed.current.tab === "sent" || parsed.current.tab === "mod") {
+    //         const inbox_base: SortedInbox = {on_base: base, tab: parsed.current.tab};
+    //         return p2.prefilledVerticalLoader(content, sorted_inbox.menubar(content, inbox_base), undefined);
+    //     }else if(parsed.current.tab === "message") {
+    //         throw new Error("*TODO* view inbox message ["+parsed.current.msgid+"]");
+    //     }else assertNever(parsed.current);
+    // }
     throw new Error("Enotsupported: " + JSON.stringify(parsed)); // TODO
 }
 
@@ -345,8 +345,7 @@ export const base_client = {
 
 // class Subreddit extends Base<BaseSubredditT5> implements asPost, getReplies
 export const base_subreddit = {
-    url: (base: BaseSubreddit): "/__any_listing" => {
-        const sort: SubSort = subDefaultSort(base.sr_name);
+    url: (base: BaseSubreddit, sort: SubSort): "/__any_listing" => {
         return updateQuery(
             "/r/" + base.sr_name + ("/" + sort.v),
             {t: sort.t},
@@ -364,32 +363,6 @@ export const base_subreddit = {
 function simplifySort(sort: SubSort): SubSort {
     if (sort.v === "controversial" || sort.v === "top") return {v: sort.v, t: sort.t};
     return {v: sort.v, t: "all"};
-}
-
-export function subredditSortOptions(content: Generic.Page2Content): Generic.Link<Generic.SortOption2[]> {
-    return Generic.p2.fillLinkOnce(content, (
-        autoLinkgen<Generic.SortOption2[]>("subreddit→sort", {})
-    ), (): Generic.SortOption2[] => {
-        const single = (label: string, sub: SubSort): Generic.SortOption2 => ({label, value: {kind: "single", key: opaque_sort_option.encode({kind: "sub", sub})}});
-        const multi = (label: string, v: Reddit.SortMode): Generic.SortOption2 => ({label, value: {
-            kind: "list", items: ([
-                ["hour", "Hour"],
-                ["day", "Day"],
-                ["week", "Week"],
-                ["month", "Month"],
-                ["year", "Year"],
-                ["all", "All"],
-            ] satisfies [key: Reddit.SortTime, name: string][]).map(([t, label]): Generic.SortOption2 => single(label, {v, t})),
-        }});
-        return [
-            single("Hot", {v: "hot", t: "all"}),
-            single("Best", {v: "best", t: "all"}),
-            single("New", {v: "new", t: "all"}),
-            single("Rising", {v: "rising", t: "all"}),
-            multi("Top", "top"),
-            multi("Controversial", "controversial"),
-        ];
-    });
 }
 
 export function subDefaultSort(base: UnsortedSubreddit): SubSort {
@@ -428,7 +401,7 @@ export type RedditClientData = {
     subreddit_t5s: ObservableMap<Stringified<BaseSubreddit>, Reddit.T5, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
 
     post_sorts: ObservableMap<Stringified<BaseItem>, Sortv, Generic.Link<unknown>>,
-    subreddit_sorts: ObservableMap<Stringified<BaseSubreddit>, Sortv, Generic.Link<unknown>>,
+    subreddit_sorts: ObservableMap<Stringified<BaseSubreddit>, SubSort, Generic.Link<unknown>>,
 };
 type BaseWidget = {
     subreddit: BaseSubreddit,
@@ -523,6 +496,14 @@ export type RedditLinkDescriptors = {
         data: BaseSubreddit,
         content: Generic.Post,
     },
+    subreddit_sort_menu: {
+        data: {_?: undefined},
+        content: Generic.SortMenu,
+    },
+    subreddit_sort: {
+        data: BaseSubreddit,
+        content: Generic.SortGroup,
+    },
     widget: {
         data: BaseWidget,
         content: Generic.Post,
@@ -531,6 +512,10 @@ export type RedditLinkDescriptors = {
 
 function moreBase(more: Reddit.More, sort: Sortv): BaseMore2 {
     return {parent_fullname: more.data.parent_id, first_child_id: more.data.children[0] ?? null, sort};
+}
+
+function subSortMethod(client: RedditClient, base: BaseSubreddit): SubSort {
+    return client.data.subreddit_sorts.get(stringify(base)) ?? subDefaultSort(base.sr_name);
 }
 
 export const resolvers: {
@@ -591,21 +576,55 @@ export const resolvers: {
                     key: client.getLink("replies", {kind: "subreddit", sub: base}),
                     request: client.getLink("subreddit_replies_request", base),
                     client_id,
-                    sort: {
-                        methods: subredditSortOptions(client.dirty_content),
-                        current: opaque_sort_option.encode({kind: "sub", sub: subDefaultSort(base.sr_name)}),
-                        post_id: client.getLink("subreddit", base),
-                    },
                 },
+
+                sort_menu: client.getLink("subreddit_sort_menu", {}),
+                sort_group: client.getLink("subreddit_sort", base),
             },
-            url: base_subreddit.url(base),
+            url: base_subreddit.url(base, subDefaultSort(base.sr_name)), // TODO: url should be a Link<string> and we will use the actual sort instead of the default sort
             client_id,
         }};
     },
+    subreddit_sort_menu(client, base): Generic.ReadLinkResult<Generic.SortMenu> | null {
+        const single = (label: string, sub: SubSort): Generic.SortOption => ({label, value: {
+            kind: "single",
+            key: stringify(sub),
+            request: opaque_sort_option.encode({kind: "sub", sort: sub}),
+        }});
+            const multi = (label: string, v: Reddit.SortMode): Generic.SortOption => ({label, value: {
+            kind: "list", items: ([
+                ["hour", "Hour"],
+                ["day", "Day"],
+                ["week", "Week"],
+                ["month", "Month"],
+                ["year", "Year"],
+                ["all", "All"],
+            ] satisfies [key: Reddit.SortTime, name: string][]).map(([t, label]): Generic.SortOption => single(label, {v, t})),
+        }});
+        return {error: null, value: {options: [
+            single("Hot", {v: "hot", t: "all"}),
+            single("Best", {v: "best", t: "all"}),
+            single("New", {v: "new", t: "all"}),
+            single("Rising", {v: "rising", t: "all"}),
+            multi("Top", "top"),
+            multi("Controversial", "controversial"),
+        ]}};
+    },
+    subreddit_sort(client, base): Generic.ReadLinkResult<Generic.SortGroup> {
+        const method = subSortMethod(client, base);
+        return {error: null, value: {
+            group: opaque_sort_group.encode({kind: "sub", sub: base}),
+            selected: {
+                key: stringify(method),
+            },
+        }};
+    },
     subreddit_replies_request(client, base) {
+        const method = subSortMethod(client, base);
         return {error: null, value: opaque_loader.encode({
             kind: "subreddit_posts",
             subreddit: base,
+            sort: method,
         })};
     },
     subreddit_identity_request(client, base) {
@@ -845,7 +864,7 @@ export const resolvers: {
                     return p2.createSymbolLinkToValue<Generic.Post>(content, {
                         kind: "post",
                         content: {
-                            kind: "nonpivoted_identity_card",
+                            kind: "nonpivoted_identity_card", // TODO: eliminate nonpivoted_identity_card, we can use regular identity cards instead
                             container: RedditClient.fromContent(content).getLink("subreddit", sub_base),
                             card: {
                                 name_raw: "r/"+community.name,
@@ -863,7 +882,7 @@ export const resolvers: {
                         parent: {loader: p2.prefilledVerticalLoader(content, client.getLink("widget", base), undefined)},
                         replies: null,
 
-                        url: base_subreddit.url(sub_base),
+                        url: base_subreddit.url(sub_base, subSortMethod(client, sub_base)),
                         disallow_pivot: true,
                         client_id,
                     });
@@ -1008,7 +1027,7 @@ export const resolvers: {
         if (base.kind === "item") {
             sorted = {kind: "item", item: base.item, sort: "default"};
         } else if (base.kind === "subreddit") {
-            sorted = {kind: "subreddit", sub: base.sub, sort: subDefaultSort(base.sub.sr_name)};
+            sorted = {kind: "subreddit", sub: base.sub, sort: subSortMethod(client, base.sub)};
         } else {
             throw new Error("todo support base kind: " + stringify(base));
         }
@@ -1293,41 +1312,41 @@ export const full_submit = {
 };
 
 const base_inbox = {
-    consistentData: autoOutline("base_inbox→sort_options", (content, base: BaseInbox): Generic.ConsistentSortData => {
-        const res: Generic.SortOptions = [];
-        for(const [tag, name] of [["compose", "Compose"] as const]) {
-            res.push({
-                name,
-                tag,
-                object: sorted_compose_inbox.menubar(content, {
-                    on_base: base,
-                }),
-            });
-        }
-        for(const [tag, name] of [
-            ["inbox", "All"],
-            ["unread", "Unread"],
-            ["messages", "Messages"],
-            ["comments", "Comment Replies"],
-            ["selfreply", "Post Replies"],
-            ["mentions", "Username Mentions"],
-            ["sent", "Sent"],
-            ["mod", "Legacy Modmail"],
-        ] as const) {
-            res.push({
-                name,
-                tag,
-                object: sorted_inbox.menubar(content, {
-                    tab: tag,
-                    on_base: base,
-                }),
-            });
-        }
-        return {
-            sort_options: res,
-            display_object: {kind: "todo", message: "Inbox. Put some fancy design here or something."},
-        };
-    }),
+    // consistentData: autoOutline("base_inbox→sort_options", (content, base: BaseInbox): Generic.ConsistentSortData => {
+    //     const res: Generic.SortOptions = [];
+    //     for(const [tag, name] of [["compose", "Compose"] as const]) {
+    //         res.push({
+    //             name,
+    //             tag,
+    //             object: sorted_compose_inbox.menubar(content, {
+    //                 on_base: base,
+    //             }),
+    //         });
+    //     }
+    //     for(const [tag, name] of [
+    //         ["inbox", "All"],
+    //         ["unread", "Unread"],
+    //         ["messages", "Messages"],
+    //         ["comments", "Comment Replies"],
+    //         ["selfreply", "Post Replies"],
+    //         ["mentions", "Username Mentions"],
+    //         ["sent", "Sent"],
+    //         ["mod", "Legacy Modmail"],
+    //     ] as const) {
+    //         res.push({
+    //             name,
+    //             tag,
+    //             object: sorted_inbox.menubar(content, {
+    //                 tab: tag,
+    //                 on_base: base,
+    //             }),
+    //         });
+    //     }
+    //     return {
+    //         sort_options: res,
+    //         display_object: {kind: "todo", message: "Inbox. Put some fancy design here or something."},
+    //     };
+    // }),
     selfParent: (content: Generic.Page2Content, base: BaseInbox): Generic.PostParent => {
         return base_client.asParent(content, base);
     },
@@ -1337,50 +1356,50 @@ const sorted_inbox = {
         return "/message/"+base.tab;
     },
     contentLink: (base: SortedInbox) => autoLinkgen<Generic.HorizontalLoaded>("sorted_inbox→content", base),
-    menubar: autoOutline("sorted_inbox→menubar", (content, base: SortedInbox): Generic.Post => {
-        return {
-            kind: "post",
-            internal_data: base,
-            client_id,
-            url: sorted_inbox.url(base),
-            parent: base_inbox.selfParent(content, base.on_base),
-            content: {
-                kind: "sort_wrapper",
-                consistent: base_inbox.consistentData(content, base.on_base),
-                selected_option_tag: base.tab,
-            },
-            replies: {
-                display: "repivot_list",
-                loader: {
-                    kind: "horizontal_loader",
-                    key: sorted_inbox.contentLink(base),
-                    request: p2.fillLink(content, autoLinkgen<Generic.Opaque<"loader">>("sorted_inbox→content_loader", base), opaque_loader.encode({
-                        kind: "inbox",
-                        base,
-                    })),
-                    client_id,
-                },
-            },
-        };
-    }),
+    // menubar: autoOutline("sorted_inbox→menubar", (content, base: SortedInbox): Generic.Post => {
+    //     return {
+    //         kind: "post",
+    //         internal_data: base,
+    //         client_id,
+    //         url: sorted_inbox.url(base),
+    //         parent: base_inbox.selfParent(content, base.on_base),
+    //         content: {
+    //             kind: "sort_wrapper",
+    //             consistent: base_inbox.consistentData(content, base.on_base),
+    //             selected_option_tag: base.tab,
+    //         },
+    //         replies: {
+    //             display: "repivot_list",
+    //             loader: {
+    //                 kind: "horizontal_loader",
+    //                 key: sorted_inbox.contentLink(base),
+    //                 request: p2.fillLink(content, autoLinkgen<Generic.Opaque<"loader">>("sorted_inbox→content_loader", base), opaque_loader.encode({
+    //                     kind: "inbox",
+    //                     base,
+    //                 })),
+    //                 client_id,
+    //             },
+    //         },
+    //     };
+    // }),
 };
 const sorted_compose_inbox = {
     url: (base: SortedComposeInbox): string => "/message/compose",
-    menubar: autoOutline("sorted_compose_inbox→menubar", (content, base: SortedComposeInbox): Generic.Post => {
-        return {
-            kind: "post",
-            internal_data: base,
-            client_id,
-            url: sorted_compose_inbox.url(base),
-            parent: base_inbox.selfParent(content, base.on_base),
-            content: {
-                kind: "sort_wrapper",
-                consistent: base_inbox.consistentData(content, base.on_base),
-                selected_option_tag: "compose",
-            },
-            replies: todoReplies(content),
-        };
-    }),
+    // menubar: autoOutline("sorted_compose_inbox→menubar", (content, base: SortedComposeInbox): Generic.Post => {
+    //     return {
+    //         kind: "post",
+    //         internal_data: base,
+    //         client_id,
+    //         url: sorted_compose_inbox.url(base),
+    //         parent: base_inbox.selfParent(content, base.on_base),
+    //         content: {
+    //             kind: "sort_wrapper",
+    //             consistent: base_inbox.consistentData(content, base.on_base),
+    //             selected_option_tag: "compose",
+    //         },
+    //         replies: todoReplies(content),
+    //     };
+    // }),
 };
 
 function handleMore(client: RedditClient, full: Reddit.More, sort: Sortv, post_fullname: string, subreddit: LowercaseString): Generic.HorizontalLoadedItem {
@@ -1502,6 +1521,7 @@ type LoaderData = {
 } | {
     kind: "subreddit_posts",
     subreddit: BaseSubreddit,
+    sort: SubSort,
 } | {
     kind: "subreddit_identity_and_sidebar",
     sub: LowercaseString,
@@ -1524,12 +1544,23 @@ type LoaderData = {
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 const opaque_sort_option = encoderGenerator<SortOptionKind, "sort_option">("sort_option");
+const opaque_sort_group = encoderGenerator<SortGroupKind, "sort_group">("sort_group");
 type SortOptionKind = {
     kind: "sub",
-    sub: SubSort,
+    sort: SubSort,
 } | {
-    kind: "todo",
+    kind: "item",
+
+    item: Sortv,   
 };
+type SortGroupKind = {
+    kind: "sub",
+    sub: BaseSubreddit,
+} | {
+    kind: "item",
+    item: BaseItem,   
+};
+
 
 function addItem(client: RedditClient, item: Reddit.Item, allow_replies: true | {after_id: string}, sort: Sortv): void {
     if (item.kind === "more") {
@@ -1577,9 +1608,9 @@ export async function loadPage2v2(
     (window as any).__last_loaded = client;
     if(data.kind === "subreddit_posts") {
         // fetch the subreddit listing
-        const sub_listing = await redditRequest(base_subreddit.url(data.subreddit), {method: "GET"});
+        const sub_listing = await redditRequest(base_subreddit.url(data.subreddit, data.sort), {method: "GET"});
         const client = RedditClient.fromContent(content);
-        addListing(client, {kind: "subreddit", sub: data.subreddit, sort: subDefaultSort(data.subreddit.sr_name)}, sub_listing, true);
+        addListing(client, {kind: "subreddit", sub: data.subreddit, sort: data.sort}, sub_listing, true);
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub;
         const [widgets, about] = await Promise.all([
@@ -1706,4 +1737,15 @@ export async function loadPage2v2(
             },
         }, true);
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
+}
+
+export async function sortPage2(client: RedditClient, group: Generic.Opaque<"sort_group">, option: Generic.Opaque<"sort_option">): Promise<void> {
+    const group_dec = opaque_sort_group.decode(group);
+    const option_dec = opaque_sort_option.decode(option);
+    if (group_dec.kind === "sub") {
+        if (option_dec.kind !== "sub") throw new Error("sort sub on non-sub: " + option_dec.kind);
+        client.addDirty(client.data.subreddit_sorts.setAndList(stringify(group_dec.sub), option_dec.sort));
+    } else {
+        throw new Error("todo sort: " + group_dec.kind);
+    }
 }

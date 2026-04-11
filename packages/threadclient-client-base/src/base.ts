@@ -58,6 +58,9 @@ export abstract class ThreadClient implements ThreadClientImplements {
     abstract hasPage2(): boolean;
     abstract pageFromURL(url: string, tokens: Generic.Tokens): Promise<{pivot: Generic.Link<Generic.Post>, dirty: Generic.Link<unknown>[], tokens?: Generic.UpdateTokens}>;
     abstract loaderLoad(request: Generic.Opaque<"loader">, tokens: Generic.Tokens): Promise<{dirty: Generic.Link<unknown>[], tokens?: Generic.UpdateTokens}>;
+    sort(group: Generic.Opaque<"sort_group">, option: Generic.Opaque<"sort_option">, tokens: Generic.Tokens): Promise<{dirty: Generic.Link<unknown>[], tokens?: Generic.UpdateTokens}> {
+        throw new Error("sort method is not implemented for client: " + this.id);
+    }
     resolveLink<T>(link: Generic.Link<T>): T {
         const rlres = this.resolveLinkOld(link);
         if (rlres == null || rlres.error) throw new Error("link contents none or error: "+(rlres?.error ?? "none"));

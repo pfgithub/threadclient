@@ -8,7 +8,7 @@ import { assertNever, assertUnreachable, encodeQuery, encodeURL, expectUnsupport
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { loadPage2, submitPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
-import { getPagev2, initRedditClientData, RedditClientData, RedditLinkDescriptors, resolvers, trackRedditClientData, untrackRedditClientData } from "./reddit_page2_v2";
+import { getPagev2, initRedditClientData, RedditClientData, RedditLinkDescriptors, resolvers, sortPage2, trackRedditClientData, untrackRedditClientData } from "./reddit_page2_v2";
 
 const reddit_app_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -2821,6 +2821,10 @@ export class RedditClient extends ThreadClientHelper {
     async loaderLoad(request: Generic.Opaque<"loader">): Promise<{ dirty: Generic.Link<unknown>[]; }> {
         const content = this.dirty_content;
         await loadPage2(content, request);
+        return {dirty: this.takeDirty()};
+    }
+    async sort(group: Generic.Opaque<"sort_group">, option: Generic.Opaque<"sort_option">): Promise<{dirty: Generic.Link<unknown>[]}> {
+        await sortPage2(this, group, option);
         return {dirty: this.takeDirty()};
     }
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {

@@ -34,20 +34,54 @@ export class Page2SecretsManager {
 }
 const page2SecretsManagerInstance = new Page2SecretsManager();
 
+type SortState = {kind: "none"} | {kind: "load"} | {kind: "error", message: string};
+
 export default class Page2ContentManager {
     // TODO: once view is removed, we can switch this to Signal<unknown>
     #signals: Map<Generic.Link<unknown>, Signal<Generic.ReadLinkResult<unknown> | null>>;
     #load_states: Map<Generic.Link<Generic.Opaque<"loader">>, Signal<LoadState>>;
+    #sort_states: Map<Generic.Link<Generic.SortGroup>, Signal<SortState>>;
     #backing: ThreadClient; // TODO: multiple backing for multiclient (we might need ids to have a client on them?)
     pivot: Generic.Link<Generic.Post>;
 
     constructor(client: ThreadClient, pivot: Generic.Link<Generic.Post>) {
         this.#signals = new Map();
         this.#load_states = new Map();
+        this.#sort_states = new Map();
         this.#backing = client;
         this.pivot = pivot;
     }
 
+    sort(group: Generic.Link<Generic.SortGroup>, option: Generic.Opaque<"sort_option">): void {
+        const [state, setState] = this.#getSortSignal(group);
+        const cstate = untrack(() => state());
+        if (cstate.kind === "load") return; // already loading
+        setState({kind: "load"});
+        (async () => {
+            const gv = untrack(() => this.view2(group).group);
+            const tokens = Page2SecretsManager.instance().getTokens(this.#backing.id);
+            const resp = await this.#backing.sort(gv, option, tokens);
+            Page2SecretsManager.instance().updateTokens(this.#backing.id, tokens, resp.tokens);
+            console.log("load response", resp);
+            batch(() => {
+                this.invalidate(resp.dirty);
+                setState({kind: "none"});
+            });
+        })().catch(e => {
+            console.error(e);
+            setState({kind: "error", message: (e as Error).toString()});
+        });
+    }
+    viewSortStatus(sorter: Generic.Link<Generic.SortGroup>): SortState {
+        const [state, setState] = this.#getSortSignal(sorter);
+        return state();
+    }
+    #getSortSignal(group: Generic.Link<Generic.SortGroup>): Signal<SortState> {
+        if (!this.#sort_states.has(group)) {
+            this.#sort_states.set(group, createSignal<SortState>({kind: "none"}));
+        }
+        return this.#sort_states.get(group)!;
+    }
     load(loader: Generic.BaseLoader): void {
         const [state, setState] = this.#getLoadSignal(loader.request);
         const cstate = untrack(() => state());
