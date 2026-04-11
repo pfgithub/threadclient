@@ -425,7 +425,13 @@ export type Post = {
     
     url: string | null, // if a thing does not have a url, it cannot be the pivot
     client_id: string,
+
+    // meta: Link<PostMeta>,
 };
+
+// type PostMeta = {
+//     url: string | null,
+// };
 
 export type ClientPost = {
     kind: "client",
