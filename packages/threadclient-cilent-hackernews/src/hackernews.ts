@@ -77,6 +77,10 @@ export type UTLRes = {
 };
 
 type HnLinkDescriptors = {
+    // TODO: we may be able to fully infer this type from typeof resolvers
+    // (if we put type annotations on the parameters)
+    // that would be nice
+
     client: {
         data: BaseClient,
         content: Generic.Post,
@@ -145,7 +149,13 @@ type HnLinkDescriptors = {
         data: BaseRawlink,
         content: Generic.Post,
     },
+    about: {
+        data: BaseListing,
+        content: Generic.Post,
+    },
 };
+
+const rt = Generic.rt;
 
 type BaseItem = {id: number};
 function itemUrl(base: BaseItem): string {
@@ -203,7 +213,9 @@ const resolvers: {
                     },
                     sidebar: {
                         display: "tree",
-                        loader: Generic.p2.prefilledHorizontalLoader(content, Generic.autoLinkgen("listing→identity→sidebar", base), []),
+                        loader: Generic.p2.prefilledHorizontalLoader(content, Generic.autoLinkgen("listing→identity→sidebar", base), [
+                            client.getLink("about", base),
+                        ]),
                     },
                 },
             },
@@ -470,7 +482,36 @@ const resolvers: {
             url: base.url,
             client_id,
         }});
-    }
+    },
+    
+    about(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const content = client.dirty_content;
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "post",
+                title: {text: "About"},
+                body: {kind: "richtext", content: [
+                    rt.ul(
+                        // these are footer things on HN, maybe they could go on client as a footer?
+                        rt.li(rt.p(rt.link({id: client_id}, "/newsguidelines.html", {}, rt.txt("Guidelines", {})))),
+                        rt.li(rt.p(rt.link({id: client_id}, "/newsfaq.html", {}, rt.txt("FAQ", {})))),
+                        rt.li(rt.p(rt.link({id: client_id}, "/lists", {}, rt.txt("Lists", {})))), // most of these aren't available in the API
+                        rt.li(rt.p(rt.link({id: client_id}, "raw!https://github.com/HackerNews/API", {}, rt.txt("API", {})))),
+                        rt.li(rt.p(rt.link({id: client_id}, "/security.html", {}, rt.txt("Security", {})))),
+                        rt.li(rt.p(rt.link({id: client_id}, "/legal/", {}, rt.txt("Legal", {})))),
+                        rt.li(rt.p(rt.link({id: client_id}, "raw!https://www.ycombinator.com/apply/", {}, rt.txt("Apply to YC", {})))),
+                    ),
+                ]},
+                collapsible: false,
+            },
+            internal_data: base,
+            replies: null,
+            parent: {loader: Generic.p2.prefilledVerticalLoader(content, client.getLink("listing", base), undefined)},
+            url: `/@?obj=${encodeURIComponent(client.getLink("about", base) as string)}`,
+            client_id,
+        }};
+    },
 };
 
 function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.HorizontalLoader {
