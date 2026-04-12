@@ -287,6 +287,7 @@ const resolvers: {
         if (full.url != null) body.push({kind: "link", url: full.url, client_id});
         if (full.text != null) body.push({kind: "text", content: full.text, markdown_format: "reddit_html", client_id});
         if (full.deleted) body.push({kind: "richtext", content: [Generic.rt.p(Generic.rt.txt("[deleted]"))]});
+        if (full.dead) body.push({kind: "richtext", content: [Generic.rt.p(Generic.rt.txt("[dead]"))]});
         if (full.parts) {
             body.push({kind: "richtext", content: [Generic.rt.ul(
                 ...full.parts.map((part, i) => Generic.rt.li(Generic.rt.p(Generic.rt.link({id: client_id}, itemUrl({id: part}), {}, Generic.rt.txt(`Option ${i+1}`))))),
@@ -327,7 +328,7 @@ const resolvers: {
                             client_id,
                             unique_id: Generic.autoLinkgen("item→flag", base).toString(),
                             increment: {icon: "flag", color: "orange", label: "Flag", undo_label: "Undo Flag"},
-                            decrement: null,
+                            decrement: full.dead ? {icon: "check", color: "orange", label: "Vouch", undo_label: "Undo Vouch"} : null,
                             count_excl_you: full.score ?? "hidden",
                             you: undefined,
                             actions: {},

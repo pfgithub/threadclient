@@ -1186,6 +1186,7 @@ export type Icon =
     | "chevron_up"
     | "chevron_down"
     | "flag"
+    | "check"
     | "ellipsis"
     | "external"
     | "trash"
