@@ -19,19 +19,6 @@ export function subUrl(details: SubrInfo, sort: SubSort): string {
     ) : "");
 }
 
-function subDefaultSort(sub: SubrInfo): SubSort {
-    // overrides for some subs which should default to /new
-    // TODO: consider creating one location in this or another file where all overrides like this are stored
-    // eg: user overrides to auto collapse comments from some users, sub overrides to auto sort, …
-    // apollo does some name capitalization overrides and we could do the same too
-    // also TODO: switch users to be identified by fullname rather than username
-    if(sub.kind === "subreddit" && (
-        sub.subreddit === "teenagersnew" ||
-        sub.subreddit === "adultsnew"
-    )) return {v: "new", t: "all"};
-    return {v: "hot", t: "all"};
-}
-
 type SubmitData = {
     kind: "newpost",
     sub: string, // for user subreddits, probably "u_username"
