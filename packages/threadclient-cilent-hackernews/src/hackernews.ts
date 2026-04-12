@@ -1,6 +1,6 @@
 
 import * as Generic from "api-types-generic";
-import { DeprecatedClient, encoderGenerator, ObservableMap, ThreadClient, ThreadClientHelper } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ObservableMap, Stringified, stringify, ThreadClient, ThreadClientHelper } from "threadclient-client-base";
 import { assertNever, assertUnreachable, result, splitURL, updateQuery } from "tmeta-util";
 import * as HN from "./api_types";
 import { path_router } from "./routing";
@@ -35,8 +35,19 @@ type LoaderData = {
 } | {
     kind: "listing",
     listing: BaseListing,
+    sort: HN.ListingType,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
+type SortGroupData = {
+    kind: "listing",
+    listing: BaseListing,
+};
+const opaque_sort_group = encoderGenerator<SortGroupData, "sort_group">("sort_group");
+type SortOptionData = {
+    kind: "listing",
+    sort: HN.ListingType,
+};
+const opaque_sort_option = encoderGenerator<SortOptionData, "sort_option">("sort_option");
 
 type BaseClient = {_?: undefined};
 function clientAsParent(content: Generic.Page2Content, base: BaseClient): Generic.PostParent {
@@ -45,7 +56,16 @@ function clientAsParent(content: Generic.Page2Content, base: BaseClient): Generi
     };
 }
 
-export type BaseListing = {type: HN.ListingType};
+export type BaseListing = {
+    _?: undefined,
+    // this is currently empty because we changed all listings to sorts. arguably though we could have multiple:
+    // - home listing: (home, newest)
+    // - ask listing: (ask, asknew)
+    // - show listing: (show, shownew)
+    // - jobs listing: (jobs)
+    // with posts automatically parented to the most detailed option. we can even have ask have home set as its parent eg.
+    // and each can have its own submit page with an automatic prefix
+};
 
 type BaseUser = {id: string};
 
@@ -73,6 +93,14 @@ type HnLinkDescriptors = {
     listing_replies: {
         data: BaseListing,
         content: Generic.HorizontalLoaded,
+    },
+    listing_sort_group: {
+        data: BaseListing,
+        content: Generic.SortGroup,
+    },
+    listing_sort_menu: {
+        data: {_?: undefined},
+        content: Generic.SortMenu,
     },
 
     item: {
@@ -135,13 +163,8 @@ const resolvers: {
                 navbar: {
                     actions: [
                         {kind: "link", client_id, url: "/", text: "Home"},
-                        {kind: "link", client_id, url: "/newest", text: "New"},
                         {kind: "link", client_id, url: "/front", text: "Past"},
                         {kind: "link", client_id, url: "/newcomments", text: "Comments"},
-                        {kind: "link", client_id, url: "/ask", text: "Ask"},
-                        {kind: "link", client_id, url: "/show", text: "Show"},
-                        {kind: "link", client_id, url: "/jobs", text: "Jobs"},
-                        {kind: "link", client_id, url: "/best", text: "Best"},
                     ],
                     inboxes: [],
                     client_id,
@@ -157,18 +180,18 @@ const resolvers: {
 
     listing(client, base) {
         const content = client.dirty_content;
-        const url = updateQuery("/" + base.type, {});
+        const url = updateQuery("/", {});
         return result({error: null, value: {
             kind: "post",
             content: {
                 kind: "page",
                 wrap_page: {
                     header: {
-                        temp_title: base.type,
+                        temp_title: "hackernews",
                         filled: Generic.p2.prefilledOneLoader<Generic.FilledIdentityCard>(content, Generic.autoLinkgen("listing→identity→header", base), {
                             names: {
                                 display: null,
-                                raw: base.type,
+                                raw: "hackernews",
                             },
                             pfp: null,
                             theme: {banner: {kind: "color", color: "#ff6600"}},
@@ -197,23 +220,50 @@ const resolvers: {
                     autoload: true,
                     client_id,
                 },
+                sort_group: client.getLink("listing_sort_group", base),
+                sort_menu: client.getLink("listing_sort_menu", {}),
             },
             url,
             client_id,
         }});
     },
     listing_request(client, base) {
+        const sort = client.getListingSort(base);
         return result({error: null, value: opaque_loader.encode({
             kind: "listing",
             listing: base,
+            sort,
         })});
     },
     listing_replies(client, base) {
-        const full = client.data.listing_id_to_listing.get(base.type);
+        const sort = client.getListingSort(base);
+        const full = client.data.listing_id_to_listing.get(sort);
         if (!full) return null;
         return result({error: null, value: full.map((id): Generic.HorizontalLoader => {
             return itemHorizontalLoader(client, {id});
         })});
+    },
+    listing_sort_group(client, base) {
+        const sort = client.getListingSort(base);
+        return result({error: null, value: {
+            selected: {key: sort},
+            group: opaque_sort_group.encode({kind: "listing", listing: base}),
+        }});  
+    },
+    listing_sort_menu(client, base) {
+        const item = (label: string, value: HN.ListingType): Generic.SortOption => (
+            {label, value: {kind: "single", key: value, request: opaque_sort_option.encode({kind: "listing", sort: value})}}
+        );
+        return result({error: null, value: {
+            options: [
+                item("Top", "topstories"),
+                item("New", "newstories"),
+                item("Ask", "askstories"),
+                item("Show", "showstories"),
+                item("Jobs", "jobstories"),
+                item("Best", "beststories"),
+            ],
+        }});
     },
 
     item: (client: HnClient, base: BaseItem): Generic.ReadLinkResult<Generic.Post> | null => {
@@ -247,7 +297,7 @@ const resolvers: {
                     comments: full.descendants,
                 },
                 actions: {
-                    vote: {
+                    vote: full.type !== "job" ? {
                         kind: "counter",
                         client_id,
                         unique_id: Generic.autoLinkgen("item→vote", base).toString(),
@@ -257,7 +307,7 @@ const resolvers: {
                         you: undefined,
                         actions: {},
                         time: Date.now(),
-                    },
+                    } : undefined,
                     other: [
                         {
                             // maybe this should be a report action rather than a counter?
@@ -439,6 +489,7 @@ class HnClient extends ThreadClientHelper {
         listing_id_to_listing: ObservableMap<HN.ListingType, HN.Listing, Generic.Link<unknown>>,
         id_to_item: ObservableMap<number, HN.Item, Generic.Link<unknown>>,
         id_to_user: ObservableMap<string, HN.User, Generic.Link<unknown>>,
+        listing_to_sort: ObservableMap<Stringified<BaseListing>, HN.ListingType, Generic.Link<unknown>>,
     };
 
     constructor(prev?: HnClient) {
@@ -447,11 +498,16 @@ class HnClient extends ThreadClientHelper {
             listing_id_to_listing: new ObservableMap(prev?.data.listing_id_to_listing),
             id_to_item: new ObservableMap(prev?.data.id_to_item),
             id_to_user: new ObservableMap(prev?.data.id_to_user),
+            listing_to_sort: new ObservableMap(prev?.data.listing_to_sort),
         };
     }
     dupe(): { client: HnClient; dirty: Generic.Link<unknown>[]; } {
         const res = new HnClient(this);
         return {client: res, dirty: res.takeDirty()};
+    }
+
+    getListingSort(listing: BaseListing): HN.ListingType {
+        return this.data.listing_to_sort.get(stringify(listing)) ?? "topstories";
     }
 
     getLink<T extends keyof HnLinkDescriptors>(type: T, value: HnLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]> {
@@ -480,6 +536,7 @@ class HnClient extends ThreadClientHelper {
         this.data.id_to_item.beginTracking(link);
         this.data.id_to_user.beginTracking(link);
         this.data.listing_id_to_listing.beginTracking(link);
+        this.data.listing_to_sort.beginTracking(link);
         try {
             return resolvers[type](this, value_raw as any) as Generic.ReadLinkResult<T>;
         } catch(e) {
@@ -490,6 +547,7 @@ class HnClient extends ThreadClientHelper {
             this.data.id_to_item.endTracking();
             this.data.id_to_user.endTracking();
             this.data.listing_id_to_listing.endTracking();
+            this.data.listing_to_sort.endTracking();
         }
     }
 
@@ -500,10 +558,10 @@ class HnClient extends ThreadClientHelper {
         let parsed = path_router.parse(pathraw_in);
         if (!parsed) parsed = {kind: "link_out", out: pathraw_in};
 
-        const content = this.dirty_content;
-
         if (parsed.kind === "listing") {
-            const pivot = this.getLink("listing", {type: parsed.listing});
+            const base_listing: BaseListing = {};
+            const pivot = this.getLink("listing", base_listing);
+            this.addDirty(this.data.listing_to_sort.setAndList(stringify(base_listing), parsed.listing));
             return {pivot, dirty: this.takeDirty()};
         } else if (parsed.kind === "item") {
             const pivot = await this.fetchItem(parsed.id);
@@ -517,16 +575,25 @@ class HnClient extends ThreadClientHelper {
         } else assertNever(parsed);
     }
     async loaderLoad(request: Generic.Opaque<"loader">): Promise<{ dirty: Generic.Link<unknown>[]; }> {
-        const content: Generic.Page2Content = this.dirty_content;
         const dec = opaque_loader.decode(request);
         if (dec.kind === "listing") {
-            await this.fetchListing(dec.listing.type);
+            await this.fetchListing(dec.sort);
         } else if (dec.kind === "item") {
             await this.fetchItem(dec.item.id);
         } else if (dec.kind === "user") {
             await this.fetchUser(dec.user.id);
         } else {
             throw new Error("hn-todo");
+        }
+        return {dirty: this.takeDirty()};
+    }
+    async sort(group: Generic.Opaque<"sort_group">, option: Generic.Opaque<"sort_option">, tokens: Generic.Tokens): Promise<{ dirty: Generic.Link<unknown>[]; tokens?: Generic.UpdateTokens; }> {
+        const group_dec = opaque_sort_group.decode(group);
+        const option_dec = opaque_sort_option.decode(option);
+        if (group_dec.kind === "listing" && option_dec.kind === "listing") {
+            this.addDirty(this.data.listing_to_sort.setAndList(stringify(group_dec.listing), option_dec.sort));
+        } else {
+            throw new Error("TODO");
         }
         return {dirty: this.takeDirty()};
     }
