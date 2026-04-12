@@ -2,7 +2,7 @@ import * as Generic from "api-types-generic";
 import { autoFill, autoLinkgen, autoOutline, p2, rt, validatePost } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
 import { encoderGenerator, ObservableMap, Stringified, stringify } from "threadclient-client-base";
-import { assertNever, expectUnsupported, result, updateQuery } from "tmeta-util";
+import { assertNever, assertUnreachable, expectUnsupported, result, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
 import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink, RedditClient, userIdentityCard } from "./reddit";
 
@@ -50,9 +50,10 @@ export async function getPagev2(content: Generic.Page2Content, pathraw_in: strin
 }
 async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: ParsedPath): Promise<Generic.VerticalLoader> {
     const client = RedditClient.fromContent(content);
-    const subval = (sub: SubrInfo): LowercaseString | null => {
-        if(sub.kind === "subreddit") return asLowercaseString(sub.subreddit);
-        if(sub.kind === "userpage") return asLowercaseString("u_"+sub.user);
+    const subval = (sub: SubrInfo): BaseSubreddit | null => {
+        if(sub.kind === "subreddit") return {sr_name: asLowercaseString(sub.subreddit)};
+        if(sub.kind === "userpage") return {sr_name: asLowercaseString("u_"+sub.user)};
+        if(sub.kind === "homepage") return {sr_name: null};
         return null;
     };
     // * TODO FIX:
@@ -60,7 +61,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
     // urlToOneLoader should be async to fetch any of that needed info probably
     // we'll end up double-fetching the post but it will probably be /api/info?ids=… the first time at least
 
-    const fixsubv = async (parsed: {sub: SubrInfo}, postid: string, subv: LowercaseString | null): Promise<Generic.VerticalLoader> => {
+    const fixsubv = async (parsed: {sub: SubrInfo}, postid: string, subv: BaseSubreddit | null): Promise<Generic.VerticalLoader> => {
         if(parsed.sub.kind === "homepage") {
             const resv = await redditRequest(`/api/info?id=t3_${postid}` as "/__any_listing", {
                 method: "GET",
@@ -80,15 +81,13 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         if(subv == null) {
             throw new Error("TODO support listing kind: ["+parsed.sub.kind+"]")
         }
-        client.addDirty(client.data.subreddit_sorts.setAndList(stringify({sr_name: subv}), parsed.current_sort));
-        const link = client.getLink("subreddit", {
-            sr_name: subv,
-        });
+        client.addDirty(client.data.subreddit_sorts.setAndList(stringify(subv), parsed.current_sort));
+        const link = client.getLink("subreddit", subv);
         return p2.prefilledVerticalLoader(content, link, undefined);
     }
     if(parsed.kind === "comments") {
         const subv = subval(parsed.sub);
-        if(subv == null) {
+        if(subv == null || subv.sr_name == null) {
             return fixsubv(parsed, parsed.post_id_unprefixed, subv);
         }
 
@@ -102,7 +101,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         const request = client.getLink("item_replies_request", {
             post_fullname,
             comment_fullname,
-            subreddit: subv,
+            subreddit: subv.sr_name,
         });
         return {
             kind: "vertical_loader",
@@ -114,14 +113,14 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
     }
     if(parsed.kind === "duplicates") {
         const subv = subval(parsed.sub);
-        if(subv == null) {
+        if(subv == null || subv.sr_name == null) {
             return fixsubv(parsed, parsed.post_id_unprefixed, subv);
         }
 
         const sort: Sortv = {m: "duplicates", v: parsed.sort ?? "num_comments", crossposts_only: parsed.crossposts_only};
         const post_base: BasePostT3 = {
             fullname: `t3_${parsed.post_id_unprefixed}`,
-            on_subreddit: subv,
+            on_subreddit: subv.sr_name,
             sort,
         };
         client.addDirty(client.data.post_sorts.setAndList(stringify({fullname: post_base.fullname}), sort));
@@ -140,12 +139,12 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
     }
     if(parsed.kind === "submit") {
         const subv = subval(parsed.sub);
-        if(subv == null) {
+        if(subv == null || subv.sr_name == null) {
             throw new Error("TODO support submit on sub kind: ["+parsed.sub.kind+"]")
         }
 
         const submit_base: BaseSubmitPage = {
-            on_subreddit: subv,
+            on_subreddit: subv.sr_name,
         };
         return {
             kind: "vertical_loader",
@@ -356,7 +355,7 @@ export const base_client = {
 export const base_subreddit = {
     url: (base: BaseSubreddit, sort: SubSort): "/__any_listing" => {
         return updateQuery(
-            "/r/" + base.sr_name + ("/" + sort.v),
+            (base.sr_name != null ? `/r/${base.sr_name}` : ``) + ("/" + sort.v),
             {t: sort.t},
             // TODO: we will make URLs a Link<string> and then they will change based on the sort
         ) as "/__any_listing";
@@ -374,9 +373,9 @@ function simplifySort(sort: SubSort): SubSort {
     return {v: sort.v, t: "all"};
 }
 
-export function subDefaultSort(base: UnsortedSubreddit): SubSort {
+export function subDefaultSort(base: BaseSubreddit): SubSort {
     // specify manual overrides for subreddits which request different default sorts
-    if(base === "teenagersnew" || base === "adultsnew") return {v: "new", t: "all"};
+    if(base.sr_name === "teenagersnew" || base.sr_name === "adultsnew") return {v: "new", t: "all"};
     return {v: "hot", t: "all"};
 }
 export function commentDefaultCollapsed(author_name: string): boolean {
@@ -385,7 +384,7 @@ export function commentDefaultCollapsed(author_name: string): boolean {
 }
 
 const base_oldsidebar_widget = {
-    url: (base: BaseSubreddit) => "/r/"+base.sr_name+"/about/sidebar",
+    url: (base: BaseSubreddit) => "/r/"+(base.sr_name ?? assertUnreachable(0 as never))+"/about/sidebar",
 };
 
 type DuplicaesSortV = {m: "duplicates", v: Reddit.DuplicatesSort, crossposts_only: boolean};
@@ -474,7 +473,10 @@ export function untrackRedditClientData(data: RedditClientData): void {
 }
 
 type BaseItem = {fullname: string};
-type BaseSubreddit = {sr_name: LowercaseString};
+type BaseSubreddit = {
+    /** null indicates homepage */
+    sr_name: null | LowercaseString,
+};
 type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: PostSort};
 export type RedditLinkDescriptors = {
     // TODO: most of these should not need a sort method! sort should only be for replies, where the client chooses which one to use
@@ -596,7 +598,7 @@ function userSortMethod(client: RedditClient, base: BaseUser): UserSort {
     return client.data.user_sorts.get(stringify(base)) ?? {kind: "sorted-tab", tab: "overview", sort: {sort: "new", t: "all"}};
 }
 function subSortMethod(client: RedditClient, base: BaseSubreddit): SubSort {
-    return client.data.subreddit_sorts.get(stringify(base)) ?? subDefaultSort(base.sr_name);
+    return client.data.subreddit_sorts.get(stringify(base)) ?? subDefaultSort(base);
 }
 function postSortMethod(client: RedditClient, base: BaseItem): Sortv {
     const post = client.data.items.get(stringify(base));
@@ -824,7 +826,7 @@ export const resolvers: {
                 kind: "page",
                 wrap_page: {
                     header: {
-                        temp_title: "r/" + base.sr_name,
+                        temp_title: base.sr_name != null ? "r/" + base.sr_name : `Home`,
                         filled: {
                             kind: "one_loader",
                             key: client.getLink("subreddit_card", base),
@@ -861,7 +863,7 @@ export const resolvers: {
                 sort_menu: client.getLink("subreddit_sort_menu", {}),
                 sort_group: client.getLink("subreddit_sort", base),
             },
-            url: base_subreddit.url(base, subDefaultSort(base.sr_name)), // TODO: url should be a Link<string> and we will use the actual sort instead of the default sort
+            url: base_subreddit.url(base, subDefaultSort(base)), // TODO: url should be a Link<string> and we will use the actual sort instead of the default sort
             client_id,
         }};
     },
@@ -911,12 +913,22 @@ export const resolvers: {
     subreddit_identity_request(client, base) {
         return {error: null, value: opaque_loader.encode({
             kind: "subreddit_identity_and_sidebar",
-            sub: base.sr_name,
+            sub: base.sr_name ?? assertNever(0 as never),
         })};
     },
     subreddit_card(client, base): Generic.ReadLinkResult<Generic.FilledIdentityCard> | null {
         // arguably these should not use subreddit_card
-        if (base.sr_name === "all") {
+        if (base.sr_name == null) {
+            return {error: null, value: {
+                names: {display: "Home", raw: "/"},
+                pfp: null,
+                theme: {banner: null},
+                description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "Posts from your subscribed subreddits", styles: {}}]}]},
+                actions: {main_counter: null},
+                menu: null,
+                raw_value: null,
+            }};
+        }else if (base.sr_name === "all") {
             return {error: null, value: {
                 names: {display: "All", raw: "r/all"},
                 pfp: null,
@@ -949,7 +961,7 @@ export const resolvers: {
         })};
     },
     subreddit_widgets(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
-        if (base.sr_name === "all" || base.sr_name === "popular") return {error: null, value: []};
+        if (base.sr_name == null || base.sr_name === "all" || base.sr_name === "popular") return {error: null, value: []};
 
         const widgets = client.data.widgets.get(stringify(base));
         const t5 = client.data.subreddit_t5s.get(stringify(base));
@@ -1150,7 +1162,7 @@ export const resolvers: {
                                 name_raw: "r/"+community.name,
                                 pfp: {url: community.communityIcon || community.iconUrl},
                                 main_counter: createSubscribeAction(
-                                    sub_base.sr_name, community.subscribers, community.isSubscribed,
+                                    sub_name, community.subscribers, community.isSubscribed,
                                 ),
                                 url: "/r/"+community.name,
                                 client_id,

@@ -133,7 +133,7 @@ function userOrSubredditOrHome(urlr: util.Router<util.BaseParentOpts & {
         ...base_sort_methods.map(sm => "/user/:username/m/:multiredditName/"+sm),
     );
     urlr.route([{sort: [...base_sort_methods, ...kind === "user" ? [] : [null]]}] as const, opts => {
-        const subdefault = subDefaultSort(asLowercaseString(opts.subreddit ?? ""));
+        const subdefault = subDefaultSort({sr_name: asLowercaseString(opts.subreddit ?? "")});
         return {
             kind: "subreddit",
             sub: getSub(opts),
