@@ -186,7 +186,7 @@ export function encoderGenerator<InType extends Object, T extends Generic.DataEn
         },
         decode(v) {
             if(v.encoding_symbol !== encoder_symbol) {
-                console.log("decoder error", v, t, encoder_symbol);
+                console.trace("decoder error", v, t, encoder_symbol);
                 throw new Error("Decoder was passed encoded data from the wrong encoder");
             }
             return v as unknown as InType;
