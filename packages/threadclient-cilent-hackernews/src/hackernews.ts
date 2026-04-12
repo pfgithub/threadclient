@@ -339,8 +339,8 @@ const resolvers: {
             internal_data: full,
             parent: {loader: {
                 kind: "vertical_loader",
-                key: parent_id != null ? client.getLink("item", {id: parent_id}) : client.getLink("client", {}),
-                unfilled_parent: client.getLink("client", {}),
+                key: parent_id != null ? client.getLink("item", {id: parent_id}) : client.getLink("listing", {}),
+                unfilled_parent: client.getLink("listing", {}),
                 request: parent_id != null ? client.getLink("item_request", {id: parent_id}) : Generic.p2.createSymbolLinkToError(content, "hn-full_item-noparent", full),
                 client_id,
             }},
