@@ -256,16 +256,16 @@ path_router.with(["user", {user: "any"}] as const, urlr => {
         username: opts.user,
         current: {kind: "unsorted-tab", tab: opts.tab},
     }));
-    urlr.route(["gilded", {by: ["received", "given", null]}] as const, opts => ({
-        kind: "user",
-        username: opts.user,
-        current: {kind: "gild-tab", tab: "gilded", by: opts.by ?? opts.query["show"] ?? "received"},
-    }));
-    urlr.route(["given"] as const, opts => ({
-        kind: "user",
-        username: opts.user,
-        current: {kind: "gild-tab", tab: "gilded", by: "given"},
-    }));
+    // urlr.route(["gilded", {by: ["received", "given", null]}] as const, opts => ({
+    //     kind: "user",
+    //     username: opts.user,
+    //     current: {kind: "gild-tab", tab: "gilded", by: opts.by ?? opts.query["show"] ?? "received"},
+    // }));
+    // urlr.route(["given"] as const, opts => ({
+    //     kind: "user",
+    //     username: opts.user,
+    //     current: {kind: "gild-tab", tab: "gilded", by: "given"},
+    // }));
 
     marked_routes.push("/user/:profileName/snoo");
     urlr.route(["snoo"] as const, todo("snoo"));

@@ -1562,9 +1562,6 @@ export type SubrInfo = {
     base: string[],
     subreddit: string,
 } | {
-    kind: "mod",
-    base: string[],
-} | {
     kind: "error",
     base: string[],
     pathraw: string,
@@ -2468,7 +2465,7 @@ async function fetchSubInfo(sub: SubrInfo): Promise<{
 }> {
     if(sub.kind === "homepage") return {sidebar: null};
     if(sub.kind === "userpage") return {sidebar: null};
-    if(sub.kind === "mod") return {sidebar: null};
+    // if(sub.kind === "mod") return {sidebar: null};
     if(sub.kind === "subreddit") {
         const [widgets, about] = await Promise.all([
             redditRequest(`/r/${ec(sub.subreddit)}/api/widgets`, {method: "GET", onerror: e => undefined, cache: true}),
