@@ -1445,10 +1445,10 @@ export const resolvers: {
         })};
     },
     item_replies_request(client, base) {
-        const sort = postSortMethod(client, {fullname: base.post_fullname});
+        const sort = client.data.post_sorts.get(stringify({fullname: base.post_fullname}));
         return {error: null, value: opaque_loader.encode({
             kind: "view_post",
-            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort},
+            post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: sort ?? "infer"},
             focus_comment_id: base.comment_fullname,
             context: "0", // min (or is it 1?)
             // TODO: set to 3 if the parent is not known?
