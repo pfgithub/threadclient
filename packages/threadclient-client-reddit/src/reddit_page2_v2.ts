@@ -6,29 +6,31 @@ import { assertNever, assertUnreachable, expectUnsupported, result, updateQuery 
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
 import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink, RedditClient, userIdentityCard } from "./reddit";
 
-// * todo fix - we use JSON.stringify right now, but that keeps property order. eventually, that's going to become
-// a problem - two things with the same base are not going to have the same id because of property order.
-// - why did we say that base couldn't be a url?
-// - pretty sure every post base should be able to be converted to and from a url
-
-// implementing this well should free us to make less things require loaders:
-// - PostReplies would directly contain the posts and put a loader if it doesn't.
-//   if the base is enough to describe the replies, we can put them in directly,
-//   otherwise we need to link.
-
-// a safety check we can do is:
-// - after generating any Generic.Post:
-//   - check that parsing the url creates the same base as the url was made from
-// how to implement this: @@@@@@@@@@@@@@@@@@@@@@@@@ do this @@@@@@@@@@@
-// - add a method: getPivotLink(url) that returns a OneLoader<Post> from a given url
-// - for every post, verify that if(post.url) |url| getPivotLink(url) === loader.key.
-
 /*
-report screens in page2
-- the report button links to a special @report page including a link to the object being reported
-- the report page is a post that shows the object being reported and shows the report options
-  - or it shows it as a reply with the report as a pivot. doesn't matter
-- we continue to use page1 report format, no reason to recreate that yet.
+Required checklist for feature parity (then we can make page2 default)
+- [ ] report button has to work
+- [ ] listing before and after links
+- [ ] reply to posts
+- [ ] submit link on subreddits
+- [ ] on firefox, NetworkError should display the enhanced tracker protection info
+- [ ] delete action (it says 'TODO make the thing that tracks requests so we can use it here')
+- [ ] swipe right shouldn't be to save. we should remove it for now. or it could be repivot or something.
+- [ ] notifications page. different inboxes & view notifications
+
+Optional checklist for feature parity:
+- [ ] on a user page, comments should show what post they are on
+- [ ] user moderated_subreddits needs to display after it loads
+- [ ] code links to display the raw markdown of the post
+
+Nice to have, not related to feature parity:
+- [ ] page2 report screens (OneLoader<Link<ReportScreen>>, Opaque<ReportData>), report(Opaque<ReportReason>, Opaque<ReportData>, text?: string)
+- [ ] fix the sort button dropdown menus to actually be dropdowns
+- [ ] page2 logins
+- [ ] threadclient-ui-web handles 'op' display instead of user
+- [ ] unified identity cards
+- [ ] url -> Link<string>
+- [ ] url is the external link, not the threadclient link. ui adds 'View on reddit.com' action automatically instead of us adding it.
+- [ ] page2 notifications (in client, there is a notifications thing. and other stuff)
 */
 
 export type UTLRes = {
