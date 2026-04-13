@@ -425,6 +425,7 @@ export type RedditClientData = {
     subreddit_t5s: ObservableMap<Stringified<BaseSubreddit>, Reddit.T5, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
     user_abouts: ObservableMap<Stringified<BaseUser>, Reddit.T2, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
     user_trophies: ObservableMap<Stringified<BaseTrophy>, Reddit.T6, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
+    user_trophy_lists: ObservableMap<Stringified<BaseUser>, Reddit.TrophyList, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
     user_moderated_subreddits: ObservableMap<Stringified<BaseUser>, Reddit.ModeratedList, Generic.Link<unknown>>,
     wikipages: ObservableMap<Stringified<BaseRevisedWikipage>, Reddit.WikiPage, Generic.Link<unknown>>,
     subreddit_all_wikipages: ObservableMap<Stringified<BaseSubreddit>, Reddit.WikipageListing, Generic.Link<unknown>>,
@@ -451,6 +452,7 @@ export function initRedditClientData(prev?: RedditClientData): RedditClientData 
         subreddit_t5s: new ObservableMap(prev?.subreddit_t5s),
         user_abouts: new ObservableMap(prev?.user_abouts),
         user_trophies: new ObservableMap(prev?.user_trophies),
+        user_trophy_lists: new ObservableMap(prev?.user_trophy_lists),
         user_moderated_subreddits: new ObservableMap(prev?.user_moderated_subreddits),
         wikipages: new ObservableMap(prev?.wikipages),
         subreddit_all_wikipages: new ObservableMap(prev?.subreddit_all_wikipages),
@@ -469,6 +471,7 @@ export function trackRedditClientData(data: RedditClientData, link: Generic.Link
     data.subreddit_t5s.beginTracking(link);
     data.user_abouts.beginTracking(link);
     data.user_trophies.beginTracking(link);
+    data.user_trophy_lists.beginTracking(link);
     data.user_moderated_subreddits.beginTracking(link);
     data.wikipages.beginTracking(link);
     data.subreddit_all_wikipages.beginTracking(link);
@@ -486,6 +489,7 @@ export function untrackRedditClientData(data: RedditClientData): void {
     data.subreddit_t5s.endTracking();
     data.user_abouts.endTracking();
     data.user_trophies.endTracking();
+    data.user_trophy_lists.endTracking();
     data.user_moderated_subreddits.endTracking();
     data.wikipages.endTracking();
     data.subreddit_all_wikipages.endTracking();
@@ -603,6 +607,14 @@ export type RedditLinkDescriptors = {
     user_trophies_request: {
         data: BaseUser,
         content: Generic.Opaque<"loader">,
+    },
+    user_trophies: {
+        data: BaseUser,
+        content: Generic.HorizontalLoaded,
+    },
+    user_trophy: {
+        data: BaseTrophy,
+        content: Generic.Post,
     },
     user_moderated_subreddits_request: {
         data: BaseUser,
@@ -764,10 +776,8 @@ export const resolvers: {
     },
     user_trophies_request(client, base) {
         return {error: null, value: opaque_loader.encode({
-            kind: "fetch_listing",
-            url: `/api/v1/user/u/${base.username}/trophies` as `/__any_listing`,
-            parent: {kind: "user_trophies", user: base},
-            allow_replies: true, // not that trophies have any replies
+            kind: "fetch_trophies",
+            username: base.username,
         })};
     },
     user_moderated_subreddits_request(client, base) {
@@ -805,6 +815,47 @@ export const resolvers: {
             client_id,
         }};
     },
+    user_trophies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
+        const trophies = client.data.user_trophy_lists.get(stringify(base));
+        if (trophies == null) return null;
+        return {error: null, value: [
+            ...trophies.data.trophies.map((trophy): Generic.HorizontalLoadedItem => {
+                return client.getLink("user_trophy", {label: trophy.data.name, user: base});
+            }),
+        ]};
+    },
+    user_trophy(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const trophy = client.data.user_trophies.get(stringify(base));
+        if (trophy == null) return null;
+        const body: Generic.Body[] = [];
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "post",
+                title: {text: trophy.data.name},
+                thumbnail: {
+                    kind: "image",
+                    url: trophy.data.icon_70,
+                },
+                info: {
+                    creation_date: trophy.data.granted_at != null ? trophy.data.granted_at * 1000 : undefined,
+                },
+                body: {
+                    kind: "captioned_image",
+                    url: trophy.data.icon_70,
+                    w: 70,
+                    h: 70,
+                    caption: trophy.data.description ?? undefined, // interestingly, caption seems to have dates for some trophies, ie 2020-02-06
+                },
+                collapsible: {default_collapsed: true},
+            },
+            internal_data: {},
+            parent: {loader: p2.prefilledVerticalLoader(client.dirty_content, client.getLink("user", base.user), undefined)}, // TODO user_trophy_case
+            replies: null,
+            url: null,
+            client_id,
+        }};
+    },
     user_replies_request(client, base) {
         const sort: UserSort = userSortMethod(client, base);
         const path = [];
@@ -835,7 +886,7 @@ export const resolvers: {
             }] satisfies Generic.HorizontalLoadedItem[],
             {
                 kind: "horizontal_loader",
-                key: client.getLink("replies", {kind: "user_trophies", user: base}),
+                key: client.getLink("user_trophies", base),
                 request: client.getLink("user_trophies_request", base),
                 client_id,
             },
@@ -1365,8 +1416,6 @@ export const resolvers: {
             sorted = {kind: "subreddit", sub: base.sub, sort: subSortMethod(client, base.sub)};
         } else if (base.kind === "user") {
             sorted = {kind: "user", user: base.user, sort: userSortMethod(client, base.user)};
-        } else if (base.kind === "user_trophies") {
-            sorted = {kind: "user_trophies", user: base.user};
         } else {
             throw new Error("todo support base kind: " + stringify(base));
         }
@@ -1957,6 +2006,9 @@ type LoaderData = {
     parent: SortedObjectID,
     allow_replies: AllowReplies;
 } | {
+    kind: "fetch_trophies",
+    username: LowercaseString,
+} | {
     kind: "wikipage",
     page: BaseRevisedWikipage,
 };
@@ -2205,6 +2257,12 @@ export async function loadPage2v2(
         client.addDirty(client.data.user_moderated_subreddits.setAndList(stringify(data.user), info));
     } else if (data.kind === "wikipage") {
         await fetchWikipage(client, data.page);
+    }else if (data.kind === "fetch_trophies") {
+        const trophies = await redditRequest(`/api/v1/user/${ec(data.username)}/trophies`, {method: "GET"});
+        client.addDirty(client.data.user_trophy_lists.setAndList(stringify({username: data.username}), trophies));
+        for (const item of trophies.data.trophies) {
+            addItem(client, item, true, {kind: "user_trophies", user: {username: data.username}});
+        }
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
 }
 async function fetchWikipage(client: RedditClient, page: BaseRevisedWikipage, opt?: {canonicalize?: boolean}): Promise<{canonical: BaseRevisedWikipage}> {

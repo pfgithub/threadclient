@@ -46,11 +46,12 @@ export type TrophyList = {
 export type T6 = {
     kind: "t6",
     data: {
+        id: null,
         name: string,
         url: string | null,
         icon_70: string,
         icon_40: string,
-        award_id: string,
+        award_id: string | null,
         description: string | null,
         granted_at: number | null,
     },
