@@ -3697,6 +3697,12 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
         const prev_cache = request_cache.get(cache_text);
         if(prev_cache != null && (opts.cache ?? false)) return prev_cache as Reddit.Requests[Path]["response"];
         const [status, res] = await fetch(full_url, fetchopts).then(async (v) => {
+            const ratelimit_used = v.headers.get("x-ratelimit-used") ?? "1";
+            const ratelimit_remaining = v.headers.get("x-ratelimit-remaining") ?? "1";
+            const ratelimit_reset = v.headers.get("x-ratelimit-reset") ?? "1";
+            const ratelimit_total = (+ratelimit_used) + (+ratelimit_remaining);
+            console.log(`RATELIMIT: ${ratelimit_used} / ${ratelimit_total} (reset in ${ratelimit_reset}sec)`);
+
             if (opts.viewresponse) opts.viewresponse(v);
             return [v.status, await v.json() as Reddit.Requests[Path]["response"]] as const;
         });
