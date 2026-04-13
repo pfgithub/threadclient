@@ -3594,6 +3594,7 @@ const report_action_encoder = encoderGenerator<ReportAction, "send_report">("sen
 // {method: "POST", mode: "json", body: unknown}
 type RequestOpts<ThingType extends Reddit.RequestInfo, Extra> = {
     onerror?: undefined | ((e: Error) => Extra),
+    viewresponse?: undefined | ((resp: Response) => void),
     onstatus?: undefined | ((status: number, res: ThingType["response"]) => Extra),
     cache?: undefined | boolean,
     override?: undefined | boolean,
@@ -3696,6 +3697,7 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
         const prev_cache = request_cache.get(cache_text);
         if(prev_cache != null && (opts.cache ?? false)) return prev_cache as Reddit.Requests[Path]["response"];
         const [status, res] = await fetch(full_url, fetchopts).then(async (v) => {
+            if (opts.viewresponse) opts.viewresponse(v);
             return [v.status, await v.json() as Reddit.Requests[Path]["response"]] as const;
         });
         if(status !== 200) {

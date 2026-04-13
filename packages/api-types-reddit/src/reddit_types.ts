@@ -19,8 +19,20 @@ export type WikiPage = {
         may_revise: boolean,
         revision_date: number, // s since epoch (utc)
         revision_by: T2,
-        revision_id: string,
+        revision_id: string, // uuid
     },
+};
+export type WikipageListing = {
+    kind: "wikipagelisting",
+    data: string[],
+};
+export type WikipageRevision = {
+    author: T2,
+    timestamp: number, // s since epoch
+    page: string,
+    revision_hidden: boolean,
+    reason: null,
+    id: string, // uuid
 };
 
 export type TrophyList = {
@@ -757,11 +769,12 @@ export type ModmailUnreadCount = {
 };
 
 export type Page = [Listing, Listing];
-export type Listing = {
+export type Listing = ListingT<Post>;
+export type ListingT<T> = {
     kind: "Listing",
     data: {
         before: string | null,
-        children: Post[],
+        children: T[],
         after: string | null,
     },
 };
@@ -1404,6 +1417,15 @@ export type Requests = {
     }>,
     [key: `/r/${PathBit}/api/link_flair_v2`]: IsRequest<{
         response: ApiLinkFlair,
+    }>,
+    [key: `/r/${PathBit}/wiki/${PathBit}`]: IsRequest<{
+        response: WikiPage,
+    }>,
+    [key: `/r/${PathBit}/wiki/pages`]: IsRequest<{
+        response: WikipageListing,
+    }>,
+    [key: `/r/${PathBit}/wiki/revisions`]: IsRequest<{
+        response: ListingT<WikipageRevision>,
     }>,
     "/api/multi/__unknown_base": IsRequest<{
         response: LabeledMulti,

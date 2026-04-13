@@ -185,14 +185,15 @@ export function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}
         heading: (heading) => {
             // <Dynamic> can work for this. they need different classes though so idk.
             const content = () => <RichtextSpans spans={heading.children} />;
-            if(heading.level === 1) return <h1 class="text-3xl font-black">{content()}</h1>;
-            if(heading.level === 2) return <h2 class="text-2xl font-bold">{content()}</h2>;
-            if(heading.level === 3) return <h3 class="text-xl font-semibold">{content()}</h3>;
-            if(heading.level === 4) return <h4 class="text-lg font-medium">{content()}</h4>;
+            const id = () => heading.id != null ? `ID<${heading.id}>` : undefined;
+            if(heading.level === 1) return <h1 class="text-3xl font-black" id={id()}>{content()}</h1>;
+            if(heading.level === 2) return <h2 class="text-2xl font-bold" id={id()}>{content()}</h2>;
+            if(heading.level === 3) return <h3 class="text-xl font-semibold" id={id()}>{content()}</h3>;
+            if(heading.level === 4) return <h4 class="text-lg font-medium" id={id()}>{content()}</h4>;
             if(heading.level === 5) return <h5
-                class="text-base text-slate-500 dark:text-zinc-400 font-normal"
+                class="text-base text-slate-500 dark:text-zinc-400 font-normal" id={heading.id}
             >{content()}</h5>;
-            return <h6 class="text-sm text-slate-500 dark:text-zinc-400 font-normal underline">{content()}</h6>;
+            return <h6 class="text-sm text-slate-500 dark:text-zinc-400 font-normal underline" id={heading.id}>{content()}</h6>;
         },
         horizontal_line: () => <div class="py-2">
             <hr class="w-full border-t-2 border-slate-500 dark:border-zinc-400 rounded" />

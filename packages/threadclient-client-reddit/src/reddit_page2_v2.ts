@@ -162,6 +162,21 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         client.addDirty(client.data.user_sorts.setAndList(stringify(base), parsed.current));
         return p2.prefilledVerticalLoader(content, client.getLink("user", base), undefined);
     }
+    if (parsed.kind === "wiki") {
+        const subv = subval(parsed.sub);
+        if(subv == null || subv.sr_name == null) {
+            throw new Error("TODO support wiki on sub kind: ["+parsed.sub.kind+"]")
+        }
+        const {canonical} = await fetchWikipage(client, {
+            page: {
+                subreddit: subv,
+                canonical_path: parsed.path.join("/"),
+            },
+            v: parsed.query["v"],
+            v2: parsed.query["v2"],
+        }, {canonicalize: true});
+        return p2.prefilledVerticalLoader(content, client.getLink("wikipage", canonical), undefined);
+    }
     // if(parsed.kind === "inbox") {
     //     const base: BaseInbox = {};
     //     if(parsed.current.tab === "compose") {
@@ -411,6 +426,8 @@ export type RedditClientData = {
     user_abouts: ObservableMap<Stringified<BaseUser>, Reddit.T2, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
     user_trophies: ObservableMap<Stringified<BaseTrophy>, Reddit.T6, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
     user_moderated_subreddits: ObservableMap<Stringified<BaseUser>, Reddit.ModeratedList, Generic.Link<unknown>>,
+    wikipages: ObservableMap<Stringified<BaseRevisedWikipage>, Reddit.WikiPage, Generic.Link<unknown>>,
+    subreddit_all_wikipages: ObservableMap<Stringified<BaseSubreddit>, Reddit.WikipageListing, Generic.Link<unknown>>,
     
     user_sorts: ObservableMap<Stringified<BaseUser>, UserSort, Generic.Link<unknown>>,
     post_sorts: ObservableMap<Stringified<BaseItem>, Sortv, Generic.Link<unknown>>,
@@ -435,6 +452,8 @@ export function initRedditClientData(prev?: RedditClientData): RedditClientData 
         user_abouts: new ObservableMap(prev?.user_abouts),
         user_trophies: new ObservableMap(prev?.user_trophies),
         user_moderated_subreddits: new ObservableMap(prev?.user_moderated_subreddits),
+        wikipages: new ObservableMap(prev?.wikipages),
+        subreddit_all_wikipages: new ObservableMap(prev?.subreddit_all_wikipages),
 
         user_sorts: new ObservableMap(prev?.user_sorts),
         post_sorts: new ObservableMap(prev?.post_sorts),
@@ -451,6 +470,8 @@ export function trackRedditClientData(data: RedditClientData, link: Generic.Link
     data.user_abouts.beginTracking(link);
     data.user_trophies.beginTracking(link);
     data.user_moderated_subreddits.beginTracking(link);
+    data.wikipages.beginTracking(link);
+    data.subreddit_all_wikipages.beginTracking(link);
 
     data.user_sorts.beginTracking(link);
     data.post_sorts.beginTracking(link);
@@ -466,12 +487,23 @@ export function untrackRedditClientData(data: RedditClientData): void {
     data.user_abouts.endTracking();
     data.user_trophies.endTracking();
     data.user_moderated_subreddits.endTracking();
+    data.wikipages.endTracking();
+    data.subreddit_all_wikipages.endTracking();
 
     data.user_sorts.endTracking();
     data.post_sorts.endTracking();
     data.subreddit_sorts.endTracking();
 }
 
+type BaseWikipage = {
+    subreddit: BaseSubreddit,
+    canonical_path: string, // note that after fetching a wikipage, response.url can be used to find out the true path
+};
+type BaseRevisedWikipage = {
+    page: BaseWikipage,
+    v?: string,
+    v2?: string,
+};
 type BaseItem = {fullname: string};
 type BaseSubreddit = {
     /** null indicates homepage */
@@ -587,6 +619,18 @@ export type RedditLinkDescriptors = {
     user_sort_menu: {
         data: {_?: undefined},
         content: Generic.SortMenu,
+    },
+    wiki: {
+        data: BaseSubreddit,
+        content: Generic.Post,
+    },
+    wikipage: {
+        data: BaseRevisedWikipage,
+        content: Generic.Post,
+    },
+    wikipage_request: {
+        data: BaseRevisedWikipage,
+        content: Generic.Opaque<"loader">,
     },
 };
 
@@ -1432,6 +1476,40 @@ export const resolvers: {
             post_fullname: base.post_fullname,
         })};
     },
+
+    wiki(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const content = client.data.subreddit_all_wikipages.get(stringify(base));
+        if (!content) return null;
+        return null; // TODO
+    },
+    wikipage(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        const content = client.data.wikipages.get(stringify(base));
+        if (!content) return null;
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "post",
+                title: {text: base.page.canonical_path},
+                info: {
+                    edited: {date: content.data.revision_date * 1000},
+                    // TODO: we can add revision history with diff support as a fancy version of 'edited'
+                    // and maybe we'll want to make it like sort, changing the content of the post instead of returning a new link to a different post
+                    // unclear
+                    // and that can include an edited_by where we will use the content.data.author
+                },
+                body: {kind: "text", content: content.data.content_html, markdown_format: "reddit_html", client_id},
+                collapsible: {default_collapsed: true},
+            },
+            internal_data: content,
+            parent: {loader: p2.prefilledVerticalLoader(client.dirty_content, client.getLink("wiki", base.page.subreddit), undefined)},
+            replies: null,
+            url: `/r/${base.page.subreddit.sr_name ?? "TODO"}/wiki/${base.page.canonical_path}`,
+            client_id,
+        }};
+    },
+    wikipage_request(client, base) {
+        return {error: null, value: opaque_loader.encode({kind: "wikipage", page: base})};
+    },
 };
 
 function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Reddit.T3): {replies: Generic.PostReplies} {
@@ -1878,6 +1956,9 @@ type LoaderData = {
     url: "/__any_listing", // this should be keys of Requests that satisfy {response: Listing}
     parent: SortedObjectID,
     allow_replies: AllowReplies;
+} | {
+    kind: "wikipage",
+    page: BaseRevisedWikipage,
 };
 const opaque_loader = encoderGenerator<LoaderData, "loader">("loader");
 const opaque_sort_option = encoderGenerator<SortOptionKind, "sort_option">("sort_option");
@@ -1943,8 +2024,8 @@ type UserSort = {
     tab: "upvoted" | "downvoted" | "hidden" | "saved",
 };
 
-type SortedObjectID = {kind: "item", item: BaseItem, sort: Sortv} | {kind: "subreddit", sub: BaseSubreddit, sort: SubSort} | {kind: "user_trophies", user: BaseUser} | {kind: "user", user: BaseUser, sort: UserSort}; // TODO: subreddits have T5s and it should be possible to use them?
-type ObjectID = {kind: "item", item: BaseItem} | {kind: "subreddit", sub: BaseSubreddit} | {kind: "user_trophies", user: BaseUser} | {kind: "user", user: BaseUser}; // TODO: subreddits & users have T5s and it should be possible to use them?
+type SortedObjectID = {kind: "item", item: BaseItem, sort: Sortv} | {kind: "subreddit", sub: BaseSubreddit, sort: SubSort} | {kind: "user_trophies", user: BaseUser} | {kind: "user", user: BaseUser, sort: UserSort} | {kind: "wikipage_revisions", page: BaseWikipage}; // TODO: subreddits have T5s and it should be possible to use them?
+type ObjectID = {kind: "item", item: BaseItem} | {kind: "subreddit", sub: BaseSubreddit} | {kind: "user_trophies", user: BaseUser} | {kind: "user", user: BaseUser} | {kind: "wikipage_revisions", page: BaseWikipage}; // TODO: subreddits & users have T5s and it should be possible to use them?
 
 function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
@@ -2117,7 +2198,28 @@ export async function loadPage2v2(
     } else if (data.kind === "user_moderated_subreddits") {
         const info = await redditRequest(`/user/${ec(data.user.username)}/moderated_subreddits`, {method: "GET"});
         client.addDirty(client.data.user_moderated_subreddits.setAndList(stringify(data.user), info));
+    } else if (data.kind === "wikipage") {
+        await fetchWikipage(client, data.page);
     }else throw new Error("todo support loader kind: ["+data.kind+"]");
+}
+async function fetchWikipage(client: RedditClient, page: BaseRevisedWikipage, opt?: {canonicalize?: boolean}): Promise<{canonical: BaseRevisedWikipage}> {
+    let result_url: string = "";
+    const info = await redditRequest(`/r/${ec(page.page.subreddit.sr_name ?? "todo")}/wiki/${ec(page.page.canonical_path)}`, {method: "GET", viewresponse(resp) {
+        result_url = resp.url;
+    }});
+    const ruparsed = new URL(result_url);
+    const rumatch = ruparsed.pathname.match(/^\/r\/[^/]*\/wiki\/(.+)\.json$/);
+    let canonical_path = page.page.canonical_path;
+    if (rumatch) {
+        canonical_path = rumatch[1]!;
+    } else {
+        console.warn("fetchWikipage norumatch", {result_url, ruparsed, rumatch, canonical_path});
+    }
+    client.addDirty(client.data.wikipages.setAndList(stringify(page), info));
+    if (opt?.canonicalize && page.page.canonical_path !== canonical_path) {
+        throw new Error(`canonical path mismatch: ${JSON.stringify([page.page.canonical_path, canonical_path])}`);
+    }
+    return {canonical: {page: {subreddit: page.page.subreddit, canonical_path}, v: page.v, v2: page.v2}};
 }
 
 export async function sortPage2(client: RedditClient, group: Generic.Opaque<"sort_group">, option: Generic.Opaque<"sort_option">): Promise<void> {

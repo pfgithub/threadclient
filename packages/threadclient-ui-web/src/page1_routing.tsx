@@ -41,6 +41,17 @@ export function navigate({path, page, mode}: {
     mode?: undefined | "navigate" | "replace",
 }): void {
     if(path.startsWith("/")) path = path.replace("/", "#") || "#/";
+    if(path.startsWith("##")) {
+        // oops don't actually go anywhere
+        const id = `ID<${path.substring(2)}>`
+        const elem = document.getElementById(id);
+        if (elem) {
+            elem.scrollIntoView();
+        } else {
+            alert("element not found: " + id);
+        }
+        return;
+    }
     const hstate: HistoryState = {key: uuid()};
     if(mode === "replace") {
         history.replaceState(hstate, "", path);

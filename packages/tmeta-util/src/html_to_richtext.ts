@@ -56,6 +56,14 @@ function childListItemsToRichtextListItems(meta: GenMeta, nodes: NodeListOf<Chil
         return [rt.ili(rt.error("Unsupported List Item Node", node))];
     });
 }
+function updateUrlBase(url: string): string {
+    try {
+        const url = new URL(url, "https://www.reddit.com");
+        return url.toString();
+    }catch(e) {
+        return url;
+    }
+}
 function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic.Richtext.Paragraph[] | undefined {
     if(node instanceof Text) {
         return undefined;
@@ -80,19 +88,23 @@ function contentParagraphToRichtextParagraph(meta: GenMeta, node: Node): Generic
         };
 
         if(node.nodeName === "P") {
+            if (node.childElementCount === 1 && node.childNodes[0].nodeName === "IMG") {
+                const ch = node.childNodes[0]!;
+                return [{kind: "body", body: {kind: "captioned_image", url: updateUrlBase(ch.getAttribute("src") ?? "error"), alt: ch.getAttribute("alt") ?? undefined}}];
+            }
             return noClasses(rt.p(...contentSpansToRichtextSpans(meta, node.childNodes, {})));
         }else if(node.nodeName === "H1") {
-            return noClasses(rt.hn(1, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
+            return noClasses(rt.hn({l: 1, id: node.id || undefined}, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
         }else if(node.nodeName === "H2") {
-            return noClasses(rt.hn(2, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
+            return noClasses(rt.hn({l: 2, id: node.id || undefined}, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
         }else if(node.nodeName === "H3") {
-            return noClasses(rt.hn(3, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
+            return noClasses(rt.hn({l: 3, id: node.id || undefined}, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
         }else if(node.nodeName === "H4") {
-            return noClasses(rt.hn(4, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
+            return noClasses(rt.hn({l: 4, id: node.id || undefined}, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
         }else if(node.nodeName === "H5") {
-            return noClasses(rt.hn(5, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
+            return noClasses(rt.hn({l: 5, id: node.id || undefined}, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
         }else if(node.nodeName === "H6") {
-            return noClasses(rt.hn(6, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
+            return noClasses(rt.hn({l: 6, id: node.id || undefined}, ...contentSpansToRichtextSpans(meta, node.childNodes, {})));
         }else if(node.nodeName === "HR") {
             return noClasses(rt.hr());
         }else if(node.nodeName === "UL") {

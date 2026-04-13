@@ -28,7 +28,7 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): (
         href = href.replace("raw!", "");
         is_raw = true;
     }
-    if(!href.startsWith("http") && !href.startsWith("/")) {
+    if(!href.startsWith("http") && !href.startsWith("/") && !href.startsWith("#")) {
         return {kind: "error", title: href};
     }
     // consider just returning "#https://www.reddit.com/" instead of having this url replacement logic
@@ -39,6 +39,7 @@ export function unsafeLinkToSafeLink(client_id: string, href: string): (
         if (converted) href = `/${converted.client}${converted.path}`;
     }
     if(href.startsWith("/")) return {kind: "link", url: href.replace("/", "#"), external: false};
+    if(href.startsWith("#")) return {kind: "link", url: `#${href}`, external: false};
     return {kind: "link", url: href, external: true};
 }
 

@@ -580,6 +580,7 @@ export declare namespace Richtext {
     } | {
         kind: "heading",
         level: number,
+        id?: string,
         children: Span[],
     } | {
         kind: "horizontal_line",
@@ -1312,7 +1313,7 @@ function rtkind<C extends string, T, I = undefined>(kind: C, data: T, children?:
 export const rt = {
     kind: rtkind,
     p: (...items: Richtext.Span[]): Richtext.Paragraph => rt.kind("paragraph", {}, items),
-    hn: (l: number, ...items: Richtext.Span[]): Richtext.Paragraph => rt.kind("heading", {level: l}, items),
+    hn: (l: number | {l: number, id: string}, ...items: Richtext.Span[]): Richtext.Paragraph => rt.kind("heading", typeof l === "number" ? {level: l} : {level: l.l, id: l.id}, items),
     h1: (...items: Richtext.Span[]): Richtext.Paragraph => rt.hn(1, ...items),
     h2: (...items: Richtext.Span[]): Richtext.Paragraph => rt.hn(2, ...items),
     ul: (...items: Richtext.ListItem[]): Richtext.Paragraph => rt.kind("list", {ordered: false}, items),
