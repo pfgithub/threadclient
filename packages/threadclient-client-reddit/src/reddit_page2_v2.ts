@@ -31,6 +31,23 @@ Nice to have, not related to feature parity:
 - [ ] url -> Link<string>
 - [ ] url is the external link, not the threadclient link. ui adds 'View on reddit.com' action automatically instead of us adding it.
 - [ ] page2 notifications (in client, there is a notifications thing. and other stuff)
+- [ ] user settings
+  - https://www.reddit.com/dev/api/oauth/#GET_api_v1_me_prefs
+  - consider instead of passing tokens, we can pass settings which would include tokens? I think that makes sense.
+    - the client would have to manage multiaccount but that's fine. that's probably for the best?
+- [ ] mysubreddits
+- [ ] flair: https://www.reddit.com/dev/api/oauth/#scope_flair
+  - flairselector, selectflair, setflairenabled, user_flair, user_flair_v2. link_flair is implemented.
+- [ ] modposts: https://www.reddit.com/dev/api/oauth/#scope_modposts
+- [ ] wikiread:
+  - https://www.reddit.com/dev/api/oauth/#GET_wiki_discussions_{page}
+  - revision history & compare
+  - recent changes for the whole wiki
+- [ ] modwiki: https://www.reddit.com/dev/api/oauth/#scope_modwiki
+- [ ] announcements: https://www.reddit.com/dev/api/oauth/#scope_announcements
+- [ ] moderator:
+  - modposts, modwiki, modnote, modothers, modmail, modlog, modconfig, livemanage, 
+- ... lots of stuff, mainly write/mod things we are missing https://www.reddit.com/dev/api/oauth
 */
 
 export type UTLRes = {
