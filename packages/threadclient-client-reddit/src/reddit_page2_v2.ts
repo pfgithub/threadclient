@@ -2042,6 +2042,11 @@ function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"
         for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent);
     }
 }
+function addT2(client: RedditClient, t2: Reddit.T2): void {
+    const username = asLowercaseString(t2.data.name);
+    client.addDirty(client.data.user_abouts.setAndList(stringify({username}), t2));
+    client.addDirty(client.data.subreddit_t5s.setAndList(stringify({sr_name: asLowercaseString(`u_${username}`)}), {kind: "t5", data: t2.data.subreddit}));
+}
 
 export async function loadPage2v2(
     content: Generic.Page2Content,
@@ -2194,7 +2199,7 @@ export async function loadPage2v2(
         }, true);
     } else if (data.kind === "user_identity") {
         const info = await redditRequest(`/user/${ec(data.user.username)}/about`, {method: "GET"});
-        client.addDirty(client.data.user_abouts.setAndList(stringify(data.user), info));
+        addT2(client, info);
     } else if (data.kind === "user_moderated_subreddits") {
         const info = await redditRequest(`/user/${ec(data.user.username)}/moderated_subreddits`, {method: "GET"});
         client.addDirty(client.data.user_moderated_subreddits.setAndList(stringify(data.user), info));
@@ -2216,6 +2221,7 @@ async function fetchWikipage(client: RedditClient, page: BaseRevisedWikipage, op
         console.warn("fetchWikipage norumatch", {result_url, ruparsed, rumatch, canonical_path});
     }
     client.addDirty(client.data.wikipages.setAndList(stringify(page), info));
+    addT2(client, info.data.revision_by);
     if (opt?.canonicalize && page.page.canonical_path !== canonical_path) {
         throw new Error(`canonical path mismatch: ${JSON.stringify([page.page.canonical_path, canonical_path])}`);
     }
