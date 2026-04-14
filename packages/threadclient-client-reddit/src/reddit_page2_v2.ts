@@ -699,6 +699,16 @@ export type RedditLinkDescriptors = {
     },
 };
 
+type SpecialSubreddit = {
+    description: string,
+};
+const special_subreddits = new Map<string | null, SpecialSubreddit>([
+    [null, {description: "Posts from your subscribed subreddits"}],
+    ["all", {description: "All posts from all subreddits"}],
+    ["popular", {description: "Filtered posts from all subreddits"}],
+    ["friends", {description: "Posts from your friends"}],
+]);
+
 function moreBase(more: Reddit.More, sort: PostSort): BaseMore2 {
     return {parent_fullname: more.data.parent_id, first_child_id: more.data.children[0] ?? null, sort};
 }
@@ -1066,37 +1076,16 @@ export const resolvers: {
     },
     subreddit_card(client, base): Generic.ReadLinkResult<Generic.FilledIdentityCard> | null {
         // arguably these should not use subreddit_card
-        if (base.sr_name == null) {
-            return {error: null, value: {
-                names: {display: "Home", raw: "/"},
-                pfp: null,
-                theme: {banner: null},
-                description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "Posts from your subscribed subreddits", styles: {}}]}]},
-                actions: {main_counter: null},
-                menu: null,
-                raw_value: null,
-            }};
-        }else if (base.sr_name === "all") {
-            return {error: null, value: {
-                names: {display: "All", raw: "r/all"},
-                pfp: null,
-                theme: {banner: null},
-                description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "All posts from all subreddits", styles: {}}]}]},
-                actions: {main_counter: null},
-                menu: null,
-                raw_value: null,
-            }};
-        } else if (base.sr_name === "popular") {
-            return {error: null, value: {
-                names: {display: "Popular", raw: "r/popular"},
-                pfp: null,
-                theme: {banner: null},
-                description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: "Filtered posts from all subreddits", styles: {}}]}]},
-                actions: {main_counter: null},
-                menu: null,
-                raw_value: null,
-            }};
-        }
+        const special = special_subreddits.get(base.sr_name);
+        if (special) return {error: null, value: {
+            names: {display: "Home", raw: "/"},
+            pfp: null,
+            theme: {banner: null},
+            description: {kind: "richtext", content: [{kind: "paragraph", children: [{kind: "text", text: special.description, styles: {}}]}]},
+            actions: {main_counter: null},
+            menu: null,
+            raw_value: null,
+        }};
 
         const widgets = client.data.widgets.get(stringify(base));
         const t5 = client.data.subreddit_t5s.get(stringify(base));
@@ -1111,7 +1100,7 @@ export const resolvers: {
         })};
     },
     subreddit_widgets(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
-        if (base.sr_name == null || base.sr_name === "all" || base.sr_name === "popular") return {error: null, value: []};
+        if (special_subreddits.has(base.sr_name)) return {error: null, value: []};
 
         const widgets = client.data.widgets.get(stringify(base));
         const t5 = client.data.subreddit_t5s.get(stringify(base));

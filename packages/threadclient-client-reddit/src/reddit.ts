@@ -3670,6 +3670,7 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
         const cache_text = JSON.stringify([full_url, fetchopts]);
         const prev_cache = request_cache.get(cache_text);
         if(prev_cache != null && (opts.cache ?? false)) return prev_cache as Reddit.Requests[Path]["response"];
+        let enotloggedin = false;
         const [status, res] = await fetch(full_url, fetchopts).then(async (v) => {
             const ratelimit_used = v.headers.get("x-ratelimit-used") ?? "1";
             const ratelimit_remaining = v.headers.get("x-ratelimit-remaining") ?? "1";
@@ -3679,7 +3680,8 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
 
             try {
                 const resp_url = new URL(v.url);
-                if (resp_url.pathname.startsWith("/login/.json")) {
+                if (resp_url.pathname.endsWith("/login/.json")) {
+                    enotloggedin = true;
                     return [403, {error: "not logged in"} as Reddit.Requests[Path]["response"]] as const;
                 }
             } catch (e) {}
@@ -3691,6 +3693,7 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
         if(status !== 200) {
             if(opts.onstatus) return opts.onstatus(status, res);
             console.log(status, res);
+            if (enotloggedin) throw new Error("You must be logged in to view this page");
             throw new Error("got status "+status);
         }
 
