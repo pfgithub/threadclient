@@ -3006,6 +3006,8 @@ export const client_base: ThreadClientImplements = {
                     }], replies: []}},
                     display_style: "comments-view",
                 };
+            }else if(parsed.kind === "special") {
+                throw new Error("special is not supported in page1");
             }else assertNever(parsed);
 
             return pathFromListingRaw(pathraw, parsed, {sidebar: [{
